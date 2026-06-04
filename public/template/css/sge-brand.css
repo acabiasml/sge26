@@ -1,0 +1,177 @@
+:root {
+    --sge-brown: #7a3f27;
+    --sge-brown-dark: #552819;
+    --sge-green: #5f7f3d;
+    --sge-orange: #f37021;
+    --sge-cream: #f6df8f;
+    --sge-blue: #3f86a8;
+    --sge-paper: #fffaf0;
+    --sge-ink: #2f241f;
+}
+
+.bg-gradient-primary {
+    background-color: var(--sge-brown);
+    background-image:
+        radial-gradient(circle at 18% 20%, rgba(243, 112, 33, .35) 0, transparent 28%),
+        radial-gradient(circle at 80% 12%, rgba(63, 134, 168, .28) 0, transparent 26%),
+        linear-gradient(180deg, var(--sge-brown) 10%, var(--sge-brown-dark) 100%);
+    background-size: cover;
+}
+
+.bg-primary,
+.badge-primary,
+.btn-primary {
+    background-color: var(--sge-brown) !important;
+}
+
+.border-left-primary {
+    border-left-color: var(--sge-brown) !important;
+}
+
+.text-primary,
+a {
+    color: var(--sge-brown);
+}
+
+a:hover {
+    color: var(--sge-brown-dark);
+}
+
+.btn-primary {
+    border-color: var(--sge-brown) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background-color: var(--sge-brown-dark) !important;
+    border-color: var(--sge-brown-dark) !important;
+}
+
+.btn-google {
+    background-color: var(--sge-orange);
+    border-color: var(--sge-orange);
+}
+
+.btn-google:hover,
+.btn-google:focus {
+    background-color: #d95f18;
+    border-color: #d95f18;
+}
+
+.sidebar-dark .nav-item.active .nav-link,
+.sidebar-dark .nav-item .nav-link:focus,
+.sidebar-dark .nav-item .nav-link:hover {
+    color: var(--sge-cream);
+}
+
+.sidebar-dark .sidebar-brand {
+    color: var(--sge-cream);
+}
+
+.sge-sidebar-brand-mark {
+    width: 56px;
+    height: 56px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 56px;
+}
+
+.sge-sidebar-brand-mark img {
+    width: 48px !important;
+    max-height: 48px;
+    height: auto;
+    object-fit: contain;
+    filter:
+        drop-shadow(0 0 1px rgba(255, 250, 240, .95))
+        drop-shadow(0 0 5px rgba(255, 250, 240, .7))
+        drop-shadow(0 .25rem .45rem rgba(47, 36, 31, .32));
+}
+
+.sge-login-card {
+    border-radius: .5rem;
+}
+
+.sge-login-logo {
+    max-width: 190px;
+    width: 100%;
+    height: auto;
+    margin: 0 auto 1.25rem;
+}
+
+.sge-login-kicker {
+    color: var(--sge-green);
+    font-weight: 700;
+}
+
+.sge-maintainer {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .6rem;
+    margin-top: .55rem;
+    color: #858796;
+    font-size: .72rem;
+}
+
+.sge-maintainer img {
+    width: 74px;
+    height: auto;
+    padding: .2rem .3rem;
+    background: #fff;
+    border: 1px solid #edf0f5;
+    border-radius: .25rem;
+}
+
+.sge-login-image {
+    background:
+        linear-gradient(135deg, rgba(122, 63, 39, .08), rgba(246, 223, 143, .24)),
+        var(--sge-paper);
+}
+
+.sge-login-image-inner {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    text-align: center;
+}
+
+.sge-login-image-inner img {
+    width: min(82%, 360px);
+    height: auto;
+}
+
+.sge-login-image-caption {
+    margin: 1.5rem 0 0;
+    color: var(--sge-brown);
+    font-weight: 700;
+}
+
+[wire\:id] .table {
+    color: #5a5c69;
+}
+
+[wire\:id] .table th {
+    font-size: .72rem;
+    text-transform: uppercase;
+    color: #858796;
+    border-top: 0;
+    white-space: nowrap;
+}
+
+[wire\:id] .form-control,
+[wire\:id] .custom-select {
+    border-radius: .25rem;
+}
+
+[wire\:id] [type="search"] {
+    max-width: 22rem;
+}
+
+[wire\:id] svg {
+    width: 1rem;
+    height: 1rem;
+}
