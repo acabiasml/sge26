@@ -15,7 +15,7 @@
 <div class="form-row">
     <div class="form-group col-md-4">
         <label for="cnpj">CNPJ</label>
-        <input id="cnpj" name="cnpj" class="form-control @error('cnpj') is-invalid @enderror" value="{{ old('cnpj', $school->cnpj ?? '') }}">
+        <input id="cnpj" name="cnpj" data-mask="cnpj" inputmode="numeric" autocomplete="off" class="form-control @error('cnpj') is-invalid @enderror" value="{{ old('cnpj', $school->cnpj ?? '') }}">
         @error('cnpj') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
@@ -37,6 +37,45 @@
     <input id="email" name="email" type="email" inputmode="email" autocomplete="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', $school->email ?? '') }}">
     @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
 </div>
+
+<h2 class="h6 text-gray-800 mt-4">Dados institucionais para documentos</h2>
+
+<div class="form-row">
+    <div class="form-group col-md-4">
+        <label for="founded_at">Data de fundação</label>
+        <input id="founded_at" name="founded_at" type="date" class="form-control @error('founded_at') is-invalid @enderror" value="{{ old('founded_at', isset($school) && $school->founded_at ? $school->founded_at->format('Y-m-d') : '') }}">
+        @error('founded_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+
+    <div class="form-group col-md-8">
+        <label for="website">Site</label>
+        <input id="website" name="website" type="url" inputmode="url" class="form-control @error('website') is-invalid @enderror" value="{{ old('website', $school->website ?? '') }}" placeholder="https://">
+        @error('website') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+</div>
+
+<div class="form-group">
+    <label for="letterhead_text">Texto institucional para papel timbrado</label>
+    <textarea id="letterhead_text" name="letterhead_text" rows="4" class="form-control @error('letterhead_text') is-invalid @enderror">{{ old('letterhead_text', $school->letterhead_text ?? '') }}</textarea>
+    @error('letterhead_text') <div class="invalid-feedback">{{ $message }}</div> @enderror
+</div>
+
+<div class="form-row align-items-end">
+    <div class="form-group col-md-8">
+        <label for="logo">Logo da escola</label>
+        <input id="logo" name="logo" type="file" accept="image/*" class="form-control-file @error('logo') is-invalid @enderror">
+        <small class="form-text text-muted">PNG ou JPG, até 2 MB.</small>
+        @error('logo') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+    </div>
+
+    @if (! empty($school->logo_path))
+        <div class="form-group col-md-4 text-md-right">
+            <img src="{{ $school->logoUrl() }}" alt="Logo atual da escola" style="max-height: 72px; max-width: 180px;">
+        </div>
+    @endif
+</div>
+
+<h2 class="h6 text-gray-800 mt-4">Endereço</h2>
 
 <div class="form-row">
     <div class="form-group col-md-6">
@@ -67,7 +106,13 @@
 
     <div class="form-group col-md-2">
         <label for="state">UF</label>
-        <input id="state" name="state" maxlength="2" class="form-control @error('state') is-invalid @enderror" value="{{ old('state', $school->state ?? '') }}">
+        @php($selectedState = old('state', $school->state ?? ''))
+        <select id="state" name="state" class="form-control @error('state') is-invalid @enderror">
+            <option value="">Selecione</option>
+            @foreach (\App\Support\BrazilianStates::codes() as $state)
+                <option value="{{ $state }}" @selected($selectedState === $state)>{{ $state }}</option>
+            @endforeach
+        </select>
         @error('state') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 

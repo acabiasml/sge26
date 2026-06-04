@@ -21,6 +21,13 @@ class Person extends Model
         'institutional_email',
         'personal_email',
         'phone',
+        'address',
+        'number',
+        'district',
+        'city',
+        'state',
+        'postal_code',
+        'address_complement',
         'active',
         'profile_completed_at',
     ];
@@ -50,6 +57,16 @@ class Person extends Model
     public function schoolRoles(): HasMany
     {
         return $this->hasMany(PersonSchoolRole::class);
+    }
+
+    public function relationships(): HasMany
+    {
+        return $this->hasMany(PersonRelationship::class);
+    }
+
+    public function inverseRelationships(): HasMany
+    {
+        return $this->hasMany(PersonRelationship::class, 'related_person_id');
     }
 
     public function primaryActiveRole(): ?PersonSchoolRole

@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PersonController;
+use App\Http\Controllers\PersonRelationshipController;
 use App\Http\Controllers\PersonRoleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RecordPdfController;
@@ -36,6 +37,8 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
         ->names('people')
         ->except(['destroy']);
     Route::get('pessoas/{person}/pdf', [RecordPdfController::class, 'person'])->name('people.pdf');
+    Route::post('pessoas/{person}/relacoes', [PersonRelationshipController::class, 'store'])->name('people.relationships.store');
+    Route::delete('pessoas/{person}/relacoes/{relationship}', [PersonRelationshipController::class, 'destroy'])->name('people.relationships.destroy');
 
     Route::get('vinculos', [PersonRoleController::class, 'index'])->name('people.roles.index');
     Route::post('pessoas/{person}/vinculos', [PersonRoleController::class, 'store'])->name('people.roles.store');

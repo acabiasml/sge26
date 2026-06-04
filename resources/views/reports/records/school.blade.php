@@ -7,6 +7,7 @@
         header { border-bottom: 2px solid #7a3f27; margin-bottom: 18px; padding-bottom: 10px; }
         h1 { color: #7a3f27; font-size: 22px; margin: 0 0 4px; }
         h2 { color: #5f7f3d; font-size: 15px; margin: 18px 0 8px; }
+        .school-logo { max-height: 70px; max-width: 160px; float: right; margin-left: 16px; }
         table { width: 100%; border-collapse: collapse; }
         th { width: 28%; text-align: left; background: #f6f0ea; padding: 7px; }
         td { padding: 7px; border-bottom: 1px solid #eee2dc; }
@@ -16,6 +17,9 @@
 </head>
 <body>
     <header>
+        @if ($school->logo_path)
+            <img class="school-logo" src="{{ public_path($school->logo_path) }}" alt="Logo da escola">
+        @endif
         <h1>Ficha da escola</h1>
         <div class="meta">
             Beabá - Sistema de Gestão Escolar<br>
@@ -31,8 +35,11 @@
         <tr><th>Razão social</th><td>{{ $school->legal_name ?: '-' }}</td></tr>
         <tr><th>CNPJ</th><td>{{ $school->cnpj ?: '-' }}</td></tr>
         <tr><th>INEP</th><td>{{ $school->inep ?: '-' }}</td></tr>
+        <tr><th>Fundação</th><td>{{ $school->founded_at?->format('d/m/Y') ?? '-' }}</td></tr>
         <tr><th>Telefone</th><td>{{ $school->phone ?: '-' }}</td></tr>
         <tr><th>E-mail</th><td>{{ $school->email ?: '-' }}</td></tr>
+        <tr><th>Site</th><td>{{ $school->website ?: '-' }}</td></tr>
+        <tr><th>Texto institucional</th><td>{{ $school->letterhead_text ?: '-' }}</td></tr>
         <tr><th>Situação</th><td>{{ $school->active ? 'Ativa' : 'Inativa' }}</td></tr>
     </table>
 

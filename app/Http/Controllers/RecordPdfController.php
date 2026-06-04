@@ -34,7 +34,7 @@ class RecordPdfController extends Controller
         $issuedDocument = $this->issuedDocument($request, 'person-record', 'Ficha da pessoa', null, $person->id);
 
         $pdf = Pdf::loadView('reports.records.person', [
-            'person' => $person->load('schoolRoles.school'),
+            'person' => $person->load(['schoolRoles.school', 'relationships.relatedPerson']),
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
         ])->setPaper('a4');

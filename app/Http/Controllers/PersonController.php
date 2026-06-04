@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
+use App\Support\BrazilianStates;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -68,10 +69,11 @@ class PersonController extends Controller
         abort_unless($this->canSeePerson($request, $person), 403);
 
         return view('people.show', [
-            'person' => $person->load('schoolRoles.school'),
+            'person' => $person->load(['schoolRoles.school', 'relationships.relatedPerson']),
             'schools' => $request->user()->isAdministrator()
                 ? School::query()->where('active', true)->orderBy('name')->get()
                 : School::query()->whereIn('id', $request->user()->manageableSchoolIds())->orderBy('name')->get(),
+            'relationshipPeople' => $this->relationshipPeople($request, $person),
             'positions' => PersonSchoolRole::POSITION_LABELS,
         ]);
     }
@@ -120,6 +122,21 @@ class PersonController extends Controller
         return $person->schoolRoles()
             ->whereIn('school_id', $user->manageableSchoolIds())
             ->exists();
+    }
+
+    private function relationshipPeople(Request $request, Person $person)
+    {
+        $query = Person::query()
+            ->whereKeyNot($person->id)
+            ->orderBy('full_name');
+
+        if (! $request->user()->isAdministrator()) {
+            $query->whereHas('schoolRoles', function ($roles) use ($request): void {
+                $roles->whereIn('school_id', $request->user()->manageableSchoolIds());
+            });
+        }
+
+        return $query->get(['id', 'full_name', 'cpf', 'phone']);
     }
 
     /**
@@ -195,6 +212,13 @@ class PersonController extends Controller
             'birth_date' => ['nullable', 'date'],
             'personal_email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:255'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'number' => ['nullable', 'string', 'max:255'],
+            'district' => ['nullable', 'string', 'max:255'],
+            'city' => ['nullable', 'string', 'max:255'],
+            'state' => ['nullable', 'string', 'size:2', Rule::in(BrazilianStates::codes())],
+            'postal_code' => ['nullable', 'string', 'max:255'],
+            'address_complement' => ['nullable', 'string', 'max:255'],
             'active' => ['nullable', 'boolean'],
         ];
 

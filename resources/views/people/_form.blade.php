@@ -63,3 +63,57 @@
         </div>
     @endif
 </div>
+
+<h2 class="h6 text-gray-800 mt-4">Endereço</h2>
+
+<div class="form-row">
+    <div class="form-group col-md-6">
+        <label for="address">Endereço</label>
+        <input id="address" name="address" autocomplete="street-address" class="form-control @error('address') is-invalid @enderror" value="{{ old('address', $person->address ?? '') }}">
+        @error('address') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+
+    <div class="form-group col-md-2">
+        <label for="number">Número</label>
+        <input id="number" name="number" class="form-control @error('number') is-invalid @enderror" value="{{ old('number', $person->number ?? '') }}">
+        @error('number') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+
+    <div class="form-group col-md-4">
+        <label for="district">Bairro</label>
+        <input id="district" name="district" class="form-control @error('district') is-invalid @enderror" value="{{ old('district', $person->district ?? '') }}">
+        @error('district') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+</div>
+
+<div class="form-row">
+    <div class="form-group col-md-5">
+        <label for="city">Cidade</label>
+        <input id="city" name="city" class="form-control @error('city') is-invalid @enderror" value="{{ old('city', $person->city ?? '') }}">
+        @error('city') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+
+    <div class="form-group col-md-2">
+        <label for="state">UF</label>
+        @php($selectedState = old('state', $person->state ?? ''))
+        <select id="state" name="state" class="form-control @error('state') is-invalid @enderror">
+            <option value="">Selecione</option>
+            @foreach (\App\Support\BrazilianStates::codes() as $state)
+                <option value="{{ $state }}" @selected($selectedState === $state)>{{ $state }}</option>
+            @endforeach
+        </select>
+        @error('state') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+
+    <div class="form-group col-md-5">
+        <label for="postal_code">CEP</label>
+        <input id="postal_code" name="postal_code" data-mask="cep" inputmode="numeric" autocomplete="postal-code" class="form-control @error('postal_code') is-invalid @enderror" value="{{ old('postal_code', $person->postal_code ?? '') }}">
+        @error('postal_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+</div>
+
+<div class="form-group">
+    <label for="address_complement">Complemento</label>
+    <input id="address_complement" name="address_complement" class="form-control @error('address_complement') is-invalid @enderror" value="{{ old('address_complement', $person->address_complement ?? '') }}">
+    @error('address_complement') <div class="invalid-feedback">{{ $message }}</div> @enderror
+</div>

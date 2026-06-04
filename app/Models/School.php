@@ -17,8 +17,12 @@ class School extends Model
         'legal_name',
         'cnpj',
         'inep',
+        'founded_at',
         'phone',
         'email',
+        'website',
+        'letterhead_text',
+        'logo_path',
         'address',
         'district',
         'number',
@@ -32,11 +36,17 @@ class School extends Model
     {
         return [
             'active' => 'boolean',
+            'founded_at' => 'date',
         ];
     }
 
     public function roles(): HasMany
     {
         return $this->hasMany(PersonSchoolRole::class);
+    }
+
+    public function logoUrl(): ?string
+    {
+        return $this->logo_path ? asset($this->logo_path) : null;
     }
 }

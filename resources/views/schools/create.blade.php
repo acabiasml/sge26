@@ -6,7 +6,7 @@
 @section('content')
     <div class="card shadow mb-4">
         <div class="card-body">
-            <form method="POST" action="{{ route('schools.store') }}">
+            <form method="POST" action="{{ route('schools.store') }}" enctype="multipart/form-data">
                 @csrf
                 @include('schools._form', ['school' => new \App\Models\School(['active' => true])])
                 <button class="btn btn-primary" type="submit">Salvar escola</button>

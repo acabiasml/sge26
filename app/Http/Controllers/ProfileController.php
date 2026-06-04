@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\BrazilianStates;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -27,6 +28,13 @@ class ProfileController extends Controller
             'birth_date' => ['required', 'date'],
             'personal_email' => ['nullable', 'email', 'max:255'],
             'phone' => ['required', 'string', 'max:255'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'number' => ['nullable', 'string', 'max:255'],
+            'district' => ['nullable', 'string', 'max:255'],
+            'city' => ['nullable', 'string', 'max:255'],
+            'state' => ['nullable', 'string', 'size:2', Rule::in(BrazilianStates::codes())],
+            'postal_code' => ['nullable', 'string', 'max:255'],
+            'address_complement' => ['nullable', 'string', 'max:255'],
             'active' => ['nullable', 'boolean'],
         ]);
 

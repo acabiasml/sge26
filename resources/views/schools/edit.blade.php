@@ -12,7 +12,7 @@
 @section('content')
     <div class="card shadow mb-4">
         <div class="card-body">
-            <form method="POST" action="{{ route('schools.update', $school) }}">
+            <form method="POST" action="{{ route('schools.update', $school) }}" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
                 @include('schools._form', ['school' => $school])
