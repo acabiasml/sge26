@@ -2,11 +2,22 @@
 
 Beabá é um sistema de gestão escolar desenvolvido em Laravel para substituir, aos poucos, uma base legada. A proposta é construir um sistema novo sem perder a possibilidade de migração dos dados antigos.
 
-O projeto está sendo desenvolvido inicialmente para o contexto das escolas ligadas ao domínio institucional `ctjj.org`, com login pelo Google Workspace.
+O projeto está sendo desenvolvido para escolas mantidas pelo Centro Técnico Juvenil de Jarudore, ligadas ao domínio institucional `ctjj.org`, com login pelo Google Workspace. O Centro Técnico Juvenil de Jarudore também recebe apoio e recursos da Operação Mato Grosso.
+
+## Contexto Institucional
+
+O sistema atenderá inicialmente três escolas:
+
+- Liceu Pedagógico São Francisco de Assis, no distrito de Jarudore, em Poxoréu-MT. A unidade mantém um internato masculino, atende do 9º ano do Ensino Fundamental ao 3º ano do Ensino Médio e oferece, no Ensino Médio, curso técnico em Móveis com 1200 horas como itinerário formativo.
+- Lar São Domingos Sávio, em Naboreiro, Rondonópolis-MT. A unidade mantém um internato feminino e atende turmas do 6º ano do Ensino Fundamental ao 3º ano do Ensino Médio.
+- Escola Laura Vicuña, em General Carneiro-MT, com salas anexas em Barra do Garças-MT. A unidade atende turmas do 6º ano do Ensino Fundamental ao 3º ano do Ensino Médio.
+
+Essa configuração importa para o desenho do sistema: há escolas com internato, escolas com salas anexas, diferentes etapas de ensino, itinerário formativo técnico e vínculos de pessoas que podem atravessar mais de uma unidade.
 
 ## Objetivos
 
 - Centralizar o cadastro de escolas, pessoas e vínculos escolares.
+- Representar corretamente unidades, internatos, salas anexas e ofertas de ensino.
 - Permitir que uma mesma pessoa tenha mais de um papel no sistema, inclusive em escolas diferentes.
 - Registrar auditoria completa das alterações realizadas.
 - Emitir relatórios e documentos com identificador único verificável no próprio sistema.

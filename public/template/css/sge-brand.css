@@ -104,7 +104,8 @@ a:hover {
     font-weight: 700;
 }
 
-.sge-maintainer {
+.sge-maintainer,
+.sge-institutional-logos {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -114,13 +115,29 @@ a:hover {
     font-size: .72rem;
 }
 
-.sge-maintainer img {
+.sge-institutional-logos {
+    flex-wrap: wrap;
+    row-gap: .45rem;
+}
+
+.sge-institutional-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+}
+
+.sge-maintainer img,
+.sge-institutional-logo img {
     width: 74px;
     height: auto;
     padding: .2rem .3rem;
     background: #fff;
     border: 1px solid #edf0f5;
     border-radius: .25rem;
+}
+
+.sge-institutional-logo:first-child img {
+    width: 86px;
 }
 
 .sge-login-image {

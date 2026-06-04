@@ -54,9 +54,15 @@
 
                                     <div class="text-center">
                                         <span class="small text-gray-600">Acesso institucional</span>
-                                        <div class="sge-maintainer" aria-label="Mantenedora: Operação Mato Grosso">
-                                            <span>Mantenedora</span>
-                                            <img src="{{ asset('brand/operacao-mato-grosso.jpg') }}" alt="Operação Mato Grosso">
+                                        <div class="sge-institutional-logos" aria-label="Instituições vinculadas ao sistema">
+                                            <div class="sge-institutional-logo">
+                                                <span>Mantenedora</span>
+                                                <img src="{{ asset('brand/centro-tecnico-juvenil-de-jarudore.png') }}" alt="Centro Técnico Juvenil de Jarudore">
+                                            </div>
+                                            <div class="sge-institutional-logo">
+                                                <span>Apoio</span>
+                                                <img src="{{ asset('brand/operacao-mato-grosso.jpg') }}" alt="Operação Mato Grosso">
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
