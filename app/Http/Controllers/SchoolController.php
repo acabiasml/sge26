@@ -68,6 +68,21 @@ class SchoolController extends Controller
             ->with('status', 'Escola atualizada com sucesso.');
     }
 
+    public function destroy(Request $request, School $school): RedirectResponse
+    {
+        abort_unless($request->user()->canManageSchools(), 403);
+
+        if ($school->roles()->exists()) {
+            return redirect()->route('schools.index')
+                ->with('status', 'Não é possível excluir uma escola que possui vínculos cadastrados. Desative a escola se ela não estiver mais em uso.');
+        }
+
+        $school->delete();
+
+        return redirect()->route('schools.index')
+            ->with('status', 'Escola excluída com sucesso.');
+    }
+
     /**
      * @return array<string, mixed>
      */

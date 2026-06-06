@@ -118,7 +118,7 @@
 
     <div class="form-group col-md-5">
         <label for="postal_code">CEP</label>
-        <input id="postal_code" name="postal_code" class="form-control @error('postal_code') is-invalid @enderror" value="{{ old('postal_code', $school->postal_code ?? '') }}">
+        <input id="postal_code" name="postal_code" data-mask="cep" inputmode="numeric" autocomplete="postal-code" class="form-control @error('postal_code') is-invalid @enderror" value="{{ old('postal_code', $school->postal_code ?? '') }}">
         @error('postal_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 </div>

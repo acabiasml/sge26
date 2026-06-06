@@ -1,10 +1,17 @@
 <?php
 
+use App\Http\Controllers\AcademicPeriodController;
+use App\Http\Controllers\AcademicCalendarPdfController;
+use App\Http\Controllers\AcademicYearController;
+use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\CalendarDayController;
+use App\Http\Controllers\CalendarEventController;
+use App\Http\Controllers\DataQualityController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PersonContactController;
 use App\Http\Controllers\PersonController;
-use App\Http\Controllers\PersonRelationshipController;
 use App\Http\Controllers\PersonRoleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RecordPdfController;
@@ -13,11 +20,17 @@ use App\Http\Controllers\SchoolController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+
     return view('welcome');
 })->name('login');
 
 Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('auth.google.redirect');
 Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name('auth.google.callback');
+Route::get('/documentos/verificar', [ReportController::class, 'verifyForm'])->name('documents.verify.form');
+Route::post('/documentos/verificar', [ReportController::class, 'lookup'])->name('documents.verify.lookup');
 Route::get('/documentos/verificar/{code}', [ReportController::class, 'verify'])->name('documents.verify');
 
 Route::get('/dashboard', DashboardController::class)->middleware(['auth', 'profile.complete'])->name('dashboard');
@@ -29,7 +42,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::resource('escolas', SchoolController::class)
         ->parameters(['escolas' => 'school'])
         ->names('schools')
-        ->except(['show', 'destroy']);
+        ->except(['show']);
     Route::get('escolas/{school}/pdf', [RecordPdfController::class, 'school'])->name('schools.pdf');
 
     Route::resource('pessoas', PersonController::class)
@@ -37,8 +50,8 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
         ->names('people')
         ->except(['destroy']);
     Route::get('pessoas/{person}/pdf', [RecordPdfController::class, 'person'])->name('people.pdf');
-    Route::post('pessoas/{person}/relacoes', [PersonRelationshipController::class, 'store'])->name('people.relationships.store');
-    Route::delete('pessoas/{person}/relacoes/{relationship}', [PersonRelationshipController::class, 'destroy'])->name('people.relationships.destroy');
+    Route::post('pessoas/{person}/contatos', [PersonContactController::class, 'store'])->name('people.contacts.store');
+    Route::delete('pessoas/{person}/contatos/{contact}', [PersonContactController::class, 'destroy'])->name('people.contacts.destroy');
 
     Route::get('vinculos', [PersonRoleController::class, 'index'])->name('people.roles.index');
     Route::post('pessoas/{person}/vinculos', [PersonRoleController::class, 'store'])->name('people.roles.store');
@@ -46,6 +59,25 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::patch('pessoas/{person}/vinculos/{role}/desativar', [PersonRoleController::class, 'deactivate'])->name('people.roles.deactivate');
     Route::put('pessoas/{person}/vinculos/{role}', [PersonRoleController::class, 'update'])->name('people.roles.update');
     Route::delete('pessoas/{person}/vinculos/{role}', [PersonRoleController::class, 'destroy'])->name('people.roles.destroy');
+
+    Route::get('pendencias', [DataQualityController::class, 'index'])->name('data-quality.index');
+
+    Route::resource('anos-letivos', AcademicYearController::class)
+        ->parameters(['anos-letivos' => 'academicYear'])
+        ->names('academic-years');
+    Route::get('anos-letivos/{academicYear}/calendario-pdf', AcademicCalendarPdfController::class)->name('academic-years.calendar-pdf');
+    Route::post('anos-letivos/{academicYear}/periodos', [AcademicPeriodController::class, 'store'])->name('academic-years.periods.store');
+    Route::delete('anos-letivos/{academicYear}/periodos/{period}', [AcademicPeriodController::class, 'destroy'])->name('academic-years.periods.destroy');
+    Route::post('anos-letivos/{academicYear}/dias', [CalendarDayController::class, 'store'])->name('academic-years.days.store');
+    Route::delete('anos-letivos/{academicYear}/dias/{day}', [CalendarDayController::class, 'destroy'])->name('academic-years.days.destroy');
+
+    Route::get('eventos', [CalendarEventController::class, 'index'])->name('calendar-events.index');
+    Route::post('eventos', [CalendarEventController::class, 'store'])->name('calendar-events.store');
+    Route::delete('eventos/{event}', [CalendarEventController::class, 'destroy'])->name('calendar-events.destroy');
+
+    Route::get('recados', [AnnouncementController::class, 'index'])->name('announcements.index');
+    Route::post('recados', [AnnouncementController::class, 'store'])->name('announcements.store');
+    Route::delete('recados/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
 
     Route::get('auditoria', [AuditLogController::class, 'index'])->name('audit-logs.index');
     Route::patch('auditoria/fuso-horario', [AuditLogController::class, 'updateTimezone'])->name('audit-logs.timezone.update');

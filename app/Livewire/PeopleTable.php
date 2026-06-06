@@ -3,9 +3,12 @@
 namespace App\Livewire;
 
 use App\Models\Person;
+use App\Models\PersonSchoolRole;
+use App\Models\School;
 use Illuminate\Database\Eloquent\Builder;
 use Rappasoft\LaravelLivewireTables\DataTableComponent;
 use Rappasoft\LaravelLivewireTables\Views\Column;
+use Rappasoft\LaravelLivewireTables\Views\Filters\SelectFilter;
 
 class PeopleTable extends DataTableComponent
 {
@@ -43,6 +46,39 @@ class PeopleTable extends DataTableComponent
             Column::make('Ações')
                 ->label(fn (Person $row): string => view('livewire.tables.person-actions', ['person' => $row])->render())
                 ->html(),
+        ];
+    }
+
+    public function filters(): array
+    {
+        $user = auth()->user();
+        $schools = School::query()
+            ->when(! $user->isAdministrator(), fn (Builder $query) => $query->whereIn('id', $user->manageableSchoolIds()))
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->mapWithKeys(fn (string $name, int $id): array => [(string) $id => $name])
+            ->all();
+
+        return [
+            SelectFilter::make('Situação')
+                ->options([
+                    '' => 'Todas',
+                    '1' => 'Ativas',
+                    '0' => 'Inativas',
+                ])
+                ->filter(fn (Builder $builder, string $value) => $builder->where('active', $value === '1')),
+            SelectFilter::make('Papel')
+                ->options(['' => 'Todos'] + PersonSchoolRole::ROLE_LABELS)
+                ->filter(fn (Builder $builder, string $value) => $builder->whereHas(
+                    'schoolRoles',
+                    fn (Builder $roles) => $roles->where('role', $value)
+                )),
+            SelectFilter::make('Escola')
+                ->options(['' => 'Todas'] + $schools)
+                ->filter(fn (Builder $builder, string $value) => $builder->whereHas(
+                    'schoolRoles',
+                    fn (Builder $roles) => $roles->where('school_id', (int) $value)
+                )),
         ];
     }
 }

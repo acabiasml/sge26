@@ -1,27 +1,32 @@
+<p align="center">
+  <img src="public/brand/logo-square.png" alt="Logo do Beabá" width="160">
+</p>
+
 # Beabá - Sistema de Gestão Escolar
 
-Beabá é um sistema de gestão escolar desenvolvido em Laravel para substituir, aos poucos, uma base legada. A proposta é construir um sistema novo sem perder a possibilidade de migração dos dados antigos.
+Beabá é um sistema de gestão escolar desenvolvido em Laravel para substituir gradualmente bases legadas, preservando a possibilidade de migração dos dados antigos para uma estrutura nova, auditável e mais coerente com a realidade das escolas.
 
-O projeto está sendo desenvolvido para escolas mantidas pelo Centro Técnico Juvenil de Jarudore, ligadas ao domínio institucional `ctjj.org`, com login pelo Google Workspace. O Centro Técnico Juvenil de Jarudore também recebe apoio e recursos da Operação Mato Grosso.
+O projeto atende escolas mantidas pelo Centro Técnico Juvenil de Jarudore, com acesso institucional pelo domínio `ctjj.org` via Google Workspace. A Operação Mato Grosso aparece como apoiadora e parceira institucional.
 
-## Contexto Institucional
+## Contexto institucional
 
 O sistema atenderá inicialmente três escolas:
 
-- Liceu Pedagógico São Francisco de Assis, no distrito de Jarudore, em Poxoréu-MT. A unidade mantém um internato masculino, atende do 9º ano do Ensino Fundamental ao 3º ano do Ensino Médio e oferece, no Ensino Médio, curso técnico em Móveis com 1200 horas como itinerário formativo.
-- Lar São Domingos Sávio, em Naboreiro, Rondonópolis-MT. A unidade mantém um internato feminino e atende turmas do 6º ano do Ensino Fundamental ao 3º ano do Ensino Médio.
-- Escola Laura Vicuña, em General Carneiro-MT, com salas anexas em Barra do Garças-MT. A unidade atende turmas do 6º ano do Ensino Fundamental ao 3º ano do Ensino Médio.
+- **Liceu Pedagógico São Francisco de Assis**, no distrito de Jarudore, em Poxoréu-MT. Mantém internato masculino, atende do 9º ano do Ensino Fundamental ao 3º ano do Ensino Médio e oferece curso técnico em Móveis de 1200 horas como itinerário formativo no Ensino Médio.
+- **Lar São Domingos Sávio**, em Naboreiro, Rondonópolis-MT. Mantém internato feminino e atende turmas do 6º ano do Ensino Fundamental ao 3º ano do Ensino Médio.
+- **Escola Laura Vicuña**, em General Carneiro-MT, com salas anexas em Barra do Garças-MT. Atende turmas do 6º ano do Ensino Fundamental ao 3º ano do Ensino Médio.
 
-Essa configuração importa para o desenho do sistema: há escolas com internato, escolas com salas anexas, diferentes etapas de ensino, itinerário formativo técnico e vínculos de pessoas que podem atravessar mais de uma unidade.
+Essa realidade orienta a modelagem: pessoas podem ter vínculos em mais de uma escola, escolas podem ter dados institucionais próprios para documentos, e os registros históricos precisam sobreviver à migração.
 
 ## Objetivos
 
-- Centralizar o cadastro de escolas, pessoas e vínculos escolares.
-- Representar corretamente unidades, internatos, salas anexas e ofertas de ensino.
-- Permitir que uma mesma pessoa tenha mais de um papel no sistema, inclusive em escolas diferentes.
-- Registrar auditoria completa das alterações realizadas.
-- Emitir relatórios e documentos com identificador único verificável no próprio sistema.
-- Preservar caminho de migração da base antiga para a nova estrutura.
+- Centralizar o cadastro de escolas, pessoas, vínculos, responsáveis e contatos.
+- Permitir múltiplos papéis para a mesma pessoa, inclusive em escolas diferentes e períodos diferentes.
+- Registrar auditoria das alterações feitas no sistema.
+- Emitir documentos e relatórios em PDF e Excel.
+- Gerar código único de verificação para documentos emitidos.
+- Manter caminho seguro de importação das bases antigas.
+- Criar base para calendário escolar, recados, eventos, anos letivos e futura gestão acadêmica.
 
 ## Stack
 
@@ -37,47 +42,77 @@ Essa configuração importa para o desenho do sistema: há escolas com internato
 
 ## Modelo de acesso
 
-O sistema usa pessoas, usuários e vínculos como conceitos separados.
+O sistema separa três conceitos:
 
-Uma pessoa pode ser estudante, docente, equipe escolar, gestão ou administração. Esses papéis são registrados como vínculos, com data de início e fim. O fim pode ser indeterminado.
+- **Pessoa**: cadastro real da pessoa.
+- **Usuário**: credencial de acesso vinculada ao Google Workspace.
+- **Vínculo**: papel da pessoa no sistema, com escola e período quando aplicável.
 
 Papéis atuais:
 
-- Administração: acesso global ao sistema.
-- Gestão: acesso de gestão limitado à escola do vínculo.
-- Docência: vínculo docente.
-- Estudante: acesso para consultas próprias, notas e documentos.
-- Equipe escolar: acesso para dados próprios e futuras funções internas.
+- **Administração**: acesso global.
+- **Gestão**: acesso limitado à escola do vínculo.
+- **Docência**: vínculo docente.
+- **Estudante**: acesso futuro a dados próprios, notas e documentos.
+- **Equipe escolar**: funcionários e demais colaboradores.
 
-Para Gestão, também é registrado o cargo:
+Para Gestão, o sistema também registra a função:
 
 - Direção
 - Coordenação
 - Secretaria
 
-Uma mesma pessoa pode acumular vínculos. Por exemplo: gestão em uma escola e docência em outra.
+Uma pessoa pode acumular vínculos. Exemplo: gestão em uma escola e docência em outra.
 
 ## Regras principais
 
 - Não existe autocadastro livre.
-- Se ainda não houver Administração ativa, o primeiro login com e-mail `@ctjj.org` cria a primeira pessoa administradora.
-- Depois disso, só acessa quem tiver sido previamente cadastrado por Administração ou Gestão.
-- Todos os usuários acessam pelo e-mail institucional do Google Workspace.
+- Se ainda não houver Administração ativa, o primeiro login `@ctjj.org` cria a primeira pessoa administradora.
+- Depois disso, só acessa quem foi previamente cadastrado por Administração ou Gestão.
+- Todos os acessos usam e-mail institucional do Google Workspace.
 - CPF e e-mail institucional não podem se repetir.
 - A própria pessoa não pode alterar seu e-mail institucional, inclusive Administração.
-- Cadastro incompleto bloqueia o acesso às telas internas, principalmente quando falta CPF.
+- Cadastro incompleto bloqueia acesso às telas internas.
 - A última Administração ativa não pode se desativar, remover seu vínculo ou deixar o sistema sem Administração ativa.
 - Quando uma pessoa é desativada, seus vínculos ativos são encerrados.
+- Pessoas inativas não aparecem como pendência apenas por falta de dados.
+- Pessoa inativa sem CPF e e-mail institucional não pode receber novos vínculos nem emitir documentos.
+
+## Cadastros
+
+### Escolas
+
+O cadastro de escola mantém dados administrativos e institucionais usados no papel timbrado:
+
+- nome da escola;
+- razão social;
+- CNPJ;
+- código INEP;
+- telefone, e-mail e site;
+- endereço;
+- data de fundação;
+- texto institucional para cabeçalho;
+- logo da escola.
+
+### Pessoas
+
+O cadastro de pessoa concentra dados pessoais, endereço, CPF, e-mail institucional, e-mail pessoal, telefone e situação do cadastro.
+
+Responsáveis que não acessam o sistema, como pai, mãe ou responsável legal, são registrados em **Responsáveis e contatos**, sem criar uma pessoa com acesso ao sistema.
+
+### Vínculos
+
+Os vínculos ligam a pessoa a um papel, escola e período. Administração é global; Gestão, Docência, Estudante e Equipe escolar normalmente ficam vinculados a uma escola.
 
 ## Auditoria
 
 Alterações em dados auditáveis geram registros em `audit_logs`.
 
-A auditoria guarda:
+A auditoria registra:
 
 - quem fez a alteração;
-- pessoa autora da alteração;
-- papel usado pela pessoa no momento;
+- pessoa autora;
+- papel usado no momento;
 - escola relacionada, quando aplicável;
 - registro alterado;
 - ação realizada;
@@ -85,9 +120,9 @@ A auditoria guarda:
 - data e hora;
 - IP e navegador.
 
-A visualização padrão usa o fuso horário de Brasília (`America/Sao_Paulo`). Administração pode escolher outro fuso de visualização.
+A visualização padrão usa o fuso de Brasília (`America/Sao_Paulo`). Administração pode escolher outro fuso para visualização.
 
-## Relatórios e documentos
+## Documentos e relatórios
 
 O sistema gera relatórios em Excel e PDF para:
 
@@ -98,36 +133,90 @@ O sistema gera relatórios em Excel e PDF para:
 
 Também existem fichas individuais em PDF para escola e pessoa.
 
-Todo PDF emitido é registrado em `issued_documents` e recebe um código único no formato `BEABA-XXXX-XXXX-XXXX`. Esse código pode ser verificado em:
+Todo PDF emitido é registrado em `issued_documents` e recebe código único no formato:
 
 ```text
-/documentos/verificar/{codigo}
+BEABA-XXXX-XXXX-XXXX
 ```
+
+Esse código pode ser verificado publicamente em:
+
+```text
+/documentos/verificar
+```
+
+O rodapé dos documentos informa o código, data/hora de emissão em Brasília e a pessoa emissora.
+
+## Calendário escolar
+
+O sistema já possui base para:
+
+- cadastro de anos letivos por escola;
+- nome livre do ano letivo, como Educação Básica ou Ensino Técnico;
+- data de início e fim;
+- hora-aula do ano letivo;
+- geração inicial de dias letivos;
+- recesso escolar;
+- opção de ignorar sábados e domingos na geração;
+- períodos avaliativos com nomes livres, sem sobreposição;
+- eventos por escola;
+- PDF do calendário em página única, paisagem, para assinatura.
+
+O calendário, eventos próximos, aniversários e recados aparecem no dashboard.
+
+## Recados
+
+Administração pode criar recados globais. Gestão pode criar recados para sua escola. Recados têm período de exibição e aparecem no dashboard para o público correspondente.
 
 ## Telas atuais
 
 - Login com Google
-- Dashboard com indicadores gerais
-- Cadastro de escolas
-- Cadastro de pessoas
-- Cadastro e manutenção de vínculos
+- Verificação pública de documentos
+- Dashboard
+- Escolas
+- Pessoas
+- Vínculos
+- Pendências
+- Anos letivos
+- Eventos
+- Recados
 - Auditoria
-- Exportação de relatórios em Excel e PDF
-- Verificação pública de documentos emitidos
+- Relatórios em Excel e PDF
 
 ## Base legada
 
-Os arquivos relacionados ao banco antigo ficam em:
+Arquivos da base antiga ficam em:
 
 ```text
 database/legacy
 ```
 
-A análise inicial da estrutura antiga está em:
+A análise inicial está em:
 
 ```text
 database/legacy/analise_estrutura_antiga.md
 ```
+
+Bases legadas atuais:
+
+- `database/legacy/u810745753_beaba.sql`
+- `database/legacy/u810745753_lar.sql`
+- `database/legacy/u810745753_laura.sql`
+
+Importação local:
+
+```bash
+php artisan legacy:import --fresh
+```
+
+O importador preserva `legacy_source`, `legacy_id` e metadados relevantes. E-mails fora de `ctjj.org` são tratados como e-mail pessoal e aguardam e-mail institucional.
+
+Na importação inicial, ficam ativos:
+
+- Acabias, como Administração global;
+- estudantes vinculados a cursos/calendários de 2026 que não estejam transferidos;
+- docentes vinculados a componentes de cursos/calendários de 2026;
+- Gestão indicada no cadastro das escolas.
 
 ## Configuração local
 
@@ -158,7 +247,7 @@ Garanta que o arquivo exista:
 type nul > database/database.sqlite
 ```
 
-Configure as credenciais do Google no `.env`:
+Configure o Google no `.env`:
 
 ```env
 GOOGLE_CLIENT_ID=
@@ -166,7 +255,7 @@ GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=http://127.0.0.1:8000/auth/google/callback
 ```
 
-No Google Cloud Console, a URI autorizada de redirecionamento deve bater exatamente com `GOOGLE_REDIRECT_URI`.
+No Google Cloud Console, a URI autorizada de redirecionamento precisa ser exatamente a mesma de `GOOGLE_REDIRECT_URI`.
 
 ## Executando
 
@@ -196,17 +285,19 @@ Rode a suíte:
 php artisan test
 ```
 
-Também há script Composer:
+Ou:
 
 ```bash
 composer test
 ```
 
-## Observações para desenvolvimento
+## Observações de desenvolvimento
 
-- Textos exibidos no sistema devem estar em português do Brasil, com acentuação correta.
-- O visual segue a identidade do Beabá e usa a logo do sistema na interface principal.
-- A logo da Operação Mato Grosso aparece de forma discreta na tela de login como mantenedora.
-- As tabelas administrativas usam Livewire Tables.
+- Textos exibidos devem estar em português do Brasil, com acentuação correta.
+- O visual segue a identidade do Beabá, com a logo do sistema na interface principal e no favicon.
+- A logo do Centro Técnico Juvenil de Jarudore é usada no papel timbrado dos documentos.
+- A logo da escola aparece no papel timbrado quando cadastrada.
+- A logo da Operação Mato Grosso aparece de forma discreta na tela de login.
+- Tabelas administrativas usam Livewire Tables.
 - Exportações usam Laravel Excel e Dompdf.
-- Qualquer alteração estrutural no banco deve considerar a migração futura da base legada.
+- Alterações estruturais precisam considerar a migração futura da base legada.

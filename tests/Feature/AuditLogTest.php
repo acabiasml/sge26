@@ -121,7 +121,8 @@ class AuditLogTest extends TestCase
         Livewire::actingAs($admin)
             ->test(AuditLogsTable::class)
             ->assertSee($admin->person->full_name)
-            ->assertSee('School #'.$school->id)
+            ->assertSee('Cadastro alterado')
+            ->assertSee('Escola #'.$school->id)
             ->assertSee('Escola Auditada');
     }
 

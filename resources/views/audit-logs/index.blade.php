@@ -4,10 +4,10 @@
 @section('page-title', 'Auditoria')
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-primary shadow-sm" href="{{ route('reports.excel', 'audit-logs') }}">
+    <a class="btn btn-sm btn-outline-primary shadow-sm js-current-query-export" href="{{ route('reports.excel', ['type' => 'audit-logs'] + request()->query()) }}" data-base-href="{{ route('reports.excel', 'audit-logs') }}">
         <i class="fas fa-file-excel fa-sm"></i> Excel
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm ml-2" href="{{ route('reports.pdf', 'audit-logs') }}">
+    <a class="btn btn-sm btn-outline-primary shadow-sm ml-2 js-current-query-export" href="{{ route('reports.pdf', ['type' => 'audit-logs'] + request()->query()) }}" data-base-href="{{ route('reports.pdf', 'audit-logs') }}">
         <i class="fas fa-file-pdf fa-sm"></i> PDF
     </a>
 @endsection

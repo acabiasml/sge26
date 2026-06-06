@@ -3,9 +3,12 @@
 namespace App\Livewire;
 
 use App\Models\AuditLog;
+use App\Models\School;
+use App\Support\AuditLogPresenter;
 use Illuminate\Database\Eloquent\Builder;
 use Rappasoft\LaravelLivewireTables\DataTableComponent;
 use Rappasoft\LaravelLivewireTables\Views\Column;
+use Rappasoft\LaravelLivewireTables\Views\Filters\SelectFilter;
 
 class AuditLogsTable extends DataTableComponent
 {
@@ -47,14 +50,44 @@ class AuditLogsTable extends DataTableComponent
             Column::make('Quem')
                 ->label(fn (AuditLog $row): string => e($row->actorPerson?->full_name ?? $row->actorUser?->name ?? 'Sistema'))
                 ->html(),
-            Column::make('Ação', 'action')->sortable()->searchable(),
+            Column::make('Ação', 'action')
+                ->format(fn (?string $value): string => AuditLogPresenter::actionLabel($value))
+                ->sortable()
+                ->searchable(),
             Column::make('Registro')
-                ->label(fn (AuditLog $row): string => e(class_basename($row->auditable_type).' #'.$row->auditable_id))
+                ->label(fn (AuditLog $row): string => e(AuditLogPresenter::recordLabel($row)))
                 ->html(),
             Column::make('Escola', 'school.name')->sortable()->searchable(),
             Column::make('Detalhes')
                 ->label(fn (AuditLog $row): string => view('livewire.tables.audit-log-actions', ['auditLog' => $row])->render())
                 ->html(),
+        ];
+    }
+
+    public function filters(): array
+    {
+        $user = auth()->user();
+        $schools = School::query()
+            ->when(! $user->isAdministrator(), fn (Builder $query) => $query->whereIn('id', $user->manageableSchoolIds()))
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->mapWithKeys(fn (string $name, int $id): array => [(string) $id => $name])
+            ->all();
+
+        return [
+            SelectFilter::make('Ação')
+                ->options([
+                    '' => 'Todas',
+                    'created' => 'Cadastro criado',
+                    'updated' => 'Cadastro alterado',
+                    'deleted' => 'Cadastro removido',
+                ])
+                ->filter(fn (Builder $builder, string $value) => $builder->where('action', $value)),
+            SelectFilter::make('Escola')
+                ->options(['' => 'Todas', 'global' => 'Global'] + $schools)
+                ->filter(fn (Builder $builder, string $value) => $value === 'global'
+                    ? $builder->whereNull('school_id')
+                    : $builder->where('school_id', (int) $value)),
         ];
     }
 }

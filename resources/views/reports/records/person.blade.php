@@ -4,27 +4,21 @@
     <meta charset="utf-8">
     <style>
         body { font-family: DejaVu Sans, sans-serif; color: #2f241f; font-size: 12px; }
-        header { border-bottom: 2px solid #7a3f27; margin-bottom: 18px; padding-bottom: 10px; }
-        h1 { color: #7a3f27; font-size: 22px; margin: 0 0 4px; }
-        h2 { color: #5f7f3d; font-size: 15px; margin: 18px 0 8px; }
+        @include('reports.partials.letterhead-styles')
+        h2 { color: #44693D; font-size: 15px; margin: 18px 0 8px; }
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; background: #f6f0ea; padding: 7px; }
         td { padding: 7px; border-bottom: 1px solid #eee2dc; }
         .label { width: 30%; }
-        .meta { color: #666; font-size: 10px; line-height: 1.5; }
-        footer { position: fixed; bottom: 0; left: 0; right: 0; border-top: 1px solid #eee2dc; padding-top: 8px; font-size: 9px; color: #666; }
     </style>
 </head>
 <body>
-    <header>
-        <h1>Ficha da pessoa</h1>
-        <div class="meta">
-            Beabá - Sistema de Gestão Escolar<br>
-            Emitido em {{ $issuedDocument->issued_at?->format('d/m/Y H:i:s') }}<br>
-            Código de verificação: <strong>{{ $issuedDocument->verification_code }}</strong><br>
-            Verificação: {{ $verificationUrl }}
-        </div>
-    </header>
+    @include('reports.partials.letterhead', [
+        'title' => 'Ficha da pessoa',
+        'letterhead' => $letterhead,
+        'issuedDocument' => $issuedDocument,
+        'verificationUrl' => $verificationUrl,
+    ])
 
     <h2>Dados pessoais</h2>
     <table>
@@ -40,20 +34,12 @@
             <td>
                 @if ($person->address || $person->city || $person->state)
                     {{ $person->address }}
-                    @if ($person->number)
-                        , {{ $person->number }}
-                    @endif
-                    @if ($person->district)
-                        - {{ $person->district }}
-                    @endif
+                    @if ($person->number), {{ $person->number }} @endif
+                    @if ($person->district) - {{ $person->district }} @endif
                     <br>
                     {{ collect([$person->city, $person->state])->filter()->join(' - ') }}
-                    @if ($person->postal_code)
-                        | CEP {{ $person->postal_code }}
-                    @endif
-                    @if ($person->address_complement)
-                        <br>{{ $person->address_complement }}
-                    @endif
+                    @if ($person->postal_code) | CEP {{ $person->postal_code }} @endif
+                    @if ($person->address_complement) <br>{{ $person->address_complement }} @endif
                 @else
                     -
                 @endif
@@ -92,36 +78,42 @@
     <table>
         <thead>
             <tr>
-                <th>Pessoa</th>
+                <th>Nome</th>
                 <th>Relação</th>
                 <th>Contato</th>
                 <th>Observações</th>
             </tr>
         </thead>
         <tbody>
-            @forelse ($person->relationships as $relationship)
+            @forelse ($person->contacts as $contact)
                 <tr>
-                    <td>{{ $relationship->relatedPerson?->full_name }}</td>
+                    <td>{{ $contact->name }}</td>
                     <td>
-                        {{ $relationship->label() }}
-                        @if ($relationship->legal_guardian)
+                        {{ $contact->label() }}
+                        @if ($contact->legal_guardian)
                             <br>Responsável legal
                         @endif
-                        @if ($relationship->emergency_contact)
+                        @if ($contact->emergency_contact)
                             <br>Contato de emergência
                         @endif
                     </td>
-                    <td>{{ $relationship->relatedPerson?->phone ?: '-' }}</td>
-                    <td>{{ $relationship->notes ?: '-' }}</td>
+                    <td>
+                        {{ $contact->phone ?: '-' }}
+                        @if ($contact->secondary_phone)
+                            <br>{{ $contact->secondary_phone }}
+                        @endif
+                        @if ($contact->email)
+                            <br>{{ $contact->email }}
+                        @endif
+                    </td>
+                    <td>{{ $contact->notes ?: '-' }}</td>
                 </tr>
             @empty
-                <tr><td colspan="4">Nenhuma relação cadastrada.</td></tr>
+                <tr><td colspan="4">Nenhum contato cadastrado.</td></tr>
             @endforelse
         </tbody>
     </table>
 
-    <footer>
-        Documento emitido pelo Beabá. Confirme a autenticidade usando o código {{ $issuedDocument->verification_code }}.
-    </footer>
+    @include('reports.partials.document-footer', ['issuedDocument' => $issuedDocument])
 </body>
 </html>

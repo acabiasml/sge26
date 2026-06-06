@@ -58,7 +58,8 @@
             <div class="form-check mb-2">
                 <input type="hidden" name="active" value="0">
                 <input id="active" name="active" value="1" type="checkbox" class="form-check-input" @checked(old('active', $person->active ?? true))>
-                <label for="active" class="form-check-label">Cadastro ativo no sistema</label>
+                <label for="active" class="form-check-label">Cadastro ativo</label>
+                <small class="form-text text-muted">Cadastros inativos não acessam o sistema, não recebem novos vínculos e não emitem documentos sem CPF e e-mail institucional.</small>
             </div>
         </div>
     @endif

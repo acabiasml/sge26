@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\Auditable;
+use App\Models\Concerns\HasTitleCaseAttributes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,10 +11,14 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Person extends Model
 {
-    use Auditable, HasFactory;
+    use Auditable, HasFactory, HasTitleCaseAttributes;
 
     protected $fillable = [
         'legacy_id',
+        'legacy_source',
+        'legacy_code',
+        'student_inep',
+        'legacy_metadata',
         'full_name',
         'social_name',
         'cpf',
@@ -38,6 +43,19 @@ class Person extends Model
             'birth_date' => 'date',
             'active' => 'boolean',
             'profile_completed_at' => 'datetime',
+            'legacy_metadata' => 'array',
+        ];
+    }
+
+    protected function titleCaseAttributes(): array
+    {
+        return [
+            'full_name',
+            'social_name',
+            'address',
+            'district',
+            'city',
+            'address_complement',
         ];
     }
 
@@ -47,6 +65,12 @@ class Person extends Model
             && filled($this->birth_date)
             && filled($this->phone)
             && filled($this->profile_completed_at);
+    }
+
+    public function hasRequiredIdentityForOfficialUse(): bool
+    {
+        return filled($this->cpf)
+            && filled($this->institutional_email);
     }
 
     public function user(): HasOne
@@ -62,6 +86,11 @@ class Person extends Model
     public function relationships(): HasMany
     {
         return $this->hasMany(PersonRelationship::class);
+    }
+
+    public function contacts(): HasMany
+    {
+        return $this->hasMany(PersonContact::class);
     }
 
     public function inverseRelationships(): HasMany

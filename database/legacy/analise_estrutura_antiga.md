@@ -81,9 +81,14 @@ Servidor original: MariaDB 11.8.6
 
 ## Decisoes de migracao ja tomadas
 
-- O dump `estrutura_antiga_com_dados.sql` representa apenas o Liceu Pedagogico Sao Francisco de Assis.
+- Os dumps com dados atuais sao:
+  - `u810745753_beaba.sql`: Liceu Pedagogico Sao Francisco de Assis.
+  - `u810745753_lar.sql`: Lar Sao Domingos Savio.
+  - `u810745753_laura.sql`: Escola Laura Vicuna.
+- Cada dump contem apenas uma escola cadastrada.
 - Por enquanto, cursos, turmas, componentes, notas e frequencias nao serao migrados.
-- `users.arquivado`: `1` significa inativo e `0` significa ativo. Valores nulos sao inconsistentes e devem ser tratados como inativos na importacao inicial, exceto a pessoa Acabias.
+- `users.arquivado`: `1` significa inativo e `0` significa ativo, mas o campo esta inconsistente e nao define sozinho a ativacao inicial.
+- Na importacao inicial, ficam ativos: Acabias; estudantes em cursos/calendarios de 2026 que nao estejam transferidos; docentes vinculados a componentes de cursos/calendarios de 2026; e Gestao indicada em cada escola.
 - `users.tipo = admin`: representa Administracao global no sistema antigo. Gestao da escola tambem recebia esse perfil.
 - `users.tipo = prof`: deve virar vinculo de Docencia quando for migrado.
 - `users.tipo = estud`: deve virar vinculo de Estudante quando for migrado.
@@ -94,8 +99,45 @@ Servidor original: MariaDB 11.8.6
 - `users.codigo` e um identificador fisico da pasta da pessoa; o prefixo indica o vinculo existente quando a pasta foi criada.
 - `users.inep` e o codigo INEP/Educacenso do aluno e se aplica somente a estudantes.
 - Endereco da pessoa deve existir no sistema novo.
-- Responsaveis devem ser tratados como pessoas relacionadas ao estudante. Para menores de idade, os dados de contato de responsavel sao obrigatorios para o cadastro ficar adequado.
+- Pais, maes e responsaveis sem acesso ao sistema devem ser tratados como contatos da pessoa (`person_contacts`), nao como pessoas cadastradas em `people`. A relacao entre duas pessoas cadastradas (`person_relationships`) fica reservada para casos em que o responsavel tambem existe como pessoa do sistema.
 - `escolas.fundacao`, `escolas.info` e `escolas.site` fazem parte de informacoes institucionais usadas em papel timbrado/cabecalho e devem ser preservadas por escola.
+
+## Conclusoes apos leitura das tres bases com dados
+
+### Quantidades por base
+
+| Base | Escola | Pessoas | Estudantes | Docentes | Administracao | Apoio | Matriculas |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `u810745753_beaba.sql` | Liceu Pedagogico Sao Francisco de Assis | 600 | 490 | 54 | 10 | 46 | 147 |
+| `u810745753_lar.sql` | Lar Sao Domingos Savio | 171 | 153 | 12 | 6 | 0 | 275 |
+| `u810745753_laura.sql` | Escola Laura Vicuna | 163 | 147 | 12 | 4 | 0 | 202 |
+
+### Situacao dos dados
+
+- A base do Liceu e a mais historica e inconsistente: 508 pessoas com `arquivado = 1`, 70 com `arquivado = 0` e 22 nulas.
+- As bases Lar e Laura parecem mais atuais: Lar tem todas as pessoas com `arquivado = 0`; Laura tem 162 ativas e 1 inativa.
+- Acabias aparece nas tres bases como `admin`. No Liceu esta `arquivado = 1`; no Lar e na Laura esta `arquivado = 0`. Na importacao inicial, Acabias deve permanecer ativo mesmo quando a origem vier do Liceu.
+- Existem pessoas repetidas entre bases por e-mail, CPF e codigo. A importacao precisa unificar pessoas por CPF quando existir, e usar outros criterios somente com cautela.
+- Ha CPFs duplicados dentro das bases Lar e Laura, alem de muitos CPFs ausentes no Liceu. A migracao deve aceitar cadastro incompleto, mas nao pode violar unicidade definitiva de CPF sem uma fila de revisao.
+- A maioria dos e-mails antigos nao e institucional `ctjj.org`. Eles devem ir para e-mail pessoal, deixando o e-mail institucional vazio ate regularizacao.
+- O campo `codigo` e mais completo no Liceu; no Lar e Laura aparece pouco preenchido. Ele deve ser preservado como codigo legado/pasta, mas nao pode ser usado sozinho para identificar pessoa entre escolas.
+- O campo `inep` do aluno aparece no Liceu e Lar, mas nao na Laura. Tambem ha repeticoes; deve ser importado como dado escolar do estudante, nao como identificador global de pessoa.
+- As referencias de direcao, coordenacao e secretaria nas escolas apontam para usuarios `admin`; devem virar vinculos de Gestao com cargo especifico, alem do eventual vinculo de Administracao global quando couber.
+
+### Implicacoes para a importacao inicial
+
+1. Importar primeiro as tres escolas, preservando dados institucionais (`fundacao`, `info`, `site`) nos novos campos de documentos.
+2. Importar pessoas de todas as bases com uma chave de origem composta por base + id legado, porque os IDs se repetem entre bases.
+3. Tentar unificar pessoas por CPF valido. Quando CPF estiver ausente ou duplicado, importar como pendencia de revisao.
+4. Tratar `email` fora de `ctjj.org` como e-mail pessoal.
+5. Criar e-mail institucional vazio para pessoas sem `ctjj.org`, bloqueando login ate regularizacao.
+6. Transformar `tipo` em vinculos:
+   - `admin` -> Administracao global.
+   - `prof` -> Docencia na escola da base.
+   - `estud` -> Estudante na escola da base.
+   - `apoio` -> Equipe escolar na escola da base.
+7. Criar vinculos de Gestao para diretor, coordenador e secretario de cada escola, marcando esses vinculos como ativos.
+8. Importar pais, maes e responsaveis como `person_contacts`, preservando nome, CPF e telefones quando existirem, sem permitir login e sem criar cadastro completo em `people`.
 
 ## Estrategia sugerida de migracao
 

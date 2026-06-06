@@ -74,6 +74,79 @@
         @endcan
     </div>
 
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h2 class="h6 m-0 font-weight-bold text-primary">Recados ativos</h2>
+                    </div>
+                    <div class="card-body">
+                        @forelse ($announcements as $announcement)
+                            <div class="border-bottom py-2">
+                                <div class="font-weight-bold text-gray-800">
+                                    {{ $announcement->title }}
+                                    @if ($announcement->highlight)
+                                        <span class="badge badge-warning ml-1">Destaque</span>
+                                    @endif
+                                </div>
+                                <div class="small text-gray-600">{{ $announcement->school?->name ?? 'Global' }}</div>
+                                <div class="small">{{ $announcement->body }}</div>
+                            </div>
+                        @empty
+                            <p class="text-gray-600 mb-0">Nenhum recado ativo.</p>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h2 class="h6 m-0 font-weight-bold text-primary">Próximos eventos</h2>
+                    </div>
+                    <div class="card-body">
+                        @forelse ($upcomingEvents as $event)
+                            <div class="d-flex justify-content-between border-bottom py-2">
+                                <div>
+                                    <div class="font-weight-bold text-gray-800">{{ $event->title }}</div>
+                                    <div class="small text-gray-600">{{ $event->school?->name }}</div>
+                                </div>
+                                <span class="badge badge-primary align-self-start">{{ $event->starts_at?->format('d/m') }}</span>
+                            </div>
+                        @empty
+                            <p class="text-gray-600 mb-0">Nenhum evento nos próximos 7 dias.</p>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h2 class="h6 m-0 font-weight-bold text-primary">Calendário letivo do mês</h2>
+                    </div>
+                    <div class="card-body">
+                        @forelse ($monthCalendarDays as $day)
+                            <div class="d-flex justify-content-between border-bottom py-2">
+                                <div>
+                                    <div class="font-weight-bold text-gray-800">{{ $day->date?->format('d/m') }} - {{ $day->label() }}</div>
+                                    <div class="small text-gray-600">{{ $day->academicYear?->school?->name }}</div>
+                                    @if ($day->title)
+                                        <div class="small">{{ $day->title }}</div>
+                                    @endif
+                                </div>
+                                <span class="badge badge-{{ $day->counts_as_school_day ? 'success' : 'secondary' }} align-self-start">
+                                    {{ $day->counts_as_school_day ? 'Letivo' : 'Não letivo' }}
+                                </span>
+                            </div>
+                        @empty
+                            <p class="text-gray-600 mb-0">Nenhum dia cadastrado para este mês.</p>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+        </div>
+
     @can('manage-people')
         <div class="row">
             <div class="col-xl-5 col-lg-6">
@@ -162,7 +235,7 @@
 
         <script src="{{ asset('template/vendor/chart.js/Chart.min.js') }}"></script>
         <script>
-            const chartColors = ['#7a3f27', '#5f7f3d', '#f37021', '#3f86a8', '#f6df8f'];
+            const chartColors = ['#6B3D2E', '#44693D', '#DB6B30', '#4A86A0', '#F1E6B2'];
             const roleValues = @json($roleChart['values']);
 
             if (roleValues.some((value) => value > 0)) {
@@ -194,8 +267,8 @@
                         datasets: [{
                             label: 'Estudantes',
                             data: @json($studentsBySchoolChart['values']),
-                            backgroundColor: '#5f7f3d',
-                            borderColor: '#4f6d32',
+                            backgroundColor: '#44693D',
+                            borderColor: '#355330',
                             borderWidth: 1,
                         }],
                     },

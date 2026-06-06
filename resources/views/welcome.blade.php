@@ -8,7 +8,7 @@
 
     <title>{{ config('app.name', 'Beabá') }} - Entrar</title>
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('brand/logo.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
 
     <link href="{{ asset('template/vendor/fontawesome-free/css/all.min.css') }}" rel="stylesheet" type="text/css">
     <link
@@ -51,6 +51,20 @@
                                     </a>
 
                                     <hr>
+
+                                    <form method="POST" action="{{ route('documents.verify.lookup') }}" class="mb-3">
+                                        @csrf
+                                        <label class="small text-gray-700" for="verification_code">Verificar autenticidade de documento</label>
+                                        <div class="input-group">
+                                            <input id="verification_code" name="code" class="form-control text-uppercase @error('code') is-invalid @enderror" placeholder="BEABA-XXXX-XXXX-XXXX" aria-label="Código de verificação">
+                                            <div class="input-group-append">
+                                                <button class="btn btn-outline-primary" type="submit">
+                                                    <i class="fas fa-search"></i>
+                                                </button>
+                                            </div>
+                                            @error('code') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                                        </div>
+                                    </form>
 
                                     <div class="text-center">
                                         <span class="small text-gray-600">Acesso institucional</span>

@@ -54,7 +54,15 @@ class PersonController extends Controller
         abort_unless($request->user()->canManagePeople(), 403);
 
         $roleData = $this->validatedInitialRole($request);
-        $person = Person::query()->create($this->validatedData($request));
+        $personData = $this->validatedData($request);
+
+        if ($roleData && ! $personData['active'] && (blank($personData['cpf'] ?? null) || blank($personData['institutional_email'] ?? null))) {
+            throw ValidationException::withMessages([
+                'active' => 'Pessoa inativa sem CPF e e-mail institucional não pode receber vínculo.',
+            ]);
+        }
+
+        $person = Person::query()->create($personData);
 
         if ($roleData) {
             $person->schoolRoles()->create($roleData);
@@ -69,11 +77,10 @@ class PersonController extends Controller
         abort_unless($this->canSeePerson($request, $person), 403);
 
         return view('people.show', [
-            'person' => $person->load(['schoolRoles.school', 'relationships.relatedPerson']),
+            'person' => $person->load(['schoolRoles.school', 'contacts']),
             'schools' => $request->user()->isAdministrator()
                 ? School::query()->where('active', true)->orderBy('name')->get()
                 : School::query()->whereIn('id', $request->user()->manageableSchoolIds())->orderBy('name')->get(),
-            'relationshipPeople' => $this->relationshipPeople($request, $person),
             'positions' => PersonSchoolRole::POSITION_LABELS,
         ]);
     }
@@ -101,6 +108,12 @@ class PersonController extends Controller
             ]);
         }
 
+        if ($data['active'] && (blank($data['cpf'] ?? null) || blank($data['institutional_email'] ?? null))) {
+            throw ValidationException::withMessages([
+                'active' => 'Para ativar uma pessoa, informe CPF e e-mail institucional.',
+            ]);
+        }
+
         $person->update($data);
 
         if ($wasActive && ! $person->active) {
@@ -122,21 +135,6 @@ class PersonController extends Controller
         return $person->schoolRoles()
             ->whereIn('school_id', $user->manageableSchoolIds())
             ->exists();
-    }
-
-    private function relationshipPeople(Request $request, Person $person)
-    {
-        $query = Person::query()
-            ->whereKeyNot($person->id)
-            ->orderBy('full_name');
-
-        if (! $request->user()->isAdministrator()) {
-            $query->whereHas('schoolRoles', function ($roles) use ($request): void {
-                $roles->whereIn('school_id', $request->user()->manageableSchoolIds());
-            });
-        }
-
-        return $query->get(['id', 'full_name', 'cpf', 'phone']);
     }
 
     /**
@@ -208,7 +206,7 @@ class PersonController extends Controller
         $rules = [
             'full_name' => ['required', 'string', 'max:255'],
             'social_name' => ['nullable', 'string', 'max:255'],
-            'cpf' => ['required', 'string', 'max:20', Rule::unique('people', 'cpf')->ignore($person)],
+            'cpf' => [$request->boolean('active') ? 'required' : 'nullable', 'string', 'max:20', Rule::unique('people', 'cpf')->ignore($person)],
             'birth_date' => ['nullable', 'date'],
             'personal_email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:255'],
@@ -223,7 +221,7 @@ class PersonController extends Controller
         ];
 
         if (! $person || $request->user()->person_id !== $person->id) {
-            $rules['institutional_email'] = ['required', 'email', 'max:255', 'ends_with:@ctjj.org', Rule::unique('people', 'institutional_email')->ignore($person)];
+            $rules['institutional_email'] = [$request->boolean('active') ? 'required' : 'nullable', 'email', 'max:255', 'ends_with:@ctjj.org', Rule::unique('people', 'institutional_email')->ignore($person)];
         }
 
         $data = $request->validate($rules);

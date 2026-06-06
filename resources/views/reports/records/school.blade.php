@@ -4,30 +4,20 @@
     <meta charset="utf-8">
     <style>
         body { font-family: DejaVu Sans, sans-serif; color: #2f241f; font-size: 12px; }
-        header { border-bottom: 2px solid #7a3f27; margin-bottom: 18px; padding-bottom: 10px; }
-        h1 { color: #7a3f27; font-size: 22px; margin: 0 0 4px; }
-        h2 { color: #5f7f3d; font-size: 15px; margin: 18px 0 8px; }
-        .school-logo { max-height: 70px; max-width: 160px; float: right; margin-left: 16px; }
+        @include('reports.partials.letterhead-styles')
+        h2 { color: #44693D; font-size: 15px; margin: 18px 0 8px; }
         table { width: 100%; border-collapse: collapse; }
         th { width: 28%; text-align: left; background: #f6f0ea; padding: 7px; }
         td { padding: 7px; border-bottom: 1px solid #eee2dc; }
-        .meta { color: #666; font-size: 10px; line-height: 1.5; }
-        footer { position: fixed; bottom: 0; left: 0; right: 0; border-top: 1px solid #eee2dc; padding-top: 8px; font-size: 9px; color: #666; }
     </style>
 </head>
 <body>
-    <header>
-        @if ($school->logo_path)
-            <img class="school-logo" src="{{ public_path($school->logo_path) }}" alt="Logo da escola">
-        @endif
-        <h1>Ficha da escola</h1>
-        <div class="meta">
-            Beabá - Sistema de Gestão Escolar<br>
-            Emitido em {{ $issuedDocument->issued_at?->format('d/m/Y H:i:s') }}<br>
-            Código de verificação: <strong>{{ $issuedDocument->verification_code }}</strong><br>
-            Verificação: {{ $verificationUrl }}
-        </div>
-    </header>
+    @include('reports.partials.letterhead', [
+        'title' => 'Ficha da escola',
+        'letterhead' => $letterhead,
+        'issuedDocument' => $issuedDocument,
+        'verificationUrl' => $verificationUrl,
+    ])
 
     <h2>Dados cadastrais</h2>
     <table>
@@ -76,8 +66,6 @@
         </tbody>
     </table>
 
-    <footer>
-        Documento emitido pelo Beabá. Confirme a autenticidade usando o código {{ $issuedDocument->verification_code }}.
-    </footer>
+    @include('reports.partials.document-footer', ['issuedDocument' => $issuedDocument])
 </body>
 </html>

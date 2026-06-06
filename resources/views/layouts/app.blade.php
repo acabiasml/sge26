@@ -8,7 +8,7 @@
 
     <title>{{ config('app.name', 'Beabá') }} - @yield('title', 'Início')</title>
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('brand/logo.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
 
     <link href="{{ asset('template/vendor/fontawesome-free/css/all.min.css') }}" rel="stylesheet" type="text/css">
     <link
@@ -38,6 +38,13 @@
                 </a>
             </li>
 
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('documents.verify.form') }}">
+                    <i class="fas fa-fw fa-certificate"></i>
+                    <span>Verificar documento</span>
+                </a>
+            </li>
+
             @can('manage-schools')
                 <li class="nav-item">
                     <a class="nav-link" href="{{ route('schools.index') }}">
@@ -64,6 +71,34 @@
             @endcan
 
             @can('manage-people')
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ route('data-quality.index') }}">
+                        <i class="fas fa-fw fa-clipboard-check"></i>
+                        <span>Pendências</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ route('academic-years.index') }}">
+                        <i class="fas fa-fw fa-calendar-alt"></i>
+                        <span>Anos letivos</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ route('calendar-events.index') }}">
+                        <i class="fas fa-fw fa-calendar-day"></i>
+                        <span>Eventos</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ route('announcements.index') }}">
+                        <i class="fas fa-fw fa-bullhorn"></i>
+                        <span>Recados</span>
+                    </a>
+                </li>
+
                 <li class="nav-item">
                     <a class="nav-link" href="{{ route('audit-logs.index') }}">
                         <i class="fas fa-fw fa-history"></i>
@@ -173,6 +208,17 @@
                 input.value = value
                     .replace(/(\d{2})(\d)/, '($1) $2')
                     .replace(/(\d{5})(\d)/, '$1-$2');
+            });
+        });
+
+        const syncExportLink = (link) => {
+            link.href = `${link.dataset.baseHref}${window.location.search}`;
+        };
+
+        document.querySelectorAll('.js-current-query-export').forEach((link) => {
+            syncExportLink(link);
+            ['click', 'mousedown', 'focus', 'mouseenter'].forEach((eventName) => {
+                link.addEventListener(eventName, () => syncExportLink(link));
             });
         });
 

@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Bole",
+    "pantone": "7595 C",
+    "hex": "#6B3D2E",
+    "rgb": "107,61,46"
+  },
+  {
+    "name": "Chocolate Web",
+    "pantone": "7578 C",
+    "hex": "#DB6B30",
+    "rgb": "219,107,48"
+  },
+  {
+    "name": "Blond",
+    "pantone": "7499 C",
+    "hex": "#F1E6B2",
+    "rgb": "241,230,178"
+  },
+  {
+    "name": "Hunter Green",
+    "pantone": "7743 C",
+    "hex": "#44693D",
+    "rgb": "68,105,61"
+  },
+  {
+    "name": "Celadon Blue",
+    "pantone": "2209 C",
+    "hex": "#4A86A0",
+    "rgb": "74,134,160"
+  }
+]

@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Concerns\Auditable;
+use App\Models\Concerns\HasTitleCaseAttributes;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +14,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use Auditable, HasFactory, Notifiable;
+    use Auditable, HasFactory, HasTitleCaseAttributes, Notifiable;
 
     public const DEFAULT_AUDIT_TIMEZONE = 'America/Sao_Paulo';
 
@@ -55,6 +56,13 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+        ];
+    }
+
+    protected function titleCaseAttributes(): array
+    {
+        return [
+            'name',
         ];
     }
 
@@ -117,6 +125,33 @@ class User extends Authenticatable
             })
             ->pluck('school_id')
             ->map(fn ($schoolId): int => (int) $schoolId)
+            ->all();
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function visibleSchoolIds(): array
+    {
+        if (! $this->person) {
+            return [];
+        }
+
+        return $this->person->schoolRoles()
+            ->where('active', true)
+            ->whereNotNull('school_id')
+            ->where(function ($query): void {
+                $query->whereNull('started_at')
+                    ->orWhereDate('started_at', '<=', now()->toDateString());
+            })
+            ->where(function ($query): void {
+                $query->whereNull('ended_at')
+                    ->orWhereDate('ended_at', '>=', now()->toDateString());
+            })
+            ->pluck('school_id')
+            ->map(fn ($schoolId): int => (int) $schoolId)
+            ->unique()
+            ->values()
             ->all();
     }
 

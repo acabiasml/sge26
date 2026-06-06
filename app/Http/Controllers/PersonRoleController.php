@@ -23,6 +23,7 @@ class PersonRoleController extends Controller
     {
         $data = $this->validatedData($request);
         $this->authorizeRoleChange($request, $data);
+        $this->preventIncompleteInactivePersonFromReceivingRole($person);
 
         $person->schoolRoles()->create($data);
 
@@ -37,6 +38,7 @@ class PersonRoleController extends Controller
         $data = $this->validatedData($request);
         $this->authorizeRoleChange($request, $data);
         $this->preventRemovingLastActiveAdministrator($role, $data);
+        $this->preventIncompleteInactivePersonFromReceivingActiveRole($person, $data['active']);
 
         $role->update($data);
 
@@ -51,6 +53,7 @@ class PersonRoleController extends Controller
             'role' => $role->role,
             'school_id' => $role->school_id,
         ]);
+        $this->preventIncompleteInactivePersonFromReceivingActiveRole($person, true);
 
         $role->update([
             'active' => true,
@@ -166,5 +169,25 @@ class PersonRoleController extends Controller
                 'role' => 'Não é possível desativar ou remover o único vínculo ativo de Administração no sistema.',
             ]);
         }
+    }
+
+    private function preventIncompleteInactivePersonFromReceivingRole(Person $person): void
+    {
+        if ($person->active || $person->hasRequiredIdentityForOfficialUse()) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'person' => 'Pessoa inativa sem CPF e e-mail institucional não pode receber vínculo.',
+        ]);
+    }
+
+    private function preventIncompleteInactivePersonFromReceivingActiveRole(Person $person, bool $active): void
+    {
+        if (! $active) {
+            return;
+        }
+
+        $this->preventIncompleteInactivePersonFromReceivingRole($person);
     }
 }

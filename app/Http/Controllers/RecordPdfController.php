@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\IssuedDocument;
 use App\Models\Person;
+use App\Models\PersonSchoolRole;
 use App\Models\School;
+use App\Support\PdfLetterhead;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,21 +25,31 @@ class RecordPdfController extends Controller
             'school' => $school->load('roles.person'),
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
+            'letterhead' => PdfLetterhead::make($school),
         ])->setPaper('a4');
 
         return $pdf->download('beaba-ficha-escola-'.$school->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
-    public function person(Request $request, Person $person): Response
+    public function person(Request $request, Person $person): Response|RedirectResponse
     {
         abort_unless($this->canSeePerson($request, $person), 403);
 
-        $issuedDocument = $this->issuedDocument($request, 'person-record', 'Ficha da pessoa', null, $person->id);
+        $person->load(['schoolRoles.school', 'contacts']);
+
+        if (! $person->active && ! $person->hasRequiredIdentityForOfficialUse()) {
+            return redirect()->route('people.show', $person)
+                ->with('status', 'Não é possível emitir documento de pessoa inativa sem CPF e e-mail institucional.');
+        }
+
+        $school = $this->schoolForPerson($person);
+        $issuedDocument = $this->issuedDocument($request, 'person-record', 'Ficha da pessoa', $school?->id, $person->id);
 
         $pdf = Pdf::loadView('reports.records.person', [
-            'person' => $person->load(['schoolRoles.school', 'relationships.relatedPerson']),
+            'person' => $person,
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
+            'letterhead' => PdfLetterhead::make($school),
         ])->setPaper('a4');
 
         return $pdf->download('beaba-ficha-pessoa-'.$person->id.'-'.now()->format('Ymd-His').'.pdf');
@@ -71,6 +84,22 @@ class RecordPdfController extends Controller
             ],
             'issued_at' => now(),
         ]);
+    }
+
+    private function schoolForPerson(Person $person): ?School
+    {
+        if ($person->schoolRoles->contains(fn ($role): bool => $role->school_id === null
+            && $role->role === PersonSchoolRole::ROLE_ADMINISTRATOR
+            && $role->isActiveForDate())) {
+            return null;
+        }
+
+        return $person->schoolRoles
+            ->filter(fn ($role): bool => $role->school !== null && $role->isActiveForDate())
+            ->sortByDesc(fn ($role): int => PersonSchoolRole::ROLE_PRIORITY[$role->role] ?? 0)
+            ->first()
+            ?->school
+            ?? $person->schoolRoles->first(fn ($role): bool => $role->school !== null)?->school;
     }
 
     private function verificationCode(): string

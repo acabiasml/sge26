@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Person;
+use App\Models\Announcement;
+use App\Models\CalendarDay;
+use App\Models\CalendarEvent;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,6 +19,7 @@ class DashboardController extends Controller
     {
         $user = $request->user();
         $manageableSchoolIds = $user->isAdministrator() ? null : $user->manageableSchoolIds();
+        $visibleSchoolIds = $user->isAdministrator() ? null : $user->visibleSchoolIds();
 
         $roleCounts = [
             PersonSchoolRole::ROLE_STUDENT => $this->activeRoleCount(PersonSchoolRole::ROLE_STUDENT, $manageableSchoolIds),
@@ -31,6 +35,9 @@ class DashboardController extends Controller
             'roleChart' => $this->roleChart($roleCounts),
             'studentsBySchoolChart' => $this->studentsBySchoolChart($manageableSchoolIds),
             'birthdays' => $this->birthdays($manageableSchoolIds),
+            'announcements' => $this->announcements($visibleSchoolIds),
+            'upcomingEvents' => $this->upcomingEvents($visibleSchoolIds),
+            'monthCalendarDays' => $this->monthCalendarDays($visibleSchoolIds),
         ]);
     }
 
@@ -140,5 +147,58 @@ class DashboardController extends Controller
             ->get()
             ->sortBy(fn (Person $person): int => (int) $person->birth_date?->format('d'))
             ->values();
+    }
+
+    /**
+     * @param list<int>|null $schoolIds
+     * @return Collection<int, Announcement>
+     */
+    private function announcements(?array $schoolIds): Collection
+    {
+        return Announcement::query()
+            ->with('school')
+            ->visibleNow()
+            ->when($schoolIds !== null, function (Builder $query) use ($schoolIds): void {
+                $query->where(fn (Builder $query) => $query->whereNull('school_id')->orWhereIn('school_id', $schoolIds));
+            })
+            ->orderByDesc('highlight')
+            ->latest('starts_at')
+            ->limit(6)
+            ->get();
+    }
+
+    /**
+     * @param list<int>|null $schoolIds
+     * @return Collection<int, CalendarEvent>
+     */
+    private function upcomingEvents(?array $schoolIds): Collection
+    {
+        return CalendarEvent::query()
+            ->with('school')
+            ->whereDate('starts_at', '>=', now()->toDateString())
+            ->whereDate('starts_at', '<=', now()->addDays(7)->toDateString())
+            ->when($schoolIds !== null, fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
+            ->orderBy('starts_at')
+            ->limit(8)
+            ->get();
+    }
+
+    /**
+     * @param list<int>|null $schoolIds
+     * @return Collection<int, CalendarDay>
+     */
+    private function monthCalendarDays(?array $schoolIds): Collection
+    {
+        return CalendarDay::query()
+            ->with('academicYear.school')
+            ->whereMonth('date', now()->month)
+            ->whereYear('date', now()->year)
+            ->whereHas('academicYear', function (Builder $query) use ($schoolIds): void {
+                $query->where('active', true)
+                    ->when($schoolIds !== null, fn (Builder $query) => $query->whereIn('school_id', $schoolIds));
+            })
+            ->orderBy('date')
+            ->limit(40)
+            ->get();
     }
 }

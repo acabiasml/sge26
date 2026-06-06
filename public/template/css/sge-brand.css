@@ -1,20 +1,24 @@
 :root {
-    --sge-brown: #7a3f27;
-    --sge-brown-dark: #552819;
-    --sge-green: #5f7f3d;
-    --sge-orange: #f37021;
-    --sge-cream: #f6df8f;
-    --sge-blue: #3f86a8;
-    --sge-paper: #fffaf0;
+    --sge-brown: #6B3D2E;
+    --sge-brown-dark: #4b281d;
+    --sge-brown-soft: #8a5949;
+    --sge-green: #44693D;
+    --sge-orange: #DB6B30;
+    --sge-orange-dark: #b95425;
+    --sge-cream: #F1E6B2;
+    --sge-blue: #4A86A0;
+    --sge-blue-dark: #37677d;
+    --sge-paper: #fffaf1;
+    --sge-surface: #f8f5ef;
     --sge-ink: #2f241f;
+    --sge-muted: #7e7380;
+    --sge-border: #e6dccf;
 }
 
 .bg-gradient-primary {
     background-color: var(--sge-brown);
     background-image:
-        radial-gradient(circle at 18% 20%, rgba(243, 112, 33, .35) 0, transparent 28%),
-        radial-gradient(circle at 80% 12%, rgba(63, 134, 168, .28) 0, transparent 26%),
-        linear-gradient(180deg, var(--sge-brown) 10%, var(--sge-brown-dark) 100%);
+        linear-gradient(180deg, var(--sge-brown) 0%, var(--sge-brown-dark) 100%);
     background-size: cover;
 }
 
@@ -24,8 +28,40 @@
     background-color: var(--sge-brown) !important;
 }
 
+.bg-success,
+.badge-success {
+    background-color: var(--sge-green) !important;
+}
+
+.bg-info,
+.badge-info {
+    background-color: var(--sge-blue) !important;
+}
+
+.bg-warning,
+.badge-warning {
+    background-color: var(--sge-cream) !important;
+    color: var(--sge-ink) !important;
+}
+
+.badge-danger {
+    background-color: var(--sge-orange-dark) !important;
+}
+
 .border-left-primary {
     border-left-color: var(--sge-brown) !important;
+}
+
+.border-left-success {
+    border-left-color: var(--sge-green) !important;
+}
+
+.border-left-info {
+    border-left-color: var(--sge-blue) !important;
+}
+
+.border-left-warning {
+    border-left-color: var(--sge-orange) !important;
 }
 
 .text-primary,
@@ -35,6 +71,18 @@ a {
 
 a:hover {
     color: var(--sge-brown-dark);
+}
+
+.text-success {
+    color: var(--sge-green) !important;
+}
+
+.text-info {
+    color: var(--sge-blue) !important;
+}
+
+.text-warning {
+    color: var(--sge-orange) !important;
 }
 
 .btn-primary {
@@ -47,6 +95,30 @@ a:hover {
     border-color: var(--sge-brown-dark) !important;
 }
 
+.btn-outline-primary {
+    color: var(--sge-brown) !important;
+    border-color: var(--sge-brown) !important;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+    color: #fff !important;
+    background-color: var(--sge-brown) !important;
+    border-color: var(--sge-brown) !important;
+}
+
+.btn-outline-danger {
+    color: var(--sge-orange-dark) !important;
+    border-color: var(--sge-orange-dark) !important;
+}
+
+.btn-outline-danger:hover,
+.btn-outline-danger:focus {
+    color: #fff !important;
+    background-color: var(--sge-orange-dark) !important;
+    border-color: var(--sge-orange-dark) !important;
+}
+
 .btn-google {
     background-color: var(--sge-orange);
     border-color: var(--sge-orange);
@@ -54,8 +126,8 @@ a:hover {
 
 .btn-google:hover,
 .btn-google:focus {
-    background-color: #d95f18;
-    border-color: #d95f18;
+    background-color: var(--sge-orange-dark);
+    border-color: var(--sge-orange-dark);
 }
 
 .sidebar-dark .nav-item.active .nav-link,
@@ -64,8 +136,65 @@ a:hover {
     color: var(--sge-cream);
 }
 
+.sidebar-dark .nav-item .nav-link {
+    color: rgba(255, 250, 241, .82);
+}
+
 .sidebar-dark .sidebar-brand {
     color: var(--sge-cream);
+}
+
+.sidebar-dark hr.sidebar-divider {
+    border-top-color: rgba(241, 230, 178, .22);
+}
+
+.topbar {
+    border-bottom: 1px solid var(--sge-border);
+}
+
+body {
+    color: #4f4650;
+}
+
+#content-wrapper {
+    background-color: var(--sge-surface);
+}
+
+.card {
+    border-color: var(--sge-border);
+}
+
+.card-header {
+    background-color: #fffdf8;
+    border-bottom-color: var(--sge-border);
+}
+
+.form-control,
+.custom-select {
+    border-color: #d9d0c3;
+}
+
+.form-control:focus,
+.custom-select:focus {
+    border-color: var(--sge-blue);
+    box-shadow: 0 0 0 .2rem rgba(74, 134, 160, .18);
+}
+
+.page-item.active .page-link {
+    background-color: var(--sge-brown);
+    border-color: var(--sge-brown);
+}
+
+.page-link {
+    color: var(--sge-brown);
+}
+
+.page-link:hover {
+    color: var(--sge-brown-dark);
+}
+
+.progress-bar {
+    background-color: var(--sge-green);
 }
 
 .sge-sidebar-brand-mark {
@@ -142,7 +271,7 @@ a:hover {
 
 .sge-login-image {
     background:
-        linear-gradient(135deg, rgba(122, 63, 39, .08), rgba(246, 223, 143, .24)),
+        linear-gradient(135deg, rgba(107, 61, 46, .08), rgba(241, 230, 178, .36)),
         var(--sge-paper);
 }
 
