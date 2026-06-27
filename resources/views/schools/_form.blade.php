@@ -70,7 +70,7 @@
 
     @if (! empty($school->logo_path))
         <div class="form-group col-md-4 text-md-right">
-            <img src="{{ $school->logoUrl() }}" alt="Logo atual da escola" style="max-height: 72px; max-width: 180px;">
+            <img class="sge-school-logo-preview" src="{{ $school->logoUrl() }}" alt="Logo atual da escola">
         </div>
     @endif
 </div>

@@ -8,6 +8,7 @@ use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\User;
+use App\Support\PdfLetterhead;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -113,6 +114,8 @@ class ReportExportTest extends TestCase
             'institutional_email' => 'ativa@ctjj.org',
             'cpf' => '11122233344',
             'birth_date' => '1990-01-01',
+            'mother_name' => 'Maria da Silva',
+            'father_name' => 'José da Silva',
             'phone' => '(65) 99999-0000',
             'profile_completed_at' => now(),
             'active' => true,
@@ -122,6 +125,8 @@ class ReportExportTest extends TestCase
             'institutional_email' => 'inativa@ctjj.org',
             'cpf' => '55566677788',
             'birth_date' => '1990-01-01',
+            'mother_name' => 'Maria da Silva',
+            'father_name' => 'José da Silva',
             'phone' => '(65) 99999-0000',
             'profile_completed_at' => now(),
             'active' => false,
@@ -152,6 +157,70 @@ class ReportExportTest extends TestCase
         $this->assertSame('1', $document->payload['filters']['situacao']);
     }
 
+    public function test_people_report_combines_role_and_school_on_the_same_active_role(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $liceu = School::query()->create(['name' => 'Liceu Pedagógico São Francisco de Assis', 'active' => true]);
+        $laura = School::query()->create(['name' => 'Escola Laura Vicuña', 'active' => true]);
+
+        $teacherAtLiceu = Person::query()->create([
+            'full_name' => 'Docente do Liceu',
+            'institutional_email' => 'docente-liceu@ctjj.org',
+            'cpf' => '11122233344',
+            'birth_date' => '1990-01-01',
+            'mother_name' => 'Maria da Silva',
+            'father_name' => 'José da Silva',
+            'phone' => '(65) 99999-0000',
+            'profile_completed_at' => now(),
+            'active' => true,
+        ]);
+        $teacherAtLiceu->schoolRoles()->create([
+            'school_id' => $liceu->id,
+            'role' => PersonSchoolRole::ROLE_TEACHER,
+            'active' => true,
+            'started_at' => now()->subMonth()->toDateString(),
+        ]);
+
+        $studentAtLiceuTeacherElsewhere = Person::query()->create([
+            'full_name' => 'Estudante do Liceu Docente Fora',
+            'institutional_email' => 'docente-fora@ctjj.org',
+            'cpf' => '55566677788',
+            'birth_date' => '1990-01-01',
+            'mother_name' => 'Maria da Silva',
+            'father_name' => 'José da Silva',
+            'phone' => '(65) 99999-0000',
+            'profile_completed_at' => now(),
+            'active' => true,
+        ]);
+        $studentAtLiceuTeacherElsewhere->schoolRoles()->create([
+            'school_id' => $liceu->id,
+            'role' => PersonSchoolRole::ROLE_STUDENT,
+            'active' => true,
+            'started_at' => now()->subYear()->toDateString(),
+        ]);
+        $studentAtLiceuTeacherElsewhere->schoolRoles()->create([
+            'school_id' => $laura->id,
+            'role' => PersonSchoolRole::ROLE_TEACHER,
+            'active' => true,
+            'started_at' => now()->subMonth()->toDateString(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('reports.pdf', [
+                'type' => 'people',
+                'table-filters' => [
+                    'situacao' => '1',
+                    'papel' => PersonSchoolRole::ROLE_TEACHER,
+                    'escola' => (string) $liceu->id,
+                ],
+            ]))
+            ->assertOk();
+
+        $document = IssuedDocument::query()->firstOrFail();
+
+        $this->assertSame(1, $document->payload['rows_count']);
+    }
+
     public function test_roles_pdf_report_uses_current_table_filters(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
@@ -161,6 +230,8 @@ class ReportExportTest extends TestCase
             'institutional_email' => 'gestao@ctjj.org',
             'cpf' => '99988877766',
             'birth_date' => '1990-01-01',
+            'mother_name' => 'Maria da Silva',
+            'father_name' => 'José da Silva',
             'phone' => '(65) 99999-0000',
             'profile_completed_at' => now(),
         ]);
@@ -204,6 +275,8 @@ class ReportExportTest extends TestCase
             'institutional_email' => 'docente@ctjj.org',
             'cpf' => '99988877766',
             'birth_date' => '1990-01-01',
+            'mother_name' => 'Maria da Silva',
+            'father_name' => 'José da Silva',
             'phone' => '(65) 99999-0000',
             'profile_completed_at' => now(),
         ]);
@@ -248,6 +321,8 @@ class ReportExportTest extends TestCase
             'institutional_email' => 'docente-acento@ctjj.org',
             'cpf' => '12312312399',
             'birth_date' => '1990-01-01',
+            'mother_name' => 'Maria da Silva',
+            'father_name' => 'José da Silva',
             'phone' => '(65) 99999-0000',
             'profile_completed_at' => now(),
         ]);
@@ -294,6 +369,8 @@ class ReportExportTest extends TestCase
                 'institutional_email' => 'docente'.$index.'@ctjj.org',
                 'cpf' => fake()->unique()->numerify('###########'),
                 'birth_date' => '1990-01-01',
+            'mother_name' => 'Maria da Silva',
+            'father_name' => 'José da Silva',
                 'phone' => '(65) 99999-0000',
                 'profile_completed_at' => now(),
             ]);
@@ -373,6 +450,21 @@ class ReportExportTest extends TestCase
         $this->assertStringStartsWith('BEABA-', $document->verification_code);
     }
 
+    public function test_school_letterhead_includes_inep_in_registry_line(): void
+    {
+        $school = School::query()->create([
+            'name' => 'Escola A',
+            'cnpj' => '00.176.974/0001-20',
+            'inep' => '51061716',
+            'founded_at' => '1990-10-04',
+            'active' => true,
+        ]);
+
+        $letterhead = PdfLetterhead::make($school);
+
+        $this->assertContains('CNPJ: 00.176.974/0001-20 | INEP: 51061716 | Fundação: 04 de out de 1990', $letterhead['lines']);
+    }
+
     public function test_person_record_pdf_creates_verifiable_document_code(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
@@ -381,6 +473,8 @@ class ReportExportTest extends TestCase
             'institutional_email' => 'maria@ctjj.org',
             'cpf' => '11122233344',
             'birth_date' => '1990-01-01',
+            'mother_name' => 'Maria da Silva',
+            'father_name' => 'José da Silva',
             'phone' => '(65) 99999-0000',
             'profile_completed_at' => now(),
         ]);
@@ -435,6 +529,8 @@ class ReportExportTest extends TestCase
             'institutional_email' => 'pessoa-gestora@ctjj.org',
             'cpf' => '33322211100',
             'birth_date' => '1990-01-01',
+            'mother_name' => 'Maria da Silva',
+            'father_name' => 'José da Silva',
             'phone' => '(65) 99999-0000',
             'profile_completed_at' => now(),
         ]);
@@ -464,6 +560,8 @@ class ReportExportTest extends TestCase
             'institutional_email' => str($role)->ascii()->slug()->value().'@ctjj.org',
             'cpf' => fake()->unique()->numerify('###########'),
             'birth_date' => '1990-01-01',
+            'mother_name' => 'Maria da Silva',
+            'father_name' => 'José da Silva',
             'phone' => '(65) 99999-0000',
             'profile_completed_at' => now(),
         ]);
@@ -480,3 +578,4 @@ class ReportExportTest extends TestCase
         ]);
     }
 }
+

@@ -13,7 +13,7 @@ class IdentityRulesTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_person_cannot_change_their_own_institutional_email(): void
+    public function test_only_active_administrator_cannot_change_their_own_institutional_email(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin@ctjj.org');
 
@@ -24,6 +24,54 @@ class IdentityRulesTest extends TestCase
             ->assertRedirect(route('people.show', $admin->person));
 
         $this->assertSame('admin@ctjj.org', $admin->person->refresh()->institutional_email);
+    }
+
+    public function test_administrator_can_change_their_own_identity_data_and_email_when_another_administrator_exists(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin@ctjj.org');
+        $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'outro.admin@ctjj.org');
+
+        $this->actingAs($admin)
+            ->put(route('people.update', $admin->person), $this->personPayload([
+                'full_name' => 'Outro Nome',
+                'institutional_email' => 'novo.admin@ctjj.org',
+                'cpf' => '99988877766',
+                'birth_date' => '2000-05-10',
+                'mother_name' => 'Outra Mãe',
+            ]))
+            ->assertRedirect(route('people.show', $admin->person));
+
+        $admin->person->refresh();
+
+        $this->assertSame('Outro Nome', $admin->person->full_name);
+        $this->assertSame('novo.admin@ctjj.org', $admin->person->institutional_email);
+        $this->assertSame('99988877766', $admin->person->cpf);
+        $this->assertSame('2000-05-10', $admin->person->birth_date->toDateString());
+        $this->assertSame('Outra Mãe', $admin->person->mother_name);
+    }
+
+    public function test_manager_cannot_change_their_own_sensitive_identity_data(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A']);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id, 'gestao@ctjj.org');
+
+        $this->actingAs($manager)
+            ->put(route('people.update', $manager->person), $this->personPayload([
+                'full_name' => 'Outro Nome',
+                'institutional_email' => 'outra.gestao@ctjj.org',
+                'cpf' => '99988877766',
+                'birth_date' => '2000-05-10',
+                'mother_name' => 'Outra Mãe',
+            ]))
+            ->assertRedirect(route('people.show', $manager->person));
+
+        $manager->person->refresh();
+
+        $this->assertSame('Pessoa Gestao@ctjj.org', $manager->person->full_name);
+        $this->assertSame('gestao@ctjj.org', $manager->person->institutional_email);
+        $this->assertNotSame('99988877766', $manager->person->cpf);
+        $this->assertSame('1990-01-01', $manager->person->birth_date->toDateString());
+        $this->assertSame('Maria da Silva', $manager->person->mother_name);
     }
 
     public function test_administrator_can_change_another_persons_institutional_email(): void
@@ -52,6 +100,17 @@ class IdentityRulesTest extends TestCase
                 'cpf' => $existing->cpf,
             ]))
             ->assertSessionHasErrors(['institutional_email', 'cpf']);
+    }
+
+    public function test_mother_name_is_required_when_registering_person(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin@ctjj.org');
+
+        $this->actingAs($admin)
+            ->post(route('people.store'), $this->personPayload([
+                'mother_name' => null,
+            ]))
+            ->assertSessionHasErrors(['mother_name']);
     }
 
     public function test_non_administrator_role_requires_start_date(): void
@@ -295,6 +354,8 @@ class IdentityRulesTest extends TestCase
             'personal_email' => 'pessoa@gmail.com',
             'cpf' => '12345678901',
             'birth_date' => '1990-01-01',
+            'mother_name' => 'Maria da Silva',
+            'father_name' => 'José da Silva',
             'phone' => '(65) 99999-0000',
             'active' => '1',
         ], $overrides);
@@ -307,6 +368,8 @@ class IdentityRulesTest extends TestCase
             'institutional_email' => $email,
             'cpf' => $cpf ?? fake()->unique()->numerify('###########'),
             'birth_date' => '1990-01-01',
+            'mother_name' => 'Maria da Silva',
+            'father_name' => 'José da Silva',
             'phone' => '(65) 99999-0000',
             'active' => true,
             'profile_completed_at' => now(),

@@ -191,6 +191,41 @@ class User extends Authenticatable
         return $this->canManagePeople($schoolId);
     }
 
+    public function hasTeachingDiaries(): bool
+    {
+        if (! $this->person_id) {
+            return false;
+        }
+
+        return SchoolClassComponent::query()
+            ->where(function ($query): void {
+                $query->where('teacher_person_id', $this->person_id)
+                    ->orWhereHas('substitutions', function ($substitutions): void {
+                        $substitutions
+                            ->where('substitute_teacher_person_id', $this->person_id)
+                            ->whereDate('starts_at', '<=', now()->toDateString())
+                            ->where(function ($period): void {
+                                $period->whereNull('ends_at')
+                                    ->orWhereDate('ends_at', '>=', now()->toDateString());
+                            });
+                    });
+            })
+            ->where('active', true)
+            ->whereHas('schoolClass', fn ($query) => $query->where('active', true))
+            ->whereHas('component.course.academicYear', fn ($query) => $query->whereNotNull('approved_at')->where('active', true))
+            ->exists();
+    }
+
+    public function hasStudentMap(): bool
+    {
+        if (! $this->person_id) {
+            return false;
+        }
+
+        return $this->hasActiveRole(PersonSchoolRole::ROLE_STUDENT)
+            || $this->person?->studentEnrollments()->exists() === true;
+    }
+
     public function auditTimezone(): string
     {
         return array_key_exists($this->audit_timezone ?? '', self::AUDIT_TIMEZONES)

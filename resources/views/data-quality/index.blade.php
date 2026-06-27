@@ -4,6 +4,32 @@
 @section('page-title', 'Pendências de cadastro')
 
 @section('content')
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ route('data-quality.index') }}" class="form-inline">
+                <label for="school_id" class="mr-2 mb-2">Filtrar por escola</label>
+                <select id="school_id" name="school_id" class="form-control mr-2 mb-2">
+                    @if (auth()->user()->isAdministrator())
+                        <option value="">Todas as escolas</option>
+                    @endif
+                    @foreach ($schools as $school)
+                        <option value="{{ $school->id }}" @selected($selectedSchoolId === $school->id)>{{ $school->name }}</option>
+                    @endforeach
+                </select>
+                <button class="btn btn-primary mb-2" type="submit">Aplicar</button>
+                @if ($selectedSchoolId)
+                    <a class="btn btn-outline-secondary mb-2 ml-2" href="{{ route('data-quality.index') }}">Limpar</a>
+                @endif
+            </form>
+
+            @unless (auth()->user()->isAdministrator())
+                <p class="small text-gray-600 mb-0">
+                    Sua visualização está limitada às escolas em que você possui vínculo ativo de Gestão.
+                </p>
+            @endunless
+        </div>
+    </div>
+
     <div class="row">
         @foreach ([
             ['title' => 'Pessoas', 'checks' => $personChecks, 'icon' => 'fa-users'],

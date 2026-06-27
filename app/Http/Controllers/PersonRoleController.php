@@ -8,17 +8,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Illuminate\View\View;
 
 class PersonRoleController extends Controller
 {
-    public function index(Request $request): View
-    {
-        abort_unless($request->user()->canManagePeople(), 403);
-
-        return view('people.roles.index');
-    }
-
     public function store(Request $request, Person $person): RedirectResponse
     {
         $data = $this->validatedData($request);

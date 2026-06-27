@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Person;
+use App\Models\AcademicYear;
 use App\Models\Announcement;
 use App\Models\CalendarDay;
-use App\Models\CalendarEvent;
+use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
+use App\Models\StudentEnrollment;
+use App\Support\AcademicCalendarGrid;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -20,6 +22,9 @@ class DashboardController extends Controller
         $user = $request->user();
         $manageableSchoolIds = $user->isAdministrator() ? null : $user->manageableSchoolIds();
         $visibleSchoolIds = $user->isAdministrator() ? null : $user->visibleSchoolIds();
+        $calendarSchoolIds = $user->isAdministrator()
+            ? null
+            : ($user->isManager() ? $manageableSchoolIds : $visibleSchoolIds);
 
         $roleCounts = [
             PersonSchoolRole::ROLE_STUDENT => $this->activeRoleCount(PersonSchoolRole::ROLE_STUDENT, $manageableSchoolIds),
@@ -28,16 +33,24 @@ class DashboardController extends Controller
             PersonSchoolRole::ROLE_EMPLOYEE => $this->activeRoleCount(PersonSchoolRole::ROLE_EMPLOYEE, $manageableSchoolIds),
         ];
 
+        $birthdays = $this->birthdays($manageableSchoolIds);
+        $monthAcademicCalendars = $this->monthAcademicCalendars($calendarSchoolIds);
+
         return view('dashboard', [
             'schoolCount' => $this->schoolCount($manageableSchoolIds),
             'personCount' => $this->personCount($manageableSchoolIds),
+            'activeEnrollmentCount' => $this->activeEnrollmentCount($manageableSchoolIds),
+            'activeAcademicYearCount' => $this->activeAcademicYearCount($calendarSchoolIds),
+            'registrationPendingCount' => $this->registrationPendingCount($manageableSchoolIds),
+            'monthSchoolDayCount' => $monthAcademicCalendars->sum(fn (AcademicYear $academicYear): int => $academicYear->days->where('counts_as_school_day', true)->count()),
             'roleCounts' => $roleCounts,
             'roleChart' => $this->roleChart($roleCounts),
             'studentsBySchoolChart' => $this->studentsBySchoolChart($manageableSchoolIds),
-            'birthdays' => $this->birthdays($manageableSchoolIds),
+            'calendarTypeChart' => $this->calendarTypeChart($monthAcademicCalendars),
+            'birthdays' => $birthdays,
             'announcements' => $this->announcements($visibleSchoolIds),
-            'upcomingEvents' => $this->upcomingEvents($visibleSchoolIds),
-            'monthCalendarDays' => $this->monthCalendarDays($visibleSchoolIds),
+            'monthAcademicCalendars' => $monthAcademicCalendars,
+            'combinedCalendarMonth' => AcademicCalendarGrid::combinedMonth($monthAcademicCalendars, $birthdays, now('America/Sao_Paulo')),
         ]);
     }
 
@@ -75,6 +88,59 @@ class DashboardController extends Controller
             ->when($schoolIds !== null, fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
             ->distinct('person_id')
             ->count('person_id');
+    }
+
+    /**
+     * @param list<int>|null $schoolIds
+     */
+    private function activeEnrollmentCount(?array $schoolIds): int
+    {
+        return StudentEnrollment::query()
+            ->where('status', StudentEnrollment::STATUS_ENROLLED)
+            ->whereHas('student', fn (Builder $query) => $query->where('active', true))
+            ->whereHas('schoolClass.academicYear', function (Builder $query) use ($schoolIds): void {
+                $query->where('active', true)
+                    ->when($schoolIds !== null, fn (Builder $query) => $query->whereIn('school_id', $schoolIds));
+            })
+            ->count();
+    }
+
+    /**
+     * @param list<int>|null $schoolIds
+     */
+    private function activeAcademicYearCount(?array $schoolIds): int
+    {
+        return AcademicYear::query()
+            ->where('active', true)
+            ->whereDate('starts_at', '<=', now()->toDateString())
+            ->whereDate('ends_at', '>=', now()->toDateString())
+            ->when($schoolIds !== null, fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
+            ->count();
+    }
+
+    /**
+     * @param list<int>|null $schoolIds
+     */
+    private function registrationPendingCount(?array $schoolIds): int
+    {
+        return Person::query()
+            ->where('active', true)
+            ->where(function (Builder $query): void {
+                $query->whereNull('cpf')
+                    ->orWhere('cpf', '')
+                    ->orWhereNull('institutional_email')
+                    ->orWhere('institutional_email', '')
+                    ->orWhereNull('birth_date')
+                    ->orWhereNull('mother_name')
+                    ->orWhere('mother_name', '')
+                    ->orWhereNull('phone')
+                    ->orWhere('phone', '')
+                    ->orWhereNull('profile_completed_at');
+            })
+            ->when($schoolIds !== null, function (Builder $query) use ($schoolIds): void {
+                $query->whereHas('schoolRoles', fn (Builder $roles) => $this->activeRoleScope($roles)->whereIn('school_id', $schoolIds));
+            })
+            ->count();
     }
 
     private function activeRoleScope(Builder $query): Builder
@@ -131,6 +197,27 @@ class DashboardController extends Controller
     }
 
     /**
+     * @param Collection<int, AcademicYear> $academicYears
+     * @return array{labels: list<string>, values: list<int>}
+     */
+    private function calendarTypeChart(Collection $academicYears): array
+    {
+        $counts = $academicYears
+            ->flatMap(fn (AcademicYear $academicYear): Collection => $academicYear->days)
+            ->groupBy('type')
+            ->map->count()
+            ->sortDesc();
+
+        return [
+            'labels' => $counts->keys()
+                ->map(fn (string $type): string => CalendarDay::TYPE_LABELS[$type] ?? $type)
+                ->values()
+                ->all(),
+            'values' => $counts->values()->all(),
+        ];
+    }
+
+    /**
      * @param list<int>|null $schoolIds
      * @return Collection<int, Person>
      */
@@ -143,7 +230,6 @@ class DashboardController extends Controller
             ->when($schoolIds !== null, function (Builder $query) use ($schoolIds): void {
                 $query->whereHas('schoolRoles', fn (Builder $roles) => $this->activeRoleScope($roles)->whereIn('school_id', $schoolIds));
             })
-            ->limit(8)
             ->get()
             ->sortBy(fn (Person $person): int => (int) $person->birth_date?->format('d'))
             ->values();
@@ -169,36 +255,29 @@ class DashboardController extends Controller
 
     /**
      * @param list<int>|null $schoolIds
-     * @return Collection<int, CalendarEvent>
+     * @return Collection<int, AcademicYear>
      */
-    private function upcomingEvents(?array $schoolIds): Collection
+    private function monthAcademicCalendars(?array $schoolIds): Collection
     {
-        return CalendarEvent::query()
-            ->with('school')
-            ->whereDate('starts_at', '>=', now()->toDateString())
-            ->whereDate('starts_at', '<=', now()->addDays(7)->toDateString())
-            ->when($schoolIds !== null, fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
-            ->orderBy('starts_at')
-            ->limit(8)
-            ->get();
-    }
+        $monthStart = now()->startOfMonth()->toDateString();
+        $monthEnd = now()->endOfMonth()->toDateString();
 
-    /**
-     * @param list<int>|null $schoolIds
-     * @return Collection<int, CalendarDay>
-     */
-    private function monthCalendarDays(?array $schoolIds): Collection
-    {
-        return CalendarDay::query()
-            ->with('academicYear.school')
-            ->whereMonth('date', now()->month)
-            ->whereYear('date', now()->year)
-            ->whereHas('academicYear', function (Builder $query) use ($schoolIds): void {
-                $query->where('active', true)
-                    ->when($schoolIds !== null, fn (Builder $query) => $query->whereIn('school_id', $schoolIds));
-            })
-            ->orderBy('date')
-            ->limit(40)
+        return AcademicYear::query()
+            ->with([
+                'school',
+                'periods',
+                'days' => fn ($query) => $query
+                    ->whereBetween('date', [$monthStart, $monthEnd])
+                    ->orderBy('date'),
+            ])
+            ->where('academic_years.active', true)
+            ->whereDate('academic_years.starts_at', '<=', $monthEnd)
+            ->whereDate('academic_years.ends_at', '>=', $monthStart)
+            ->when($schoolIds !== null, fn (Builder $query) => $query->whereIn('academic_years.school_id', $schoolIds))
+            ->join('schools', 'academic_years.school_id', '=', 'schools.id')
+            ->orderBy('schools.name')
+            ->orderBy('academic_years.name')
+            ->select('academic_years.*')
             ->get();
     }
 }

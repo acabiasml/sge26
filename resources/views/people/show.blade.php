@@ -10,33 +10,59 @@
 @section('page-title', $person->full_name)
 
 @section('page-actions')
-    <a class="btn btn-sm btn-primary shadow-sm" href="{{ route('people.edit', $person) }}">Editar pessoa</a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm ml-2" href="{{ route('people.pdf', $person) }}">
-        <i class="fas fa-file-pdf fa-sm"></i> Ficha em PDF
+    @if ($person->studentEnrollments->isNotEmpty() || $person->schoolRoles->contains('role', \App\Models\PersonSchoolRole::ROLE_STUDENT))
+        <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.student-map.show', $person) }}" aria-label="Abrir mapa do estudante {{ $person->full_name }}" title="Mapa do estudante">
+            <i class="fas fa-map-marked-alt" aria-hidden="true"></i>
+        </a>
+    @endif
+    <a class="btn btn-sm btn-primary shadow-sm sge-icon-action" href="{{ route('people.edit', $person) }}" aria-label="Editar pessoa {{ $person->full_name }}" title="Editar pessoa">
+        <i class="fas fa-pen" aria-hidden="true"></i>
+    </a>
+    <a class="btn btn-sm btn-outline-primary shadow-sm ml-2 sge-icon-action" href="{{ route('people.pdf', $person) }}" aria-label="Emitir ficha em PDF de {{ $person->full_name }}" title="Ficha em PDF">
+        <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
 @endsection
 
 @section('content')
     <div class="row">
-        <div class="col-lg-5">
+        <div class="col-xl-4 col-lg-5">
+            <div class="card shadow mb-4">
+                <div class="card-body">
+                    <div class="sge-person-summary">
+                        <div class="sge-avatar-lg">{{ mb_substr($person->social_name ?: $person->full_name, 0, 1) }}</div>
+                        <div>
+                            <div class="sge-page-kicker">{{ $person->active ? 'Cadastro ativo' : 'Cadastro inativo' }}</div>
+                            <h2 class="h5 mb-1">{{ $person->social_name ?: $person->full_name }}</h2>
+                            <p class="mb-0 text-gray-600">{{ $person->institutional_email ?: 'Sem e-mail institucional' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card shadow mb-4">
                 <div class="card-header font-weight-bold">Dados pessoais</div>
                 <div class="card-body">
-                    <dl class="row mb-0">
-                        <dt class="col-sm-5">Nome</dt>
-                        <dd class="col-sm-7">{{ $person->full_name }}</dd>
+                    <dl class="sge-definition-list mb-0">
+                        <dt>Nome completo</dt>
+                        <dd>{{ $person->full_name }}</dd>
 
-                        <dt class="col-sm-5">E-mail institucional</dt>
-                        <dd class="col-sm-7">{{ $person->institutional_email ?: '-' }}</dd>
+                        <dt>CPF</dt>
+                        <dd>{{ $person->cpf ?: '-' }}</dd>
 
-                        <dt class="col-sm-5">CPF</dt>
-                        <dd class="col-sm-7">{{ $person->cpf ?: '-' }}</dd>
+                        <dt>Data de nascimento</dt>
+                        <dd>{{ $person->birth_date?->format('d/m/Y') ?? '-' }}</dd>
 
-                        <dt class="col-sm-5">Telefone</dt>
-                        <dd class="col-sm-7">{{ $person->phone ?: '-' }}</dd>
+                        <dt>Nome da mãe</dt>
+                        <dd>{{ $person->mother_name ?: '-' }}</dd>
 
-                        <dt class="col-sm-5">Endereço</dt>
-                        <dd class="col-sm-7">
+                        <dt>Nome do pai</dt>
+                        <dd>{{ $person->father_name ?: '-' }}</dd>
+
+                        <dt>Telefone</dt>
+                        <dd>{{ $person->phone ?: '-' }}</dd>
+
+                        <dt>Endereço</dt>
+                        <dd>
                             @if ($person->address || $person->city || $person->state)
                                 {{ $person->address }}
                                 @if ($person->number), {{ $person->number }} @endif
@@ -53,11 +79,8 @@
                             @endif
                         </dd>
 
-                        <dt class="col-sm-5">Situação do cadastro</dt>
-                        <dd class="col-sm-7">{{ $person->active ? 'Ativa' : 'Inativa' }}</dd>
-
-                        <dt class="col-sm-5">Papel atual</dt>
-                        <dd class="col-sm-7">
+                        <dt>Papel atual</dt>
+                        <dd>
                             @if ($primaryRole)
                                 {{ $primaryRole->label() }}
                                 @if ($primaryRole->school)
@@ -75,9 +98,52 @@
                     </dl>
                 </div>
             </div>
+
+            <div class="card shadow mb-4">
+                <div class="card-header font-weight-bold">Matrículas acadêmicas</div>
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Ano letivo</th>
+                                <th>Turma</th>
+                                <th>Situação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($person->studentEnrollments->sortByDesc(fn ($enrollment) => $enrollment->schoolClass?->academicYear?->reference_year) as $enrollment)
+                                <tr>
+                                    <td>
+                                        {{ $enrollment->schoolClass?->academicYear?->name }}
+                                        <span class="d-block text-muted small">
+                                            {{ $enrollment->schoolClass?->academicYear?->school?->name }}
+                                            · {{ $enrollment->schoolClass?->academicYear?->reference_year }}
+                                        </span>
+                                        <span class="d-block text-muted small">{{ $enrollment->courses->pluck('name')->join(' + ') ?: '-' }}</span>
+                                    </td>
+                                    <td>{{ $enrollment->schoolClass?->name }}</td>
+                                    <td>
+                                        {{ $enrollment->statusLabel() }}
+                                        <span class="d-block text-muted small">
+                                            {{ $enrollment->enrolled_at?->format('d/m/Y') ?? 'sem data' }}
+                                            @if ($enrollment->transferred_at)
+                                                até {{ $enrollment->transferred_at->format('d/m/Y') }}
+                                            @endif
+                                        </span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="text-center text-gray-600">Nenhuma matrícula acadêmica cadastrada.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
-        <div class="col-lg-7">
+        <div class="col-xl-8 col-lg-7">
             <div class="card shadow mb-4">
                 <div class="card-header font-weight-bold">Novo vínculo</div>
                 <div class="card-body">
@@ -125,28 +191,34 @@
                                         @endif
                                     </td>
                                     <td class="text-right">
-                                        <div class="d-inline-flex flex-wrap justify-content-end">
+                                        <div class="sge-action-buttons">
                                             @if ($roleModel->isActiveForDate())
                                                 @unless ($isLastAdministration)
-                                                    <form method="POST" action="{{ route('people.roles.deactivate', [$person, $roleModel]) }}" class="ml-1 mb-1">
+                                                    <form method="POST" action="{{ route('people.roles.deactivate', [$person, $roleModel]) }}">
                                                         @csrf
                                                         @method('PATCH')
-                                                        <button class="btn btn-sm btn-outline-warning" type="submit">Desativar</button>
+                                                        <button class="btn btn-sm btn-outline-warning sge-icon-action" type="submit" aria-label="Desativar vínculo {{ $roles[$roleModel->role] ?? $roleModel->role }}" title="Desativar vínculo">
+                                                            <i class="fas fa-pause" aria-hidden="true"></i>
+                                                        </button>
                                                     </form>
                                                 @endunless
                                             @else
-                                                <form method="POST" action="{{ route('people.roles.activate', [$person, $roleModel]) }}" class="ml-1 mb-1">
+                                                <form method="POST" action="{{ route('people.roles.activate', [$person, $roleModel]) }}">
                                                     @csrf
                                                     @method('PATCH')
-                                                    <button class="btn btn-sm btn-outline-success" type="submit">Ativar</button>
+                                                    <button class="btn btn-sm btn-outline-success sge-icon-action" type="submit" aria-label="Ativar vínculo {{ $roles[$roleModel->role] ?? $roleModel->role }}" title="Ativar vínculo">
+                                                        <i class="fas fa-play" aria-hidden="true"></i>
+                                                    </button>
                                                 </form>
                                             @endif
 
                                             @unless ($isLastAdministration)
-                                                <form method="POST" action="{{ route('people.roles.destroy', [$person, $roleModel]) }}" class="ml-1 mb-1">
+                                                <form method="POST" action="{{ route('people.roles.destroy', [$person, $roleModel]) }}">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button class="btn btn-sm btn-outline-danger" type="submit">Remover</button>
+                                                    <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="Remover vínculo {{ $roles[$roleModel->role] ?? $roleModel->role }}" title="Remover vínculo">
+                                                        <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                                                    </button>
                                                 </form>
                                             @endunless
                                         </div>
@@ -272,7 +344,9 @@
                                         <form method="POST" action="{{ route('people.contacts.destroy', [$person, $contact]) }}">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="btn btn-sm btn-outline-danger" type="submit">Remover</button>
+                                            <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="Remover contato {{ $contact->name }}" title="Remover contato">
+                                                <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                                            </button>
                                         </form>
                                     </td>
                                 </tr>

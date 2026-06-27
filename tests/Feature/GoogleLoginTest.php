@@ -122,6 +122,8 @@ class GoogleLoginTest extends TestCase
             'institutional_email' => 'docente@ctjj.org',
             'cpf' => '12345678900',
             'birth_date' => '1990-01-01',
+            'mother_name' => 'Maria da Silva',
+            'father_name' => 'José da Silva',
             'phone' => '(65) 99999-0000',
             'profile_completed_at' => now(),
         ]);
@@ -191,3 +193,4 @@ class GoogleLoginTest extends TestCase
         $this->app->instance(SocialiteFactory::class, $socialite);
     }
 }
+

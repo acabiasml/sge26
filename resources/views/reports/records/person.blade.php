@@ -26,6 +26,8 @@
         <tr><th class="label">Nome social</th><td>{{ $person->social_name ?: '-' }}</td></tr>
         <tr><th class="label">CPF</th><td>{{ $person->cpf ?: '-' }}</td></tr>
         <tr><th class="label">Data de nascimento</th><td>{{ $person->birth_date?->format('d/m/Y') ?? '-' }}</td></tr>
+        <tr><th class="label">Nome da mãe</th><td>{{ $person->mother_name ?: '-' }}</td></tr>
+        <tr><th class="label">Nome do pai</th><td>{{ $person->father_name ?: '-' }}</td></tr>
         <tr><th class="label">E-mail institucional</th><td>{{ $person->institutional_email ?: '-' }}</td></tr>
         <tr><th class="label">E-mail pessoal</th><td>{{ $person->personal_email ?: '-' }}</td></tr>
         <tr><th class="label">Telefone</th><td>{{ $person->phone ?: '-' }}</td></tr>

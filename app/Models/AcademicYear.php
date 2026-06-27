@@ -22,6 +22,8 @@ class AcademicYear extends Model
         'approved_at',
         'class_hour_minutes',
         'minimum_school_days',
+        'passing_points',
+        'minimum_attendance_percentage',
         'notes',
         'active',
     ];
@@ -32,6 +34,8 @@ class AcademicYear extends Model
             'starts_at' => 'date',
             'ends_at' => 'date',
             'approved_at' => 'date',
+            'passing_points' => 'decimal:1',
+            'minimum_attendance_percentage' => 'integer',
             'active' => 'boolean',
         ];
     }
@@ -41,6 +45,14 @@ class AcademicYear extends Model
         return [
             'name',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (AcademicYear $academicYear): void {
+            $academicYear->passing_points ??= 24;
+            $academicYear->minimum_attendance_percentage ??= 75;
+        });
     }
 
     public function school(): BelongsTo
@@ -58,9 +70,14 @@ class AcademicYear extends Model
         return $this->hasMany(CalendarDay::class);
     }
 
-    public function events(): HasMany
+    public function courses(): HasMany
     {
-        return $this->hasMany(CalendarEvent::class);
+        return $this->hasMany(AcademicCourse::class);
+    }
+
+    public function classes(): HasMany
+    {
+        return $this->hasMany(SchoolClass::class);
     }
 
     public function schoolDayCount(): int

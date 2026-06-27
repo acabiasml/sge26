@@ -23,11 +23,16 @@ class PeopleTable extends DataTableComponent
     public function builder(): Builder
     {
         $user = auth()->user();
+        $roleFilter = $this->currentFilterValue('papel');
+        $schoolFilter = $this->currentFilterValue('escola');
 
         return Person::query()
             ->with('schoolRoles.school')
             ->when(! $user->isAdministrator(), function (Builder $query) use ($user): void {
                 $query->whereHas('schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $user->manageableSchoolIds()));
+            })
+            ->when(filled($roleFilter) || filled($schoolFilter), function (Builder $query) use ($roleFilter, $schoolFilter): void {
+                $query->whereHasActiveSchoolRole($roleFilter ?: null, $schoolFilter ?: null);
             });
     }
 
@@ -69,16 +74,15 @@ class PeopleTable extends DataTableComponent
                 ->filter(fn (Builder $builder, string $value) => $builder->where('active', $value === '1')),
             SelectFilter::make('Papel')
                 ->options(['' => 'Todos'] + PersonSchoolRole::ROLE_LABELS)
-                ->filter(fn (Builder $builder, string $value) => $builder->whereHas(
-                    'schoolRoles',
-                    fn (Builder $roles) => $roles->where('role', $value)
-                )),
+                ->filter(fn (Builder $builder, string $value) => $builder),
             SelectFilter::make('Escola')
                 ->options(['' => 'Todas'] + $schools)
-                ->filter(fn (Builder $builder, string $value) => $builder->whereHas(
-                    'schoolRoles',
-                    fn (Builder $roles) => $roles->where('school_id', (int) $value)
-                )),
+                ->filter(fn (Builder $builder, string $value) => $builder),
         ];
+    }
+
+    private function currentFilterValue(string $key): mixed
+    {
+        return $this->getAppliedFilterWithValue($key) ?? request()->input("table-filters.{$key}");
     }
 }

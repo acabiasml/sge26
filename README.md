@@ -2,37 +2,29 @@
   <img src="public/brand/logo-square.png" alt="Logo do Beabá" width="160">
 </p>
 
-# Beabá - Sistema de Gestão Escolar
+# Beabá
 
-Beabá é um sistema de gestão escolar desenvolvido em Laravel para substituir gradualmente bases legadas, preservando a possibilidade de migração dos dados antigos para uma estrutura nova, auditável e mais coerente com a realidade das escolas.
+Sistema de Gestão Escolar em Laravel para as escolas mantidas pelo Centro Técnico Juvenil de Jarudore.
 
-O projeto atende escolas mantidas pelo Centro Técnico Juvenil de Jarudore, com acesso institucional pelo domínio `ctjj.org` via Google Workspace. A Operação Mato Grosso aparece como apoiadora e parceira institucional.
+O Beabá está sendo construído para substituir gradualmente sistemas e bases legadas, preservando a possibilidade de migração dos dados antigos, mas com uma modelagem nova: auditável, organizada por escola e mais próxima da rotina real de secretaria, gestão, docência e estudantes.
 
-## Contexto institucional
+O acesso institucional usa Google Workspace do domínio `ctjj.org`.
 
-O sistema atenderá inicialmente três escolas:
+## Contexto
 
-- **Liceu Pedagógico São Francisco de Assis**, no distrito de Jarudore, em Poxoréu-MT. Mantém internato masculino, atende do 9º ano do Ensino Fundamental ao 3º ano do Ensino Médio e oferece curso técnico em Móveis de 1200 horas como itinerário formativo no Ensino Médio.
-- **Lar São Domingos Sávio**, em Naboreiro, Rondonópolis-MT. Mantém internato feminino e atende turmas do 6º ano do Ensino Fundamental ao 3º ano do Ensino Médio.
-- **Escola Laura Vicuña**, em General Carneiro-MT, com salas anexas em Barra do Garças-MT. Atende turmas do 6º ano do Ensino Fundamental ao 3º ano do Ensino Médio.
+O sistema atende inicialmente:
 
-Essa realidade orienta a modelagem: pessoas podem ter vínculos em mais de uma escola, escolas podem ter dados institucionais próprios para documentos, e os registros históricos precisam sobreviver à migração.
+- **Liceu Pedagógico São Francisco de Assis**, em Jarudore, distrito de Poxoréu-MT. Atende do 9º ano do Ensino Fundamental ao 3º ano do Ensino Médio e mantém itinerário formativo técnico em Móveis.
+- **Lar São Domingos Sávio**, em Naboreiro, Rondonópolis-MT. Atende do 6º ano do Ensino Fundamental ao 3º ano do Ensino Médio e mantém internato feminino.
+- **Escola Laura Vicuña**, em General Carneiro-MT, com salas anexas em Barra do Garças-MT. Atende do 6º ano do Ensino Fundamental ao 3º ano do Ensino Médio.
 
-## Objetivos
-
-- Centralizar o cadastro de escolas, pessoas, vínculos, responsáveis e contatos.
-- Permitir múltiplos papéis para a mesma pessoa, inclusive em escolas diferentes e períodos diferentes.
-- Registrar auditoria das alterações feitas no sistema.
-- Emitir documentos e relatórios em PDF e Excel.
-- Gerar código único de verificação para documentos emitidos.
-- Manter caminho seguro de importação das bases antigas.
-- Criar base para calendário escolar, recados, eventos, anos letivos e futura gestão acadêmica.
+O Centro Técnico Juvenil de Jarudore é a mantenedora oficial. A Operação Mato Grosso aparece como parceira institucional.
 
 ## Stack
 
 - PHP 8.2+
 - Laravel 12
-- SQLite no ambiente local atual
+- SQLite no ambiente local
 - Laravel Socialite para login com Google
 - Livewire 3
 - Rappasoft Laravel Livewire Tables
@@ -40,164 +32,225 @@ Essa realidade orienta a modelagem: pessoas podem ter vínculos em mais de uma e
 - Dompdf
 - Vite
 
-## Modelo de acesso
+## Conceitos Principais
 
-O sistema separa três conceitos:
+O sistema separa três coisas que antes ficavam misturadas:
 
-- **Pessoa**: cadastro real da pessoa.
-- **Usuário**: credencial de acesso vinculada ao Google Workspace.
-- **Vínculo**: papel da pessoa no sistema, com escola e período quando aplicável.
+- **Pessoa**: cadastro civil e institucional.
+- **Usuário**: credencial de acesso via Google Workspace.
+- **Vínculo**: papel exercido por uma pessoa em uma escola e em um período.
 
 Papéis atuais:
 
 - **Administração**: acesso global.
-- **Gestão**: acesso limitado à escola do vínculo.
-- **Docência**: vínculo docente.
-- **Estudante**: acesso futuro a dados próprios, notas e documentos.
-- **Equipe escolar**: funcionários e demais colaboradores.
+- **Gestão**: direção, coordenação ou secretaria em uma escola.
+- **Docência**: acesso aos diários e horários dos componentes atribuídos.
+- **Estudante**: acesso ao próprio diário, horários e documentos.
+- **Equipe escolar**: colaboradores sem função de gestão.
 
-Para Gestão, o sistema também registra a função:
+Uma pessoa pode ter vários vínculos, inclusive em escolas diferentes.
 
-- Direção
-- Coordenação
-- Secretaria
+## Regras de Acesso
 
-Uma pessoa pode acumular vínculos. Exemplo: gestão em uma escola e docência em outra.
+- Não há autocadastro livre.
+- Se não houver Administração ativa, o primeiro login `@ctjj.org` cria a primeira pessoa administradora.
+- Depois disso, só acessa quem já foi cadastrado por Administração ou Gestão.
+- CPF e e-mail institucional são únicos.
+- A própria pessoa não pode alterar o próprio e-mail institucional.
+- Gestores, docentes, estudantes e equipe não podem alterar seus próprios dados sensíveis: nome completo, CPF, data de nascimento, e-mail institucional e nome da mãe.
+- A última Administração ativa não pode se desativar, remover seu vínculo ou deixar o sistema sem Administração.
+- Pessoas inativas não aparecem como pendência apenas por falta de dados, mas não podem receber novos vínculos, matrículas ou documentos quando não possuem CPF e e-mail institucional.
 
-## Regras principais
+## Módulos Atuais
 
-- Não existe autocadastro livre.
-- Se ainda não houver Administração ativa, o primeiro login `@ctjj.org` cria a primeira pessoa administradora.
-- Depois disso, só acessa quem foi previamente cadastrado por Administração ou Gestão.
-- Todos os acessos usam e-mail institucional do Google Workspace.
-- CPF e e-mail institucional não podem se repetir.
-- A própria pessoa não pode alterar seu e-mail institucional, inclusive Administração.
-- Cadastro incompleto bloqueia acesso às telas internas.
-- A última Administração ativa não pode se desativar, remover seu vínculo ou deixar o sistema sem Administração ativa.
-- Quando uma pessoa é desativada, seus vínculos ativos são encerrados.
-- Pessoas inativas não aparecem como pendência apenas por falta de dados.
-- Pessoa inativa sem CPF e e-mail institucional não pode receber novos vínculos nem emitir documentos.
+### Cadastro e Gestão
 
-## Cadastros
+- Escolas, dados institucionais, INEP, CNPJ, endereço, contatos e logo.
+- Pessoas, dados pessoais, endereço, contatos e responsáveis.
+- Vínculos por papel, escola, data de início e fim.
+- Pendências de cadastro filtradas por escola e apenas para pessoas ativas.
+- Auditoria de alterações com ator, papel, escola, registro, valores antigos e novos.
 
-### Escolas
+### Estrutura Acadêmica
 
-O cadastro de escola mantém dados administrativos e institucionais usados no papel timbrado:
+- Ano letivo por escola, com calendário, aprovação, frequência mínima e soma de pontos para aprovação.
+- Períodos avaliativos com regras de avaliação e recuperação.
+- Matrizes/cursos dentro do ano letivo.
+- Componentes curriculares agrupados por formação e área do conhecimento.
+- Turmas vinculadas a matrizes ativas.
+- Validação visual do ano letivo, matriz, turma, horários e diários antes da operação acadêmica.
 
-- nome da escola;
-- razão social;
-- CNPJ;
-- código INEP;
-- telefone, e-mail e site;
-- endereço;
-- data de fundação;
-- texto institucional para cabeçalho;
-- logo da escola.
+### Calendário Escolar
 
-### Pessoas
+Cada escola possui seus próprios anos letivos. Um ano letivo pode atravessar mais de um ano civil.
 
-O cadastro de pessoa concentra dados pessoais, endereço, CPF, e-mail institucional, e-mail pessoal, telefone e situação do cadastro.
+No calendário:
 
-Responsáveis que não acessam o sistema, como pai, mãe ou responsável legal, são registrados em **Responsáveis e contatos**, sem criar uma pessoa com acesso ao sistema.
+- segundas a sextas iniciam como férias finais (`FF`);
+- sábados e domingos iniciam sem marcação;
+- períodos avaliativos transformam datas em dias letivos;
+- dias não letivos entre períodos são normalizados como recesso (`RE`);
+- tipos de dia incluem letivo, sábado, domingo, feriado, férias finais, recesso escolar, estudos pedagógicos, início/término de período, conselho de classe e outro.
 
-### Vínculos
+O calendário pode ser impresso em PDF oficial, em página paisagem, com legenda, períodos, assinatura e papel timbrado.
 
-Os vínculos ligam a pessoa a um papel, escola e período. Administração é global; Gestão, Docência, Estudante e Equipe escolar normalmente ficam vinculados a uma escola.
+### Matrizes e Turmas
 
-## Auditoria
+- Matrizes podem ser duplicadas para reaproveitar componentes.
+- Componentes têm área, formação, aulas semanais e duração por períodos avaliativos.
+- A carga horária é calculada por:
 
-Alterações em dados auditáveis geram registros em `audit_logs`.
+```text
+aulas semanais × minutos da hora-aula da matriz × 40 ÷ 60
+```
 
-A auditoria registra:
+- A impressão de matrizes agrupa componentes por formação, área e matriz, aproximando o formato das matrizes curriculares oficiais.
+- A associação de docentes titulares e substitutos fica na turma, não na matriz, porque turmas com a mesma matriz podem ter professores diferentes.
 
-- quem fez a alteração;
-- pessoa autora;
-- papel usado no momento;
-- escola relacionada, quando aplicável;
-- registro alterado;
-- ação realizada;
-- valores anteriores e novos;
-- data e hora;
-- IP e navegador.
+### Horários
 
-A visualização padrão usa o fuso de Brasília (`America/Sao_Paulo`). Administração pode escolher outro fuso para visualização.
+Cada turma pode ter versões de horário com validade por período.
 
-## Documentos e relatórios
+O horário é visual, em matriz semanal, respeitando:
 
-O sistema gera relatórios em Excel e PDF para:
+- dias letivos previstos no calendário;
+- quantidade de aulas semanais do componente;
+- duração da hora-aula da matriz;
+- intervalos;
+- cores consistentes por docente.
 
-- escolas;
-- pessoas;
-- vínculos;
-- auditoria.
+Há impressão do horário da turma, dos horários do ano letivo, dos horários do professor e dos horários do estudante.
 
-Também existem fichas individuais em PDF para escola e pessoa.
+### Matrículas
 
-Todo PDF emitido é registrado em `issued_documents` e recebe código único no formato:
+Matrículas ficam em módulo próprio, fora do ano letivo, porque um estudante pode cursar matrizes diferentes, inclusive em anos letivos com durações distintas.
+
+Administração pode matricular em qualquer escola. Gestão pode matricular apenas nas escolas em que possui vínculo ativo.
+
+O estudante só pode ser matriculado se:
+
+- estiver ativo;
+- possuir CPF;
+- possuir e-mail institucional;
+- tiver vínculo de estudante na escola;
+- a matriz estiver ativa.
+
+O módulo preserva transferência, reclassificação, cancelamento e emissão de ficha de matrícula em PDF.
+
+### Diários
+
+Diários são gerados por turma e componente curricular.
+
+Docência pode:
+
+- lançar frequência;
+- lançar conteúdo por dia;
+- lançar notas configuradas pela gestão;
+- visualizar diário por período ou ano;
+- confirmar lançamentos ao final do período avaliativo;
+- imprimir diário e lista de chamada.
+
+Gestão e Administração podem:
+
+- acompanhar diários por filtros, cartões e indicadores;
+- enviar alertas ao professor;
+- corrigir lançamentos quando necessário;
+- reabrir diário individual;
+- consolidar período apenas quando os diários estiverem confirmados e sem pendências;
+- reabrir período consolidado com justificativa;
+- imprimir diários para assinatura.
+
+Quando a turma tem horário cadastrado, as datas do diário seguem o horário. Quando não tem horário, o diário mantém seleção manual de datas, útil para cursos técnicos e ofertas especiais.
+
+Conteúdo e frequência são vinculados por data: frequência sem conteúdo, ou conteúdo sem frequência, gera pendência.
+
+### Avaliação e Recuperação
+
+A gestão configura as avaliações por período avaliativo:
+
+- quantidade de avaliações;
+- nome;
+- peso;
+- regra de recuperação.
+
+A recuperação pode:
+
+- compor a média como nota separada com peso;
+- substituir uma avaliação específica;
+- substituir a menor nota do período.
+
+A média do período é arredondada para o múltiplo de `0,5` mais próximo.
+
+A aprovação anual considera soma de pontos definida no ano letivo, além da frequência mínima.
+
+### Documentos
+
+O sistema emite:
+
+- fichas de pessoa e escola;
+- calendários escolares;
+- matrizes curriculares;
+- ficha de matrícula;
+- diários de classe;
+- listas de chamada;
+- horários;
+- relatórios em PDF e Excel;
+- documentos oficiais criados em editor próprio.
+
+Todos os PDFs recebem código único:
 
 ```text
 BEABA-XXXX-XXXX-XXXX
 ```
 
-Esse código pode ser verificado publicamente em:
+A verificação pública fica em:
 
 ```text
 /documentos/verificar
 ```
 
-O rodapé dos documentos informa o código, data/hora de emissão em Brasília e a pessoa emissora.
+O rodapé informa código, data/hora de emissão em Brasília e pessoa emissora.
 
-## Calendário escolar
+O papel timbrado usa:
 
-O sistema já possui base para:
+- logo e dados do Centro Técnico Juvenil de Jarudore à esquerda;
+- logo e dados da escola à direita, quando houver escola associada ao documento.
 
-- cadastro de anos letivos por escola;
-- nome livre do ano letivo, como Educação Básica ou Ensino Técnico;
-- data de início e fim;
-- hora-aula do ano letivo;
-- geração inicial de dias letivos;
-- recesso escolar;
-- opção de ignorar sábados e domingos na geração;
-- períodos avaliativos com nomes livres, sem sobreposição;
-- eventos por escola;
-- PDF do calendário em página única, paisagem, para assinatura.
+### Dashboard e Menu
 
-O calendário, eventos próximos, aniversários e recados aparecem no dashboard.
+O dashboard apresenta métricas, recados, aniversariantes e calendário mensal integrado.
 
-## Recados
+O menu lateral é organizado por uso real:
 
-Administração pode criar recados globais. Gestão pode criar recados para sua escola. Recados têm período de exibição e aparecem no dashboard para o público correspondente.
+- **Meu espaço**: cadastro, calendário, horários e diários pessoais.
+- **Gestão escolar**: escolas, anos letivos, pessoas e pendências.
+- **Rotina acadêmica**: matrículas, justificativas e diários.
+- **Documentos**: editor oficial e verificação de autenticidade.
+- **Comunicação**: recados.
+- **Administração**: auditoria.
 
-## Telas atuais
+## Acessibilidade
 
-- Login com Google
-- Verificação pública de documentos
-- Dashboard
-- Escolas
-- Pessoas
-- Vínculos
-- Pendências
-- Anos letivos
-- Eventos
-- Recados
-- Auditoria
-- Relatórios em Excel e PDF
+O Beabá prioriza:
 
-## Base legada
+- português do Brasil com acentuação correta;
+- foco visível;
+- link para pular ao conteúdo;
+- botões com ícones acompanhados de `aria-label` e `title`;
+- navegação lateral agrupada;
+- textos legíveis;
+- tabelas responsivas;
+- compatibilidade com leitores de tela.
 
-Arquivos da base antiga ficam em:
+## Base Legada
+
+Arquivos legados ficam em:
 
 ```text
 database/legacy
 ```
 
-A análise inicial está em:
-
-```text
-database/legacy/analise_estrutura_antiga.md
-```
-
-Bases legadas atuais:
+Bases atuais:
 
 - `database/legacy/u810745753_beaba.sql`
 - `database/legacy/u810745753_lar.sql`
@@ -211,14 +264,7 @@ php artisan legacy:import --fresh
 
 O importador preserva `legacy_source`, `legacy_id` e metadados relevantes. E-mails fora de `ctjj.org` são tratados como e-mail pessoal e aguardam e-mail institucional.
 
-Na importação inicial, ficam ativos:
-
-- Acabias, como Administração global;
-- estudantes vinculados a cursos/calendários de 2026 que não estejam transferidos;
-- docentes vinculados a componentes de cursos/calendários de 2026;
-- Gestão indicada no cadastro das escolas.
-
-## Configuração local
+## Configuração Local
 
 Instale as dependências:
 
@@ -227,7 +273,7 @@ composer install
 npm install
 ```
 
-Copie o ambiente, gere a chave e rode as migrações:
+Prepare o ambiente:
 
 ```bash
 copy .env.example .env
@@ -255,9 +301,9 @@ GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=http://127.0.0.1:8000/auth/google/callback
 ```
 
-No Google Cloud Console, a URI autorizada de redirecionamento precisa ser exatamente a mesma de `GOOGLE_REDIRECT_URI`.
+No Google Cloud Console, a URI autorizada de redirecionamento precisa ser exatamente igual a `GOOGLE_REDIRECT_URI`.
 
-## Executando
+## Execução
 
 Servidor Laravel:
 
@@ -291,13 +337,9 @@ Ou:
 composer test
 ```
 
-## Observações de desenvolvimento
+## Observações de Desenvolvimento
 
-- Textos exibidos devem estar em português do Brasil, com acentuação correta.
-- O visual segue a identidade do Beabá, com a logo do sistema na interface principal e no favicon.
-- A logo do Centro Técnico Juvenil de Jarudore é usada no papel timbrado dos documentos.
-- A logo da escola aparece no papel timbrado quando cadastrada.
-- A logo da Operação Mato Grosso aparece de forma discreta na tela de login.
-- Tabelas administrativas usam Livewire Tables.
-- Exportações usam Laravel Excel e Dompdf.
-- Alterações estruturais precisam considerar a migração futura da base legada.
+- Mudanças estruturais devem preservar o caminho de migração das bases antigas.
+- Alterações em dados acadêmicos aprovados devem respeitar os bloqueios de segurança.
+- Documentos oficiais devem manter código de autenticidade.
+- Telas novas devem respeitar acessibilidade, responsividade e a identidade visual do Beabá.

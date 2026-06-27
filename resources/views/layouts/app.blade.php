@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="pt-BR">
 
 <head>
     <meta charset="utf-8">
@@ -11,134 +11,277 @@
     <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
 
     <link href="{{ asset('template/vendor/fontawesome-free/css/all.min.css') }}" rel="stylesheet" type="text/css">
-    <link
-        href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
-        rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="{{ asset('template/css/sb-admin-2.min.css') }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-brand.css') }}" rel="stylesheet">
     @livewireStyles
 </head>
 
 <body id="page-top">
+    <a class="sge-skip-link" href="#main-content">Ir para o conteúdo</a>
     <div id="wrapper">
-        <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+        <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar" aria-label="Menu principal">
             <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ route('dashboard') }}">
                 <div class="sidebar-brand-icon sge-sidebar-brand-mark">
-                    <img src="{{ asset('brand/logo.png') }}" alt="{{ config('app.name', 'Beabá') }}" style="width: 42px; height: auto;">
+                    <img class="sge-brand-logo-sm" src="{{ asset('brand/logo.png') }}" alt="{{ config('app.name', 'Beabá') }}">
                 </div>
                 <div class="sidebar-brand-text mx-3">Beabá</div>
             </a>
 
             <hr class="sidebar-divider my-0">
 
-            <li class="nav-item">
+            @php
+                $currentUser = auth()->user();
+                $canManageSchools = $currentUser->canManageSchools();
+                $canManagePeople = $currentUser->canManagePeople();
+                $hasTeachingArea = $currentUser->hasActiveRole(\App\Models\PersonSchoolRole::ROLE_TEACHER) || $currentUser->hasTeachingDiaries();
+                $hasStudentArea = $currentUser->hasStudentMap();
+                $personalMenuActive = request()->routeIs('profile.*') || request()->routeIs('student-diaries.*') || request()->routeIs('people.student-map.show') || request()->routeIs('teacher-schedules.*');
+                $schoolManagementActive = request()->routeIs('schools.*') || request()->routeIs('academic-years.*') || request()->routeIs('people.*') || request()->routeIs('data-quality.*');
+                $academicRoutineActive = request()->routeIs('enrollments.*') || request()->routeIs('classes.enrollments.*') || request()->routeIs('attendance-justifications.*') || request()->routeIs('teacher-diaries.*');
+                $documentsMenuActive = request()->routeIs('official-documents.*') || request()->routeIs('documents.verify.*');
+            @endphp
+
+            <li class="nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                 <a class="nav-link" href="{{ route('dashboard') }}">
-                    <i class="fas fa-fw fa-home"></i>
+                    <i class="fas fa-fw fa-home" aria-hidden="true"></i>
                     <span>Início</span>
                 </a>
             </li>
 
-            <li class="nav-item">
-                <a class="nav-link" href="{{ route('documents.verify.form') }}">
-                    <i class="fas fa-fw fa-certificate"></i>
-                    <span>Verificar documento</span>
+            <div class="sidebar-heading">Meu espaço</div>
+
+            <li class="nav-item {{ $personalMenuActive ? 'active' : '' }}">
+                <a class="nav-link {{ $personalMenuActive ? '' : 'collapsed' }}" href="#" data-toggle="collapse" data-target="#collapsePersonal"
+                    aria-expanded="{{ $personalMenuActive ? 'true' : 'false' }}" aria-controls="collapsePersonal">
+                    <i class="fas fa-fw fa-user-circle" aria-hidden="true"></i>
+                    <span>Minha área</span>
                 </a>
+                <div id="collapsePersonal" class="collapse {{ $personalMenuActive ? 'show' : '' }}" aria-labelledby="headingPersonal" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <a class="collapse-item {{ request()->routeIs('profile.*') ? 'active' : '' }}" href="{{ route('profile.edit') }}">
+                            <i class="fas fa-id-card" aria-hidden="true"></i>
+                            <span>Meu cadastro</span>
+                        </a>
+                        <a class="collapse-item" href="{{ route('dashboard') }}#calendar-heading">
+                            <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                            <span>Calendário escolar</span>
+                        </a>
+                        @if ($hasTeachingArea)
+                            <a class="collapse-item {{ request()->routeIs('teacher-schedules.*') ? 'active' : '' }}" href="{{ route('teacher-schedules.index') }}">
+                                <i class="fas fa-clock" aria-hidden="true"></i>
+                                <span>Meus horários</span>
+                            </a>
+                        @endif
+                        @if ($hasStudentArea)
+                            <a class="collapse-item {{ request()->routeIs('student-diaries.*') ? 'active' : '' }}" href="{{ route('student-diaries.index') }}">
+                                <i class="fas fa-book-reader" aria-hidden="true"></i>
+                                <span>Meu diário</span>
+                            </a>
+                            <a class="collapse-item {{ request()->routeIs('people.student-map.show') ? 'active' : '' }}" href="{{ route('people.student-map.show', $currentUser->person_id) }}">
+                                <i class="fas fa-map-marked-alt" aria-hidden="true"></i>
+                                <span>Meu mapa escolar</span>
+                            </a>
+                        @endif
+                    </div>
+                </div>
             </li>
 
-            @can('manage-schools')
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('schools.index') }}">
-                        <i class="fas fa-fw fa-school"></i>
-                        <span>Escolas</span>
-                    </a>
-                </li>
-            @endcan
+            @if ($canManageSchools || $canManagePeople)
+                <div class="sidebar-heading">Gestão escolar</div>
 
-            @can('manage-people')
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('people.index') }}">
-                        <i class="fas fa-fw fa-users"></i>
-                        <span>Pessoas</span>
+                <li class="nav-item {{ $schoolManagementActive ? 'active' : '' }}">
+                    <a class="nav-link {{ $schoolManagementActive ? '' : 'collapsed' }}" href="#" data-toggle="collapse" data-target="#collapseSchoolManagement"
+                        aria-expanded="{{ $schoolManagementActive ? 'true' : 'false' }}" aria-controls="collapseSchoolManagement">
+                        <i class="fas fa-fw fa-school" aria-hidden="true"></i>
+                        <span>Cadastros</span>
                     </a>
+                    <div id="collapseSchoolManagement" class="collapse {{ $schoolManagementActive ? 'show' : '' }}" aria-labelledby="headingSchoolManagement" data-parent="#accordionSidebar">
+                        <div class="bg-white py-2 collapse-inner rounded">
+                            @if ($canManageSchools)
+                                <a class="collapse-item {{ request()->routeIs('schools.*') || request()->routeIs('academic-years.*') ? 'active' : '' }}" href="{{ route('schools.index') }}">
+                                    <i class="fas fa-building" aria-hidden="true"></i>
+                                    <span>Escolas e anos letivos</span>
+                                </a>
+                            @endif
+                            @if ($canManagePeople)
+                                <a class="collapse-item {{ request()->routeIs('people.*') ? 'active' : '' }}" href="{{ route('people.index') }}">
+                                    <i class="fas fa-users" aria-hidden="true"></i>
+                                    <span>Pessoas</span>
+                                </a>
+                                <a class="collapse-item {{ request()->routeIs('data-quality.*') ? 'active' : '' }}" href="{{ route('data-quality.index') }}">
+                                    <i class="fas fa-clipboard-check" aria-hidden="true"></i>
+                                    <span>Pendências de cadastro</span>
+                                </a>
+                            @endif
+                        </div>
+                    </div>
                 </li>
+            @endif
 
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('people.roles.index') }}">
-                        <i class="fas fa-fw fa-id-badge"></i>
-                        <span>Vínculos</span>
+            @if ($canManagePeople || $hasTeachingArea)
+                <div class="sidebar-heading">Rotina acadêmica</div>
+
+                <li class="nav-item {{ $academicRoutineActive ? 'active' : '' }}">
+                    <a class="nav-link {{ $academicRoutineActive ? '' : 'collapsed' }}" href="#" data-toggle="collapse" data-target="#collapseAcademicRoutine"
+                        aria-expanded="{{ $academicRoutineActive ? 'true' : 'false' }}" aria-controls="collapseAcademicRoutine">
+                        <i class="fas fa-fw fa-book-open" aria-hidden="true"></i>
+                        <span>Acadêmico</span>
                     </a>
+                    <div id="collapseAcademicRoutine" class="collapse {{ $academicRoutineActive ? 'show' : '' }}" aria-labelledby="headingAcademicRoutine" data-parent="#accordionSidebar">
+                        <div class="bg-white py-2 collapse-inner rounded">
+                            @if ($canManagePeople)
+                                <a class="collapse-item {{ request()->routeIs('enrollments.*') || request()->routeIs('classes.enrollments.*') ? 'active' : '' }}" href="{{ route('enrollments.index') }}">
+                                    <i class="fas fa-user-graduate" aria-hidden="true"></i>
+                                    <span>Matrículas</span>
+                                </a>
+                                <a class="collapse-item {{ request()->routeIs('attendance-justifications.*') ? 'active' : '' }}" href="{{ route('attendance-justifications.index') }}">
+                                    <i class="fas fa-notes-medical" aria-hidden="true"></i>
+                                    <span>Justificativas de ausência</span>
+                                </a>
+                            @endif
+                            <a class="collapse-item {{ request()->routeIs('teacher-diaries.*') ? 'active' : '' }}" href="{{ route('teacher-diaries.index') }}">
+                                <i class="fas fa-book" aria-hidden="true"></i>
+                                <span>{{ $canManagePeople ? 'Gestão dos diários' : 'Diários' }}</span>
+                            </a>
+                        </div>
+                    </div>
                 </li>
-            @endcan
+            @endif
 
-            @can('manage-people')
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('data-quality.index') }}">
-                        <i class="fas fa-fw fa-clipboard-check"></i>
-                        <span>Pendências</span>
-                    </a>
-                </li>
+            <div class="sidebar-heading">Documentos</div>
 
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('academic-years.index') }}">
-                        <i class="fas fa-fw fa-calendar-alt"></i>
-                        <span>Anos letivos</span>
-                    </a>
-                </li>
+            <li class="nav-item {{ $documentsMenuActive ? 'active' : '' }}">
+                <a class="nav-link {{ $documentsMenuActive ? '' : 'collapsed' }}" href="#" data-toggle="collapse" data-target="#collapseDocuments"
+                    aria-expanded="{{ $documentsMenuActive ? 'true' : 'false' }}" aria-controls="collapseDocuments">
+                    <i class="fas fa-fw fa-file-alt" aria-hidden="true"></i>
+                    <span>Documentos</span>
+                </a>
+                <div id="collapseDocuments" class="collapse {{ $documentsMenuActive ? 'show' : '' }}" aria-labelledby="headingDocuments" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        @if ($canManagePeople)
+                            <a class="collapse-item {{ request()->routeIs('official-documents.*') ? 'active' : '' }}" href="{{ route('official-documents.create') }}">
+                                <i class="fas fa-file-signature" aria-hidden="true"></i>
+                                <span>Editor de documentos</span>
+                            </a>
+                        @endif
+                        <a class="collapse-item {{ request()->routeIs('documents.verify.*') ? 'active' : '' }}" href="{{ route('documents.verify.form') }}">
+                            <i class="fas fa-certificate" aria-hidden="true"></i>
+                            <span>Verificar autenticidade</span>
+                        </a>
+                    </div>
+                </div>
+            </li>
 
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('calendar-events.index') }}">
-                        <i class="fas fa-fw fa-calendar-day"></i>
-                        <span>Eventos</span>
-                    </a>
-                </li>
+            @if ($canManagePeople)
+                <div class="sidebar-heading">Comunicação</div>
 
-                <li class="nav-item">
+                <li class="nav-item {{ request()->routeIs('announcements.*') ? 'active' : '' }}">
                     <a class="nav-link" href="{{ route('announcements.index') }}">
-                        <i class="fas fa-fw fa-bullhorn"></i>
+                        <i class="fas fa-fw fa-bullhorn" aria-hidden="true"></i>
                         <span>Recados</span>
                     </a>
                 </li>
+            @endif
 
-                <li class="nav-item">
+            @if ($currentUser->isAdministrator())
+                <div class="sidebar-heading">Administração</div>
+
+                <li class="nav-item {{ request()->routeIs('audit-logs.*') ? 'active' : '' }}">
                     <a class="nav-link" href="{{ route('audit-logs.index') }}">
-                        <i class="fas fa-fw fa-history"></i>
+                        <i class="fas fa-fw fa-history" aria-hidden="true"></i>
                         <span>Auditoria</span>
                     </a>
                 </li>
-            @endcan
+            @endif
 
             <hr class="sidebar-divider d-none d-md-block">
         </ul>
 
         <div id="content-wrapper" class="d-flex flex-column">
             <div id="content">
-                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top" aria-label="Barra superior">
+                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3 sge-sidebar-toggle" type="button" aria-label="Abrir ou recolher menu lateral">
+                        <i class="fa fa-bars" aria-hidden="true"></i>
+                    </button>
+
                     <ul class="navbar-nav ml-auto">
+                        <li class="nav-item dropdown no-arrow mx-1">
+                            <a class="nav-link dropdown-toggle sge-topbar-icon-button" href="#" id="alertsDropdown" role="button"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Abrir alertas" title="Alertas">
+                                <i class="fas fa-bell fa-fw" aria-hidden="true"></i>
+                                @if ($topbarAlertCount > 0)
+                                    <span class="badge badge-danger badge-counter">{{ $topbarAlertCount }}</span>
+                                @endif
+                            </a>
+                            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in sge-alert-dropdown"
+                                aria-labelledby="alertsDropdown">
+                                <h2 class="dropdown-header">Alertas</h2>
+
+                                @forelse ($topbarAnnouncements as $announcement)
+                                    <a class="dropdown-item d-flex align-items-start" href="{{ route('dashboard') }}">
+                                        <div class="mr-3">
+                                            <div class="icon-circle bg-primary">
+                                                <i class="fas fa-bullhorn text-white" aria-hidden="true"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="small text-gray-600">{{ $announcement->school?->name ?? 'Global' }}</div>
+                                            <span class="font-weight-bold">{{ $announcement->title }}</span>
+                                            @if ($announcement->highlight)
+                                                <span class="badge badge-warning ml-1">Destaque</span>
+                                            @endif
+                                        </div>
+                                    </a>
+                                @empty
+                                    <div class="dropdown-item text-center small text-gray-600">Nenhum recado ativo.</div>
+                                @endforelse
+                            </div>
+                        </li>
+
+                        <li class="topbar-divider d-none d-sm-block" aria-hidden="true"></li>
+
                         <li class="nav-item dropdown no-arrow">
-                            <span class="nav-link">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Abrir menu do usuário">
                                 @if (auth()->user()->avatar)
                                     <img class="img-profile rounded-circle mr-2" src="{{ auth()->user()->avatar }}" alt="">
+                                @else
+                                    <span class="sge-user-initial mr-2">{{ mb_substr(auth()->user()->name, 0, 1) }}</span>
                                 @endif
                                 <span class="mr-2 d-none d-lg-inline text-gray-600 small text-right">
                                     <span class="d-block">{{ auth()->user()->name }}</span>
                                     <span class="d-block text-xs">{{ auth()->user()->activeRoleLabel() }}</span>
                                 </span>
-                            </span>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">
+                                <a class="dropdown-item" href="{{ route('profile.edit') }}">
+                                    <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-500" aria-hidden="true"></i>
+                                    Meu cadastro
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button class="dropdown-item" type="submit">
+                                        <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-500" aria-hidden="true"></i>
+                                        Sair
+                                    </button>
+                                </form>
+                            </div>
                         </li>
                     </ul>
                 </nav>
 
-                <div class="container-fluid">
-                    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class="h3 mb-0 text-gray-800">@yield('page-title', 'Início')</h1>
-                        <div class="d-flex align-items-center">
+                <main id="main-content" class="container-fluid" tabindex="-1">
+                    <div class="sge-page-header d-sm-flex align-items-center justify-content-between mb-4">
+                        <div>
+                            <div class="sge-page-kicker">Beabá</div>
+                            <h1 class="h3 mb-0 text-gray-800">@yield('page-title', 'Início')</h1>
+                        </div>
+                        <div class="d-flex align-items-center sge-page-actions">
                             @yield('page-actions')
-                            <form method="POST" action="{{ route('logout') }}" class="ml-2">
-                                @csrf
-                                <button class="btn btn-sm btn-primary shadow-sm" type="submit">
-                                    <i class="fas fa-sign-out-alt fa-sm text-white-50"></i> Sair
-                                </button>
-                            </form>
                         </div>
                     </div>
 
@@ -155,7 +298,7 @@
                     @endif
 
                     @yield('content')
-                </div>
+                </main>
             </div>
         </div>
     </div>
@@ -244,7 +387,93 @@
             roleSelect.addEventListener('change', syncPosition);
             syncPosition();
         });
+
+        const resetSubmitLoading = (targetForm = null) => {
+            document.querySelector('.sge-submit-loading-bar')?.remove();
+
+            const forms = targetForm ? [targetForm] : document.querySelectorAll('form[data-processing="true"]');
+
+            forms.forEach((form) => {
+                form.dataset.processing = 'false';
+                form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach((button) => {
+                    button.disabled = false;
+                    button.classList.remove('is-processing');
+                    button.removeAttribute('aria-busy');
+
+                    if (!button.dataset.originalHtml) {
+                        return;
+                    }
+
+                    if (button.tagName === 'BUTTON') {
+                        button.innerHTML = button.dataset.originalHtml;
+                    } else {
+                        button.value = button.dataset.originalHtml;
+                    }
+                });
+            });
+        };
+
+        const showSubmitLoading = (form, submitter) => {
+            if (form.dataset.noLoading === 'true' || form.dataset.processing === 'true') {
+                return;
+            }
+
+            form.dataset.processing = 'true';
+
+            const button = submitter?.matches?.('button, input[type="submit"]')
+                ? submitter
+                : form.querySelector('button[type="submit"], input[type="submit"]');
+
+            if (button) {
+                button.dataset.originalHtml = button.tagName === 'BUTTON' ? button.innerHTML : button.value;
+                button.classList.add('is-processing');
+                button.setAttribute('aria-busy', 'true');
+                button.disabled = true;
+
+                const loadingLabel = button.dataset.loadingLabel || 'Processando...';
+
+                if (button.tagName === 'BUTTON') {
+                    button.innerHTML = `<span class="sge-button-spinner" aria-hidden="true"></span>${loadingLabel}`;
+                } else {
+                    button.value = loadingLabel;
+                }
+            }
+
+            form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach((otherButton) => {
+                if (otherButton !== button) {
+                    otherButton.disabled = true;
+                }
+            });
+
+            if (!document.querySelector('.sge-submit-loading-bar')) {
+                const bar = document.createElement('div');
+                bar.className = 'sge-submit-loading-bar';
+                bar.setAttribute('role', 'progressbar');
+                bar.setAttribute('aria-label', 'Solicitação em processamento');
+                document.body.appendChild(bar);
+            }
+
+            if (form.dataset.downloadForm === 'true') {
+                window.setTimeout(() => resetSubmitLoading(form), 4500);
+            }
+        };
+
+        const isLivewireForm = (form) => Array.from(form.attributes)
+            .some((attribute) => attribute.name.startsWith('wire:submit'));
+
+        document.querySelectorAll('form').forEach((form) => {
+            form.addEventListener('submit', (event) => {
+                if (event.defaultPrevented || isLivewireForm(form)) {
+                    return;
+                }
+
+                showSubmitLoading(form, event.submitter);
+            });
+        });
+
+        window.addEventListener('pageshow', () => resetSubmitLoading());
     </script>
+    @stack('scripts')
 </body>
 
 </html>

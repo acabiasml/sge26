@@ -65,14 +65,14 @@ class School extends Model
         return $this->hasMany(AcademicYear::class);
     }
 
-    public function calendarEvents(): HasMany
-    {
-        return $this->hasMany(CalendarEvent::class);
-    }
-
     public function announcements(): HasMany
     {
         return $this->hasMany(Announcement::class);
+    }
+
+    public function assessmentRules(): HasMany
+    {
+        return $this->hasMany(SchoolAssessmentRule::class);
     }
 
     public function logoUrl(): ?string

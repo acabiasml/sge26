@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasTitleCaseAttributes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -23,6 +24,8 @@ class Person extends Model
         'social_name',
         'cpf',
         'birth_date',
+        'mother_name',
+        'father_name',
         'institutional_email',
         'personal_email',
         'phone',
@@ -52,6 +55,8 @@ class Person extends Model
         return [
             'full_name',
             'social_name',
+            'mother_name',
+            'father_name',
             'address',
             'district',
             'city',
@@ -63,6 +68,7 @@ class Person extends Model
     {
         return filled($this->cpf)
             && filled($this->birth_date)
+            && filled($this->mother_name)
             && filled($this->phone)
             && filled($this->profile_completed_at);
     }
@@ -93,6 +99,11 @@ class Person extends Model
         return $this->hasMany(PersonContact::class);
     }
 
+    public function studentEnrollments(): HasMany
+    {
+        return $this->hasMany(StudentEnrollment::class);
+    }
+
     public function inverseRelationships(): HasMany
     {
         return $this->hasMany(PersonRelationship::class, 'related_person_id');
@@ -104,5 +115,23 @@ class Person extends Model
             ->filter(fn (PersonSchoolRole $role): bool => $role->isActiveForDate())
             ->sortByDesc(fn (PersonSchoolRole $role): int => PersonSchoolRole::ROLE_PRIORITY[$role->role] ?? 0)
             ->first();
+    }
+
+    public function scopeWhereHasActiveSchoolRole(Builder $query, ?string $role = null, mixed $schoolId = null): Builder
+    {
+        return $query->whereHas('schoolRoles', function (Builder $roles) use ($role, $schoolId): void {
+            $roles
+                ->when(filled($role), fn (Builder $roles) => $roles->where('role', $role))
+                ->when(filled($schoolId), fn (Builder $roles) => $roles->where('school_id', (int) $schoolId))
+                ->where('active', true)
+                ->where(function (Builder $roles): void {
+                    $roles->whereNull('started_at')
+                        ->orWhereDate('started_at', '<=', now()->toDateString());
+                })
+                ->where(function (Builder $roles): void {
+                    $roles->whereNull('ended_at')
+                        ->orWhereDate('ended_at', '>=', now()->toDateString());
+                });
+        });
     }
 }

@@ -53,24 +53,6 @@ return new class extends Migration
             $table->index(['academic_year_id', 'counts_as_school_day']);
         });
 
-        Schema::create('calendar_events', function (Blueprint $table): void {
-            $table->id();
-            $table->foreignId('school_id')->constrained('schools')->cascadeOnDelete();
-            $table->foreignId('academic_year_id')->nullable()->constrained('academic_years')->nullOnDelete();
-            $table->foreignId('created_by_user_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->string('title');
-            $table->text('description')->nullable();
-            $table->dateTime('starts_at');
-            $table->dateTime('ends_at')->nullable();
-            $table->boolean('all_day')->default(true);
-            $table->string('category')->default('evento');
-            $table->boolean('highlight')->default(false);
-            $table->timestamps();
-
-            $table->index(['school_id', 'starts_at']);
-            $table->index(['academic_year_id']);
-        });
-
         Schema::create('announcements', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('school_id')->nullable()->constrained('schools')->cascadeOnDelete();
@@ -90,7 +72,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('announcements');
-        Schema::dropIfExists('calendar_events');
         Schema::dropIfExists('calendar_days');
         Schema::dropIfExists('academic_periods');
         Schema::dropIfExists('academic_years');

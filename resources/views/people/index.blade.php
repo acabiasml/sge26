@@ -4,14 +4,14 @@
 @section('page-title', 'Pessoas')
 
 @section('page-actions')
-    <a class="btn btn-sm btn-primary shadow-sm" href="{{ route('people.create') }}">
-        <i class="fas fa-plus fa-sm text-white-50"></i> Nova pessoa
+    <a class="btn btn-sm btn-primary shadow-sm sge-icon-action" href="{{ route('people.create') }}" aria-label="Cadastrar nova pessoa" title="Nova pessoa">
+        <i class="fas fa-plus" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm ml-2 js-current-query-export" href="{{ route('reports.excel', ['type' => 'people'] + request()->query()) }}" data-base-href="{{ route('reports.excel', 'people') }}">
-        <i class="fas fa-file-excel fa-sm"></i> Excel
+    <a class="btn btn-sm btn-outline-primary shadow-sm ml-2 js-current-query-export sge-icon-action" href="{{ route('reports.excel', ['type' => 'people'] + request()->query()) }}" data-base-href="{{ route('reports.excel', 'people') }}" aria-label="Exportar pessoas filtradas para Excel" title="Exportar Excel">
+        <i class="fas fa-file-excel" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm ml-2 js-current-query-export" href="{{ route('reports.pdf', ['type' => 'people'] + request()->query()) }}" data-base-href="{{ route('reports.pdf', 'people') }}">
-        <i class="fas fa-file-pdf fa-sm"></i> PDF
+    <a class="btn btn-sm btn-outline-primary shadow-sm ml-2 js-current-query-export sge-icon-action" href="{{ route('reports.pdf', ['type' => 'people'] + request()->query()) }}" data-base-href="{{ route('reports.pdf', 'people') }}" aria-label="Exportar pessoas filtradas para PDF" title="Exportar PDF">
+        <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
 @endsection
 

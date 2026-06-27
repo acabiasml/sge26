@@ -11,10 +11,10 @@
 </head>
 <body class="bg-gradient-primary">
     <main class="container py-5">
-        <div class="card shadow mx-auto" style="max-width: 620px;">
+        <div class="card shadow mx-auto sge-narrow-card">
             <div class="card-body p-5">
                 <div class="text-center mb-4">
-                    <img src="{{ asset('brand/logo.png') }}" alt="Beabá" style="width: 92px;">
+                    <img class="sge-verification-logo" src="{{ asset('brand/logo.png') }}" alt="Beabá">
                     <h1 class="h4 text-gray-900 mt-3">Verificar documento</h1>
                     <p class="text-gray-700 mb-0">Informe o código de verificação impresso no documento.</p>
                 </div>

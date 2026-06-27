@@ -66,6 +66,33 @@ class AuthorizationTest extends TestCase
         $this->assertFalse(Gate::forUser($student)->allows('assign-roles', $school->id));
     }
 
+    public function test_student_can_open_own_map_but_manager_cannot_open_student_from_another_school(): void
+    {
+        $studentSchool = School::query()->create(['name' => 'Escola do Estudante']);
+        $otherSchool = School::query()->create(['name' => 'Outra Escola']);
+        $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $studentSchool->id);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $otherSchool->id);
+
+        foreach ([$student, $manager] as $user) {
+            $user->person->update([
+                'cpf' => str_pad((string) $user->person_id, 11, '0', STR_PAD_LEFT),
+                'birth_date' => '2000-01-01',
+                'mother_name' => 'Mãe de teste',
+                'phone' => '66999999999',
+                'profile_completed_at' => now(),
+            ]);
+        }
+
+        $this->actingAs($student)
+            ->get(route('people.student-map.show', $student->person_id))
+            ->assertOk()
+            ->assertSee('Mapa do estudante');
+
+        $this->actingAs($manager)
+            ->get(route('people.student-map.show', $student->person_id))
+            ->assertForbidden();
+    }
+
     private function userWithRole(string $role, ?int $schoolId = null, ?string $endedAt = null): User
     {
         $person = Person::query()->create([
@@ -87,3 +114,4 @@ class AuthorizationTest extends TestCase
         ]);
     }
 }
+

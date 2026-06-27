@@ -14,7 +14,8 @@
 
                 @include('people._form', [
                     'person' => $person,
-                    'lockInstitutionalEmail' => true,
+                    'lockInstitutionalEmail' => $lockInstitutionalEmail ?? true,
+                    'lockOwnIdentity' => $lockOwnIdentity ?? true,
                     'showActiveControl' => false,
                 ])
 

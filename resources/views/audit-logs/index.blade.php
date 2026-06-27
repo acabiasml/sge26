@@ -4,11 +4,11 @@
 @section('page-title', 'Auditoria')
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-primary shadow-sm js-current-query-export" href="{{ route('reports.excel', ['type' => 'audit-logs'] + request()->query()) }}" data-base-href="{{ route('reports.excel', 'audit-logs') }}">
-        <i class="fas fa-file-excel fa-sm"></i> Excel
+    <a class="btn btn-sm btn-outline-primary shadow-sm js-current-query-export sge-icon-action" href="{{ route('reports.excel', ['type' => 'audit-logs'] + request()->query()) }}" data-base-href="{{ route('reports.excel', 'audit-logs') }}" aria-label="Exportar auditoria filtrada para Excel" title="Exportar Excel">
+        <i class="fas fa-file-excel" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm ml-2 js-current-query-export" href="{{ route('reports.pdf', ['type' => 'audit-logs'] + request()->query()) }}" data-base-href="{{ route('reports.pdf', 'audit-logs') }}">
-        <i class="fas fa-file-pdf fa-sm"></i> PDF
+    <a class="btn btn-sm btn-outline-primary shadow-sm ml-2 js-current-query-export sge-icon-action" href="{{ route('reports.pdf', ['type' => 'audit-logs'] + request()->query()) }}" data-base-href="{{ route('reports.pdf', 'audit-logs') }}" aria-label="Exportar auditoria filtrada para PDF" title="Exportar PDF">
+        <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
 @endsection
 

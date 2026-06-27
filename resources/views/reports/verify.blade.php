@@ -11,10 +11,10 @@
 </head>
 <body class="bg-gradient-primary">
     <main class="container py-5">
-        <div class="card shadow mx-auto" style="max-width: 680px;">
+        <div class="card shadow mx-auto sge-narrow-card-lg">
             <div class="card-body p-5">
                 <div class="text-center mb-4">
-                    <img src="{{ asset('brand/logo.png') }}" alt="Beabá" style="width: 96px;">
+                    <img class="sge-verification-logo-lg" src="{{ asset('brand/logo.png') }}" alt="Beabá">
                     <h1 class="h4 text-gray-900 mt-3">Documento verificado</h1>
                     <p class="text-gray-700 mb-0">{{ $verification['description'] }}</p>
                 </div>

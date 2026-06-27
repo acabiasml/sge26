@@ -196,6 +196,8 @@ class ImportLegacyData extends Command
             'social_name' => $legacyUser['nomesocial'] ?? null,
             'cpf' => $cpf,
             'birth_date' => $this->dateOrNull($legacyUser['nascimento'] ?? null),
+            'mother_name' => $legacyUser['genitora'] ?? $person->mother_name,
+            'father_name' => $legacyUser['genitor'] ?? $person->father_name,
             'institutional_email' => $institutionalEmail ?? $person->institutional_email,
             'personal_email' => $personalEmail,
             'phone' => $legacyUser['telefone1'] ?? $legacyUser['telefone2'] ?? null,

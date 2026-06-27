@@ -1,12 +1,20 @@
 @php
     $lockInstitutionalEmail = $lockInstitutionalEmail ?? false;
+    $lockOwnIdentity = $lockOwnIdentity ?? false;
     $showActiveControl = $showActiveControl ?? true;
+    $lockFullName = $lockOwnIdentity && filled($person->full_name ?? null);
+    $lockCpf = $lockOwnIdentity && filled($person->cpf ?? null);
+    $lockBirthDate = $lockOwnIdentity && filled($person->birth_date ?? null);
+    $lockMotherName = $lockOwnIdentity && filled($person->mother_name ?? null);
 @endphp
 
 <div class="form-row">
     <div class="form-group col-md-6">
         <label for="full_name">Nome completo</label>
-        <input id="full_name" name="full_name" class="form-control @error('full_name') is-invalid @enderror" value="{{ old('full_name', $person->full_name ?? '') }}" required>
+        <input id="full_name" name="full_name" class="form-control @error('full_name') is-invalid @enderror" value="{{ old('full_name', $person->full_name ?? '') }}" @readonly($lockFullName) required>
+        @if ($lockFullName)
+            <small class="form-text text-muted">Seu nome completo não pode ser alterado por você.</small>
+        @endif
         @error('full_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
@@ -14,6 +22,54 @@
         <label for="social_name">Nome social</label>
         <input id="social_name" name="social_name" class="form-control @error('social_name') is-invalid @enderror" value="{{ old('social_name', $person->social_name ?? '') }}">
         @error('social_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+</div>
+
+<div class="form-row">
+    <div class="form-group col-md-4">
+        <label for="cpf">CPF</label>
+        <input id="cpf" name="cpf" data-mask="cpf" inputmode="numeric" autocomplete="off" class="form-control @error('cpf') is-invalid @enderror" value="{{ old('cpf', $person->cpf ?? '') }}" @readonly($lockCpf) required>
+        @if ($lockCpf)
+            <small class="form-text text-muted">Seu CPF não pode ser alterado por você.</small>
+        @endif
+        @error('cpf') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+
+    <div class="form-group col-md-4">
+        <label for="birth_date">Data de nascimento</label>
+        <input id="birth_date" name="birth_date" type="date" class="form-control @error('birth_date') is-invalid @enderror" value="{{ old('birth_date', isset($person) && $person->birth_date ? $person->birth_date->format('Y-m-d') : '') }}" @readonly($lockBirthDate)>
+        @if ($lockBirthDate)
+            <small class="form-text text-muted">Sua data de nascimento não pode ser alterada por você.</small>
+        @endif
+        @error('birth_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+
+    @if ($showActiveControl)
+        <div class="form-group col-md-4 d-flex align-items-end">
+            <div class="form-check mb-2">
+                <input type="hidden" name="active" value="0">
+                <input id="active" name="active" value="1" type="checkbox" class="form-check-input" @checked(old('active', $person->active ?? true))>
+                <label for="active" class="form-check-label">Cadastro ativo</label>
+                <small class="form-text text-muted">Cadastros inativos não acessam o sistema, não recebem novos vínculos e não emitem documentos sem CPF e e-mail institucional.</small>
+            </div>
+        </div>
+    @endif
+</div>
+
+<div class="form-row">
+    <div class="form-group col-md-6">
+        <label for="mother_name">Nome da mãe</label>
+        <input id="mother_name" name="mother_name" class="form-control @error('mother_name') is-invalid @enderror" value="{{ old('mother_name', $person->mother_name ?? '') }}" @readonly($lockMotherName) required>
+        @if ($lockMotherName)
+            <small class="form-text text-muted">O nome da sua mãe não pode ser alterado por você.</small>
+        @endif
+        @error('mother_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+
+    <div class="form-group col-md-6">
+        <label for="father_name">Nome do pai</label>
+        <input id="father_name" name="father_name" class="form-control @error('father_name') is-invalid @enderror" value="{{ old('father_name', $person->father_name ?? '') }}">
+        @error('father_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 </div>
 
@@ -38,31 +94,6 @@
         <input id="phone" name="phone" data-mask="phone" inputmode="tel" autocomplete="tel" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $person->phone ?? '') }}">
         @error('phone') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
-</div>
-
-<div class="form-row">
-    <div class="form-group col-md-4">
-        <label for="cpf">CPF</label>
-        <input id="cpf" name="cpf" data-mask="cpf" inputmode="numeric" autocomplete="off" class="form-control @error('cpf') is-invalid @enderror" value="{{ old('cpf', $person->cpf ?? '') }}" required>
-        @error('cpf') <div class="invalid-feedback">{{ $message }}</div> @enderror
-    </div>
-
-    <div class="form-group col-md-4">
-        <label for="birth_date">Data de nascimento</label>
-        <input id="birth_date" name="birth_date" type="date" class="form-control @error('birth_date') is-invalid @enderror" value="{{ old('birth_date', isset($person) && $person->birth_date ? $person->birth_date->format('Y-m-d') : '') }}">
-        @error('birth_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
-    </div>
-
-    @if ($showActiveControl)
-        <div class="form-group col-md-4 d-flex align-items-end">
-            <div class="form-check mb-2">
-                <input type="hidden" name="active" value="0">
-                <input id="active" name="active" value="1" type="checkbox" class="form-check-input" @checked(old('active', $person->active ?? true))>
-                <label for="active" class="form-check-label">Cadastro ativo</label>
-                <small class="form-text text-muted">Cadastros inativos não acessam o sistema, não recebem novos vínculos e não emitem documentos sem CPF e e-mail institucional.</small>
-            </div>
-        </div>
-    @endif
 </div>
 
 <h2 class="h6 text-gray-800 mt-4">Endereço</h2>

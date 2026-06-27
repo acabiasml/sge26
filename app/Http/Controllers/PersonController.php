@@ -77,7 +77,12 @@ class PersonController extends Controller
         abort_unless($this->canSeePerson($request, $person), 403);
 
         return view('people.show', [
-            'person' => $person->load(['schoolRoles.school', 'contacts']),
+            'person' => $person->load([
+                'schoolRoles.school',
+                'contacts',
+                'studentEnrollments.schoolClass.academicYear.school',
+                'studentEnrollments.courses',
+            ]),
             'schools' => $request->user()->isAdministrator()
                 ? School::query()->where('active', true)->orderBy('name')->get()
                 : School::query()->whereIn('id', $request->user()->manageableSchoolIds())->orderBy('name')->get(),
@@ -91,7 +96,8 @@ class PersonController extends Controller
 
         return view('people.edit', [
             'person' => $person,
-            'lockInstitutionalEmail' => $request->user()->person_id === $person->id,
+            'lockInstitutionalEmail' => ! $this->canChangeInstitutionalEmail($request, $person),
+            'lockOwnIdentity' => $this->shouldLockOwnIdentity($request, $person),
         ]);
     }
 
@@ -203,11 +209,22 @@ class PersonController extends Controller
      */
     private function validatedData(Request $request, ?Person $person = null): array
     {
+        $isOwnRecord = $person && $request->user()->person_id === $person->id;
+        $lockOwnIdentity = $person && $this->shouldLockOwnIdentity($request, $person);
+        $canChangeInstitutionalEmail = ! $person || $this->canChangeInstitutionalEmail($request, $person);
+
         $rules = [
             'full_name' => ['required', 'string', 'max:255'],
             'social_name' => ['nullable', 'string', 'max:255'],
-            'cpf' => [$request->boolean('active') ? 'required' : 'nullable', 'string', 'max:20', Rule::unique('people', 'cpf')->ignore($person)],
+            'cpf' => [
+                $request->boolean('active') ? 'required' : 'nullable',
+                'string',
+                'max:20',
+                ...($lockOwnIdentity && filled($person->cpf) ? [] : [Rule::unique('people', 'cpf')->ignore($person)]),
+            ],
             'birth_date' => ['nullable', 'date'],
+            'mother_name' => ['required', 'string', 'max:255'],
+            'father_name' => ['nullable', 'string', 'max:255'],
             'personal_email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:255'],
             'address' => ['nullable', 'string', 'max:255'],
@@ -220,19 +237,46 @@ class PersonController extends Controller
             'active' => ['nullable', 'boolean'],
         ];
 
-        if (! $person || $request->user()->person_id !== $person->id) {
+        if ($canChangeInstitutionalEmail) {
             $rules['institutional_email'] = [$request->boolean('active') ? 'required' : 'nullable', 'email', 'max:255', 'ends_with:@ctjj.org', Rule::unique('people', 'institutional_email')->ignore($person)];
         }
 
         $data = $request->validate($rules);
 
-        if ($person && $request->user()->person_id === $person->id) {
+        if ($lockOwnIdentity) {
+            foreach (['full_name', 'cpf', 'birth_date', 'mother_name'] as $field) {
+                if (filled($person->{$field})) {
+                    $data[$field] = $field === 'birth_date'
+                        ? $person->birth_date?->toDateString()
+                        : $person->{$field};
+                }
+            }
+
+        }
+
+        if (! $canChangeInstitutionalEmail) {
             $data['institutional_email'] = $person->institutional_email;
         }
 
         $data['active'] = $request->boolean('active');
 
         return $data;
+    }
+
+    private function shouldLockOwnIdentity(Request $request, Person $person): bool
+    {
+        return $request->user()->person_id === $person->id
+            && ! $request->user()->isAdministrator();
+    }
+
+    private function canChangeInstitutionalEmail(Request $request, Person $person): bool
+    {
+        if ($request->user()->person_id !== $person->id) {
+            return true;
+        }
+
+        return $request->user()->isAdministrator()
+            && ! $this->hasOnlyActiveAdministratorRole($person);
     }
 
     private function endActiveRoles(Person $person): void

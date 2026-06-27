@@ -1,6 +1,8 @@
-<div class="d-inline-flex flex-wrap justify-content-end">
-    <a class="btn btn-sm btn-primary mb-1" href="{{ route('people.show', $person) }}">Abrir</a>
-    <a class="btn btn-sm btn-outline-primary ml-1 mb-1" href="{{ route('people.pdf', $person) }}">
-        <i class="fas fa-file-pdf fa-sm"></i> PDF
+<div class="sge-action-buttons">
+    <a class="btn btn-sm btn-primary sge-icon-action" href="{{ route('people.show', $person) }}" aria-label="Abrir cadastro de {{ $person->full_name }}" title="Abrir cadastro">
+        <i class="fas fa-folder-open" aria-hidden="true"></i>
+    </a>
+    <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.pdf', $person) }}" aria-label="Emitir ficha em PDF de {{ $person->full_name }}" title="Ficha em PDF">
+        <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
 </div>

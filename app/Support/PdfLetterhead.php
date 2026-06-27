@@ -50,9 +50,9 @@ class PdfLetterhead
     private static function schoolLines(School $school): array
     {
         return collect([
-            strtoupper(self::MAINTAINER_NAME),
+            mb_strtoupper(self::MAINTAINER_NAME),
             self::MAINTAINER_CERTIFICATION,
-            strtoupper($school->name),
+            mb_strtoupper($school->name),
             self::schoolRegistryLine($school),
             self::schoolContactLine($school),
             $school->letterhead_text,
@@ -63,10 +63,11 @@ class PdfLetterhead
     {
         $parts = collect([
             $school->cnpj ? 'CNPJ: '.$school->cnpj : null,
+            $school->inep ? 'INEP: '.$school->inep : null,
             $school->founded_at ? 'Fundação: '.$school->founded_at->translatedFormat('d \d\e M \d\e Y') : null,
         ])->filter();
 
-        return $parts->isEmpty() ? '' : $parts->implode('. ').'.';
+        return $parts->isEmpty() ? '' : $parts->implode(' | ');
     }
 
     private static function schoolContactLine(School $school): string
@@ -75,7 +76,7 @@ class PdfLetterhead
             $school->phone ? 'Tel.: '.$school->phone : null,
             $school->email ? 'E-mail: '.$school->email : null,
             $school->website ? 'Site: '.$school->website : null,
-        ])->filter()->implode('. ');
+        ])->filter()->implode(' | ');
     }
 
     private static function imageDataUri(?string $relativePath): ?string

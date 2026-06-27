@@ -95,7 +95,9 @@
                                 <form method="POST" action="{{ route('announcements.destroy', $announcement) }}" onsubmit="return confirm('Remover este recado?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button class="btn btn-sm btn-outline-danger" type="submit">Remover</button>
+                                    <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="Remover recado {{ $announcement->title }}" title="Remover recado">
+                                        <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                                    </button>
                                 </form>
                             </td>
                         </tr>

@@ -17,14 +17,60 @@ class DataQualityController extends Controller
     {
         abort_unless($request->user()->canManagePeople(), 403);
 
-        $schoolIds = $request->user()->isAdministrator() ? null : $request->user()->manageableSchoolIds();
+        $schools = $this->availableSchools($request);
+        $selectedSchoolId = $this->selectedSchoolId($request, $schools);
+        $schoolIds = $this->schoolIdsForChecks($request, $schools, $selectedSchoolId);
 
         return view('data-quality.index', [
             'personChecks' => $this->personChecks($schoolIds),
             'roleChecks' => $this->roleChecks($schoolIds),
             'contactChecks' => $this->contactChecks($schoolIds),
             'schoolChecks' => $this->schoolChecks($schoolIds),
+            'schools' => $schools,
+            'selectedSchoolId' => $selectedSchoolId,
         ]);
+    }
+
+    /**
+     * @return Collection<int, School>
+     */
+    private function availableSchools(Request $request): Collection
+    {
+        return School::query()
+            ->when(! $request->user()->isAdministrator(), fn (Builder $query) => $query->whereIn('id', $request->user()->manageableSchoolIds()))
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * @param Collection<int, School> $schools
+     */
+    private function selectedSchoolId(Request $request, Collection $schools): ?int
+    {
+        $schoolId = $request->integer('school_id');
+
+        if ($schoolId < 1) {
+            return null;
+        }
+
+        return $schools->contains('id', $schoolId) ? $schoolId : null;
+    }
+
+    /**
+     * @param Collection<int, School> $schools
+     * @return list<int>|null
+     */
+    private function schoolIdsForChecks(Request $request, Collection $schools, ?int $selectedSchoolId): ?array
+    {
+        if ($selectedSchoolId !== null) {
+            return [$selectedSchoolId];
+        }
+
+        if ($request->user()->isAdministrator()) {
+            return null;
+        }
+
+        return $schools->pluck('id')->map(fn ($id): int => (int) $id)->all();
     }
 
     /**
@@ -50,13 +96,15 @@ class DataQualityController extends Controller
             ),
             $this->check(
                 'Pessoas com cadastro incompleto',
-                'Falta CPF, data de nascimento, telefone ou conclusão de cadastro.',
+                'Falta CPF, data de nascimento, nome da mãe, telefone ou conclusão de cadastro.',
                 $this->personScope(Person::query(), $schoolIds)
                     ->where('active', true)
                     ->where(function (Builder $query): void {
                         $query->whereNull('cpf')
                             ->orWhere('cpf', '')
                             ->orWhereNull('birth_date')
+                            ->orWhereNull('mother_name')
+                            ->orWhere('mother_name', '')
                             ->orWhereNull('phone')
                             ->orWhere('phone', '')
                             ->orWhereNull('profile_completed_at');
@@ -306,7 +354,9 @@ class DataQualityController extends Controller
      */
     private function roleScope(Builder $query, ?array $schoolIds): Builder
     {
-        return $query->when($schoolIds !== null, fn (Builder $query) => $query->whereIn('school_id', $schoolIds));
+        return $query
+            ->whereHas('person', fn (Builder $person) => $person->where('active', true))
+            ->when($schoolIds !== null, fn (Builder $query) => $query->whereIn('school_id', $schoolIds));
     }
 
     /**
@@ -316,9 +366,11 @@ class DataQualityController extends Controller
      */
     private function contactScope(Builder $query, ?array $schoolIds): Builder
     {
-        return $query->when($schoolIds !== null, function (Builder $query) use ($schoolIds): void {
-            $query->whereHas('person.schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $schoolIds));
-        });
+        return $query
+            ->whereHas('person', fn (Builder $person) => $person->where('active', true))
+            ->when($schoolIds !== null, function (Builder $query) use ($schoolIds): void {
+                $query->whereHas('person.schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $schoolIds));
+            });
     }
 
     /**
