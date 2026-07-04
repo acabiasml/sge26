@@ -8,8 +8,11 @@ use App\Models\AcademicYear;
 use App\Models\CalendarDay;
 use App\Models\DiaryAssessment;
 use App\Models\DiaryPeriodConfirmation;
+use App\Models\Person;
 use App\Models\SchoolAssessmentRule;
 use App\Models\SchoolClassComponent;
+use App\Models\StudentBehaviorGrade;
+use App\Models\StudentEnrollment;
 use App\Support\DiaryPeriodStatus;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,6 +30,22 @@ class AcademicPeriodController extends Controller
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
 
         $academicYear->load('school', 'periods.assessmentRules', 'periods.diaryConsolidation.consolidatedBy', 'periods.diaryConsolidation.reopenedBy');
+        $behaviorEnrollments = $this->behaviorEnrollments($academicYear);
+        $behaviorGrades = StudentBehaviorGrade::query()
+            ->with('updatedBy')
+            ->whereIn('academic_period_id', $academicYear->periods->pluck('id'))
+            ->whereIn('student_enrollment_id', $behaviorEnrollments->pluck('id'))
+            ->get()
+            ->keyBy(fn (StudentBehaviorGrade $grade): string => $grade->academic_period_id.'-'.$grade->student_enrollment_id);
+        $periodBehaviorStatus = $academicYear->periods
+            ->mapWithKeys(fn (AcademicPeriod $period): array => [
+                $period->id => [
+                    'total' => $behaviorEnrollments->count(),
+                    'missing' => $behaviorEnrollments
+                        ->filter(fn (StudentEnrollment $enrollment): bool => ! $behaviorGrades->has($period->id.'-'.$enrollment->id))
+                        ->count(),
+                ],
+            ]);
         $periodDiaryStatus = $academicYear->periods
             ->mapWithKeys(fn (AcademicPeriod $period): array => [$period->id => $diaryStatus->summaries($academicYear, $period)]);
 
@@ -34,6 +53,9 @@ class AcademicPeriodController extends Controller
             'academicYear' => $academicYear,
             'canChangeCalendar' => ! $academicYear->approved_at || $request->user()->isAdministrator(),
             'periodDiaryStatus' => $periodDiaryStatus,
+            'behaviorEnrollments' => $behaviorEnrollments,
+            'behaviorGrades' => $behaviorGrades,
+            'periodBehaviorStatus' => $periodBehaviorStatus,
         ]);
     }
 
@@ -41,8 +63,10 @@ class AcademicPeriodController extends Controller
     {
         abort_unless($period->academic_year_id === $academicYear->id, 404);
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
+        $this->ensureYearIsOpen($academicYear);
 
         $summaries = $diaryStatus->summaries($academicYear, $period);
+        $behaviorMissing = $this->missingBehaviorGrades($academicYear, $period);
         if ($summaries->isEmpty()) {
             throw ValidationException::withMessages(['period' => 'Não há diários ativos para consolidar neste período.']);
         }
@@ -50,6 +74,10 @@ class AcademicPeriodController extends Controller
         $hasUnconfirmedOrPending = $summaries->contains(fn (array $summary): bool => ! $summary['confirmation']?->confirmed || $summary['pending']['is_pending']);
         if ($hasUnconfirmedOrPending) {
             throw ValidationException::withMessages(['period' => 'Todos os diários precisam estar confirmados e sem pendências antes da consolidação.']);
+        }
+
+        if ($behaviorMissing > 0) {
+            throw ValidationException::withMessages(['period' => 'Todos os estudantes precisam ter a nota de comportamento lançada antes da consolidação.']);
         }
 
         AcademicPeriodDiaryConsolidation::query()->updateOrCreate([
@@ -71,6 +99,7 @@ class AcademicPeriodController extends Controller
     {
         abort_unless($period->academic_year_id === $academicYear->id, 404);
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
+        $this->ensureYearIsOpen($academicYear);
         $data = $request->validate([
             'reopen_reason' => ['required', 'string', 'max:2000'],
         ]);
@@ -100,9 +129,72 @@ class AcademicPeriodController extends Controller
             ->with('status', 'Período reaberto. Os diários voltaram para lançamento e confirmação.');
     }
 
+    public function updateBehaviorGrades(Request $request, AcademicYear $academicYear, AcademicPeriod $period): RedirectResponse
+    {
+        abort_unless($period->academic_year_id === $academicYear->id, 404);
+        abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
+        $this->ensureYearIsOpen($academicYear);
+
+        if ($period->diaryConsolidation()->where('consolidated', true)->exists()) {
+            throw ValidationException::withMessages([
+                'behavior_scores' => 'Este período já foi consolidado. Reabra o período antes de alterar comportamento.',
+            ]);
+        }
+
+        $request->merge([
+            'behavior_scores' => collect($request->input('behavior_scores', []))
+                ->map(fn ($score) => is_string($score) ? str_replace(',', '.', $score) : $score)
+                ->all(),
+        ]);
+
+        $data = $request->validate([
+            'behavior_scores' => ['nullable', 'array'],
+            'behavior_scores.*' => ['nullable', 'numeric', 'min:0', 'max:10'],
+            'behavior_notes' => ['nullable', 'array'],
+            'behavior_notes.*' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $enrollments = $this->behaviorEnrollments($academicYear)->keyBy('id');
+        $scores = $data['behavior_scores'] ?? [];
+        $notes = $data['behavior_notes'] ?? [];
+
+        DB::transaction(function () use ($period, $request, $enrollments, $scores, $notes): void {
+            foreach ($scores as $enrollmentId => $score) {
+                if (! $enrollments->has((int) $enrollmentId)) {
+                    continue;
+                }
+
+                if ($score === null || $score === '') {
+                    StudentBehaviorGrade::query()
+                        ->where('academic_period_id', $period->id)
+                        ->where('student_enrollment_id', $enrollmentId)
+                        ->delete();
+
+                    continue;
+                }
+
+                StudentBehaviorGrade::query()->updateOrCreate(
+                    [
+                        'academic_period_id' => $period->id,
+                        'student_enrollment_id' => $enrollmentId,
+                    ],
+                    [
+                        'updated_by_person_id' => $request->user()->person_id,
+                        'score' => $score,
+                        'notes' => $notes[$enrollmentId] ?? null,
+                    ]
+                );
+            }
+        });
+
+        return redirect()->route('academic-years.periods.index', $academicYear)
+            ->with('status', 'Comportamento do período salvo pela gestão.');
+    }
+
     public function store(Request $request, AcademicYear $academicYear): RedirectResponse
     {
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
+        $this->ensureYearIsOpen($academicYear);
         $this->ensureCanChangeApprovedCalendar($request, $academicYear);
 
         $data = $request->validate([
@@ -140,6 +232,7 @@ class AcademicPeriodController extends Controller
     {
         abort_unless($period->academic_year_id === $academicYear->id, 404);
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
+        $this->ensureYearIsOpen($academicYear);
         $this->ensureCanChangeApprovedCalendar($request, $academicYear);
 
         $periodStartsAt = $period->starts_at;
@@ -162,6 +255,7 @@ class AcademicPeriodController extends Controller
     {
         abort_unless($period->academic_year_id === $academicYear->id, 404);
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
+        $this->ensureYearIsOpen($academicYear);
 
         if ($period->diaryConsolidation()->where('consolidated', true)->exists()) {
             throw ValidationException::withMessages([
@@ -359,6 +453,46 @@ class AcademicPeriodController extends Controller
         ]);
     }
 
+    private function ensureYearIsOpen(AcademicYear $academicYear): void
+    {
+        if (! $academicYear->isClosed()) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'closed_at' => 'Este ano letivo está fechado. Reabra o ano letivo antes de alterar períodos, consolidações ou comportamento.',
+        ]);
+    }
+
+    /** @return Collection<int, StudentEnrollment> */
+    private function behaviorEnrollments(AcademicYear $academicYear): Collection
+    {
+        return StudentEnrollment::query()
+            ->with(['student', 'schoolClass'])
+            ->where('status', StudentEnrollment::STATUS_ENROLLED)
+            ->whereHas('schoolClass', fn (Builder $query) => $query
+                ->where('academic_year_id', $academicYear->id)
+                ->where('active', true))
+            ->orderBy(Person::query()->select('full_name')->whereColumn('people.id', 'student_enrollments.person_id'))
+            ->get();
+    }
+
+    private function missingBehaviorGrades(AcademicYear $academicYear, AcademicPeriod $period): int
+    {
+        $enrollmentIds = $this->behaviorEnrollments($academicYear)->pluck('id');
+
+        if ($enrollmentIds->isEmpty()) {
+            return 0;
+        }
+
+        $launched = StudentBehaviorGrade::query()
+            ->where('academic_period_id', $period->id)
+            ->whereIn('student_enrollment_id', $enrollmentIds)
+            ->count();
+
+        return max(0, $enrollmentIds->count() - $launched);
+    }
+
     private function createAssessmentsForRule(int $academicYearId, SchoolAssessmentRule $rule): void
     {
         $assignments = SchoolClassComponent::query()
@@ -443,7 +577,8 @@ class AcademicPeriodController extends Controller
     private function resetCalendarDaysToVacation(AcademicYear $academicYear, $startsAt, $endsAt): void
     {
         $academicYear->days()
-            ->whereBetween('date', [$startsAt->toDateString(), $endsAt->toDateString()])
+            ->whereDate('date', '>=', $startsAt->toDateString())
+            ->whereDate('date', '<=', $endsAt->toDateString())
             ->update([
                 'type' => CalendarDay::TYPE_FINAL_VACATION,
                 'counts_as_school_day' => false,

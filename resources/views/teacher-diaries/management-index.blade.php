@@ -15,6 +15,17 @@
 @endsection
 
 @section('content')
+    @php
+        $baseDiaryQuery = request()->except('status', 'page');
+        $quickStatusFilters = [
+            ['key' => null, 'label' => 'Todos', 'count' => $stats['total'], 'icon' => 'fa-layer-group'],
+            ['key' => 'pending', 'label' => 'Com pendência', 'count' => $stats['pending'], 'icon' => 'fa-exclamation-circle'],
+            ['key' => 'waiting', 'label' => 'Aguardando', 'count' => $stats['waiting'], 'icon' => 'fa-hourglass-half'],
+            ['key' => 'confirmed', 'label' => 'Confirmados', 'count' => $stats['confirmed'], 'icon' => 'fa-check-circle'],
+            ['key' => 'reopened', 'label' => 'Reabertos', 'count' => $stats['reopened'], 'icon' => 'fa-unlock'],
+        ];
+    @endphp
+
     <section class="sge-diary-management-hero" aria-labelledby="diary-management-context">
         <div>
             <span class="sge-page-kicker">Gestão pedagógica</span>
@@ -34,6 +45,21 @@
             <div><strong>{{ $stats['confirmed'] }}</strong><span>confirmados</span></div>
         </div>
     </section>
+
+    @if($academicYear && $period)
+        <nav class="sge-status-filter-strip mb-4" aria-label="Filtros rápidos dos diários por situação">
+            <span>Ver</span>
+            @foreach($quickStatusFilters as $filter)
+                @php($isActive = $filter['key'] === null ? ! request()->filled('status') : request('status') === $filter['key'])
+                @php($query = $filter['key'] === null ? $baseDiaryQuery : array_merge($baseDiaryQuery, ['status' => $filter['key']]))
+                <a class="sge-status-filter-chip {{ $isActive ? 'is-active' : '' }}" href="{{ route('teacher-diaries.index', $query) }}" @if($isActive) aria-current="page" @endif>
+                    <i class="fas {{ $filter['icon'] }}" aria-hidden="true"></i>
+                    <span>{{ $filter['label'] }}</span>
+                    <strong>{{ $filter['count'] }}</strong>
+                </a>
+            @endforeach
+        </nav>
+    @endif
 
     <section class="card shadow mb-4" aria-labelledby="diary-filter-title">
         <div class="card-header py-3">
@@ -115,7 +141,10 @@
     @if(! $academicYear || ! $period)
         <section class="card shadow">
             <div class="card-body">
-                <p class="mb-0">Nenhum ano letivo aprovado com período avaliativo foi encontrado para acompanhamento.</p>
+                <div class="sge-empty-state">
+                    <i class="fas fa-calendar-check" aria-hidden="true"></i>
+                    <p>Nenhum ano letivo aprovado com período avaliativo foi encontrado para acompanhamento.</p>
+                </div>
             </div>
         </section>
     @else
@@ -205,7 +234,10 @@
                         </div>
                     </details>
                 @empty
-                    <p class="mb-0">Nenhum diário encontrado com os filtros atuais.</p>
+                    <div class="sge-empty-state">
+                        <i class="fas fa-filter" aria-hidden="true"></i>
+                        <p>Nenhum diário encontrado com os filtros atuais. Ajuste os filtros ou confira se há turmas e componentes ativos.</p>
+                    </div>
                 @endforelse
             </div>
         </section>

@@ -37,6 +37,9 @@ class IdentityRulesTest extends TestCase
                 'institutional_email' => 'novo.admin@ctjj.org',
                 'cpf' => '99988877766',
                 'birth_date' => '2000-05-10',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
                 'mother_name' => 'Outra Mãe',
             ]))
             ->assertRedirect(route('people.show', $admin->person));
@@ -61,6 +64,9 @@ class IdentityRulesTest extends TestCase
                 'institutional_email' => 'outra.gestao@ctjj.org',
                 'cpf' => '99988877766',
                 'birth_date' => '2000-05-10',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
                 'mother_name' => 'Outra Mãe',
             ]))
             ->assertRedirect(route('people.show', $manager->person));
@@ -354,9 +360,16 @@ class IdentityRulesTest extends TestCase
             'personal_email' => 'pessoa@gmail.com',
             'cpf' => '12345678901',
             'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
             'mother_name' => 'Maria da Silva',
             'father_name' => 'José da Silva',
             'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
             'active' => '1',
         ], $overrides);
     }
@@ -368,9 +381,16 @@ class IdentityRulesTest extends TestCase
             'institutional_email' => $email,
             'cpf' => $cpf ?? fake()->unique()->numerify('###########'),
             'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
             'mother_name' => 'Maria da Silva',
             'father_name' => 'José da Silva',
             'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
             'active' => true,
             'profile_completed_at' => now(),
         ]);

@@ -15,6 +15,12 @@
                     <div class="d-flex align-items-center justify-content-between flex-wrap">
                         <p class="small text-muted mb-2">{{ $enrollment->schoolClass?->academicYear?->name }}</p>
                         <div class="btn-group btn-group-sm mb-2">
+                            <a class="btn btn-outline-primary" href="{{ route('enrollments.report-card.show', $enrollment) }}">
+                                <i class="fas fa-chart-line mr-1" aria-hidden="true"></i>Boletim
+                            </a>
+                            <a class="btn btn-outline-primary" href="{{ route('enrollments.individual-record.pdf', $enrollment) }}">
+                                <i class="fas fa-file-alt mr-1" aria-hidden="true"></i>Ficha
+                            </a>
                             <a class="btn btn-outline-primary" href="{{ route('student-diaries.schedule', $enrollment) }}">
                                 <i class="fas fa-clock mr-1" aria-hidden="true"></i>Meu horário
                             </a>

@@ -2,14 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AcademicYear;
 use App\Models\Person;
 use App\Models\PersonContact;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
+use App\Models\IssuedDocument;
+use App\Models\StudentEnrollment;
+use App\Support\PdfLetterhead;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 class DataQualityController extends Controller
 {
@@ -17,18 +24,182 @@ class DataQualityController extends Controller
     {
         abort_unless($request->user()->canManagePeople(), 403);
 
+        return view('data-quality.index', $this->qualityData($request));
+    }
+
+    public function pdf(Request $request): Response
+    {
+        abort_unless($request->user()->canManagePeople(), 403);
+
+        $data = $this->qualityData($request);
+        $selectedSchool = $data['selectedSchoolId']
+            ? $data['schools']->firstWhere('id', $data['selectedSchoolId'])
+            : null;
+        $issuedDocument = $this->issuedDocument($request, $data, $selectedSchool);
+
+        $pdf = Pdf::loadView('reports.data-quality', $data + [
+            'issuedDocument' => $issuedDocument,
+            'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
+            'letterhead' => PdfLetterhead::make($selectedSchool),
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->download('beaba-conformidade-'.now()->format('Ymd-His').'.pdf');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function qualityData(Request $request): array
+    {
         $schools = $this->availableSchools($request);
         $selectedSchoolId = $this->selectedSchoolId($request, $schools);
         $schoolIds = $this->schoolIdsForChecks($request, $schools, $selectedSchoolId);
+        $selectedSeverity = $this->selectedSeverity($request);
 
-        return view('data-quality.index', [
-            'personChecks' => $this->personChecks($schoolIds),
-            'roleChecks' => $this->roleChecks($schoolIds),
-            'contactChecks' => $this->contactChecks($schoolIds),
-            'schoolChecks' => $this->schoolChecks($schoolIds),
+        $personChecks = $this->personChecks($schoolIds);
+        $roleChecks = $this->roleChecks($schoolIds);
+        $contactChecks = $this->contactChecks($schoolIds);
+        $schoolChecks = $this->schoolChecks($schoolIds);
+        $academicChecks = $this->academicChecks($schoolIds);
+
+        $groups = collect([
+            ['title' => 'Pessoas', 'description' => 'Dados civis, login e acesso aos documentos.', 'checks' => $personChecks, 'icon' => 'fa-users'],
+            ['title' => 'Vínculos', 'description' => 'Papéis, escolas e períodos de vínculo.', 'checks' => $roleChecks, 'icon' => 'fa-id-badge'],
+            ['title' => 'Responsáveis e contatos', 'description' => 'Responsáveis legais e canais de contato.', 'checks' => $contactChecks, 'icon' => 'fa-address-book'],
+            ['title' => 'Escolas e documentos', 'description' => 'Papel timbrado, identificação oficial e dados da unidade.', 'checks' => $schoolChecks, 'icon' => 'fa-school'],
+            ['title' => 'Rotina acadêmica', 'description' => 'Ano letivo, matrículas, turmas e regras necessárias.', 'checks' => $academicChecks, 'icon' => 'fa-book-open'],
+        ]);
+
+        $summary = [
+            'total' => $groups->sum(fn (array $group): int => (int) $group['checks']->sum('count')),
+            'danger' => $groups->sum(fn (array $group): int => (int) $group['checks']->where('severity', 'danger')->sum('count')),
+            'warning' => $groups->sum(fn (array $group): int => (int) $group['checks']->where('severity', 'warning')->sum('count')),
+            'info' => $groups->sum(fn (array $group): int => (int) $group['checks']->where('severity', 'info')->sum('count')),
+        ];
+
+        $displayGroups = $selectedSeverity
+            ? $groups
+                ->map(function (array $group) use ($selectedSeverity): array {
+                    $group['checks'] = $group['checks']->where('severity', $selectedSeverity)->values();
+
+                    return $group;
+                })
+                ->filter(fn (array $group): bool => $group['checks']->isNotEmpty())
+                ->values()
+            : $groups;
+
+        return [
+            'personChecks' => $personChecks,
+            'roleChecks' => $roleChecks,
+            'contactChecks' => $contactChecks,
+            'schoolChecks' => $schoolChecks,
+            'academicChecks' => $academicChecks,
+            'groups' => $groups,
+            'displayGroups' => $displayGroups,
+            'summary' => $summary,
+            'workflows' => $this->workflows($personChecks, $contactChecks, $schoolChecks, $academicChecks),
             'schools' => $schools,
             'selectedSchoolId' => $selectedSchoolId,
+            'selectedSeverity' => $selectedSeverity,
+        ];
+    }
+
+    private function selectedSeverity(Request $request): ?string
+    {
+        $severity = $request->query('severity');
+
+        return in_array($severity, ['danger', 'warning', 'info'], true) ? (string) $severity : null;
+    }
+
+    /**
+     * @param Collection<int, array<string, mixed>> $personChecks
+     * @param Collection<int, array<string, mixed>> $contactChecks
+     * @param Collection<int, array<string, mixed>> $schoolChecks
+     * @param Collection<int, array<string, mixed>> $academicChecks
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function workflows(Collection $personChecks, Collection $contactChecks, Collection $schoolChecks, Collection $academicChecks): Collection
+    {
+        $count = fn (Collection $checks, array $titles): int => (int) $checks
+            ->whereIn('title', $titles)
+            ->sum('count');
+
+        return collect([
+            [
+                'title' => 'Emitir documentos oficiais',
+                'description' => 'Pessoa, escola, matrícula e papel timbrado precisam estar completos antes de gerar PDFs oficiais.',
+                'icon' => 'fa-file-signature',
+                'count' => $count($personChecks, ['Pessoas ativas com cadastro incompleto'])
+                    + $count($schoolChecks, ['Escolas com dados oficiais incompletos'])
+                    + $count($academicChecks, ['Matrículas ativas com cadastro do estudante incompleto', 'Matrículas ativas sem curso associado']),
+                'route' => route('data-quality.index', ['severity' => 'danger']),
+            ],
+            [
+                'title' => 'Matricular estudante',
+                'description' => 'Cadastros civis, responsáveis e cursos associados devem estar prontos para a matrícula fluir.',
+                'icon' => 'fa-user-graduate',
+                'count' => $count($personChecks, ['Pessoas sem CPF', 'Pessoas sem e-mail institucional'])
+                    + $count($contactChecks, ['Estudantes menores sem responsável'])
+                    + $count($academicChecks, ['Matrículas ativas sem curso associado']),
+                'route' => route('enrollments.index'),
+            ],
+            [
+                'title' => 'Fechar períodos e ano letivo',
+                'description' => 'Períodos, critérios de aprovação, dias letivos e documentos finais precisam estar consistentes.',
+                'icon' => 'fa-clipboard-check',
+                'count' => $count($academicChecks, [
+                    'Anos letivos ativos sem aprovação',
+                    'Anos letivos ativos sem períodos avaliativos',
+                    'Anos letivos sem critérios de aprovação',
+                    'Anos letivos com menos dias letivos que o mínimo',
+                ]),
+                'route' => route('data-quality.index', ['severity' => 'danger']),
+            ],
+            [
+                'title' => 'Liberar acesso ao sistema',
+                'description' => 'Usuários ativos precisam ter e-mail institucional válido, CPF e vínculo ativo.',
+                'icon' => 'fa-sign-in-alt',
+                'count' => $count($personChecks, [
+                    'Pessoas sem CPF',
+                    'Pessoas sem e-mail institucional',
+                    'E-mails institucionais fora do domínio',
+                    'Pessoas ativas sem vínculo ativo',
+                ]),
+                'route' => route('people.index'),
+            ],
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function issuedDocument(Request $request, array $data, ?School $school): IssuedDocument
+    {
+        return IssuedDocument::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'verification_code' => $this->verificationCode(),
+            'type' => 'data-quality-compliance-report',
+            'person_id' => $request->user()->person_id,
+            'school_id' => $school?->id,
+            'issued_by_user_id' => $request->user()->id,
+            'payload' => [
+                'title' => 'Relatório de conformidade documental e acadêmica',
+                'summary' => $data['summary'],
+                'school_id' => $school?->id,
+                'school' => $school?->name,
+                'severity' => $data['selectedSeverity'],
+            ],
+            'issued_at' => now(),
+        ]);
+    }
+
+    private function verificationCode(): string
+    {
+        do {
+            $code = 'BEABA-'.strtoupper(Str::random(4)).'-'.strtoupper(Str::random(4)).'-'.strtoupper(Str::random(4));
+        } while (IssuedDocument::query()->where('verification_code', $code)->exists());
+
+        return $code;
     }
 
     /**
@@ -82,34 +253,23 @@ class DataQualityController extends Controller
         return collect([
             $this->check(
                 'Pessoas sem CPF',
-                'Bloqueiam acesso completo e exigem conferência antes de emissão de documentos.',
+                'Bloqueia login completo, emissão de documentos escolares e novos vínculos até a regularização.',
                 $this->personScope(Person::query(), $schoolIds)
                     ->where(fn (Builder $query) => $query->whereNull('cpf')->orWhere('cpf', '')),
                 'danger'
             ),
             $this->check(
                 'Pessoas sem e-mail institucional',
-                'Não conseguem acessar pelo Google Workspace até receberem um e-mail @ctjj.org.',
+                'Bloqueia acesso pelo Google Workspace até receberem um e-mail @ctjj.org.',
                 $this->personScope(Person::query(), $schoolIds)
                     ->where(fn (Builder $query) => $query->whereNull('institutional_email')->orWhere('institutional_email', '')),
-                'warning'
+                'danger'
             ),
             $this->check(
-                'Pessoas com cadastro incompleto',
-                'Falta CPF, data de nascimento, nome da mãe, telefone ou conclusão de cadastro.',
-                $this->personScope(Person::query(), $schoolIds)
-                    ->where('active', true)
-                    ->where(function (Builder $query): void {
-                        $query->whereNull('cpf')
-                            ->orWhere('cpf', '')
-                            ->orWhereNull('birth_date')
-                            ->orWhereNull('mother_name')
-                            ->orWhere('mother_name', '')
-                            ->orWhereNull('phone')
-                            ->orWhere('phone', '')
-                            ->orWhereNull('profile_completed_at');
-                    }),
-                'warning'
+                'Pessoas ativas com cadastro incompleto',
+                'Bloqueia emissão de documentos oficiais. Complete dados civis, filiação, telefone e endereço.',
+                $this->missingPersonDocumentDataScope($this->personScope(Person::query(), $schoolIds)),
+                'danger'
             ),
             $this->check(
                 'CPFs com formato suspeito',
@@ -133,7 +293,6 @@ class DataQualityController extends Controller
                 'Pessoas ativas sem vínculo ativo',
                 'Pessoas ativas que não aparecem como estudante, docência, gestão, equipe ou administração ativa.',
                 $this->personScope(Person::query(), $schoolIds)
-                    ->where('active', true)
                     ->whereDoesntHave('schoolRoles', fn (Builder $roles) => $this->activeRoleScope($roles, $schoolIds)),
                 'info'
             ),
@@ -194,9 +353,8 @@ class DataQualityController extends Controller
         return collect([
             $this->check(
                 'Estudantes menores sem responsável',
-                'Estudantes menores de 18 anos precisam ter ao menos um responsável legal cadastrado.',
+                'Bloqueia conferência documental: estudantes menores de 18 anos precisam ter ao menos um responsável legal cadastrado.',
                 $this->personScope(Person::query(), $schoolIds)
-                    ->where('active', true)
                     ->whereNotNull('birth_date')
                     ->whereDate('birth_date', '>', now()->subYears(18)->toDateString())
                     ->whereHas('schoolRoles', fn (Builder $roles) => $this->activeRoleScope($roles, $schoolIds)->where('role', PersonSchoolRole::ROLE_STUDENT))
@@ -225,6 +383,12 @@ class DataQualityController extends Controller
     {
         return collect([
             $this->schoolCheck(
+                'Escolas com dados oficiais incompletos',
+                'Bloqueia documentos oficiais com papel timbrado. Complete razão social, CNPJ, INEP, fundação, contatos, endereço e texto institucional.',
+                $this->missingSchoolOfficialDataScope($this->schoolScope(School::query(), $schoolIds)),
+                'danger'
+            ),
+            $this->schoolCheck(
                 'Escolas sem CNPJ',
                 'O CNPJ será necessário em relatórios e documentos oficiais.',
                 $this->schoolScope(School::query(), $schoolIds)
@@ -251,6 +415,65 @@ class DataQualityController extends Controller
                             ->orWhere('state', '');
                     }),
                 'info'
+            ),
+        ]);
+    }
+
+    /**
+     * @param list<int>|null $schoolIds
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function academicChecks(?array $schoolIds): Collection
+    {
+        return collect([
+            $this->yearCheck(
+                'Anos letivos ativos sem aprovação',
+                'A aprovação formaliza o calendário. Sem ela, documentos finais e consolidações ficam em atenção.',
+                $this->yearScope(AcademicYear::query(), $schoolIds)
+                    ->where('active', true)
+                    ->whereNull('approved_at'),
+                'warning'
+            ),
+            $this->yearCheck(
+                'Anos letivos ativos sem períodos avaliativos',
+                'Sem períodos avaliativos não há fechamento de diários, comportamento, boletim ou ficha individual por período.',
+                $this->yearScope(AcademicYear::query(), $schoolIds)
+                    ->where('active', true)
+                    ->whereDoesntHave('periods'),
+                'danger'
+            ),
+            $this->yearCheck(
+                'Anos letivos sem critérios de aprovação',
+                'Informe a soma de pontos para aprovação e o percentual mínimo de frequência.',
+                $this->yearScope(AcademicYear::query(), $schoolIds)
+                    ->where(function (Builder $query): void {
+                        $query->whereNull('passing_points')
+                            ->orWhereNull('minimum_attendance_percentage');
+                    }),
+                'danger'
+            ),
+            $this->yearCheck(
+                'Anos letivos com menos dias letivos que o mínimo',
+                'Confira o calendário quando a contagem de dias letivos estiver abaixo do mínimo definido para o ano.',
+                $this->yearScope(AcademicYear::query(), $schoolIds)
+                    ->whereRaw('(select count(*) from calendar_days where calendar_days.academic_year_id = academic_years.id and calendar_days.counts_as_school_day = 1) < minimum_school_days'),
+                'danger'
+            ),
+            $this->enrollmentCheck(
+                'Matrículas ativas com cadastro do estudante incompleto',
+                'Bloqueia documentos do estudante e exige regularização antes de novas emissões oficiais.',
+                $this->enrollmentScope(StudentEnrollment::query(), $schoolIds)
+                    ->where('status', StudentEnrollment::STATUS_ENROLLED)
+                    ->whereHas('student', fn (Builder $student) => $this->missingPersonDocumentDataScope($student->where('active', true))),
+                'danger'
+            ),
+            $this->enrollmentCheck(
+                'Matrículas ativas sem curso associado',
+                'A matrícula precisa estar ligada a pelo menos uma matriz/curso para boletim, ficha individual e histórico.',
+                $this->enrollmentScope(StudentEnrollment::query(), $schoolIds)
+                    ->where('status', StudentEnrollment::STATUS_ENROLLED)
+                    ->whereDoesntHave('courses'),
+                'danger'
             ),
         ]);
     }
@@ -334,6 +557,47 @@ class DataQualityController extends Controller
     }
 
     /**
+     * @param Builder<AcademicYear> $query
+     * @return array<string, mixed>
+     */
+    private function yearCheck(string $title, string $description, Builder $query, string $severity): array
+    {
+        return [
+            'title' => $title,
+            'description' => $description,
+            'severity' => $severity,
+            'count' => (clone $query)->count(),
+            'items' => (clone $query)
+                ->with('school')
+                ->orderByDesc('reference_year')
+                ->orderBy('name')
+                ->limit(8)
+                ->get(),
+            'type' => 'years',
+        ];
+    }
+
+    /**
+     * @param Builder<StudentEnrollment> $query
+     * @return array<string, mixed>
+     */
+    private function enrollmentCheck(string $title, string $description, Builder $query, string $severity): array
+    {
+        return [
+            'title' => $title,
+            'description' => $description,
+            'severity' => $severity,
+            'count' => (clone $query)->count(),
+            'items' => (clone $query)
+                ->with(['student', 'schoolClass.academicYear.school'])
+                ->orderByDesc('enrolled_at')
+                ->limit(8)
+                ->get(),
+            'type' => 'enrollments',
+        ];
+    }
+
+    /**
      * @param Builder<Person> $query
      * @param list<int>|null $schoolIds
      * @return Builder<Person>
@@ -384,6 +648,28 @@ class DataQualityController extends Controller
     }
 
     /**
+     * @param Builder<AcademicYear> $query
+     * @param list<int>|null $schoolIds
+     * @return Builder<AcademicYear>
+     */
+    private function yearScope(Builder $query, ?array $schoolIds): Builder
+    {
+        return $query->when($schoolIds !== null, fn (Builder $query) => $query->whereIn('school_id', $schoolIds));
+    }
+
+    /**
+     * @param Builder<StudentEnrollment> $query
+     * @param list<int>|null $schoolIds
+     * @return Builder<StudentEnrollment>
+     */
+    private function enrollmentScope(Builder $query, ?array $schoolIds): Builder
+    {
+        return $query->when($schoolIds !== null, function (Builder $query) use ($schoolIds): void {
+            $query->whereHas('schoolClass.academicYear', fn (Builder $year) => $year->whereIn('school_id', $schoolIds));
+        });
+    }
+
+    /**
      * @param Builder<PersonSchoolRole> $query
      * @param list<int>|null $schoolIds
      * @return Builder<PersonSchoolRole>
@@ -400,5 +686,65 @@ class DataQualityController extends Controller
                 $query->whereNull('ended_at')
                     ->orWhereDate('ended_at', '>=', now()->toDateString());
             });
+    }
+
+    /**
+     * @param Builder<Person> $query
+     * @return Builder<Person>
+     */
+    private function missingPersonDocumentDataScope(Builder $query): Builder
+    {
+        return $query->where(function (Builder $query): void {
+            $query->whereNull('full_name')
+                ->orWhere('full_name', '')
+                ->orWhereNull('cpf')
+                ->orWhere('cpf', '')
+                ->orWhereNull('birth_date')
+                ->orWhereNull('birth_city')
+                ->orWhere('birth_city', '')
+                ->orWhereNull('birth_state')
+                ->orWhere('birth_state', '')
+                ->orWhereNull('nationality')
+                ->orWhere('nationality', '')
+                ->orWhereNull('mother_name')
+                ->orWhere('mother_name', '')
+                ->orWhereNull('institutional_email')
+                ->orWhere('institutional_email', '')
+                ->orWhereNull('phone')
+                ->orWhere('phone', '');
+        });
+    }
+
+    /**
+     * @param Builder<School> $query
+     * @return Builder<School>
+     */
+    private function missingSchoolOfficialDataScope(Builder $query): Builder
+    {
+        return $query->where(function (Builder $query): void {
+            $query->whereNull('name')
+                ->orWhere('name', '')
+                ->orWhereNull('legal_name')
+                ->orWhere('legal_name', '')
+                ->orWhereNull('cnpj')
+                ->orWhere('cnpj', '')
+                ->orWhereNull('inep')
+                ->orWhere('inep', '')
+                ->orWhereNull('founded_at')
+                ->orWhereNull('phone')
+                ->orWhere('phone', '')
+                ->orWhereNull('email')
+                ->orWhere('email', '')
+                ->orWhereNull('letterhead_text')
+                ->orWhere('letterhead_text', '')
+                ->orWhereNull('address')
+                ->orWhere('address', '')
+                ->orWhereNull('city')
+                ->orWhere('city', '')
+                ->orWhereNull('state')
+                ->orWhere('state', '')
+                ->orWhereNull('postal_code')
+                ->orWhere('postal_code', '');
+        });
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Announcement;
+use App\Models\DiaryAlert;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Gate;
@@ -35,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
             if (! $user) {
                 $view->with([
                     'topbarAnnouncements' => collect(),
+                    'topbarDiaryAlerts' => collect(),
                     'topbarAlertCount' => 0,
                 ]);
 
@@ -54,9 +56,19 @@ class AppServiceProvider extends ServiceProvider
                 ->limit(5)
                 ->get();
 
+            $diaryAlerts = DiaryAlert::query()
+                ->with(['fromPerson', 'schoolClass', 'component', 'period'])
+                ->where('to_person_id', $user->person_id)
+                ->whereNull('resolved_at')
+                ->whereNull('dismissed_at')
+                ->latest()
+                ->limit(5)
+                ->get();
+
             $view->with([
                 'topbarAnnouncements' => $announcements,
-                'topbarAlertCount' => $announcements->count(),
+                'topbarDiaryAlerts' => $diaryAlerts,
+                'topbarAlertCount' => $announcements->count() + $diaryAlerts->count(),
             ]);
         });
     }

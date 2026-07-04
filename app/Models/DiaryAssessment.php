@@ -27,6 +27,9 @@ class DiaryAssessment extends Model
         'maximum_score',
         'assessment_date',
         'notes',
+        'legacy_source',
+        'legacy_id',
+        'legacy_metadata',
     ];
 
     protected function casts(): array
@@ -35,6 +38,7 @@ class DiaryAssessment extends Model
             'assessment_date' => 'date',
             'maximum_score' => 'decimal:2',
             'is_recovery' => 'boolean',
+            'legacy_metadata' => 'array',
         ];
     }
 

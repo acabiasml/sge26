@@ -67,7 +67,9 @@
                 @php($diarySummaries = $periodDiaryStatus->get($period->id, collect()))
                 @php($confirmedDiaries = $diarySummaries->filter(fn ($summary) => $summary['confirmation']?->confirmed)->count())
                 @php($pendingDiaries = $diarySummaries->filter(fn ($summary) => $summary['pending']['is_pending'])->count())
-                @php($canConsolidatePeriod = $diarySummaries->isNotEmpty() && $confirmedDiaries === $diarySummaries->count() && $pendingDiaries === 0)
+                @php($behaviorStatus = $periodBehaviorStatus->get($period->id, ['total' => 0, 'missing' => 0]))
+                @php($missingBehaviorGrades = $behaviorStatus['missing'])
+                @php($canConsolidatePeriod = $diarySummaries->isNotEmpty() && $confirmedDiaries === $diarySummaries->count() && $pendingDiaries === 0 && $missingBehaviorGrades === 0)
                 @php($consolidation = $period->diaryConsolidation)
                 @php($useOldForPeriod = (int) old('period_form_id') === $period->id)
                 @php($assessmentErrorKeys = ['assessment_count', 'weights', 'assessment_names', 'recovery_mode', 'recovery_weight', 'recovery_replaced_position'])
@@ -85,6 +87,7 @@
                         <div class="sge-period-card-stats">
                             <span><i class="fas fa-calendar-check" aria-hidden="true"></i>{{ $periodSchoolDays }} dias letivos</span>
                             <span><i class="fas fa-clipboard-list" aria-hidden="true"></i>{{ $period->assessmentRules->count() ?: '—' }} avaliações</span>
+                            <span><i class="fas fa-user-check" aria-hidden="true"></i>{{ $missingBehaviorGrades }} comp. pendente(s)</span>
                             <span class="badge badge-{{ $consolidation?->consolidated ? 'success' : 'secondary' }}">{{ $consolidation?->consolidated ? 'Consolidado' : 'Aberto' }}</span>
                         </div>
                         @if ($canChangeCalendar)
@@ -118,6 +121,7 @@
                                 <div><strong>{{ $diarySummaries->count() }}</strong><span>diários</span></div>
                                 <div><strong>{{ $confirmedDiaries }}</strong><span>confirmados</span></div>
                                 <div><strong>{{ $pendingDiaries }}</strong><span>com pendência</span></div>
+                                <div><strong>{{ $missingBehaviorGrades }}</strong><span>comportamentos pendentes</span></div>
                                 <div><strong>{{ max(0, $diarySummaries->count() - $confirmedDiaries) }}</strong><span>aguardando</span></div>
                             </div>
 
@@ -167,6 +171,57 @@
                         </div>
                     </section>
 
+                    <details class="sge-period-assessments mb-3">
+                        <summary>
+                            <span><i class="fas fa-user-check" aria-hidden="true"></i>Comportamento dos estudantes</span>
+                            <small>{{ $behaviorStatus['total'] }} estudante(s) · {{ $missingBehaviorGrades }} pendente(s)</small>
+                        </summary>
+                        <div class="pt-3">
+                            @if($behaviorEnrollments->isEmpty())
+                                <p class="text-muted mb-0">Nenhuma matrícula ativa para lançamento de comportamento neste ano letivo.</p>
+                            @else
+                                <form method="POST" action="{{ route('academic-years.periods.behavior.update', [$academicYear, $period]) }}">
+                                    @csrf @method('PUT')
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered mb-3">
+                                            <thead>
+                                                <tr>
+                                                    <th>Estudante</th>
+                                                    <th>Turma</th>
+                                                    <th style="width: 160px;">Nota</th>
+                                                    <th>Observações</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($behaviorEnrollments as $behaviorEnrollment)
+                                                    @php($behaviorGrade = $behaviorGrades->get($period->id.'-'.$behaviorEnrollment->id))
+                                                    <tr>
+                                                        <td>{{ $behaviorEnrollment->student?->full_name }}</td>
+                                                        <td>{{ $behaviorEnrollment->schoolClass?->name }}</td>
+                                                        <td>
+                                                            <label class="sr-only" for="behavior_score_{{ $period->id }}_{{ $behaviorEnrollment->id }}">Comportamento de {{ $behaviorEnrollment->student?->full_name }}</label>
+                                                            <input id="behavior_score_{{ $period->id }}_{{ $behaviorEnrollment->id }}" name="behavior_scores[{{ $behaviorEnrollment->id }}]" data-mask="decimal" inputmode="decimal" class="form-control form-control-sm" value="{{ old('behavior_scores.'.$behaviorEnrollment->id, $behaviorGrade?->score) }}">
+                                                        </td>
+                                                        <td>
+                                                            <label class="sr-only" for="behavior_notes_{{ $period->id }}_{{ $behaviorEnrollment->id }}">Observações de comportamento de {{ $behaviorEnrollment->student?->full_name }}</label>
+                                                            <input id="behavior_notes_{{ $period->id }}_{{ $behaviorEnrollment->id }}" name="behavior_notes[{{ $behaviorEnrollment->id }}]" class="form-control form-control-sm" value="{{ old('behavior_notes.'.$behaviorEnrollment->id, $behaviorGrade?->notes) }}">
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <button class="btn btn-primary" type="submit" @disabled($consolidation?->consolidated)>
+                                        <i class="fas fa-save mr-1" aria-hidden="true"></i>Salvar comportamento
+                                    </button>
+                                    @if($consolidation?->consolidated)
+                                        <p class="small text-muted mt-2 mb-0">Período consolidado. Reabra o período antes de alterar comportamento.</p>
+                                    @endif
+                                </form>
+                            @endif
+                        </div>
+                    </details>
+
                     <details class="sge-period-assessments" data-assessment-rules-form @if($periodHasAssessmentErrors) open @endif>
                         <summary><span><i class="fas fa-sliders-h" aria-hidden="true"></i>Configurar avaliações e recuperação</span><small>Regras aplicadas aos diários</small></summary>
                         <div class="pt-3">
@@ -184,9 +239,39 @@
                                     </div>
                                 @endif
                                 @php($ruleCount = (int) ($useOldForPeriod ? old('assessment_count') : max(1, $period->assessmentRules->count())))
-                                <div class="row align-items-end">
-                                    <div class="col-md-3 form-group"><label for="assessment_count_{{ $period->id }}">Avaliações</label><select id="assessment_count_{{ $period->id }}" name="assessment_count" class="form-control" data-assessment-count>@for($count=1;$count<=10;$count++)<option value="{{ $count }}" @selected($ruleCount === $count)>{{ $count }}</option>@endfor</select></div>
-                                    <div class="col-md-9 form-group mb-0"><div class="row">@for($position=1;$position<=10;$position++)@php($rule=$period->assessmentRules->firstWhere('position',$position))<div class="col-sm-6 mb-2" data-assessment-weight="{{ $position }}"><div class="sge-assessment-definition"><div><label for="assessment_name_{{ $period->id }}_{{ $position }}">Avaliação {{ $position }}</label><input id="assessment_name_{{ $period->id }}_{{ $position }}" name="assessment_names[]" class="form-control" value="{{ $useOldForPeriod ? old('assessment_names.'.($position-1), $rule?->name ?? 'Avaliação '.$position) : ($rule?->name ?? 'Avaliação '.$position) }}"></div><div><label for="weight_{{ $period->id }}_{{ $position }}">Peso</label><input id="weight_{{ $period->id }}_{{ $position }}" name="weights[]" type="number" min="1" max="100" class="form-control" value="{{ $useOldForPeriod ? old('weights.'.($position-1), $rule?->weight ?? 1) : ($rule?->weight ?? 1) }}"></div></div></div>@endfor</div></div>
+                                <div class="sge-assessment-workspace">
+                                    <div class="sge-assessment-intro">
+                                        <div>
+                                            <strong>Plano de avaliação</strong>
+                                            <span>Essas regras aparecem para todas as turmas e componentes deste período.</span>
+                                        </div>
+                                        <div class="form-group mb-0">
+                                            <label for="assessment_count_{{ $period->id }}">Quantidade</label>
+                                            <select id="assessment_count_{{ $period->id }}" name="assessment_count" class="form-control" data-assessment-count>
+                                                @for($count = 1; $count <= 10; $count++)
+                                                    <option value="{{ $count }}" @selected($ruleCount === $count)>{{ $count }}</option>
+                                                @endfor
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="sge-assessment-grid" aria-label="Avaliações do período {{ $period->name }}">
+                                        @for($position = 1; $position <= 10; $position++)
+                                            @php($rule = $period->assessmentRules->firstWhere('position', $position))
+                                            <div data-assessment-weight="{{ $position }}">
+                                                <div class="sge-assessment-definition">
+                                                    <span class="sge-assessment-number" aria-hidden="true">{{ $position }}</span>
+                                                    <div>
+                                                        <label for="assessment_name_{{ $period->id }}_{{ $position }}">Nome da avaliação</label>
+                                                        <input id="assessment_name_{{ $period->id }}_{{ $position }}" name="assessment_names[]" class="form-control" value="{{ $useOldForPeriod ? old('assessment_names.'.($position - 1), $rule?->name ?? 'Avaliação '.$position) : ($rule?->name ?? 'Avaliação '.$position) }}">
+                                                    </div>
+                                                    <div>
+                                                        <label for="weight_{{ $period->id }}_{{ $position }}">Peso</label>
+                                                        <input id="weight_{{ $period->id }}_{{ $position }}" name="weights[]" data-mask="digits" data-mask-max="3" inputmode="numeric" autocomplete="off" class="form-control" value="{{ $useOldForPeriod ? old('weights.'.($position - 1), $rule?->weight ?? 1) : ($rule?->weight ?? 1) }}">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endfor
+                                    </div>
                                 </div>
                                 <fieldset class="sge-recovery-options">
                                     <legend>Recuperação</legend>
@@ -195,7 +280,7 @@
                                         <div class="custom-control custom-radio sge-recovery-choice"><input class="custom-control-input" id="recovery_{{ $period->id }}_{{ $mode }}" type="radio" name="recovery_mode" value="{{ $mode }}" @checked($recoveryMode === $mode) data-recovery-mode><label class="custom-control-label" for="recovery_{{ $period->id }}_{{ $mode }}">{{ $label }}</label></div>
                                     @endforeach
                                     <div class="row mt-2" data-recovery-details>
-                                        <div class="col-md-4 form-group" data-recovery-weight><label for="recovery_weight_{{ $period->id }}">Peso da recuperação</label><input id="recovery_weight_{{ $period->id }}" name="recovery_weight" type="number" min="1" max="100" class="form-control" value="{{ $useOldForPeriod ? old('recovery_weight', $period->recovery_weight ?? 1) : ($period->recovery_weight ?? 1) }}"></div>
+                                        <div class="col-md-4 form-group" data-recovery-weight><label for="recovery_weight_{{ $period->id }}">Peso da recuperação</label><input id="recovery_weight_{{ $period->id }}" name="recovery_weight" data-mask="digits" data-mask-max="3" inputmode="numeric" autocomplete="off" class="form-control" value="{{ $useOldForPeriod ? old('recovery_weight', $period->recovery_weight ?? 1) : ($period->recovery_weight ?? 1) }}"></div>
                                         <div class="col-md-5 form-group" data-recovery-replace><label for="recovery_replace_{{ $period->id }}">Avaliação substituída</label><select id="recovery_replace_{{ $period->id }}" name="recovery_replaced_position" class="form-control"><option value="">Selecione</option>@for($position=1;$position<=10;$position++)<option value="{{ $position }}" @selected((int) ($useOldForPeriod ? old('recovery_replaced_position', $period->recoveryReplacedRule?->position ?? 1) : ($period->recoveryReplacedRule?->position ?? 1)) === $position) data-recovery-option="{{ $position }}">Avaliação {{ $position }}</option>@endfor</select></div>
                                     </div>
                                 </fieldset>
@@ -217,7 +302,13 @@ document.querySelectorAll('[data-assessment-rules-form]').forEach((container) =>
     const count = container.querySelector('[data-assessment-count]');
     const sync = () => {
         const selectedCount = Number(count.value);
-        container.querySelectorAll('[data-assessment-weight]').forEach((field) => { const visible = Number(field.dataset.assessmentWeight) <= selectedCount; field.hidden = !visible; field.querySelector('input').disabled = !visible; });
+        container.querySelectorAll('[data-assessment-weight]').forEach((field) => {
+            const visible = Number(field.dataset.assessmentWeight) <= selectedCount;
+            field.hidden = !visible;
+            field.querySelectorAll('input, select, textarea').forEach((input) => {
+                input.disabled = !visible;
+            });
+        });
         container.querySelectorAll('[data-recovery-option]').forEach((option) => { const available = Number(option.dataset.recoveryOption) <= selectedCount; option.hidden = !available; option.disabled = !available; });
     };
     const syncRecovery = () => {

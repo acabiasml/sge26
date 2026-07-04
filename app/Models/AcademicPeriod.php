@@ -37,6 +37,9 @@ class AcademicPeriod extends Model
         'recovery_mode',
         'recovery_weight',
         'recovery_replaced_rule_id',
+        'legacy_source',
+        'legacy_id',
+        'legacy_metadata',
     ];
 
     protected function casts(): array
@@ -47,6 +50,7 @@ class AcademicPeriod extends Model
             'ignore_saturdays' => 'boolean',
             'ignore_sundays' => 'boolean',
             'recovery_weight' => 'integer',
+            'legacy_metadata' => 'array',
         ];
     }
 
@@ -77,14 +81,17 @@ class AcademicPeriod extends Model
         return $this->hasOne(AcademicPeriodDiaryConsolidation::class);
     }
 
+    public function behaviorGrades(): HasMany
+    {
+        return $this->hasMany(StudentBehaviorGrade::class);
+    }
+
     public function schoolDayCount(): int
     {
         return $this->academicYear
             ->days()
-            ->whereBetween('date', [
-                $this->starts_at->toDateString(),
-                $this->ends_at->toDateString(),
-            ])
+            ->whereDate('date', '>=', $this->starts_at->toDateString())
+            ->whereDate('date', '<=', $this->ends_at->toDateString())
             ->where('counts_as_school_day', true)
             ->count();
     }

@@ -11,6 +11,7 @@ use App\Models\SchoolClassComponentSubstitution;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class SchoolClassComponentController extends Controller
 {
@@ -84,6 +85,12 @@ class SchoolClassComponentController extends Controller
         abort_unless($class->academic_year_id === $academicYear->id, 404);
         abort_unless($classComponent->school_class_id === $class->id, 404);
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
+
+        if ($academicYear->isClosed()) {
+            throw ValidationException::withMessages([
+                'closed_at' => 'Este ano letivo está fechado. Reabra o ano letivo antes de alterar docentes da turma.',
+            ]);
+        }
     }
 
     /**

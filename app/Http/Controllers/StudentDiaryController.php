@@ -8,6 +8,7 @@ use App\Models\DiaryAttendanceRecord;
 use App\Models\DiaryContent;
 use App\Models\IssuedDocument;
 use App\Models\SchoolClassScheduleSlot;
+use App\Models\StudentBehaviorGrade;
 use App\Models\StudentEnrollment;
 use App\Support\PdfLetterhead;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -32,7 +33,7 @@ class StudentDiaryController extends Controller
     public function show(Request $request, StudentEnrollment $enrollment, CurriculumComponent $component): View
     {
         abort_unless($enrollment->person_id === $request->user()->person_id, 403);
-        $enrollment->load('schoolClass.academicYear.school', 'courses');
+        $enrollment->load('schoolClass.academicYear.school.concepts', 'courses');
         abort_unless($enrollment->courses->contains('id', $component->academic_course_id), 404);
         abort_unless($enrollment->schoolClass->courses->contains('id', $component->academic_course_id), 404);
 
@@ -43,8 +44,13 @@ class StudentDiaryController extends Controller
         $attendance = DiaryAttendanceRecord::query()->with(['entries' => fn (Builder $query) => $query->where('student_enrollment_id', $enrollment->id)])
             ->where('school_class_id', $enrollment->school_class_id)->where('curriculum_component_id', $component->id)->orderBy('class_date')->get();
         $contents = DiaryContent::query()->where('school_class_id', $enrollment->school_class_id)->where('curriculum_component_id', $component->id)->orderBy('class_date')->get();
+        $behaviorGrades = StudentBehaviorGrade::query()
+            ->where('student_enrollment_id', $enrollment->id)
+            ->whereIn('academic_period_id', $periods->pluck('id'))
+            ->get()
+            ->keyBy('academic_period_id');
 
-        return view('student-diaries.show', compact('enrollment', 'component', 'academicYear', 'periods', 'assessments', 'attendance', 'contents'));
+        return view('student-diaries.show', compact('enrollment', 'component', 'academicYear', 'periods', 'assessments', 'attendance', 'contents', 'behaviorGrades'));
     }
 
     public function schedule(Request $request, StudentEnrollment $enrollment): View

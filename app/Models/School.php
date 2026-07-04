@@ -7,6 +7,8 @@ use App\Models\Concerns\HasTitleCaseAttributes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 class School extends Model
 {
@@ -33,12 +35,14 @@ class School extends Model
         'state',
         'postal_code',
         'active',
+        'dependency_component_limit',
     ];
 
     protected function casts(): array
     {
         return [
             'active' => 'boolean',
+            'dependency_component_limit' => 'integer',
             'founded_at' => 'date',
             'legacy_metadata' => 'array',
         ];
@@ -75,8 +79,101 @@ class School extends Model
         return $this->hasMany(SchoolAssessmentRule::class);
     }
 
+    public function academicCriteria(): HasMany
+    {
+        return $this->hasMany(SchoolAcademicCriteria::class)->orderByDesc('effective_from');
+    }
+
+    public function concepts(): HasMany
+    {
+        return $this->hasMany(SchoolConcept::class)->orderByDesc('effective_from')->orderBy('sort_order')->orderBy('name');
+    }
+
+    /**
+     * @return Collection<int, SchoolConcept>
+     */
+    public function conceptsForDate(Carbon|string|null $date = null): Collection
+    {
+        $date = $date ? Carbon::parse($date)->toDateString() : now()->toDateString();
+        $concepts = $this->relationLoaded('concepts') ? $this->concepts : $this->concepts()->get();
+        $effectiveFrom = $concepts
+            ->filter(fn (SchoolConcept $concept): bool => $concept->effective_from !== null && $concept->effective_from->toDateString() <= $date)
+            ->max(fn (SchoolConcept $concept): string => $concept->effective_from->toDateString());
+
+        if (! $effectiveFrom) {
+            $effectiveFrom = $concepts->max(fn (SchoolConcept $concept): ?string => $concept->effective_from?->toDateString());
+        }
+
+        return $concepts
+            ->filter(fn (SchoolConcept $concept): bool => $concept->effective_from?->toDateString() === $effectiveFrom)
+            ->sortBy([['sort_order', 'asc'], ['name', 'asc']])
+            ->values();
+    }
+
+    public function conceptForScore(float $score, Carbon|string|null $date = null): ?SchoolConcept
+    {
+        return $this->conceptsForDate($date)
+            ->first(fn (SchoolConcept $concept): bool => $concept->matches($score));
+    }
+
+    public function dependencyComponentLimitForDate(Carbon|string|null $date = null): ?int
+    {
+        $date = $date ? Carbon::parse($date)->toDateString() : now()->toDateString();
+        $criteria = $this->relationLoaded('academicCriteria') ? $this->academicCriteria : $this->academicCriteria()->get();
+        $current = $criteria
+            ->filter(fn (SchoolAcademicCriteria $item): bool => $item->effective_from->toDateString() <= $date)
+            ->sortByDesc(fn (SchoolAcademicCriteria $item): string => $item->effective_from->toDateString())
+            ->first();
+
+        return $current?->dependency_component_limit ?? $this->dependency_component_limit;
+    }
+
     public function logoUrl(): ?string
     {
         return $this->logo_path ? asset($this->logo_path) : null;
+    }
+
+    public function hasRequiredLetterheadForOfficialDocuments(): bool
+    {
+        return collect([
+            $this->name,
+            $this->legal_name,
+            $this->cnpj,
+            $this->inep,
+            $this->founded_at,
+            $this->phone,
+            $this->email,
+            $this->letterhead_text,
+            $this->address,
+            $this->city,
+            $this->state,
+            $this->postal_code,
+        ])->every(fn ($value): bool => filled($value));
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function missingOfficialDocumentFields(): array
+    {
+        $fields = [
+            'name' => 'nome da escola',
+            'legal_name' => 'razão social',
+            'cnpj' => 'CNPJ',
+            'inep' => 'código INEP',
+            'founded_at' => 'data de fundação',
+            'phone' => 'telefone',
+            'email' => 'e-mail',
+            'letterhead_text' => 'texto institucional/autorizativo',
+            'address' => 'endereço',
+            'city' => 'cidade',
+            'state' => 'UF',
+            'postal_code' => 'CEP',
+        ];
+
+        return collect($fields)
+            ->filter(fn (string $label, string $field): bool => blank($this->{$field}))
+            ->values()
+            ->all();
     }
 }

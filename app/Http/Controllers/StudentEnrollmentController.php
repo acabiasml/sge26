@@ -8,6 +8,7 @@ use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\SchoolClass;
 use App\Models\StudentEnrollment;
+use App\Support\StudentFinalResultCalculator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -107,6 +108,7 @@ class StudentEnrollmentController extends Controller
         $academicYear = $class->academicYear()->firstOrFail();
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
         abort_unless($class->active && $academicYear->active, 404);
+        $this->ensureAcademicYearIsOpen($academicYear);
 
         $data = $this->validatedData($request, $academicYear, $class);
         $courseIds = $data['course_ids'];
@@ -150,6 +152,7 @@ class StudentEnrollmentController extends Controller
         $academicYear = $class->academicYear()->firstOrFail();
         abort_unless($enrollment->school_class_id === $class->id, 404);
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
+        $this->ensureAcademicYearIsOpen($academicYear);
         $this->ensureActiveEnrollment($enrollment);
 
         $window = $this->enrollmentWindow($academicYear, $class, $enrollment);
@@ -176,6 +179,7 @@ class StudentEnrollmentController extends Controller
         $academicYear = $class->academicYear()->firstOrFail();
         abort_unless($enrollment->school_class_id === $class->id, 404);
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
+        $this->ensureAcademicYearIsOpen($academicYear);
         $this->ensureActiveEnrollment($enrollment);
 
         $targetClassIds = $academicYear->classes()
@@ -256,6 +260,7 @@ class StudentEnrollmentController extends Controller
         $academicYear = $class->academicYear()->firstOrFail();
         abort_unless($enrollment->school_class_id === $class->id, 404);
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
+        $this->ensureAcademicYearIsOpen($academicYear);
         $this->ensureActiveEnrollment($enrollment);
 
         $window = $this->enrollmentWindow($academicYear, $class, $enrollment);
@@ -274,6 +279,33 @@ class StudentEnrollmentController extends Controller
 
         return redirect()->route('classes.enrollments.index', $class)
             ->with('status', 'Matrícula cancelada com sucesso. O histórico foi preservado.');
+    }
+
+    public function calculateFinalResults(Request $request, SchoolClass $class, StudentFinalResultCalculator $calculator): RedirectResponse
+    {
+        $academicYear = $class->academicYear()->firstOrFail();
+        abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
+        $this->ensureAcademicYearIsOpen($academicYear);
+
+        $enrollments = $class->enrollments()
+            ->with(['student', 'courses.components'])
+            ->get();
+
+        DB::transaction(function () use ($enrollments, $calculator, $request): void {
+            foreach ($enrollments as $enrollment) {
+                $result = $calculator->calculate($enrollment);
+
+                $enrollment->update([
+                    'final_result_status' => $result['status'],
+                    'final_result_details' => $result['details'],
+                    'final_result_calculated_at' => now(),
+                    'final_result_calculated_by_person_id' => $request->user()->person_id,
+                ]);
+            }
+        });
+
+        return redirect()->route('classes.enrollments.index', $class)
+            ->with('status', 'Resultados finais calculados para esta turma.');
     }
 
     /**
@@ -341,5 +373,16 @@ class StudentEnrollmentController extends Controller
                 'enrollment' => 'Esta matrícula já foi encerrada e não pode receber outra movimentação.',
             ]);
         }
+    }
+
+    private function ensureAcademicYearIsOpen(AcademicYear $academicYear): void
+    {
+        if (! $academicYear->isClosed()) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'academic_year' => 'Este ano letivo está fechado. Reabra o ano letivo antes de alterar matrículas ou resultados finais.',
+        ]);
     }
 }

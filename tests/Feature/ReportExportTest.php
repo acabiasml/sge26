@@ -16,6 +16,38 @@ class ReportExportTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_all_pdf_exports_use_explicit_a4_paper(): void
+    {
+        $controllersPath = app_path('Http/Controllers');
+        $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($controllersPath));
+        $setPaperCalls = [];
+
+        foreach ($files as $file) {
+            if (! $file->isFile() || $file->getExtension() !== 'php') {
+                continue;
+            }
+
+            $contents = file_get_contents($file->getPathname()) ?: '';
+
+            preg_match_all('/setPaper\s*\((.*?)\)/s', $contents, $matches);
+
+            foreach ($matches[0] as $index => $call) {
+                $setPaperCalls[] = [
+                    'file' => $file->getPathname(),
+                    'call' => $call,
+                    'arguments' => $matches[1][$index] ?? '',
+                ];
+            }
+        }
+
+        $this->assertNotEmpty($setPaperCalls, 'Nenhuma configuração de papel PDF foi encontrada.');
+
+        foreach ($setPaperCalls as $setPaperCall) {
+            $this->assertStringContainsString("'a4'", str_replace('"', "'", $setPaperCall['arguments']), $setPaperCall['file'].' precisa usar papel A4.');
+            $this->assertStringContainsString(',', $setPaperCall['arguments'], $setPaperCall['file'].' precisa informar retrato ou paisagem explicitamente.');
+        }
+    }
+
     public function test_pdf_report_creates_verifiable_document_code(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
@@ -114,9 +146,16 @@ class ReportExportTest extends TestCase
             'institutional_email' => 'ativa@ctjj.org',
             'cpf' => '11122233344',
             'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
             'mother_name' => 'Maria da Silva',
-            'father_name' => 'José da Silva',
+            'father_name' => 'JosÃƒÂ© da Silva',
             'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
             'profile_completed_at' => now(),
             'active' => true,
         ]);
@@ -125,9 +164,16 @@ class ReportExportTest extends TestCase
             'institutional_email' => 'inativa@ctjj.org',
             'cpf' => '55566677788',
             'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
             'mother_name' => 'Maria da Silva',
-            'father_name' => 'José da Silva',
+            'father_name' => 'JosÃƒÂ© da Silva',
             'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
             'profile_completed_at' => now(),
             'active' => false,
         ]);
@@ -160,17 +206,26 @@ class ReportExportTest extends TestCase
     public function test_people_report_combines_role_and_school_on_the_same_active_role(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
-        $liceu = School::query()->create(['name' => 'Liceu Pedagógico São Francisco de Assis', 'active' => true]);
-        $laura = School::query()->create(['name' => 'Escola Laura Vicuña', 'active' => true]);
+        $liceu = School::query()->create($this->officialSchoolData([
+            'name' => 'Liceu Pedagogico Sao Francisco de Assis',
+        ]));
+        $laura = School::query()->create(['name' => 'Escola Laura VicuÃƒÂ±a', 'active' => true]);
 
         $teacherAtLiceu = Person::query()->create([
             'full_name' => 'Docente do Liceu',
             'institutional_email' => 'docente-liceu@ctjj.org',
             'cpf' => '11122233344',
             'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
             'mother_name' => 'Maria da Silva',
-            'father_name' => 'José da Silva',
+            'father_name' => 'JosÃƒÂ© da Silva',
             'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
             'profile_completed_at' => now(),
             'active' => true,
         ]);
@@ -186,9 +241,16 @@ class ReportExportTest extends TestCase
             'institutional_email' => 'docente-fora@ctjj.org',
             'cpf' => '55566677788',
             'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
             'mother_name' => 'Maria da Silva',
-            'father_name' => 'José da Silva',
+            'father_name' => 'JosÃƒÂ© da Silva',
             'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
             'profile_completed_at' => now(),
             'active' => true,
         ]);
@@ -230,9 +292,16 @@ class ReportExportTest extends TestCase
             'institutional_email' => 'gestao@ctjj.org',
             'cpf' => '99988877766',
             'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
             'mother_name' => 'Maria da Silva',
-            'father_name' => 'José da Silva',
+            'father_name' => 'JosÃƒÂ© da Silva',
             'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
             'profile_completed_at' => now(),
         ]);
 
@@ -275,9 +344,16 @@ class ReportExportTest extends TestCase
             'institutional_email' => 'docente@ctjj.org',
             'cpf' => '99988877766',
             'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
             'mother_name' => 'Maria da Silva',
-            'father_name' => 'José da Silva',
+            'father_name' => 'JosÃƒÂ© da Silva',
             'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
             'profile_completed_at' => now(),
         ]);
 
@@ -321,9 +397,16 @@ class ReportExportTest extends TestCase
             'institutional_email' => 'docente-acento@ctjj.org',
             'cpf' => '12312312399',
             'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
             'mother_name' => 'Maria da Silva',
-            'father_name' => 'José da Silva',
+            'father_name' => 'JosÃƒÂ© da Silva',
             'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
             'profile_completed_at' => now(),
         ]);
 
@@ -369,9 +452,16 @@ class ReportExportTest extends TestCase
                 'institutional_email' => 'docente'.$index.'@ctjj.org',
                 'cpf' => fake()->unique()->numerify('###########'),
                 'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
             'mother_name' => 'Maria da Silva',
-            'father_name' => 'José da Silva',
+            'father_name' => 'JosÃƒÂ© da Silva',
                 'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
                 'profile_completed_at' => now(),
             ]);
 
@@ -436,7 +526,7 @@ class ReportExportTest extends TestCase
     public function test_school_record_pdf_creates_verifiable_document_code(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
-        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $school = School::query()->create($this->officialSchoolData(['name' => 'Escola A']));
 
         $this->actingAs($admin)
             ->get(route('schools.pdf', $school))
@@ -473,9 +563,16 @@ class ReportExportTest extends TestCase
             'institutional_email' => 'maria@ctjj.org',
             'cpf' => '11122233344',
             'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
             'mother_name' => 'Maria da Silva',
-            'father_name' => 'José da Silva',
+            'father_name' => 'JosÃƒÂ© da Silva',
             'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
             'profile_completed_at' => now(),
         ]);
 
@@ -499,7 +596,9 @@ class ReportExportTest extends TestCase
     public function test_global_administrator_person_record_uses_maintainer_letterhead(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
-        $school = School::query()->create(['name' => 'Liceu Pedagógico São Francisco de Assis', 'active' => true]);
+        $school = School::query()->create($this->officialSchoolData([
+            'name' => 'Liceu Pedagogico Sao Francisco de Assis',
+        ]));
 
         $admin->person->schoolRoles()->create([
             'school_id' => $school->id,
@@ -523,15 +622,24 @@ class ReportExportTest extends TestCase
     public function test_person_record_uses_school_letterhead_when_person_has_only_school_role(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
-        $school = School::query()->create(['name' => 'Liceu Pedagógico São Francisco de Assis', 'active' => true]);
+        $school = School::query()->create($this->officialSchoolData([
+            'name' => 'Liceu Pedagogico Sao Francisco de Assis',
+        ]));
         $person = Person::query()->create([
             'full_name' => 'Pessoa Gestora',
             'institutional_email' => 'pessoa-gestora@ctjj.org',
             'cpf' => '33322211100',
             'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
             'mother_name' => 'Maria da Silva',
-            'father_name' => 'José da Silva',
+            'father_name' => 'JosÃƒÂ© da Silva',
             'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
             'profile_completed_at' => now(),
         ]);
         $person->schoolRoles()->create([
@@ -553,6 +661,40 @@ class ReportExportTest extends TestCase
         $this->assertSame($school->id, $document->school_id);
     }
 
+    /**
+     * @param array<string, mixed> $overrides
+     * @return array<string, mixed>
+     */
+    private function officialSchoolData(array $overrides = []): array
+    {
+        static $sequence = 0;
+
+        $sequence++;
+
+        return array_merge([
+            'name' => 'Escola Oficial '.$sequence,
+            'legal_name' => 'Centro Tecnico Juvenil de Jarudore',
+            'cnpj' => str_pad((string) $sequence, 14, '0', STR_PAD_LEFT),
+            'inep' => str_pad((string) $sequence, 8, '0', STR_PAD_LEFT),
+            'founded_at' => '1990-10-04',
+            'phone' => '(66) 99613-6796',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
+            'email' => 'ctjj.mt@gmail.com',
+            'website' => 'https://ctjj.org',
+            'letterhead_text' => 'Credenciamento e autorizacao vigentes.',
+            'address' => 'Av. Sao Joao',
+            'district' => 'Jarudore',
+            'number' => 's/n',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-970',
+            'active' => true,
+        ], $overrides);
+    }
+
     private function userWithRole(string $role): User
     {
         $person = Person::query()->create([
@@ -560,9 +702,16 @@ class ReportExportTest extends TestCase
             'institutional_email' => str($role)->ascii()->slug()->value().'@ctjj.org',
             'cpf' => fake()->unique()->numerify('###########'),
             'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
             'mother_name' => 'Maria da Silva',
-            'father_name' => 'José da Silva',
+            'father_name' => 'JosÃƒÂ© da Silva',
             'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
             'profile_completed_at' => now(),
         ]);
 

@@ -1,9 +1,11 @@
 @extends('layouts.app')
 
-@php($canChangeCalendar = ! $academicYear->approved_at || auth()->user()->isAdministrator())
+@php($canChangeCalendar = ! $academicYear->isClosed() && (! $academicYear->approved_at || auth()->user()->isAdministrator()))
 @php($schoolDays = $academicYear->schoolDayCount())
 @php($calendarMonths = \App\Support\AcademicCalendarGrid::forAcademicYear($academicYear))
 @php($readyCourses = $academicYear->courses->filter->hasMatrixComponents())
+@php($closureErrors = collect($closureIssues)->where('level', 'error'))
+@php($closureWarnings = collect($closureIssues)->where('level', 'warning'))
 
 @section('title', $academicYear->name)
 @section('page-title', $academicYear->name)
@@ -17,6 +19,12 @@
     </a>
     <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.schedules-pdf', $academicYear) }}" aria-label="Emitir horários das turmas em PDF" title="Horários das turmas em PDF">
         <i class="fas fa-clock" aria-hidden="true"></i>
+    </a>
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.closure', $academicYear) }}" aria-label="Conferir fechamento do ano letivo" title="Conferência de fechamento">
+        <i class="fas fa-clipboard-check" aria-hidden="true"></i>
+    </a>
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.final-results.pdf', $academicYear) }}" aria-label="Emitir resultados finais do ano em PDF" title="Resultados finais do ano em PDF">
+        <i class="fas fa-file-signature" aria-hidden="true"></i>
     </a>
     @if ($canChangeCalendar)
         <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.edit', $academicYear) }}" aria-label="Editar ano letivo {{ $academicYear->name }}" title="Editar ano letivo">
@@ -40,6 +48,16 @@
             Calendário aprovado em {{ $academicYear->approved_at->format('d/m/Y') }}.
             Alterações posteriores podem afetar turmas, diários, fichas individuais e documentos acadêmicos.
             Apenas a Administração global pode alterar dados sensíveis após a aprovação.
+        </div>
+    @endif
+
+    @if ($academicYear->isClosed())
+        <div class="alert alert-success">
+            Ano letivo fechado em {{ $academicYear->closed_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}
+            @if ($academicYear->closedBy)
+                por {{ $academicYear->closedBy->full_name }}
+            @endif.
+            Os dados acadêmicos estão preservados para documentos oficiais.
         </div>
     @endif
 
@@ -93,6 +111,16 @@
                         <dd>{{ $academicYear->approved_at?->format('d/m/Y') ?? 'Pendente' }}</dd>
                         <dt>Estado</dt>
                         <dd><span class="badge badge-{{ $yearStatus['tone'] }}">{{ $yearStatus['label'] }}</span> <span class="small text-muted">{{ $yearStatus['description'] }}</span></dd>
+                        <dt>Fechamento</dt>
+                        <dd>
+                            @if ($academicYear->isClosed())
+                                <span class="badge badge-success">Fechado</span>
+                                <span class="small text-muted d-block">{{ $academicYear->closed_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}</span>
+                            @else
+                                <span class="badge badge-light border">Aberto</span>
+                                <span class="small text-muted d-block">Resultados e documentos finais ainda podem ser apurados.</span>
+                            @endif
+                        </dd>
                         <dt>Critérios de aprovação</dt>
                         <dd>{{ number_format((float) $academicYear->passing_points, 1, ',', '.') }} pontos e {{ $academicYear->minimum_attendance_percentage }}% de frequência</dd>
                         <dt>Dias letivos</dt>
@@ -116,6 +144,63 @@
                             </div>
                             <button class="btn btn-warning btn-block" type="submit">Registrar aprovação</button>
                         </form>
+                    @else
+                        <hr>
+                        @if (! $academicYear->isClosed())
+                            <h3 class="h6">Fechamento do ano letivo</h3>
+                            @if ($closureErrors->isEmpty())
+                                <p class="small text-muted">O ano letivo pode ser fechado. Depois disso, reabra apenas se houver necessidade administrativa.</p>
+                            @else
+                                <div class="alert alert-warning small">
+                                    <strong>Antes de fechar:</strong>
+                                    <ul class="mb-0 pl-3">
+                                        @foreach ($closureErrors as $issue)
+                                            <li>{{ $issue['message'] }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+                            @if ($closureWarnings->isNotEmpty())
+                                <div class="alert alert-light border small">
+                                    <strong>Avisos:</strong>
+                                    <ul class="mb-0 pl-3">
+                                        @foreach ($closureWarnings as $issue)
+                                            <li>{{ $issue['message'] }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+                            <form method="POST" action="{{ route('academic-years.close', $academicYear) }}">
+                                @csrf
+                                @method('PATCH')
+                                <div class="form-group">
+                                    <label for="closed_at">Data de fechamento</label>
+                                    <input id="closed_at" name="closed_at" type="date" class="form-control @error('closed_at') is-invalid @enderror" value="{{ old('closed_at', now('America/Sao_Paulo')->toDateString()) }}" required>
+                                    @error('closed_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                                <div class="form-group">
+                                    <label for="closure_notes">Observações</label>
+                                    <textarea id="closure_notes" name="closure_notes" class="form-control" rows="2">{{ old('closure_notes') }}</textarea>
+                                </div>
+                                <button class="btn btn-success btn-block" type="submit" @disabled(! $canCloseAcademicYear)>
+                                    <i class="fas fa-lock mr-1" aria-hidden="true"></i> Fechar ano letivo
+                                </button>
+                            </form>
+                        @elseif (auth()->user()->isAdministrator())
+                            <h3 class="h6">Reabertura administrativa</h3>
+                            <form method="POST" action="{{ route('academic-years.reopen', $academicYear) }}">
+                                @csrf
+                                @method('PATCH')
+                                <div class="form-group">
+                                    <label for="reopen_reason">Motivo da reabertura</label>
+                                    <textarea id="reopen_reason" name="reopen_reason" class="form-control @error('reopen_reason') is-invalid @enderror" rows="2" required>{{ old('reopen_reason') }}</textarea>
+                                    @error('reopen_reason') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                                <button class="btn btn-outline-warning btn-block" type="submit">
+                                    <i class="fas fa-unlock mr-1" aria-hidden="true"></i> Reabrir ano letivo
+                                </button>
+                            </form>
+                        @endif
                     @endif
                 </div>
             </div>
@@ -127,89 +212,13 @@
                 <div class="card-body sge-academic-actions">
                     <div><i class="fas fa-layer-group" aria-hidden="true"></i><h3 class="h6">Períodos avaliativos</h3><p>Cadastre períodos, defina avaliações e configure a recuperação em um espaço próprio.</p><a class="btn btn-primary" href="{{ route('academic-years.periods.index', $academicYear) }}">Gerenciar períodos</a></div>
                     <div><i class="fas fa-book-open" aria-hidden="true"></i><h3 class="h6">Matrizes e turmas</h3><p>Continue a organização curricular e as turmas vinculadas a este calendário logo abaixo.</p><a class="btn btn-outline-primary" href="#section-matrizes">Ver matrizes</a></div>
+                    <div><i class="fas fa-clipboard-check" aria-hidden="true"></i><h3 class="h6">Fechamento anual</h3><p>Confira consolidações, resultados finais e documentos antes de fechar o ano letivo.</p><a class="btn btn-outline-primary" href="{{ route('academic-years.closure', $academicYear) }}">Conferir fechamento</a></div>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="row">
-        {{-- A gestão dos períodos avaliativos fica em uma página própria. --}}
-        {{--
-        <div class="col-lg-5 mb-4">
-            <section class="card shadow sge-periods-panel">
-                <div class="card-header py-3">
-                    <h2 class="h6 m-0 font-weight-bold text-primary">Períodos cadastrados</h2>
-                </div>
-                <div class="card-body">
-                    <table class="table table-sm sge-periods-table">
-                        <tbody>
-                            @forelse ($academicYear->periods->sortBy('position') as $period)
-                                <tr>
-                                    <td>
-                                        <strong>{{ $period->name }}</strong>
-                                        <div class="small text-gray-600">{{ $period->starts_at?->format('d/m/Y') }} a {{ $period->ends_at?->format('d/m/Y') }}</div>
-                                        @php($periodSchoolDays = $period->schoolDayCount())
-                                        <span class="badge badge-light border mt-1">
-                                            {{ $periodSchoolDays }} {{ $periodSchoolDays === 1 ? 'dia letivo' : 'dias letivos' }}
-                                        </span>
-                                    </td>
-                                    <td class="text-right">
-                                        @if ($canChangeCalendar)
-                                            <form method="POST" action="{{ route('academic-years.periods.destroy', [$academicYear, $period]) }}" onsubmit="return confirm('Remover este período?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="Remover período {{ $period->name }}" title="Remover período">
-                                                    <i class="fas fa-trash-alt" aria-hidden="true"></i>
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr><td>Nenhum período cadastrado.</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                    @foreach ($academicYear->periods->sortBy('position') as $period)
-                        <details class="sge-period-assessments" data-assessment-rules-form>
-                            <summary class="font-weight-bold">Avaliações de {{ $period->name }}</summary>
-                            <div class="pt-3">
-                                <p class="small text-muted">Defina quantas avaliações este período terá e o peso de cada uma. A configuração é aplicada a todas as turmas e componentes desta escola. Depois que houver nota lançada, ela é bloqueada.</p>
-                                <form method="POST" action="{{ route('academic-years.periods.assessment-rules.update', [$academicYear, $period]) }}">
-                                    @csrf
-                                    @method('PUT')
-                                    @php($ruleCount = (int) old('assessment_count', max(1, $period->assessmentRules->count())))
-                                    <div class="row align-items-end">
-                                        <div class="col-md-4 form-group">
-                                            <label for="assessment_count_{{ $period->id }}">Quantidade de avaliações</label>
-                                            <select id="assessment_count_{{ $period->id }}" name="assessment_count" class="form-control" data-assessment-count>
-                                                @for ($count = 1; $count <= 10; $count++)
-                                                    <option value="{{ $count }}" @selected($ruleCount === $count)>{{ $count }}</option>
-                                                @endfor
-                                            </select>
-                                        </div>
-                                        <div class="col-md-8 form-group mb-0">
-                                            <div class="row">
-                                                @for ($position = 1; $position <= 10; $position++)
-                                                    @php($existingRule = $period->assessmentRules->firstWhere('position', $position))
-                                                    <div class="col-sm-4 mb-2" data-assessment-weight="{{ $position }}">
-                                                        <label for="assessment_weight_{{ $period->id }}_{{ $position }}">Peso da avaliação {{ $position }}</label>
-                                                        <input id="assessment_weight_{{ $period->id }}_{{ $position }}" name="weights[]" type="number" min="1" max="100" class="form-control" value="{{ old('weights.'.($position - 1), $existingRule?->weight ?? 1) }}">
-                                                    </div>
-                                                @endfor
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button class="btn btn-primary mt-2" type="submit"><i class="fas fa-save mr-1" aria-hidden="true"></i>Salvar avaliações</button>
-                                </form>
-                            </div>
-                        </details>
-                    @endforeach
-                </div>
-            </section>
-        </div>
-        --}}
-
         <div class="col-12 mb-4">
             <div class="card shadow">
                 <div class="card-header py-3">
@@ -307,7 +316,10 @@
                             </div>
                         </div>
                     @empty
-                        <p class="mb-0">Nenhuma matriz cadastrada.</p>
+                        <div class="sge-empty-state">
+                            <i class="fas fa-book-open" aria-hidden="true"></i>
+                            <p>Nenhuma matriz cadastrada. Cadastre a matriz curricular antes de criar turmas e matrículas.</p>
+                        </div>
                     @endforelse
                 </div>
             </div>
@@ -356,7 +368,10 @@
                             </div>
                         </div>
                     @empty
-                        <p class="mb-0">Nenhuma turma cadastrada.</p>
+                        <div class="sge-empty-state">
+                            <i class="fas fa-users" aria-hidden="true"></i>
+                            <p>Nenhuma turma cadastrada. Crie turmas quando houver matriz ativa com componentes curriculares.</p>
+                        </div>
                     @endforelse
                 </div>
             </div>

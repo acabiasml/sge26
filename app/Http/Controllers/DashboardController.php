@@ -267,7 +267,8 @@ class DashboardController extends Controller
                 'school',
                 'periods',
                 'days' => fn ($query) => $query
-                    ->whereBetween('date', [$monthStart, $monthEnd])
+                    ->whereDate('date', '>=', $monthStart)
+                    ->whereDate('date', '<=', $monthEnd)
                     ->orderBy('date'),
             ])
             ->where('academic_years.active', true)

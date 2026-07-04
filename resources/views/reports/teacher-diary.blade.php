@@ -26,6 +26,23 @@
     </style>
 </head>
 <body>
+@php
+    $scoreLabel = function ($score, $date = null) use ($academicYear, $scoreView): string {
+        if ($score === null || $score === '') {
+            return '-';
+        }
+
+        if ($scoreView === 'conceitos') {
+            $concept = $academicYear->school?->conceptForScore((float) $score, $date);
+
+            if ($concept) {
+                return $concept->shortLabel();
+            }
+        }
+
+        return number_format((float) $score, 1, ',', '.');
+    };
+@endphp
 @foreach($periodReports as $report)
     @php($period = $report['period'])
     <section class="period-page">
@@ -108,9 +125,9 @@
                         <td>{{ $enrollment->student?->full_name }}</td>
                         @foreach($report['assessments'] as $assessment)
                             @php($result = $assessment->results->firstWhere('student_enrollment_id', $enrollment->id))
-                            <td class="center">{{ $result?->score ?? '-' }}</td>
+                            <td class="center">{{ $scoreLabel($result?->score, $period->ends_at ?? $period->starts_at) }}</td>
                         @endforeach
-                        <td class="center">{{ $report['averages'][$enrollment->id]['value'] ?? '-' }}</td>
+                        <td class="center">{{ $scoreLabel($report['averages'][$enrollment->id]['value'] ?? null, $period->ends_at ?? $period->starts_at) }}</td>
                     </tr>
                 @empty
                     <tr><td colspan="{{ $report['assessments']->count() + 2 }}">Nenhum estudante matriculado.</td></tr>

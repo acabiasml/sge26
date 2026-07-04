@@ -61,6 +61,17 @@ Uma pessoa pode ter vários vínculos, inclusive em escolas diferentes.
 - A última Administração ativa não pode se desativar, remover seu vínculo ou deixar o sistema sem Administração.
 - Pessoas inativas não aparecem como pendência apenas por falta de dados, mas não podem receber novos vínculos, matrículas ou documentos quando não possuem CPF e e-mail institucional.
 
+## Conformidade Documental
+
+O sistema trata dados essenciais de escrituração escolar como obrigatórios para cadastros ativos e para emissão de documentos oficiais.
+
+Para pessoas ativas e documentos escolares, são exigidos: nome completo, CPF, data de nascimento, naturalidade, UF de naturalidade, nacionalidade, nome da mãe, e-mail institucional, telefone, endereço, cidade, UF e CEP.
+
+Para escolas e papel timbrado oficial, são exigidos: nome da escola, razão social, CNPJ, código INEP, data de fundação, telefone, e-mail, endereço, cidade, UF, CEP e texto institucional/autorizativo.
+
+Boletim, ficha individual, histórico escolar, ficha de matrícula e documentos oficiais são bloqueados quando faltam dados essenciais da pessoa ou da escola relacionada. A regra protege a validade documental e evita emissão de PDFs incompletos.
+
+A tela **Conformidade** funciona como central única de pendências documentais e acadêmicas. Ela reúne bloqueios, avisos e atenções de pessoas, vínculos, responsáveis, escolas, matrículas e anos letivos, com filtro por escola e gravidade. A própria tela emite um PDF de conferência com código de autenticidade.
 ## Módulos Atuais
 
 ### Cadastro e Gestão
@@ -137,6 +148,22 @@ O estudante só pode ser matriculado se:
 
 O módulo preserva transferência, reclassificação, cancelamento e emissão de ficha de matrícula em PDF.
 
+### Vida Escolar e Históricos
+
+A tela de **Vida escolar** concentra o percurso do estudante: matrículas, boletins, fichas individuais, frequência, desempenho, históricos recebidos, convalidações, responsáveis, documentos emitidos e movimentações auditadas.
+
+A secretaria pode registrar históricos recebidos de outras escolas antes ou durante a matrícula do estudante. O cadastro é flexível porque documentos externos podem vir com nomes de componentes, cargas horárias, frequências, resultados e observações em formatos diferentes.
+
+O histórico permite:
+
+- registrar anos, séries, fases ou etapas cursadas;
+- informar escola, município, UF, dias letivos, carga horária e resultado por coluna;
+- cadastrar componentes curriculares livres, com formação, área, nota/conceito, frequência, carga horária cursada e resultado final;
+- preservar observações como reclassificação, continuidade curricular, estudos realizados e situações excepcionais;
+- emitir PDF oficial em A4 com papel timbrado e código de autenticidade.
+
+Quando o estudante chega após o início de um período avaliativo, a gestão pode convalidar os resultados parciais trazidos da escola anterior. Essa convalidação entra no boletim e nos cálculos do período enquanto não houver lançamento completo do diário no Beabá.
+
 ### Diários
 
 Diários são gerados por turma e componente curricular.
@@ -183,6 +210,20 @@ A média do período é arredondada para o múltiplo de `0,5` mais próximo.
 
 A aprovação anual considera soma de pontos definida no ano letivo, além da frequência mínima.
 
+Resultados parciais convalidados pela gestão ficam vinculados à matrícula, ao período avaliativo e ao componente curricular. O registro guarda nota, data, escola de origem e observações, mantendo rastreabilidade para estudantes transferidos ou recebidos com o período já iniciado.
+
+### Fechamento Anual
+
+O fechamento do ano letivo possui uma tela própria de conferência. Antes de fechar, o sistema verifica:
+
+- aprovação do calendário;
+- consolidação dos períodos avaliativos;
+- existência de resultados finais calculados para as matrículas;
+- contagem de dias letivos em relação ao mínimo configurado;
+- existência de turmas e matrículas.
+
+Quando o ano letivo é fechado, alterações acadêmicas sensíveis ficam bloqueadas. Administração e Gestão podem consultar a conferência e emitir o documento consolidado de resultados finais do ano letivo, além das atas por turma.
+
 ### Documentos
 
 O sistema emite:
@@ -191,11 +232,24 @@ O sistema emite:
 - calendários escolares;
 - matrizes curriculares;
 - ficha de matrícula;
+- histórico escolar externo;
+- boletim escolar;
+- ficha individual;
 - diários de classe;
 - listas de chamada;
 - horários;
+- atas de resultados finais por turma;
+- resultados finais consolidados do ano letivo;
+- atestados de frequência;
+- atestados de transferência;
+- declarações de matrícula;
+- declarações de escolaridade;
+- declarações de conclusão;
+- relatório de conformidade documental e acadêmica;
 - relatórios em PDF e Excel;
 - documentos oficiais criados em editor próprio.
+
+As matrículas possuem uma central de documentos que mostra, antes da emissão, se o cadastro do estudante, a matrícula, a escola e a matriz estão prontos para gerar documentos oficiais.
 
 Todos os PDFs recebem código único:
 
@@ -215,6 +269,8 @@ O papel timbrado usa:
 
 - logo e dados do Centro Técnico Juvenil de Jarudore à esquerda;
 - logo e dados da escola à direita, quando houver escola associada ao documento.
+
+A auditoria documental dos PDFs fica registrada em [`docs/auditoria-documental-pdfs.md`](docs/auditoria-documental-pdfs.md).
 
 ### Dashboard e Menu
 

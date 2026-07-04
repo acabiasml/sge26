@@ -84,7 +84,7 @@
                                 </div>
                                 <div class="col-md-4 form-group">
                                     <label for="new_component_weekly_lessons">Aulas semanais</label>
-                                    <input id="new_component_weekly_lessons" name="weekly_lessons" type="number" step="1" min="0" class="form-control">
+                                    <input id="new_component_weekly_lessons" name="weekly_lessons" data-mask="digits" data-mask-max="2" inputmode="numeric" autocomplete="off" class="form-control">
                                 </div>
                             </div>
                             <div class="row">

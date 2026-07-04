@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\IssuedDocument;
 use App\Models\OfficialDocument;
 use App\Models\School;
+use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -49,6 +50,10 @@ class OfficialDocumentController extends Controller
 
         $school = School::query()->findOrFail($data['school_id']);
         abort_unless($request->user()->canManageSchool($school->id), 403);
+
+        if ($message = OfficialDocumentCompliance::schoolMessage($school)) {
+            throw ValidationException::withMessages(['school_id' => $message]);
+        }
 
         $content = $this->sanitizeContent($data['content_html']);
 

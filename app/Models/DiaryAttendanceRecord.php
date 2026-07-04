@@ -32,6 +32,9 @@ class DiaryAttendanceRecord extends Model
         'class_date',
         'lesson_count',
         'notes',
+        'legacy_source',
+        'legacy_id',
+        'legacy_metadata',
     ];
 
     protected function casts(): array
@@ -39,6 +42,7 @@ class DiaryAttendanceRecord extends Model
         return [
             'class_date' => 'date',
             'lesson_count' => 'integer',
+            'legacy_metadata' => 'array',
         ];
     }
 

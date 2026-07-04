@@ -37,7 +37,7 @@
 
     <div class="form-group col-md-4">
         <label for="birth_date">Data de nascimento</label>
-        <input id="birth_date" name="birth_date" type="date" class="form-control @error('birth_date') is-invalid @enderror" value="{{ old('birth_date', isset($person) && $person->birth_date ? $person->birth_date->format('Y-m-d') : '') }}" @readonly($lockBirthDate)>
+        <input id="birth_date" name="birth_date" type="date" class="form-control @error('birth_date') is-invalid @enderror" value="{{ old('birth_date', isset($person) && $person->birth_date ? $person->birth_date->format('Y-m-d') : '') }}" @readonly($lockBirthDate) required>
         @if ($lockBirthDate)
             <small class="form-text text-muted">Sua data de nascimento não pode ser alterada por você.</small>
         @endif
@@ -54,6 +54,32 @@
             </div>
         </div>
     @endif
+</div>
+
+<div class="form-row">
+    <div class="form-group col-md-5">
+        <label for="birth_city">Naturalidade</label>
+        <input id="birth_city" name="birth_city" class="form-control @error('birth_city') is-invalid @enderror" value="{{ old('birth_city', $person->birth_city ?? ($person->legacy_metadata['naturalidade'] ?? '')) }}" required>
+        @error('birth_city') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+
+    <div class="form-group col-md-2">
+        <label for="birth_state">UF de naturalidade</label>
+        @php($selectedBirthState = old('birth_state', $person->birth_state ?? ($person->legacy_metadata['naturalidade_uf'] ?? '')))
+        <select id="birth_state" name="birth_state" class="form-control @error('birth_state') is-invalid @enderror" required>
+            <option value="">Selecione</option>
+            @foreach (\App\Support\BrazilianStates::codes() as $state)
+                <option value="{{ $state }}" @selected($selectedBirthState === $state)>{{ $state }}</option>
+            @endforeach
+        </select>
+        @error('birth_state') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+
+    <div class="form-group col-md-5">
+        <label for="nationality">Nacionalidade</label>
+        <input id="nationality" name="nationality" class="form-control @error('nationality') is-invalid @enderror" value="{{ old('nationality', $person->nationality ?? ($person->legacy_metadata['nacionalidade'] ?? 'Brasileira')) }}" required>
+        @error('nationality') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
 </div>
 
 <div class="form-row">
@@ -91,7 +117,7 @@
 
     <div class="form-group col-md-4">
         <label for="phone">Telefone</label>
-        <input id="phone" name="phone" data-mask="phone" inputmode="tel" autocomplete="tel" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $person->phone ?? '') }}">
+        <input id="phone" name="phone" data-mask="phone" inputmode="tel" autocomplete="tel" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $person->phone ?? '') }}" required>
         @error('phone') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 </div>
@@ -101,7 +127,7 @@
 <div class="form-row">
     <div class="form-group col-md-6">
         <label for="address">Endereço</label>
-        <input id="address" name="address" autocomplete="street-address" class="form-control @error('address') is-invalid @enderror" value="{{ old('address', $person->address ?? '') }}">
+        <input id="address" name="address" autocomplete="street-address" class="form-control @error('address') is-invalid @enderror" value="{{ old('address', $person->address ?? '') }}" required>
         @error('address') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
@@ -121,14 +147,14 @@
 <div class="form-row">
     <div class="form-group col-md-5">
         <label for="city">Cidade</label>
-        <input id="city" name="city" class="form-control @error('city') is-invalid @enderror" value="{{ old('city', $person->city ?? '') }}">
+        <input id="city" name="city" class="form-control @error('city') is-invalid @enderror" value="{{ old('city', $person->city ?? '') }}" required>
         @error('city') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
     <div class="form-group col-md-2">
         <label for="state">UF</label>
         @php($selectedState = old('state', $person->state ?? ''))
-        <select id="state" name="state" class="form-control @error('state') is-invalid @enderror">
+        <select id="state" name="state" class="form-control @error('state') is-invalid @enderror" required>
             <option value="">Selecione</option>
             @foreach (\App\Support\BrazilianStates::codes() as $state)
                 <option value="{{ $state }}" @selected($selectedState === $state)>{{ $state }}</option>
@@ -139,7 +165,7 @@
 
     <div class="form-group col-md-5">
         <label for="postal_code">CEP</label>
-        <input id="postal_code" name="postal_code" data-mask="cep" inputmode="numeric" autocomplete="postal-code" class="form-control @error('postal_code') is-invalid @enderror" value="{{ old('postal_code', $person->postal_code ?? '') }}">
+        <input id="postal_code" name="postal_code" data-mask="cep" inputmode="numeric" autocomplete="postal-code" class="form-control @error('postal_code') is-invalid @enderror" value="{{ old('postal_code', $person->postal_code ?? '') }}" required>
         @error('postal_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 </div>

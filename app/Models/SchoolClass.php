@@ -22,6 +22,9 @@ class SchoolClass extends Model
         'ends_at',
         'notes',
         'active',
+        'legacy_source',
+        'legacy_id',
+        'legacy_metadata',
     ];
 
     protected function casts(): array
@@ -30,6 +33,7 @@ class SchoolClass extends Model
             'starts_at' => 'date',
             'ends_at' => 'date',
             'active' => 'boolean',
+            'legacy_metadata' => 'array',
         ];
     }
 

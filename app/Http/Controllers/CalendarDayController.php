@@ -53,6 +53,12 @@ class CalendarDayController extends Controller
 
     private function ensureCanChangeApprovedCalendar(Request $request, AcademicYear $academicYear): void
     {
+        if ($academicYear->isClosed()) {
+            throw ValidationException::withMessages([
+                'closed_at' => 'Este ano letivo está fechado. Reabra o ano letivo antes de alterar o calendário.',
+            ]);
+        }
+
         if (! $academicYear->approved_at || $request->user()->isAdministrator()) {
             return;
         }

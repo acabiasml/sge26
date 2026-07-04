@@ -6,6 +6,7 @@ use App\Models\IssuedDocument;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
+use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
@@ -15,9 +16,13 @@ use Symfony\Component\HttpFoundation\Response;
 
 class RecordPdfController extends Controller
 {
-    public function school(Request $request, School $school): Response
+    public function school(Request $request, School $school): Response|RedirectResponse
     {
         abort_unless($request->user()->canManageSchools(), 403);
+
+        if ($message = OfficialDocumentCompliance::schoolMessage($school)) {
+            return redirect()->route('schools.edit', $school)->with('status', $message);
+        }
 
         $issuedDocument = $this->issuedDocument($request, 'school-record', 'Ficha da escola', $school->id);
 
@@ -26,7 +31,7 @@ class RecordPdfController extends Controller
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
             'letterhead' => PdfLetterhead::make($school),
-        ])->setPaper('a4');
+        ])->setPaper('a4', 'portrait');
 
         return $pdf->download('beaba-ficha-escola-'.$school->id.'-'.now()->format('Ymd-His').'.pdf');
     }
@@ -43,6 +48,15 @@ class RecordPdfController extends Controller
         }
 
         $school = $this->schoolForPerson($person);
+
+        if ($message = OfficialDocumentCompliance::personMessage($person)) {
+            return redirect()->route('people.show', $person)->with('status', $message);
+        }
+
+        if ($school && $message = OfficialDocumentCompliance::schoolMessage($school)) {
+            return redirect()->route('schools.edit', $school)->with('status', $message);
+        }
+
         $issuedDocument = $this->issuedDocument($request, 'person-record', 'Ficha da pessoa', $school?->id, $person->id);
 
         $pdf = Pdf::loadView('reports.records.person', [
@@ -50,7 +64,7 @@ class RecordPdfController extends Controller
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
             'letterhead' => PdfLetterhead::make($school),
-        ])->setPaper('a4');
+        ])->setPaper('a4', 'portrait');
 
         return $pdf->download('beaba-ficha-pessoa-'.$person->id.'-'.now()->format('Ymd-His').'.pdf');
     }

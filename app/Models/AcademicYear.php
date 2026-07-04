@@ -20,12 +20,18 @@ class AcademicYear extends Model
         'starts_at',
         'ends_at',
         'approved_at',
+        'closed_at',
+        'closed_by_person_id',
+        'closure_notes',
         'class_hour_minutes',
         'minimum_school_days',
         'passing_points',
         'minimum_attendance_percentage',
         'notes',
         'active',
+        'legacy_source',
+        'legacy_id',
+        'legacy_metadata',
     ];
 
     protected function casts(): array
@@ -34,9 +40,11 @@ class AcademicYear extends Model
             'starts_at' => 'date',
             'ends_at' => 'date',
             'approved_at' => 'date',
+            'closed_at' => 'datetime',
             'passing_points' => 'decimal:1',
             'minimum_attendance_percentage' => 'integer',
             'active' => 'boolean',
+            'legacy_metadata' => 'array',
         ];
     }
 
@@ -58,6 +66,11 @@ class AcademicYear extends Model
     public function school(): BelongsTo
     {
         return $this->belongsTo(School::class);
+    }
+
+    public function closedBy(): BelongsTo
+    {
+        return $this->belongsTo(Person::class, 'closed_by_person_id');
     }
 
     public function periods(): HasMany
@@ -83,5 +96,10 @@ class AcademicYear extends Model
     public function schoolDayCount(): int
     {
         return $this->days()->where('counts_as_school_day', true)->count();
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->closed_at !== null;
     }
 }

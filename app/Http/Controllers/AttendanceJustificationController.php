@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AcademicYear;
 use App\Models\DiaryAttendanceJustification;
 use App\Models\School;
 use App\Models\StudentEnrollment;
@@ -48,6 +49,7 @@ class AttendanceJustificationController extends Controller
             ->findOrFail($request->integer('student_enrollment_id'));
         $academicYear = $enrollment->schoolClass?->academicYear;
         abort_unless($academicYear && $request->user()->canManageSchool($academicYear->school_id), 403);
+        $this->ensureAcademicYearIsOpen($academicYear);
 
         $data = $request->validate([
             'student_enrollment_id' => ['required', Rule::in([$enrollment->id])],
@@ -84,11 +86,23 @@ class AttendanceJustificationController extends Controller
         $justification->load('enrollment.schoolClass.academicYear');
         $academicYear = $justification->enrollment?->schoolClass?->academicYear;
         abort_unless($academicYear && $request->user()->canManageSchool($academicYear->school_id), 403);
+        $this->ensureAcademicYearIsOpen($academicYear);
 
         $schoolId = $academicYear->school_id;
         $justification->delete();
 
         return redirect()->route('attendance-justifications.index', ['school' => $schoolId])
             ->with('status', 'Justificativa removida.');
+    }
+
+    private function ensureAcademicYearIsOpen(AcademicYear $academicYear): void
+    {
+        if (! $academicYear->isClosed()) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'closed_at' => 'Este ano letivo está fechado. Reabra o ano letivo antes de alterar justificativas de ausência.',
+        ]);
     }
 }

@@ -68,7 +68,7 @@
             <div class="row">
                 <div class="col-md-3 form-group">
                     <label for="class_hour_minutes">Minutos da hora-aula</label>
-                    <input id="class_hour_minutes" name="class_hour_minutes" type="number" min="1" max="240" class="form-control @error('class_hour_minutes') is-invalid @enderror" value="{{ old('class_hour_minutes', $course->class_hour_minutes ?? 50) }}" required>
+                    <input id="class_hour_minutes" name="class_hour_minutes" data-mask="digits" data-mask-max="3" inputmode="numeric" autocomplete="off" class="form-control @error('class_hour_minutes') is-invalid @enderror" value="{{ old('class_hour_minutes', $course->class_hour_minutes ?? 50) }}" required>
                     @error('class_hour_minutes') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-9 form-group">

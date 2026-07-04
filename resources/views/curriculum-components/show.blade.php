@@ -63,7 +63,7 @@
                                 </div>
                                 <div class="col-md-6 form-group">
                                     <label for="component_weekly_lessons">Aulas semanais</label>
-                                    <input id="component_weekly_lessons" name="weekly_lessons" type="number" step="1" min="0" class="form-control" value="{{ old('weekly_lessons', $component->weekly_lessons) }}">
+                                    <input id="component_weekly_lessons" name="weekly_lessons" data-mask="digits" data-mask-max="2" inputmode="numeric" autocomplete="off" class="form-control" value="{{ old('weekly_lessons', $component->weekly_lessons) }}">
                                 </div>
                             </div>
                             <div class="row">

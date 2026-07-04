@@ -7,7 +7,7 @@
 
     <div class="form-group col-md-6">
         <label for="legal_name">Razão social</label>
-        <input id="legal_name" name="legal_name" class="form-control @error('legal_name') is-invalid @enderror" value="{{ old('legal_name', $school->legal_name ?? '') }}">
+        <input id="legal_name" name="legal_name" class="form-control @error('legal_name') is-invalid @enderror" value="{{ old('legal_name', $school->legal_name ?? '') }}" required>
         @error('legal_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 </div>
@@ -15,26 +15,26 @@
 <div class="form-row">
     <div class="form-group col-md-4">
         <label for="cnpj">CNPJ</label>
-        <input id="cnpj" name="cnpj" data-mask="cnpj" inputmode="numeric" autocomplete="off" class="form-control @error('cnpj') is-invalid @enderror" value="{{ old('cnpj', $school->cnpj ?? '') }}">
+        <input id="cnpj" name="cnpj" data-mask="cnpj" inputmode="numeric" autocomplete="off" class="form-control @error('cnpj') is-invalid @enderror" value="{{ old('cnpj', $school->cnpj ?? '') }}" required>
         @error('cnpj') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
     <div class="form-group col-md-4">
         <label for="inep">INEP</label>
-        <input id="inep" name="inep" class="form-control @error('inep') is-invalid @enderror" value="{{ old('inep', $school->inep ?? '') }}">
+        <input id="inep" name="inep" data-mask="digits" data-mask-max="8" inputmode="numeric" autocomplete="off" class="form-control @error('inep') is-invalid @enderror" value="{{ old('inep', $school->inep ?? '') }}" required>
         @error('inep') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
     <div class="form-group col-md-4">
         <label for="phone">Telefone</label>
-        <input id="phone" name="phone" data-mask="phone" inputmode="tel" autocomplete="tel" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $school->phone ?? '') }}">
+        <input id="phone" name="phone" data-mask="phone" inputmode="tel" autocomplete="tel" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $school->phone ?? '') }}" required>
         @error('phone') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 </div>
 
 <div class="form-group">
     <label for="email">E-mail</label>
-    <input id="email" name="email" type="email" inputmode="email" autocomplete="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', $school->email ?? '') }}">
+    <input id="email" name="email" type="email" inputmode="email" autocomplete="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', $school->email ?? '') }}" required>
     @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
 </div>
 
@@ -43,7 +43,7 @@
 <div class="form-row">
     <div class="form-group col-md-4">
         <label for="founded_at">Data de fundação</label>
-        <input id="founded_at" name="founded_at" type="date" class="form-control @error('founded_at') is-invalid @enderror" value="{{ old('founded_at', isset($school) && $school->founded_at ? $school->founded_at->format('Y-m-d') : '') }}">
+        <input id="founded_at" name="founded_at" type="date" class="form-control @error('founded_at') is-invalid @enderror" value="{{ old('founded_at', isset($school) && $school->founded_at ? $school->founded_at->format('Y-m-d') : '') }}" required>
         @error('founded_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
@@ -56,7 +56,7 @@
 
 <div class="form-group">
     <label for="letterhead_text">Texto institucional para papel timbrado</label>
-    <textarea id="letterhead_text" name="letterhead_text" rows="4" class="form-control @error('letterhead_text') is-invalid @enderror">{{ old('letterhead_text', $school->letterhead_text ?? '') }}</textarea>
+    <textarea id="letterhead_text" name="letterhead_text" rows="4" class="form-control @error('letterhead_text') is-invalid @enderror" required>{{ old('letterhead_text', $school->letterhead_text ?? '') }}</textarea>
     @error('letterhead_text') <div class="invalid-feedback">{{ $message }}</div> @enderror
 </div>
 
@@ -80,7 +80,7 @@
 <div class="form-row">
     <div class="form-group col-md-6">
         <label for="address">Endereço</label>
-        <input id="address" name="address" class="form-control @error('address') is-invalid @enderror" value="{{ old('address', $school->address ?? '') }}">
+        <input id="address" name="address" class="form-control @error('address') is-invalid @enderror" value="{{ old('address', $school->address ?? '') }}" required>
         @error('address') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
@@ -100,14 +100,14 @@
 <div class="form-row">
     <div class="form-group col-md-5">
         <label for="city">Cidade</label>
-        <input id="city" name="city" class="form-control @error('city') is-invalid @enderror" value="{{ old('city', $school->city ?? '') }}">
+        <input id="city" name="city" class="form-control @error('city') is-invalid @enderror" value="{{ old('city', $school->city ?? '') }}" required>
         @error('city') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
     <div class="form-group col-md-2">
         <label for="state">UF</label>
         @php($selectedState = old('state', $school->state ?? ''))
-        <select id="state" name="state" class="form-control @error('state') is-invalid @enderror">
+        <select id="state" name="state" class="form-control @error('state') is-invalid @enderror" required>
             <option value="">Selecione</option>
             @foreach (\App\Support\BrazilianStates::codes() as $state)
                 <option value="{{ $state }}" @selected($selectedState === $state)>{{ $state }}</option>
@@ -118,7 +118,7 @@
 
     <div class="form-group col-md-5">
         <label for="postal_code">CEP</label>
-        <input id="postal_code" name="postal_code" data-mask="cep" inputmode="numeric" autocomplete="postal-code" class="form-control @error('postal_code') is-invalid @enderror" value="{{ old('postal_code', $school->postal_code ?? '') }}">
+        <input id="postal_code" name="postal_code" data-mask="cep" inputmode="numeric" autocomplete="postal-code" class="form-control @error('postal_code') is-invalid @enderror" value="{{ old('postal_code', $school->postal_code ?? '') }}" required>
         @error('postal_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 </div>

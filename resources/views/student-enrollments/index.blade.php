@@ -4,6 +4,15 @@
 @section('page-title', 'Matrículas: '.$class->name)
 
 @section('page-actions')
+    <form method="POST" action="{{ route('classes.final-results.calculate', $class) }}" class="d-inline">
+        @csrf
+        <button class="btn btn-sm btn-outline-primary shadow-sm" type="submit">
+            <i class="fas fa-check-double mr-1" aria-hidden="true"></i>Calcular resultados finais
+        </button>
+    </form>
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('classes.final-results.pdf', $class) }}" aria-label="Emitir ata de resultados finais em PDF" title="Ata de resultados finais em PDF">
+        <i class="fas fa-file-signature" aria-hidden="true"></i>
+    </a>
     <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('academic-years.classes.show', [$academicYear, $class]) }}" aria-label="Voltar à turma {{ $class->name }}" title="Voltar à turma">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
     </a>
@@ -106,6 +115,7 @@
                         <th>Matrizes</th>
                         <th>Matrícula</th>
                         <th>Situação</th>
+                        <th>Resultado final</th>
                         <th class="text-right">Ações</th>
                     </tr>
                 </thead>
@@ -127,13 +137,57 @@
                                 @endif
                             </td>
                             <td>{{ $enrollment->statusLabel() }} · {{ $enrollment->typeLabel() }}</td>
-                            <td class="text-right">
-                                <a class="btn btn-sm btn-outline-primary mb-1 sge-icon-action" href="{{ route('enrollments.pdf', $enrollment) }}" aria-label="Emitir ficha de matrícula em PDF de {{ $enrollment->student?->full_name }}" title="Ficha de matrícula em PDF">
+                            <td>
+                                @php
+                                    $finalTone = match ($enrollment->final_result_status) {
+                                        \App\Models\StudentEnrollment::FINAL_APPROVED => 'success',
+                                        \App\Models\StudentEnrollment::FINAL_DEPENDENCY => 'warning',
+                                        \App\Models\StudentEnrollment::FINAL_RETAINED_POINTS,
+                                        \App\Models\StudentEnrollment::FINAL_RETAINED_ATTENDANCE => 'danger',
+                                        \App\Models\StudentEnrollment::FINAL_TRANSFERRED,
+                                        \App\Models\StudentEnrollment::FINAL_RECLASSIFIED,
+                                        \App\Models\StudentEnrollment::FINAL_CANCELLED => 'secondary',
+                                        \App\Models\StudentEnrollment::FINAL_PENDING => 'info',
+                                        default => 'light',
+                                    };
+                                @endphp
+                                <span class="badge badge-{{ $finalTone }}">{{ $enrollment->finalResultLabel() }}</span>
+                                @if ($enrollment->final_result_calculated_at)
+                                    <span class="d-block small text-muted">{{ $enrollment->final_result_calculated_at->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}</span>
+                                @else
+                                    <span class="d-block small text-muted">Ainda não calculado</span>
+                                @endif
+                                @if (($enrollment->final_result_details['reason'] ?? null))
+                                    <span class="d-block small text-muted">{{ $enrollment->final_result_details['reason'] }}</span>
+                                @endif
+                            </td>
+                            <td class="text-right sge-actions-cell">
+                                <div class="sge-row-actions sge-enrollment-actions" role="group" aria-label="Ações da matrícula de {{ $enrollment->student?->full_name }}">
+                                <a class="btn btn-sm btn-primary sge-icon-action" href="{{ route('enrollments.documents', $enrollment) }}" aria-label="Abrir documentos da matrícula de {{ $enrollment->student?->full_name }}" title="Documentos da matrícula">
+                                    <i class="fas fa-folder-open" aria-hidden="true"></i>
+                                </a>
+                                <a class="btn btn-sm btn-outline-success sge-icon-action" href="{{ route('enrollments.report-card.show', $enrollment) }}" aria-label="Abrir boletim de {{ $enrollment->student?->full_name }}" title="Boletim">
+                                    <i class="fas fa-chart-line" aria-hidden="true"></i>
+                                </a>
+                                <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.individual-record.pdf', $enrollment) }}" aria-label="Emitir ficha individual em PDF de {{ $enrollment->student?->full_name }}" title="Ficha individual em PDF">
+                                    <i class="fas fa-file-alt" aria-hidden="true"></i>
+                                </a>
+                                <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.pdf', $enrollment) }}" aria-label="Emitir ficha de matrícula em PDF de {{ $enrollment->student?->full_name }}" title="Ficha de matrícula em PDF">
                                     <i class="fas fa-file-pdf" aria-hidden="true"></i>
                                 </a>
+                                <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.attendance-certificate.pdf', $enrollment) }}" aria-label="Emitir atestado de frequência de {{ $enrollment->student?->full_name }}" title="Atestado de frequência">
+                                    <i class="fas fa-user-check" aria-hidden="true"></i>
+                                </a>
+                                @if ($enrollment->status === \App\Models\StudentEnrollment::STATUS_TRANSFERRED)
+                                    <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.transfer-certificate.pdf', $enrollment) }}" aria-label="Emitir atestado de transferência de {{ $enrollment->student?->full_name }}" title="Atestado de transferência">
+                                        <i class="fas fa-exchange-alt" aria-hidden="true"></i>
+                                    </a>
+                                @endif
                                 @if ($enrollment->isActive())
-                                    <details class="d-inline-block text-left">
-                                        <summary class="btn btn-sm btn-outline-secondary mb-1">Ações</summary>
+                                    <details class="sge-row-menu text-left">
+                                        <summary class="btn btn-sm btn-outline-secondary sge-icon-action" aria-label="Abrir movimentações da matrícula de {{ $enrollment->student?->full_name }}" title="Movimentar matrícula">
+                                            <i class="fas fa-random" aria-hidden="true"></i>
+                                        </summary>
                                         <div class="sge-action-popover mt-2">
                                             <form method="POST" action="{{ route('enrollments.transfer', $enrollment) }}" class="mb-2">
                                             @csrf
@@ -181,10 +235,11 @@
                                         </div>
                                     </details>
                                 @endif
+                                </div>
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5">Nenhuma matrícula cadastrada.</td></tr>
+                        <tr><td colspan="6">Nenhuma matrícula cadastrada.</td></tr>
                     @endforelse
                 </tbody>
             </table>

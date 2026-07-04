@@ -147,9 +147,16 @@ class AuditLogTest extends TestCase
             'institutional_email' => str($role)->ascii()->slug()->value().fake()->unique()->numberBetween(100, 999).'@ctjj.org',
             'cpf' => fake()->unique()->numerify('###########'),
             'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
             'mother_name' => 'Maria da Silva',
             'father_name' => 'José da Silva',
             'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
             'profile_completed_at' => now(),
         ]);
 

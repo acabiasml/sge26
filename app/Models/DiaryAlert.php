@@ -19,12 +19,14 @@ class DiaryAlert extends Model
         'to_person_id',
         'message',
         'resolved_at',
+        'dismissed_at',
     ];
 
     protected function casts(): array
     {
         return [
             'resolved_at' => 'datetime',
+            'dismissed_at' => 'datetime',
         ];
     }
 

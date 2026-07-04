@@ -77,8 +77,15 @@ class AuthorizationTest extends TestCase
             $user->person->update([
                 'cpf' => str_pad((string) $user->person_id, 11, '0', STR_PAD_LEFT),
                 'birth_date' => '2000-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
                 'mother_name' => 'Mãe de teste',
                 'phone' => '66999999999',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
                 'profile_completed_at' => now(),
             ]);
         }
@@ -86,7 +93,11 @@ class AuthorizationTest extends TestCase
         $this->actingAs($student)
             ->get(route('people.student-map.show', $student->person_id))
             ->assertOk()
-            ->assertSee('Mapa do estudante');
+            ->assertSee('Vida escolar');
+
+        $this->actingAs($student)
+            ->get('/pessoas/'.$student->person_id.'/mapa-do-estudante')
+            ->assertRedirect(route('people.student-map.show', $student->person_id));
 
         $this->actingAs($manager)
             ->get(route('people.student-map.show', $student->person_id))

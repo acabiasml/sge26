@@ -55,6 +55,7 @@ class PdfLetterhead
             mb_strtoupper($school->name),
             self::schoolRegistryLine($school),
             self::schoolContactLine($school),
+            self::schoolAddressLine($school),
             $school->letterhead_text,
         ])->filter(fn (?string $line): bool => filled($line))->values()->all();
     }
@@ -77,6 +78,19 @@ class PdfLetterhead
             $school->email ? 'E-mail: '.$school->email : null,
             $school->website ? 'Site: '.$school->website : null,
         ])->filter()->implode(' | ');
+    }
+
+    private static function schoolAddressLine(School $school): string
+    {
+        $address = collect([
+            $school->address,
+            $school->number,
+            $school->district,
+            collect([$school->city, $school->state])->filter()->join('-'),
+            $school->postal_code ? 'CEP '.$school->postal_code : null,
+        ])->filter()->join(', ');
+
+        return $address ? 'Endereço: '.$address : '';
     }
 
     private static function imageDataUri(?string $relativePath): ?string

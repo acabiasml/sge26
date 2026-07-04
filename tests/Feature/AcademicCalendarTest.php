@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\AcademicPeriodDiaryConsolidation;
 use App\Models\Announcement;
 use App\Models\AcademicCourse;
 use App\Models\CalendarDay;
@@ -24,7 +25,7 @@ class AcademicCalendarTest extends TestCase
     public function test_administrator_can_create_academic_year_inside_school(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
-        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $school = School::query()->create($this->officialSchoolData(['name' => 'Escola A']));
 
         $this->actingAs($admin)
             ->post(route('schools.academic-years.store', $school), [
@@ -645,7 +646,7 @@ class AcademicCalendarTest extends TestCase
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
         $year = $this->academicYear();
         $course = $year->courses()->create([
-            'name' => 'Ensino MÃ©dio',
+            'name' => 'Ensino Médio',
             'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
             'status' => 'iniciado',
             'class_hour_minutes' => 50,
@@ -705,7 +706,7 @@ class AcademicCalendarTest extends TestCase
             ->firstOrFail();
         $itinerary = KnowledgeArea::query()->where('name', 'like', 'Itiner%')->firstOrFail();
         $course = $year->courses()->create([
-            'name' => 'Ensino MÃ©dio',
+            'name' => 'Ensino Médio',
             'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
             'status' => 'iniciado',
             'class_hour_minutes' => 50,
@@ -958,6 +959,148 @@ class AcademicCalendarTest extends TestCase
             ->assertSessionHasErrors('enrollment');
     }
 
+    public function test_management_can_calculate_final_results_for_class_enrollments(): void
+    {
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear();
+        $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'aluno.resultado@ctjj.org');
+        $course = $year->courses()->create([
+            'name' => '1 Ano',
+            'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
+            'status' => 'iniciado',
+            'active' => true,
+        ]);
+        $schoolClass = $year->classes()->create(['name' => '1 Ano A', 'active' => true]);
+        $schoolClass->courses()->attach($course);
+        $enrollment = $schoolClass->enrollments()->create([
+            'person_id' => $student->person_id,
+            'enrolled_by_person_id' => $administrator->person_id,
+            'enrolled_at' => '2026-02-02',
+            'status' => StudentEnrollment::STATUS_TRANSFERRED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $enrollment->courses()->attach($course);
+
+        $this->actingAs($administrator)
+            ->post(route('classes.final-results.calculate', $schoolClass))
+            ->assertRedirect(route('classes.enrollments.index', $schoolClass));
+
+        $this->assertDatabaseHas('student_enrollments', [
+            'id' => $enrollment->id,
+            'final_result_status' => StudentEnrollment::FINAL_TRANSFERRED,
+            'final_result_calculated_by_person_id' => $administrator->person_id,
+        ]);
+
+        $this->actingAs($administrator)
+            ->get(route('classes.final-results.pdf', $schoolClass))
+            ->assertOk()
+            ->assertHeader('content-disposition');
+
+        $this->assertDatabaseHas('issued_documents', [
+            'type' => 'class-final-results',
+            'school_id' => $year->school_id,
+        ]);
+    }
+
+    public function test_management_can_review_closure_and_export_academic_year_final_results(): void
+    {
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear(['approved_at' => '2025-12-18']);
+
+        $this->actingAs($administrator)
+            ->get(route('academic-years.closure', $year))
+            ->assertOk()
+            ->assertSee('Conferência de fechamento');
+
+        $this->actingAs($administrator)
+            ->get(route('academic-years.final-results.pdf', $year))
+            ->assertOk()
+            ->assertHeader('content-disposition');
+
+        $this->assertDatabaseHas('issued_documents', [
+            'type' => 'academic-year-final-results',
+            'school_id' => $year->school_id,
+        ]);
+    }
+
+    public function test_management_can_close_academic_year_only_after_consolidation_and_final_results(): void
+    {
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear(['approved_at' => '2025-12-18']);
+        $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'aluno.fechamento@ctjj.org');
+        $period = $year->periods()->create([
+            'name' => '1º Bimestre',
+            'starts_at' => '2026-02-02',
+            'ends_at' => '2026-04-10',
+            'position' => 1,
+        ]);
+        $course = $year->courses()->create([
+            'name' => '1º Ano',
+            'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
+            'status' => 'iniciado',
+            'active' => true,
+        ]);
+        $schoolClass = $year->classes()->create(['name' => '1º Ano A', 'active' => true]);
+        $schoolClass->courses()->attach($course);
+        $enrollment = $schoolClass->enrollments()->create([
+            'person_id' => $student->person_id,
+            'enrolled_by_person_id' => $administrator->person_id,
+            'enrolled_at' => '2026-02-02',
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $enrollment->courses()->attach($course);
+
+        $this->actingAs($administrator)
+            ->patch(route('academic-years.close', $year), ['closed_at' => '2026-12-23'])
+            ->assertSessionHasErrors('closed_at');
+
+        AcademicPeriodDiaryConsolidation::query()->create([
+            'academic_period_id' => $period->id,
+            'consolidated' => true,
+            'consolidated_at' => now(),
+            'consolidated_by_person_id' => $administrator->person_id,
+        ]);
+        $enrollment->update([
+            'final_result_status' => StudentEnrollment::FINAL_APPROVED,
+            'final_result_calculated_at' => now(),
+            'final_result_calculated_by_person_id' => $administrator->person_id,
+        ]);
+
+        $this->actingAs($administrator)
+            ->patch(route('academic-years.close', $year), ['closed_at' => '2026-12-23'])
+            ->assertRedirect(route('academic-years.show', $year));
+
+        $this->assertDatabaseHas('academic_years', [
+            'id' => $year->id,
+            'closed_at' => '2026-12-23 00:00:00',
+            'closed_by_person_id' => $administrator->person_id,
+            'active' => true,
+        ]);
+    }
+
+    public function test_closed_academic_year_blocks_final_result_recalculation(): void
+    {
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear([
+            'approved_at' => '2025-12-18',
+            'closed_at' => '2026-12-23 12:00:00',
+            'closed_by_person_id' => $administrator->person_id,
+        ]);
+        $course = $year->courses()->create([
+            'name' => '1º Ano',
+            'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
+            'status' => 'iniciado',
+            'active' => true,
+        ]);
+        $schoolClass = $year->classes()->create(['name' => '1º Ano A', 'active' => true]);
+        $schoolClass->courses()->attach($course);
+
+        $this->actingAs($administrator)
+            ->post(route('classes.final-results.calculate', $schoolClass))
+            ->assertSessionHasErrors('academic_year');
+    }
+
     public function test_student_cannot_have_two_active_enrollments_in_the_same_academic_calendar(): void
     {
         $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
@@ -1016,6 +1159,76 @@ class AcademicCalendarTest extends TestCase
             'academic_year_id' => $year->id,
             'name' => '9º Ano',
         ]);
+    }
+
+    public function test_manager_can_update_academic_year_approval_date(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id, 'gestor.aprovacao@ctjj.org');
+        $year = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Educação Básica',
+            'reference_year' => 2026,
+            'starts_at' => '2026-01-20',
+            'ends_at' => '2026-12-18',
+            'approved_at' => '2025-12-10',
+            'minimum_school_days' => 200,
+            'passing_points' => 24,
+            'minimum_attendance_percentage' => 75,
+            'active' => true,
+        ]);
+        $originalName = $year->name;
+
+        $this->actingAs($manager)
+            ->put(route('academic-years.update', $year), [
+                'name' => $year->name,
+                'reference_year' => 2026,
+                'starts_at' => '2026-01-20',
+                'ends_at' => '2026-12-18',
+                'approved_at' => '2025-12-12',
+                'passing_points' => 24,
+                'minimum_attendance_percentage' => 75,
+                'active' => '1',
+            ])
+            ->assertRedirect(route('academic-years.show', $year));
+
+        $this->assertSame('2025-12-12', $year->refresh()->approved_at?->toDateString());
+    }
+
+    public function test_manager_cannot_update_sensitive_academic_year_data_after_approval(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id, 'gestor.sensivel@ctjj.org');
+        $year = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Educação Básica',
+            'reference_year' => 2026,
+            'starts_at' => '2026-01-20',
+            'ends_at' => '2026-12-18',
+            'approved_at' => '2025-12-10',
+            'minimum_school_days' => 200,
+            'passing_points' => 24,
+            'minimum_attendance_percentage' => 75,
+            'active' => true,
+        ]);
+        $originalName = $year->name;
+
+        $this->actingAs($manager)
+            ->put(route('academic-years.update', $year), [
+                'name' => 'Educação Regular',
+                'reference_year' => 2026,
+                'starts_at' => '2026-01-20',
+                'ends_at' => '2026-12-18',
+                'approved_at' => '2025-12-12',
+                'passing_points' => 24,
+                'minimum_attendance_percentage' => 75,
+                'active' => '1',
+            ])
+            ->assertSessionHasErrors('approved_at');
+
+        $year->refresh();
+        $this->assertSame($originalName, $year->name);
+        $this->assertSame('2025-12-10', $year->approved_at?->toDateString());
     }
 
     public function test_manager_can_enroll_student_in_approved_academic_year_class(): void
@@ -1307,7 +1520,7 @@ class AcademicCalendarTest extends TestCase
 
     private function academicYear(array $overrides = []): AcademicYear
     {
-        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $school = School::query()->create($this->officialSchoolData(['name' => 'Escola A']));
 
         return AcademicYear::query()->create(array_merge([
             'school_id' => $school->id,
@@ -1321,6 +1534,40 @@ class AcademicCalendarTest extends TestCase
         ], $overrides));
     }
 
+    /**
+     * @param array<string, mixed> $overrides
+     * @return array<string, mixed>
+     */
+    private function officialSchoolData(array $overrides = []): array
+    {
+        static $sequence = 0;
+
+        $sequence++;
+
+        return array_merge([
+            'name' => 'Escola Oficial '.$sequence,
+            'legal_name' => 'Centro Tecnico Juvenil de Jarudore',
+            'cnpj' => str_pad((string) $sequence, 14, '0', STR_PAD_LEFT),
+            'inep' => str_pad((string) $sequence, 8, '0', STR_PAD_LEFT),
+            'founded_at' => '1990-10-04',
+            'phone' => '(66) 99613-6796',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
+            'email' => 'ctjj.mt@gmail.com',
+            'website' => 'https://ctjj.org',
+            'letterhead_text' => 'Credenciamento e autorizacao vigentes.',
+            'address' => 'Av. Sao Joao',
+            'district' => 'Jarudore',
+            'number' => 's/n',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-970',
+            'active' => true,
+        ], $overrides);
+    }
+
     private function userWithRole(string $role, ?int $schoolId = null, string $email = 'usuario@ctjj.org'): User
     {
         $person = Person::query()->create([
@@ -1328,9 +1575,16 @@ class AcademicCalendarTest extends TestCase
             'institutional_email' => $email,
             'cpf' => fake()->unique()->numerify('###########'),
             'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
             'mother_name' => 'Maria da Silva',
             'father_name' => 'José da Silva',
             'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
             'profile_completed_at' => now(),
         ]);
 

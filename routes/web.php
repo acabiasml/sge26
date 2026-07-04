@@ -4,12 +4,15 @@ use App\Http\Controllers\AcademicPeriodController;
 use App\Http\Controllers\AcademicCalendarPdfController;
 use App\Http\Controllers\AcademicCourseController;
 use App\Http\Controllers\AcademicMatricesPdfController;
+use App\Http\Controllers\AcademicYearClosureController;
 use App\Http\Controllers\AcademicYearController;
+use App\Http\Controllers\AcademicYearFinalResultsPdfController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AttendanceJustificationController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\CalendarDayController;
+use App\Http\Controllers\ClassFinalResultsPdfController;
 use App\Http\Controllers\CurriculumComponentController;
 use App\Http\Controllers\DataQualityController;
 use App\Http\Controllers\DashboardController;
@@ -23,11 +26,16 @@ use App\Http\Controllers\RecordPdfController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SchoolAcademicYearController;
 use App\Http\Controllers\SchoolController;
+use App\Http\Controllers\SchoolConceptController;
 use App\Http\Controllers\SchoolClassController;
 use App\Http\Controllers\SchoolClassScheduleController;
 use App\Http\Controllers\SchoolClassSchedulePdfController;
 use App\Http\Controllers\SchoolClassComponentController;
 use App\Http\Controllers\StudentEnrollmentController;
+use App\Http\Controllers\StudentAcademicHistoryController;
+use App\Http\Controllers\StudentReportCardController;
+use App\Http\Controllers\StudentEnrollmentCertificateController;
+use App\Http\Controllers\StudentPeriodConvalidationController;
 use App\Http\Controllers\StudentDiaryController;
 use App\Http\Controllers\StudentMapController;
 use App\Http\Controllers\TeacherDiaryController;
@@ -59,6 +67,12 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
         ->names('schools')
         ->except(['show']);
     Route::get('escolas/{school}/pdf', [RecordPdfController::class, 'school'])->name('schools.pdf');
+    Route::get('escolas/{school}/conceitos', [SchoolConceptController::class, 'index'])->name('schools.concepts.index');
+    Route::put('escolas/{school}/criterios-academicos', [SchoolConceptController::class, 'updateCriteria'])->name('schools.academic-criteria.update');
+    Route::post('escolas/{school}/conceitos/padrao', [SchoolConceptController::class, 'storeDefault'])->name('schools.concepts.default');
+    Route::post('escolas/{school}/conceitos', [SchoolConceptController::class, 'store'])->name('schools.concepts.store');
+    Route::put('escolas/{school}/conceitos/{concept}', [SchoolConceptController::class, 'update'])->name('schools.concepts.update');
+    Route::delete('escolas/{school}/conceitos/{concept}', [SchoolConceptController::class, 'destroy'])->name('schools.concepts.destroy');
     Route::get('escolas/{school}/anos-letivos', [SchoolAcademicYearController::class, 'index'])->name('schools.academic-years.index');
     Route::get('escolas/{school}/anos-letivos/create', [AcademicYearController::class, 'create'])->name('schools.academic-years.create');
     Route::post('escolas/{school}/anos-letivos', [AcademicYearController::class, 'store'])->name('schools.academic-years.store');
@@ -68,8 +82,17 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
         ->names('people')
         ->except(['destroy']);
     Route::get('pessoas/{person}/pdf', [RecordPdfController::class, 'person'])->name('people.pdf');
-    Route::get('pessoas/{person}/mapa-do-estudante', [StudentMapController::class, 'show'])->name('people.student-map.show');
+    Route::get('pessoas/{person}/vida-escolar', [StudentMapController::class, 'show'])->name('people.student-map.show');
+    Route::get('pessoas/{person}/mapa-do-estudante', fn ($person) => redirect()->route('people.student-map.show', $person));
+    Route::get('pessoas/{person}/historicos/create', [StudentAcademicHistoryController::class, 'create'])->name('people.histories.create');
+    Route::post('pessoas/{person}/historicos', [StudentAcademicHistoryController::class, 'store'])->name('people.histories.store');
+    Route::get('pessoas/{person}/historicos/{history}', [StudentAcademicHistoryController::class, 'show'])->name('people.histories.show');
+    Route::get('pessoas/{person}/historicos/{history}/edit', [StudentAcademicHistoryController::class, 'edit'])->name('people.histories.edit');
+    Route::put('pessoas/{person}/historicos/{history}', [StudentAcademicHistoryController::class, 'update'])->name('people.histories.update');
+    Route::delete('pessoas/{person}/historicos/{history}', [StudentAcademicHistoryController::class, 'destroy'])->name('people.histories.destroy');
+    Route::get('pessoas/{person}/historicos/{history}/pdf', [StudentAcademicHistoryController::class, 'pdf'])->name('people.histories.pdf');
     Route::post('pessoas/{person}/contatos', [PersonContactController::class, 'store'])->name('people.contacts.store');
+    Route::put('pessoas/{person}/contatos/{contact}', [PersonContactController::class, 'update'])->name('people.contacts.update');
     Route::delete('pessoas/{person}/contatos/{contact}', [PersonContactController::class, 'destroy'])->name('people.contacts.destroy');
 
     Route::post('pessoas/{person}/vinculos', [PersonRoleController::class, 'store'])->name('people.roles.store');
@@ -78,7 +101,9 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::put('pessoas/{person}/vinculos/{role}', [PersonRoleController::class, 'update'])->name('people.roles.update');
     Route::delete('pessoas/{person}/vinculos/{role}', [PersonRoleController::class, 'destroy'])->name('people.roles.destroy');
 
-    Route::get('pendencias', [DataQualityController::class, 'index'])->name('data-quality.index');
+    Route::redirect('pendencias', 'conformidade');
+    Route::get('conformidade', [DataQualityController::class, 'index'])->name('data-quality.index');
+    Route::get('conformidade/pdf', [DataQualityController::class, 'pdf'])->name('data-quality.pdf');
 
     Route::get('documentos-oficiais', [OfficialDocumentController::class, 'create'])->name('official-documents.create');
     Route::post('documentos-oficiais/pdf', [OfficialDocumentController::class, 'store'])->name('official-documents.store');
@@ -97,6 +122,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::post('diarios/{schoolClass}/{component}/confirmacao', [TeacherDiaryController::class, 'confirmPeriod'])->name('teacher-diaries.confirmation.confirm');
     Route::post('diarios/{schoolClass}/{component}/reabertura', [TeacherDiaryController::class, 'reopenPeriod'])->name('teacher-diaries.confirmation.reopen');
     Route::post('diarios/{schoolClass}/{component}/alertas', [TeacherDiaryController::class, 'storeAlert'])->name('teacher-diaries.alerts.store');
+    Route::patch('diarios/alertas/{alert}/dispensar', [TeacherDiaryController::class, 'dismissAlert'])->name('teacher-diaries.alerts.dismiss');
     Route::get('meu-diario', [StudentDiaryController::class, 'index'])->name('student-diaries.index');
     Route::get('meu-diario/{enrollment}/horario', [StudentDiaryController::class, 'schedule'])->name('student-diaries.schedule');
     Route::get('meu-diario/{enrollment}/horario-pdf', [StudentDiaryController::class, 'schedulePdf'])->name('student-diaries.schedule-pdf');
@@ -107,13 +133,18 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
         ->names('academic-years')
         ->except(['index', 'create', 'store']);
     Route::patch('anos-letivos/{academicYear}/aprovar', [AcademicYearController::class, 'approve'])->name('academic-years.approve');
+    Route::patch('anos-letivos/{academicYear}/fechar', [AcademicYearController::class, 'close'])->name('academic-years.close');
+    Route::patch('anos-letivos/{academicYear}/reabrir', [AcademicYearController::class, 'reopen'])->name('academic-years.reopen');
+    Route::get('anos-letivos/{academicYear}/fechamento', AcademicYearClosureController::class)->name('academic-years.closure');
     Route::get('anos-letivos/{academicYear}/calendario-pdf', AcademicCalendarPdfController::class)->name('academic-years.calendar-pdf');
     Route::get('anos-letivos/{academicYear}/matrizes-pdf', AcademicMatricesPdfController::class)->name('academic-years.matrices-pdf');
     Route::get('anos-letivos/{academicYear}/horarios-pdf', [SchoolClassSchedulePdfController::class, 'academicYear'])->name('academic-years.schedules-pdf');
+    Route::get('anos-letivos/{academicYear}/resultados-finais-pdf', AcademicYearFinalResultsPdfController::class)->name('academic-years.final-results.pdf');
     Route::get('anos-letivos/{academicYear}/periodos', [AcademicPeriodController::class, 'index'])->name('academic-years.periods.index');
     Route::post('anos-letivos/{academicYear}/periodos', [AcademicPeriodController::class, 'store'])->name('academic-years.periods.store');
     Route::post('anos-letivos/{academicYear}/periodos/{period}/consolidar-diarios', [AcademicPeriodController::class, 'consolidate'])->name('academic-years.periods.diaries.consolidate');
     Route::post('anos-letivos/{academicYear}/periodos/{period}/reabrir-diarios', [AcademicPeriodController::class, 'reopenConsolidation'])->name('academic-years.periods.diaries.reopen');
+    Route::put('anos-letivos/{academicYear}/periodos/{period}/comportamento', [AcademicPeriodController::class, 'updateBehaviorGrades'])->name('academic-years.periods.behavior.update');
     Route::put('anos-letivos/{academicYear}/periodos/{period}/avaliacoes', [AcademicPeriodController::class, 'updateAssessmentRules'])->name('academic-years.periods.assessment-rules.update');
     Route::delete('anos-letivos/{academicYear}/periodos/{period}', [AcademicPeriodController::class, 'destroy'])->name('academic-years.periods.destroy');
     Route::post('anos-letivos/{academicYear}/dias', [CalendarDayController::class, 'store'])->name('academic-years.days.store');
@@ -152,10 +183,23 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::delete('matriculas/justificativas-de-ausencia/{justification}', [AttendanceJustificationController::class, 'destroy'])->name('attendance-justifications.destroy');
     Route::get('turmas/{class}/matriculas', [StudentEnrollmentController::class, 'index'])->name('classes.enrollments.index');
     Route::post('turmas/{class}/matriculas', [StudentEnrollmentController::class, 'store'])->name('classes.enrollments.store');
+    Route::post('turmas/{class}/resultados-finais', [StudentEnrollmentController::class, 'calculateFinalResults'])->name('classes.final-results.calculate');
+    Route::get('turmas/{class}/resultados-finais-pdf', ClassFinalResultsPdfController::class)->name('classes.final-results.pdf');
     Route::patch('matriculas/{enrollment}/transferir', [StudentEnrollmentController::class, 'transfer'])->name('enrollments.transfer');
     Route::post('matriculas/{enrollment}/reclassificar', [StudentEnrollmentController::class, 'reclassify'])->name('enrollments.reclassify');
     Route::patch('matriculas/{enrollment}/cancelar', [StudentEnrollmentController::class, 'cancel'])->name('enrollments.cancel');
+    Route::get('matriculas/{enrollment}/documentos', [StudentEnrollmentCertificateController::class, 'documents'])->name('enrollments.documents');
     Route::get('matriculas/{enrollment}/pdf', EnrollmentPdfController::class)->name('enrollments.pdf');
+    Route::get('matriculas/{enrollment}/declaracao-matricula-pdf', [StudentEnrollmentCertificateController::class, 'enrollmentDeclaration'])->name('enrollments.enrollment-declaration.pdf');
+    Route::get('matriculas/{enrollment}/declaracao-escolaridade-pdf', [StudentEnrollmentCertificateController::class, 'schoolingDeclaration'])->name('enrollments.schooling-declaration.pdf');
+    Route::get('matriculas/{enrollment}/declaracao-conclusao-pdf', [StudentEnrollmentCertificateController::class, 'completionDeclaration'])->name('enrollments.completion-declaration.pdf');
+    Route::get('matriculas/{enrollment}/atestado-frequencia-pdf', [StudentEnrollmentCertificateController::class, 'attendance'])->name('enrollments.attendance-certificate.pdf');
+    Route::get('matriculas/{enrollment}/atestado-transferencia-pdf', [StudentEnrollmentCertificateController::class, 'transfer'])->name('enrollments.transfer-certificate.pdf');
+    Route::get('matriculas/{enrollment}/boletim', [StudentReportCardController::class, 'show'])->name('enrollments.report-card.show');
+    Route::get('matriculas/{enrollment}/boletim-pdf', [StudentReportCardController::class, 'pdf'])->name('enrollments.report-card.pdf');
+    Route::get('matriculas/{enrollment}/ficha-individual-pdf', [StudentReportCardController::class, 'individualRecordPdf'])->name('enrollments.individual-record.pdf');
+    Route::post('matriculas/{enrollment}/convalidacoes', [StudentPeriodConvalidationController::class, 'store'])->name('enrollments.convalidations.store');
+    Route::delete('matriculas/{enrollment}/convalidacoes/{convalidation}', [StudentPeriodConvalidationController::class, 'destroy'])->name('enrollments.convalidations.destroy');
 
     Route::get('recados', [AnnouncementController::class, 'index'])->name('announcements.index');
     Route::post('recados', [AnnouncementController::class, 'store'])->name('announcements.store');

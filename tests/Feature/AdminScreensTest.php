@@ -48,7 +48,7 @@ class AdminScreensTest extends TestCase
 
     public function test_manager_can_emit_official_document_for_managed_school(): void
     {
-        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $school = School::query()->create($this->officialSchoolData(['name' => 'Escola A']));
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id, 'documentos@ctjj.org');
 
         $this->actingAs($manager)
@@ -127,10 +127,22 @@ class AdminScreensTest extends TestCase
         $this->actingAs($admin)
             ->post(route('schools.store'), [
                 'name' => 'Escola Institucional',
+                'legal_name' => 'Centro Tecnico Juvenil de Jarudore',
+                'cnpj' => '00.176.974/0001-20',
+                'inep' => '51061716',
                 'founded_at' => '1990-01-15',
+                'phone' => '(66) 99613-6796',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
+                'email' => 'ctjj.mt@gmail.com',
                 'website' => 'https://ctjj.org',
                 'letterhead_text' => 'Texto para papel timbrado.',
+                'address' => 'Av. Sao Joao',
+                'city' => 'Poxoreu',
                 'state' => 'MT',
+                'postal_code' => '78700-970',
                 'active' => '1',
             ])
             ->assertRedirect();
@@ -154,6 +166,24 @@ class AdminScreensTest extends TestCase
         $this->actingAs($admin)
             ->put(route('schools.update', $school), [
                 'name' => $school->name,
+                'legal_name' => 'Centro Tecnico Juvenil de Jarudore',
+                'cnpj' => '00.176.974/0001-20',
+                'inep' => '51061716',
+                'founded_at' => '1990-10-04',
+                'phone' => '(66) 99613-6796',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
+                'email' => 'ctjj.mt@gmail.com',
+                'website' => 'https://ctjj.org',
+                'letterhead_text' => 'Credenciamento e autorizacao vigentes.',
+                'address' => 'Av. Sao Joao',
+                'district' => 'Jarudore',
+                'number' => 's/n',
+                'city' => 'Poxoreu',
+                'state' => 'MT',
+                'postal_code' => '78700-970',
                 'active' => '1',
                 'logo' => UploadedFile::fake()->image('logo-liceu.jpg', 120, 80),
             ])
@@ -219,6 +249,10 @@ class AdminScreensTest extends TestCase
                 'relationship_type' => PersonContact::TYPE_LEGAL_GUARDIAN,
                 'cpf' => '123.456.789-10',
                 'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
                 'legal_guardian' => '1',
                 'emergency_contact' => '1',
             ])
@@ -388,6 +422,40 @@ class AdminScreensTest extends TestCase
             ->assertDontSee('Pessoa Pendente Laura');
     }
 
+    public function test_conformity_center_filters_by_severity_and_exports_pdf(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $school = School::query()->create(['name' => 'Escola Conferência']);
+
+        $person = Person::query()->create([
+            'full_name' => 'Pessoa Sem CPF',
+            'active' => true,
+        ]);
+        $person->schoolRoles()->create([
+            'school_id' => $school->id,
+            'role' => PersonSchoolRole::ROLE_STUDENT,
+            'active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('data-quality.index', ['school_id' => $school->id, 'severity' => 'danger']))
+            ->assertOk()
+            ->assertSee('Central única de conformidade')
+            ->assertSee('Pessoa Sem CPF')
+            ->assertSee('PDF da conferência');
+
+        $this->actingAs($admin)
+            ->get(route('data-quality.pdf', ['school_id' => $school->id, 'severity' => 'danger']))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        $this->assertDatabaseHas('issued_documents', [
+            'type' => 'data-quality-compliance-report',
+            'person_id' => $admin->person_id,
+            'school_id' => $school->id,
+        ]);
+    }
+
     public function test_manager_only_sees_registration_pendencies_from_managed_school(): void
     {
         $liceu = School::query()->create(['name' => 'Liceu Pedagógico São Francisco de Assis']);
@@ -537,6 +605,40 @@ class AdminScreensTest extends TestCase
         ]);
     }
 
+    /**
+     * @param array<string, mixed> $overrides
+     * @return array<string, mixed>
+     */
+    private function officialSchoolData(array $overrides = []): array
+    {
+        static $sequence = 0;
+
+        $sequence++;
+
+        return array_merge([
+            'name' => 'Escola Oficial '.$sequence,
+            'legal_name' => 'Centro Tecnico Juvenil de Jarudore',
+            'cnpj' => str_pad((string) $sequence, 14, '0', STR_PAD_LEFT),
+            'inep' => str_pad((string) $sequence, 8, '0', STR_PAD_LEFT),
+            'founded_at' => '1990-10-04',
+            'phone' => '(66) 99613-6796',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
+            'email' => 'ctjj.mt@gmail.com',
+            'website' => 'https://ctjj.org',
+            'letterhead_text' => 'Credenciamento e autorizacao vigentes.',
+            'address' => 'Av. Sao Joao',
+            'district' => 'Jarudore',
+            'number' => 's/n',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-970',
+            'active' => true,
+        ], $overrides);
+    }
+
     private function userWithRole(string $role, ?int $schoolId = null): User
     {
         $person = Person::query()->create([
@@ -544,9 +646,16 @@ class AdminScreensTest extends TestCase
             'institutional_email' => str($role)->ascii()->slug()->value().'@ctjj.org',
             'cpf' => fake()->numerify('###########'),
             'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
             'mother_name' => 'Maria da Silva',
             'father_name' => 'José da Silva',
             'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
             'profile_completed_at' => now(),
         ]);
 

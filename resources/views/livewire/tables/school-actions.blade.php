@@ -8,6 +8,9 @@
     <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('schools.pdf', $school) }}" aria-label="Emitir ficha em PDF da escola {{ $school->name }}" title="Ficha em PDF">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
+    <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('schools.concepts.index', $school) }}" aria-label="Gerenciar conceitos e critérios da escola {{ $school->name }}" title="Conceitos e critérios">
+        <i class="fas fa-star-half-alt" aria-hidden="true"></i>
+    </a>
     <form method="POST" action="{{ route('schools.destroy', $school) }}" onsubmit="return confirm('Excluir esta escola? Esta ação só será permitida se não houver vínculos cadastrados.');">
         @csrf
         @method('DELETE')

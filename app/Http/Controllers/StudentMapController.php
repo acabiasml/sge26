@@ -7,6 +7,7 @@ use App\Models\DiaryAssessmentResult;
 use App\Models\DiaryAttendanceEntry;
 use App\Models\IssuedDocument;
 use App\Models\Person;
+use App\Models\StudentBehaviorGrade;
 use App\Models\StudentEnrollment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -20,7 +21,12 @@ class StudentMapController extends Controller
 
         $person->load([
             'contacts',
-            'studentEnrollments.schoolClass.academicYear.school',
+            'academicHistories.school',
+            'academicHistories.years',
+            'academicHistories.components',
+            'studentEnrollments.schoolClass.academicYear.school.concepts',
+            'studentEnrollments.periodConvalidations.period',
+            'studentEnrollments.periodConvalidations.component',
             'studentEnrollments.courses',
         ]);
 
@@ -34,7 +40,7 @@ class StudentMapController extends Controller
                 'assessment.period',
                 'assessment.component.area',
                 'assessment.component.course',
-                'enrollment.schoolClass.academicYear.school',
+                'enrollment.schoolClass.academicYear.school.concepts',
             ])
             ->whereIn('student_enrollment_id', $enrollmentIds)
             ->whereNotNull('score')
@@ -55,6 +61,16 @@ class StudentMapController extends Controller
             ])
             ->whereIn('student_enrollment_id', $enrollmentIds)
             ->get();
+
+        $behaviorGrades = StudentBehaviorGrade::query()
+            ->with(['academicPeriod', 'enrollment.schoolClass.academicYear.school.concepts'])
+            ->whereIn('student_enrollment_id', $enrollmentIds)
+            ->get()
+            ->sortBy([
+                ['academicPeriod.starts_at', 'desc'],
+                ['academicPeriod.position', 'desc'],
+            ])
+            ->values();
 
         $documents = IssuedDocument::query()
             ->with('school')
@@ -84,14 +100,19 @@ class StudentMapController extends Controller
             ->limit(12)
             ->get();
 
+        $isOwnStudentMap = $request->user()->person_id === $person->id;
+
         return view('student-map.show', [
             'person' => $person,
             'enrollments' => $enrollments,
             'assessmentResults' => $assessmentResults,
+            'behaviorGrades' => $behaviorGrades,
             'attendanceSummary' => $this->attendanceSummary($attendanceEntries),
             'documents' => $documents,
             'auditLogs' => $auditLogs,
             'canManagePerson' => $request->user()->canManagePeople(),
+            'scoreView' => $isOwnStudentMap ? 'conceitos' : ($request->query('notas') === 'conceitos' ? 'conceitos' : 'numeros'),
+            'canChooseScoreView' => ! $isOwnStudentMap,
         ]);
     }
 

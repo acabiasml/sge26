@@ -11,7 +11,7 @@
 
 @section('page-actions')
     @if ($person->studentEnrollments->isNotEmpty() || $person->schoolRoles->contains('role', \App\Models\PersonSchoolRole::ROLE_STUDENT))
-        <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.student-map.show', $person) }}" aria-label="Abrir mapa do estudante {{ $person->full_name }}" title="Mapa do estudante">
+        <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.student-map.show', $person) }}" aria-label="Abrir vida escolar de {{ $person->full_name }}" title="Vida escolar">
             <i class="fas fa-map-marked-alt" aria-hidden="true"></i>
         </a>
     @endif
@@ -108,6 +108,7 @@
                                 <th>Ano letivo</th>
                                 <th>Turma</th>
                                 <th>Situação</th>
+                                <th class="text-right">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -131,10 +132,61 @@
                                             @endif
                                         </span>
                                     </td>
+                                    <td class="text-right">
+                                        <a class="btn btn-sm btn-outline-success sge-icon-action" href="{{ route('enrollments.report-card.show', $enrollment) }}" aria-label="Abrir boletim de {{ $person->full_name }}" title="Boletim">
+                                            <i class="fas fa-chart-line" aria-hidden="true"></i>
+                                        </a>
+                                        <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.individual-record.pdf', $enrollment) }}" aria-label="Emitir ficha individual de {{ $person->full_name }}" title="Ficha individual">
+                                            <i class="fas fa-file-alt" aria-hidden="true"></i>
+                                        </a>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="3" class="text-center text-gray-600">Nenhuma matrícula acadêmica cadastrada.</td>
+                                    <td colspan="4" class="text-center text-gray-600">Nenhuma matrícula acadêmica cadastrada.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card shadow mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="font-weight-bold">Históricos escolares</span>
+                    <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.histories.create', $person) }}" aria-label="Cadastrar histórico escolar de {{ $person->full_name }}" title="Novo histórico escolar">
+                        <i class="fas fa-plus" aria-hidden="true"></i>
+                    </a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Documento</th>
+                                <th>Etapa</th>
+                                <th class="text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($person->academicHistories as $history)
+                                <tr>
+                                    <td>
+                                        {{ $history->title }}
+                                        <span class="d-block text-muted small">{{ $history->school?->name ?? 'Sem escola emissora vinculada' }}</span>
+                                    </td>
+                                    <td>{{ $history->stage ?: '-' }}</td>
+                                    <td class="text-right">
+                                        <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.histories.show', [$person, $history]) }}" aria-label="Abrir histórico escolar {{ $history->title }}" title="Abrir histórico">
+                                            <i class="fas fa-folder-open" aria-hidden="true"></i>
+                                        </a>
+                                        <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.histories.pdf', [$person, $history]) }}" aria-label="Emitir histórico escolar em PDF" title="Histórico em PDF">
+                                            <i class="fas fa-file-pdf" aria-hidden="true"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="text-center text-gray-600">Nenhum histórico escolar cadastrado.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -340,7 +392,79 @@
                                             <span class="d-block text-muted small">{{ $contact->email }}</span>
                                         @endif
                                     </td>
-                                    <td class="text-right">
+                                    <td class="text-right sge-actions-cell">
+                                        <div class="sge-row-actions" role="group" aria-label="Ações para contato {{ $contact->name }}">
+                                        <details class="sge-inline-editor">
+                                            <summary class="btn btn-sm btn-outline-primary sge-icon-action" aria-label="Editar contato {{ $contact->name }}" title="Editar contato">
+                                                <i class="fas fa-pen" aria-hidden="true"></i>
+                                            </summary>
+                                            <div class="sge-inline-editor-panel text-left">
+                                                <form method="POST" action="{{ route('people.contacts.update', [$person, $contact]) }}">
+                                                    @csrf
+                                                    @method('PUT')
+
+                                                    <div class="form-row">
+                                                        <div class="form-group col-md-5">
+                                                            <label for="contact_name_{{ $contact->id }}">Nome</label>
+                                                            <input id="contact_name_{{ $contact->id }}" name="name" class="form-control" value="{{ old('name', $contact->name) }}" required>
+                                                        </div>
+
+                                                        <div class="form-group col-md-3">
+                                                            <label for="contact_relationship_type_{{ $contact->id }}">Relação</label>
+                                                            <select id="contact_relationship_type_{{ $contact->id }}" name="relationship_type" class="form-control" required>
+                                                                @foreach (\App\Models\PersonContact::TYPE_LABELS as $value => $label)
+                                                                    <option value="{{ $value }}" @selected(old('relationship_type', $contact->relationship_type) === $value)>{{ $label }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
+
+                                                        <div class="form-group col-md-4">
+                                                            <label for="contact_cpf_{{ $contact->id }}">CPF</label>
+                                                            <input id="contact_cpf_{{ $contact->id }}" name="cpf" data-mask="cpf" inputmode="numeric" autocomplete="off" class="form-control" value="{{ old('cpf', $contact->cpf) }}">
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="form-row">
+                                                        <div class="form-group col-md-4">
+                                                            <label for="contact_phone_{{ $contact->id }}">Telefone</label>
+                                                            <input id="contact_phone_{{ $contact->id }}" name="phone" data-mask="phone" inputmode="tel" class="form-control" value="{{ old('phone', $contact->phone) }}">
+                                                        </div>
+
+                                                        <div class="form-group col-md-4">
+                                                            <label for="contact_secondary_phone_{{ $contact->id }}">Telefone alternativo</label>
+                                                            <input id="contact_secondary_phone_{{ $contact->id }}" name="secondary_phone" data-mask="phone" inputmode="tel" class="form-control" value="{{ old('secondary_phone', $contact->secondary_phone) }}">
+                                                        </div>
+
+                                                        <div class="form-group col-md-4">
+                                                            <label for="contact_email_{{ $contact->id }}">E-mail pessoal</label>
+                                                            <input id="contact_email_{{ $contact->id }}" name="email" type="email" inputmode="email" class="form-control" value="{{ old('email', $contact->email) }}">
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="form-row">
+                                                        <div class="form-group col-md-4">
+                                                            <div class="form-check">
+                                                                <input id="contact_legal_guardian_{{ $contact->id }}" name="legal_guardian" value="1" type="checkbox" class="form-check-input" @checked(old('legal_guardian', $contact->legal_guardian))>
+                                                                <label for="contact_legal_guardian_{{ $contact->id }}" class="form-check-label">Responsável legal</label>
+                                                            </div>
+                                                            <div class="form-check">
+                                                                <input id="contact_emergency_contact_{{ $contact->id }}" name="emergency_contact" value="1" type="checkbox" class="form-check-input" @checked(old('emergency_contact', $contact->emergency_contact))>
+                                                                <label for="contact_emergency_contact_{{ $contact->id }}" class="form-check-label">Contato de emergência</label>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="form-group col-md-8">
+                                                            <label for="contact_notes_{{ $contact->id }}">Observações</label>
+                                                            <textarea id="contact_notes_{{ $contact->id }}" name="notes" rows="2" class="form-control">{{ old('notes', $contact->notes) }}</textarea>
+                                                        </div>
+                                                    </div>
+
+                                                    <button class="btn btn-sm btn-primary" type="submit">
+                                                        <i class="fas fa-save" aria-hidden="true"></i> Salvar contato
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </details>
                                         <form method="POST" action="{{ route('people.contacts.destroy', [$person, $contact]) }}">
                                             @csrf
                                             @method('DELETE')
@@ -348,6 +472,7 @@
                                                 <i class="fas fa-trash-alt" aria-hidden="true"></i>
                                             </button>
                                         </form>
+                                        </div>
                                     </td>
                                 </tr>
                             @empty

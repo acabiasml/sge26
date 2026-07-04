@@ -8,6 +8,7 @@ use App\Models\AcademicYear;
 use App\Models\CalendarDay;
 use App\Models\CurriculumComponent;
 use App\Models\DiaryAssessment;
+use App\Models\DiaryAlert;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\DiaryAttendanceJustification;
 use App\Models\Person;
@@ -114,9 +115,34 @@ class TeacherDiaryTest extends TestCase
         ]);
 
         $this->actingAs($teacher)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Alerta da gestão em Matemática')
+            ->assertSee('Confira os lançamentos de frequência desta semana.');
+
+        $this->actingAs($teacher)
             ->get(route('teacher-diaries.show', [$class, $component, 'period' => $period->id]))
             ->assertOk()
-            ->assertSee('Confira os lançamentos de frequência desta semana.');
+            ->assertSee('Confira os lançamentos de frequência desta semana.')
+            ->assertSee('Dispensar');
+
+        $alert = DiaryAlert::query()->firstOrFail();
+
+        $this->actingAs($teacher)
+            ->patch(route('teacher-diaries.alerts.dismiss', $alert))
+            ->assertRedirect();
+
+        $this->assertNotNull($alert->fresh()->dismissed_at);
+
+        $this->actingAs($teacher)
+            ->get(route('teacher-diaries.show', [$class, $component, 'period' => $period->id]))
+            ->assertOk()
+            ->assertDontSee('Confira os lançamentos de frequência desta semana.');
+
+        $this->actingAs($teacher)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertDontSee('Alerta da gestão em Matemática');
     }
 
     public function test_student_can_view_own_diary_entries_without_editing_them(): void
@@ -132,7 +158,205 @@ class TeacherDiaryTest extends TestCase
         $this->actingAs($student)
             ->get(route('student-diaries.show', [$enrollment, $component]))
             ->assertOk()
-            ->assertSee('Notas lançadas');
+            ->assertSee('Conceitos lançados')
+            ->assertDontSee('Notas lançadas');
+    }
+
+    public function test_report_card_respects_student_concept_view_and_manager_pdf(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-boletim@ctjj.org');
+        $student = User::query()->where('person_id', $enrollment->person_id)->firstOrFail();
+
+        $this->actingAs($manager)
+            ->put(route('academic-years.periods.assessment-rules.update', [$year, $period]), [
+                'assessment_count' => 1,
+                'weights' => [1],
+                'assessment_names' => ['Avaliação 1'],
+                'recovery_mode' => AcademicPeriod::RECOVERY_NONE,
+            ]);
+
+        $assessment = DiaryAssessment::query()->firstOrFail();
+
+        $this->actingAs($teacher)
+            ->put(route('teacher-diaries.grades.update', [$class, $component]), [
+                'academic_period_id' => $period->id,
+                'scores' => [$assessment->id => [$enrollment->id => 8.5]],
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($student)
+            ->get(route('enrollments.report-card.show', $enrollment))
+            ->assertOk()
+            ->assertSee('Boletim escolar')
+            ->assertSee('Conceito não definido')
+            ->assertDontSee('8,5');
+
+        $this->actingAs($manager)
+            ->get(route('enrollments.report-card.show', ['enrollment' => $enrollment, 'notas' => 'numeros']))
+            ->assertOk()
+            ->assertSee('8,5');
+
+        $this->actingAs($manager)
+            ->get(route('enrollments.report-card.pdf', $enrollment))
+            ->assertOk();
+    }
+
+    public function test_individual_record_report_includes_calculated_final_result(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-ficha-final@ctjj.org');
+
+        $enrollment->update([
+            'final_result_status' => StudentEnrollment::FINAL_APPROVED,
+            'final_result_details' => ['reason' => 'Aprovado por pontos e frequencia.'],
+            'final_result_calculated_at' => now(),
+            'final_result_calculated_by_person_id' => $manager->person_id,
+        ]);
+
+        $report = app(\App\Support\StudentReportCardBuilder::class)->build($enrollment->fresh());
+
+        $this->assertSame('Aprovado', $report['finalResult']['label']);
+        $this->assertSame('Aprovado por pontos e frequencia.', $report['finalResult']['details']['reason']);
+        $this->assertSame($manager->person_id, $report['finalResult']['calculated_by']->id);
+    }
+
+    public function test_management_can_emit_attendance_certificate_pdf(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-atestado-frequencia@ctjj.org');
+        $record = DiaryAttendanceRecord::query()->create([
+            'school_class_id' => $class->id,
+            'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id,
+            'teacher_person_id' => $teacher->person_id,
+            'updated_by_person_id' => $teacher->person_id,
+            'class_date' => '2026-03-11',
+            'lesson_count' => 2,
+        ]);
+        $record->entries()->create([
+            'student_enrollment_id' => $enrollment->id,
+            'status' => DiaryAttendanceRecord::STATUS_PARTIAL,
+            'attended_lessons' => 1,
+            'lesson_presence' => [1 => true, 2 => false],
+        ]);
+
+        $this->actingAs($manager)
+            ->get(route('enrollments.attendance-certificate.pdf', $enrollment))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        $this->assertDatabaseHas('issued_documents', [
+            'type' => 'student-attendance-certificate',
+            'person_id' => $enrollment->person_id,
+            'school_id' => $year->school_id,
+        ]);
+    }
+
+    public function test_management_can_review_and_emit_student_declarations(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-declaracoes@ctjj.org');
+
+        $this->actingAs($manager)
+            ->get(route('enrollments.documents', $enrollment))
+            ->assertOk()
+            ->assertSee('Conferência documental')
+            ->assertSee('Declaração de matrícula')
+            ->assertSee('Declaração de conclusão');
+
+        $this->actingAs($manager)
+            ->get(route('enrollments.enrollment-declaration.pdf', $enrollment))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        $this->actingAs($manager)
+            ->get(route('enrollments.schooling-declaration.pdf', $enrollment))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        $this->actingAs($manager)
+            ->get(route('enrollments.completion-declaration.pdf', $enrollment))
+            ->assertRedirect(route('enrollments.documents', $enrollment));
+
+        $enrollment->update([
+            'final_result_status' => StudentEnrollment::FINAL_APPROVED,
+            'final_result_calculated_at' => now(),
+            'final_result_calculated_by_person_id' => $manager->person_id,
+        ]);
+
+        $this->actingAs($manager)
+            ->get(route('enrollments.completion-declaration.pdf', $enrollment->fresh()))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        $this->assertDatabaseHas('issued_documents', [
+            'type' => 'student-enrollment-declaration',
+            'person_id' => $enrollment->person_id,
+        ]);
+        $this->assertDatabaseHas('issued_documents', [
+            'type' => 'student-schooling-declaration',
+            'person_id' => $enrollment->person_id,
+        ]);
+        $this->assertDatabaseHas('issued_documents', [
+            'type' => 'student-completion-declaration',
+            'person_id' => $enrollment->person_id,
+        ]);
+    }
+
+    public function test_management_can_emit_transfer_certificate_only_after_transfer(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-atestado-transferencia@ctjj.org');
+
+        $this->actingAs($manager)
+            ->get(route('enrollments.transfer-certificate.pdf', $enrollment))
+            ->assertRedirect(route('enrollments.documents', $enrollment));
+
+        $enrollment->update([
+            'status' => StudentEnrollment::STATUS_TRANSFERRED,
+            'transferred_at' => '2026-04-01',
+            'transferred_by_person_id' => $manager->person_id,
+        ]);
+
+        $this->actingAs($manager)
+            ->get(route('enrollments.transfer-certificate.pdf', $enrollment->fresh()))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        $this->assertDatabaseHas('issued_documents', [
+            'type' => 'student-transfer-certificate',
+            'person_id' => $enrollment->person_id,
+            'school_id' => $year->school_id,
+        ]);
+    }
+
+    public function test_management_can_convalidate_partial_period_result_for_transfer_student(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao.convalidacao@ctjj.org');
+
+        $this->actingAs($manager)
+            ->post(route('enrollments.convalidations.store', $enrollment), [
+                'academic_period_id' => $period->id,
+                'curriculum_component_id' => $component->id,
+                'score' => '7,0',
+                'source_school' => 'Escola de origem',
+                'convalidated_at' => '2026-03-01',
+                'notes' => 'Resultado parcial apresentado na matrícula.',
+            ])
+            ->assertRedirect(route('enrollments.report-card.show', $enrollment));
+
+        $report = app(\App\Support\StudentReportCardBuilder::class)->build($enrollment->fresh());
+        $componentReport = $report['periodReports']->first()['components']->first();
+
+        $this->assertSame(7.0, $componentReport['average']['value']);
+        $this->assertTrue($componentReport['average']['complete']);
+        $this->assertSame('convalidated', $componentReport['average']['source']);
+        $this->assertDatabaseHas('student_period_convalidations', [
+            'student_enrollment_id' => $enrollment->id,
+            'score' => 7.0,
+        ]);
     }
 
     public function test_management_configures_assessments_and_teacher_launches_grades_and_attendance(): void
@@ -478,6 +702,10 @@ class TeacherDiaryTest extends TestCase
             'academic_period_id' => $period->id,
         ]);
 
+        $this->actingAs($manager)->put(route('academic-years.periods.behavior.update', [$year, $period]), [
+            'behavior_scores' => [$enrollment->id => 9],
+        ])->assertRedirect(route('academic-years.periods.index', $year));
+
         $this->actingAs($manager)->post(route('academic-years.periods.diaries.consolidate', [$year, $period]))
             ->assertRedirect(route('academic-years.periods.index', $year));
 
@@ -513,6 +741,57 @@ class TeacherDiaryTest extends TestCase
             'academic_period_id' => $period->id,
             'confirmed' => false,
         ]);
+    }
+
+    public function test_management_cannot_consolidate_period_without_behavior_grades(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-comportamento@ctjj.org');
+
+        $this->actingAs($manager)->put(route('academic-years.periods.assessment-rules.update', [$year, $period]), [
+            'assessment_count' => 1,
+            'weights' => [1],
+            'recovery_mode' => AcademicPeriod::RECOVERY_NONE,
+        ]);
+        $assessment = DiaryAssessment::query()->firstOrFail();
+
+        $this->actingAs($teacher)->put(route('teacher-diaries.attendance.batch-update', [$class, $component]), [
+            'academic_period_id' => $period->id,
+            'scheduled_dates' => ['2026-03-11'],
+            'page' => 1,
+            'lesson_counts' => ['2026-03-11' => 1],
+            'attendance' => ['2026-03-11' => [$enrollment->id => [1 => '1']]],
+        ]);
+        $this->actingAs($teacher)->put(route('teacher-diaries.contents.update', [$class, $component]), [
+            'academic_period_id' => $period->id,
+            'selected_dates' => ['2026-03-11'],
+            'contents' => ['2026-03-11' => 'Estudo dirigido.'],
+        ]);
+        $this->actingAs($teacher)->put(route('teacher-diaries.grades.update', [$class, $component]), [
+            'academic_period_id' => $period->id,
+            'scores' => [$assessment->id => [$enrollment->id => 8]],
+        ]);
+        $this->actingAs($teacher)->post(route('teacher-diaries.confirmation.confirm', [$class, $component]), [
+            'academic_period_id' => $period->id,
+        ]);
+
+        $this->actingAs($manager)->post(route('academic-years.periods.diaries.consolidate', [$year, $period]))
+            ->assertSessionHasErrors('period');
+
+        $this->actingAs($manager)->put(route('academic-years.periods.behavior.update', [$year, $period]), [
+            'behavior_scores' => [$enrollment->id => 8.5],
+            'behavior_notes' => [$enrollment->id => 'Participativo.'],
+        ])->assertRedirect(route('academic-years.periods.index', $year));
+
+        $this->assertDatabaseHas('student_behavior_grades', [
+            'academic_period_id' => $period->id,
+            'student_enrollment_id' => $enrollment->id,
+            'updated_by_person_id' => $manager->person_id,
+            'score' => 8.5,
+        ]);
+
+        $this->actingAs($manager)->post(route('academic-years.periods.diaries.consolidate', [$year, $period]))
+            ->assertRedirect(route('academic-years.periods.index', $year));
     }
 
     public function test_period_management_screen_handles_diary_date_pendencies(): void
@@ -786,12 +1065,45 @@ class TeacherDiaryTest extends TestCase
             ->assertSessionHasErrors("scores.{$assessment->id}.{$enrollment->id}");
     }
 
+    public function test_closed_academic_year_blocks_diary_launches(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-fechamento@ctjj.org');
+
+        $this->actingAs($manager)
+            ->put(route('academic-years.periods.assessment-rules.update', [$year, $period]), [
+                'assessment_count' => 1,
+                'weights' => [1],
+                'recovery_mode' => AcademicPeriod::RECOVERY_NONE,
+            ]);
+        $assessment = DiaryAssessment::query()->firstOrFail();
+
+        $year->update(['closed_at' => '2026-12-23 12:00:00']);
+
+        $this->actingAs($teacher)
+            ->put(route('teacher-diaries.grades.update', [$class, $component]), [
+                'academic_period_id' => $period->id,
+                'scores' => [$assessment->id => [$enrollment->id => 8]],
+            ])
+            ->assertSessionHasErrors('academic_period_id');
+
+        $this->actingAs($teacher)
+            ->put(route('teacher-diaries.attendance.batch-update', [$class, $component]), [
+                'academic_period_id' => $period->id,
+                'scheduled_dates' => ['2026-03-11'],
+                'page' => 1,
+                'lesson_counts' => ['2026-03-11' => 1],
+                'attendance' => ['2026-03-11' => [$enrollment->id => [1 => '1']]],
+            ])
+            ->assertSessionHasErrors('academic_period_id');
+    }
+
     /**
      * @return array{0: User, 1: AcademicYear, 2: SchoolClass, 3: CurriculumComponent, 4: AcademicPeriod, 5: StudentEnrollment}
      */
     private function diaryScenario(array $yearOverrides = []): array
     {
-        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $school = School::query()->create($this->officialSchoolData(['name' => 'Escola A']));
         $teacher = $this->userWithRole(PersonSchoolRole::ROLE_TEACHER, $school->id, 'docente@ctjj.org');
         $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $school->id, 'estudante@ctjj.org');
 
@@ -879,8 +1191,15 @@ class TeacherDiaryTest extends TestCase
             'institutional_email' => $email,
             'cpf' => fake()->unique()->numerify('###########'),
             'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
             'mother_name' => 'Maria da Silva',
             'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
             'profile_completed_at' => now(),
             'active' => true,
         ]);
@@ -897,5 +1216,39 @@ class TeacherDiaryTest extends TestCase
             'name' => $person->full_name,
             'email' => $email,
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $overrides
+     * @return array<string, mixed>
+     */
+    private function officialSchoolData(array $overrides = []): array
+    {
+        static $sequence = 0;
+
+        $sequence++;
+
+        return array_merge([
+            'name' => 'Escola Oficial '.$sequence,
+            'legal_name' => 'Centro Tecnico Juvenil de Jarudore',
+            'cnpj' => str_pad((string) $sequence, 14, '0', STR_PAD_LEFT),
+            'inep' => str_pad((string) $sequence, 8, '0', STR_PAD_LEFT),
+            'founded_at' => '1990-10-04',
+            'phone' => '(66) 99613-6796',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
+            'email' => 'ctjj.mt@gmail.com',
+            'website' => 'https://ctjj.org',
+            'letterhead_text' => 'Credenciamento e autorizacao vigentes.',
+            'address' => 'Av. Sao Joao',
+            'district' => 'Jarudore',
+            'number' => 's/n',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-970',
+            'active' => true,
+        ], $overrides);
     }
 }

@@ -38,9 +38,21 @@
                 $canManagePeople = $currentUser->canManagePeople();
                 $hasTeachingArea = $currentUser->hasActiveRole(\App\Models\PersonSchoolRole::ROLE_TEACHER) || $currentUser->hasTeachingDiaries();
                 $hasStudentArea = $currentUser->hasStudentMap();
-                $personalMenuActive = request()->routeIs('profile.*') || request()->routeIs('student-diaries.*') || request()->routeIs('people.student-map.show') || request()->routeIs('teacher-schedules.*');
-                $schoolManagementActive = request()->routeIs('schools.*') || request()->routeIs('academic-years.*') || request()->routeIs('people.*') || request()->routeIs('data-quality.*');
-                $academicRoutineActive = request()->routeIs('enrollments.*') || request()->routeIs('classes.enrollments.*') || request()->routeIs('attendance-justifications.*') || request()->routeIs('teacher-diaries.*');
+                $routePerson = request()->route('person');
+                $routePersonId = $routePerson instanceof \App\Models\Person ? $routePerson->id : (is_numeric($routePerson) ? (int) $routePerson : null);
+                $studentLifeActive = request()->routeIs('people.student-map.show') || request()->routeIs('people.histories.*');
+                $ownStudentLifeActive = $studentLifeActive && $routePersonId === $currentUser->person_id;
+                $peopleRegistryActive = request()->routeIs('people.index')
+                    || request()->routeIs('people.create')
+                    || request()->routeIs('people.store')
+                    || request()->routeIs('people.show')
+                    || request()->routeIs('people.edit')
+                    || request()->routeIs('people.update')
+                    || request()->routeIs('people.contacts.*')
+                    || request()->routeIs('people.roles.*');
+                $personalMenuActive = request()->routeIs('profile.*') || request()->routeIs('student-diaries.*') || $ownStudentLifeActive || request()->routeIs('teacher-schedules.*');
+                $schoolManagementActive = request()->routeIs('schools.*') || request()->routeIs('academic-years.*') || $peopleRegistryActive || request()->routeIs('data-quality.*');
+                $academicRoutineActive = request()->routeIs('enrollments.*') || request()->routeIs('classes.enrollments.*') || request()->routeIs('attendance-justifications.*') || request()->routeIs('teacher-diaries.*') || ($studentLifeActive && ! $ownStudentLifeActive);
                 $documentsMenuActive = request()->routeIs('official-documents.*') || request()->routeIs('documents.verify.*');
             @endphp
 
@@ -80,9 +92,9 @@
                                 <i class="fas fa-book-reader" aria-hidden="true"></i>
                                 <span>Meu diário</span>
                             </a>
-                            <a class="collapse-item {{ request()->routeIs('people.student-map.show') ? 'active' : '' }}" href="{{ route('people.student-map.show', $currentUser->person_id) }}">
+                            <a class="collapse-item {{ $ownStudentLifeActive ? 'active' : '' }}" href="{{ route('people.student-map.show', $currentUser->person_id) }}">
                                 <i class="fas fa-map-marked-alt" aria-hidden="true"></i>
-                                <span>Meu mapa escolar</span>
+                                <span>Minha vida escolar</span>
                             </a>
                         @endif
                     </div>
@@ -96,7 +108,7 @@
                     <a class="nav-link {{ $schoolManagementActive ? '' : 'collapsed' }}" href="#" data-toggle="collapse" data-target="#collapseSchoolManagement"
                         aria-expanded="{{ $schoolManagementActive ? 'true' : 'false' }}" aria-controls="collapseSchoolManagement">
                         <i class="fas fa-fw fa-school" aria-hidden="true"></i>
-                        <span>Cadastros</span>
+                        <span>Cadastros básicos</span>
                     </a>
                     <div id="collapseSchoolManagement" class="collapse {{ $schoolManagementActive ? 'show' : '' }}" aria-labelledby="headingSchoolManagement" data-parent="#accordionSidebar">
                         <div class="bg-white py-2 collapse-inner rounded">
@@ -107,13 +119,13 @@
                                 </a>
                             @endif
                             @if ($canManagePeople)
-                                <a class="collapse-item {{ request()->routeIs('people.*') ? 'active' : '' }}" href="{{ route('people.index') }}">
+                                <a class="collapse-item {{ $peopleRegistryActive ? 'active' : '' }}" href="{{ route('people.index') }}">
                                     <i class="fas fa-users" aria-hidden="true"></i>
                                     <span>Pessoas</span>
                                 </a>
                                 <a class="collapse-item {{ request()->routeIs('data-quality.*') ? 'active' : '' }}" href="{{ route('data-quality.index') }}">
                                     <i class="fas fa-clipboard-check" aria-hidden="true"></i>
-                                    <span>Pendências de cadastro</span>
+                                    <span>Conformidade</span>
                                 </a>
                             @endif
                         </div>
@@ -128,7 +140,7 @@
                     <a class="nav-link {{ $academicRoutineActive ? '' : 'collapsed' }}" href="#" data-toggle="collapse" data-target="#collapseAcademicRoutine"
                         aria-expanded="{{ $academicRoutineActive ? 'true' : 'false' }}" aria-controls="collapseAcademicRoutine">
                         <i class="fas fa-fw fa-book-open" aria-hidden="true"></i>
-                        <span>Acadêmico</span>
+                        <span>Rotina acadêmica</span>
                     </a>
                     <div id="collapseAcademicRoutine" class="collapse {{ $academicRoutineActive ? 'show' : '' }}" aria-labelledby="headingAcademicRoutine" data-parent="#accordionSidebar">
                         <div class="bg-white py-2 collapse-inner rounded">
@@ -137,6 +149,12 @@
                                     <i class="fas fa-user-graduate" aria-hidden="true"></i>
                                     <span>Matrículas</span>
                                 </a>
+                                @if ($studentLifeActive && ! $ownStudentLifeActive && request()->route('person'))
+                                    <a class="collapse-item active" href="{{ route('people.student-map.show', request()->route('person')) }}">
+                                        <i class="fas fa-map-marked-alt" aria-hidden="true"></i>
+                                        <span>Vida escolar</span>
+                                    </a>
+                                @endif
                                 <a class="collapse-item {{ request()->routeIs('attendance-justifications.*') ? 'active' : '' }}" href="{{ route('attendance-justifications.index') }}">
                                     <i class="fas fa-notes-medical" aria-hidden="true"></i>
                                     <span>Justificativas de ausência</span>
@@ -220,7 +238,7 @@
                                 aria-labelledby="alertsDropdown">
                                 <h2 class="dropdown-header">Alertas</h2>
 
-                                @forelse ($topbarAnnouncements as $announcement)
+                                @foreach ($topbarAnnouncements as $announcement)
                                     <a class="dropdown-item d-flex align-items-start" href="{{ route('dashboard') }}">
                                         <div class="mr-3">
                                             <div class="icon-circle bg-primary">
@@ -235,9 +253,28 @@
                                             @endif
                                         </div>
                                     </a>
-                                @empty
+                                @endforeach
+
+                                @foreach ($topbarDiaryAlerts as $alert)
+                                    <a class="dropdown-item d-flex align-items-start" href="{{ route('teacher-diaries.show', [$alert->schoolClass, $alert->component, 'period' => $alert->academic_period_id]) }}">
+                                        <div class="mr-3">
+                                            <div class="icon-circle bg-warning">
+                                                <i class="fas fa-book text-white" aria-hidden="true"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="small text-gray-600">
+                                                {{ $alert->schoolClass?->name }} · {{ $alert->period?->name }}
+                                            </div>
+                                            <span class="font-weight-bold">Alerta da gestão em {{ $alert->component?->name }}</span>
+                                            <div class="small text-gray-700">{{ \Illuminate\Support\Str::limit($alert->message, 90) }}</div>
+                                        </div>
+                                    </a>
+                                @endforeach
+
+                                @if ($topbarAnnouncements->isEmpty() && $topbarDiaryAlerts->isEmpty())
                                     <div class="dropdown-item text-center small text-gray-600">Nenhum recado ativo.</div>
-                                @endforelse
+                                @endif
                             </div>
                         </li>
 
@@ -245,7 +282,7 @@
 
                         <li class="nav-item dropdown no-arrow">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
-                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Abrir menu do usuário">
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Abrir menu do usuário" title="Menu do usuário">
                                 @if (auth()->user()->avatar)
                                     <img class="img-profile rounded-circle mr-2" src="{{ auth()->user()->avatar }}" alt="">
                                 @else
@@ -286,13 +323,13 @@
                     </div>
 
                     @if (session('status'))
-                        <div class="alert alert-success">
+                        <div class="alert alert-success" role="status" aria-live="polite">
                             {{ session('status') }}
                         </div>
                     @endif
 
                     @if ($errors->any())
-                        <div class="alert alert-danger">
+                        <div class="alert alert-danger" role="alert">
                             Verifique os campos destacados e tente novamente.
                         </div>
                     @endif
@@ -309,49 +346,92 @@
     <script src="{{ asset('template/js/sb-admin-2.min.js') }}"></script>
     @livewireScripts
     <script>
-        document.querySelectorAll('[data-mask="cpf"]').forEach((input) => {
-            input.addEventListener('input', () => {
-                const value = input.value.replace(/\D/g, '').slice(0, 11);
-                input.value = value
+        const inputMasks = {
+            cpf(value) {
+                return value.replace(/\D/g, '').slice(0, 11)
                     .replace(/(\d{3})(\d)/, '$1.$2')
                     .replace(/(\d{3})(\d)/, '$1.$2')
                     .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-            });
-        });
-
-        document.querySelectorAll('[data-mask="cnpj"]').forEach((input) => {
-            input.addEventListener('input', () => {
-                const value = input.value.replace(/\D/g, '').slice(0, 14);
-                input.value = value
+            },
+            cnpj(value) {
+                return value.replace(/\D/g, '').slice(0, 14)
                     .replace(/(\d{2})(\d)/, '$1.$2')
                     .replace(/(\d{3})(\d)/, '$1.$2')
                     .replace(/(\d{3})(\d)/, '$1/$2')
                     .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
-            });
-        });
+            },
+            cep(value) {
+                return value.replace(/\D/g, '').slice(0, 8)
+                    .replace(/(\d{5})(\d{1,3})$/, '$1-$2');
+            },
+            phone(value) {
+                const digits = value.replace(/\D/g, '').slice(0, 11);
 
-        document.querySelectorAll('[data-mask="cep"]').forEach((input) => {
-            input.addEventListener('input', () => {
-                const value = input.value.replace(/\D/g, '').slice(0, 8);
-                input.value = value.replace(/(\d{5})(\d{1,3})$/, '$1-$2');
-            });
-        });
-
-        document.querySelectorAll('[data-mask="phone"]').forEach((input) => {
-            input.addEventListener('input', () => {
-                const value = input.value.replace(/\D/g, '').slice(0, 11);
-
-                if (value.length <= 10) {
-                    input.value = value
+                if (digits.length <= 10) {
+                    return digits
                         .replace(/(\d{2})(\d)/, '($1) $2')
                         .replace(/(\d{4})(\d)/, '$1-$2');
-                    return;
                 }
 
-                input.value = value
+                return digits
                     .replace(/(\d{2})(\d)/, '($1) $2')
                     .replace(/(\d{5})(\d)/, '$1-$2');
-            });
+            },
+            email(value) {
+                return value.replace(/\s+/g, '').toLowerCase();
+            },
+            digits(value, input) {
+                const limit = Number(input.dataset.maskMax || input.maxLength || 0);
+                const digits = value.replace(/\D/g, '');
+
+                return limit > 0 ? digits.slice(0, limit) : digits;
+            },
+            year(value) {
+                return value.replace(/\D/g, '').slice(0, 4);
+            },
+            decimal(value) {
+                const normalized = value.replace(/[^\d,.]/g, '').replace(/\./g, ',');
+                const parts = normalized.split(',');
+
+                if (parts.length === 1) {
+                    return parts[0];
+                }
+
+                return `${parts.shift()},${parts.join('').slice(0, 2)}`;
+            },
+            percentage(value) {
+                const digits = value.replace(/\D/g, '').slice(0, 3);
+                const number = Math.min(Number(digits || 0), 100);
+
+                return digits === '' ? '' : String(number);
+            },
+        };
+
+        const applyInputMask = (input) => {
+            const maskName = input.dataset.mask || (input.type === 'email' ? 'email' : null);
+            const mask = maskName ? inputMasks[maskName] : null;
+
+            if (!mask) {
+                return;
+            }
+
+            const cursorAtEnd = input.selectionStart === input.value.length;
+            input.value = mask(input.value, input);
+
+            if (cursorAtEnd && typeof input.setSelectionRange === 'function') {
+                try {
+                    input.setSelectionRange(input.value.length, input.value.length);
+                } catch (error) {
+                }
+            }
+        };
+
+        document.querySelectorAll('[data-mask], input[type="email"]').forEach(applyInputMask);
+
+        document.addEventListener('input', (event) => {
+            if (event.target instanceof HTMLInputElement && (event.target.dataset.mask || event.target.type === 'email')) {
+                applyInputMask(event.target);
+            }
         });
 
         const syncExportLink = (link) => {

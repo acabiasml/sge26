@@ -5,15 +5,17 @@ namespace App\Http\Controllers;
 use App\Models\AcademicYear;
 use App\Models\IssuedDocument;
 use App\Models\StudentEnrollment;
+use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnrollmentPdfController extends Controller
 {
-    public function __invoke(Request $request, StudentEnrollment $enrollment): Response
+    public function __invoke(Request $request, StudentEnrollment $enrollment): Response|RedirectResponse
     {
         $class = $enrollment->schoolClass()->firstOrFail();
         $academicYear = $class->academicYear()->firstOrFail();
@@ -23,6 +25,14 @@ class EnrollmentPdfController extends Controller
         $enrollment->load(['student.contacts', 'courses', 'schoolClass.courses', 'enrolledBy', 'transferredBy', 'reclassifiedFrom.schoolClass']);
         $academicYear->load('school');
 
+        if ($message = OfficialDocumentCompliance::personMessage($enrollment->student)) {
+            return redirect()->route('classes.enrollments.index', $class)->with('status', $message);
+        }
+
+        if ($message = OfficialDocumentCompliance::schoolMessage($academicYear->school)) {
+            return redirect()->route('schools.edit', $academicYear->school)->with('status', $message);
+        }
+
         $issuedDocument = $this->issuedDocument($request, $academicYear, $enrollment);
 
         $pdf = Pdf::loadView('reports.records.enrollment', [
@@ -31,7 +41,7 @@ class EnrollmentPdfController extends Controller
             'enrollment' => $enrollment,
             'issuedDocument' => $issuedDocument,
             'letterhead' => PdfLetterhead::make($academicYear->school),
-        ])->setPaper('a4');
+        ])->setPaper('a4', 'portrait');
 
         return $pdf->download('beaba-ficha-matricula-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
     }

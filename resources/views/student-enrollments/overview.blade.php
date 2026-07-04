@@ -3,73 +3,111 @@
 @section('title', 'Matrículas')
 @section('page-title', 'Matrículas')
 
+@section('page-actions')
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('data-quality.index') }}" aria-label="Abrir conformidade antes de matricular" title="Conformidade">
+        <i class="fas fa-clipboard-check" aria-hidden="true"></i>
+    </a>
+@endsection
+
 @section('content')
-    <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h2 class="h6 m-0 font-weight-bold text-primary">Turmas disponíveis para matrícula</h2>
-        </div>
-        <div class="card-body">
-            <p class="text-muted mb-4">
-                Escolha uma turma para cadastrar, transferir, reclassificar ou emitir fichas de matrícula.
+    <section class="sge-flow-hero mb-4" aria-labelledby="enrollment-overview-title">
+        <div>
+            <div class="sge-page-kicker">Rotina acadêmica</div>
+            <h2 id="enrollment-overview-title">Escolha a turma para gerenciar matrículas</h2>
+            <p>
+                Matrículas, transferências, reclassificações e fichas físicas ficam dentro da turma.
+                Pessoas com bloqueio de conformidade precisam ser regularizadas antes de novas emissões oficiais.
             </p>
-
-            @forelse ($schools as $school)
-                <section class="mb-4">
-                    <div class="d-flex align-items-center justify-content-between flex-wrap mb-2">
-                        <h3 class="h5 mb-2 mb-md-0">{{ $school->name }}</h3>
-                        <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('schools.academic-years.index', $school) }}" aria-label="Abrir anos letivos de {{ $school->name }}" title="Anos letivos">
-                            <i class="fas fa-calendar-alt" aria-hidden="true"></i>
-                        </a>
-                    </div>
-
-                    @php($yearsWithClasses = $school->academicYears->filter(fn ($year) => $year->classes->isNotEmpty()))
-
-                    @forelse ($yearsWithClasses as $year)
-                        <div class="border rounded mb-3">
-                            <div class="px-3 py-2 bg-light border-bottom">
-                                <strong>{{ $year->name }}</strong>
-                                <span class="text-muted small ml-2">{{ $year->starts_at?->format('d/m/Y') }} a {{ $year->ends_at?->format('d/m/Y') }}</span>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table table-sm mb-0">
-                                    <thead>
-                                        <tr>
-                                            <th>Turma</th>
-                                            <th>Matrizes ativas</th>
-                                            <th>Matrículas</th>
-                                            <th class="text-right">Ações</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($year->classes as $class)
-                                            <tr>
-                                                <td>{{ $class->name }}</td>
-                                                <td>{{ $class->courses->pluck('name')->join(' + ') ?: '-' }}</td>
-                                                @php($activeEnrollmentCount = $class->enrollments->where('status', \App\Models\StudentEnrollment::STATUS_ENROLLED)->count())
-                                                <td>
-                                                    <strong>{{ $activeEnrollmentCount }} ativa(s)</strong>
-                                                    @if ($class->enrollments->count() !== $activeEnrollmentCount)
-                                                        <span class="d-block small text-muted">{{ $class->enrollments->count() }} no histórico</span>
-                                                    @endif
-                                                </td>
-                                                <td class="text-right">
-                                                    <a class="btn btn-sm btn-primary sge-icon-action" href="{{ route('classes.enrollments.index', $class) }}" aria-label="Gerenciar matrículas da turma {{ $class->name }}" title="Gerenciar matrículas">
-                                                        <i class="fas fa-user-graduate" aria-hidden="true"></i>
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    @empty
-                        <p class="text-muted">Nenhuma turma ativa com matriz ativa encontrada nesta escola.</p>
-                    @endforelse
-                </section>
-            @empty
-                <p class="mb-0">Nenhuma escola disponível para matrícula.</p>
-            @endforelse
         </div>
-    </div>
+        <a class="btn btn-primary" href="{{ route('people.index') }}">
+            <i class="fas fa-user-plus mr-1" aria-hidden="true"></i>
+            Localizar estudante
+        </a>
+    </section>
+
+    @forelse ($schools as $school)
+        @php($yearsWithClasses = $school->academicYears->filter(fn ($year) => $year->classes->isNotEmpty()))
+
+        <section class="card shadow mb-4" aria-labelledby="school-enrollments-{{ $school->id }}">
+            <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap">
+                <div>
+                    <h2 id="school-enrollments-{{ $school->id }}" class="h5 mb-1 text-primary font-weight-bold">{{ $school->name }}</h2>
+                    <p class="small text-gray-600 mb-0">
+                        {{ $yearsWithClasses->count() }} ano(s) letivo(s) com turma ·
+                        {{ $yearsWithClasses->flatMap->classes->count() }} turma(s)
+                    </p>
+                </div>
+                <a class="btn btn-sm btn-outline-primary sge-icon-action mt-2 mt-md-0" href="{{ route('schools.academic-years.index', $school) }}" aria-label="Abrir anos letivos de {{ $school->name }}" title="Anos letivos">
+                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                @forelse ($yearsWithClasses as $year)
+                    <article class="sge-enrollment-year">
+                        <header class="sge-enrollment-year-header">
+                            <div>
+                                <span class="sge-page-kicker">Ano letivo</span>
+                                <h3>{{ $year->name }}</h3>
+                                <p>{{ $year->starts_at?->format('d/m/Y') }} a {{ $year->ends_at?->format('d/m/Y') }}</p>
+                            </div>
+                            <div class="sge-enrollment-year-stats" aria-label="Resumo de {{ $year->name }}">
+                                <span><strong>{{ $year->classes->count() }}</strong> turma(s)</span>
+                                <span><strong>{{ $year->classes->sum(fn ($class) => $class->enrollments->where('status', \App\Models\StudentEnrollment::STATUS_ENROLLED)->count()) }}</strong> ativa(s)</span>
+                            </div>
+                        </header>
+
+                        <div class="sge-enrollment-class-grid">
+                            @foreach ($year->classes->sortBy('name') as $class)
+                                @php($activeEnrollmentCount = $class->enrollments->where('status', \App\Models\StudentEnrollment::STATUS_ENROLLED)->count())
+                                <article class="sge-enrollment-class-card">
+                                    <div class="sge-enrollment-class-main">
+                                        <h4>{{ $class->name }}</h4>
+                                        <p>{{ $class->shift ?: 'Turno não definido' }}</p>
+                                        <div class="sge-class-course-chips">
+                                            @forelse ($class->courses as $course)
+                                                <span>
+                                                    <strong>{{ $course->name }}</strong>
+                                                    <small>{{ $course->stageLabel() }}</small>
+                                                </span>
+                                            @empty
+                                                <span>
+                                                    <strong>Sem matriz</strong>
+                                                    <small>Regularize antes de matricular</small>
+                                                </span>
+                                            @endforelse
+                                        </div>
+                                    </div>
+                                    <div class="sge-enrollment-class-side">
+                                        <strong>{{ $activeEnrollmentCount }}</strong>
+                                        <span>ativa(s)</span>
+                                        @if ($class->enrollments->count() !== $activeEnrollmentCount)
+                                            <small>{{ $class->enrollments->count() }} no histórico</small>
+                                        @endif
+                                        <a class="btn btn-sm btn-primary mt-2" href="{{ route('classes.enrollments.index', $class) }}">
+                                            <i class="fas fa-user-graduate mr-1" aria-hidden="true"></i>
+                                            Gerenciar
+                                        </a>
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+                    </article>
+                @empty
+                    <div class="sge-empty-state">
+                        <i class="fas fa-users" aria-hidden="true"></i>
+                        <p>Nenhuma turma com matriz ativa encontrada nesta escola.</p>
+                    </div>
+                @endforelse
+            </div>
+        </section>
+    @empty
+        <section class="card shadow">
+            <div class="card-body">
+                <div class="sge-empty-state">
+                    <i class="fas fa-school" aria-hidden="true"></i>
+                    <p>Nenhuma escola disponível para matrícula.</p>
+                </div>
+            </div>
+        </section>
+    @endforelse
 @endsection

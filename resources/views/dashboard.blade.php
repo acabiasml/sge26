@@ -54,9 +54,9 @@
 
             <a class="sge-metric-card sge-metric-gold" href="{{ route('data-quality.index') }}">
                 <span class="sge-metric-icon" aria-hidden="true"><i class="fas fa-clipboard-check"></i></span>
-                <span class="sge-metric-label">Pendências</span>
+                <span class="sge-metric-label">Conformidade</span>
                 <strong>{{ number_format($registrationPendingCount, 0, ',', '.') }}</strong>
-                <span class="sge-metric-note">Cadastros ativos a revisar</span>
+                <span class="sge-metric-note">Bloqueios e avisos a revisar</span>
             </a>
 
             <div class="sge-metric-card sge-metric-orange">

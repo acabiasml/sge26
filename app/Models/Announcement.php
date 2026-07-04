@@ -21,6 +21,9 @@ class Announcement extends Model
         'ends_at',
         'highlight',
         'active',
+        'legacy_source',
+        'legacy_id',
+        'legacy_metadata',
     ];
 
     protected function casts(): array
@@ -30,6 +33,7 @@ class Announcement extends Model
             'ends_at' => 'datetime',
             'highlight' => 'boolean',
             'active' => 'boolean',
+            'legacy_metadata' => 'array',
         ];
     }
 

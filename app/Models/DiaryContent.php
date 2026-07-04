@@ -18,11 +18,17 @@ class DiaryContent extends Model
         'content',
         'created_by_person_id',
         'updated_by_person_id',
+        'legacy_source',
+        'legacy_id',
+        'legacy_metadata',
     ];
 
     protected function casts(): array
     {
-        return ['class_date' => 'date'];
+        return [
+            'class_date' => 'date',
+            'legacy_metadata' => 'array',
+        ];
     }
 
     public function schoolClass(): BelongsTo { return $this->belongsTo(SchoolClass::class); }

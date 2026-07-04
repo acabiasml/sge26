@@ -24,6 +24,9 @@ class Person extends Model
         'social_name',
         'cpf',
         'birth_date',
+        'birth_city',
+        'birth_state',
+        'nationality',
         'mother_name',
         'father_name',
         'institutional_email',
@@ -55,6 +58,8 @@ class Person extends Model
         return [
             'full_name',
             'social_name',
+            'birth_city',
+            'nationality',
             'mother_name',
             'father_name',
             'address',
@@ -68,8 +73,15 @@ class Person extends Model
     {
         return filled($this->cpf)
             && filled($this->birth_date)
+            && filled($this->birth_city)
+            && filled($this->birth_state)
+            && filled($this->nationality)
             && filled($this->mother_name)
             && filled($this->phone)
+            && filled($this->address)
+            && filled($this->city)
+            && filled($this->state)
+            && filled($this->postal_code)
             && filled($this->profile_completed_at);
     }
 
@@ -77,6 +89,45 @@ class Person extends Model
     {
         return filled($this->cpf)
             && filled($this->institutional_email);
+    }
+
+    public function hasRequiredIdentityForSchoolDocuments(): bool
+    {
+        return collect([
+            $this->full_name,
+            $this->cpf,
+            $this->birth_date,
+            $this->birth_city,
+            $this->birth_state,
+            $this->nationality,
+            $this->mother_name,
+            $this->institutional_email,
+            $this->phone,
+            $this->address,
+            $this->city,
+            $this->state,
+            $this->postal_code,
+        ])->every(fn ($value): bool => filled($value));
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function missingSchoolDocumentFields(): array
+    {
+        $fields = [
+            'full_name' => 'nome completo',
+            'cpf' => 'CPF',
+            'birth_date' => 'data de nascimento',
+            'mother_name' => 'nome da mãe',
+            'institutional_email' => 'e-mail institucional',
+            'phone' => 'telefone',
+        ];
+
+        return collect($fields)
+            ->filter(fn (string $label, string $field): bool => blank($this->{$field}))
+            ->values()
+            ->all();
     }
 
     public function user(): HasOne
@@ -102,6 +153,11 @@ class Person extends Model
     public function studentEnrollments(): HasMany
     {
         return $this->hasMany(StudentEnrollment::class);
+    }
+
+    public function academicHistories(): HasMany
+    {
+        return $this->hasMany(StudentAcademicHistory::class);
     }
 
     public function inverseRelationships(): HasMany

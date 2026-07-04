@@ -22,7 +22,7 @@
         </div>
         <div class="col-md-5 form-group">
             <label for="reference_year">Ano principal</label>
-            <input id="reference_year" name="reference_year" type="number" min="2000" max="2100" class="form-control @error('reference_year') is-invalid @enderror" value="{{ old('reference_year', $academicYear->reference_year ?? now()->year) }}" required>
+            <input id="reference_year" name="reference_year" data-mask="year" inputmode="numeric" autocomplete="off" class="form-control @error('reference_year') is-invalid @enderror" value="{{ old('reference_year', $academicYear->reference_year ?? now()->year) }}" required>
             <small class="form-text text-muted">Usado para organização e busca.</small>
             @error('reference_year') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
@@ -34,13 +34,13 @@
     <div class="row">
         <div class="col-md-6 form-group mb-md-0">
             <label for="passing_points">Soma mínima de pontos para aprovação</label>
-            <input id="passing_points" name="passing_points" type="number" min="0" max="100" step="0.5" class="form-control @error('passing_points') is-invalid @enderror" value="{{ old('passing_points', $academicYear->passing_points ?? 24) }}" required>
+            <input id="passing_points" name="passing_points" data-mask="decimal" inputmode="decimal" class="form-control @error('passing_points') is-invalid @enderror" value="{{ old('passing_points', $academicYear->passing_points ?? 24) }}" required>
             <small class="form-text text-muted">Informe a pontuação anual exigida, como 24 ou 22,5. Use múltiplos de 0,5.</small>
             @error('passing_points') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
         <div class="col-md-6 form-group mb-0">
             <label for="minimum_attendance_percentage">Frequência mínima para aprovação</label>
-            <div class="input-group"><input id="minimum_attendance_percentage" name="minimum_attendance_percentage" type="number" min="1" max="100" step="1" class="form-control @error('minimum_attendance_percentage') is-invalid @enderror" value="{{ old('minimum_attendance_percentage', $academicYear->minimum_attendance_percentage ?? 75) }}" required><div class="input-group-append"><span class="input-group-text">%</span></div></div>
+            <div class="input-group"><input id="minimum_attendance_percentage" name="minimum_attendance_percentage" data-mask="percentage" inputmode="numeric" class="form-control @error('minimum_attendance_percentage') is-invalid @enderror" value="{{ old('minimum_attendance_percentage', $academicYear->minimum_attendance_percentage ?? 75) }}" required><div class="input-group-append"><span class="input-group-text">%</span></div></div>
             <small class="form-text text-muted">Ausências justificadas permanecem registradas, mas contam como presença neste cálculo.</small>
             @error('minimum_attendance_percentage') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
@@ -60,6 +60,14 @@
             <input id="ends_at" name="ends_at" type="date" class="form-control @error('ends_at') is-invalid @enderror" value="{{ old('ends_at', isset($academicYear) ? $academicYear->ends_at?->toDateString() : '') }}" required>
             @error('ends_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
+        @if (isset($academicYear))
+            <div class="col-md-4 form-group">
+                <label for="approved_at">Data de aprovação</label>
+                <input id="approved_at" name="approved_at" type="date" class="form-control @error('approved_at') is-invalid @enderror" value="{{ old('approved_at', $academicYear->approved_at?->toDateString()) }}">
+                <small class="form-text text-muted">Administração e Gestão podem ajustar esta data.</small>
+                @error('approved_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+        @endif
         <div class="col-md-4 form-group d-flex align-items-end">
             <div class="custom-control custom-switch mb-2">
                 <input type="checkbox" class="custom-control-input" id="active" name="active" value="1" @checked(old('active', $academicYear->active ?? true))>

@@ -21,6 +21,15 @@ class StudentEnrollment extends Model
     public const TYPE_REGULAR = 'regular';
     public const TYPE_LISTENER = 'ouvinte';
 
+    public const FINAL_PENDING = 'pendente';
+    public const FINAL_APPROVED = 'aprovado';
+    public const FINAL_DEPENDENCY = 'dependencia';
+    public const FINAL_RETAINED_POINTS = 'retido_por_pontos';
+    public const FINAL_RETAINED_ATTENDANCE = 'retido_por_frequencia';
+    public const FINAL_TRANSFERRED = 'transferido';
+    public const FINAL_RECLASSIFIED = 'reclassificado';
+    public const FINAL_CANCELLED = 'cancelado';
+
     public const STATUS_LABELS = [
         self::STATUS_ENROLLED => 'Matriculado',
         self::STATUS_TRANSFERRED => 'Transferido',
@@ -31,6 +40,17 @@ class StudentEnrollment extends Model
     public const TYPE_LABELS = [
         self::TYPE_REGULAR => 'Regular',
         self::TYPE_LISTENER => 'Ouvinte',
+    ];
+
+    public const FINAL_RESULT_LABELS = [
+        self::FINAL_PENDING => 'Pendente',
+        self::FINAL_APPROVED => 'Aprovado',
+        self::FINAL_DEPENDENCY => 'Em dependência',
+        self::FINAL_RETAINED_POINTS => 'Retido por pontos',
+        self::FINAL_RETAINED_ATTENDANCE => 'Retido por frequência',
+        self::FINAL_TRANSFERRED => 'Transferido',
+        self::FINAL_RECLASSIFIED => 'Reclassificado',
+        self::FINAL_CANCELLED => 'Cancelado',
     ];
 
     protected $fillable = [
@@ -47,6 +67,10 @@ class StudentEnrollment extends Model
         'reclassified_at',
         'status',
         'type',
+        'final_result_status',
+        'final_result_details',
+        'final_result_calculated_at',
+        'final_result_calculated_by_person_id',
         'notes',
         'legacy_source',
         'legacy_id',
@@ -60,6 +84,8 @@ class StudentEnrollment extends Model
             'transferred_at' => 'date',
             'cancelled_at' => 'date',
             'reclassified_at' => 'date',
+            'final_result_details' => 'array',
+            'final_result_calculated_at' => 'datetime',
             'legacy_metadata' => 'array',
         ];
     }
@@ -99,6 +125,11 @@ class StudentEnrollment extends Model
         return $this->belongsTo(Person::class, 'reclassified_by_person_id');
     }
 
+    public function finalResultCalculatedBy(): BelongsTo
+    {
+        return $this->belongsTo(Person::class, 'final_result_calculated_by_person_id');
+    }
+
     public function courses(): BelongsToMany
     {
         return $this->belongsToMany(AcademicCourse::class, 'academic_course_student_enrollment')->withTimestamps();
@@ -119,6 +150,16 @@ class StudentEnrollment extends Model
         return $this->hasMany(DiaryAttendanceJustification::class);
     }
 
+    public function behaviorGrades(): HasMany
+    {
+        return $this->hasMany(StudentBehaviorGrade::class);
+    }
+
+    public function periodConvalidations(): HasMany
+    {
+        return $this->hasMany(StudentPeriodConvalidation::class);
+    }
+
     public function statusLabel(): string
     {
         return self::STATUS_LABELS[$this->status] ?? $this->status;
@@ -127,6 +168,11 @@ class StudentEnrollment extends Model
     public function typeLabel(): string
     {
         return self::TYPE_LABELS[$this->type] ?? $this->type;
+    }
+
+    public function finalResultLabel(): string
+    {
+        return self::FINAL_RESULT_LABELS[$this->final_result_status] ?? 'Não calculado';
     }
 
     public function isActive(): bool

@@ -6,8 +6,10 @@
 @section('page-actions')
     @if($period)
         <a class="btn btn-sm btn-outline-primary shadow-sm mr-1" href="{{ route('teacher-diaries.pdf', [$schoolClass, $component, 'period' => $period->id]) }}" aria-label="Imprimir diário do período" title="Imprimir período"><i class="fas fa-file-pdf mr-1" aria-hidden="true"></i>Período</a>
+        <a class="btn btn-sm btn-outline-primary shadow-sm mr-1" href="{{ route('teacher-diaries.pdf', [$schoolClass, $component, 'period' => $period->id, 'notas' => 'conceitos']) }}" aria-label="Imprimir diário do período em conceitos" title="Imprimir período em conceitos"><i class="fas fa-star-half-alt mr-1" aria-hidden="true"></i>Conceitos</a>
     @endif
     <a class="btn btn-sm btn-outline-primary shadow-sm mr-1" href="{{ route('teacher-diaries.pdf', [$schoolClass, $component]) }}" aria-label="Imprimir diário completo do ano" title="Imprimir ano"><i class="fas fa-file-pdf mr-1" aria-hidden="true"></i>Ano</a>
+    <a class="btn btn-sm btn-outline-primary shadow-sm mr-1" href="{{ route('teacher-diaries.pdf', [$schoolClass, $component, 'notas' => 'conceitos']) }}" aria-label="Imprimir diário completo do ano em conceitos" title="Imprimir ano em conceitos"><i class="fas fa-star-half-alt mr-1" aria-hidden="true"></i>Ano em conceitos</a>
     <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action mr-1" href="{{ route('academic-years.classes.schedules.pdf', [$academicYear, $schoolClass]) }}" aria-label="Imprimir horário da turma" title="Imprimir horário da turma">
         <i class="fas fa-calendar-week" aria-hidden="true"></i>
     </a>
@@ -62,10 +64,21 @@
                 </div>
                 <div class="card-body">
                     @foreach($alerts as $alert)
-                        <div class="alert alert-warning mb-2">
-                            <strong>{{ $alert->fromPerson?->full_name ?? 'Gestão' }}</strong>
-                            <span class="small text-muted">· {{ $alert->created_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}</span>
-                            <p class="mb-0 mt-1">{{ $alert->message }}</p>
+                        <div class="alert alert-warning mb-2 d-flex align-items-start justify-content-between flex-wrap">
+                            <div class="mr-3">
+                                <strong>{{ $alert->fromPerson?->full_name ?? 'Gestão' }}</strong>
+                                <span class="small text-muted">· {{ $alert->created_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}</span>
+                                <p class="mb-0 mt-1">{{ $alert->message }}</p>
+                            </div>
+                            @if($alert->to_person_id === auth()->user()->person_id)
+                                <form method="POST" action="{{ route('teacher-diaries.alerts.dismiss', $alert) }}" class="mt-2 mt-md-0">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button class="btn btn-sm btn-outline-warning" type="submit">
+                                        <i class="fas fa-check mr-1" aria-hidden="true"></i>Dispensar
+                                    </button>
+                                </form>
+                            @endif
                         </div>
                     @endforeach
                 </div>
@@ -151,7 +164,7 @@
                                             <td>{{ $enrollment->student?->full_name }}</td>
                                             @foreach ($assessments as $assessment)
                                                 @php($result = $assessment->results->firstWhere('student_enrollment_id', $enrollment->id))
-                                                <td><label class="sr-only" for="score_{{ $assessment->id }}_{{ $enrollment->id }}">Nota de {{ $enrollment->student?->full_name }} em {{ $assessment->title }}</label><input id="score_{{ $assessment->id }}_{{ $enrollment->id }}" name="scores[{{ $assessment->id }}][{{ $enrollment->id }}]" type="number" min="0" max="{{ $assessment->maximum_score }}" step="0.01" class="form-control form-control-sm" value="{{ $result?->score }}">@if($result?->updatedBy && $result->updated_by_person_id !== $assignment->teacher_person_id)<span class="d-block small text-warning mt-1" title="Lançamento alterado por {{ $result->updatedBy->full_name }}"><i class="fas fa-user-shield" aria-hidden="true"></i><span class="sr-only">Alterado por {{ $result->updatedBy->full_name }}</span></span>@endif</td>
+                                                <td><label class="sr-only" for="score_{{ $assessment->id }}_{{ $enrollment->id }}">Nota de {{ $enrollment->student?->full_name }} em {{ $assessment->title }}</label><input id="score_{{ $assessment->id }}_{{ $enrollment->id }}" name="scores[{{ $assessment->id }}][{{ $enrollment->id }}]" data-mask="decimal" inputmode="decimal" class="form-control form-control-sm" value="{{ $result?->score }}">@if($result?->updatedBy && $result->updated_by_person_id !== $assignment->teacher_person_id)<span class="d-block small text-warning mt-1" title="Lançamento alterado por {{ $result->updatedBy->full_name }}"><i class="fas fa-user-shield" aria-hidden="true"></i><span class="sr-only">Alterado por {{ $result->updatedBy->full_name }}</span></span>@endif</td>
                                             @endforeach
                                             @php($average = $averages[$enrollment->id])
                                             <td class="text-center font-weight-bold">{{ $average['value'] ?? '-' }}@if (($average['value'] ?? null) !== null)<span class="d-block small text-muted">{{ $average['complete'] ? 'Completa' : $average['completed_assessments'].' de '.$average['total_assessments'].' lançada(s)' }}</span>@endif</td>

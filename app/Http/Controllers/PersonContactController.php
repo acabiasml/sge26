@@ -14,25 +14,21 @@ class PersonContactController extends Controller
     {
         abort_unless($this->canManagePerson($request, $person), 403);
 
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'relationship_type' => ['required', Rule::in(array_keys(PersonContact::TYPE_LABELS))],
-            'cpf' => ['nullable', 'string', 'max:20'],
-            'phone' => ['nullable', 'string', 'max:255'],
-            'secondary_phone' => ['nullable', 'string', 'max:255'],
-            'email' => ['nullable', 'email', 'max:255'],
-            'legal_guardian' => ['nullable', 'boolean'],
-            'emergency_contact' => ['nullable', 'boolean'],
-            'notes' => ['nullable', 'string', 'max:2000'],
-        ]);
-
-        $data['legal_guardian'] = $request->boolean('legal_guardian');
-        $data['emergency_contact'] = $request->boolean('emergency_contact');
-
-        $person->contacts()->create($data);
+        $person->contacts()->create($this->validatedData($request));
 
         return redirect()->route('people.show', $person)
             ->with('status', 'Contato cadastrado com sucesso.');
+    }
+
+    public function update(Request $request, Person $person, PersonContact $contact): RedirectResponse
+    {
+        abort_unless($contact->person_id === $person->id, 404);
+        abort_unless($this->canManagePerson($request, $person), 403);
+
+        $contact->update($this->validatedData($request));
+
+        return redirect()->route('people.show', $person)
+            ->with('status', 'Contato atualizado com sucesso.');
     }
 
     public function destroy(Request $request, Person $person, PersonContact $contact): RedirectResponse
@@ -57,5 +53,28 @@ class PersonContactController extends Controller
         return $person->schoolRoles()
             ->whereIn('school_id', $user->manageableSchoolIds())
             ->exists();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validatedData(Request $request): array
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'relationship_type' => ['required', Rule::in(array_keys(PersonContact::TYPE_LABELS))],
+            'cpf' => ['nullable', 'string', 'max:20'],
+            'phone' => ['nullable', 'string', 'max:255'],
+            'secondary_phone' => ['nullable', 'string', 'max:255'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'legal_guardian' => ['nullable', 'boolean'],
+            'emergency_contact' => ['nullable', 'boolean'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $data['legal_guardian'] = $request->boolean('legal_guardian');
+        $data['emergency_contact'] = $request->boolean('emergency_contact');
+
+        return $data;
     }
 }

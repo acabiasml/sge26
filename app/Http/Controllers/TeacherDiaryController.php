@@ -19,6 +19,7 @@ use App\Models\SchoolClassComponent;
 use App\Models\SchoolAssessmentRule;
 use App\Models\School;
 use App\Models\StudentEnrollment;
+use App\Support\DiaryGradeCalculator;
 use App\Support\DiaryPeriodStatus;
 use App\Support\PdfLetterhead;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -118,6 +119,7 @@ class TeacherDiaryController extends Controller
             $alertCounts = DiaryAlert::query()
                 ->where('academic_period_id', $period->id)
                 ->whereNull('resolved_at')
+                ->whereNull('dismissed_at')
                 ->get()
                 ->countBy(fn (DiaryAlert $alert): string => $alert->school_class_id.'-'.$alert->curriculum_component_id);
 
@@ -304,6 +306,10 @@ class TeacherDiaryController extends Controller
                 ->where('curriculum_component_id', $component->id)
                 ->where('academic_period_id', $period->id)
                 ->whereNull('resolved_at')
+                ->whereNull('dismissed_at')
+                ->when(! $request->user()->canManageSchool($academicYear->school_id), function (Builder $query) use ($request): void {
+                    $query->where('to_person_id', $request->user()->person_id);
+                })
                 ->latest()
                 ->get()
             : collect();
@@ -335,8 +341,9 @@ class TeacherDiaryController extends Controller
     {
         $this->authorizeDiaryAccess($request, $schoolClass, $component);
 
-        $course = $component->course()->with('academicYear.school')->firstOrFail();
+        $course = $component->course()->with('academicYear.school.concepts')->firstOrFail();
         $academicYear = $course->academicYear;
+        $scoreView = $request->query('notas') === 'conceitos' ? 'conceitos' : 'numeros';
         $assignment = SchoolClassComponent::query()
             ->with('teacher')
             ->where('school_class_id', $schoolClass->id)
@@ -401,6 +408,7 @@ class TeacherDiaryController extends Controller
             'assignment' => $assignment,
             'enrollments' => $enrollments,
             'periodReports' => $periodReports,
+            'scoreView' => $scoreView,
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
             'letterhead' => PdfLetterhead::make($academicYear->school),
@@ -814,6 +822,14 @@ class TeacherDiaryController extends Controller
             ->get()
             ->keyBy('id');
 
+        $request->merge([
+            'scores' => collect($request->input('scores', []))
+                ->map(fn ($scores) => is_array($scores) ? collect($scores)
+                    ->map(fn ($score) => is_string($score) ? str_replace(',', '.', $score) : $score)
+                    ->all() : $scores)
+                ->all(),
+        ]);
+
         $data = $request->validate([
             'academic_period_id' => ['required', Rule::in($course->academicYear->periods()->pluck('id')->all())],
             'scores' => ['nullable', 'array'],
@@ -863,6 +879,7 @@ class TeacherDiaryController extends Controller
         $course = $component->course()->with('academicYear')->firstOrFail();
         $period = $course->academicYear->periods()->findOrFail($request->integer('academic_period_id'));
         $this->ensureComponentActiveInPeriod($component, $period);
+        $this->ensureAcademicYearIsOpen($course->academicYear);
 
         if ($this->periodIsConsolidated($period)) {
             throw ValidationException::withMessages(['academic_period_id' => 'Este período já foi consolidado pela gestão. Reabra o período antes de confirmar novamente.']);
@@ -907,6 +924,7 @@ class TeacherDiaryController extends Controller
         $component->loadMissing('course.academicYear');
         $academicYear = $component->course?->academicYear;
         abort_unless($academicYear && $request->user()->canManageSchool($academicYear->school_id), 403);
+        $this->ensureAcademicYearIsOpen($academicYear);
         $period = $academicYear->periods()->findOrFail($request->integer('academic_period_id'));
         $this->ensureComponentActiveInPeriod($component, $period);
         $data = $request->validate(['reopen_reason' => ['required', 'string', 'max:2000']]);
@@ -938,6 +956,7 @@ class TeacherDiaryController extends Controller
         $academicYear = $component->course?->academicYear;
         abort_unless($academicYear && $schoolClass->academic_year_id === $academicYear->id, 404);
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
+        $this->ensureAcademicYearIsOpen($academicYear);
 
         $assignment = SchoolClassComponent::query()
             ->where('school_class_id', $schoolClass->id)
@@ -960,6 +979,17 @@ class TeacherDiaryController extends Controller
         ]);
 
         return back()->with('status', 'Alerta enviado para a docência.');
+    }
+
+    public function dismissAlert(Request $request, DiaryAlert $alert): RedirectResponse
+    {
+        abort_unless($alert->to_person_id === $request->user()->person_id, 403);
+
+        $alert->update([
+            'dismissed_at' => now(),
+        ]);
+
+        return back()->with('status', 'Alerta dispensado.');
     }
 
     private function authorizeDiaryAccess(Request $request, SchoolClass $schoolClass, CurriculumComponent $component): void
@@ -986,6 +1016,9 @@ class TeacherDiaryController extends Controller
 
     private function ensurePeriodOpen(SchoolClass $schoolClass, CurriculumComponent $component, AcademicPeriod $period): void
     {
+        $period->loadMissing('academicYear');
+        $this->ensureAcademicYearIsOpen($period->academicYear);
+
         if ($this->periodIsConsolidated($period)) {
             throw ValidationException::withMessages(['academic_period_id' => 'Este período foi consolidado pela gestão. Reabra o período antes de novos lançamentos.']);
         }
@@ -999,6 +1032,17 @@ class TeacherDiaryController extends Controller
         if ($confirmed) {
             throw ValidationException::withMessages(['academic_period_id' => 'Este período está confirmado. A gestão precisa reabri-lo antes de novos lançamentos.']);
         }
+    }
+
+    private function ensureAcademicYearIsOpen(?AcademicYear $academicYear): void
+    {
+        if ($academicYear && ! $academicYear->isClosed()) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'academic_period_id' => 'Este ano letivo está fechado. Reabra o ano letivo antes de alterar diários.',
+        ]);
     }
 
     private function periodIsConsolidated(AcademicPeriod $period): bool
@@ -1274,73 +1318,7 @@ class TeacherDiaryController extends Controller
 
     private function averages(Collection $enrollments, Collection $assessments): array
     {
-        $averages = [];
-        $regularAssessments = $assessments->where('is_recovery', false)->values();
-        $recoveryAssessment = $assessments->firstWhere('is_recovery', true);
-
-        foreach ($enrollments as $enrollment) {
-            $weightedScore = 0.0;
-            $totalWeight = 0;
-            $completedAssessments = 0;
-
-            $scores = [];
-            foreach ($regularAssessments as $assessment) {
-                $result = $assessment->results->firstWhere('student_enrollment_id', $enrollment->id);
-
-                if ($result?->score === null) {
-                    continue;
-                }
-
-                $scores[$assessment->id] = (float) $result->score;
-                $completedAssessments++;
-            }
-
-            $recoveryScore = $recoveryAssessment?->results->firstWhere('student_enrollment_id', $enrollment->id)?->score;
-            if ($recoveryScore !== null) {
-                if ($recoveryAssessment->recovery_mode === AcademicPeriod::RECOVERY_REPLACE_ASSESSMENT) {
-                    $target = $regularAssessments->firstWhere('school_assessment_rule_id', $recoveryAssessment->recovery_replaced_rule_id);
-                    if ($target && array_key_exists($target->id, $scores)) {
-                        $scores[$target->id] = (float) $recoveryScore;
-                    }
-                }
-
-                if ($recoveryAssessment->recovery_mode === AcademicPeriod::RECOVERY_REPLACE_LOWEST && $scores !== []) {
-                    $lowestAssessmentId = collect($scores)
-                        ->sortBy(fn (float $score, int $assessmentId): float => $score / (float) $regularAssessments->firstWhere('id', $assessmentId)->maximum_score)
-                        ->keys()
-                        ->first();
-                    $scores[$lowestAssessmentId] = (float) $recoveryScore;
-                }
-            }
-
-            foreach ($regularAssessments as $assessment) {
-                if (! array_key_exists($assessment->id, $scores)) {
-                    continue;
-                }
-
-                $weightedScore += ($scores[$assessment->id] / (float) $assessment->maximum_score) * 10 * (int) $assessment->weight;
-                $totalWeight += (int) $assessment->weight;
-            }
-
-            if ($recoveryScore !== null && $recoveryAssessment?->recovery_mode === AcademicPeriod::RECOVERY_WEIGHTED) {
-                $weightedScore += ((float) $recoveryScore / (float) $recoveryAssessment->maximum_score) * 10 * (int) $recoveryAssessment->weight;
-                $totalWeight += (int) $recoveryAssessment->weight;
-            }
-
-            $averages[$enrollment->id] = [
-                'value' => $totalWeight > 0 ? $this->roundToNearestHalf($weightedScore / $totalWeight) : null,
-                'completed_assessments' => $completedAssessments,
-                'total_assessments' => $regularAssessments->count(),
-                'complete' => $regularAssessments->isNotEmpty() && $completedAssessments === $regularAssessments->count(),
-            ];
-        }
-
-        return $averages;
-    }
-
-    private function roundToNearestHalf(float $value): float
-    {
-        return round($value * 2) / 2;
+        return app(DiaryGradeCalculator::class)->averages($enrollments, $assessments);
     }
 
     /**
