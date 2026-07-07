@@ -4,15 +4,12 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Person;
-use App\Models\PersonSchoolRole;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
-use Laravel\Socialite\Two\InvalidStateException;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\InvalidStateException;
 use Throwable;
 
 class GoogleController extends Controller
@@ -77,49 +74,35 @@ class GoogleController extends Controller
                 ->with('status', 'Use sua conta institucional @'.$allowedDomain.' para acessar o Beabá.');
         }
 
-        $isFirstUser = PersonSchoolRole::query()
-            ->where('role', PersonSchoolRole::ROLE_ADMINISTRATOR)
-            ->where('active', true)
-            ->doesntExist();
-        $person = $isFirstUser
-            ? $this->createFirstAdministratorPerson($googleUser, $email)
-            : $this->findAllowedPerson($email);
+        $user = User::query()
+            ->where('google_id', $googleUser->getId())
+            ->orWhere('email', $email)
+            ->first();
+
+        if (! $user) {
+            return redirect('/')
+                ->with('status', 'Seu login ainda não foi habilitado no Beabá. Procure a administração da escola.');
+        }
+
+        $person = $user->person ?: $this->findAllowedPerson($email);
 
         if (! $person) {
             return redirect('/')
-                ->with('status', 'Seu e-mail institucional ainda não foi cadastrado no Beabá. Procure a administração da escola.');
+                ->with('status', 'Seu login existe, mas não está vinculado a uma pessoa ativa no Beabá. Procure a administração da escola.');
         }
 
-        if (! $isFirstUser && ! $person->schoolRoles()->where('active', true)->exists()) {
+        if (! $person->schoolRoles()->where('active', true)->exists()) {
             return redirect('/')
                 ->with('status', 'Seu cadastro ainda não possui um papel ativo no Beabá. Procure a administração da escola.');
         }
 
-        $user = User::query()->where('google_id', $googleUser->getId())->first();
-
-        if (! $user) {
-            $user = User::query()->where('email', $email)->first();
-        }
-
-        if ($user) {
-            $user->forceFill([
-                'name' => $user->name ?: $googleUser->getName(),
-                'person_id' => $user->person_id ?: $person->id,
-                'google_id' => $googleUser->getId(),
-                'avatar' => $googleUser->getAvatar(),
-                'email_verified_at' => $user->email_verified_at ?: now(),
-            ])->save();
-        } else {
-            $user = User::query()->create([
-                'person_id' => $person->id,
-                'name' => $googleUser->getName() ?: $googleUser->getNickname() ?: $email,
-                'email' => $email,
-                'google_id' => $googleUser->getId(),
-                'avatar' => $googleUser->getAvatar(),
-                'email_verified_at' => now(),
-                'password' => Hash::make(Str::random(32)),
-            ]);
-        }
+        $user->forceFill([
+            'name' => $user->name ?: $googleUser->getName(),
+            'person_id' => $user->person_id ?: $person->id,
+            'google_id' => $googleUser->getId(),
+            'avatar' => $googleUser->getAvatar(),
+            'email_verified_at' => $user->email_verified_at ?: now(),
+        ])->save();
 
         Auth::login($user, remember: true);
 
@@ -128,31 +111,6 @@ class GoogleController extends Controller
         }
 
         return redirect()->intended(route('dashboard'));
-    }
-
-    private function createFirstAdministratorPerson(mixed $googleUser, string $email): Person
-    {
-        $person = Person::query()->firstOrCreate(
-            ['institutional_email' => $email],
-            [
-                'full_name' => $googleUser->getName() ?: $googleUser->getNickname() ?: $email,
-                'active' => true,
-            ]
-        );
-
-        $person->schoolRoles()->firstOrCreate(
-            [
-                'school_id' => null,
-                'role' => PersonSchoolRole::ROLE_ADMINISTRATOR,
-            ],
-            [
-                'position' => null,
-                'active' => true,
-                'started_at' => now()->toDateString(),
-            ]
-        );
-
-        return $person;
     }
 
     private function findAllowedPerson(string $email): ?Person
