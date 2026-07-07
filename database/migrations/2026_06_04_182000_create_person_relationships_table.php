@@ -18,8 +18,8 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->timestamps();
 
-            $table->unique(['person_id', 'related_person_id', 'relationship_type']);
-            $table->index(['related_person_id', 'relationship_type']);
+            $table->unique(['person_id', 'related_person_id', 'relationship_type'], 'person_rel_unique');
+            $table->index(['related_person_id', 'relationship_type'], 'person_rel_related_type_index');
         });
     }
 

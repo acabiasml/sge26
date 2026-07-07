@@ -26,7 +26,7 @@ return new class extends Migration
 
         Schema::create('student_academic_history_years', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('student_academic_history_id')->constrained('student_academic_histories')->cascadeOnDelete();
+            $table->foreignId('student_academic_history_id')->constrained('student_academic_histories', indexName: 'history_year_history_fk')->cascadeOnDelete();
             $table->unsignedSmallInteger('position')->default(1);
             $table->string('label');
             $table->string('year')->nullable();
@@ -43,7 +43,7 @@ return new class extends Migration
 
         Schema::create('student_academic_history_components', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('student_academic_history_id')->constrained('student_academic_histories')->cascadeOnDelete();
+            $table->foreignId('student_academic_history_id')->constrained('student_academic_histories', indexName: 'history_comp_history_fk')->cascadeOnDelete();
             $table->unsignedSmallInteger('position')->default(1);
             $table->string('formation')->nullable();
             $table->string('knowledge_area')->nullable();
@@ -53,8 +53,8 @@ return new class extends Migration
 
         Schema::create('student_academic_history_records', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('student_academic_history_component_id')->constrained('student_academic_history_components')->cascadeOnDelete();
-            $table->foreignId('student_academic_history_year_id')->constrained('student_academic_history_years')->cascadeOnDelete();
+            $table->foreignId('student_academic_history_component_id')->constrained('student_academic_history_components', indexName: 'history_rec_component_fk')->cascadeOnDelete();
+            $table->foreignId('student_academic_history_year_id')->constrained('student_academic_history_years', indexName: 'history_rec_year_fk')->cascadeOnDelete();
             $table->string('score_label')->nullable();
             $table->decimal('score_numeric', 5, 2)->nullable();
             $table->decimal('workload_hours', 8, 2)->nullable();

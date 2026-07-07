@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('curriculum_component_substitutions', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('curriculum_component_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('substitute_teacher_person_id')->constrained('people')->cascadeOnDelete();
+            $table->foreignId('curriculum_component_id')->constrained(indexName: 'cc_sub_component_fk')->cascadeOnDelete();
+            $table->foreignId('substitute_teacher_person_id')->constrained('people', indexName: 'cc_sub_teacher_fk')->cascadeOnDelete();
             $table->date('starts_at');
             $table->date('ends_at')->nullable();
             $table->text('notes')->nullable();

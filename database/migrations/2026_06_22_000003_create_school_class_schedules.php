@@ -29,7 +29,7 @@ return new class extends Migration
             $table->foreignId('school_class_component_id')->nullable()->constrained()->nullOnDelete();
             $table->string('label')->nullable();
             $table->timestamps();
-            $table->index(['school_class_schedule_id', 'weekday', 'starts_at']);
+            $table->index(['school_class_schedule_id', 'weekday', 'starts_at'], 'schedule_slot_time_index');
         });
     }
 

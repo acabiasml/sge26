@@ -13,9 +13,9 @@ return new class extends Migration
             $table->foreignId('academic_period_id')->unique()->constrained()->cascadeOnDelete();
             $table->boolean('consolidated')->default(false);
             $table->timestamp('consolidated_at')->nullable();
-            $table->foreignId('consolidated_by_person_id')->nullable()->constrained('people')->nullOnDelete();
+            $table->foreignId('consolidated_by_person_id')->nullable()->constrained('people', indexName: 'period_consolidated_by_fk')->nullOnDelete();
             $table->timestamp('reopened_at')->nullable();
-            $table->foreignId('reopened_by_person_id')->nullable()->constrained('people')->nullOnDelete();
+            $table->foreignId('reopened_by_person_id')->nullable()->constrained('people', indexName: 'period_reopened_by_fk')->nullOnDelete();
             $table->text('reopen_reason')->nullable();
             $table->timestamps();
         });
