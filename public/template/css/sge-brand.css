@@ -2468,13 +2468,14 @@ a.sge-stat-card:focus {
 
 .sge-login-card {
     border-radius: .5rem;
+    max-height: calc(100vh - 2rem);
 }
 
 .sge-login-logo {
-    max-width: 190px;
+    max-width: clamp(118px, 18vh, 170px);
     width: 100%;
     height: auto;
-    margin: 0 auto 1.25rem;
+    margin: 0 auto .85rem;
 }
 
 .sge-login-kicker {
@@ -2488,7 +2489,7 @@ a.sge-stat-card:focus {
     align-items: center;
     justify-content: center;
     gap: .6rem;
-    margin-top: .55rem;
+    margin-top: .35rem;
     color: #858796;
     font-size: .72rem;
 }
@@ -2506,7 +2507,7 @@ a.sge-stat-card:focus {
 
 .sge-maintainer img,
 .sge-institutional-logo img {
-    width: 74px;
+    width: 64px;
     height: auto;
     padding: .2rem .3rem;
     background: #fff;
@@ -2515,7 +2516,26 @@ a.sge-stat-card:focus {
 }
 
 .sge-institutional-logo:first-child img {
-    width: 86px;
+    width: 74px;
+}
+
+.sge-login-page {
+    min-height: 100vh;
+}
+
+.sge-login-page > .container {
+    min-height: 100vh;
+}
+
+.sge-login-page > .container > .row {
+    align-items: center;
+    min-height: 100vh;
+    padding-bottom: 1rem;
+    padding-top: 1rem;
+}
+
+.sge-login-card .p-5 {
+    padding: clamp(1.4rem, 4vh, 2.65rem) !important;
 }
 
 .sge-login-image {
@@ -2530,19 +2550,44 @@ a.sge-stat-card:focus {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 3rem;
+    padding: clamp(1.75rem, 5vh, 3rem);
     text-align: center;
 }
 
 .sge-login-image-inner img {
-    width: min(82%, 360px);
+    width: min(74%, 310px);
     height: auto;
 }
 
 .sge-login-image-caption {
-    margin: 1.5rem 0 0;
+    margin: 1rem 0 0;
     color: var(--sge-brown);
     font-weight: 700;
+}
+
+@media (min-width: 768px) {
+    .sge-login-page {
+        overflow: hidden;
+    }
+}
+
+@media (max-height: 740px) and (min-width: 992px) {
+    .sge-login-card .h4 {
+        font-size: 1.25rem;
+    }
+
+    .sge-login-card hr {
+        margin-bottom: .75rem;
+        margin-top: .75rem;
+    }
+
+    .sge-login-kicker {
+        margin-bottom: 1rem !important;
+    }
+
+    .sge-login-image-inner img {
+        width: min(64%, 280px);
+    }
 }
 
 .sge-weekday-options {

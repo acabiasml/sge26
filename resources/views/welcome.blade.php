@@ -18,12 +18,12 @@
     <link href="{{ asset('template/css/sge-brand.css') }}" rel="stylesheet">
 </head>
 
-<body class="bg-gradient-primary">
+<body class="bg-gradient-primary sge-login-page">
 
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-xl-10 col-lg-12 col-md-9">
-                <div class="card o-hidden border-0 shadow-lg my-5 sge-login-card">
+                <div class="card o-hidden border-0 shadow-lg sge-login-card">
                     <div class="card-body p-0">
                         <div class="row">
                             <div class="col-lg-6 d-none d-lg-block sge-login-image">
@@ -102,4 +102,3 @@
 </body>
 
 </html>
-

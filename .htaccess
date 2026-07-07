@@ -4,8 +4,13 @@
     RewriteEngine On
     RewriteBase /sge/
 
-    # The project is deployed in public_html/sge, but Laravel's front
-    # controller lives in public/index.php.
-    RewriteRule ^public/ - [L]
-    RewriteRule ^(.*)$ public/$1 [L]
+    # Serve real public assets from Laravel's public directory.
+    RewriteCond %{DOCUMENT_ROOT}/sge/public/$1 -f [OR]
+    RewriteCond %{DOCUMENT_ROOT}/sge/public/$1 -d
+    RewriteRule ^(.+)$ public/$1 [L]
+
+    # Send application routes to Laravel's front controller at the app root.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
 </IfModule>
