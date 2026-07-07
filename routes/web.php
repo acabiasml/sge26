@@ -213,11 +213,14 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('relatorios/{type}/pdf', [ReportController::class, 'pdf'])->name('reports.pdf');
 });
 
-Route::post('/logout', function () {
+$logout = function () {
     auth()->logout();
 
     request()->session()->invalidate();
     request()->session()->regenerateToken();
 
     return redirect()->route('login');
-})->middleware('auth')->name('logout');
+};
+
+Route::post('/logout', $logout)->middleware('auth')->name('logout');
+Route::get('/logout', $logout)->middleware('auth');
