@@ -1,0 +1,11 @@
+<IfModule mod_rewrite.c>
+    Options -MultiViews -Indexes
+
+    RewriteEngine On
+    RewriteBase /sge/
+
+    # The project is deployed in public_html/sge, but Laravel's front
+    # controller lives in public/index.php.
+    RewriteRule ^public/ - [L]
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
