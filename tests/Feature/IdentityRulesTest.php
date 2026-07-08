@@ -130,6 +130,19 @@ class IdentityRulesTest extends TestCase
             ->assertSeeInOrder(['Brasil - Brasileira', 'Argentina - Argentina', 'Portugal - Portuguesa']);
     }
 
+    public function test_legacy_brazil_nationality_is_not_duplicated_in_select(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin@ctjj.org');
+        $person = $this->person(email: 'brasil@ctjj.org');
+        $person->update(['nationality' => 'Brasil']);
+
+        $response = $this->actingAs($admin)->get(route('people.edit', $person));
+
+        $response->assertOk()
+            ->assertSee('<option value="Brasileira" selected>Brasil - Brasileira</option>', false)
+            ->assertDontSee('<option value="Brasil" selected>Brasil</option>', false);
+    }
+
     public function test_foreign_nationality_does_not_require_birth_city_or_state(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin@ctjj.org');

@@ -7,9 +7,13 @@
     $lockBirthDate = $lockOwnIdentity && filled($person->birth_date ?? null);
     $lockMotherName = $lockOwnIdentity && filled($person->mother_name ?? null);
     $nationalityValue = old('nationality', $person->nationality ?? ($person->legacy_metadata['nacionalidade'] ?? 'Brasileira'));
+    $normalizedNationalityValue = \Illuminate\Support\Str::of((string) $nationalityValue)->ascii()->lower()->trim()->toString();
+    if (in_array($normalizedNationalityValue, ['brasil', 'brasileiro', 'brasileira'], true)) {
+        $nationalityValue = 'Brasileira';
+    }
     $nationalityOptions = \App\Support\Nationalities::options();
     $activeValue = (bool) old('active', $person->active ?? true);
-    $requiresBrazilianBirthPlace = $activeValue && \Illuminate\Support\Str::of((string) $nationalityValue)->ascii()->lower()->trim()->exactly('brasileira');
+    $requiresBrazilianBirthPlace = $activeValue && $nationalityValue === 'Brasileira';
 @endphp
 
 <div class="form-row">

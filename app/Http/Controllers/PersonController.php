@@ -297,11 +297,13 @@ class PersonController extends Controller
 
     private function isBrazilianNationality(mixed $nationality): bool
     {
-        return Str::of((string) $nationality)
+        $normalizedNationality = Str::of((string) $nationality)
             ->ascii()
             ->lower()
             ->trim()
-            ->exactly('brasileira');
+            ->toString();
+
+        return in_array($normalizedNationality, ['brasil', 'brasileiro', 'brasileira'], true);
     }
 
     private function shouldLockOwnIdentity(Request $request, Person $person): bool
