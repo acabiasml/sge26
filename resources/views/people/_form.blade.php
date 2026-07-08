@@ -7,6 +7,7 @@
     $lockBirthDate = $lockOwnIdentity && filled($person->birth_date ?? null);
     $lockMotherName = $lockOwnIdentity && filled($person->mother_name ?? null);
     $nationalityValue = old('nationality', $person->nationality ?? ($person->legacy_metadata['nacionalidade'] ?? 'Brasileira'));
+    $nationalityOptions = \App\Support\Nationalities::options();
     $activeValue = (bool) old('active', $person->active ?? true);
     $requiresBrazilianBirthPlace = $activeValue && \Illuminate\Support\Str::of((string) $nationalityValue)->ascii()->lower()->trim()->exactly('brasileira');
 @endphp
@@ -80,7 +81,15 @@
 
     <div class="form-group col-md-5">
         <label for="nationality">Nacionalidade</label>
-        <input id="nationality" name="nationality" class="form-control @error('nationality') is-invalid @enderror" value="{{ $nationalityValue }}" data-nationality-input required>
+        <select id="nationality" name="nationality" class="form-control @error('nationality') is-invalid @enderror" data-nationality-input required>
+            <option value="">Selecione</option>
+            @foreach ($nationalityOptions as $value => $label)
+                <option value="{{ $value }}" @selected($nationalityValue === $value)>{{ $label }}</option>
+            @endforeach
+            @if (filled($nationalityValue) && ! array_key_exists($nationalityValue, $nationalityOptions))
+                <option value="{{ $nationalityValue }}" selected>{{ $nationalityValue }}</option>
+            @endif
+        </select>
         @error('nationality') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 </div>
@@ -206,6 +215,7 @@
                 };
 
                 nationalityInput.addEventListener('input', syncBirthPlaceRequirement);
+                nationalityInput.addEventListener('change', syncBirthPlaceRequirement);
                 activeInput?.addEventListener('change', syncBirthPlaceRequirement);
                 syncBirthPlaceRequirement();
             });

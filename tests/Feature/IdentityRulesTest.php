@@ -119,6 +119,17 @@ class IdentityRulesTest extends TestCase
             ->assertSessionHasErrors(['mother_name']);
     }
 
+    public function test_person_form_shows_nationality_select_with_brazil_first(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin@ctjj.org');
+
+        $response = $this->actingAs($admin)->get(route('people.create'));
+
+        $response->assertOk()
+            ->assertSee('<select id="nationality"', false)
+            ->assertSeeInOrder(['Brasil - Brasileira', 'Argentina - Argentina', 'Portugal - Portuguesa']);
+    }
+
     public function test_foreign_nationality_does_not_require_birth_city_or_state(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin@ctjj.org');
