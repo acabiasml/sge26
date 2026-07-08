@@ -6,6 +6,9 @@
     $lockCpf = $lockOwnIdentity && filled($person->cpf ?? null);
     $lockBirthDate = $lockOwnIdentity && filled($person->birth_date ?? null);
     $lockMotherName = $lockOwnIdentity && filled($person->mother_name ?? null);
+    $nationalityValue = old('nationality', $person->nationality ?? ($person->legacy_metadata['nacionalidade'] ?? 'Brasileira'));
+    $activeValue = (bool) old('active', $person->active ?? true);
+    $requiresBrazilianBirthPlace = $activeValue && \Illuminate\Support\Str::of((string) $nationalityValue)->ascii()->lower()->trim()->exactly('brasileira');
 @endphp
 
 <div class="form-row">
@@ -48,7 +51,7 @@
         <div class="form-group col-md-4 d-flex align-items-end">
             <div class="form-check mb-2">
                 <input type="hidden" name="active" value="0">
-                <input id="active" name="active" value="1" type="checkbox" class="form-check-input" @checked(old('active', $person->active ?? true))>
+                <input id="active" name="active" value="1" type="checkbox" class="form-check-input" data-active-input @checked(old('active', $person->active ?? true))>
                 <label for="active" class="form-check-label">Cadastro ativo</label>
                 <small class="form-text text-muted">Cadastros inativos não acessam o sistema, não recebem novos vínculos e não emitem documentos sem CPF e e-mail institucional.</small>
             </div>
@@ -59,14 +62,14 @@
 <div class="form-row">
     <div class="form-group col-md-5">
         <label for="birth_city">Naturalidade</label>
-        <input id="birth_city" name="birth_city" class="form-control @error('birth_city') is-invalid @enderror" value="{{ old('birth_city', $person->birth_city ?? ($person->legacy_metadata['naturalidade'] ?? '')) }}" required>
+        <input id="birth_city" name="birth_city" class="form-control @error('birth_city') is-invalid @enderror" value="{{ old('birth_city', $person->birth_city ?? ($person->legacy_metadata['naturalidade'] ?? '')) }}" data-brazilian-birth-field @required($requiresBrazilianBirthPlace)>
         @error('birth_city') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
     <div class="form-group col-md-2">
         <label for="birth_state">UF de naturalidade</label>
         @php($selectedBirthState = old('birth_state', $person->birth_state ?? ($person->legacy_metadata['naturalidade_uf'] ?? '')))
-        <select id="birth_state" name="birth_state" class="form-control @error('birth_state') is-invalid @enderror" required>
+        <select id="birth_state" name="birth_state" class="form-control @error('birth_state') is-invalid @enderror" data-brazilian-birth-field @required($requiresBrazilianBirthPlace)>
             <option value="">Selecione</option>
             @foreach (\App\Support\BrazilianStates::codes() as $state)
                 <option value="{{ $state }}" @selected($selectedBirthState === $state)>{{ $state }}</option>
@@ -77,7 +80,7 @@
 
     <div class="form-group col-md-5">
         <label for="nationality">Nacionalidade</label>
-        <input id="nationality" name="nationality" class="form-control @error('nationality') is-invalid @enderror" value="{{ old('nationality', $person->nationality ?? ($person->legacy_metadata['nacionalidade'] ?? 'Brasileira')) }}" required>
+        <input id="nationality" name="nationality" class="form-control @error('nationality') is-invalid @enderror" value="{{ $nationalityValue }}" data-nationality-input required>
         @error('nationality') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 </div>
@@ -175,3 +178,37 @@
     <input id="address_complement" name="address_complement" class="form-control @error('address_complement') is-invalid @enderror" value="{{ old('address_complement', $person->address_complement ?? '') }}">
     @error('address_complement') <div class="invalid-feedback">{{ $message }}</div> @enderror
 </div>
+
+@once
+    @push('scripts')
+        <script>
+            document.querySelectorAll('[data-nationality-input]').forEach((nationalityInput) => {
+                const form = nationalityInput.closest('form');
+                const activeInput = form?.querySelector('[data-active-input]');
+                const birthFields = form?.querySelectorAll('[data-brazilian-birth-field]');
+
+                if (!form || !birthFields?.length) {
+                    return;
+                }
+
+                const isBrazilian = () => nationalityInput.value
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .trim()
+                    .toLowerCase() === 'brasileira';
+
+                const syncBirthPlaceRequirement = () => {
+                    const requiresBirthPlace = (activeInput ? activeInput.checked : true) && isBrazilian();
+
+                    birthFields.forEach((field) => {
+                        field.required = requiresBirthPlace;
+                    });
+                };
+
+                nationalityInput.addEventListener('input', syncBirthPlaceRequirement);
+                activeInput?.addEventListener('change', syncBirthPlaceRequirement);
+                syncBirthPlaceRequirement();
+            });
+        </script>
+    @endpush
+@endonce

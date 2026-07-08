@@ -8,6 +8,7 @@ use App\Models\School;
 use App\Support\BrazilianStates;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -239,6 +240,7 @@ class PersonController extends Controller
         $isOwnRecord = $person && $request->user()->person_id === $person->id;
         $lockOwnIdentity = $person && $this->shouldLockOwnIdentity($request, $person);
         $canChangeInstitutionalEmail = ! $person || $this->canChangeInstitutionalEmail($request, $person);
+        $requiresBrazilianBirthPlace = $request->boolean('active') && $this->isBrazilianNationality($request->input('nationality'));
 
         $rules = [
             'full_name' => ['required', 'string', 'max:255'],
@@ -250,8 +252,8 @@ class PersonController extends Controller
                 ...($lockOwnIdentity && filled($person->cpf) ? [] : [Rule::unique('people', 'cpf')->ignore($person)]),
             ],
             'birth_date' => [$request->boolean('active') ? 'required' : 'nullable', 'date'],
-            'birth_city' => [$request->boolean('active') ? 'required' : 'nullable', 'string', 'max:255'],
-            'birth_state' => [$request->boolean('active') ? 'required' : 'nullable', 'string', 'size:2', Rule::in(BrazilianStates::codes())],
+            'birth_city' => [$requiresBrazilianBirthPlace ? 'required' : 'nullable', 'string', 'max:255'],
+            'birth_state' => [$requiresBrazilianBirthPlace ? 'required' : 'nullable', 'string', 'size:2', Rule::in(BrazilianStates::codes())],
             'nationality' => [$request->boolean('active') ? 'required' : 'nullable', 'string', 'max:255'],
             'mother_name' => ['required', 'string', 'max:255'],
             'father_name' => ['nullable', 'string', 'max:255'],
@@ -291,6 +293,15 @@ class PersonController extends Controller
         $data['active'] = $request->boolean('active');
 
         return $data;
+    }
+
+    private function isBrazilianNationality(mixed $nationality): bool
+    {
+        return Str::of((string) $nationality)
+            ->ascii()
+            ->lower()
+            ->trim()
+            ->exactly('brasileira');
     }
 
     private function shouldLockOwnIdentity(Request $request, Person $person): bool

@@ -119,6 +119,41 @@ class IdentityRulesTest extends TestCase
             ->assertSessionHasErrors(['mother_name']);
     }
 
+    public function test_foreign_nationality_does_not_require_birth_city_or_state(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin@ctjj.org');
+
+        $this->actingAs($admin)
+            ->post(route('people.store'), $this->personPayload([
+                'full_name' => 'Pessoa Estrangeira',
+                'institutional_email' => 'estrangeira@ctjj.org',
+                'cpf' => '55544433322',
+                'nationality' => 'Portuguesa',
+                'birth_city' => null,
+                'birth_state' => null,
+            ]))
+            ->assertRedirect();
+
+        $person = Person::query()->where('institutional_email', 'estrangeira@ctjj.org')->firstOrFail();
+
+        $this->assertNull($person->birth_city);
+        $this->assertNull($person->birth_state);
+        $this->assertSame('Portuguesa', $person->nationality);
+    }
+
+    public function test_brazilian_nationality_requires_birth_city_and_state(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin@ctjj.org');
+
+        $this->actingAs($admin)
+            ->post(route('people.store'), $this->personPayload([
+                'nationality' => 'Brasileira',
+                'birth_city' => null,
+                'birth_state' => null,
+            ]))
+            ->assertSessionHasErrors(['birth_city', 'birth_state']);
+    }
+
     public function test_non_administrator_role_requires_start_date(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin@ctjj.org');
