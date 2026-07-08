@@ -37,8 +37,6 @@ class AppServiceProvider extends ServiceProvider
             Livewire::setUpdateRoute(fn ($handle) => Route::post($appDir.'/livewire/update', $handle)
                 ->middleware('web')
                 ->name('app.livewire.update'));
-
-            Livewire::setScriptRoute(fn ($handle) => Route::get($appDir.'/livewire/livewire.js', $handle));
         }
 
         Gate::define('manage-schools', fn (User $user): bool => $user->canManageSchools());
