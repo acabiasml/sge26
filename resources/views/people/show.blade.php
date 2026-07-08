@@ -221,6 +221,7 @@
                             'roles' => $roles,
                             'positions' => $positions,
                             'schools' => $schools,
+                            'fieldPrefix' => 'new_role_',
                         ])
                         <button class="btn btn-primary" type="submit">Adicionar vínculo</button>
                     </form>
@@ -279,26 +280,9 @@
                                                 </form>
                                             @endif
 
-                                            <details class="d-inline-block text-left">
-                                                <summary class="btn btn-sm btn-outline-primary sge-icon-action" aria-label="Editar vínculo {{ $roles[$roleModel->role] ?? $roleModel->role }}" title="Editar vínculo">
-                                                    <i class="fas fa-pen" aria-hidden="true"></i>
-                                                </summary>
-                                                <div class="border rounded bg-white shadow-sm p-3 mt-2 text-left" style="min-width: 32rem;">
-                                                    <form method="POST" action="{{ route('people.roles.update', [$person, $roleModel]) }}">
-                                                        @csrf
-                                                        @method('PUT')
-                                                        @include('people.roles._form', [
-                                                            'roleModel' => $roleModel,
-                                                            'roles' => $roles,
-                                                            'positions' => $positions,
-                                                            'schools' => $schools,
-                                                        ])
-                                                        <button class="btn btn-sm btn-primary" type="submit">
-                                                            <i class="fas fa-save" aria-hidden="true"></i> Salvar vínculo
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                            </details>
+                                            <button class="btn btn-sm btn-outline-primary sge-icon-action" type="button" data-toggle="modal" data-target="#editRoleModal{{ $roleModel->id }}" aria-label="Editar vínculo {{ $roles[$roleModel->role] ?? $roleModel->role }}" title="Editar vínculo">
+                                                <i class="fas fa-pen" aria-hidden="true"></i>
+                                            </button>
 
                                             @unless ($isLastAdministration)
                                                 <form method="POST" action="{{ route('people.roles.destroy', [$person, $roleModel]) }}">
@@ -321,6 +305,40 @@
                     </table>
                 </div>
             </div>
+
+            @foreach ($person->schoolRoles as $roleModel)
+                <div class="modal fade" id="editRoleModal{{ $roleModel->id }}" tabindex="-1" role="dialog" aria-labelledby="editRoleModal{{ $roleModel->id }}Label" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+                        <div class="modal-content">
+                            <form method="POST" action="{{ route('people.roles.update', [$person, $roleModel]) }}">
+                                @csrf
+                                @method('PUT')
+                                <div class="modal-header">
+                                    <h2 class="modal-title h5" id="editRoleModal{{ $roleModel->id }}Label">Editar vínculo</h2>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    @include('people.roles._form', [
+                                        'roleModel' => $roleModel,
+                                        'roles' => $roles,
+                                        'positions' => $positions,
+                                        'schools' => $schools,
+                                        'fieldPrefix' => 'edit_role_' . $roleModel->id . '_',
+                                    ])
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                                    <button class="btn btn-primary" type="submit">
+                                        <i class="fas fa-save" aria-hidden="true"></i> Salvar vínculo
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
 
             <div class="card shadow mb-4">
                 <div class="card-header font-weight-bold">Responsáveis e contatos</div>
