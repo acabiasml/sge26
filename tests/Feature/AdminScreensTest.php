@@ -271,6 +271,27 @@ class AdminScreensTest extends TestCase
         ]);
     }
 
+    public function test_administrator_can_delete_contact_from_person_without_roles(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $person = Person::query()->create([
+            'full_name' => 'Pessoa Sem Vinculo',
+            'institutional_email' => 'sem.vinculo@ctjj.org',
+        ]);
+        $contact = $person->contacts()->create([
+            'name' => 'Contato Removivel',
+            'relationship_type' => PersonContact::TYPE_LEGAL_GUARDIAN,
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('people.contacts.destroy', [$person, $contact]))
+            ->assertRedirect(route('people.show', $person));
+
+        $this->assertDatabaseMissing('person_contacts', [
+            'id' => $contact->id,
+        ]);
+    }
+
     public function test_people_filter_combines_role_and_school_on_the_same_active_role(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
@@ -695,4 +716,3 @@ class AdminScreensTest extends TestCase
         ]);
     }
 }
-
