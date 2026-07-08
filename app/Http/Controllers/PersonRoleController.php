@@ -27,7 +27,7 @@ class PersonRoleController extends Controller
     {
         abort_unless($role->person_id === $person->id, 404);
 
-        $data = $this->validatedData($request);
+        $data = $this->validatedData($request, $role);
         $this->authorizeRoleChange($request, $data);
         $this->preventRemovingLastActiveAdministrator($role, $data);
         $this->preventIncompleteInactivePersonFromReceivingActiveRole($person, $data['active']);
@@ -93,7 +93,7 @@ class PersonRoleController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function validatedData(Request $request): array
+    private function validatedData(Request $request, ?PersonSchoolRole $roleModel = null): array
     {
         $data = $request->validate([
             'school_id' => ['nullable', 'integer', Rule::exists('schools', 'id')],
@@ -117,7 +117,7 @@ class PersonRoleController extends Controller
         $data['active'] = $request->boolean('active');
         $data['school_id'] = $data['school_id'] ?? null;
 
-        if ($data['role'] === PersonSchoolRole::ROLE_ADMINISTRATOR) {
+        if ($data['role'] === PersonSchoolRole::ROLE_ADMINISTRATOR && ! $roleModel) {
             $data['started_at'] = now()->toDateString();
         }
 

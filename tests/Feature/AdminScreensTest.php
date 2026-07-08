@@ -275,6 +275,63 @@ class AdminScreensTest extends TestCase
         ]);
     }
 
+    public function test_administrator_can_update_person_role_period(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $school = School::query()->create(['name' => 'Escola do Vinculo']);
+        $person = Person::query()->create([
+            'full_name' => 'Pessoa Com Periodo',
+            'institutional_email' => 'pessoa.periodo@ctjj.org',
+            'cpf' => '12345678901',
+            'active' => true,
+        ]);
+        $role = $person->schoolRoles()->create([
+            'school_id' => $school->id,
+            'role' => PersonSchoolRole::ROLE_STUDENT,
+            'active' => true,
+            'started_at' => '2026-01-20',
+            'ended_at' => null,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('people.roles.update', [$person, $role]), [
+                'school_id' => $school->id,
+                'role' => PersonSchoolRole::ROLE_STUDENT,
+                'active' => '1',
+                'started_at' => '2026-02-03',
+                'ended_at' => '2026-12-18',
+            ])
+            ->assertRedirect(route('people.show', $person));
+
+        $this->assertDatabaseHas('person_school_roles', [
+            'id' => $role->id,
+            'started_at' => '2026-02-03 00:00:00',
+            'ended_at' => '2026-12-18 00:00:00',
+        ]);
+    }
+
+    public function test_administrator_can_update_administration_role_start_date(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $role = $admin->person->schoolRoles()->firstOrFail();
+
+        $this->actingAs($admin)
+            ->put(route('people.roles.update', [$admin->person, $role]), [
+                'school_id' => null,
+                'role' => PersonSchoolRole::ROLE_ADMINISTRATOR,
+                'active' => '1',
+                'started_at' => '2026-01-01',
+                'ended_at' => null,
+            ])
+            ->assertRedirect(route('people.show', $admin->person));
+
+        $this->assertDatabaseHas('person_school_roles', [
+            'id' => $role->id,
+            'started_at' => '2026-01-01 00:00:00',
+            'ended_at' => null,
+        ]);
+    }
+
     public function test_administrator_can_add_person_contact_without_creating_related_person(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);

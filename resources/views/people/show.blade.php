@@ -279,6 +279,27 @@
                                                 </form>
                                             @endif
 
+                                            <details class="d-inline-block text-left">
+                                                <summary class="btn btn-sm btn-outline-primary sge-icon-action" aria-label="Editar vínculo {{ $roles[$roleModel->role] ?? $roleModel->role }}" title="Editar vínculo">
+                                                    <i class="fas fa-pen" aria-hidden="true"></i>
+                                                </summary>
+                                                <div class="border rounded bg-white shadow-sm p-3 mt-2 text-left" style="min-width: 32rem;">
+                                                    <form method="POST" action="{{ route('people.roles.update', [$person, $roleModel]) }}">
+                                                        @csrf
+                                                        @method('PUT')
+                                                        @include('people.roles._form', [
+                                                            'roleModel' => $roleModel,
+                                                            'roles' => $roles,
+                                                            'positions' => $positions,
+                                                            'schools' => $schools,
+                                                        ])
+                                                        <button class="btn btn-sm btn-primary" type="submit">
+                                                            <i class="fas fa-save" aria-hidden="true"></i> Salvar vínculo
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </details>
+
                                             @unless ($isLastAdministration)
                                                 <form method="POST" action="{{ route('people.roles.destroy', [$person, $roleModel]) }}">
                                                     @csrf
