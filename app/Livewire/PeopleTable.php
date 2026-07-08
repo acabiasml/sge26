@@ -17,6 +17,7 @@ class PeopleTable extends DataTableComponent
         $this->setPrimaryKey('id');
         $this->setAdditionalSelects(['people.id as id']);
         $this->setDefaultSort('full_name');
+        $this->setSearchDebounce(250);
         $this->setOfflineIndicatorDisabled();
     }
 

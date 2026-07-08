@@ -7,8 +7,10 @@ use App\Models\DiaryAlert;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,6 +27,20 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $appDir = trim((string) config('app.dir'), '/');
+
+        if ($appDir === '') {
+            $appDir = trim((string) parse_url((string) config('app.url'), PHP_URL_PATH), '/');
+        }
+
+        if ($appDir !== '') {
+            Livewire::setUpdateRoute(fn ($handle) => Route::post($appDir.'/livewire/update', $handle)
+                ->middleware('web')
+                ->name('app.livewire.update'));
+
+            Livewire::setScriptRoute(fn ($handle) => Route::get($appDir.'/livewire/livewire.js', $handle));
+        }
+
         Gate::define('manage-schools', fn (User $user): bool => $user->canManageSchools());
         Gate::define('manage-school', fn (User $user, ?int $schoolId = null): bool => $user->canManageSchool($schoolId));
         Gate::define('manage-people', fn (User $user, ?int $schoolId = null): bool => $user->canManagePeople($schoolId));

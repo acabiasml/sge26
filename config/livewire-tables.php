@@ -38,7 +38,9 @@ return [
     /**
      * Customise Script & Styles Paths
      */
-    'script_base_path' => '/rappasoft/laravel-livewire-tables',
+    'script_base_path' => ($appDir = trim(env('APP_DIR') ?: (parse_url(env('APP_URL', ''), PHP_URL_PATH) ?: ''), '/'))
+        ? '/'.$appDir.'/rappasoft/laravel-livewire-tables'
+        : '/rappasoft/laravel-livewire-tables',
 
     /**
      * Filter Default Configuration Options
