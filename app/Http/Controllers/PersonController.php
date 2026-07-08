@@ -81,8 +81,10 @@ class PersonController extends Controller
                 'schoolRoles.school',
                 'contacts',
                 'academicHistories.school',
+                'issuedDocuments',
                 'studentEnrollments.schoolClass.academicYear.school',
                 'studentEnrollments.courses',
+                'user',
             ]),
             'schools' => $request->user()->isAdministrator()
                 ? School::query()->where('active', true)->orderBy('name')->get()
@@ -131,6 +133,21 @@ class PersonController extends Controller
             ->with('status', 'Pessoa atualizada com sucesso.');
     }
 
+    public function destroy(Request $request, Person $person): RedirectResponse
+    {
+        abort_unless($request->user()->isAdministrator(), 403);
+
+        if (! $this->canDeletePerson($person)) {
+            return redirect()->route('people.show', $person)
+                ->with('status', 'Este cadastro não pode ser excluído porque possui vínculo, login ou registros escolares vinculados.');
+        }
+
+        $person->delete();
+
+        return redirect()->route('people.index')
+            ->with('status', 'Cadastro de pessoa excluído com sucesso.');
+    }
+
     private function canSeePerson(Request $request, Person $person): bool
     {
         $user = $request->user();
@@ -142,6 +159,15 @@ class PersonController extends Controller
         return $person->schoolRoles()
             ->whereIn('school_id', $user->manageableSchoolIds())
             ->exists();
+    }
+
+    private function canDeletePerson(Person $person): bool
+    {
+        return ! $person->schoolRoles()->exists()
+            && ! $person->user()->exists()
+            && ! $person->studentEnrollments()->exists()
+            && ! $person->academicHistories()->exists()
+            && ! $person->issuedDocuments()->exists();
     }
 
     /**

@@ -79,8 +79,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
 
     Route::resource('pessoas', PersonController::class)
         ->parameters(['pessoas' => 'person'])
-        ->names('people')
-        ->except(['destroy']);
+        ->names('people');
     Route::get('pessoas/{person}/pdf', [RecordPdfController::class, 'person'])->name('people.pdf');
     Route::get('pessoas/{person}/vida-escolar', [StudentMapController::class, 'show'])->name('people.student-map.show');
     Route::get('pessoas/{person}/mapa-do-estudante', fn ($person) => redirect()->route('people.student-map.show', $person));

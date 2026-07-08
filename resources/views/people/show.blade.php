@@ -4,6 +4,12 @@
     $roles = \App\Models\PersonSchoolRole::ROLE_LABELS;
     $positions = \App\Models\PersonSchoolRole::POSITION_LABELS;
     $primaryRole = $person->primaryActiveRole();
+    $canDeletePerson = auth()->user()->isAdministrator()
+        && $person->schoolRoles->isEmpty()
+        && $person->studentEnrollments->isEmpty()
+        && $person->academicHistories->isEmpty()
+        && $person->issuedDocuments->isEmpty()
+        && ! $person->user;
 @endphp
 
 @section('title', 'Pessoa')
@@ -21,6 +27,15 @@
     <a class="btn btn-sm btn-outline-primary shadow-sm ml-2 sge-icon-action" href="{{ route('people.pdf', $person) }}" aria-label="Emitir ficha em PDF de {{ $person->full_name }}" title="Ficha em PDF">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
+    @if ($canDeletePerson)
+        <form class="d-inline ml-2" method="POST" action="{{ route('people.destroy', $person) }}" onsubmit="return confirm('Excluir definitivamente este cadastro de pessoa?');">
+            @csrf
+            @method('DELETE')
+            <button class="btn btn-sm btn-outline-danger shadow-sm sge-icon-action" type="submit" aria-label="Excluir cadastro de {{ $person->full_name }}" title="Excluir cadastro">
+                <i class="fas fa-trash-alt" aria-hidden="true"></i>
+            </button>
+        </form>
+    @endif
 @endsection
 
 @section('content')

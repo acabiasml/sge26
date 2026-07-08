@@ -235,6 +235,46 @@ class AdminScreensTest extends TestCase
         ]);
     }
 
+    public function test_administrator_can_delete_person_without_roles(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $person = Person::query()->create([
+            'full_name' => 'Pessoa Sem Vinculo',
+            'institutional_email' => 'pessoa.sem.vinculo@ctjj.org',
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('people.destroy', $person))
+            ->assertRedirect(route('people.index'));
+
+        $this->assertDatabaseMissing('people', [
+            'id' => $person->id,
+        ]);
+    }
+
+    public function test_person_with_role_cannot_be_deleted(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $school = School::query()->create(['name' => 'Escola Pessoa Vinculada']);
+        $person = Person::query()->create([
+            'full_name' => 'Pessoa Com Vinculo',
+            'institutional_email' => 'pessoa.com.vinculo@ctjj.org',
+        ]);
+        $person->schoolRoles()->create([
+            'school_id' => $school->id,
+            'role' => PersonSchoolRole::ROLE_STUDENT,
+            'active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('people.destroy', $person))
+            ->assertRedirect(route('people.show', $person));
+
+        $this->assertDatabaseHas('people', [
+            'id' => $person->id,
+        ]);
+    }
+
     public function test_administrator_can_add_person_contact_without_creating_related_person(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);

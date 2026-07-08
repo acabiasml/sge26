@@ -160,6 +160,11 @@ class Person extends Model
         return $this->hasMany(StudentAcademicHistory::class);
     }
 
+    public function issuedDocuments(): HasMany
+    {
+        return $this->hasMany(IssuedDocument::class);
+    }
+
     public function inverseRelationships(): HasMany
     {
         return $this->hasMany(PersonRelationship::class, 'related_person_id');
