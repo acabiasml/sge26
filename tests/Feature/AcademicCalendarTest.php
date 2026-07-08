@@ -1279,6 +1279,82 @@ class AcademicCalendarTest extends TestCase
         ]);
     }
 
+    public function test_enrollment_creates_student_role_with_first_enrollment_and_latest_course_end_dates(): void
+    {
+        $school = School::query()->create(['name' => 'Escola da Matricula', 'active' => true]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id, 'gestao.matricula.datas@ctjj.org');
+        $year = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Educacao Basica',
+            'reference_year' => 2026,
+            'starts_at' => '2026-01-20',
+            'ends_at' => '2026-12-18',
+            'class_hour_minutes' => 50,
+            'minimum_school_days' => 200,
+            'active' => true,
+        ]);
+        $firstPeriod = $year->periods()->create([
+            'name' => 'Primeiro semestre',
+            'starts_at' => '2026-01-20',
+            'ends_at' => '2026-06-30',
+            'position' => 1,
+        ]);
+        $lastPeriod = $year->periods()->create([
+            'name' => 'Segundo semestre',
+            'starts_at' => '2026-07-01',
+            'ends_at' => '2026-12-18',
+            'position' => 2,
+        ]);
+        $shortCourse = $year->courses()->create([
+            'name' => 'Matriz Semestral',
+            'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
+            'ends_period_id' => $firstPeriod->id,
+            'status' => 'iniciado',
+            'active' => true,
+        ]);
+        $longCourse = $year->courses()->create([
+            'name' => 'Matriz Anual',
+            'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
+            'ends_period_id' => $lastPeriod->id,
+            'status' => 'iniciado',
+            'active' => true,
+        ]);
+        $class = $year->classes()->create([
+            'name' => '1 Ano A',
+            'active' => true,
+        ]);
+        $class->courses()->attach([$shortCourse->id, $longCourse->id]);
+        $student = Person::query()->create([
+            'full_name' => 'Estudante Sem Vinculo',
+            'institutional_email' => 'estudante.sem.vinculo@ctjj.org',
+            'cpf' => '12345678901',
+            'active' => true,
+        ]);
+
+        $this->assertDatabaseMissing('person_school_roles', [
+            'person_id' => $student->id,
+            'role' => PersonSchoolRole::ROLE_STUDENT,
+        ]);
+
+        $this->actingAs($manager)
+            ->post(route('classes.enrollments.store', $class), [
+                'person_id' => $student->id,
+                'course_ids' => [$shortCourse->id, $longCourse->id],
+                'enrolled_at' => '2026-02-03',
+                'type' => StudentEnrollment::TYPE_REGULAR,
+            ])
+            ->assertRedirect(route('classes.enrollments.index', $class));
+
+        $this->assertDatabaseHas('person_school_roles', [
+            'person_id' => $student->id,
+            'school_id' => $school->id,
+            'role' => PersonSchoolRole::ROLE_STUDENT,
+            'active' => true,
+            'started_at' => '2026-02-03 00:00:00',
+            'ended_at' => '2026-12-18 00:00:00',
+        ]);
+    }
+
     public function test_manager_only_sees_managed_school_on_enrollment_overview(): void
     {
         $managedSchool = School::query()->create(['name' => 'Escola da Gestão', 'active' => true]);
@@ -1601,5 +1677,4 @@ class AcademicCalendarTest extends TestCase
         ]);
     }
 }
-
 

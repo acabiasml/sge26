@@ -78,7 +78,8 @@ class StudentEnrollmentController extends Controller
             'availableCourses' => $availableCourses,
             'students' => Person::query()
                 ->where('active', true)
-                ->whereHasActiveSchoolRole(PersonSchoolRole::ROLE_STUDENT, $academicYear->school_id)
+                ->whereNotNull('cpf')
+                ->whereNotNull('institutional_email')
                 ->orderBy('full_name')
                 ->get(),
             'targetClasses' => $academicYear->classes()
@@ -137,9 +138,11 @@ class StudentEnrollmentController extends Controller
         $data['enrolled_by_person_id'] = $request->user()->person_id;
         $data['status'] = StudentEnrollment::STATUS_ENROLLED;
 
-        DB::transaction(function () use ($class, $data, $courseIds): void {
+        DB::transaction(function () use ($class, $data, $courseIds, $student, $academicYear): void {
             $enrollment = $class->enrollments()->create($data);
             $enrollment->courses()->sync($courseIds);
+
+            $this->syncStudentRole($student, $academicYear->school_id);
         });
 
         return redirect()->route('classes.enrollments.index', $class)
@@ -168,6 +171,8 @@ class StudentEnrollmentController extends Controller
             'transferred_by_person_id' => $request->user()->person_id,
             'notes' => $this->appendNote($enrollment->notes, $data['notes'] ?? null),
         ]);
+
+        $this->syncStudentRole($enrollment->student()->firstOrFail(), $academicYear->school_id);
 
         return redirect()->route('classes.enrollments.index', $class)
             ->with('status', 'Transferência registrada com sucesso.');
@@ -226,7 +231,7 @@ class StudentEnrollmentController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($targetClass, $enrollment, $request, $data, $selectedCourseIds): void {
+        DB::transaction(function () use ($targetClass, $enrollment, $request, $data, $selectedCourseIds, $academicYear): void {
             $newEnrollment = $targetClass->enrollments()->create([
                 'person_id' => $enrollment->person_id,
                 'enrolled_by_person_id' => $request->user()->person_id,
@@ -248,6 +253,8 @@ class StudentEnrollmentController extends Controller
                 'reclassified_by_person_id' => $request->user()->person_id,
                 'notes' => $this->appendNote($enrollment->notes, $data['notes'] ?? null),
             ]);
+
+            $this->syncStudentRole($enrollment->student()->firstOrFail(), $academicYear->school_id);
         });
 
         return redirect()->route('classes.enrollments.index', $class)
@@ -276,6 +283,8 @@ class StudentEnrollmentController extends Controller
             'cancelled_by_person_id' => $request->user()->person_id,
             'notes' => $this->appendNote($enrollment->notes, $data['notes']),
         ]);
+
+        $this->syncStudentRole($enrollment->student()->firstOrFail(), $academicYear->school_id);
 
         return redirect()->route('classes.enrollments.index', $class)
             ->with('status', 'Matrícula cancelada com sucesso. O histórico foi preservado.');
@@ -315,7 +324,8 @@ class StudentEnrollmentController extends Controller
     {
         $studentIds = Person::query()
             ->where('active', true)
-            ->whereHasActiveSchoolRole(PersonSchoolRole::ROLE_STUDENT, $academicYear->school_id)
+            ->whereNotNull('cpf')
+            ->whereNotNull('institutional_email')
             ->pluck('id')
             ->all();
 
@@ -364,6 +374,70 @@ class StudentEnrollmentController extends Controller
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
         ];
+    }
+
+    private function syncStudentRole(Person $student, int $schoolId): void
+    {
+        $enrollments = StudentEnrollment::query()
+            ->where('person_id', $student->id)
+            ->where('status', '!=', StudentEnrollment::STATUS_CANCELLED)
+            ->whereHas('schoolClass.academicYear', fn ($years) => $years->where('school_id', $schoolId))
+            ->with(['schoolClass.academicYear', 'courses.endsPeriod'])
+            ->get();
+
+        $role = $student->schoolRoles()->firstOrNew([
+            'school_id' => $schoolId,
+            'role' => PersonSchoolRole::ROLE_STUDENT,
+        ]);
+
+        if ($enrollments->isEmpty()) {
+            if ($role->exists) {
+                $role->forceFill([
+                    'active' => false,
+                    'ended_at' => now()->toDateString(),
+                ])->save();
+            }
+
+            return;
+        }
+
+        $startedAt = $enrollments
+            ->map(fn (StudentEnrollment $enrollment): ?string => $this->enrollmentStartDate($enrollment))
+            ->filter()
+            ->min();
+
+        $endedAt = $enrollments
+            ->flatMap(function (StudentEnrollment $enrollment): array {
+                if ($enrollment->courses->isEmpty()) {
+                    return [$this->enrollmentEndDate($enrollment)];
+                }
+
+                return $enrollment->courses
+                    ->map(fn ($course): ?string => $course->endsPeriod?->ends_at?->toDateString() ?? $this->enrollmentEndDate($enrollment))
+                    ->all();
+            })
+            ->filter()
+            ->max();
+
+        $role->forceFill([
+            'position' => null,
+            'active' => true,
+            'started_at' => $startedAt,
+            'ended_at' => $endedAt,
+        ])->save();
+    }
+
+    private function enrollmentStartDate(StudentEnrollment $enrollment): ?string
+    {
+        return $enrollment->enrolled_at?->toDateString()
+            ?? $enrollment->schoolClass?->starts_at?->toDateString()
+            ?? $enrollment->schoolClass?->academicYear?->starts_at?->toDateString();
+    }
+
+    private function enrollmentEndDate(StudentEnrollment $enrollment): ?string
+    {
+        return $enrollment->schoolClass?->ends_at?->toDateString()
+            ?? $enrollment->schoolClass?->academicYear?->ends_at?->toDateString();
     }
 
     private function ensureActiveEnrollment(StudentEnrollment $enrollment): void
