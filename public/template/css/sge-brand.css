@@ -4935,6 +4935,61 @@ textarea:focus-visible {
     box-shadow: 0 1rem 2rem rgba(65, 45, 37, .18);
 }
 
+.sge-contact-editor-row > td {
+    background: #fffaf3;
+    border-top: 0;
+    padding: 0 1rem 1rem;
+}
+
+.sge-contact-editor-panel {
+    background: #fff;
+    border: 1px solid rgba(111, 63, 43, .18);
+    border-radius: .75rem;
+    box-shadow: 0 .8rem 1.8rem rgba(65, 45, 37, .12);
+    margin-top: .25rem;
+    padding: 1rem;
+}
+
+.sge-contact-editor-heading {
+    align-items: center;
+    border-bottom: 1px solid rgba(111, 63, 43, .12);
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: .85rem;
+}
+
+.sge-contact-editor-heading span {
+    color: var(--sge-muted);
+    display: block;
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.sge-contact-editor-heading strong {
+    color: var(--sge-ink);
+    display: block;
+    font-size: 1rem;
+}
+
+.sge-contact-checks {
+    background: #fbf7f1;
+    border: 1px solid rgba(111, 63, 43, .12);
+    border-radius: .5rem;
+    display: grid;
+    gap: .35rem;
+    padding: .75rem .85rem;
+}
+
+.sge-contact-editor-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: .25rem;
+}
+
 .sge-concept-hero {
     align-items: center;
     background:
@@ -5122,6 +5177,21 @@ textarea:focus-visible {
         left: 1rem;
         right: 1rem;
         width: auto;
+    }
+
+    .sge-contact-editor-row > td {
+        padding: 0 .65rem .85rem;
+    }
+
+    .sge-contact-editor-heading,
+    .sge-contact-editor-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .sge-contact-editor-heading .btn,
+    .sge-contact-editor-actions .btn {
+        width: 100%;
     }
 }
 

@@ -64,6 +64,9 @@
                         <dt>CPF</dt>
                         <dd>{{ $person->cpf ?: '-' }}</dd>
 
+                        <dt>INEP do estudante</dt>
+                        <dd>{{ $person->student_inep ?: '-' }}</dd>
+
                         <dt>Data de nascimento</dt>
                         <dd>{{ $person->birth_date?->format('d/m/Y') ?? '-' }}</dd>
 
@@ -415,7 +418,7 @@
                 </div>
 
                 <div class="table-responsive">
-                    <table class="table mb-0">
+                    <table id="contacts-table" class="table mb-0">
                         <thead>
                             <tr>
                                 <th>Nome</th>
@@ -425,6 +428,7 @@
                             </tr>
                         </thead>
                         <tbody>
+                            @php($editingContactId = (int) old('_editing_contact_id', request('edit_contact')))
                             @forelse ($person->contacts as $contact)
                                 <tr>
                                     <td>{{ $contact->name }}</td>
@@ -448,87 +452,107 @@
                                     </td>
                                     <td class="text-right sge-actions-cell">
                                         <div class="sge-row-actions" role="group" aria-label="Ações para contato {{ $contact->name }}">
-                                        <details class="sge-inline-editor">
-                                            <summary class="btn btn-sm btn-outline-primary sge-icon-action" aria-label="Editar contato {{ $contact->name }}" title="Editar contato">
+                                            <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.show', ['person' => $person, 'edit_contact' => $contact->id]) }}#contact-editor-{{ $contact->id }}" aria-label="Editar contato {{ $contact->name }}" title="Editar contato">
                                                 <i class="fas fa-pen" aria-hidden="true"></i>
-                                            </summary>
-                                            <div class="sge-inline-editor-panel text-left">
+                                            </a>
+                                            <form method="POST" action="{{ route('people.contacts.destroy', [$person, $contact]) }}">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="Remover contato {{ $contact->name }}" title="Remover contato">
+                                                    <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                @if ($editingContactId === $contact->id)
+                                    <tr class="sge-contact-editor-row" id="contact-editor-{{ $contact->id }}">
+                                        <td colspan="4">
+                                            <div class="sge-contact-editor-panel">
+                                                <div class="sge-contact-editor-heading">
+                                                    <div>
+                                                        <span>Editando contato</span>
+                                                        <strong>{{ $contact->name }}</strong>
+                                                    </div>
+                                                    <a class="btn btn-sm btn-outline-secondary" href="{{ route('people.show', $person) }}#contacts-table">Cancelar</a>
+                                                </div>
+
                                                 <form method="POST" action="{{ route('people.contacts.update', [$person, $contact]) }}">
                                                     @csrf
                                                     @method('PUT')
+                                                    <input type="hidden" name="_editing_contact_id" value="{{ $contact->id }}">
+                                                    @php($useOldContact = $editingContactId === $contact->id)
 
                                                     <div class="form-row">
-                                                        <div class="form-group col-md-5">
+                                                        <div class="form-group col-lg-5 col-md-6">
                                                             <label for="contact_name_{{ $contact->id }}">Nome</label>
-                                                            <input id="contact_name_{{ $contact->id }}" name="name" class="form-control" value="{{ old('name', $contact->name) }}" required>
+                                                            <input id="contact_name_{{ $contact->id }}" name="name" class="form-control" value="{{ $useOldContact ? old('name', $contact->name) : $contact->name }}" required>
                                                         </div>
 
-                                                        <div class="form-group col-md-3">
+                                                        <div class="form-group col-lg-3 col-md-6">
                                                             <label for="contact_relationship_type_{{ $contact->id }}">Relação</label>
                                                             <select id="contact_relationship_type_{{ $contact->id }}" name="relationship_type" class="form-control" required>
                                                                 @foreach (\App\Models\PersonContact::TYPE_LABELS as $value => $label)
-                                                                    <option value="{{ $value }}" @selected(old('relationship_type', $contact->relationship_type) === $value)>{{ $label }}</option>
+                                                                    <option value="{{ $value }}" @selected(($useOldContact ? old('relationship_type', $contact->relationship_type) : $contact->relationship_type) === $value)>{{ $label }}</option>
                                                                 @endforeach
                                                             </select>
                                                         </div>
 
-                                                        <div class="form-group col-md-4">
+                                                        <div class="form-group col-lg-4 col-md-6">
                                                             <label for="contact_cpf_{{ $contact->id }}">CPF</label>
-                                                            <input id="contact_cpf_{{ $contact->id }}" name="cpf" data-mask="cpf" inputmode="numeric" autocomplete="off" class="form-control" value="{{ old('cpf', $contact->cpf) }}">
+                                                            <input id="contact_cpf_{{ $contact->id }}" name="cpf" data-mask="cpf" inputmode="numeric" autocomplete="off" class="form-control" value="{{ $useOldContact ? old('cpf', $contact->cpf) : $contact->cpf }}">
                                                         </div>
                                                     </div>
 
                                                     <div class="form-row">
-                                                        <div class="form-group col-md-4">
+                                                        <div class="form-group col-lg-4 col-md-6">
                                                             <label for="contact_phone_{{ $contact->id }}">Telefone</label>
-                                                            <input id="contact_phone_{{ $contact->id }}" name="phone" data-mask="phone" inputmode="tel" class="form-control" value="{{ old('phone', $contact->phone) }}">
+                                                            <input id="contact_phone_{{ $contact->id }}" name="phone" data-mask="phone" inputmode="tel" class="form-control" value="{{ $useOldContact ? old('phone', $contact->phone) : $contact->phone }}">
                                                         </div>
 
-                                                        <div class="form-group col-md-4">
+                                                        <div class="form-group col-lg-4 col-md-6">
                                                             <label for="contact_secondary_phone_{{ $contact->id }}">Telefone alternativo</label>
-                                                            <input id="contact_secondary_phone_{{ $contact->id }}" name="secondary_phone" data-mask="phone" inputmode="tel" class="form-control" value="{{ old('secondary_phone', $contact->secondary_phone) }}">
+                                                            <input id="contact_secondary_phone_{{ $contact->id }}" name="secondary_phone" data-mask="phone" inputmode="tel" class="form-control" value="{{ $useOldContact ? old('secondary_phone', $contact->secondary_phone) : $contact->secondary_phone }}">
                                                         </div>
 
-                                                        <div class="form-group col-md-4">
+                                                        <div class="form-group col-lg-4 col-md-12">
                                                             <label for="contact_email_{{ $contact->id }}">E-mail pessoal</label>
-                                                            <input id="contact_email_{{ $contact->id }}" name="email" type="email" inputmode="email" class="form-control" value="{{ old('email', $contact->email) }}">
+                                                            <input id="contact_email_{{ $contact->id }}" name="email" type="email" inputmode="email" class="form-control" value="{{ $useOldContact ? old('email', $contact->email) : $contact->email }}">
                                                         </div>
                                                     </div>
 
-                                                    <div class="form-row">
-                                                        <div class="form-group col-md-4">
-                                                            <div class="form-check">
-                                                                <input id="contact_legal_guardian_{{ $contact->id }}" name="legal_guardian" value="1" type="checkbox" class="form-check-input" @checked(old('legal_guardian', $contact->legal_guardian))>
-                                                                <label for="contact_legal_guardian_{{ $contact->id }}" class="form-check-label">Responsável legal</label>
-                                                            </div>
-                                                            <div class="form-check">
-                                                                <input id="contact_emergency_contact_{{ $contact->id }}" name="emergency_contact" value="1" type="checkbox" class="form-check-input" @checked(old('emergency_contact', $contact->emergency_contact))>
-                                                                <label for="contact_emergency_contact_{{ $contact->id }}" class="form-check-label">Contato de emergência</label>
+                                                    <div class="form-row align-items-end">
+                                                        <div class="form-group col-lg-4">
+                                                            <div class="sge-contact-checks">
+                                                                <div class="form-check">
+                                                                    <input name="legal_guardian" value="0" type="hidden">
+                                                                    <input id="contact_legal_guardian_{{ $contact->id }}" name="legal_guardian" value="1" type="checkbox" class="form-check-input" @checked($useOldContact ? old('legal_guardian', $contact->legal_guardian) : $contact->legal_guardian)>
+                                                                    <label for="contact_legal_guardian_{{ $contact->id }}" class="form-check-label">Responsável legal</label>
+                                                                </div>
+                                                                <div class="form-check">
+                                                                    <input name="emergency_contact" value="0" type="hidden">
+                                                                    <input id="contact_emergency_contact_{{ $contact->id }}" name="emergency_contact" value="1" type="checkbox" class="form-check-input" @checked($useOldContact ? old('emergency_contact', $contact->emergency_contact) : $contact->emergency_contact)>
+                                                                    <label for="contact_emergency_contact_{{ $contact->id }}" class="form-check-label">Contato de emergência</label>
+                                                                </div>
                                                             </div>
                                                         </div>
 
-                                                        <div class="form-group col-md-8">
+                                                        <div class="form-group col-lg-8">
                                                             <label for="contact_notes_{{ $contact->id }}">Observações</label>
-                                                            <textarea id="contact_notes_{{ $contact->id }}" name="notes" rows="2" class="form-control">{{ old('notes', $contact->notes) }}</textarea>
+                                                            <textarea id="contact_notes_{{ $contact->id }}" name="notes" rows="2" class="form-control">{{ $useOldContact ? old('notes', $contact->notes) : $contact->notes }}</textarea>
                                                         </div>
                                                     </div>
 
-                                                    <button class="btn btn-sm btn-primary" type="submit">
-                                                        <i class="fas fa-save" aria-hidden="true"></i> Salvar contato
-                                                    </button>
+                                                    <div class="sge-contact-editor-actions">
+                                                        <button class="btn btn-primary" type="submit">
+                                                            <i class="fas fa-save" aria-hidden="true"></i> Salvar contato
+                                                        </button>
+                                                    </div>
                                                 </form>
                                             </div>
-                                        </details>
-                                        <form method="POST" action="{{ route('people.contacts.destroy', [$person, $contact]) }}">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="Remover contato {{ $contact->name }}" title="Remover contato">
-                                                <i class="fas fa-trash-alt" aria-hidden="true"></i>
-                                            </button>
-                                        </form>
-                                        </div>
-                                    </td>
-                                </tr>
+                                        </td>
+                                    </tr>
+                                @endif
                             @empty
                                 <tr>
                                     <td colspan="4" class="text-center text-gray-600">Nenhum contato cadastrado.</td>

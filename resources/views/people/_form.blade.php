@@ -99,6 +99,15 @@
 </div>
 
 <div class="form-row">
+    <div class="form-group col-md-4">
+        <label for="student_inep">INEP do estudante</label>
+        <input id="student_inep" name="student_inep" data-mask="digits" data-mask-max="12" inputmode="numeric" autocomplete="off" class="form-control @error('student_inep') is-invalid @enderror" value="{{ old('student_inep', $person->student_inep ?? '') }}">
+        <small class="form-text text-muted">Use quando a pessoa tiver identificação de estudante no Educacenso/INEP.</small>
+        @error('student_inep') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+</div>
+
+<div class="form-row">
     <div class="form-group col-md-6">
         <label for="mother_name">Nome da mãe</label>
         <input id="mother_name" name="mother_name" class="form-control @error('mother_name') is-invalid @enderror" value="{{ old('mother_name', $person->mother_name ?? '') }}" @readonly($lockMotherName) required>

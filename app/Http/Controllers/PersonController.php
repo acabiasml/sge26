@@ -255,6 +255,7 @@ class PersonController extends Controller
             'birth_city' => [$requiresBrazilianBirthPlace ? 'required' : 'nullable', 'string', 'max:255'],
             'birth_state' => [$requiresBrazilianBirthPlace ? 'required' : 'nullable', 'string', 'size:2', Rule::in(BrazilianStates::codes())],
             'nationality' => [$request->boolean('active') ? 'required' : 'nullable', 'string', 'max:255'],
+            'student_inep' => ['nullable', 'string', 'max:255'],
             'mother_name' => ['required', 'string', 'max:255'],
             'father_name' => ['nullable', 'string', 'max:255'],
             'personal_email' => ['nullable', 'email', 'max:255'],
