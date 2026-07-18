@@ -22,7 +22,7 @@ O Centro Técnico Juvenil de Jarudore é a mantenedora oficial. A Operação Mat
 
 ## Stack
 
-- PHP 8.2+
+- PHP 8.4
 - Laravel 12
 - SQLite no ambiente local
 - Laravel Socialite para login com Google
