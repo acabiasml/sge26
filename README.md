@@ -53,8 +53,11 @@ Uma pessoa pode ter vários vínculos, inclusive em escolas diferentes.
 ## Regras de Acesso
 
 - Não há autocadastro livre.
-- Se não houver Administração ativa, o primeiro login `@ctjj.org` cria a primeira pessoa administradora.
-- Depois disso, só acessa quem já foi cadastrado por Administração ou Gestão.
+- O login institucional é feito exclusivamente pelo Google Workspace, limitado ao domínio configurado em `GOOGLE_ALLOWED_DOMAIN`, hoje `ctjj.org`.
+- Se não houver Administração ativa, o primeiro login `@ctjj.org` cria a primeira pessoa administradora, autentica o usuário e exige a conclusão do cadastro em **Meu cadastro** antes de liberar o sistema.
+- Depois disso, só acessa quem já foi cadastrado por Administração ou Gestão como pessoa ativa, com e-mail institucional do domínio permitido e pelo menos um vínculo ativo.
+- O registro local em `users` pode ser criado automaticamente no primeiro login Google de uma pessoa já autorizada; a autorização real continua sendo o cadastro da pessoa e seus vínculos.
+- Cadastros incompletos entram apenas na tela de conclusão cadastral e não acessam as telas internas enquanto faltarem dados obrigatórios.
 - CPF e e-mail institucional são únicos.
 - A própria pessoa não pode alterar o próprio e-mail institucional.
 - Gestores, docentes, estudantes e equipe não podem alterar seus próprios dados sensíveis: nome completo, CPF, data de nascimento, e-mail institucional e nome da mãe.
@@ -355,6 +358,7 @@ Configure o Google no `.env`:
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=http://127.0.0.1:8000/auth/google/callback
+GOOGLE_ALLOWED_DOMAIN=ctjj.org
 ```
 
 No Google Cloud Console, a URI autorizada de redirecionamento precisa ser exatamente igual a `GOOGLE_REDIRECT_URI`.

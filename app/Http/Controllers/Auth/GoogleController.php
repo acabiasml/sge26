@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Person;
+use App\Models\PersonSchoolRole;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\InvalidStateException;
 use Throwable;
@@ -79,21 +82,27 @@ class GoogleController extends Controller
             ->orWhere('email', $email)
             ->first();
 
-        if (! $user) {
-            return redirect('/')
-                ->with('status', 'Seu login ainda não foi habilitado no Beabá. Procure a administração da escola.');
-        }
+        if (! PersonSchoolRole::activeAdministratorQuery()->exists()) {
+            [$user, $person] = $this->bootstrapFirstAdministrator($user, $email, $googleUser);
+        } else {
+            $person = $user?->person ?: $this->findAllowedPerson($email);
 
-        $person = $user->person ?: $this->findAllowedPerson($email);
+            if (! $person) {
+                return redirect('/')
+                    ->with('status', 'Seu e-mail institucional ainda não foi cadastrado no Beabá. Procure a administração da escola.');
+            }
 
-        if (! $person) {
-            return redirect('/')
-                ->with('status', 'Seu login existe, mas não está vinculado a uma pessoa ativa no Beabá. Procure a administração da escola.');
-        }
+            if (! $person->active) {
+                return redirect('/')
+                    ->with('status', 'Seu cadastro está inativo no Beabá. Procure a administração da escola.');
+            }
 
-        if (! $person->schoolRoles()->where('active', true)->exists()) {
-            return redirect('/')
-                ->with('status', 'Seu cadastro ainda não possui um papel ativo no Beabá. Procure a administração da escola.');
+            if (! $person->schoolRoles()->where('active', true)->exists()) {
+                return redirect('/')
+                    ->with('status', 'Seu cadastro ainda não possui um papel ativo no Beabá. Procure a administração da escola.');
+            }
+
+            $user ??= $this->createUserForPerson($person, $email, $googleUser);
         }
 
         $user->forceFill([
@@ -110,7 +119,13 @@ class GoogleController extends Controller
             return redirect()->route('profile.edit');
         }
 
-        return redirect()->intended(route('dashboard'));
+        $intended = redirect()->intended(route('dashboard'));
+
+        if ($intended->getTargetUrl() === route('login')) {
+            return redirect()->route('dashboard');
+        }
+
+        return $intended;
     }
 
     private function findAllowedPerson(string $email): ?Person
@@ -119,5 +134,50 @@ class GoogleController extends Controller
             ->where('institutional_email', $email)
             ->where('active', true)
             ->first();
+    }
+
+    /**
+     * @return array{0: User, 1: Person}
+     */
+    private function bootstrapFirstAdministrator(?User $user, string $email, mixed $googleUser): array
+    {
+        $person = $user?->person ?: Person::query()
+            ->where('institutional_email', $email)
+            ->first();
+
+        if (! $person) {
+            $person = Person::query()->create([
+                'full_name' => $googleUser->getName() ?: $email,
+                'institutional_email' => $email,
+                'active' => true,
+            ]);
+        } elseif (! $person->active) {
+            $person->forceFill(['active' => true])->save();
+        }
+
+        $person->schoolRoles()->firstOrCreate(
+            [
+                'school_id' => null,
+                'role' => PersonSchoolRole::ROLE_ADMINISTRATOR,
+            ],
+            [
+                'active' => true,
+                'started_at' => now()->toDateString(),
+            ],
+        );
+
+        $user ??= $this->createUserForPerson($person, $email, $googleUser);
+
+        return [$user, $person];
+    }
+
+    private function createUserForPerson(Person $person, string $email, mixed $googleUser): User
+    {
+        return User::query()->create([
+            'person_id' => $person->id,
+            'name' => $googleUser->getName() ?: $person->full_name,
+            'email' => $email,
+            'password' => Hash::make(Str::random(40)),
+        ]);
     }
 }
