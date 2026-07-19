@@ -6,7 +6,6 @@
         @page { size: A4 portrait; margin: 18px 22px 34px; }
         body { font-family: DejaVu Sans, sans-serif; color: #2f241f; font-size: 12px; line-height: 1.45; }
         @include('reports.partials.letterhead-styles')
-        .declaration-title { text-align: center; font-size: 18px; color: #6b3d2e; text-transform: uppercase; margin: 28px 0 24px; }
         .declaration-text { font-size: 13px; text-align: justify; margin: 20px 0; }
         .summary { width: 100%; border-collapse: collapse; margin-top: 22px; }
         .summary th { width: 30%; text-align: left; background: #f6f0ea; color: #2f241f; padding: 7px; border: 1px solid #ead8cc; }
@@ -29,8 +28,6 @@
         'letterhead' => $letterhead,
         'issuedDocument' => $issuedDocument,
     ])
-
-    <h2 class="declaration-title">{{ $title }}</h2>
 
     <p class="declaration-text">
         {{ $statement }}
