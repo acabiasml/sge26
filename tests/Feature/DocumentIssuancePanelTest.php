@@ -1,0 +1,210 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\AcademicYear;
+use App\Models\Person;
+use App\Models\PersonSchoolRole;
+use App\Models\School;
+use App\Models\SchoolClass;
+use App\Models\StudentEnrollment;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class DocumentIssuancePanelTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private int $personSequence = 0;
+
+    public function test_administration_and_management_can_open_the_document_issuance_panel(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+
+        $this->actingAs($administrator)
+            ->get(route('document-issuance.index'))
+            ->assertOk()
+            ->assertSee('Central de emissão')
+            ->assertSee('Ficha cadastral da escola');
+
+        $this->actingAs($manager)
+            ->get(route('document-issuance.index'))
+            ->assertOk()
+            ->assertSee('Central de emissão')
+            ->assertDontSee('Ficha cadastral da escola');
+    }
+
+    public function test_regular_users_cannot_open_the_document_issuance_panel(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $teacher = $this->userWithRole(PersonSchoolRole::ROLE_TEACHER, $school->id);
+
+        $this->actingAs($teacher)
+            ->get(route('document-issuance.index'))
+            ->assertForbidden();
+    }
+
+    public function test_manager_search_only_returns_people_from_managed_school(): void
+    {
+        $managedSchool = School::query()->create(['name' => 'Escola Gerenciada', 'active' => true]);
+        $otherSchool = School::query()->create(['name' => 'Outra Escola', 'active' => true]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $managedSchool->id);
+        $visiblePerson = $this->personWithRole('Pessoa Visível', PersonSchoolRole::ROLE_STUDENT, $managedSchool->id);
+        $this->personWithRole('Pessoa de Outra Escola', PersonSchoolRole::ROLE_STUDENT, $otherSchool->id);
+
+        $this->actingAs($manager)
+            ->getJson(route('document-issuance.targets', [
+                'type' => 'person-record',
+                'q' => 'Pessoa',
+            ]))
+            ->assertOk()
+            ->assertJsonFragment(['id' => $visiblePerson->id, 'title' => 'Pessoa Visível'])
+            ->assertJsonMissing(['title' => 'Pessoa de Outra Escola']);
+
+        $this->actingAs($manager)
+            ->getJson(route('document-issuance.targets', [
+                'type' => 'person-record',
+                'school_id' => $otherSchool->id,
+            ]))
+            ->assertForbidden();
+    }
+
+    public function test_report_card_selection_redirects_to_existing_pdf_emitter_with_score_view(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $student = $this->personWithRole('Estudante Teste', PersonSchoolRole::ROLE_STUDENT, $school->id);
+        $year = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Educação Básica',
+            'reference_year' => 2026,
+            'starts_at' => '2026-01-01',
+            'ends_at' => '2026-12-31',
+            'active' => true,
+        ]);
+        $class = SchoolClass::query()->create([
+            'academic_year_id' => $year->id,
+            'name' => '1º Ano A',
+            'active' => true,
+        ]);
+        $enrollment = StudentEnrollment::query()->create([
+            'school_class_id' => $class->id,
+            'person_id' => $student->id,
+            'enrolled_at' => '2026-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+
+        $this->actingAs($administrator)
+            ->get(route('document-issuance.issue', [
+                'type' => 'report-card',
+                'target_id' => $enrollment->id,
+                'score_view' => 'conceitos',
+            ]))
+            ->assertRedirect(route('enrollments.report-card.pdf', [
+                'enrollment' => $enrollment,
+                'notas' => 'conceitos',
+            ]));
+    }
+
+    public function test_manager_cannot_force_emission_for_enrollment_from_another_school(): void
+    {
+        $managedSchool = School::query()->create(['name' => 'Escola Gerenciada', 'active' => true]);
+        $otherSchool = School::query()->create(['name' => 'Outra Escola', 'active' => true]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $managedSchool->id);
+        $student = $this->personWithRole('Estudante Externo', PersonSchoolRole::ROLE_STUDENT, $otherSchool->id);
+        $year = AcademicYear::query()->create([
+            'school_id' => $otherSchool->id,
+            'name' => 'Educação Básica',
+            'reference_year' => 2026,
+            'starts_at' => '2026-01-01',
+            'ends_at' => '2026-12-31',
+            'active' => true,
+        ]);
+        $class = SchoolClass::query()->create([
+            'academic_year_id' => $year->id,
+            'name' => '2º Ano',
+            'active' => true,
+        ]);
+        $enrollment = StudentEnrollment::query()->create([
+            'school_class_id' => $class->id,
+            'person_id' => $student->id,
+            'enrolled_at' => '2026-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+
+        $this->actingAs($manager)
+            ->get(route('document-issuance.issue', [
+                'type' => 'report-card',
+                'target_id' => $enrollment->id,
+            ]))
+            ->assertNotFound();
+    }
+
+    public function test_every_target_category_can_be_searched_without_query_errors(): void
+    {
+        School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+
+        foreach ([
+            'enrollment-declaration',
+            'person-record',
+            'academic-history',
+            'class-schedule',
+            'academic-calendar',
+            'school-record',
+            'teacher-diary',
+        ] as $type) {
+            $this->actingAs($administrator)
+                ->getJson(route('document-issuance.targets', ['type' => $type]))
+                ->assertOk()
+                ->assertJsonStructure(['targets']);
+        }
+    }
+
+    private function userWithRole(string $role, ?int $schoolId = null): User
+    {
+        $person = $this->personWithRole('Usuário '.$role, $role, $schoolId);
+
+        return User::factory()->create([
+            'person_id' => $person->id,
+            'name' => $person->full_name,
+            'email' => $person->institutional_email,
+        ]);
+    }
+
+    private function personWithRole(string $name, string $role, ?int $schoolId): Person
+    {
+        $this->personSequence++;
+        $person = Person::query()->create([
+            'full_name' => $name,
+            'institutional_email' => 'pessoa'.$this->personSequence.'@ctjj.org',
+            'cpf' => str_pad((string) $this->personSequence, 11, '0', STR_PAD_LEFT),
+            'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoréu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
+            'mother_name' => 'Maria de Teste',
+            'phone' => '(66) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoréu',
+            'state' => 'MT',
+            'postal_code' => '78800-000',
+            'profile_completed_at' => now(),
+            'active' => true,
+        ]);
+
+        $person->schoolRoles()->create([
+            'school_id' => $schoolId,
+            'role' => $role,
+            'active' => true,
+            'started_at' => '2026-01-01',
+        ]);
+
+        return $person;
+    }
+}

@@ -1,0 +1,642 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\AcademicYear;
+use App\Models\Person;
+use App\Models\School;
+use App\Models\SchoolClass;
+use App\Models\SchoolClassComponent;
+use App\Models\StudentAcademicHistory;
+use App\Models\StudentEnrollment;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
+use Illuminate\View\View;
+
+class DocumentIssuanceController extends Controller
+{
+    /**
+     * @var array<string, array<string, bool|string>>
+     */
+    private const DOCUMENT_TYPES = [
+        'enrollment-declaration' => [
+            'group' => 'Estudante',
+            'label' => 'Declaração de matrícula',
+            'description' => 'Comprova a matrícula ativa do estudante.',
+            'target' => 'enrollment',
+            'icon' => 'fa-id-card',
+        ],
+        'schooling-declaration' => [
+            'group' => 'Estudante',
+            'label' => 'Declaração de escolaridade',
+            'description' => 'Comprova vínculo escolar atual ou anterior.',
+            'target' => 'enrollment',
+            'icon' => 'fa-school',
+        ],
+        'completion-declaration' => [
+            'group' => 'Estudante',
+            'label' => 'Declaração de conclusão',
+            'description' => 'Comprova uma conclusão com resultado aprovado.',
+            'target' => 'enrollment',
+            'icon' => 'fa-award',
+        ],
+        'attendance-certificate' => [
+            'group' => 'Estudante',
+            'label' => 'Atestado de frequência',
+            'description' => 'Apresenta a frequência registrada na matrícula.',
+            'target' => 'enrollment',
+            'icon' => 'fa-user-check',
+        ],
+        'transfer-certificate' => [
+            'group' => 'Estudante',
+            'label' => 'Atestado de transferência',
+            'description' => 'Disponível após o registro formal da transferência.',
+            'target' => 'enrollment',
+            'icon' => 'fa-exchange-alt',
+        ],
+        'enrollment-form' => [
+            'group' => 'Estudante',
+            'label' => 'Ficha de matrícula',
+            'description' => 'Reúne dados da matrícula, do estudante e responsáveis.',
+            'target' => 'enrollment',
+            'icon' => 'fa-file-signature',
+        ],
+        'report-card' => [
+            'group' => 'Estudante',
+            'label' => 'Boletim escolar',
+            'description' => 'Resultados, frequência e comportamento por período.',
+            'target' => 'enrollment',
+            'icon' => 'fa-chart-line',
+            'score_view' => true,
+        ],
+        'individual-record' => [
+            'group' => 'Estudante',
+            'label' => 'Ficha individual',
+            'description' => 'Documento acadêmico individual completo.',
+            'target' => 'enrollment',
+            'icon' => 'fa-file-alt',
+            'score_view' => true,
+        ],
+        'academic-history' => [
+            'group' => 'Estudante',
+            'label' => 'Histórico escolar',
+            'description' => 'Emite um histórico previamente cadastrado e conferido.',
+            'target' => 'history',
+            'icon' => 'fa-history',
+        ],
+        'class-schedule' => [
+            'group' => 'Turma e diário',
+            'label' => 'Horário da turma',
+            'description' => 'Imprime o horário vigente ou cadastrado para a turma.',
+            'target' => 'class',
+            'icon' => 'fa-calendar-week',
+        ],
+        'class-final-results' => [
+            'group' => 'Turma e diário',
+            'label' => 'Ata de resultados finais da turma',
+            'description' => 'Relação dos resultados finais das matrículas da turma.',
+            'target' => 'class',
+            'icon' => 'fa-poll',
+        ],
+        'teacher-diary' => [
+            'group' => 'Turma e diário',
+            'label' => 'Diário de classe',
+            'description' => 'Diário consolidado de um componente curricular.',
+            'target' => 'diary',
+            'icon' => 'fa-book',
+            'score_view' => true,
+        ],
+        'attendance-sheet' => [
+            'group' => 'Turma e diário',
+            'label' => 'Lista de chamada mensal',
+            'description' => 'Folha mensal para chamada manual por componente.',
+            'target' => 'diary',
+            'icon' => 'fa-clipboard-list',
+            'month' => true,
+        ],
+        'academic-calendar' => [
+            'group' => 'Ano letivo',
+            'label' => 'Calendário acadêmico',
+            'description' => 'Calendário anual com períodos, siglas e dias letivos.',
+            'target' => 'academic_year',
+            'icon' => 'fa-calendar-alt',
+        ],
+        'academic-matrices' => [
+            'group' => 'Ano letivo',
+            'label' => 'Matrizes curriculares',
+            'description' => 'Matrizes agrupadas por etapa do ano letivo.',
+            'target' => 'academic_year',
+            'icon' => 'fa-th-list',
+        ],
+        'academic-year-schedules' => [
+            'group' => 'Ano letivo',
+            'label' => 'Horários das turmas',
+            'description' => 'Reúne os horários cadastrados nas turmas do ano letivo.',
+            'target' => 'academic_year',
+            'icon' => 'fa-clock',
+        ],
+        'academic-year-final-results' => [
+            'group' => 'Ano letivo',
+            'label' => 'Resultados finais do ano letivo',
+            'description' => 'Reúne os resultados finais de todas as turmas.',
+            'target' => 'academic_year',
+            'icon' => 'fa-clipboard-check',
+        ],
+        'person-record' => [
+            'group' => 'Cadastros',
+            'label' => 'Ficha cadastral da pessoa',
+            'description' => 'Dados pessoais, contatos e vínculos cadastrados.',
+            'target' => 'person',
+            'icon' => 'fa-address-card',
+        ],
+        'school-record' => [
+            'group' => 'Cadastros',
+            'label' => 'Ficha cadastral da escola',
+            'description' => 'Dados institucionais e vínculos da unidade escolar.',
+            'target' => 'school',
+            'icon' => 'fa-building',
+            'admin_only' => true,
+        ],
+    ];
+
+    public function index(Request $request): View
+    {
+        $this->authorizeAccess($request);
+        $schoolIds = $this->accessibleSchoolIds($request->user());
+
+        return view('document-issuance.index', [
+            'documentTypes' => $this->availableTypes($request->user()),
+            'schools' => School::query()->whereKey($schoolIds)->orderBy('name')->get(['id', 'name']),
+            'academicYears' => AcademicYear::query()
+                ->whereIn('school_id', $schoolIds)
+                ->orderByDesc('reference_year')
+                ->orderBy('name')
+                ->get(['id', 'school_id', 'name', 'reference_year']),
+            'classes' => SchoolClass::query()
+                ->whereHas('academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
+                ->with('academicYear:id,school_id,name,reference_year')
+                ->orderBy('name')
+                ->get(['id', 'academic_year_id', 'name']),
+        ]);
+    }
+
+    public function targets(Request $request): JsonResponse
+    {
+        $this->authorizeAccess($request);
+        $types = $this->availableTypes($request->user());
+        $data = $request->validate([
+            'type' => ['required', Rule::in(array_keys($types))],
+            'q' => ['nullable', 'string', 'max:100'],
+            'school_id' => ['nullable', 'integer'],
+            'academic_year_id' => ['nullable', 'integer'],
+            'class_id' => ['nullable', 'integer'],
+        ]);
+        $schoolIds = $this->accessibleSchoolIds($request->user());
+        $this->authorizeSchoolFilter($data['school_id'] ?? null, $schoolIds);
+        $term = trim((string) ($data['q'] ?? ''));
+
+        $targets = match ($types[$data['type']]['target']) {
+            'enrollment' => $this->enrollmentTargets($request, $schoolIds, $term, $data['type']),
+            'person' => $this->personTargets($request, $schoolIds, $term),
+            'history' => $this->historyTargets($request, $schoolIds, $term),
+            'class' => $this->classTargets($request, $schoolIds, $term),
+            'academic_year' => $this->academicYearTargets($request, $schoolIds, $term),
+            'school' => $this->schoolTargets($request, $schoolIds, $term),
+            'diary' => $this->diaryTargets($request, $schoolIds, $term),
+            default => collect(),
+        };
+
+        return response()->json(['targets' => $targets->values()]);
+    }
+
+    public function issue(Request $request): RedirectResponse
+    {
+        $this->authorizeAccess($request);
+        $types = $this->availableTypes($request->user());
+        $data = $request->validate([
+            'type' => ['required', Rule::in(array_keys($types))],
+            'target_id' => ['required', 'integer'],
+            'score_view' => ['nullable', Rule::in(['numeros', 'conceitos'])],
+            'month' => ['nullable', 'date_format:Y-m'],
+        ]);
+        $schoolIds = $this->accessibleSchoolIds($request->user());
+
+        return match ($types[$data['type']]['target']) {
+            'enrollment' => $this->issueEnrollment($data, $schoolIds),
+            'person' => $this->issuePerson($data, $request->user(), $schoolIds),
+            'history' => $this->issueHistory($data, $request->user(), $schoolIds),
+            'class' => $this->issueClass($data, $schoolIds),
+            'academic_year' => $this->issueAcademicYear($data, $schoolIds),
+            'school' => $this->issueSchool($data, $request->user()),
+            'diary' => $this->issueDiary($data, $schoolIds),
+            default => abort(404),
+        };
+    }
+
+    /**
+     * @return array<string, array<string, bool|string>>
+     */
+    private function availableTypes(User $user): array
+    {
+        return collect(self::DOCUMENT_TYPES)
+            ->reject(fn (array $type): bool => ($type['admin_only'] ?? false) && ! $user->isAdministrator())
+            ->all();
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function accessibleSchoolIds(User $user): array
+    {
+        if ($user->isAdministrator()) {
+            return School::query()->pluck('id')->map(fn ($id): int => (int) $id)->all();
+        }
+
+        return $user->manageableSchoolIds();
+    }
+
+    private function authorizeAccess(Request $request): void
+    {
+        abort_unless($request->user()->canManagePeople(), 403);
+    }
+
+    /**
+     * @param  list<int>  $schoolIds
+     */
+    private function authorizeSchoolFilter(?int $schoolId, array $schoolIds): void
+    {
+        if ($schoolId !== null) {
+            abort_unless(in_array($schoolId, $schoolIds, true), 403);
+        }
+    }
+
+    /**
+     * @param  list<int>  $schoolIds
+     * @return Collection<int, array<string, bool|int|string|null>>
+     */
+    private function enrollmentTargets(Request $request, array $schoolIds, string $term, string $type): Collection
+    {
+        return StudentEnrollment::query()
+            ->select('student_enrollments.*')
+            ->join('people', 'people.id', '=', 'student_enrollments.person_id')
+            ->with(['student:id,full_name,social_name', 'schoolClass.academicYear.school:id,name', 'schoolClass:id,academic_year_id,name'])
+            ->whereHas('schoolClass.academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
+            ->when($request->filled('school_id'), fn (Builder $query) => $query->whereHas('schoolClass.academicYear', fn (Builder $year) => $year->where('school_id', $request->integer('school_id'))))
+            ->when($request->filled('academic_year_id'), fn (Builder $query) => $query->whereHas('schoolClass', fn (Builder $class) => $class->where('academic_year_id', $request->integer('academic_year_id'))))
+            ->when($request->filled('class_id'), fn (Builder $query) => $query->where('school_class_id', $request->integer('class_id')))
+            ->when($term !== '', function (Builder $query) use ($term): void {
+                $query->where(function (Builder $search) use ($term): void {
+                    $search->where('people.full_name', 'like', '%'.$term.'%')
+                        ->orWhere('people.social_name', 'like', '%'.$term.'%')
+                        ->orWhere('people.cpf', 'like', '%'.$term.'%');
+                });
+            })
+            ->orderBy('people.full_name')
+            ->limit(40)
+            ->get()
+            ->map(function (StudentEnrollment $enrollment) use ($type): array {
+                $year = $enrollment->schoolClass?->academicYear;
+                [$enabled, $reason] = $this->enrollmentAvailability($enrollment, $type);
+
+                return [
+                    'id' => $enrollment->id,
+                    'title' => $enrollment->student?->social_name ?: $enrollment->student?->full_name ?: 'Estudante sem nome',
+                    'subtitle' => collect([
+                        $year?->school?->name,
+                        $year ? $year->name.' · '.$year->reference_year : null,
+                        $enrollment->schoolClass?->name,
+                        $enrollment->statusLabel(),
+                    ])->filter()->join(' · '),
+                    'enabled' => $enabled,
+                    'reason' => $reason,
+                ];
+            });
+    }
+
+    /**
+     * @return array{0: bool, 1: string|null}
+     */
+    private function enrollmentAvailability(StudentEnrollment $enrollment, string $type): array
+    {
+        if ($type === 'enrollment-declaration' && ! $enrollment->isActive()) {
+            return [false, 'A matrícula precisa estar ativa.'];
+        }
+
+        if ($type === 'completion-declaration' && $enrollment->final_result_status !== StudentEnrollment::FINAL_APPROVED) {
+            return [false, 'O resultado final precisa estar aprovado.'];
+        }
+
+        if ($type === 'transfer-certificate' && ($enrollment->status !== StudentEnrollment::STATUS_TRANSFERRED || ! $enrollment->transferred_at)) {
+            return [false, 'A transferência precisa estar registrada.'];
+        }
+
+        return [true, null];
+    }
+
+    /**
+     * @param  list<int>  $schoolIds
+     * @return Collection<int, array<string, bool|int|string|null>>
+     */
+    private function personTargets(Request $request, array $schoolIds, string $term): Collection
+    {
+        return Person::query()
+            ->when(! $request->user()->isAdministrator(), fn (Builder $query) => $query->whereHas('schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $schoolIds)))
+            ->when($request->filled('school_id'), fn (Builder $query) => $query->whereHas('schoolRoles', fn (Builder $roles) => $roles->where('school_id', $request->integer('school_id'))))
+            ->when($term !== '', function (Builder $query) use ($term): void {
+                $query->where(function (Builder $search) use ($term): void {
+                    $search->where('full_name', 'like', '%'.$term.'%')
+                        ->orWhere('social_name', 'like', '%'.$term.'%')
+                        ->orWhere('institutional_email', 'like', '%'.$term.'%')
+                        ->orWhere('cpf', 'like', '%'.$term.'%');
+                });
+            })
+            ->orderBy('full_name')
+            ->limit(40)
+            ->get(['id', 'full_name', 'social_name', 'institutional_email', 'active'])
+            ->map(fn (Person $person): array => [
+                'id' => $person->id,
+                'title' => $person->social_name ?: $person->full_name,
+                'subtitle' => collect([$person->institutional_email, $person->active ? 'Cadastro ativo' : 'Cadastro inativo'])->filter()->join(' · '),
+                'enabled' => true,
+                'reason' => null,
+            ]);
+    }
+
+    /**
+     * @param  list<int>  $schoolIds
+     * @return Collection<int, array<string, bool|int|string|null>>
+     */
+    private function historyTargets(Request $request, array $schoolIds, string $term): Collection
+    {
+        return StudentAcademicHistory::query()
+            ->select('student_academic_histories.*')
+            ->join('people', 'people.id', '=', 'student_academic_histories.person_id')
+            ->with(['student:id,full_name,social_name', 'school:id,name'])
+            ->whereIn('school_id', $schoolIds)
+            ->when(! $request->user()->isAdministrator(), fn (Builder $query) => $query->whereHas('student.schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $schoolIds)))
+            ->when($request->filled('school_id'), fn (Builder $query) => $query->where('school_id', $request->integer('school_id')))
+            ->when($term !== '', function (Builder $query) use ($term): void {
+                $query->where(function (Builder $search) use ($term): void {
+                    $search->where('people.full_name', 'like', '%'.$term.'%')
+                        ->orWhere('people.social_name', 'like', '%'.$term.'%')
+                        ->orWhere('student_academic_histories.title', 'like', '%'.$term.'%')
+                        ->orWhere('student_academic_histories.stage', 'like', '%'.$term.'%');
+                });
+            })
+            ->orderBy('people.full_name')
+            ->limit(40)
+            ->get()
+            ->map(fn (StudentAcademicHistory $history): array => [
+                'id' => $history->id,
+                'title' => $history->student?->social_name ?: $history->student?->full_name ?: 'Estudante sem nome',
+                'subtitle' => collect([$history->title, $history->stage, $history->school?->name])->filter()->join(' · '),
+                'enabled' => true,
+                'reason' => null,
+            ]);
+    }
+
+    /**
+     * @param  list<int>  $schoolIds
+     * @return Collection<int, array<string, bool|int|string|null>>
+     */
+    private function classTargets(Request $request, array $schoolIds, string $term): Collection
+    {
+        return SchoolClass::query()
+            ->with('academicYear.school:id,name')
+            ->withCount('schedules')
+            ->whereHas('academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
+            ->when($request->filled('school_id'), fn (Builder $query) => $query->whereHas('academicYear', fn (Builder $year) => $year->where('school_id', $request->integer('school_id'))))
+            ->when($request->filled('academic_year_id'), fn (Builder $query) => $query->where('academic_year_id', $request->integer('academic_year_id')))
+            ->when($request->filled('class_id'), fn (Builder $query) => $query->whereKey($request->integer('class_id')))
+            ->when($term !== '', fn (Builder $query) => $query->where('name', 'like', '%'.$term.'%'))
+            ->orderBy('name')
+            ->limit(40)
+            ->get()
+            ->map(fn (SchoolClass $class): array => [
+                'id' => $class->id,
+                'title' => $class->name,
+                'subtitle' => collect([
+                    $class->academicYear?->school?->name,
+                    $class->academicYear ? $class->academicYear->name.' · '.$class->academicYear->reference_year : null,
+                    $class->active ? 'Turma ativa' : 'Turma inativa',
+                ])->filter()->join(' · '),
+                'enabled' => true,
+                'reason' => null,
+            ]);
+    }
+
+    /**
+     * @param  list<int>  $schoolIds
+     * @return Collection<int, array<string, bool|int|string|null>>
+     */
+    private function academicYearTargets(Request $request, array $schoolIds, string $term): Collection
+    {
+        return AcademicYear::query()
+            ->with('school:id,name')
+            ->whereIn('school_id', $schoolIds)
+            ->when($request->filled('school_id'), fn (Builder $query) => $query->where('school_id', $request->integer('school_id')))
+            ->when($request->filled('academic_year_id'), fn (Builder $query) => $query->whereKey($request->integer('academic_year_id')))
+            ->when($term !== '', fn (Builder $query) => $query->where(function (Builder $search) use ($term): void {
+                $search->where('name', 'like', '%'.$term.'%')->orWhere('reference_year', 'like', '%'.$term.'%');
+            }))
+            ->orderByDesc('reference_year')
+            ->orderBy('name')
+            ->limit(40)
+            ->get()
+            ->map(fn (AcademicYear $year): array => [
+                'id' => $year->id,
+                'title' => $year->name.' · '.$year->reference_year,
+                'subtitle' => collect([$year->school?->name, $year->active ? 'Ano letivo ativo' : 'Ano letivo inativo'])->filter()->join(' · '),
+                'enabled' => true,
+                'reason' => null,
+            ]);
+    }
+
+    /**
+     * @param  list<int>  $schoolIds
+     * @return Collection<int, array<string, bool|int|string|null>>
+     */
+    private function schoolTargets(Request $request, array $schoolIds, string $term): Collection
+    {
+        return School::query()
+            ->whereKey($schoolIds)
+            ->when($term !== '', fn (Builder $query) => $query->where('name', 'like', '%'.$term.'%'))
+            ->orderBy('name')
+            ->limit(40)
+            ->get(['id', 'name', 'city', 'state', 'active'])
+            ->map(fn (School $school): array => [
+                'id' => $school->id,
+                'title' => $school->name,
+                'subtitle' => collect([$school->city, $school->state, $school->active ? 'Escola ativa' : 'Escola inativa'])->filter()->join(' · '),
+                'enabled' => true,
+                'reason' => null,
+            ]);
+    }
+
+    /**
+     * @param  list<int>  $schoolIds
+     * @return Collection<int, array<string, bool|int|string|null>>
+     */
+    private function diaryTargets(Request $request, array $schoolIds, string $term): Collection
+    {
+        return SchoolClassComponent::query()
+            ->with([
+                'schoolClass.academicYear.school:id,name',
+                'component.course:id,name,academic_year_id',
+                'teacher:id,full_name',
+            ])
+            ->where('active', true)
+            ->whereHas('schoolClass.academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds)->whereNotNull('approved_at')->where('active', true))
+            ->when($request->filled('school_id'), fn (Builder $query) => $query->whereHas('schoolClass.academicYear', fn (Builder $year) => $year->where('school_id', $request->integer('school_id'))))
+            ->when($request->filled('academic_year_id'), fn (Builder $query) => $query->whereHas('schoolClass', fn (Builder $class) => $class->where('academic_year_id', $request->integer('academic_year_id'))))
+            ->when($request->filled('class_id'), fn (Builder $query) => $query->where('school_class_id', $request->integer('class_id')))
+            ->when($term !== '', function (Builder $query) use ($term): void {
+                $query->where(function (Builder $search) use ($term): void {
+                    $search->whereHas('component', fn (Builder $component) => $component->where('name', 'like', '%'.$term.'%'))
+                        ->orWhereHas('schoolClass', fn (Builder $class) => $class->where('name', 'like', '%'.$term.'%'))
+                        ->orWhereHas('teacher', fn (Builder $teacher) => $teacher->where('full_name', 'like', '%'.$term.'%'));
+                });
+            })
+            ->limit(40)
+            ->get()
+            ->sortBy(fn (SchoolClassComponent $assignment): string => ($assignment->schoolClass?->name ?? '').' '.($assignment->component?->name ?? ''))
+            ->values()
+            ->map(function (SchoolClassComponent $assignment): array {
+                $year = $assignment->schoolClass?->academicYear;
+
+                return [
+                    'id' => $assignment->id,
+                    'title' => ($assignment->component?->name ?? 'Componente não informado').' · '.($assignment->schoolClass?->name ?? 'Turma não informada'),
+                    'subtitle' => collect([
+                        $year?->school?->name,
+                        $year ? $year->name.' · '.$year->reference_year : null,
+                        $assignment->component?->course?->name,
+                        $assignment->teacher?->full_name ? 'Docência: '.$assignment->teacher->full_name : 'Docência não definida',
+                    ])->filter()->join(' · '),
+                    'enabled' => true,
+                    'reason' => null,
+                ];
+            });
+    }
+
+    /** @param array<string, mixed> $data @param list<int> $schoolIds */
+    private function issueEnrollment(array $data, array $schoolIds): RedirectResponse
+    {
+        $enrollment = StudentEnrollment::query()
+            ->whereKey($data['target_id'])
+            ->whereHas('schoolClass.academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
+            ->firstOrFail();
+        $route = match ($data['type']) {
+            'enrollment-declaration' => 'enrollments.enrollment-declaration.pdf',
+            'schooling-declaration' => 'enrollments.schooling-declaration.pdf',
+            'completion-declaration' => 'enrollments.completion-declaration.pdf',
+            'attendance-certificate' => 'enrollments.attendance-certificate.pdf',
+            'transfer-certificate' => 'enrollments.transfer-certificate.pdf',
+            'enrollment-form' => 'enrollments.pdf',
+            'report-card' => 'enrollments.report-card.pdf',
+            'individual-record' => 'enrollments.individual-record.pdf',
+            default => abort(404),
+        };
+        $parameters = ['enrollment' => $enrollment];
+
+        if (in_array($data['type'], ['report-card', 'individual-record'], true)) {
+            $parameters['notas'] = $data['score_view'] ?? 'numeros';
+        }
+
+        return redirect()->route($route, $parameters);
+    }
+
+    /** @param array<string, mixed> $data @param list<int> $schoolIds */
+    private function issuePerson(array $data, User $user, array $schoolIds): RedirectResponse
+    {
+        $person = Person::query()
+            ->whereKey($data['target_id'])
+            ->when(! $user->isAdministrator(), fn (Builder $query) => $query->whereHas('schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $schoolIds)))
+            ->firstOrFail();
+
+        return redirect()->route('people.pdf', $person);
+    }
+
+    /** @param array<string, mixed> $data @param list<int> $schoolIds */
+    private function issueHistory(array $data, User $user, array $schoolIds): RedirectResponse
+    {
+        $history = StudentAcademicHistory::query()
+            ->with('student')
+            ->whereKey($data['target_id'])
+            ->whereIn('school_id', $schoolIds)
+            ->when(! $user->isAdministrator(), fn (Builder $query) => $query->whereHas('student.schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $schoolIds)))
+            ->firstOrFail();
+
+        return redirect()->route('people.histories.pdf', [$history->student, $history]);
+    }
+
+    /** @param array<string, mixed> $data @param list<int> $schoolIds */
+    private function issueClass(array $data, array $schoolIds): RedirectResponse
+    {
+        $class = SchoolClass::query()
+            ->with('academicYear')
+            ->whereKey($data['target_id'])
+            ->whereHas('academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
+            ->firstOrFail();
+
+        return match ($data['type']) {
+            'class-schedule' => redirect()->route('academic-years.classes.schedules.pdf', [$class->academicYear, $class]),
+            'class-final-results' => redirect()->route('classes.final-results.pdf', $class),
+            default => abort(404),
+        };
+    }
+
+    /** @param array<string, mixed> $data @param list<int> $schoolIds */
+    private function issueAcademicYear(array $data, array $schoolIds): RedirectResponse
+    {
+        $year = AcademicYear::query()->whereKey($data['target_id'])->whereIn('school_id', $schoolIds)->firstOrFail();
+        $route = match ($data['type']) {
+            'academic-calendar' => 'academic-years.calendar-pdf',
+            'academic-matrices' => 'academic-years.matrices-pdf',
+            'academic-year-schedules' => 'academic-years.schedules-pdf',
+            'academic-year-final-results' => 'academic-years.final-results.pdf',
+            default => abort(404),
+        };
+
+        return redirect()->route($route, $year);
+    }
+
+    /** @param array<string, mixed> $data */
+    private function issueSchool(array $data, User $user): RedirectResponse
+    {
+        abort_unless($user->isAdministrator(), 403);
+
+        return redirect()->route('schools.pdf', School::query()->findOrFail($data['target_id']));
+    }
+
+    /** @param array<string, mixed> $data @param list<int> $schoolIds */
+    private function issueDiary(array $data, array $schoolIds): RedirectResponse
+    {
+        $assignment = SchoolClassComponent::query()
+            ->with(['schoolClass.academicYear', 'component'])
+            ->whereKey($data['target_id'])
+            ->where('active', true)
+            ->whereHas('schoolClass.academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds)->whereNotNull('approved_at')->where('active', true))
+            ->firstOrFail();
+        $parameters = [
+            'schoolClass' => $assignment->schoolClass,
+            'component' => $assignment->component,
+        ];
+
+        if ($data['type'] === 'attendance-sheet') {
+            $parameters['month'] = $data['month'] ?? now()->format('Y-m');
+
+            return redirect()->route('teacher-diaries.attendance-sheet.pdf', $parameters);
+        }
+
+        abort_unless($data['type'] === 'teacher-diary', 404);
+        $parameters['notas'] = $data['score_view'] ?? 'numeros';
+
+        return redirect()->route('teacher-diaries.pdf', $parameters);
+    }
+}

@@ -1,21 +1,22 @@
 <?php
 
-use App\Http\Controllers\AcademicPeriodController;
 use App\Http\Controllers\AcademicCalendarPdfController;
 use App\Http\Controllers\AcademicCourseController;
 use App\Http\Controllers\AcademicMatricesPdfController;
+use App\Http\Controllers\AcademicPeriodController;
 use App\Http\Controllers\AcademicYearClosureController;
 use App\Http\Controllers\AcademicYearController;
 use App\Http\Controllers\AcademicYearFinalResultsPdfController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AttendanceJustificationController;
-use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\CalendarDayController;
 use App\Http\Controllers\ClassFinalResultsPdfController;
 use App\Http\Controllers\CurriculumComponentController;
-use App\Http\Controllers\DataQualityController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DataQualityController;
+use App\Http\Controllers\DocumentIssuanceController;
 use App\Http\Controllers\EnrollmentPdfController;
 use App\Http\Controllers\OfficialDocumentController;
 use App\Http\Controllers\PersonContactController;
@@ -25,19 +26,19 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RecordPdfController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SchoolAcademicYearController;
-use App\Http\Controllers\SchoolController;
-use App\Http\Controllers\SchoolConceptController;
+use App\Http\Controllers\SchoolClassComponentController;
 use App\Http\Controllers\SchoolClassController;
 use App\Http\Controllers\SchoolClassScheduleController;
 use App\Http\Controllers\SchoolClassSchedulePdfController;
-use App\Http\Controllers\SchoolClassComponentController;
-use App\Http\Controllers\StudentEnrollmentController;
+use App\Http\Controllers\SchoolConceptController;
+use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\StudentAcademicHistoryController;
-use App\Http\Controllers\StudentReportCardController;
-use App\Http\Controllers\StudentEnrollmentCertificateController;
-use App\Http\Controllers\StudentPeriodConvalidationController;
 use App\Http\Controllers\StudentDiaryController;
+use App\Http\Controllers\StudentEnrollmentCertificateController;
+use App\Http\Controllers\StudentEnrollmentController;
 use App\Http\Controllers\StudentMapController;
+use App\Http\Controllers\StudentPeriodConvalidationController;
+use App\Http\Controllers\StudentReportCardController;
 use App\Http\Controllers\TeacherDiaryController;
 use App\Http\Controllers\TeacherScheduleController;
 use Illuminate\Support\Facades\Route;
@@ -106,6 +107,9 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
 
     Route::get('documentos-oficiais', [OfficialDocumentController::class, 'create'])->name('official-documents.create');
     Route::post('documentos-oficiais/pdf', [OfficialDocumentController::class, 'store'])->name('official-documents.store');
+    Route::get('emissao-de-documentos', [DocumentIssuanceController::class, 'index'])->name('document-issuance.index');
+    Route::get('emissao-de-documentos/destinatarios', [DocumentIssuanceController::class, 'targets'])->name('document-issuance.targets');
+    Route::get('emissao-de-documentos/emitir', [DocumentIssuanceController::class, 'issue'])->name('document-issuance.issue');
 
     Route::get('diarios', [TeacherDiaryController::class, 'index'])->name('teacher-diaries.index');
     Route::get('diarios/horario', [TeacherScheduleController::class, 'index'])->name('teacher-schedules.index');

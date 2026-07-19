@@ -53,7 +53,7 @@
                 $personalMenuActive = request()->routeIs('profile.*') || request()->routeIs('student-diaries.*') || $ownStudentLifeActive || request()->routeIs('teacher-schedules.*');
                 $schoolManagementActive = request()->routeIs('schools.*') || request()->routeIs('academic-years.*') || $peopleRegistryActive || request()->routeIs('data-quality.*');
                 $academicRoutineActive = request()->routeIs('enrollments.*') || request()->routeIs('classes.enrollments.*') || request()->routeIs('attendance-justifications.*') || request()->routeIs('teacher-diaries.*') || ($studentLifeActive && ! $ownStudentLifeActive);
-                $documentsMenuActive = request()->routeIs('official-documents.*') || request()->routeIs('documents.verify.*');
+                $documentsMenuActive = request()->routeIs('document-issuance.*') || request()->routeIs('official-documents.*') || request()->routeIs('documents.verify.*');
             @endphp
 
             <li class="nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
@@ -189,6 +189,10 @@
                 <div id="collapseDocuments" class="collapse {{ $documentsMenuActive ? 'show' : '' }}" aria-labelledby="headingDocuments" data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         @if ($canManagePeople)
+                            <a class="collapse-item {{ request()->routeIs('document-issuance.*') ? 'active' : '' }}" href="{{ route('document-issuance.index') }}">
+                                <i class="fas fa-print" aria-hidden="true"></i>
+                                <span>Central de emissão</span>
+                            </a>
                             <a class="collapse-item {{ request()->routeIs('official-documents.*') ? 'active' : '' }}" href="{{ route('official-documents.create') }}">
                                 <i class="fas fa-file-signature" aria-hidden="true"></i>
                                 <span>Editor de documentos</span>
