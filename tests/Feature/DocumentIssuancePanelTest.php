@@ -28,6 +28,8 @@ class DocumentIssuancePanelTest extends TestCase
             ->get(route('document-issuance.index'))
             ->assertOk()
             ->assertSee('Central de emissão')
+            ->assertSee('value="enrollment-declaration"', false)
+            ->assertSee('value="academic-calendar"', false)
             ->assertSee('Ficha cadastral da escola');
 
         $this->actingAs($manager)

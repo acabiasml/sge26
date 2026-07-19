@@ -12,7 +12,7 @@
 
 @section('content')
     @php
-        $typeGroups = collect($documentTypes)->groupBy('group');
+        $typeGroups = collect($documentTypes)->groupBy('group', true);
         $typeCount = count($documentTypes);
     @endphp
 
@@ -410,7 +410,15 @@
                         headers: { Accept: 'application/json' },
                         signal: searchController.signal,
                     });
-                    if (!response.ok) throw new Error('Não foi possível concluir a busca.');
+                    if (!response.ok) {
+                        const messages = {
+                            401: 'Sua sessão expirou. Atualize a página e entre novamente.',
+                            403: 'Você não tem permissão para consultar esses registros.',
+                            422: 'Os filtros informados não são válidos. Revise a seleção.',
+                        };
+
+                        throw new Error(messages[response.status] || 'Não foi possível concluir a busca.');
+                    }
                     const payload = await response.json();
                     renderResults(payload.targets || []);
                 } catch (error) {
