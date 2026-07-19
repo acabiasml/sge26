@@ -689,6 +689,47 @@
             }
         });
 
+        const syncResponsiveTableHints = () => {
+            document.querySelectorAll('.table-responsive').forEach((container) => {
+                const visible = container.offsetParent !== null && container.getBoundingClientRect().height > 0;
+                const needsHorizontalScroll = visible && container.scrollWidth > container.clientWidth + 2;
+                const currentHint = container.previousElementSibling?.matches('[data-table-scroll-hint]')
+                    ? container.previousElementSibling
+                    : null;
+
+                container.classList.toggle('sge-has-horizontal-scroll', needsHorizontalScroll);
+
+                if (needsHorizontalScroll && !currentHint) {
+                    const hint = document.createElement('p');
+                    hint.className = 'sge-table-scroll-hint';
+                    hint.dataset.tableScrollHint = '';
+                    hint.innerHTML = '<i class="fas fa-arrows-alt-h" aria-hidden="true"></i><span>Deslize a tabela para o lado para ver todas as colunas.</span>';
+                    container.before(hint);
+                } else if (!needsHorizontalScroll && currentHint) {
+                    currentHint.remove();
+                }
+            });
+        };
+
+        let tableHintFrame = null;
+        const scheduleResponsiveTableHints = () => {
+            if (tableHintFrame !== null) {
+                window.cancelAnimationFrame(tableHintFrame);
+            }
+
+            tableHintFrame = window.requestAnimationFrame(() => {
+                tableHintFrame = null;
+                syncResponsiveTableHints();
+            });
+        };
+
+        window.addEventListener('resize', scheduleResponsiveTableHints);
+        new MutationObserver(scheduleResponsiveTableHints).observe(document.getElementById('content') ?? document.body, {
+            childList: true,
+            subtree: true,
+        });
+        scheduleResponsiveTableHints();
+
         const validationSummary = document.querySelector('[data-validation-summary]');
 
         if (validationSummary) {
