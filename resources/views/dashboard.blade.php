@@ -4,6 +4,120 @@
 @section('page-title', 'Início')
 
 @php
+    $dashboardUser = auth()->user();
+    $dashboardFirstName = \Illuminate\Support\Str::before(trim($dashboardUser->name), ' ');
+    $canManageDashboard = $dashboardUser->can('manage-people');
+    $dashboardShortcuts = [];
+
+    if ($canManageDashboard) {
+        $dashboardShortcuts = [
+            [
+                'label' => 'Gestão dos diários',
+                'description' => 'Acompanhar lançamentos e pendências',
+                'icon' => 'fa-book-open',
+                'url' => route('teacher-diaries.index'),
+            ],
+            [
+                'label' => 'Matrículas',
+                'description' => 'Consultar e movimentar estudantes',
+                'icon' => 'fa-id-card',
+                'url' => route('enrollments.index'),
+            ],
+            [
+                'label' => 'Conformidade',
+                'description' => 'Resolver bloqueios e avisos',
+                'icon' => 'fa-clipboard-check',
+                'url' => route('data-quality.index'),
+            ],
+            $dashboardUser->can('manage-schools')
+                ? [
+                    'label' => 'Escolas e anos letivos',
+                    'description' => 'Abrir a estrutura acadêmica',
+                    'icon' => 'fa-school',
+                    'url' => route('schools.index'),
+                ]
+                : [
+                    'label' => 'Pessoas',
+                    'description' => 'Consultar cadastros da escola',
+                    'icon' => 'fa-users',
+                    'url' => route('people.index'),
+                ],
+        ];
+        $dashboardIntroduction = 'Acompanhe a rotina escolar e abra diretamente o que precisa da sua atenção.';
+    } elseif ($dashboardUser->hasActiveRole(\App\Models\PersonSchoolRole::ROLE_TEACHER) || $dashboardUser->hasTeachingDiaries()) {
+        $dashboardShortcuts = [
+            [
+                'label' => 'Meus diários',
+                'description' => 'Frequência, conteúdo e resultados',
+                'icon' => 'fa-book-open',
+                'url' => route('teacher-diaries.index'),
+            ],
+            [
+                'label' => 'Meus horários',
+                'description' => 'Consultar e imprimir horários',
+                'icon' => 'fa-clock',
+                'url' => route('teacher-schedules.index'),
+            ],
+            [
+                'label' => 'Meu cadastro',
+                'description' => 'Conferir meus dados pessoais',
+                'icon' => 'fa-address-card',
+                'url' => route('profile.edit'),
+            ],
+            [
+                'label' => 'Calendário escolar',
+                'description' => 'Ver o calendário deste mês',
+                'icon' => 'fa-calendar-alt',
+                'url' => route('dashboard').'#calendar-heading',
+            ],
+        ];
+        $dashboardIntroduction = 'Seus diários, horários, recados e calendário estão reunidos aqui.';
+    } elseif ($dashboardUser->hasStudentMap()) {
+        $dashboardShortcuts = [
+            [
+                'label' => 'Meu diário',
+                'description' => 'Ver conceitos e frequência',
+                'icon' => 'fa-book-reader',
+                'url' => route('student-diaries.index'),
+            ],
+            [
+                'label' => 'Minha vida escolar',
+                'description' => 'Matrículas e documentos acadêmicos',
+                'icon' => 'fa-graduation-cap',
+                'url' => route('people.student-map.show', $dashboardUser->person_id),
+            ],
+            [
+                'label' => 'Meu cadastro',
+                'description' => 'Conferir meus dados pessoais',
+                'icon' => 'fa-address-card',
+                'url' => route('profile.edit'),
+            ],
+            [
+                'label' => 'Calendário escolar',
+                'description' => 'Ver o calendário deste mês',
+                'icon' => 'fa-calendar-alt',
+                'url' => route('dashboard').'#calendar-heading',
+            ],
+        ];
+        $dashboardIntroduction = 'Acompanhe sua vida escolar, seus recados e o calendário da escola.';
+    } else {
+        $dashboardShortcuts = [
+            [
+                'label' => 'Meu cadastro',
+                'description' => 'Conferir meus dados pessoais',
+                'icon' => 'fa-address-card',
+                'url' => route('profile.edit'),
+            ],
+            [
+                'label' => 'Calendário escolar',
+                'description' => 'Ver o calendário deste mês',
+                'icon' => 'fa-calendar-alt',
+                'url' => route('dashboard').'#calendar-heading',
+            ],
+        ];
+        $dashboardIntroduction = 'Acompanhe os recados e o calendário da escola.';
+    }
+
     $studentCount = $roleCounts[\App\Models\PersonSchoolRole::ROLE_STUDENT] ?? 0;
     $teacherCount = $roleCounts[\App\Models\PersonSchoolRole::ROLE_TEACHER] ?? 0;
     $managerCount = $roleCounts[\App\Models\PersonSchoolRole::ROLE_MANAGER] ?? 0;
@@ -18,14 +132,29 @@
     <section class="sge-dashboard-hero mb-4" aria-labelledby="dashboard-title">
         <div class="sge-dashboard-hero-content">
             <div class="sge-page-kicker">Painel de acompanhamento</div>
-            <h2 id="dashboard-title">Visão geral do Beabá</h2>
-            <p>Indicadores, recados e calendário letivo reunidos para acompanhar a rotina escolar sem caçar informação em cinco telas diferentes.</p>
+            <h2 id="dashboard-title">Olá, {{ $dashboardFirstName }}</h2>
+            <p>{{ $dashboardIntroduction }}</p>
         </div>
         <div class="sge-dashboard-date" aria-label="Data atual em Brasília">
             <span>{{ now('America/Sao_Paulo')->translatedFormat('d \d\e F') }}</span>
             <small>{{ now('America/Sao_Paulo')->format('Y') }} · Horário de Brasília</small>
         </div>
     </section>
+
+    <nav class="sge-dashboard-shortcuts mb-4" aria-label="Acessos rápidos">
+        @foreach ($dashboardShortcuts as $shortcut)
+            <a class="sge-dashboard-shortcut" href="{{ $shortcut['url'] }}">
+                <span class="sge-dashboard-shortcut-icon" aria-hidden="true">
+                    <i class="fas {{ $shortcut['icon'] }}"></i>
+                </span>
+                <span class="sge-dashboard-shortcut-copy">
+                    <strong>{{ $shortcut['label'] }}</strong>
+                    <small>{{ $shortcut['description'] }}</small>
+                </span>
+                <i class="fas fa-chevron-right sge-dashboard-shortcut-arrow" aria-hidden="true"></i>
+            </a>
+        @endforeach
+    </nav>
 
     @can('manage-people')
         <section class="sge-dashboard-metrics mb-4" aria-label="Indicadores principais">
@@ -264,23 +393,25 @@
                     <div class="sge-chart-wrap sge-chart-wrap-wide" aria-hidden="true">
                         <canvas id="studentsBySchoolChart"></canvas>
                     </div>
-                    <table class="table table-sm sge-accessible-chart-table mt-3">
-                        <caption class="sr-only">Dados do gráfico de estudantes por escola</caption>
-                        <thead>
-                            <tr>
-                                <th>Escola</th>
-                                <th class="text-right">Estudantes</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($studentsBySchoolChart['labels'] as $index => $label)
+                    <div class="table-responsive mt-3">
+                        <table class="table table-sm sge-accessible-chart-table mb-0">
+                            <caption class="sr-only">Dados do gráfico de estudantes por escola</caption>
+                            <thead>
                                 <tr>
-                                    <td>{{ $label }}</td>
-                                    <td class="text-right">{{ number_format($studentsBySchoolChart['values'][$index] ?? 0, 0, ',', '.') }}</td>
+                                    <th>Escola</th>
+                                    <th class="text-right">Estudantes</th>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @foreach ($studentsBySchoolChart['labels'] as $index => $label)
+                                    <tr>
+                                        <td>{{ $label }}</td>
+                                        <td class="text-right">{{ number_format($studentsBySchoolChart['values'][$index] ?? 0, 0, ',', '.') }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                 @else
                     <p class="text-muted mb-0">Ainda não há estudantes vinculados a escolas.</p>
                 @endif
@@ -294,7 +425,7 @@
             const calendarTypeValues = @json($calendarTypeChart['values']);
             const studentsBySchoolValues = @json($studentsBySchoolChart['values']);
 
-            Chart.defaults.global.defaultFontFamily = "'Inter', 'Atkinson Hyperlegible', sans-serif";
+            Chart.defaults.global.defaultFontFamily = "'Atkinson Hyperlegible Next', 'Atkinson Hyperlegible', sans-serif";
             Chart.defaults.global.defaultFontColor = '#51443d';
 
             if (document.getElementById('rolesChart') && roleValues.some((value) => value > 0)) {

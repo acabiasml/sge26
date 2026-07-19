@@ -9,19 +9,19 @@ use App\Models\AuditLog;
 use App\Models\CalendarDay;
 use App\Models\CurriculumComponent;
 use App\Models\CurriculumComponentSubstitution;
+use App\Models\DiaryAssessment;
 use App\Models\DiaryAttendanceEntry;
 use App\Models\DiaryAttendanceJustification;
 use App\Models\DiaryAttendanceRecord;
-use App\Models\DiaryAssessment;
 use App\Models\DiaryContent;
 use App\Models\DiaryPeriodConfirmation;
-use App\Models\SchoolAssessmentRule;
 use App\Models\IssuedDocument;
 use App\Models\Person;
 use App\Models\PersonContact;
 use App\Models\PersonRelationship;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
+use App\Models\SchoolAssessmentRule;
 use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
 use App\Models\SchoolClassComponentSubstitution;
@@ -102,7 +102,7 @@ class AuditLogPresenter
         'legal_name' => 'Razão social',
         'letterhead_text' => 'Texto institucional',
         'logo_path' => 'Logo',
-        'minimum_school_days' => 'Mínimo de dias letivos',
+        'minimum_school_days' => 'Referência de dias letivos (legado)',
         'minimum_attendance_percentage' => 'Frequência mínima para aprovação',
         'name' => 'Nome',
         'notes' => 'Observações',

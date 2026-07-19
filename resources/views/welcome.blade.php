@@ -11,11 +11,9 @@
     <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
 
     <link href="{{ asset('template/vendor/fontawesome-free/css/all.min.css') }}" rel="stylesheet" type="text/css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preload" href="{{ asset('template/fonts/atkinson-hyperlegible-next/atkinson-hyperlegible-next-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link href="{{ asset('template/css/sb-admin-2.min.css') }}" rel="stylesheet">
-    <link href="{{ asset('template/css/sge-brand.css') }}" rel="stylesheet">
+    <link href="{{ asset('template/css/sge-brand.css') }}?v={{ filemtime(public_path('template/css/sge-brand.css')) }}" rel="stylesheet">
 </head>
 
 <body class="bg-gradient-primary sge-login-page">

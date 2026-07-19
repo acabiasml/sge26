@@ -62,14 +62,6 @@ class AcademicYearClosureStatus
             ];
         }
 
-        if ($academicYear->schoolDayCount() < (int) $academicYear->minimum_school_days) {
-            $issues[] = [
-                'level' => 'warning',
-                'message' => 'O calendário está abaixo do mínimo de dias letivos configurado.',
-                'detail' => 'Confira se este ano letivo realmente pode ser encerrado com essa contagem.',
-            ];
-        }
-
         if ($enrollments->isEmpty()) {
             $issues[] = [
                 'level' => 'warning',

@@ -84,7 +84,7 @@
             <div class="matrix-subtitle">
                 {{ $academicYear->name }}
                 &middot; {{ $academicYear->starts_at?->format('d/m/Y') }} a {{ $academicYear->ends_at?->format('d/m/Y') }}
-                &middot; Dias letivos: {{ $academicYear->schoolDayCount() }} / mínimo {{ $academicYear->minimum_school_days }}
+                &middot; Dias letivos: {{ $academicYear->schoolDayCount() }}
                 &middot; Aprovação: {{ number_format((float) $academicYear->passing_points, 1, ',', '.') }} pontos e {{ $academicYear->minimum_attendance_percentage }}% de frequência
             </div>
 
@@ -175,7 +175,7 @@
                 </tr>
                 <tr>
                     <td class="meta-label">Dias letivos</td>
-                    <td>{{ $academicYear->schoolDayCount() }} / mínimo {{ $academicYear->minimum_school_days }}</td>
+                    <td>{{ $academicYear->schoolDayCount() }}</td>
                     <td class="meta-label">Critérios de aprovação</td>
                     <td>{{ number_format((float) $academicYear->passing_points, 1, ',', '.') }} pontos · {{ $academicYear->minimum_attendance_percentage }}% de frequência</td>
                 </tr>

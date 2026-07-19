@@ -7,10 +7,10 @@ use App\Models\AcademicPeriod;
 use App\Models\AcademicYear;
 use App\Models\CalendarDay;
 use App\Models\CurriculumComponent;
-use App\Models\DiaryAssessment;
 use App\Models\DiaryAlert;
-use App\Models\DiaryAttendanceRecord;
+use App\Models\DiaryAssessment;
 use App\Models\DiaryAttendanceJustification;
+use App\Models\DiaryAttendanceRecord;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
@@ -18,6 +18,7 @@ use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
 use App\Models\StudentEnrollment;
 use App\Models\User;
+use App\Support\StudentReportCardBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -38,7 +39,8 @@ class TeacherDiaryTest extends TestCase
         $this->actingAs($teacher)
             ->get(route('dashboard'))
             ->assertOk()
-            ->assertSee('Diários');
+            ->assertSee('Meus diários')
+            ->assertSee('Meus horários');
     }
 
     public function test_management_diary_index_is_grouped_by_class_with_filters(): void
@@ -156,6 +158,12 @@ class TeacherDiaryTest extends TestCase
             ->assertSee('Matemática');
 
         $this->actingAs($student)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Meu diário')
+            ->assertSee('Minha vida escolar');
+
+        $this->actingAs($student)
             ->get(route('student-diaries.show', [$enrollment, $component]))
             ->assertOk()
             ->assertSee('Conceitos lançados')
@@ -214,7 +222,7 @@ class TeacherDiaryTest extends TestCase
             'final_result_calculated_by_person_id' => $manager->person_id,
         ]);
 
-        $report = app(\App\Support\StudentReportCardBuilder::class)->build($enrollment->fresh());
+        $report = app(StudentReportCardBuilder::class)->build($enrollment->fresh());
 
         $this->assertSame('Aprovado', $report['finalResult']['label']);
         $this->assertSame('Aprovado por pontos e frequencia.', $report['finalResult']['details']['reason']);
@@ -347,7 +355,7 @@ class TeacherDiaryTest extends TestCase
             ])
             ->assertRedirect(route('enrollments.report-card.show', $enrollment));
 
-        $report = app(\App\Support\StudentReportCardBuilder::class)->build($enrollment->fresh());
+        $report = app(StudentReportCardBuilder::class)->build($enrollment->fresh());
         $componentReport = $report['periodReports']->first()['components']->first();
 
         $this->assertSame(7.0, $componentReport['average']['value']);
@@ -1219,7 +1227,7 @@ class TeacherDiaryTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $overrides
+     * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>
      */
     private function officialSchoolData(array $overrides = []): array

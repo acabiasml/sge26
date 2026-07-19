@@ -31,7 +31,7 @@
                             <td>{{ $year->school?->name }}</td>
                             <td>{{ $year->reference_year }}</td>
                             <td>{{ $year->starts_at?->format('d/m/Y') }} a {{ $year->ends_at?->format('d/m/Y') }}</td>
-                            <td>{{ $year->schoolDayCount() }} / mínimo {{ $year->minimum_school_days }}</td>
+                            <td>{{ number_format($year->schoolDayCount(), 0, ',', '.') }}</td>
                             <td>{{ $year->active ? 'Ativo' : 'Inativo' }}</td>
                             <td>
                                 <div class="sge-action-buttons">

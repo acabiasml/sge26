@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\AcademicYear;
-use App\Models\AcademicPeriodDiaryConsolidation;
-use App\Models\Announcement;
 use App\Models\AcademicCourse;
+use App\Models\AcademicPeriodDiaryConsolidation;
+use App\Models\AcademicYear;
+use App\Models\Announcement;
 use App\Models\CalendarDay;
 use App\Models\IssuedDocument;
 use App\Models\KnowledgeArea;
@@ -14,6 +14,8 @@ use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\StudentEnrollment;
 use App\Models\User;
+use App\Support\AcademicStructureValidator;
+use App\Support\AcademicYearClosureStatus;
 use App\Support\CurriculumCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -21,6 +23,31 @@ use Tests\TestCase;
 class AcademicCalendarTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_school_day_count_is_not_compared_with_a_fixed_200_day_warning(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear([
+            'minimum_school_days' => 200,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('academic-years.show', $year))
+            ->assertOk()
+            ->assertDontSee('Dias letivos abaixo do mínimo')
+            ->assertDontSee('Mínimo legal')
+            ->assertDontSee('mínimo 200');
+
+        $structureIssues = collect(AcademicStructureValidator::forAcademicYear($year));
+        $closureIssues = collect((new AcademicYearClosureStatus)->issues($year));
+
+        $this->assertFalse($structureIssues->contains(
+            fn (array $issue): bool => str_contains($issue['title'], 'Dias letivos abaixo do mínimo')
+        ));
+        $this->assertFalse($closureIssues->contains(
+            fn (array $issue): bool => str_contains($issue['message'], 'mínimo de dias letivos')
+        ));
+    }
 
     public function test_administrator_can_create_academic_year_inside_school(): void
     {
@@ -394,6 +421,7 @@ class AcademicCalendarTest extends TestCase
             'title' => 'Conselho de Classe',
         ]);
     }
+
     public function test_administrator_can_create_course_component_and_class_inside_academic_year(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
@@ -1611,7 +1639,7 @@ class AcademicCalendarTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $overrides
+     * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>
      */
     private function officialSchoolData(array $overrides = []): array
@@ -1677,4 +1705,3 @@ class AcademicCalendarTest extends TestCase
         ]);
     }
 }
-

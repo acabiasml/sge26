@@ -25,28 +25,34 @@ class DashboardController extends Controller
         $calendarSchoolIds = $user->isAdministrator()
             ? null
             : ($user->isManager() ? $manageableSchoolIds : $visibleSchoolIds);
+        $canManagePeople = $user->canManagePeople();
 
-        $roleCounts = [
-            PersonSchoolRole::ROLE_STUDENT => $this->activeRoleCount(PersonSchoolRole::ROLE_STUDENT, $manageableSchoolIds),
-            PersonSchoolRole::ROLE_TEACHER => $this->activeRoleCount(PersonSchoolRole::ROLE_TEACHER, $manageableSchoolIds),
-            PersonSchoolRole::ROLE_MANAGER => $this->activeRoleCount(PersonSchoolRole::ROLE_MANAGER, $manageableSchoolIds),
-            PersonSchoolRole::ROLE_EMPLOYEE => $this->activeRoleCount(PersonSchoolRole::ROLE_EMPLOYEE, $manageableSchoolIds),
-        ];
+        $roleCounts = collect(PersonSchoolRole::ROLE_LABELS)
+            ->only([
+                PersonSchoolRole::ROLE_STUDENT,
+                PersonSchoolRole::ROLE_TEACHER,
+                PersonSchoolRole::ROLE_MANAGER,
+                PersonSchoolRole::ROLE_EMPLOYEE,
+            ])
+            ->mapWithKeys(fn (string $label, string $role): array => [
+                $role => $canManagePeople ? $this->activeRoleCount($role, $manageableSchoolIds) : 0,
+            ])
+            ->all();
 
-        $birthdays = $this->birthdays($manageableSchoolIds);
+        $birthdays = $this->birthdays($calendarSchoolIds);
         $monthAcademicCalendars = $this->monthAcademicCalendars($calendarSchoolIds);
 
         return view('dashboard', [
-            'schoolCount' => $this->schoolCount($manageableSchoolIds),
-            'personCount' => $this->personCount($manageableSchoolIds),
-            'activeEnrollmentCount' => $this->activeEnrollmentCount($manageableSchoolIds),
-            'activeAcademicYearCount' => $this->activeAcademicYearCount($calendarSchoolIds),
-            'registrationPendingCount' => $this->registrationPendingCount($manageableSchoolIds),
+            'schoolCount' => $canManagePeople ? $this->schoolCount($manageableSchoolIds) : 0,
+            'personCount' => $canManagePeople ? $this->personCount($manageableSchoolIds) : 0,
+            'activeEnrollmentCount' => $canManagePeople ? $this->activeEnrollmentCount($manageableSchoolIds) : 0,
+            'activeAcademicYearCount' => $canManagePeople ? $this->activeAcademicYearCount($calendarSchoolIds) : 0,
+            'registrationPendingCount' => $canManagePeople ? $this->registrationPendingCount($manageableSchoolIds) : 0,
             'monthSchoolDayCount' => $monthAcademicCalendars->sum(fn (AcademicYear $academicYear): int => $academicYear->days->where('counts_as_school_day', true)->count()),
             'roleCounts' => $roleCounts,
             'roleChart' => $this->roleChart($roleCounts),
-            'studentsBySchoolChart' => $this->studentsBySchoolChart($manageableSchoolIds),
-            'calendarTypeChart' => $this->calendarTypeChart($monthAcademicCalendars),
+            'studentsBySchoolChart' => $canManagePeople ? $this->studentsBySchoolChart($manageableSchoolIds) : ['labels' => [], 'values' => []],
+            'calendarTypeChart' => $canManagePeople ? $this->calendarTypeChart($monthAcademicCalendars) : ['labels' => [], 'values' => []],
             'birthdays' => $birthdays,
             'announcements' => $this->announcements($visibleSchoolIds),
             'monthAcademicCalendars' => $monthAcademicCalendars,
@@ -55,7 +61,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param list<int>|null $schoolIds
+     * @param  list<int>|null  $schoolIds
      */
     private function schoolCount(?array $schoolIds): int
     {
@@ -66,7 +72,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param list<int>|null $schoolIds
+     * @param  list<int>|null  $schoolIds
      */
     private function personCount(?array $schoolIds): int
     {
@@ -79,7 +85,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param list<int>|null $schoolIds
+     * @param  list<int>|null  $schoolIds
      */
     private function activeRoleCount(string $role, ?array $schoolIds): int
     {
@@ -91,7 +97,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param list<int>|null $schoolIds
+     * @param  list<int>|null  $schoolIds
      */
     private function activeEnrollmentCount(?array $schoolIds): int
     {
@@ -106,7 +112,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param list<int>|null $schoolIds
+     * @param  list<int>|null  $schoolIds
      */
     private function activeAcademicYearCount(?array $schoolIds): int
     {
@@ -119,7 +125,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param list<int>|null $schoolIds
+     * @param  list<int>|null  $schoolIds
      */
     private function registrationPendingCount(?array $schoolIds): int
     {
@@ -159,7 +165,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param array<string, int> $roleCounts
+     * @param  array<string, int>  $roleCounts
      * @return array{labels: list<string>, values: list<int>}
      */
     private function roleChart(array $roleCounts): array
@@ -174,7 +180,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param list<int>|null $schoolIds
+     * @param  list<int>|null  $schoolIds
      * @return array{labels: list<string>, values: list<int>}
      */
     private function studentsBySchoolChart(?array $schoolIds): array
@@ -197,7 +203,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param Collection<int, AcademicYear> $academicYears
+     * @param  Collection<int, AcademicYear>  $academicYears
      * @return array{labels: list<string>, values: list<int>}
      */
     private function calendarTypeChart(Collection $academicYears): array
@@ -218,7 +224,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param list<int>|null $schoolIds
+     * @param  list<int>|null  $schoolIds
      * @return Collection<int, Person>
      */
     private function birthdays(?array $schoolIds): Collection
@@ -236,7 +242,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param list<int>|null $schoolIds
+     * @param  list<int>|null  $schoolIds
      * @return Collection<int, Announcement>
      */
     private function announcements(?array $schoolIds): Collection
@@ -254,7 +260,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param list<int>|null $schoolIds
+     * @param  list<int>|null  $schoolIds
      * @return Collection<int, AcademicYear>
      */
     private function monthAcademicCalendars(?array $schoolIds): Collection

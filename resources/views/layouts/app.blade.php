@@ -11,13 +11,11 @@
     <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
 
     <link href="{{ asset('template/vendor/fontawesome-free/css/all.min.css') }}" rel="stylesheet" type="text/css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preload" href="{{ asset('template/fonts/atkinson-hyperlegible-next/atkinson-hyperlegible-next-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link href="{{ asset('template/css/sb-admin-2.min.css') }}" rel="stylesheet">
     <link href="{{ asset('vendor/rappasoft/livewire-tables/css/laravel-livewire-tables.min.css') }}" rel="stylesheet">
     <link href="{{ asset('vendor/rappasoft/livewire-tables/css/laravel-livewire-tables-thirdparty.min.css') }}" rel="stylesheet">
-    <link href="{{ asset('template/css/sge-brand.css') }}" rel="stylesheet">
+    <link href="{{ asset('template/css/sge-brand.css') }}?v={{ filemtime(public_path('template/css/sge-brand.css')) }}" rel="stylesheet">
     @livewireStyles
 </head>
 
@@ -135,7 +133,16 @@
                 </li>
             @endif
 
-            @if ($canManagePeople || $hasTeachingArea)
+            @if ($hasTeachingArea && ! $canManagePeople)
+                <li class="nav-item {{ request()->routeIs('teacher-diaries.*') ? 'active' : '' }}">
+                    <a class="nav-link" href="{{ route('teacher-diaries.index') }}">
+                        <i class="fas fa-fw fa-book" aria-hidden="true"></i>
+                        <span>Diários</span>
+                    </a>
+                </li>
+            @endif
+
+            @if ($canManagePeople)
                 <div class="sidebar-heading">Rotina acadêmica</div>
 
                 <li class="nav-item {{ $academicRoutineActive ? 'active' : '' }}">
@@ -164,7 +171,7 @@
                             @endif
                             <a class="collapse-item {{ request()->routeIs('teacher-diaries.*') ? 'active' : '' }}" href="{{ route('teacher-diaries.index') }}">
                                 <i class="fas fa-book" aria-hidden="true"></i>
-                                <span>{{ $canManagePeople ? 'Gestão dos diários' : 'Diários' }}</span>
+                                <span>Gestão dos diários</span>
                             </a>
                         </div>
                     </div>
@@ -220,10 +227,12 @@
             <hr class="sidebar-divider d-none d-md-block">
         </ul>
 
+        <button class="sge-sidebar-backdrop d-lg-none" type="button" aria-label="Fechar menu lateral" hidden></button>
+
         <div id="content-wrapper" class="d-flex flex-column">
             <div id="content">
                 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top" aria-label="Barra superior">
-                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3 sge-sidebar-toggle" type="button" aria-label="Abrir ou recolher menu lateral">
+                    <button id="sidebarToggleTop" class="btn btn-link d-lg-none rounded-circle mr-3 sge-sidebar-toggle" type="button" aria-label="Abrir ou recolher menu lateral">
                         <i class="fa fa-bars" aria-hidden="true"></i>
                     </button>
 
@@ -331,8 +340,14 @@
                     @endif
 
                     @if ($errors->any())
-                        <div class="alert alert-danger" role="alert">
-                            Verifique os campos destacados e tente novamente.
+                        <div class="alert alert-danger sge-validation-summary" role="alert" tabindex="-1" data-validation-summary>
+                            <strong>Não foi possível concluir esta ação.</strong>
+                            <span>Confira os campos indicados:</span>
+                            <ul class="mb-0 mt-2 pl-4">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
                         </div>
                     @endif
 
@@ -436,6 +451,55 @@
             if (event.target instanceof HTMLInputElement && (event.target.dataset.mask || event.target.type === 'email')) {
                 applyInputMask(event.target);
             }
+        });
+
+        let generatedFieldId = 0;
+        const connectFormLabels = (scope = document) => {
+            const groups = [];
+
+            if (scope instanceof Element && scope.matches('.form-group')) {
+                groups.push(scope);
+            }
+
+            scope.querySelectorAll?.('.form-group').forEach((group) => groups.push(group));
+
+            groups.forEach((group) => {
+                const controls = Array.from(group.querySelectorAll('input:not([type="hidden"]), select, textarea'))
+                    .filter((control) => control.closest('.form-group') === group);
+                const label = group.querySelector('label');
+
+                if (controls.length !== 1 || !label || label.contains(controls[0])) {
+                    return;
+                }
+
+                const control = controls[0];
+                const currentIdIsUnique = control.id && document.getElementById(control.id) === control;
+
+                if (!currentIdIsUnique) {
+                    generatedFieldId += 1;
+                    control.id = `sge-field-${generatedFieldId}`;
+                    control.dataset.sgeGeneratedId = 'true';
+                }
+
+                label.htmlFor = control.id;
+            });
+        };
+
+        connectFormLabels();
+
+        const formLabelObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node instanceof Element) {
+                        connectFormLabels(node);
+                    }
+                });
+            });
+        });
+
+        formLabelObserver.observe(document.getElementById('main-content'), {
+            childList: true,
+            subtree: true,
         });
 
         const syncExportLink = (link) => {
@@ -554,6 +618,82 @@
                 showSubmitLoading(form, event.submitter);
             });
         });
+
+        document.querySelectorAll('.nav-item.active > .nav-link, .collapse-item.active').forEach((link) => {
+            link.setAttribute('aria-current', 'page');
+        });
+
+        const mobileMenuButton = document.getElementById('sidebarToggleTop');
+        const mobileMenuBackdrop = document.querySelector('.sge-sidebar-backdrop');
+        const sidebar = document.getElementById('accordionSidebar');
+
+        const setMobileMenuOpen = (open) => {
+            const isMobileViewport = window.matchMedia('(max-width: 991.98px)').matches;
+
+            if (!open && isMobileViewport && sidebar?.contains(document.activeElement)) {
+                mobileMenuButton?.focus();
+            }
+
+            document.body.classList.toggle('sge-mobile-menu-open', open);
+            mobileMenuButton?.setAttribute('aria-expanded', open ? 'true' : 'false');
+            sidebar?.toggleAttribute('inert', isMobileViewport && !open);
+
+            if (mobileMenuBackdrop) {
+                mobileMenuBackdrop.hidden = !open;
+            }
+
+            if (open && isMobileViewport) {
+                window.requestAnimationFrame(() => {
+                    sidebar?.querySelector('.nav-link[href]')?.focus();
+                });
+            }
+        };
+
+        mobileMenuButton?.setAttribute('aria-controls', 'accordionSidebar');
+        mobileMenuButton?.setAttribute('aria-expanded', 'false');
+        mobileMenuButton?.addEventListener('click', () => {
+            setMobileMenuOpen(!document.body.classList.contains('sge-mobile-menu-open'));
+        });
+        mobileMenuBackdrop?.addEventListener('click', () => setMobileMenuOpen(false));
+        sidebar?.querySelectorAll('a[href]').forEach((link) => {
+            if (link.getAttribute('href')?.startsWith('#')) {
+                return;
+            }
+
+            link.addEventListener('click', () => {
+                if (window.matchMedia('(max-width: 991.98px)').matches) {
+                    setMobileMenuOpen(false);
+                }
+            });
+        });
+
+        const mobileViewport = window.matchMedia('(max-width: 991.98px)');
+        const handleMobileViewportChange = (event) => {
+            if (!event.matches) {
+                setMobileMenuOpen(false);
+            }
+        };
+
+        if (typeof mobileViewport.addEventListener === 'function') {
+            mobileViewport.addEventListener('change', handleMobileViewportChange);
+        } else {
+            mobileViewport.addListener(handleMobileViewportChange);
+        }
+
+        setMobileMenuOpen(false);
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && document.body.classList.contains('sge-mobile-menu-open')) {
+                setMobileMenuOpen(false);
+                mobileMenuButton?.focus();
+            }
+        });
+
+        const validationSummary = document.querySelector('[data-validation-summary]');
+
+        if (validationSummary) {
+            validationSummary.focus();
+        }
 
         window.addEventListener('pageshow', () => resetSubmitLoading());
     </script>

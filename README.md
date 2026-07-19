@@ -222,7 +222,7 @@ O fechamento do ano letivo possui uma tela própria de conferência. Antes de fe
 - aprovação do calendário;
 - consolidação dos períodos avaliativos;
 - existência de resultados finais calculados para as matrículas;
-- contagem de dias letivos em relação ao mínimo configurado;
+- contagem dos dias letivos registrados no calendário;
 - existência de turmas e matrículas.
 
 Quando o ano letivo é fechado, alterações acadêmicas sensíveis ficam bloqueadas. Administração e Gestão podem consultar a conferência e emitir o documento consolidado de resultados finais do ano letivo, além das atas por turma.
@@ -293,6 +293,8 @@ O menu lateral é organizado por uso real:
 O Beabá prioriza:
 
 - português do Brasil com acentuação correta;
+- tipografia local **Atkinson Hyperlegible Next**, licenciada sob a SIL Open Font License e escolhida para favorecer a distinção entre caracteres;
+- escala tipográfica confortável, entrelinhas amplas e pesos moderados, sem textos comprimidos em negrito;
 - foco visível;
 - link para pular ao conteúdo;
 - botões com ícones acompanhados de `aria-label` e `title`;
@@ -300,6 +302,10 @@ O Beabá prioriza:
 - textos legíveis;
 - tabelas responsivas;
 - compatibilidade com leitores de tela.
+
+Os arquivos da fonte e sua licença estão em
+`public/template/fonts/atkinson-hyperlegible-next`. A interface não depende de
+Google Fonts ou de outro serviço externo para renderizar a tipografia.
 
 ## Base Legada
 

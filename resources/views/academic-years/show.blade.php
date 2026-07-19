@@ -124,12 +124,7 @@
                         <dt>Critérios de aprovação</dt>
                         <dd>{{ number_format((float) $academicYear->passing_points, 1, ',', '.') }} pontos e {{ $academicYear->minimum_attendance_percentage }}% de frequência</dd>
                         <dt>Dias letivos</dt>
-                        <dd>
-                            <span class="badge badge-{{ $schoolDays >= 200 ? 'success' : 'warning' }}">{{ $schoolDays >= 200 ? 'Mínimo legal atendido' : 'Abaixo do mínimo legal' }}</span>
-                            @if ($schoolDays < 200)
-                                <span class="d-block small text-warning mt-1">Atenção: abaixo do mínimo legal de 200 dias letivos.</span>
-                            @endif
-                        </dd>
+                        <dd>{{ number_format($schoolDays, 0, ',', '.') }}</dd>
                     </dl>
 
                     @if (! $academicYear->approved_at)

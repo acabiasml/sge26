@@ -1,3 +1,19 @@
+@font-face {
+    font-family: "Atkinson Hyperlegible Next";
+    font-style: normal;
+    font-weight: 200 800;
+    font-display: swap;
+    src: url("../fonts/atkinson-hyperlegible-next/atkinson-hyperlegible-next-latin.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Atkinson Hyperlegible Next";
+    font-style: italic;
+    font-weight: 200 800;
+    font-display: swap;
+    src: url("../fonts/atkinson-hyperlegible-next/atkinson-hyperlegible-next-latin-italic.woff2") format("woff2");
+}
+
 :root {
     --sge-brown: #6B3D2E;
     --sge-brown-dark: #4b281d;
@@ -14,13 +30,14 @@
     --sge-text: #4f4650;
     --sge-muted: #7e7380;
     --sge-border: #e6dccf;
-    --sge-font-sans: "Atkinson Hyperlegible", "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-    --sge-font-heading: "Inter", "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    --sge-font-sans: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
+    --sge-font-heading: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
     --sge-shadow-sm: 0 .18rem .65rem rgba(47, 36, 31, .06);
     --sge-shadow-md: 0 .55rem 1.4rem rgba(47, 36, 31, .09);
 }
 
 html {
+    font-size: 100%;
     scroll-behavior: smooth;
 }
 
@@ -221,7 +238,7 @@ a:hover {
     border: 1px solid #dadce0;
     background-color: #fff;
     color: #3c4043;
-    font-weight: 700;
+    font-weight: 600;
     box-shadow: 0 1px 2px rgba(60, 64, 67, .12);
 }
 
@@ -269,7 +286,9 @@ a:hover {
 body {
     color: #4f4650;
     font-family: var(--sge-font-sans);
-    font-size: .98rem;
+    font-size: 1rem;
+    font-kerning: normal;
+    line-height: 1.55;
     letter-spacing: 0;
     background: var(--sge-surface);
 }
@@ -293,6 +312,33 @@ h6,
 th {
     font-family: var(--sge-font-heading);
     letter-spacing: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.h1,
+.h2,
+.h3,
+.h4,
+.h5,
+.h6 {
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+p,
+li,
+dd {
+    line-height: 1.55;
+}
+
+b,
+strong {
+    font-weight: 700;
 }
 
 .btn,
@@ -334,10 +380,10 @@ th {
 .sge-page-kicker {
     margin-bottom: .18rem;
     color: var(--sge-orange-dark);
-    font-size: .72rem;
-    font-weight: 800;
-    letter-spacing: .08em;
-    text-transform: uppercase;
+    font-size: .82rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
 }
 
 .card {
@@ -381,13 +427,16 @@ textarea.form-control {
 
 label {
     color: var(--sge-ink);
-    font-size: .86rem;
-    font-weight: 700;
+    font-size: .92rem;
+    font-weight: 600;
+    line-height: 1.4;
 }
 
 .btn {
     border-radius: .4rem;
-    font-weight: 700;
+    font-size: .95rem;
+    font-weight: 600;
+    line-height: 1.35;
 }
 
 .btn-sm {
@@ -463,7 +512,7 @@ label {
 }
 
 .sge-icon-action i {
-    font-size: .86rem;
+    font-size: .92rem;
     pointer-events: none;
 }
 
@@ -596,14 +645,18 @@ textarea:focus-visible {
 
 .table {
     color: #4f4650;
+    font-size: .95rem;
+    line-height: 1.45;
 }
 
 .table thead th {
     border-top: 0;
     border-bottom: 1px solid var(--sge-border);
     color: var(--sge-muted);
-    font-size: .74rem;
-    text-transform: uppercase;
+    font-size: .9rem;
+    font-weight: 700;
+    line-height: 1.35;
+    text-transform: none;
 }
 
 .table td,
@@ -621,7 +674,7 @@ textarea:focus-visible {
 }
 
 .table a {
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .badge {
@@ -640,11 +693,16 @@ textarea:focus-visible {
     color: #fff;
     display: inline-flex;
     font-family: var(--sge-font-heading);
-    font-weight: 800;
+    font-weight: 700;
     height: 2.25rem;
     justify-content: center;
-    text-transform: uppercase;
+    text-transform: none;
     width: 2.25rem;
+}
+
+.topbar .text-xs {
+    font-size: .8rem !important;
+    line-height: 1.35;
 }
 
 .sge-alert-dropdown {
@@ -670,7 +728,7 @@ textarea:focus-visible {
     background: var(--sge-brown);
     color: #fff;
     font-family: var(--sge-font-heading);
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: 0;
     padding: .65rem .85rem;
     text-align: center;
@@ -685,8 +743,8 @@ textarea:focus-visible {
 .sge-calendar-weekdays span {
     background: #f8f2ec;
     color: var(--sge-muted);
-    font-size: .72rem;
-    font-weight: 800;
+    font-size: .82rem;
+    font-weight: 600;
     padding: .35rem 0;
     text-align: center;
 }
@@ -720,7 +778,7 @@ button.sge-calendar-day:focus {
 }
 
 .sge-calendar-date {
-    font-size: .72rem;
+    font-size: .82rem;
     font-weight: 700;
     line-height: 1;
 }
@@ -728,7 +786,7 @@ button.sge-calendar-day:focus {
 .sge-calendar-code {
     font-family: var(--sge-font-heading);
     font-size: .88rem;
-    font-weight: 900;
+    font-weight: 700;
     line-height: 1;
 }
 
@@ -749,14 +807,14 @@ button.sge-calendar-day:focus {
     border-radius: 999px;
     bottom: .14rem;
     display: inline-flex;
-    font-size: .52rem;
-    font-weight: 900;
-    height: .78rem;
+    font-size: .75rem;
+    font-weight: 700;
+    height: 1rem;
     justify-content: center;
     left: .18rem;
     line-height: 1;
     position: absolute;
-    width: .78rem;
+    width: 1rem;
 }
 
 .sge-calendar-mini-mark-school {
@@ -839,7 +897,7 @@ button.sge-calendar-day:focus {
 }
 
 .sge-calendar-month-combined .sge-calendar-code {
-    font-size: .8rem;
+    font-size: .88rem;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -918,10 +976,11 @@ details.card > summary.card-header {
 .table thead th {
     border-bottom: 1px solid var(--sge-border);
     color: var(--sge-muted);
-    font-size: .76rem;
-    font-weight: 800;
+    font-size: .9rem;
+    font-weight: 700;
+    line-height: 1.35;
     letter-spacing: 0;
-    text-transform: uppercase;
+    text-transform: none;
 }
 
 .table td,
@@ -953,7 +1012,7 @@ a:focus {
 .custom-control-label,
 dt {
     color: var(--sge-ink);
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .form-text,
@@ -965,7 +1024,7 @@ dd,
 
 .btn {
     border-radius: .45rem;
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .btn:not(.btn-sm) {
@@ -1078,7 +1137,7 @@ pre {
 .sge-student-profile h2 {
     color: var(--sge-ink);
     font-size: 1.65rem;
-    font-weight: 800;
+    font-weight: 700;
     margin: 0 0 .45rem;
 }
 
@@ -1109,7 +1168,7 @@ pre {
 .sge-student-profile-status strong {
     color: var(--sge-brown);
     font-size: 2rem;
-    font-weight: 800;
+    font-weight: 700;
     line-height: 1;
 }
 
@@ -1194,7 +1253,7 @@ pre {
 .sge-student-timeline-content h3 {
     color: var(--sge-ink);
     font-size: 1rem;
-    font-weight: 800;
+    font-weight: 700;
     margin: 0 0 .15rem;
 }
 
@@ -1215,7 +1274,7 @@ pre {
     border-radius: .6rem;
     color: var(--sge-muted);
     display: inline-grid;
-    font-size: .82rem;
+    font-size: .9rem;
     gap: .08rem;
     min-width: 7rem;
     padding: .45rem .6rem;
@@ -1223,8 +1282,8 @@ pre {
 
 .sge-student-dates strong {
     color: var(--sge-ink);
-    font-size: .72rem;
-    text-transform: uppercase;
+    font-size: .82rem;
+    text-transform: none;
 }
 
 .sge-result-strip {
@@ -1250,7 +1309,7 @@ pre {
 .sge-result-strip strong {
     color: var(--sge-brown);
     font-size: 1.55rem;
-    font-weight: 800;
+    font-weight: 700;
     line-height: 1;
 }
 
@@ -1320,7 +1379,7 @@ pre {
 
 .sge-period-result-card header span {
     color: var(--sge-muted);
-    font-size: .8rem;
+    font-size: .88rem;
 }
 
 .sge-component-result {
@@ -1343,7 +1402,7 @@ pre {
 
 .sge-component-result span {
     color: var(--sge-muted);
-    font-size: .78rem;
+    font-size: .86rem;
 }
 
 .sge-grade-pills {
@@ -1358,7 +1417,7 @@ pre {
     border: 1px solid rgba(68, 105, 61, .18);
     border-radius: 999px;
     color: var(--sge-green);
-    font-weight: 800;
+    font-weight: 700;
     min-width: 2.8rem;
     padding: .18rem .45rem;
     text-align: center;
@@ -1379,7 +1438,7 @@ pre {
 .sge-attendance-card h3 {
     color: var(--sge-ink);
     font-size: 1rem;
-    font-weight: 800;
+    font-weight: 700;
     margin: 0 0 .15rem;
 }
 
@@ -1391,7 +1450,7 @@ pre {
 .sge-attendance-card > div > strong {
     color: var(--sge-green);
     font-size: 1.3rem;
-    font-weight: 800;
+    font-weight: 700;
 }
 
 .sge-attendance-progress {
@@ -1416,7 +1475,7 @@ pre {
     border: 1px solid rgba(107, 61, 46, .1);
     border-radius: .55rem;
     color: var(--sge-muted);
-    font-size: .8rem;
+    font-size: .88rem;
     padding: .45rem;
     text-align: center;
 }
@@ -1515,7 +1574,7 @@ pre {
 .sge-document-card h3 {
     color: var(--sge-ink);
     font-size: .98rem;
-    font-weight: 800;
+    font-weight: 700;
     margin: 0 0 .2rem;
 }
 
@@ -1597,7 +1656,7 @@ pre {
 .sge-history-card h3 {
     color: var(--sge-ink);
     font-size: 1.05rem;
-    font-weight: 800;
+    font-weight: 700;
     margin: 0 0 .15rem;
 }
 
@@ -1644,7 +1703,7 @@ pre {
     border: 1px solid rgba(107, 61, 46, .1);
     border-radius: 999px;
     color: var(--sge-muted);
-    font-size: .82rem;
+    font-size: .9rem;
     padding: .25rem .55rem;
 }
 
@@ -1757,14 +1816,14 @@ pre {
 
 .sge-history-table-hint span {
     color: var(--sge-muted);
-    font-size: .86rem;
+    font-size: .92rem;
 }
 
 .sge-history-edit-table th {
     background: #f7efe7;
     color: var(--sge-ink);
-    font-size: .78rem;
-    text-transform: uppercase;
+    font-size: .86rem;
+    text-transform: none;
 }
 
 .sge-history-edit-table td {
@@ -1780,7 +1839,7 @@ pre {
 .sge-history-record-grid label {
     color: var(--sge-muted);
     display: grid;
-    font-size: .75rem;
+    font-size: .85rem;
     font-weight: 700;
     gap: .15rem;
     margin: 0;
@@ -1789,8 +1848,8 @@ pre {
 .sge-history-read-table th {
     background: #f7efe7;
     color: var(--sge-ink);
-    font-size: .78rem;
-    text-transform: uppercase;
+    font-size: .86rem;
+    text-transform: none;
 }
 
 .sge-history-read-table td {
@@ -1946,6 +2005,94 @@ pre {
     }
 }
 
+.sge-dashboard-shortcuts {
+    display: grid;
+    gap: .75rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.sge-dashboard-shortcut {
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--sge-border);
+    border-radius: .5rem;
+    color: var(--sge-ink);
+    display: grid;
+    gap: .75rem;
+    grid-template-columns: 2.75rem minmax(0, 1fr) auto;
+    min-height: 5rem;
+    padding: .8rem;
+    text-decoration: none;
+    transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.sge-dashboard-shortcut:hover,
+.sge-dashboard-shortcut:focus {
+    border-color: rgba(107, 61, 46, .45);
+    box-shadow: var(--sge-shadow-sm);
+    color: var(--sge-brown);
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.sge-dashboard-shortcut-icon {
+    align-items: center;
+    background: rgba(107, 61, 46, .09);
+    border-radius: .5rem;
+    color: var(--sge-brown);
+    display: inline-flex;
+    height: 2.75rem;
+    justify-content: center;
+    width: 2.75rem;
+}
+
+.sge-dashboard-shortcut-copy {
+    min-width: 0;
+}
+
+.sge-dashboard-shortcut-copy strong,
+.sge-dashboard-shortcut-copy small {
+    display: block;
+}
+
+.sge-dashboard-shortcut-copy strong {
+    font-size: .9rem;
+    line-height: 1.25;
+}
+
+.sge-dashboard-shortcut-copy small {
+    color: var(--sge-muted);
+    font-size: .84rem;
+    line-height: 1.35;
+    margin-top: .18rem;
+}
+
+.sge-dashboard-shortcut-arrow {
+    color: var(--sge-muted);
+    font-size: .8rem;
+}
+
+@media (max-width: 1199.98px) {
+    .sge-dashboard-shortcuts {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 575.98px) {
+    .sge-dashboard-shortcuts {
+        grid-template-columns: 1fr;
+    }
+
+    .sge-dashboard-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .sge-dashboard-date {
+        text-align: left;
+    }
+}
+
 .sge-dashboard-band {
     display: flex;
     align-items: center;
@@ -1962,7 +2109,7 @@ pre {
 
 .sge-dashboard-band h2 {
     color: var(--sge-ink);
-    font-weight: 800;
+    font-weight: 700;
 }
 
 .sge-dashboard-band p {
@@ -1985,7 +2132,7 @@ pre {
 
 .sge-dashboard-date span {
     color: var(--sge-brown);
-    font-weight: 800;
+    font-weight: 700;
 }
 
 .sge-dashboard-date small {
@@ -2009,7 +2156,7 @@ pre {
 .sge-dashboard-hero h2 {
     color: var(--sge-ink);
     font-size: 1.55rem;
-    font-weight: 800;
+    font-weight: 700;
     margin: 0 0 .35rem;
 }
 
@@ -2082,17 +2229,17 @@ a.sge-metric-card:focus {
 
 .sge-metric-label {
     color: var(--sge-muted);
-    font-size: .74rem;
-    font-weight: 800;
-    letter-spacing: .04em;
+    font-size: .84rem;
+    font-weight: 700;
+    letter-spacing: 0;
     margin-top: .45rem;
-    text-transform: uppercase;
+    text-transform: none;
 }
 
 .sge-metric-card strong {
     color: var(--sge-ink);
     font-size: 1.85rem;
-    font-weight: 800;
+    font-weight: 700;
     line-height: 1;
 }
 
@@ -2121,7 +2268,7 @@ a.sge-metric-card:focus {
 .sge-panel-header h2 {
     color: var(--sge-ink);
     font-size: 1rem;
-    font-weight: 800;
+    font-weight: 700;
     margin: 0;
 }
 
@@ -2140,7 +2287,7 @@ a.sge-metric-card:focus {
 .sge-dashboard-subgrid h3 {
     color: var(--sge-ink);
     font-size: .9rem;
-    font-weight: 800;
+    font-weight: 700;
 }
 
 .sge-chip-list {
@@ -2156,7 +2303,7 @@ a.sge-metric-card:focus {
     color: var(--sge-muted);
     display: inline-flex;
     flex-direction: column;
-    font-size: .78rem;
+    font-size: .86rem;
     line-height: 1.25;
     max-width: 18rem;
     padding: .45rem .65rem;
@@ -2178,8 +2325,8 @@ a.sge-metric-card:focus {
     background: rgba(219, 107, 48, .12);
     border-radius: 999px;
     color: var(--sge-brown);
-    font-size: .75rem;
-    font-weight: 800;
+    font-size: .85rem;
+    font-weight: 700;
     min-width: 3.2rem;
     padding: .18rem .45rem;
     text-align: center;
@@ -2202,7 +2349,7 @@ a.sge-metric-card:focus {
     color: var(--sge-muted);
     display: flex;
     flex-wrap: wrap;
-    font-size: .76rem;
+    font-size: .84rem;
     gap: .35rem;
     margin-bottom: .2rem;
 }
@@ -2210,7 +2357,7 @@ a.sge-metric-card:focus {
 .sge-announcement-item h3 {
     color: var(--sge-ink);
     font-size: .98rem;
-    font-weight: 800;
+    font-weight: 700;
     margin: 0 0 .25rem;
 }
 
@@ -2267,7 +2414,7 @@ a.sge-metric-card:focus {
     align-items: center;
     color: var(--sge-ink);
     display: flex;
-    font-weight: 800;
+    font-weight: 700;
     gap: .45rem;
 }
 
@@ -2284,6 +2431,7 @@ a.sge-metric-card:focus {
 
 .sge-accessible-chart-table {
     border: 1px solid var(--sge-border);
+    min-width: 100% !important;
 }
 
 .sge-dot {
@@ -2320,16 +2468,16 @@ a.sge-stat-card:focus {
 .sge-stat-label {
     margin-bottom: .3rem;
     color: var(--sge-muted);
-    font-size: .74rem;
-    font-weight: 800;
-    letter-spacing: .04em;
-    text-transform: uppercase;
+    font-size: .84rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
 }
 
 .sge-stat-value {
     color: var(--sge-ink);
     font-size: 1.65rem;
-    font-weight: 800;
+    font-weight: 700;
     line-height: 1.05;
 }
 
@@ -2397,8 +2545,8 @@ a.sge-stat-card:focus {
         #fffaf1;
     color: var(--sge-brown);
     font-size: 1.65rem;
-    font-weight: 800;
-    text-transform: uppercase;
+    font-weight: 700;
+    text-transform: none;
 }
 
 .sge-definition-list {
@@ -2410,8 +2558,8 @@ a.sge-stat-card:focus {
 
 .sge-definition-list dt {
     color: var(--sge-muted);
-    font-size: .78rem;
-    text-transform: uppercase;
+    font-size: .86rem;
+    text-transform: none;
 }
 
 .sge-definition-list dd {
@@ -2491,7 +2639,7 @@ a.sge-stat-card:focus {
     gap: .6rem;
     margin-top: .35rem;
     color: #858796;
-    font-size: .72rem;
+    font-size: .82rem;
 }
 
 .sge-institutional-logos {
@@ -2587,6 +2735,37 @@ a.sge-stat-card:focus {
 
     .sge-login-image-inner img {
         width: min(64%, 280px);
+    }
+}
+
+@media (max-width: 575.98px) {
+    .sge-login-page > .container {
+        max-width: 100%;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .sge-login-page > .container > .row {
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .sge-login-page > .container > .row > [class*="col-"] {
+        max-width: 100%;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .sge-login-card {
+        max-height: none;
+        width: 100%;
+    }
+
+    .sge-login-card .text-center > a.small {
+        display: block !important;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        white-space: normal;
     }
 }
 
@@ -2775,8 +2954,8 @@ a.sge-stat-card:focus {
 }
 
 [wire\:id] .table th {
-    font-size: .72rem;
-    text-transform: uppercase;
+    font-size: .82rem;
+    text-transform: none;
     color: #858796;
     border-top: 0;
     white-space: nowrap;
@@ -2826,8 +3005,8 @@ a.sge-stat-card:focus {
 .sidebar .sidebar-brand-text {
     margin-left: .75rem !important;
     font-size: .9rem;
-    font-weight: 800;
-    letter-spacing: .06rem;
+    font-weight: 600;
+    letter-spacing: 0;
 }
 
 .sidebar hr.sidebar-divider {
@@ -2844,7 +3023,7 @@ a.sge-stat-card:focus {
     padding: .72rem .85rem;
     border-radius: .75rem;
     color: rgba(255, 250, 241, .82);
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 0;
     transition: background-color .15s ease, color .15s ease, transform .15s ease, box-shadow .15s ease;
 }
@@ -3050,8 +3229,8 @@ textarea:focus-visible {
     padding: .58rem .65rem;
     border-radius: .6rem;
     color: rgba(255, 250, 241, .8);
-    font-size: .83rem;
-    font-weight: 700;
+    font-size: .9rem;
+    font-weight: 600;
     white-space: normal;
     line-height: 1.18;
 }
@@ -3071,9 +3250,9 @@ textarea:focus-visible {
     margin-top: .75rem;
     padding: .35rem .85rem .2rem;
     color: rgba(241, 230, 178, .72);
-    font-size: .66rem;
-    font-weight: 800;
-    letter-spacing: .06rem;
+    font-size: .78rem;
+    font-weight: 600;
+    letter-spacing: 0;
 }
 
 .sidebar .nav-item .collapse .collapse-inner .collapse-item:hover,
@@ -3105,7 +3284,7 @@ textarea:focus-visible {
     max-height: 42px;
 }
 
-@media (max-width: 767.98px) {
+@media (max-width: 991.98px) {
     .sidebar {
         padding-inline: .35rem;
     }
@@ -3134,10 +3313,10 @@ textarea:focus-visible {
     gap: .15rem;
     min-width: 8.5rem;
     margin: 0 .25rem .15rem 0;
-    font-size: .72rem;
+    font-size: .82rem;
     font-weight: 700;
     color: var(--sge-muted);
-    text-transform: uppercase;
+    text-transform: none;
 }
 
 .sge-editor-control .form-control {
@@ -3223,7 +3402,7 @@ textarea:focus-visible {
 
 .sge-attendance-checks label {
     margin: 0;
-    font-size: .72rem;
+    font-size: .82rem;
     cursor: pointer;
 }
 
@@ -3253,11 +3432,11 @@ textarea:focus-visible {
 
 .sge-academic-context dl dt {
     margin-top: 1rem;
-    font-size: .72rem;
-    font-weight: 800;
+    font-size: .82rem;
+    font-weight: 700;
     color: var(--sge-muted);
-    letter-spacing: .02em;
-    text-transform: uppercase;
+    letter-spacing: 0;
+    text-transform: none;
 }
 
 .sge-academic-context dl dd {
@@ -3287,7 +3466,7 @@ textarea:focus-visible {
 
 .sge-form-context span {
     color: var(--sge-muted);
-    font-size: .78rem;
+    font-size: .86rem;
 }
 
 .sge-form-section {
@@ -3304,7 +3483,7 @@ textarea:focus-visible {
     padding: 0 .35rem;
     color: var(--sge-ink);
     font-size: .88rem;
-    font-weight: 800;
+    font-weight: 700;
 }
 
 .sge-academic-nav {
@@ -3340,7 +3519,7 @@ textarea:focus-visible {
 
 .sge-academic-school span {
     color: var(--sge-muted);
-    font-size: .75rem;
+    font-size: .85rem;
 }
 
 .sge-academic-metrics {
@@ -3370,17 +3549,17 @@ textarea:focus-visible {
 
 .sge-academic-metrics span {
     color: var(--sge-muted);
-    font-size: .68rem;
+    font-size: .78rem;
     line-height: 1.15;
 }
 
 .sge-academic-summary dl dt {
     margin-top: .8rem;
     color: var(--sge-muted);
-    font-size: .72rem;
-    font-weight: 800;
-    letter-spacing: .02em;
-    text-transform: uppercase;
+    font-size: .82rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
 }
 
 .sge-academic-summary dl dd {
@@ -3424,7 +3603,7 @@ textarea:focus-visible {
 .sge-period-context-metrics span {
     margin-top: .25rem;
     color: var(--sge-muted);
-    font-size: .7rem;
+    font-size: .8rem;
     line-height: 1.15;
 }
 
@@ -3445,8 +3624,8 @@ textarea:focus-visible {
     border-radius: 50%;
     background: var(--sge-orange);
     color: #fff;
-    font-size: .78rem;
-    font-weight: 800;
+    font-size: .86rem;
+    font-weight: 700;
 }
 
 .sge-period-card {
@@ -3496,7 +3675,7 @@ textarea:focus-visible {
 .sge-period-card-title div > span {
     margin-top: .12rem;
     color: var(--sge-muted);
-    font-size: .78rem;
+    font-size: .86rem;
 }
 
 .sge-period-position {
@@ -3512,18 +3691,18 @@ textarea:focus-visible {
     border-radius: .45rem;
     background: linear-gradient(180deg, #fff 0%, #fff6ee 100%);
     color: var(--sge-brown);
-    font-size: .72rem;
-    font-weight: 800;
+    font-size: .82rem;
+    font-weight: 700;
     line-height: 1;
     box-shadow: 0 .15rem .45rem rgba(61, 42, 33, .05);
 }
 
 .sge-period-position-label {
     color: var(--sge-muted);
-    font-size: .62rem;
+    font-size: .75rem;
     font-weight: 700;
     letter-spacing: 0;
-    text-transform: uppercase;
+    text-transform: none;
 }
 
 .sge-period-position strong {
@@ -3548,7 +3727,7 @@ textarea:focus-visible {
     border-radius: 999px;
     background: rgba(74, 134, 160, .07);
     color: var(--sge-ink);
-    font-size: .74rem;
+    font-size: .84rem;
     white-space: nowrap;
 }
 
@@ -3585,8 +3764,8 @@ textarea:focus-visible {
     gap: 1rem;
     color: var(--sge-brown);
     cursor: pointer;
-    font-size: .86rem;
-    font-weight: 800;
+    font-size: .92rem;
+    font-weight: 700;
 }
 
 .sge-period-assessments summary span {
@@ -3597,7 +3776,7 @@ textarea:focus-visible {
 
 .sge-period-assessments summary small {
     color: var(--sge-muted);
-    font-size: .72rem;
+    font-size: .82rem;
     font-weight: 600;
 }
 
@@ -3634,7 +3813,7 @@ textarea:focus-visible {
     min-height: 2.8rem;
     margin-bottom: .9rem;
     color: var(--sge-muted);
-    font-size: .83rem;
+    font-size: .9rem;
 }
 
 .sge-recovery-options {
@@ -3661,7 +3840,7 @@ textarea:focus-visible {
 
 .sge-recovery-options .custom-control-label {
     cursor: pointer;
-    font-size: .84rem;
+    font-size: .9rem;
     font-weight: 700;
 }
 
@@ -3671,7 +3850,7 @@ textarea:focus-visible {
     padding: 0 .3rem;
     color: var(--sge-brown);
     font-size: .88rem;
-    font-weight: 800;
+    font-weight: 700;
 }
 
 .sge-assessment-workspace {
@@ -3703,7 +3882,7 @@ textarea:focus-visible {
 .sge-assessment-intro span {
     margin-top: .15rem;
     color: var(--sge-muted);
-    font-size: .82rem;
+    font-size: .9rem;
 }
 
 .sge-assessment-grid {
@@ -3732,12 +3911,12 @@ textarea:focus-visible {
     border-radius: 50%;
     background: rgba(107, 61, 46, .1);
     color: var(--sge-brown);
-    font-weight: 800;
+    font-weight: 700;
 }
 
 .sge-assessment-definition label {
     margin-bottom: .25rem;
-    font-size: .72rem;
+    font-size: .82rem;
 }
 
 .sge-diary-content-row {
@@ -3768,9 +3947,9 @@ textarea:focus-visible {
 }
 
 .sge-diary-content-date span {
-    font-size: .68rem;
-    font-weight: 800;
-    text-transform: uppercase;
+    font-size: .78rem;
+    font-weight: 700;
+    text-transform: none;
 }
 
 .sge-diary-content-has-attendance .sge-diary-content-date {
@@ -3795,7 +3974,7 @@ textarea:focus-visible {
 .sge-diary-pending-grid strong,
 .sge-diary-pending-grid span { display: block; }
 .sge-diary-pending-grid strong { color: var(--sge-brown); font-size: 1.1rem; }
-.sge-diary-pending-grid span { color: var(--sge-muted); font-size: .72rem; line-height: 1.2; }
+.sge-diary-pending-grid span { color: var(--sge-muted); font-size: .82rem; line-height: 1.2; }
 
 .sge-student-diary-link {
     display: grid;
@@ -3817,11 +3996,11 @@ textarea:focus-visible {
 .sge-student-diary-entry { padding: .7rem 0; border-bottom: 1px solid var(--sge-border); }
 .sge-student-diary-entry:last-child { border-bottom: 0; }
 .sge-student-diary-entry strong, .sge-student-diary-entry span, .sge-student-diary-entry small { display: block; }
-.sge-student-diary-entry span { margin-top: .12rem; font-size: .83rem; }
+.sge-student-diary-entry span { margin-top: .12rem; font-size: .9rem; }
 .sge-student-diary-entry small { margin-top: .2rem; color: var(--sge-muted); }
 
 .sge-schedule-context { border-top: 3px solid var(--sge-blue); }
-.sge-schedule-context dt { margin-top: .85rem; color: var(--sge-muted); font-size: .72rem; font-weight: 800; text-transform: uppercase; }
+.sge-schedule-context dt { margin-top: .85rem; color: var(--sge-muted); font-size: .82rem; font-weight: 700; text-transform: none; }
 .sge-schedule-context dd { margin-bottom: 0; }
 .sge-schedule-version-list { display: flex; flex-wrap: wrap; gap: .55rem; }
 .sge-schedule-version { display: flex; align-items: center; gap: .75rem; min-width: 14rem; padding: .65rem .8rem; border: 1px solid var(--sge-border); border-radius: .4rem; color: inherit; text-decoration: none; }
@@ -3829,18 +4008,18 @@ textarea:focus-visible {
 .sge-schedule-version.is-active { border-color: var(--sge-brown); background: #fbf8f2; }
 .sge-schedule-version span { flex: 1; }
 .sge-schedule-version strong, .sge-schedule-version small { display: block; }
-.sge-schedule-version small { color: var(--sge-muted); font-size: .72rem; }
+.sge-schedule-version small { color: var(--sge-muted); font-size: .82rem; }
 .sge-week-schedule-wrap { overflow-x: auto; }
 .sge-week-schedule { display: grid; grid-template-columns: repeat(6, minmax(9.5rem, 1fr)); min-width: 57rem; }
 .sge-week-schedule-day { border-right: 1px solid var(--sge-border); }
 .sge-week-schedule-day:last-child { border-right: 0; }
-.sge-week-schedule-day h3 { margin: 0; padding: .65rem .4rem; border-bottom: 1px solid var(--sge-border); color: var(--sge-brown); font-size: .82rem; font-weight: 800; text-align: center; }
+.sge-week-schedule-day h3 { margin: 0; padding: .65rem .4rem; border-bottom: 1px solid var(--sge-border); color: var(--sge-brown); font-size: .9rem; font-weight: 700; text-align: center; }
 .sge-week-schedule-track { position: relative; height: 48rem; background: #fff; }
-.sge-week-schedule-hour { position: absolute; right: 0; left: 0; padding-right: .25rem; border-top: 1px solid rgba(111, 96, 83, .18); transform: translateY(-50%); color: var(--sge-muted); font-size: .62rem; pointer-events: none; text-align: right; }
+.sge-week-schedule-hour { position: absolute; right: 0; left: 0; padding-right: .25rem; border-top: 1px solid rgba(111, 96, 83, .18); transform: translateY(-50%); color: var(--sge-muted); font-size: .75rem; pointer-events: none; text-align: right; }
 .sge-week-schedule-slot { position: absolute; z-index: 1; left: .35rem; right: .35rem; display: flex; flex-direction: column; padding: .28rem .35rem; border-radius: .35rem; overflow: hidden; }
-.sge-week-schedule-slot strong { padding-right: 1rem; font-size: .72rem; line-height: 1.15; }
-.sge-week-schedule-slot span { margin-top: .12rem; padding-right: 1rem; font-size: .62rem; line-height: 1.12; }
-.sge-week-schedule-slot small { margin-top: .16rem; font-size: .62rem; }
+.sge-week-schedule-slot strong { padding-right: 1rem; font-size: .82rem; line-height: 1.15; }
+.sge-week-schedule-slot span { margin-top: .12rem; padding-right: 1rem; font-size: .75rem; line-height: 1.12; }
+.sge-week-schedule-slot small { margin-top: .16rem; font-size: .75rem; }
 .sge-week-schedule-edit { position: static; display: flex; width: 100%; min-height: 100%; flex: 1; flex-direction: column; align-items: flex-start; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; text-align: left; }
 .sge-week-schedule-edit:hover,
 .sge-week-schedule-edit:focus { outline: 2px solid rgba(74, 134, 160, .35); outline-offset: 2px; }
@@ -3851,16 +4030,16 @@ textarea:focus-visible {
 .sge-schedule-limit-row:last-child { border-bottom: 0; }
 .sge-schedule-limit-row strong,
 .sge-schedule-limit-row small { display: block; }
-.sge-schedule-limit-row small { margin-top: .12rem; color: var(--sge-muted); font-size: .72rem; }
+.sge-schedule-limit-row small { margin-top: .12rem; color: var(--sge-muted); font-size: .82rem; }
 
 .sge-eyebrow {
     display: inline-flex;
     margin-bottom: .25rem;
     color: var(--sge-brown);
-    font-size: .72rem;
-    font-weight: 800;
+    font-size: .82rem;
+    font-weight: 700;
     letter-spacing: 0;
-    text-transform: uppercase;
+    text-transform: none;
 }
 
 .sge-class-hero {
@@ -3896,7 +4075,7 @@ textarea:focus-visible {
 .sge-class-metrics span {
     margin-top: .2rem;
     color: var(--sge-muted);
-    font-size: .78rem;
+    font-size: .86rem;
     line-height: 1.2;
 }
 
@@ -3913,8 +4092,8 @@ textarea:focus-visible {
 .sge-inline-definition-list dt {
     margin-bottom: .12rem;
     color: var(--sge-muted);
-    font-size: .72rem;
-    text-transform: uppercase;
+    font-size: .82rem;
+    text-transform: none;
 }
 
 .sge-inline-definition-list dd {
@@ -3957,8 +4136,8 @@ textarea:focus-visible {
 }
 
 .sge-class-action-grid span {
-    font-size: .8rem;
-    font-weight: 800;
+    font-size: .88rem;
+    font-weight: 700;
     line-height: 1.15;
 }
 
@@ -4004,12 +4183,12 @@ textarea:focus-visible {
     margin: 0;
     color: var(--sge-brown);
     font-size: .95rem;
-    font-weight: 800;
+    font-weight: 700;
 }
 
 .sge-class-area-heading span {
     color: var(--sge-muted);
-    font-size: .75rem;
+    font-size: .85rem;
     white-space: nowrap;
 }
 
@@ -4133,8 +4312,8 @@ textarea:focus-visible {
 
 .sge-teacher-schedule-card span {
     color: var(--sge-primary);
-    font-weight: 800;
-    font-size: .78rem;
+    font-weight: 700;
+    font-size: .86rem;
 }
 
 .sge-teacher-schedule-card strong {
@@ -4170,7 +4349,7 @@ textarea:focus-visible {
     margin: 0 0 .2rem;
     color: var(--sge-ink);
     font-size: 1rem;
-    font-weight: 800;
+    font-weight: 700;
 }
 
 .sge-diary-list-main p,
@@ -4205,7 +4384,7 @@ textarea:focus-visible {
     margin: 0 0 .25rem;
     color: var(--sge-ink);
     font-size: 1.35rem;
-    font-weight: 800;
+    font-weight: 700;
 }
 
 .sge-diary-management-hero p {
@@ -4240,7 +4419,7 @@ textarea:focus-visible {
 .sge-diary-management-metrics span {
     margin-top: .25rem;
     color: var(--sge-muted);
-    font-size: .78rem;
+    font-size: .86rem;
 }
 
 .sge-status-filter-strip {
@@ -4257,10 +4436,10 @@ textarea:focus-visible {
 
 .sge-status-filter-strip > span {
     color: var(--sge-muted);
-    font-size: .75rem;
-    font-weight: 800;
-    letter-spacing: .02em;
-    text-transform: uppercase;
+    font-size: .85rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
 }
 
 .sge-status-filter-chip {
@@ -4305,7 +4484,7 @@ textarea:focus-visible {
     border-radius: 999px;
     background: rgba(107, 61, 46, .1);
     color: var(--sge-brown);
-    font-size: .78rem;
+    font-size: .86rem;
 }
 
 .sge-diary-filter-grid {
@@ -4445,10 +4624,10 @@ textarea:focus-visible {
 
 .sge-academic-trail span {
     color: var(--sge-muted);
-    font-size: .72rem;
-    font-weight: 800;
+    font-size: .82rem;
+    font-weight: 700;
     line-height: 1;
-    text-transform: uppercase;
+    text-transform: none;
 }
 
 .sge-academic-trail strong {
@@ -4468,8 +4647,8 @@ textarea:focus-visible {
     min-height: 1.9rem;
     padding: .28rem .62rem;
     border-radius: 999px;
-    font-size: .75rem;
-    font-weight: 800;
+    font-size: .85rem;
+    font-weight: 700;
 }
 
 .sge-validation-pill-danger {
@@ -4509,7 +4688,7 @@ textarea:focus-visible {
 
 .sge-validation-empty span {
     color: var(--sge-muted);
-    font-size: .84rem;
+    font-size: .9rem;
 }
 
 .sge-validation-list {
@@ -4550,15 +4729,15 @@ textarea:focus-visible {
     border-radius: 999px;
     background: rgba(107, 61, 46, .1);
     color: var(--sge-brown);
-    font-size: .72rem;
-    font-weight: 900;
+    font-size: .82rem;
+    font-weight: 700;
     vertical-align: .05rem;
 }
 
 .sge-validation-item p {
     margin: .1rem 0 0;
     color: var(--sge-muted);
-    font-size: .84rem;
+    font-size: .9rem;
 }
 
 .sge-validation-details {
@@ -4569,8 +4748,8 @@ textarea:focus-visible {
     display: inline-flex;
     color: var(--sge-brown);
     cursor: pointer;
-    font-size: .82rem;
-    font-weight: 800;
+    font-size: .9rem;
+    font-weight: 700;
 }
 
 .sge-validation-details ul {
@@ -4582,7 +4761,7 @@ textarea:focus-visible {
 
 .sge-validation-details li {
     color: var(--sge-muted);
-    font-size: .82rem;
+    font-size: .9rem;
     line-height: 1.35;
 }
 
@@ -4631,7 +4810,7 @@ textarea:focus-visible {
 .sge-flow-hero h2 {
     color: var(--sge-ink);
     font-size: 1.35rem;
-    font-weight: 800;
+    font-weight: 700;
     margin: 0 0 .25rem;
 }
 
@@ -4658,7 +4837,7 @@ textarea:focus-visible {
 .sge-enrollment-year-header h3 {
     color: var(--sge-ink);
     font-size: 1.05rem;
-    font-weight: 800;
+    font-weight: 700;
     margin: 0;
 }
 
@@ -4713,7 +4892,7 @@ textarea:focus-visible {
 .sge-enrollment-class-main h4 {
     color: var(--sge-ink);
     font-size: 1rem;
-    font-weight: 800;
+    font-weight: 700;
     margin: 0;
 }
 
@@ -4745,7 +4924,7 @@ textarea:focus-visible {
 .sge-enrollment-class-side small {
     color: var(--sge-muted);
     display: block;
-    font-size: .78rem;
+    font-size: .86rem;
 }
 
 @media (max-width: 575.98px) {
@@ -4963,10 +5142,10 @@ textarea:focus-visible {
 .sge-contact-editor-heading span {
     color: var(--sge-muted);
     display: block;
-    font-size: .72rem;
-    font-weight: 800;
-    letter-spacing: .04em;
-    text-transform: uppercase;
+    font-size: .82rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
 }
 
 .sge-contact-editor-heading strong {
@@ -5029,14 +5208,14 @@ textarea:focus-visible {
     color: var(--sge-brown);
     display: block;
     font-size: 1.45rem;
-    font-weight: 900;
+    font-weight: 700;
     line-height: 1;
 }
 
 .sge-concept-stat small {
     color: var(--sge-muted);
     display: block;
-    font-size: .72rem;
+    font-size: .82rem;
     font-weight: 700;
     margin-top: .28rem;
 }
@@ -5094,7 +5273,7 @@ textarea:focus-visible {
     color: #fff;
     display: inline-flex;
     font-size: .9rem;
-    font-weight: 900;
+    font-weight: 700;
     height: 3rem;
     justify-content: center;
     min-width: 3rem;
@@ -5122,10 +5301,10 @@ textarea:focus-visible {
 .sge-concept-range span {
     color: var(--sge-muted);
     display: block;
-    font-size: .68rem;
-    font-weight: 800;
-    letter-spacing: .02em;
-    text-transform: uppercase;
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
 }
 
 .sge-concept-range strong {
@@ -5212,7 +5391,7 @@ textarea:focus-visible {
 .sge-quality-hero h2 {
     color: var(--sge-ink);
     font-size: 1.65rem;
-    font-weight: 800;
+    font-weight: 700;
     margin: 0 0 .35rem;
 }
 
@@ -5260,7 +5439,7 @@ textarea:focus-visible {
 .sge-quality-summary-card strong {
     color: var(--sge-brown);
     font-size: 1.8rem;
-    font-weight: 800;
+    font-weight: 700;
     line-height: 1;
 }
 
@@ -5315,7 +5494,7 @@ textarea:focus-visible {
     border-radius: 999px;
     color: var(--sge-brown);
     font-style: normal;
-    font-weight: 800;
+    font-weight: 700;
     min-width: 2rem;
     padding: .25rem .55rem;
     text-align: center;
@@ -5390,5 +5569,308 @@ textarea:focus-visible {
 
     .sge-quality-actions .btn {
         width: 100%;
+    }
+}
+
+/* Ajustes finais de ergonomia: alvos de toque, mensagens e navegação móvel. */
+.sge-icon-action,
+.btn-sm.sge-icon-action {
+    height: 2.75rem;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+}
+
+.form-control,
+.custom-select,
+.btn:not(.btn-sm) {
+    min-height: 2.75rem;
+}
+
+.sge-validation-summary {
+    border-left: .3rem solid currentColor;
+}
+
+.sge-validation-summary > strong,
+.sge-validation-summary > span {
+    display: block;
+}
+
+.sge-sidebar-backdrop {
+    display: none;
+}
+
+@media (max-width: 991.98px) {
+    body.sge-mobile-menu-open {
+        overflow: hidden;
+    }
+
+    #wrapper,
+    #content-wrapper {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .sidebar,
+    .sidebar.toggled {
+        bottom: 0;
+        height: 100vh;
+        left: 0;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        position: fixed;
+        top: 0;
+        transform: translateX(-105%);
+        transition: transform .2s ease;
+        width: min(18rem, 88vw) !important;
+        z-index: 1050;
+    }
+
+    body.sge-mobile-menu-open .sidebar,
+    body.sge-mobile-menu-open .sidebar.toggled {
+        transform: translateX(0);
+    }
+
+    .sidebar .sidebar-brand {
+        justify-content: flex-start !important;
+    }
+
+    .sidebar .sidebar-brand-text,
+    .sidebar .nav-item .nav-link span {
+        display: inline !important;
+    }
+
+    .sidebar .nav-item .nav-link {
+        text-align: left;
+        width: 100%;
+    }
+
+    .sidebar .nav-item .collapse,
+    .sidebar .nav-item .collapsing {
+        left: auto !important;
+        margin: .25rem 0 .45rem !important;
+        position: static !important;
+        top: auto !important;
+        width: 100% !important;
+    }
+
+    .sidebar .sidebar-heading {
+        text-align: left;
+    }
+
+    .sge-sidebar-backdrop:not([hidden]) {
+        background: rgba(35, 24, 20, .58);
+        border: 0;
+        bottom: 0;
+        display: block;
+        left: 0;
+        padding: 0;
+        position: fixed;
+        right: 0;
+        top: 0;
+        width: 100%;
+        z-index: 1040;
+    }
+
+    .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 1020;
+    }
+
+    .sge-diary-list-card {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .sge-diary-list-actions {
+        justify-content: flex-start;
+    }
+}
+
+.sge-diary-quick-filters {
+    align-items: end;
+    background: #fbf8f2;
+    border: 1px solid var(--sge-border);
+    border-radius: .75rem;
+    display: grid;
+    gap: .75rem;
+    grid-template-columns: minmax(15rem, 1.5fr) repeat(3, minmax(10rem, 1fr)) auto;
+    padding: 1rem;
+}
+
+.sge-diary-quick-filters label {
+    font-size: .86rem;
+    font-weight: 600;
+}
+
+.sge-diary-list-main h3 a {
+    color: var(--sge-ink);
+    text-decoration: none;
+}
+
+.sge-diary-list-main h3 a:hover,
+.sge-diary-list-main h3 a:focus {
+    color: var(--sge-brown);
+    text-decoration: underline;
+}
+
+.sge-empty-state {
+    align-items: center;
+    color: var(--sge-muted);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 12rem;
+    padding: 2rem 1rem;
+    text-align: center;
+}
+
+.sge-empty-state > i {
+    color: var(--sge-brown-soft);
+    font-size: 1.8rem;
+    margin-bottom: .75rem;
+}
+
+.sge-empty-state h3 {
+    color: var(--sge-ink);
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: .35rem;
+}
+
+.sge-empty-state p {
+    margin: 0;
+    max-width: 34rem;
+}
+
+@media (max-width: 1199.98px) {
+    .sge-diary-quick-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 575.98px) {
+    .sge-diary-quick-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .sge-diary-quick-filters .btn {
+        width: 100%;
+    }
+}
+
+/* Sistema tipográfico acessível: leitura confortável sem perder densidade operacional. */
+body,
+button,
+input,
+optgroup,
+select,
+textarea,
+.tooltip,
+.popover,
+.flatpickr-calendar {
+    font-family: var(--sge-font-sans);
+}
+
+body {
+    line-height: 1.55;
+    text-rendering: optimizeLegibility;
+}
+
+small,
+.small {
+    font-size: .875rem;
+    line-height: 1.45;
+}
+
+.form-control,
+.custom-select,
+.input-group-text {
+    font-size: 1rem;
+    line-height: 1.45;
+}
+
+.form-control-sm,
+.custom-select-sm,
+.btn-sm {
+    font-size: .875rem;
+}
+
+.form-text,
+.invalid-feedback,
+.valid-feedback {
+    font-size: .875rem;
+    line-height: 1.45;
+}
+
+.btn,
+.dropdown-item,
+.collapse-item,
+.page-link {
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.dropdown-item,
+.collapse-item,
+.page-link {
+    font-size: .95rem;
+}
+
+.badge {
+    font-size: .82rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.card-header h2,
+.card-header h3,
+.card-header h4,
+.card-header .h5,
+.card-header .h6 {
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.table {
+    font-size: .95rem;
+    line-height: 1.45;
+}
+
+.table thead th,
+[wire\:id] .table th {
+    font-size: .9rem;
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.sidebar:not(.toggled) .nav-item .nav-link span {
+    font-size: .95rem;
+    line-height: 1.35;
+}
+
+.sidebar.toggled .nav-item .nav-link span {
+    font-size: .78rem;
+    line-height: 1.3;
+}
+
+.sidebar .collapse-inner .collapse-item {
+    font-size: .9rem;
+    line-height: 1.4;
+}
+
+.sidebar .sidebar-heading {
+    font-size: .78rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+@media (max-width: 991.98px) {
+    .sidebar .nav-item .nav-link span,
+    .sidebar.toggled .nav-item .nav-link span {
+        font-size: .95rem;
+        line-height: 1.35;
     }
 }

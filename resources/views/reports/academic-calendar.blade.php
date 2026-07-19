@@ -64,7 +64,7 @@
 
     <div class="calendar-subtitle">
         Período: {{ $academicYear->starts_at?->format('d/m/Y') }} a {{ $academicYear->ends_at?->format('d/m/Y') }}
-        · Dias letivos: {{ $academicYear->schoolDayCount() }} / mínimo {{ $academicYear->minimum_school_days }}
+        · Dias letivos: {{ $academicYear->schoolDayCount() }}
         · Aprovação: {{ number_format((float) $academicYear->passing_points, 1, ',', '.') }} pontos e {{ $academicYear->minimum_attendance_percentage }}% de frequência
     </div>
 

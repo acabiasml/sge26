@@ -24,14 +24,8 @@ class AcademicStructureValidator
         ]);
 
         $items = [];
-        $schoolDays = $academicYear->days->where('counts_as_school_day', true)->count();
-
         if ($academicYear->periods->isEmpty()) {
             $items[] = self::issue('danger', 'Nenhum período avaliativo cadastrado', 'Cadastre os períodos para permitir avaliações, diários e fechamento por etapa.', 'Gerenciar períodos', route('academic-years.periods.index', $academicYear));
-        }
-
-        if ($schoolDays < (int) $academicYear->minimum_school_days) {
-            $items[] = self::issue('warning', 'Dias letivos abaixo do mínimo', "O calendário possui {$schoolDays} dias letivos. O mínimo configurado é {$academicYear->minimum_school_days}.", 'Abrir calendário', route('academic-years.show', $academicYear).'#section-calendario');
         }
 
         if ($academicYear->courses->isEmpty()) {

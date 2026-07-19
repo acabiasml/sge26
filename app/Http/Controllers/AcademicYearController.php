@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\AcademicYear;
 use App\Models\CalendarDay;
 use App\Models\School;
-use App\Support\AcademicYearClosureStatus;
 use App\Support\AcademicStructureStatus;
 use App\Support\AcademicStructureValidator;
+use App\Support\AcademicYearClosureStatus;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -200,7 +200,6 @@ class AcademicYearController extends Controller
 
         $data['active'] = $request->boolean('active');
         $data['approved_at'] = $data['approved_at'] ?? null;
-        $data['minimum_school_days'] = $academicYear?->minimum_school_days ?? 200;
         $data['passing_points'] ??= $academicYear?->passing_points ?? 24;
         $data['minimum_attendance_percentage'] ??= $academicYear?->minimum_attendance_percentage ?? 75;
 
@@ -255,7 +254,7 @@ class AcademicYearController extends Controller
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function ensureCanUpdateApprovedYear(Request $request, AcademicYear $academicYear, array $data): void
     {
@@ -278,7 +277,6 @@ class AcademicYearController extends Controller
             'passing_points',
             'minimum_attendance_percentage',
             'active',
-            'minimum_school_days',
         ];
 
         $candidate = $academicYear->newInstance($academicYear->getAttributes(), true);

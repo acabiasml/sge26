@@ -14,6 +14,25 @@ class GoogleLoginTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_login_uses_the_local_accessible_typography(): void
+    {
+        $fontPath = public_path('template/fonts/atkinson-hyperlegible-next/atkinson-hyperlegible-next-latin.woff2');
+        $stylesheetPath = public_path('template/css/sge-brand.css');
+
+        $response = $this->get(route('login'));
+
+        $response->assertOk();
+        $response->assertSee('atkinson-hyperlegible-next-latin.woff2');
+        $response->assertDontSee('fonts.googleapis.com', false);
+        $this->assertFileExists($fontPath);
+
+        $stylesheet = file_get_contents($stylesheetPath);
+
+        $this->assertIsString($stylesheet);
+        $this->assertStringContainsString('Atkinson Hyperlegible Next', $stylesheet);
+        $this->assertDoesNotMatchRegularExpression('/font-weight:\s*(800|900)\b/', $stylesheet);
+    }
+
     public function test_google_redirect_requires_credentials(): void
     {
         config([

@@ -3,11 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
+use App\Models\IssuedDocument;
 use App\Models\Person;
 use App\Models\PersonContact;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
-use App\Models\IssuedDocument;
 use App\Models\StudentEnrollment;
 use App\Support\PdfLetterhead;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -112,10 +112,10 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param Collection<int, array<string, mixed>> $personChecks
-     * @param Collection<int, array<string, mixed>> $contactChecks
-     * @param Collection<int, array<string, mixed>> $schoolChecks
-     * @param Collection<int, array<string, mixed>> $academicChecks
+     * @param  Collection<int, array<string, mixed>>  $personChecks
+     * @param  Collection<int, array<string, mixed>>  $contactChecks
+     * @param  Collection<int, array<string, mixed>>  $schoolChecks
+     * @param  Collection<int, array<string, mixed>>  $academicChecks
      * @return Collection<int, array<string, mixed>>
      */
     private function workflows(Collection $personChecks, Collection $contactChecks, Collection $schoolChecks, Collection $academicChecks): Collection
@@ -145,13 +145,12 @@ class DataQualityController extends Controller
             ],
             [
                 'title' => 'Fechar períodos e ano letivo',
-                'description' => 'Períodos, critérios de aprovação, dias letivos e documentos finais precisam estar consistentes.',
+                'description' => 'Períodos, critérios de aprovação e documentos finais precisam estar consistentes.',
                 'icon' => 'fa-clipboard-check',
                 'count' => $count($academicChecks, [
                     'Anos letivos ativos sem aprovação',
                     'Anos letivos ativos sem períodos avaliativos',
                     'Anos letivos sem critérios de aprovação',
-                    'Anos letivos com menos dias letivos que o mínimo',
                 ]),
                 'route' => route('data-quality.index', ['severity' => 'danger']),
             ],
@@ -171,7 +170,7 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function issuedDocument(Request $request, array $data, ?School $school): IssuedDocument
     {
@@ -214,7 +213,7 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param Collection<int, School> $schools
+     * @param  Collection<int, School>  $schools
      */
     private function selectedSchoolId(Request $request, Collection $schools): ?int
     {
@@ -228,7 +227,7 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param Collection<int, School> $schools
+     * @param  Collection<int, School>  $schools
      * @return list<int>|null
      */
     private function schoolIdsForChecks(Request $request, Collection $schools, ?int $selectedSchoolId): ?array
@@ -245,7 +244,7 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param list<int>|null $schoolIds
+     * @param  list<int>|null  $schoolIds
      * @return Collection<int, array<string, mixed>>
      */
     private function personChecks(?array $schoolIds): Collection
@@ -300,7 +299,7 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param list<int>|null $schoolIds
+     * @param  list<int>|null  $schoolIds
      * @return Collection<int, array<string, mixed>>
      */
     private function roleChecks(?array $schoolIds): Collection
@@ -345,7 +344,7 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param list<int>|null $schoolIds
+     * @param  list<int>|null  $schoolIds
      * @return Collection<int, array<string, mixed>>
      */
     private function contactChecks(?array $schoolIds): Collection
@@ -376,7 +375,7 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param list<int>|null $schoolIds
+     * @param  list<int>|null  $schoolIds
      * @return Collection<int, array<string, mixed>>
      */
     private function schoolChecks(?array $schoolIds): Collection
@@ -420,7 +419,7 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param list<int>|null $schoolIds
+     * @param  list<int>|null  $schoolIds
      * @return Collection<int, array<string, mixed>>
      */
     private function academicChecks(?array $schoolIds): Collection
@@ -452,13 +451,6 @@ class DataQualityController extends Controller
                     }),
                 'danger'
             ),
-            $this->yearCheck(
-                'Anos letivos com menos dias letivos que o mínimo',
-                'Confira o calendário quando a contagem de dias letivos estiver abaixo do mínimo definido para o ano.',
-                $this->yearScope(AcademicYear::query(), $schoolIds)
-                    ->whereRaw('(select count(*) from calendar_days where calendar_days.academic_year_id = academic_years.id and calendar_days.counts_as_school_day = 1) < minimum_school_days'),
-                'danger'
-            ),
             $this->enrollmentCheck(
                 'Matrículas ativas com cadastro do estudante incompleto',
                 'Bloqueia documentos do estudante e exige regularização antes de novas emissões oficiais.',
@@ -479,7 +471,7 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param Builder<Person> $query
+     * @param  Builder<Person>  $query
      * @return array<string, mixed>
      */
     private function check(string $title, string $description, Builder $query, string $severity): array
@@ -498,7 +490,7 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param Builder<PersonSchoolRole> $query
+     * @param  Builder<PersonSchoolRole>  $query
      * @return array<string, mixed>
      */
     private function roleCheck(string $title, string $description, Builder $query, string $severity): array
@@ -518,7 +510,7 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param Builder<PersonContact> $query
+     * @param  Builder<PersonContact>  $query
      * @return array<string, mixed>
      */
     private function contactCheck(string $title, string $description, Builder $query, string $severity): array
@@ -538,7 +530,7 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param Builder<School> $query
+     * @param  Builder<School>  $query
      * @return array<string, mixed>
      */
     private function schoolCheck(string $title, string $description, Builder $query, string $severity): array
@@ -557,7 +549,7 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param Builder<AcademicYear> $query
+     * @param  Builder<AcademicYear>  $query
      * @return array<string, mixed>
      */
     private function yearCheck(string $title, string $description, Builder $query, string $severity): array
@@ -578,7 +570,7 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param Builder<StudentEnrollment> $query
+     * @param  Builder<StudentEnrollment>  $query
      * @return array<string, mixed>
      */
     private function enrollmentCheck(string $title, string $description, Builder $query, string $severity): array
@@ -598,8 +590,8 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param Builder<Person> $query
-     * @param list<int>|null $schoolIds
+     * @param  Builder<Person>  $query
+     * @param  list<int>|null  $schoolIds
      * @return Builder<Person>
      */
     private function personScope(Builder $query, ?array $schoolIds): Builder
@@ -612,8 +604,8 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param Builder<PersonSchoolRole> $query
-     * @param list<int>|null $schoolIds
+     * @param  Builder<PersonSchoolRole>  $query
+     * @param  list<int>|null  $schoolIds
      * @return Builder<PersonSchoolRole>
      */
     private function roleScope(Builder $query, ?array $schoolIds): Builder
@@ -624,8 +616,8 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param Builder<PersonContact> $query
-     * @param list<int>|null $schoolIds
+     * @param  Builder<PersonContact>  $query
+     * @param  list<int>|null  $schoolIds
      * @return Builder<PersonContact>
      */
     private function contactScope(Builder $query, ?array $schoolIds): Builder
@@ -638,8 +630,8 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param Builder<School> $query
-     * @param list<int>|null $schoolIds
+     * @param  Builder<School>  $query
+     * @param  list<int>|null  $schoolIds
      * @return Builder<School>
      */
     private function schoolScope(Builder $query, ?array $schoolIds): Builder
@@ -648,8 +640,8 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param Builder<AcademicYear> $query
-     * @param list<int>|null $schoolIds
+     * @param  Builder<AcademicYear>  $query
+     * @param  list<int>|null  $schoolIds
      * @return Builder<AcademicYear>
      */
     private function yearScope(Builder $query, ?array $schoolIds): Builder
@@ -658,8 +650,8 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param Builder<StudentEnrollment> $query
-     * @param list<int>|null $schoolIds
+     * @param  Builder<StudentEnrollment>  $query
+     * @param  list<int>|null  $schoolIds
      * @return Builder<StudentEnrollment>
      */
     private function enrollmentScope(Builder $query, ?array $schoolIds): Builder
@@ -670,8 +662,8 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param Builder<PersonSchoolRole> $query
-     * @param list<int>|null $schoolIds
+     * @param  Builder<PersonSchoolRole>  $query
+     * @param  list<int>|null  $schoolIds
      * @return Builder<PersonSchoolRole>
      */
     private function activeRoleScope(Builder $query, ?array $schoolIds = null): Builder
@@ -689,7 +681,7 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param Builder<Person> $query
+     * @param  Builder<Person>  $query
      * @return Builder<Person>
      */
     private function missingPersonDocumentDataScope(Builder $query): Builder
@@ -716,7 +708,7 @@ class DataQualityController extends Controller
     }
 
     /**
-     * @param Builder<School> $query
+     * @param  Builder<School>  $query
      * @return Builder<School>
      */
     private function missingSchoolOfficialDataScope(Builder $query): Builder
