@@ -32,7 +32,7 @@
                 </form>
 
                 <div class="text-center mt-4">
-                    <a class="small" href="{{ route('login') }}">Voltar ao início</a>
+                    <a class="small" href="https://ctjj.org/#verificar-documento">Voltar ao verificador no site do CTJJ</a>
                 </div>
             </div>
         </div>

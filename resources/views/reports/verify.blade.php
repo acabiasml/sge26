@@ -70,8 +70,8 @@
                 </p>
 
                 <div class="text-center mt-4">
-                    <a class="btn btn-outline-primary" href="{{ route('documents.verify.form') }}">Verificar outro documento</a>
-                    <a class="btn btn-primary" href="{{ route('login') }}">Voltar ao início</a>
+                    <a class="btn btn-outline-primary" href="https://ctjj.org/#verificar-documento">Verificar outro documento</a>
+                    <a class="btn btn-primary" href="https://ctjj.org/">Voltar ao site do CTJJ</a>
                 </div>
             </div>
         </div>

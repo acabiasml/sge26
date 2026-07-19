@@ -46,10 +46,18 @@ class ReportController extends Controller
 
     public function verify(string $code): Response
     {
+        $code = strtoupper(trim($code));
+
         $document = IssuedDocument::query()
             ->with(['issuedBy.person', 'school'])
             ->where('verification_code', $code)
-            ->firstOrFail();
+            ->first();
+
+        if (! $document) {
+            return response()->view('reports.verify-missing', [
+                'code' => $code,
+            ], 404);
+        }
 
         return response()->view('reports.verify', [
             'document' => $document,

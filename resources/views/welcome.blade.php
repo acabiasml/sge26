@@ -58,21 +58,11 @@
 
                                     <hr>
 
-                                    <form method="POST" action="{{ route('documents.verify.lookup') }}" class="mb-3">
-                                        @csrf
-                                        <label class="small text-gray-700" for="verification_code">Verificar autenticidade de documento</label>
-                                        <div class="input-group">
-                                            <input id="verification_code" name="code" class="form-control text-uppercase @error('code') is-invalid @enderror" placeholder="BEABA-XXXX-XXXX-XXXX" aria-label="Código de verificação">
-                                            <div class="input-group-append">
-                                                <button class="btn btn-outline-primary" type="submit">
-                                                    <i class="fas fa-search"></i>
-                                                </button>
-                                            </div>
-                                            @error('code') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
-                                        </div>
-                                    </form>
-
                                     <div class="text-center">
+                                        <a href="https://ctjj.org/" class="small d-inline-block mb-3">
+                                            Voltar ao site do Centro Técnico Juvenil de Jarudore
+                                        </a>
+                                        <br>
                                         <span class="small text-gray-600">Acesso institucional</span>
                                         <div class="sge-institutional-logos" aria-label="Instituições vinculadas ao sistema">
                                             <div class="sge-institutional-logo">
