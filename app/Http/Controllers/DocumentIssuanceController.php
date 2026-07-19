@@ -296,6 +296,8 @@ class DocumentIssuanceController extends Controller
                         ->orWhere('people.cpf', 'like', '%'.$term.'%');
                 });
             })
+            ->orderByDesc('student_enrollments.enrolled_at')
+            ->orderByDesc('student_enrollments.id')
             ->orderBy('people.full_name')
             ->limit(40)
             ->get()

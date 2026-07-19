@@ -112,6 +112,64 @@ class DocumentIssuancePanelTest extends TestCase
             ]));
     }
 
+    public function test_enrollment_search_returns_the_most_recent_enrollment_first(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $student = $this->personWithRole('Estudante com Histórico', PersonSchoolRole::ROLE_STUDENT, $school->id);
+
+        $olderYear = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Educação Básica',
+            'reference_year' => 2025,
+            'starts_at' => '2025-01-01',
+            'ends_at' => '2025-12-31',
+            'active' => false,
+        ]);
+        $currentYear = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Educação Básica',
+            'reference_year' => 2026,
+            'starts_at' => '2026-01-01',
+            'ends_at' => '2026-12-31',
+            'active' => true,
+        ]);
+        $olderClass = SchoolClass::query()->create([
+            'academic_year_id' => $olderYear->id,
+            'name' => '1º Ano',
+            'active' => false,
+        ]);
+        $currentClass = SchoolClass::query()->create([
+            'academic_year_id' => $currentYear->id,
+            'name' => '2º Ano',
+            'active' => true,
+        ]);
+        $olderEnrollment = StudentEnrollment::query()->create([
+            'school_class_id' => $olderClass->id,
+            'person_id' => $student->id,
+            'enrolled_at' => '2025-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $currentEnrollment = StudentEnrollment::query()->create([
+            'school_class_id' => $currentClass->id,
+            'person_id' => $student->id,
+            'enrolled_at' => '2026-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+
+        $response = $this->actingAs($administrator)
+            ->getJson(route('document-issuance.targets', [
+                'type' => 'enrollment-declaration',
+                'q' => 'Estudante com Histórico',
+            ]))
+            ->assertOk();
+
+        $response->assertJsonPath('targets.0.id', $currentEnrollment->id)
+            ->assertJsonPath('targets.1.id', $olderEnrollment->id);
+    }
+
     public function test_manager_cannot_force_emission_for_enrollment_from_another_school(): void
     {
         $managedSchool = School::query()->create(['name' => 'Escola Gerenciada', 'active' => true]);
