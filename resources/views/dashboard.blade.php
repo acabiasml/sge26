@@ -214,7 +214,7 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    @if ($monthAcademicCalendars->isNotEmpty() || $birthdays->isNotEmpty())
+                    @if ($monthAcademicCalendars->isNotEmpty() || $birthdays->isNotEmpty() || $weekBirthdays->isNotEmpty())
                         @include('dashboard._combined-calendar', ['month' => $combinedCalendarMonth])
 
                         <div class="sge-dashboard-subgrid mt-3">
@@ -233,15 +233,20 @@
                             </section>
 
                             <section aria-labelledby="birthdays-heading">
-                                <h3 id="birthdays-heading">Aniversariantes</h3>
-                                @forelse ($birthdays->take(6) as $person)
-                                    <div class="sge-mini-row">
+                                <div class="sge-subsection-heading">
+                                    <h3 id="birthdays-heading">Aniversariantes desta semana</h3>
+                                    <span>{{ $birthdayWeekStartsAt->format('d/m') }} a {{ $birthdayWeekEndsAt->format('d/m') }}</span>
+                                </div>
+                                <div class="sge-birthday-list" role="list" aria-label="Aniversariantes de {{ $birthdayWeekStartsAt->format('d/m') }} a {{ $birthdayWeekEndsAt->format('d/m') }}">
+                                @forelse ($weekBirthdays as $person)
+                                    <div class="sge-mini-row" role="listitem">
                                         <span>{{ $person->birth_date?->format('d/m') }}</span>
                                         <strong>{{ $person->social_name ?: $person->full_name }}</strong>
                                     </div>
                                 @empty
-                                    <p class="text-muted mb-0">Nenhum aniversário cadastrado para este mês.</p>
+                                    <p class="text-muted mb-0">Nenhum aniversário nesta semana.</p>
                                 @endforelse
+                                </div>
                             </section>
                         </div>
                     @else

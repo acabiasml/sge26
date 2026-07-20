@@ -13,6 +13,7 @@ use App\Models\School;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
@@ -629,6 +630,53 @@ class AdminScreensTest extends TestCase
             ->assertSee('Ensino Médio 2026')
             ->assertSee('Escola Laura Vicuña')
             ->assertSee('Conselho de Classe');
+    }
+
+    public function test_dashboard_lists_all_birthdays_from_the_current_week(): void
+    {
+        $originalTimezone = date_default_timezone_get();
+        Carbon::setTestNowAndTimezone('2026-07-20 10:00:00', 'America/Sao_Paulo');
+
+        try {
+            $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+
+            Person::query()->create([
+                'full_name' => 'Aniversário Antigo do Mês',
+                'birth_date' => '2000-07-01',
+                'active' => true,
+            ]);
+
+            Person::query()->create([
+                'full_name' => 'Aniversário da Semana Seguinte',
+                'birth_date' => '2000-07-26',
+                'active' => true,
+            ]);
+
+            foreach (range(19, 25) as $day) {
+                Person::query()->create([
+                    'full_name' => 'Aniversariante da Semana '.$day,
+                    'birth_date' => sprintf('2000-07-%02d', $day),
+                    'active' => true,
+                ]);
+            }
+
+            $response = $this->actingAs($admin)
+                ->get(route('dashboard'))
+                ->assertOk()
+                ->assertSee('Aniversariantes desta semana')
+                ->assertSee('19/07 a 25/07');
+
+            $this->assertSame(2, substr_count($response->getContent(), 'Aniversário Antigo do Mês'));
+            $this->assertSame(2, substr_count($response->getContent(), 'Aniversário da Semana Seguinte'));
+
+            foreach (range(19, 25) as $day) {
+                $response->assertSee('Aniversariante da Semana '.$day);
+                $this->assertSame(3, substr_count($response->getContent(), 'Aniversariante da Semana '.$day));
+            }
+        } finally {
+            Carbon::setTestNow();
+            date_default_timezone_set($originalTimezone);
+        }
     }
 
     public function test_dashboard_limits_month_calendars_to_manager_schools(): void

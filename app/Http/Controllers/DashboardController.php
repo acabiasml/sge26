@@ -10,6 +10,7 @@ use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\StudentEnrollment;
 use App\Support\AcademicCalendarGrid;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -20,6 +21,9 @@ class DashboardController extends Controller
     public function __invoke(Request $request): View
     {
         $user = $request->user();
+        $today = now('America/Sao_Paulo');
+        $birthdayWeekStartsAt = $today->copy()->startOfWeek(CarbonInterface::SUNDAY);
+        $birthdayWeekEndsAt = $today->copy()->endOfWeek(CarbonInterface::SATURDAY);
         $manageableSchoolIds = $user->isAdministrator() ? null : $user->manageableSchoolIds();
         $visibleSchoolIds = $user->isAdministrator() ? null : $user->visibleSchoolIds();
         $calendarSchoolIds = $user->isAdministrator()
@@ -39,7 +43,12 @@ class DashboardController extends Controller
             ])
             ->all();
 
-        $birthdays = $this->birthdays($calendarSchoolIds);
+        $birthdays = $this->birthdays($calendarSchoolIds, $today->month);
+        $weekBirthdays = $this->birthdaysBetween(
+            $calendarSchoolIds,
+            $birthdayWeekStartsAt,
+            $birthdayWeekEndsAt,
+        );
         $monthAcademicCalendars = $this->monthAcademicCalendars($calendarSchoolIds);
 
         return view('dashboard', [
@@ -54,9 +63,12 @@ class DashboardController extends Controller
             'studentsBySchoolChart' => $canManagePeople ? $this->studentsBySchoolChart($manageableSchoolIds) : ['labels' => [], 'values' => []],
             'calendarTypeChart' => $canManagePeople ? $this->calendarTypeChart($monthAcademicCalendars) : ['labels' => [], 'values' => []],
             'birthdays' => $birthdays,
+            'weekBirthdays' => $weekBirthdays,
+            'birthdayWeekStartsAt' => $birthdayWeekStartsAt,
+            'birthdayWeekEndsAt' => $birthdayWeekEndsAt,
             'announcements' => $this->announcements($visibleSchoolIds),
             'monthAcademicCalendars' => $monthAcademicCalendars,
-            'combinedCalendarMonth' => AcademicCalendarGrid::combinedMonth($monthAcademicCalendars, $birthdays, now('America/Sao_Paulo')),
+            'combinedCalendarMonth' => AcademicCalendarGrid::combinedMonth($monthAcademicCalendars, $birthdays, $today),
         ]);
     }
 
@@ -227,18 +239,52 @@ class DashboardController extends Controller
      * @param  list<int>|null  $schoolIds
      * @return Collection<int, Person>
      */
-    private function birthdays(?array $schoolIds): Collection
+    private function birthdays(?array $schoolIds, int $month): Collection
+    {
+        return $this->birthdayQuery($schoolIds)
+            ->whereMonth('birth_date', $month)
+            ->get()
+            ->sortBy(fn (Person $person): int => (int) $person->birth_date?->format('d'))
+            ->values();
+    }
+
+    /**
+     * @param  list<int>|null  $schoolIds
+     * @return Collection<int, Person>
+     */
+    private function birthdaysBetween(?array $schoolIds, CarbonInterface $startsAt, CarbonInterface $endsAt): Collection
+    {
+        $dateOrder = collect(range(0, (int) $startsAt->diffInDays($endsAt)))
+            ->mapWithKeys(fn (int $offset): array => [
+                $startsAt->copy()->addDays($offset)->format('m-d') => $offset,
+            ]);
+        $months = $dateOrder->keys()
+            ->map(fn (string $date): int => (int) substr($date, 0, 2))
+            ->unique()
+            ->values();
+
+        return $this->birthdayQuery($schoolIds)
+            ->where(function (Builder $query) use ($months): void {
+                $months->each(fn (int $month) => $query->orWhereMonth('birth_date', $month));
+            })
+            ->get()
+            ->filter(fn (Person $person): bool => $dateOrder->has($person->birth_date?->format('m-d')))
+            ->sortBy(fn (Person $person): int => $dateOrder->get($person->birth_date?->format('m-d')))
+            ->values();
+    }
+
+    /**
+     * @param  list<int>|null  $schoolIds
+     * @return Builder<Person>
+     */
+    private function birthdayQuery(?array $schoolIds): Builder
     {
         return Person::query()
             ->where('active', true)
             ->whereNotNull('birth_date')
-            ->whereMonth('birth_date', now()->month)
             ->when($schoolIds !== null, function (Builder $query) use ($schoolIds): void {
                 $query->whereHas('schoolRoles', fn (Builder $roles) => $this->activeRoleScope($roles)->whereIn('school_id', $schoolIds));
-            })
-            ->get()
-            ->sortBy(fn (Person $person): int => (int) $person->birth_date?->format('d'))
-            ->values();
+            });
     }
 
     /**
