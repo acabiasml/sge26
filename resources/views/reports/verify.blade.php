@@ -50,6 +50,11 @@
                         <dd class="col-sm-8">{{ $verification['school_name'] }}</dd>
                     @endif
 
+                    @if ($verification['scope_label'])
+                        <dt class="col-sm-4">Abrangência</dt>
+                        <dd class="col-sm-8">{{ $verification['scope_label'] }}</dd>
+                    @endif
+
                     @if ($verification['rows_count'] !== null)
                         <dt class="col-sm-4">Registros</dt>
                         <dd class="col-sm-8">{{ $verification['rows_count'] }}</dd>

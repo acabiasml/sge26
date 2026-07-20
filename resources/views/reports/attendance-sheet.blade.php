@@ -35,8 +35,8 @@
             <td class="meta-label">Mês</td><td>{{ $month->translatedFormat('F/Y') }}</td>
         </tr>
         <tr>
-            <td class="meta-label">Turma</td><td>{{ $schoolClass->name }}</td>
-            <td class="meta-label">Matriz</td><td>{{ $course->name }}</td>
+            <td class="meta-label">Turma e etapa</td><td>{{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, collect([$course])) }}</td>
+            <td class="meta-label">Matriz</td><td>{{ $course->name }} · {{ $course->stageLabel() }}</td>
         </tr>
         <tr>
             <td class="meta-label">Componente</td><td>{{ $component->name }}</td>

@@ -243,7 +243,7 @@ O sistema emite:
 - horários;
 - atas de resultados finais por turma;
 - resultados finais consolidados do ano letivo;
-- atestados de frequência;
+- atestados de frequência mensais, por período avaliativo ou anuais, reunindo todas as matrizes da matrícula selecionada;
 - atestados de transferência;
 - declarações de matrícula;
 - declarações de escolaridade;
@@ -267,6 +267,8 @@ A verificação pública fica em:
 ```
 
 O rodapé informa código, data/hora de emissão em Brasília e pessoa emissora.
+
+Nos documentos acadêmicos, a identificação da turma é sempre acompanhada da etapa correspondente. Quando uma matrícula reúne mais de uma matriz, o atestado de frequência apresenta o total consolidado e o detalhamento de cada matriz e etapa no mesmo PDF.
 
 O papel timbrado usa:
 

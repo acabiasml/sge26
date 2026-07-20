@@ -27,7 +27,7 @@
 
     <p>
         <strong>Estudante:</strong> {{ $enrollment->student?->full_name }} ·
-        <strong>Turma:</strong> {{ $enrollment->schoolClass?->name }} ·
+        <strong>Turma e etapa:</strong> {{ \App\Support\AcademicContextLabel::classWithStages($enrollment->schoolClass?->name, $enrollment->courses) }} ·
         <strong>Ano letivo:</strong> {{ $academicYear->name }}
     </p>
 

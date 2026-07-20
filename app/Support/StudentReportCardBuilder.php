@@ -15,9 +15,10 @@ use Illuminate\Support\Collection;
 
 class StudentReportCardBuilder
 {
-    public function __construct(private readonly DiaryGradeCalculator $gradeCalculator)
-    {
-    }
+    public function __construct(
+        private readonly DiaryGradeCalculator $gradeCalculator,
+        private readonly AttendanceSummaryCalculator $attendanceCalculator,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -72,6 +73,7 @@ class StudentReportCardBuilder
             ->where('school_class_id', $schoolClass->id)
             ->whereIn('curriculum_component_id', $componentIds)
             ->whereIn('academic_period_id', $periodIds)
+            ->whereHas('entries', fn ($query) => $query->where('student_enrollment_id', $enrollment->id))
             ->orderBy('class_date')
             ->get();
 
@@ -123,7 +125,7 @@ class StudentReportCardBuilder
                         'assessments' => $componentAssessments,
                         'average' => $average,
                         'convalidation' => $convalidation,
-                        'attendance' => $this->attendanceSummary($componentAttendance, $justifications),
+                        'attendance' => $this->attendanceCalculator->summarize($componentAttendance, $justifications),
                     ];
                 })
                 ->values();
@@ -136,7 +138,7 @@ class StudentReportCardBuilder
         })->values();
 
         $annualComponents = $this->annualComponentSummary($components, $periodReports);
-        $annualAttendance = $this->annualAttendance($annualComponents);
+        $annualAttendance = $this->attendanceCalculator->aggregate($annualComponents->pluck('attendance'));
 
         return [
             'enrollment' => $enrollment,
@@ -161,46 +163,8 @@ class StudentReportCardBuilder
     }
 
     /**
-     * @param Collection<int, DiaryAttendanceRecord> $records
-     * @param Collection<int, DiaryAttendanceJustification> $justifications
-     * @return array{lessons: int, attended: int, absent: int, justified: int, effective_attended: int, percentage: float|null}
-     */
-    private function attendanceSummary(Collection $records, Collection $justifications): array
-    {
-        $lessons = 0;
-        $attended = 0;
-        $justified = 0;
-
-        foreach ($records as $record) {
-            $entry = $record->entries->first();
-            $lessonCount = (int) $record->lesson_count;
-            $attendedLessons = (int) ($entry?->attended_lessons ?? 0);
-            $lessons += $lessonCount;
-            $attended += $attendedLessons;
-
-            $isJustified = $entry?->status === DiaryAttendanceRecord::STATUS_EXCUSED
-                || $justifications->contains(fn (DiaryAttendanceJustification $justification): bool => $justification->appliesTo($record->class_date->toDateString()));
-
-            if ($isJustified) {
-                $justified += max(0, $lessonCount - $attendedLessons);
-            }
-        }
-
-        $effectiveAttended = min($lessons, $attended + $justified);
-
-        return [
-            'lessons' => $lessons,
-            'attended' => $attended,
-            'absent' => max(0, $lessons - $attended),
-            'justified' => $justified,
-            'effective_attended' => $effectiveAttended,
-            'percentage' => $lessons > 0 ? round(($effectiveAttended / $lessons) * 100, 1) : null,
-        ];
-    }
-
-    /**
-     * @param Collection<int, CurriculumComponent> $components
-     * @param Collection<int, array<string, mixed>> $periodReports
+     * @param  Collection<int, CurriculumComponent>  $components
+     * @param  Collection<int, array<string, mixed>>  $periodReports
      * @return Collection<int, array<string, mixed>>
      */
     private function annualComponentSummary(Collection $components, Collection $periodReports): Collection
@@ -211,7 +175,7 @@ class StudentReportCardBuilder
                 ->filter()
                 ->values();
             $points = $periodComponentReports->sum(fn (array $componentReport): float => (float) ($componentReport['average']['value'] ?? 0));
-            $attendance = $this->annualAttendance($periodComponentReports);
+            $attendance = $this->attendanceCalculator->aggregate($periodComponentReports->pluck('attendance'));
 
             return [
                 'component' => $component,
@@ -222,27 +186,5 @@ class StudentReportCardBuilder
                 'attendance' => $attendance,
             ];
         })->values();
-    }
-
-    /**
-     * @param Collection<int, array<string, mixed>> $items
-     * @return array{lessons: int, attended: int, absent: int, justified: int, effective_attended: int, percentage: float|null}
-     */
-    private function annualAttendance(Collection $items): array
-    {
-        $lessons = $items->sum(fn (array $item): int => (int) ($item['attendance']['lessons'] ?? 0));
-        $attended = $items->sum(fn (array $item): int => (int) ($item['attendance']['attended'] ?? 0));
-        $absent = $items->sum(fn (array $item): int => (int) ($item['attendance']['absent'] ?? 0));
-        $justified = $items->sum(fn (array $item): int => (int) ($item['attendance']['justified'] ?? 0));
-        $effectiveAttended = $items->sum(fn (array $item): int => (int) ($item['attendance']['effective_attended'] ?? 0));
-
-        return [
-            'lessons' => $lessons,
-            'attended' => $attended,
-            'absent' => $absent,
-            'justified' => $justified,
-            'effective_attended' => $effectiveAttended,
-            'percentage' => $lessons > 0 ? round(($effectiveAttended / $lessons) * 100, 1) : null,
-        ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AcademicPeriod;
 use App\Models\AcademicYear;
 use App\Models\Person;
 use App\Models\School;
@@ -10,6 +11,7 @@ use App\Models\SchoolClassComponent;
 use App\Models\StudentAcademicHistory;
 use App\Models\StudentEnrollment;
 use App\Models\User;
+use App\Support\AcademicContextLabel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -48,9 +50,10 @@ class DocumentIssuanceController extends Controller
         'attendance-certificate' => [
             'group' => 'Estudante',
             'label' => 'Atestado de frequência',
-            'description' => 'Apresenta a frequência registrada na matrícula.',
+            'description' => 'Apresenta a frequência mensal, por período avaliativo ou anual, com todas as matrizes da matrícula.',
             'target' => 'enrollment',
             'icon' => 'fa-user-check',
+            'attendance_scope' => true,
         ],
         'transfer-certificate' => [
             'group' => 'Estudante',
@@ -176,10 +179,15 @@ class DocumentIssuanceController extends Controller
                 ->whereIn('school_id', $schoolIds)
                 ->orderByDesc('reference_year')
                 ->orderBy('name')
-                ->get(['id', 'school_id', 'name', 'reference_year']),
+                ->get(['id', 'school_id', 'name', 'reference_year', 'starts_at', 'ends_at']),
+            'academicPeriods' => AcademicPeriod::query()
+                ->whereHas('academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
+                ->orderBy('academic_year_id')
+                ->orderBy('position')
+                ->get(['id', 'academic_year_id', 'name', 'starts_at', 'ends_at']),
             'classes' => SchoolClass::query()
                 ->whereHas('academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
-                ->with('academicYear:id,school_id,name,reference_year')
+                ->with(['academicYear:id,school_id,name,reference_year', 'courses:id,name,stage'])
                 ->orderBy('name')
                 ->get(['id', 'academic_year_id', 'name']),
         ]);
@@ -223,6 +231,9 @@ class DocumentIssuanceController extends Controller
             'target_id' => ['required', 'integer'],
             'score_view' => ['nullable', Rule::in(['numeros', 'conceitos'])],
             'month' => ['nullable', 'date_format:Y-m'],
+            'attendance_scope' => ['nullable', Rule::in(['annual', 'period', 'month'])],
+            'academic_period_id' => ['nullable', 'required_if:attendance_scope,period', 'integer'],
+            'attendance_month' => ['nullable', 'required_if:attendance_scope,month', 'date_format:Y-m'],
         ]);
         $schoolIds = $this->accessibleSchoolIds($request->user());
 
@@ -284,7 +295,12 @@ class DocumentIssuanceController extends Controller
         return StudentEnrollment::query()
             ->select('student_enrollments.*')
             ->join('people', 'people.id', '=', 'student_enrollments.person_id')
-            ->with(['student:id,full_name,social_name', 'schoolClass.academicYear.school:id,name', 'schoolClass:id,academic_year_id,name'])
+            ->with([
+                'student:id,full_name,social_name',
+                'schoolClass.academicYear.school:id,name',
+                'schoolClass:id,academic_year_id,name',
+                'courses:id,name,stage',
+            ])
             ->whereHas('schoolClass.academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
             ->when($request->filled('school_id'), fn (Builder $query) => $query->whereHas('schoolClass.academicYear', fn (Builder $year) => $year->where('school_id', $request->integer('school_id'))))
             ->when($request->filled('academic_year_id'), fn (Builder $query) => $query->whereHas('schoolClass', fn (Builder $class) => $class->where('academic_year_id', $request->integer('academic_year_id'))))
@@ -311,11 +327,12 @@ class DocumentIssuanceController extends Controller
                     'subtitle' => collect([
                         $year?->school?->name,
                         $year ? $year->name.' · '.$year->reference_year : null,
-                        $enrollment->schoolClass?->name,
+                        AcademicContextLabel::classWithStages($enrollment->schoolClass?->name, $enrollment->courses),
                         $enrollment->statusLabel(),
                     ])->filter()->join(' · '),
                     'enabled' => $enabled,
                     'reason' => $reason,
+                    'academic_year_id' => $year?->id,
                 ];
             });
     }
@@ -409,7 +426,7 @@ class DocumentIssuanceController extends Controller
     private function classTargets(Request $request, array $schoolIds, string $term): Collection
     {
         return SchoolClass::query()
-            ->with('academicYear.school:id,name')
+            ->with(['academicYear.school:id,name', 'courses:id,name,stage'])
             ->withCount('schedules')
             ->whereHas('academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
             ->when($request->filled('school_id'), fn (Builder $query) => $query->whereHas('academicYear', fn (Builder $year) => $year->where('school_id', $request->integer('school_id'))))
@@ -421,7 +438,7 @@ class DocumentIssuanceController extends Controller
             ->get()
             ->map(fn (SchoolClass $class): array => [
                 'id' => $class->id,
-                'title' => $class->name,
+                'title' => AcademicContextLabel::classWithStages($class->name, $class->courses),
                 'subtitle' => collect([
                     $class->academicYear?->school?->name,
                     $class->academicYear ? $class->academicYear->name.' · '.$class->academicYear->reference_year : null,
@@ -489,7 +506,7 @@ class DocumentIssuanceController extends Controller
         return SchoolClassComponent::query()
             ->with([
                 'schoolClass.academicYear.school:id,name',
-                'component.course:id,name,academic_year_id',
+                'component.course:id,name,stage,academic_year_id',
                 'teacher:id,full_name',
             ])
             ->where('active', true)
@@ -513,7 +530,11 @@ class DocumentIssuanceController extends Controller
 
                 return [
                     'id' => $assignment->id,
-                    'title' => ($assignment->component?->name ?? 'Componente não informado').' · '.($assignment->schoolClass?->name ?? 'Turma não informada'),
+                    'title' => ($assignment->component?->name ?? 'Componente não informado').' · '
+                        .AcademicContextLabel::classWithStages(
+                            $assignment->schoolClass?->name,
+                            collect([$assignment->component?->course])->filter(),
+                        ),
                     'subtitle' => collect([
                         $year?->school?->name,
                         $year ? $year->name.' · '.$year->reference_year : null,
@@ -548,6 +569,18 @@ class DocumentIssuanceController extends Controller
 
         if (in_array($data['type'], ['report-card', 'individual-record'], true)) {
             $parameters['notas'] = $data['score_view'] ?? 'numeros';
+        }
+
+        if ($data['type'] === 'attendance-certificate') {
+            $parameters['attendance_scope'] = $data['attendance_scope'] ?? 'annual';
+
+            if ($parameters['attendance_scope'] === 'period') {
+                $parameters['academic_period_id'] = $data['academic_period_id'] ?? null;
+            }
+
+            if ($parameters['attendance_scope'] === 'month') {
+                $parameters['attendance_month'] = $data['attendance_month'] ?? null;
+            }
         }
 
         return redirect()->route($route, $parameters);

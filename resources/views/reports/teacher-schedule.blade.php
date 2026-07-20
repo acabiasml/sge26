@@ -44,7 +44,7 @@
                             <div class="slot" style="border-left-color: {{ $colors['border'] }}; background: {{ $colors['background'] }};">
                                 <span>{{ substr($slot->starts_at, 0, 5) }}-{{ substr($slot->ends_at, 0, 5) }}</span>
                                 <strong>{{ $slot->componentAssignment?->component?->name }}</strong>
-                                <small>{{ $slot->schedule?->schoolClass?->name }} · {{ $slot->schedule?->schoolClass?->academicYear?->school?->name }}</small>
+                                <small>{{ \App\Support\AcademicContextLabel::classWithStages($slot->schedule?->schoolClass?->name, collect([$slot->componentAssignment?->component?->course])->filter()) }} · {{ $slot->schedule?->schoolClass?->academicYear?->school?->name }}</small>
                             </div>
                         @empty
                             -

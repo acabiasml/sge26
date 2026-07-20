@@ -11,6 +11,7 @@ use App\Models\DiaryAlert;
 use App\Models\DiaryAssessment;
 use App\Models\DiaryAttendanceJustification;
 use App\Models\DiaryAttendanceRecord;
+use App\Models\IssuedDocument;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
@@ -18,7 +19,9 @@ use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
 use App\Models\StudentEnrollment;
 use App\Models\User;
+use App\Support\StudentAttendanceCertificateBuilder;
 use App\Support\StudentReportCardBuilder;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -259,6 +262,108 @@ class TeacherDiaryTest extends TestCase
             'person_id' => $enrollment->person_id,
             'school_id' => $year->school_id,
         ]);
+    }
+
+    public function test_attendance_certificate_supports_month_period_and_all_enrollment_matrices(): void
+    {
+        [$teacher, $year, $class, $component, $firstPeriod, $enrollment] = $this->diaryScenario();
+        $secondPeriod = AcademicPeriod::query()->create([
+            'academic_year_id' => $year->id,
+            'name' => '2º Bimestre',
+            'starts_at' => '2026-04-13',
+            'ends_at' => '2026-07-08',
+            'position' => 2,
+        ]);
+        $technicalCourse = $year->courses()->create([
+            'name' => 'Técnico em Móveis',
+            'stage' => AcademicCourse::STAGE_TECHNICAL,
+            'status' => 'iniciado',
+            'class_hour_minutes' => 50,
+            'active' => true,
+        ]);
+        $technicalComponent = $technicalCourse->components()->create([
+            'name' => 'Desenho Técnico',
+            'weekly_lessons' => 1,
+            'active' => true,
+        ]);
+        $class->courses()->attach($technicalCourse);
+        $enrollment->courses()->attach($technicalCourse);
+
+        $records = [
+            [$component, $firstPeriod, '2026-03-11', 2, 1],
+            [$technicalComponent, $firstPeriod, '2026-04-05', 1, 1],
+            [$component, $secondPeriod, '2026-05-06', 3, 3],
+        ];
+
+        foreach ($records as [$recordComponent, $period, $date, $lessons, $attended]) {
+            $record = DiaryAttendanceRecord::query()->create([
+                'school_class_id' => $class->id,
+                'curriculum_component_id' => $recordComponent->id,
+                'academic_period_id' => $period->id,
+                'teacher_person_id' => $teacher->person_id,
+                'updated_by_person_id' => $teacher->person_id,
+                'class_date' => $date,
+                'lesson_count' => $lessons,
+            ]);
+            $record->entries()->create([
+                'student_enrollment_id' => $enrollment->id,
+                'status' => $attended === $lessons ? DiaryAttendanceRecord::STATUS_PRESENT : DiaryAttendanceRecord::STATUS_PARTIAL,
+                'attended_lessons' => $attended,
+            ]);
+        }
+
+        DiaryAttendanceRecord::query()->create([
+            'school_class_id' => $class->id,
+            'curriculum_component_id' => $component->id,
+            'academic_period_id' => $firstPeriod->id,
+            'teacher_person_id' => $teacher->person_id,
+            'updated_by_person_id' => $teacher->person_id,
+            'class_date' => '2026-03-12',
+            'lesson_count' => 4,
+        ]);
+
+        $builder = app(StudentAttendanceCertificateBuilder::class);
+        $monthly = $builder->build(
+            $enrollment->fresh(),
+            CarbonImmutable::parse('2026-03-01'),
+            CarbonImmutable::parse('2026-03-31'),
+        );
+        $period = $builder->build(
+            $enrollment->fresh(),
+            $firstPeriod->starts_at,
+            $firstPeriod->ends_at,
+            $firstPeriod,
+        );
+        $annual = $builder->build(
+            $enrollment->fresh(),
+            $year->starts_at,
+            $year->ends_at,
+        );
+
+        $this->assertSame(2, $monthly['attendance']['lessons']);
+        $this->assertSame(3, $period['attendance']['lessons']);
+        $this->assertSame(6, $annual['attendance']['lessons']);
+        $this->assertCount(2, $monthly['matrices']);
+        $this->assertSame(
+            ['Ensino Médio', 'Ensino Técnico'],
+            $monthly['matrices']->pluck('stage')->all(),
+        );
+        $this->assertSame(0, $monthly['matrices']->firstWhere('course.id', $technicalCourse->id)['attendance']['lessons']);
+
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-atestado-mensal@ctjj.org');
+        $this->actingAs($manager)
+            ->get(route('enrollments.attendance-certificate.pdf', [
+                'enrollment' => $enrollment,
+                'attendance_scope' => 'month',
+                'attendance_month' => '2026-03',
+            ]))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        $document = IssuedDocument::query()->latest('id')->firstOrFail();
+        $this->assertSame('month', $document->payload['scope']);
+        $this->assertSame(2, $document->payload['lessons']);
+        $this->assertCount(2, $document->payload['matrices']);
     }
 
     public function test_management_can_review_and_emit_student_declarations(): void

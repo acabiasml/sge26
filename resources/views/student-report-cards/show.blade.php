@@ -91,7 +91,7 @@
                 <div class="sge-page-kicker">{{ $academicYear->school?->name }}</div>
                 <h2 id="report-card-title">{{ $student->social_name ?: $student->full_name }}</h2>
                 <div class="sge-student-meta">
-                    <span><i class="fas fa-school" aria-hidden="true"></i>{{ $schoolClass->name }}</span>
+                    <span><i class="fas fa-school" aria-hidden="true"></i>{{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $report['courses']) }}</span>
                     <span><i class="fas fa-calendar-alt" aria-hidden="true"></i>{{ $academicYear->name }}</span>
                     <span><i class="fas fa-layer-group" aria-hidden="true"></i>{{ $report['courses']->pluck('name')->join(' + ') ?: 'Matriz não informada' }}</span>
                 </div>

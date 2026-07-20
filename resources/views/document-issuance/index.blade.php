@@ -57,6 +57,7 @@
                                         data-icon="{{ $type['icon'] }}"
                                         data-score-view="{{ ! empty($type['score_view']) ? 'true' : 'false' }}"
                                         data-month="{{ ! empty($type['month']) ? 'true' : 'false' }}"
+                                        data-attendance-scope="{{ ! empty($type['attendance_scope']) ? 'true' : 'false' }}"
                                         @selected(old('type') === $key)>
                                         {{ $type['label'] }}
                                     </option>
@@ -99,7 +100,9 @@
                             <select id="document-year" class="form-control">
                                 <option value="">Todos os anos letivos</option>
                                 @foreach ($academicYears as $year)
-                                    <option value="{{ $year->id }}" data-school-id="{{ $year->school_id }}">
+                                    <option value="{{ $year->id }}" data-school-id="{{ $year->school_id }}"
+                                        data-starts-at="{{ $year->starts_at?->format('Y-m-d') }}"
+                                        data-ends-at="{{ $year->ends_at?->format('Y-m-d') }}">
                                         {{ $year->name }} · {{ $year->reference_year }}
                                     </option>
                                 @endforeach
@@ -114,7 +117,7 @@
                                     <option value="{{ $class->id }}"
                                         data-year-id="{{ $class->academic_year_id }}"
                                         data-school-id="{{ $class->academicYear?->school_id }}">
-                                        {{ $class->name }} · {{ $class->academicYear?->name }}
+                                        {{ \App\Support\AcademicContextLabel::classWithStages($class->name, $class->courses) }} · {{ $class->academicYear?->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -196,6 +199,48 @@
                         <input id="document-month" name="month" type="month" class="form-control"
                             value="{{ now()->format('Y-m') }}">
                     </div>
+
+                    <fieldset id="attendance-scope-options" class="sge-document-options" hidden>
+                        <legend>Qual período de frequência deve constar?</legend>
+                        <label class="sge-choice-tile">
+                            <input type="radio" name="attendance_scope" value="annual" checked>
+                            <span>
+                                <strong>Anual</strong>
+                                <small>Considera toda a duração do ano letivo selecionado.</small>
+                            </span>
+                        </label>
+                        <label class="sge-choice-tile">
+                            <input type="radio" name="attendance_scope" value="period">
+                            <span>
+                                <strong>Período avaliativo</strong>
+                                <small>Considera somente um bimestre ou outro período cadastrado.</small>
+                            </span>
+                        </label>
+                        <label class="sge-choice-tile">
+                            <input type="radio" name="attendance_scope" value="month">
+                            <span>
+                                <strong>Mensal</strong>
+                                <small>Considera somente o mês escolhido.</small>
+                            </span>
+                        </label>
+
+                        <div id="attendance-period-option" class="form-group mb-0 mt-3" hidden>
+                            <label for="attendance-period">Período avaliativo</label>
+                            <select id="attendance-period" name="academic_period_id" class="form-control" disabled>
+                                <option value="">Selecione o período</option>
+                                @foreach ($academicPeriods as $period)
+                                    <option value="{{ $period->id }}" data-year-id="{{ $period->academic_year_id }}">
+                                        {{ $period->name }} · {{ $period->starts_at?->format('d/m/Y') }} a {{ $period->ends_at?->format('d/m/Y') }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div id="attendance-month-option" class="form-group mb-0 mt-3" hidden>
+                            <label for="attendance-month">Mês</label>
+                            <input id="attendance-month" name="attendance_month" type="month" class="form-control" disabled>
+                        </div>
+                    </fieldset>
                 </div>
             </div>
 
@@ -240,6 +285,11 @@
             const scoreOptions = document.getElementById('score-view-options');
             const monthOptions = document.getElementById('month-options');
             const monthInput = document.getElementById('document-month');
+            const attendanceScopeOptions = document.getElementById('attendance-scope-options');
+            const attendancePeriodOption = document.getElementById('attendance-period-option');
+            const attendancePeriodSelect = document.getElementById('attendance-period');
+            const attendanceMonthOption = document.getElementById('attendance-month-option');
+            const attendanceMonthInput = document.getElementById('attendance-month');
             const targetsUrl = @json(route('document-issuance.targets'));
             const targetCopy = {
                 enrollment: ['Localize a matrícula', 'Nome ou CPF do estudante'],
@@ -260,6 +310,7 @@
                 diary: ['school', 'year', 'class'],
             };
             let searchController = null;
+            let selectedAcademicYearId = '';
 
             const selectedOption = () => typeSelect.options[typeSelect.selectedIndex];
             const targetKind = () => selectedOption()?.dataset.targetKind || '';
@@ -269,9 +320,44 @@
                 selectedTarget.hidden = true;
                 selectedTitle.textContent = '';
                 selectedSubtitle.textContent = '';
+                selectedAcademicYearId = '';
                 issueButton.disabled = true;
                 results.replaceChildren();
                 status.textContent = message;
+            };
+
+            const syncAttendanceOptions = () => {
+                const enabled = selectedOption()?.dataset.attendanceScope === 'true';
+                const scope = attendanceScopeOptions.querySelector('input[name="attendance_scope"]:checked')?.value || 'annual';
+                const academicYearId = selectedAcademicYearId || yearSelect.value;
+
+                Array.from(attendancePeriodSelect.options).forEach((option) => {
+                    if (!option.value) return;
+                    option.hidden = Boolean(academicYearId && option.dataset.yearId !== String(academicYearId));
+                });
+                if (attendancePeriodSelect.selectedOptions[0]?.hidden) attendancePeriodSelect.value = '';
+
+                const periodEnabled = enabled && scope === 'period';
+                attendancePeriodOption.hidden = !periodEnabled;
+                attendancePeriodSelect.disabled = !periodEnabled;
+                attendancePeriodSelect.required = periodEnabled;
+
+                const monthEnabled = enabled && scope === 'month';
+                attendanceMonthOption.hidden = !monthEnabled;
+                attendanceMonthInput.disabled = !monthEnabled;
+                attendanceMonthInput.required = monthEnabled;
+
+                const yearOption = Array.from(yearSelect.options).find((option) => option.value === String(academicYearId));
+                attendanceMonthInput.min = yearOption?.dataset.startsAt?.slice(0, 7) || '';
+                attendanceMonthInput.max = yearOption?.dataset.endsAt?.slice(0, 7) || '';
+                if (monthEnabled && !attendanceMonthInput.value) {
+                    const currentMonth = @json(now()->format('Y-m'));
+                    const minimum = attendanceMonthInput.min;
+                    const maximum = attendanceMonthInput.max;
+                    attendanceMonthInput.value = minimum && currentMonth < minimum
+                        ? minimum
+                        : (maximum && currentMonth > maximum ? maximum : currentMonth);
+                }
             };
 
             const syncFilterOptions = () => {
@@ -315,25 +401,31 @@
 
                 const hasScoreOptions = option?.dataset.scoreView === 'true';
                 const hasMonthOptions = option?.dataset.month === 'true';
+                const hasAttendanceOptions = option?.dataset.attendanceScope === 'true';
                 scoreOptions.hidden = !hasScoreOptions;
                 scoreOptions.disabled = !hasScoreOptions;
                 monthOptions.hidden = !hasMonthOptions;
                 monthInput.disabled = !hasMonthOptions;
-                optionsStep.hidden = !hasScoreOptions && !hasMonthOptions;
+                attendanceScopeOptions.hidden = !hasAttendanceOptions;
+                attendanceScopeOptions.disabled = !hasAttendanceOptions;
+                optionsStep.hidden = !hasScoreOptions && !hasMonthOptions && !hasAttendanceOptions;
                 optionsStep.classList.toggle('is-muted', !hasType);
 
                 resetTarget(hasType ? 'Use a busca para localizar o registro correto.' : 'Primeiro, escolha o tipo de documento.');
                 syncFilterOptions();
+                syncAttendanceOptions();
             };
 
             const selectResult = (target) => {
                 targetId.value = target.id;
                 selectedTitle.textContent = target.title;
                 selectedSubtitle.textContent = target.subtitle || '';
+                selectedAcademicYearId = target.academic_year_id ? String(target.academic_year_id) : '';
                 selectedTarget.hidden = false;
                 issueButton.disabled = false;
                 results.replaceChildren();
                 status.textContent = `${target.title} selecionado para emissão.`;
+                syncAttendanceOptions();
                 selectedTarget.focus?.();
             };
 
@@ -436,14 +528,19 @@
                 yearSelect.value = '';
                 classSelect.value = '';
                 syncFilterOptions();
+                syncAttendanceOptions();
                 resetTarget();
             });
             yearSelect.addEventListener('change', () => {
                 classSelect.value = '';
                 syncFilterOptions();
+                syncAttendanceOptions();
                 resetTarget();
             });
             classSelect.addEventListener('change', () => resetTarget());
+            attendanceScopeOptions.querySelectorAll('input[name="attendance_scope"]').forEach((input) => {
+                input.addEventListener('change', syncAttendanceOptions);
+            });
             searchButton.addEventListener('click', searchTargets);
             queryInput.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter') {

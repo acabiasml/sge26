@@ -18,7 +18,7 @@
                 <h2 id="documents-title">{{ $enrollment->student?->social_name ?: $enrollment->student?->full_name }}</h2>
                 <div class="sge-student-meta">
                     <span><i class="fas fa-school" aria-hidden="true"></i>{{ $academicYear->school?->name }}</span>
-                    <span><i class="fas fa-graduation-cap" aria-hidden="true"></i>{{ $class->name }}</span>
+                    <span><i class="fas fa-graduation-cap" aria-hidden="true"></i>{{ \App\Support\AcademicContextLabel::classWithStages($class->name, $enrollment->courses) }}</span>
                     <span><i class="fas fa-calendar" aria-hidden="true"></i>{{ $academicYear->name }}</span>
                     <span><i class="fas fa-user-check" aria-hidden="true"></i>{{ $enrollment->statusLabel() }}</span>
                 </div>

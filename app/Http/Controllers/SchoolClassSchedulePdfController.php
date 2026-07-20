@@ -5,13 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\AcademicYear;
 use App\Models\IssuedDocument;
 use App\Models\SchoolClass;
-use App\Models\SchoolClassSchedule;
 use App\Models\SchoolClassScheduleSlot;
 use App\Models\StudentEnrollment;
+use App\Support\AcademicContextLabel;
 use App\Support\PdfLetterhead;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -37,7 +36,7 @@ class SchoolClassSchedulePdfController extends Controller
 
         $issuedDocument = $this->issuedDocument($request, $academicYear, 'class-schedule', 'Horário da turma', [
             'school_class_id' => $class->id,
-            'school_class_name' => $class->name,
+            'school_class_name' => AcademicContextLabel::classWithStages($class->name, $class->courses),
         ]);
 
         $pdf = Pdf::loadView('reports.school-class-schedules', [

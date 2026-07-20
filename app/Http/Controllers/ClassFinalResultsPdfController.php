@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\IssuedDocument;
 use App\Models\SchoolClass;
+use App\Support\AcademicContextLabel;
 use App\Support\PdfLetterhead;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -38,7 +39,7 @@ class ClassFinalResultsPdfController extends Controller
             'school_id' => $academicYear->school_id,
             'issued_by_user_id' => $request->user()->id,
             'payload' => [
-                'title' => 'Ata de resultados finais - '.$class->name,
+                'title' => 'Ata de resultados finais - '.AcademicContextLabel::classWithStages($class->name, $class->courses),
                 'school_class_id' => $class->id,
                 'academic_year_id' => $academicYear->id,
                 'rows_count' => $enrollments->count(),

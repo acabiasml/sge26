@@ -79,7 +79,7 @@
 @forelse($classes as $classSummary)
     @php($class = $classSummary['class'])
     <div class="class-title">
-        {{ $class->name }} · {{ $class->courses->pluck('name')->join(' + ') ?: 'Sem matriz' }}
+        {{ \App\Support\AcademicContextLabel::classWithStages($class->name, $class->courses) }} · {{ $class->courses->pluck('name')->join(' + ') ?: 'Sem matriz' }}
         @if($classSummary['counts']->isNotEmpty())
             ·
             @foreach($classSummary['counts'] as $label => $total)

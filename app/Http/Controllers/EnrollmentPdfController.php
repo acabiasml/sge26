@@ -22,7 +22,7 @@ class EnrollmentPdfController extends Controller
         abort_unless($enrollment->school_class_id === $class->id, 404);
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
 
-        $enrollment->load(['student.contacts', 'courses', 'schoolClass.courses', 'enrolledBy', 'transferredBy', 'reclassifiedFrom.schoolClass']);
+        $enrollment->load(['student.contacts', 'courses', 'schoolClass.courses', 'enrolledBy', 'transferredBy', 'reclassifiedFrom.schoolClass', 'reclassifiedFrom.courses']);
         $academicYear->load('school');
 
         if ($message = OfficialDocumentCompliance::personMessage($enrollment->student)) {

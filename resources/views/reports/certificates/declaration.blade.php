@@ -20,13 +20,9 @@
     @php
         $student = $enrollment->student;
         $courses = $enrollment->courses->pluck('name')->join(' + ') ?: '-';
-        $stageNames = $enrollment->courses
-            ->map(fn ($course) => $course->stageLabel())
-            ->filter()
-            ->unique()
-            ->values();
-        $stages = $stageNames->join(' / ') ?: '-';
-        $stageLabel = $stageNames->count() > 1 ? 'Etapas' : 'Etapa';
+        $stages = \App\Support\AcademicContextLabel::stages($enrollment->courses);
+        $stageLabel = \App\Support\AcademicContextLabel::stageHeading($enrollment->courses);
+        $classContext = \App\Support\AcademicContextLabel::classWithStages($class->name, $enrollment->courses);
         $location = collect([$academicYear->school?->city, $academicYear->school?->state])->filter()->join('-') ?: 'Local';
     @endphp
 
@@ -55,9 +51,8 @@
         <tr><th>Data de nascimento</th><td>{{ $student?->birth_date?->format('d/m/Y') ?? '-' }}</td></tr>
         <tr><th>CPF</th><td>{{ $student?->cpf ?: '-' }}</td></tr>
         <tr><th>Escola</th><td>{{ $academicYear->school?->name }}</td></tr>
-        <tr><th>{{ $stageLabel }}</th><td>{{ $stages }}</td></tr>
         <tr><th>Ano letivo</th><td>{{ $academicYear->name }}</td></tr>
-        <tr><th>Turma</th><td>{{ $class->name }}</td></tr>
+        <tr><th>Turma e {{ mb_strtolower($stageLabel) }}</th><td>{{ $classContext }}</td></tr>
         <tr><th>Matriz(es)</th><td>{{ $courses }}</td></tr>
         <tr><th>Situação</th><td>{{ $enrollment->statusLabel() }}</td></tr>
         @if ($enrollment->final_result_status)

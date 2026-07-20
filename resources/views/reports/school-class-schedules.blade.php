@@ -44,7 +44,7 @@
             @php($timeRanges = $slots->map(fn ($slot) => substr($slot->starts_at, 0, 5).'|'.substr($slot->ends_at, 0, 5))->unique()->sort()->values())
 
             <section>
-                <h2 class="schedule-title">{{ $class->name }} - {{ $schedule->name }}</h2>
+                <h2 class="schedule-title">{{ \App\Support\AcademicContextLabel::classWithStages($class->name, $class->courses) }} - {{ $schedule->name }}</h2>
                 <p class="schedule-subtitle">
                     {{ $class->courses->pluck('name')->join(' + ') ?: 'Sem matriz vinculada' }} ·
                     Vigência: {{ $schedule->starts_at?->format('d/m/Y') }} até {{ $schedule->ends_at?->format('d/m/Y') ?? 'indeterminado' }}

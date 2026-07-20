@@ -49,8 +49,8 @@
         <td>{{ $academicYear->name }} · {{ $academicYear->reference_year }}</td>
     </tr>
     <tr>
-        <td class="label">Turma</td>
-        <td>{{ $schoolClass->name }}</td>
+        <td class="label">Turma e etapa</td>
+        <td>{{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $schoolClass->courses) }}</td>
         <td class="label">Matrizes</td>
         <td>{{ $courses }}</td>
     </tr>

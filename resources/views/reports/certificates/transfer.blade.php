@@ -19,6 +19,9 @@
     @php
         $student = $enrollment->student;
         $courses = $enrollment->courses->pluck('name')->join(' + ') ?: '-';
+        $stages = \App\Support\AcademicContextLabel::stages($enrollment->courses);
+        $stageHeading = \App\Support\AcademicContextLabel::stageHeading($enrollment->courses);
+        $classContext = \App\Support\AcademicContextLabel::classWithStages($class->name, $enrollment->courses);
     @endphp
 
     @include('reports.partials.letterhead', [
@@ -31,7 +34,7 @@
         Atestamos, para fins de transferência escolar, que <strong>{{ $student?->full_name }}</strong>,
         CPF {{ $student?->cpf ?: '-' }}, filho(a) de {{ $student?->mother_name ?: '-' }},
         esteve matriculado(a) nesta instituição no ano letivo <strong>{{ $academicYear->name }}</strong>,
-        na turma <strong>{{ $class->name }}</strong>, vinculada à(s) matriz(es)
+        na turma <strong>{{ $class->name }}</strong>, {{ mb_strtolower($stageHeading) }} <strong>{{ $stages }}</strong>, vinculada à(s) matriz(es)
         <strong>{{ $courses }}</strong>, com matrícula registrada em
         <strong>{{ $enrollment->enrolled_at?->format('d/m/Y') ?? '-' }}</strong>.
     </p>
@@ -46,7 +49,7 @@
         <tr><th>Estudante</th><td>{{ $student?->full_name }}</td></tr>
         <tr><th>Escola de origem</th><td>{{ $academicYear->school?->name }}</td></tr>
         <tr><th>Ano letivo</th><td>{{ $academicYear->name }}</td></tr>
-        <tr><th>Turma</th><td>{{ $class->name }}</td></tr>
+        <tr><th>Turma e etapa</th><td>{{ $classContext }}</td></tr>
         <tr><th>Matriz(es)</th><td>{{ $courses }}</td></tr>
         <tr><th>Data da matrícula</th><td>{{ $enrollment->enrolled_at?->format('d/m/Y') ?? '-' }}</td></tr>
         <tr><th>Data da transferência</th><td>{{ $enrollment->transferred_at?->format('d/m/Y') ?? '-' }}</td></tr>

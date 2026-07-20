@@ -2,25 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AcademicPeriod;
 use App\Models\AcademicYear;
 use App\Models\IssuedDocument;
 use App\Models\SchoolClass;
 use App\Models\StudentEnrollment;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
-use App\Support\StudentReportCardBuilder;
+use App\Support\StudentAttendanceCertificateBuilder;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 
 class StudentEnrollmentCertificateController extends Controller
 {
-    public function __construct(private readonly StudentReportCardBuilder $reportCardBuilder)
-    {
-    }
+    public function __construct(private readonly StudentAttendanceCertificateBuilder $attendanceCertificateBuilder) {}
 
     public function documents(Request $request, StudentEnrollment $enrollment): View
     {
@@ -98,12 +101,28 @@ class StudentEnrollmentCertificateController extends Controller
             return $redirect;
         }
 
-        $report = $this->reportCardBuilder->build($enrollment);
-        $attendance = $report['annualAttendance'];
+        $scope = $this->attendanceScope($request, $academicYear);
+        $report = $this->attendanceCertificateBuilder->build(
+            $enrollment,
+            $scope['starts_at'],
+            $scope['ends_at'],
+            $scope['period'],
+        );
+        $attendance = $report['attendance'];
         $issuedDocument = $this->issuedDocument($request, $academicYear, $enrollment, 'student-attendance-certificate', [
             'title' => 'Atestado de frequência',
+            'scope' => $scope['type'],
+            'scope_label' => $scope['label'],
+            'starts_at' => $scope['starts_at']->toDateString(),
+            'ends_at' => $scope['ends_at']->toDateString(),
             'attendance_percentage' => $attendance['percentage'],
             'lessons' => $attendance['lessons'],
+            'matrices' => $report['matrices']->map(fn (array $matrix): array => [
+                'course_id' => $matrix['course']->id,
+                'course' => $matrix['course']->name,
+                'stage' => $matrix['stage'],
+                'attendance_percentage' => $matrix['attendance']['percentage'],
+            ])->all(),
         ]);
 
         $pdf = Pdf::loadView('reports.certificates.attendance', [
@@ -111,11 +130,13 @@ class StudentEnrollmentCertificateController extends Controller
             'class' => $class,
             'enrollment' => $enrollment,
             'attendance' => $attendance,
+            'matrixAttendance' => $report['matrices'],
+            'scope' => $scope,
             'issuedDocument' => $issuedDocument,
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'portrait');
 
-        return $pdf->download('beaba-atestado-frequencia-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
+        return $pdf->download('beaba-atestado-frequencia-'.$scope['filename'].'-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     public function transfer(Request $request, StudentEnrollment $enrollment): Response|RedirectResponse
@@ -210,6 +231,90 @@ class StudentEnrollmentCertificateController extends Controller
         return null;
     }
 
+    /**
+     * @return array{
+     *     type: string,
+     *     label: string,
+     *     filename: string,
+     *     starts_at: CarbonInterface,
+     *     ends_at: CarbonInterface,
+     *     period: AcademicPeriod|null
+     * }
+     */
+    private function attendanceScope(Request $request, AcademicYear $academicYear): array
+    {
+        $data = $request->validate([
+            'attendance_scope' => ['nullable', Rule::in(['annual', 'period', 'month'])],
+            'academic_period_id' => ['nullable', 'integer'],
+            'attendance_month' => ['nullable', 'date_format:Y-m'],
+        ]);
+        $type = $data['attendance_scope'] ?? 'annual';
+        $yearStartsAt = $academicYear->starts_at?->toImmutable()
+            ?? CarbonImmutable::create((int) $academicYear->reference_year, 1, 1);
+        $yearEndsAt = $academicYear->ends_at?->toImmutable()
+            ?? CarbonImmutable::create((int) $academicYear->reference_year, 12, 31);
+
+        if ($type === 'period') {
+            if (empty($data['academic_period_id'])) {
+                throw ValidationException::withMessages([
+                    'academic_period_id' => 'Selecione o período avaliativo do atestado.',
+                ]);
+            }
+
+            $period = $academicYear->periods()->find($data['academic_period_id']);
+
+            if (! $period) {
+                throw ValidationException::withMessages([
+                    'academic_period_id' => 'O período selecionado não pertence a este ano letivo.',
+                ]);
+            }
+
+            return [
+                'type' => $type,
+                'label' => 'Período avaliativo: '.$period->name,
+                'filename' => 'periodo-'.$period->id,
+                'starts_at' => $period->starts_at->toImmutable(),
+                'ends_at' => $period->ends_at->toImmutable(),
+                'period' => $period,
+            ];
+        }
+
+        if ($type === 'month') {
+            if (empty($data['attendance_month'])) {
+                throw ValidationException::withMessages([
+                    'attendance_month' => 'Selecione o mês do atestado.',
+                ]);
+            }
+
+            $monthStartsAt = CarbonImmutable::createFromFormat('Y-m-d', $data['attendance_month'].'-01')->startOfMonth();
+            $monthEndsAt = $monthStartsAt->endOfMonth();
+
+            if ($monthEndsAt->isBefore($yearStartsAt) || $monthStartsAt->isAfter($yearEndsAt)) {
+                throw ValidationException::withMessages([
+                    'attendance_month' => 'O mês selecionado está fora da duração deste ano letivo.',
+                ]);
+            }
+
+            return [
+                'type' => $type,
+                'label' => 'Mensal: '.Str::ucfirst($monthStartsAt->locale('pt_BR')->translatedFormat('F \d\e Y')),
+                'filename' => 'mes-'.$data['attendance_month'],
+                'starts_at' => $monthStartsAt->isAfter($yearStartsAt) ? $monthStartsAt : $yearStartsAt,
+                'ends_at' => $monthEndsAt->isBefore($yearEndsAt) ? $monthEndsAt : $yearEndsAt,
+                'period' => null,
+            ];
+        }
+
+        return [
+            'type' => 'annual',
+            'label' => 'Ano letivo completo',
+            'filename' => 'anual',
+            'starts_at' => $yearStartsAt,
+            'ends_at' => $yearEndsAt,
+            'period' => null,
+        ];
+    }
+
     private function blocked(StudentEnrollment $enrollment, string $message): RedirectResponse
     {
         return redirect()->route('enrollments.documents', $enrollment)->with('status', $message);
@@ -295,7 +400,7 @@ class StudentEnrollmentCertificateController extends Controller
             ],
             [
                 'title' => 'Atestado de frequência',
-                'description' => 'Resume frequência registrada e presenças consideradas.',
+                'description' => 'Resume a frequência anual. Os recortes mensal e por período estão disponíveis na Central de emissão.',
                 'route' => route('enrollments.attendance-certificate.pdf', $enrollment),
                 'icon' => 'fa-user-check',
                 'enabled' => true,
@@ -337,7 +442,7 @@ class StudentEnrollmentCertificateController extends Controller
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     private function issuedDocument(Request $request, AcademicYear $academicYear, StudentEnrollment $enrollment, string $type, array $payload): IssuedDocument
     {

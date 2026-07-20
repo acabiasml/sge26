@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AcademicPeriod;
 use App\Models\AcademicYear;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
@@ -30,6 +31,7 @@ class DocumentIssuancePanelTest extends TestCase
             ->assertSee('Central de emissão')
             ->assertSee('value="enrollment-declaration"', false)
             ->assertSee('value="academic-calendar"', false)
+            ->assertSee('name="attendance_scope"', false)
             ->assertSee('Ficha cadastral da escola');
 
         $this->actingAs($manager)
@@ -168,6 +170,53 @@ class DocumentIssuancePanelTest extends TestCase
 
         $response->assertJsonPath('targets.0.id', $currentEnrollment->id)
             ->assertJsonPath('targets.1.id', $olderEnrollment->id);
+    }
+
+    public function test_attendance_certificate_selection_preserves_the_period_scope(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $student = $this->personWithRole('Estudante Frequência', PersonSchoolRole::ROLE_STUDENT, $school->id);
+        $year = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Educação Básica',
+            'reference_year' => 2026,
+            'starts_at' => '2026-01-01',
+            'ends_at' => '2026-12-31',
+            'active' => true,
+        ]);
+        $period = AcademicPeriod::query()->create([
+            'academic_year_id' => $year->id,
+            'name' => '1º Bimestre',
+            'starts_at' => '2026-02-01',
+            'ends_at' => '2026-04-10',
+            'position' => 1,
+        ]);
+        $class = SchoolClass::query()->create([
+            'academic_year_id' => $year->id,
+            'name' => '1º Ano',
+            'active' => true,
+        ]);
+        $enrollment = StudentEnrollment::query()->create([
+            'school_class_id' => $class->id,
+            'person_id' => $student->id,
+            'enrolled_at' => '2026-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+
+        $this->actingAs($administrator)
+            ->get(route('document-issuance.issue', [
+                'type' => 'attendance-certificate',
+                'target_id' => $enrollment->id,
+                'attendance_scope' => 'period',
+                'academic_period_id' => $period->id,
+            ]))
+            ->assertRedirect(route('enrollments.attendance-certificate.pdf', [
+                'enrollment' => $enrollment,
+                'attendance_scope' => 'period',
+                'academic_period_id' => $period->id,
+            ]));
     }
 
     public function test_manager_cannot_force_emission_for_enrollment_from_another_school(): void

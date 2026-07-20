@@ -211,8 +211,8 @@
     <tr>
         <td class="label">Escola</td>
         <td>{{ $school->name }}</td>
-        <td class="label">Turma</td>
-        <td>{{ $schoolClass->name }}</td>
+        <td class="label">Turma e etapa</td>
+        <td>{{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $courses) }}</td>
     </tr>
     <tr>
         <td class="label">Ano letivo</td>

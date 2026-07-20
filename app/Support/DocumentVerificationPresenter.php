@@ -11,6 +11,7 @@ class DocumentVerificationPresenter
      *     type_label: string,
      *     description: string,
      *     title: string|null,
+     *     scope_label: string|null,
      *     rows_count: int|null,
      *     school_name: string|null,
      *     revoked: bool
@@ -22,6 +23,7 @@ class DocumentVerificationPresenter
             'type_label' => self::typeLabel($document->type),
             'description' => self::description($document->type),
             'title' => is_string($document->payload['title'] ?? null) ? $document->payload['title'] : null,
+            'scope_label' => is_string($document->payload['scope_label'] ?? null) ? $document->payload['scope_label'] : null,
             'rows_count' => is_numeric($document->payload['rows_count'] ?? null) ? (int) $document->payload['rows_count'] : null,
             'school_name' => $document->school?->name,
             'revoked' => $document->revoked_at !== null,
