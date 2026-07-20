@@ -202,7 +202,7 @@
         </div>
 
         <div class="col-lg-8 mb-4">
-            <div class="card shadow h-100">
+            <div class="card shadow">
                 <div class="card-header py-3"><h2 class="h6 m-0 font-weight-bold text-primary">Gestão acadêmica</h2></div>
                 <div class="card-body sge-academic-actions">
                     <div><i class="fas fa-layer-group" aria-hidden="true"></i><h3 class="h6">Períodos avaliativos</h3><p>Cadastre períodos, defina avaliações e configure a recuperação em um espaço próprio.</p><a class="btn btn-primary" href="{{ route('academic-years.periods.index', $academicYear) }}">Gerenciar períodos</a></div>
