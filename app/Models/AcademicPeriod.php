@@ -61,6 +61,13 @@ class AcademicPeriod extends Model
         ];
     }
 
+    protected function titleCaseAttributesPreservingRomanNumerals(): array
+    {
+        return [
+            'name',
+        ];
+    }
+
     public function academicYear(): BelongsTo
     {
         return $this->belongsTo(AcademicYear::class);

@@ -15,9 +15,15 @@ trait HasTitleCaseAttributes
 
     public function applyTitleCaseAttributes(): void
     {
+        $romanNumeralAttributes = $this->titleCaseAttributesPreservingRomanNumerals();
+
         foreach ($this->titleCaseAttributes() as $attribute) {
             if ($this->getAttribute($attribute) !== null) {
-                $this->setAttribute($attribute, TextNormalizer::titleCase($this->getAttribute($attribute)));
+                $normalizer = in_array($attribute, $romanNumeralAttributes, true)
+                    ? TextNormalizer::titleCasePreservingRomanNumerals(...)
+                    : TextNormalizer::titleCase(...);
+
+                $this->setAttribute($attribute, $normalizer($this->getAttribute($attribute)));
             }
         }
     }
@@ -26,6 +32,14 @@ trait HasTitleCaseAttributes
      * @return array<int, string>
      */
     protected function titleCaseAttributes(): array
+    {
+        return [];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function titleCaseAttributesPreservingRomanNumerals(): array
     {
         return [];
     }

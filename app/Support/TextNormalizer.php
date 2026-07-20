@@ -40,6 +40,16 @@ class TextNormalizer
 
     public static function titleCase(?string $value): ?string
     {
+        return self::normalizeTitleCase($value, false);
+    }
+
+    public static function titleCasePreservingRomanNumerals(?string $value): ?string
+    {
+        return self::normalizeTitleCase($value, true);
+    }
+
+    private static function normalizeTitleCase(?string $value, bool $preserveRomanNumerals): ?string
+    {
         if ($value === null) {
             return null;
         }
@@ -53,14 +63,18 @@ class TextNormalizer
         $words = explode(' ', mb_strtolower($value, 'UTF-8'));
 
         foreach ($words as $index => $word) {
-            $words[$index] = self::normalizeWord($word, $index === 0);
+            $words[$index] = self::normalizeWord($word, $index === 0, $preserveRomanNumerals);
         }
 
         return implode(' ', $words);
     }
 
-    private static function normalizeWord(string $word, bool $isFirstWord): string
+    private static function normalizeWord(string $word, bool $isFirstWord, bool $preserveRomanNumerals): string
     {
+        if ($preserveRomanNumerals && self::isRomanNumeral($word)) {
+            return mb_strtoupper($word, 'UTF-8');
+        }
+
         if (! $isFirstWord && in_array($word, self::LOWERCASE_PARTICLES, true)) {
             return $word;
         }
@@ -82,10 +96,22 @@ class TextNormalizer
                 continue;
             }
 
-            $parts[$index] = self::capitalize($part);
+            $parts[$index] = $preserveRomanNumerals && self::isRomanNumeral($part)
+                ? mb_strtoupper($part, 'UTF-8')
+                : self::capitalize($part);
         }
 
         return implode('', $parts);
+    }
+
+    private static function isRomanNumeral(string $word): bool
+    {
+        $word = mb_strtoupper($word, 'UTF-8');
+
+        return preg_match(
+            '/^(?=[IVXLCDM]+$)M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/',
+            $word,
+        ) === 1;
     }
 
     private static function capitalize(string $word): string

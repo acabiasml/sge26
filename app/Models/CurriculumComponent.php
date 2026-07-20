@@ -44,6 +44,13 @@ class CurriculumComponent extends Model
         ];
     }
 
+    protected function titleCaseAttributesPreservingRomanNumerals(): array
+    {
+        return [
+            'name',
+        ];
+    }
+
     public function course(): BelongsTo
     {
         return $this->belongsTo(AcademicCourse::class, 'academic_course_id');
