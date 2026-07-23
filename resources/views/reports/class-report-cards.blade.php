@@ -12,7 +12,7 @@
         .class-line { font-size: 9px; margin: 1px 0 8px; text-align: center; text-transform: uppercase; white-space: nowrap; }
         .student-meta { margin: 0 0 7px; }
         .student-meta p { margin: 0 0 2px; }
-        .report-table { border-collapse: collapse; margin: 7px 0 7px; width: 100%; }
+        .report-table { border-collapse: collapse; margin: 7px 0; width: 100%; }
         .report-table th, .report-table td { border: .6px solid #111; padding: 1.8px 2.4px; vertical-align: middle; }
         .report-table th { background: #f1ede9; font-size: 6.7px; font-weight: 700; text-align: center; }
         .report-table td { font-size: 6.9px; }
@@ -30,11 +30,18 @@
         .signatures { border-collapse: collapse; margin-top: 78px; width: 100%; }
         .signatures td { border: 0; font-size: 8px; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 285px; padding-top: 6px; }
+        .page-break { page-break-after: always; }
         .document-footer { position: fixed; bottom: -23px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 5px; text-align: center; font-size: 6.7px; color: #333; }
     </style>
 </head>
 <body>
-@include('reports.partials.student-report-card-page', ['report' => $report])
+@foreach($reports as $report)
+    @include('reports.partials.student-report-card-page', ['report' => $report])
+
+    @unless($loop->last)
+        <div class="page-break"></div>
+    @endunless
+@endforeach
 
 <div class="document-footer">
     Documento emitido pelo Beabá. Confirme a autenticidade usando o código {{ $issuedDocument->verification_code }}.

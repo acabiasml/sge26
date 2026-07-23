@@ -31,6 +31,8 @@ class DocumentIssuancePanelTest extends TestCase
             ->assertSee('Central de emissão')
             ->assertSee('value="enrollment-declaration"', false)
             ->assertSee('value="academic-calendar"', false)
+            ->assertSee('value="class-report-cards"', false)
+            ->assertSee('value="class-grade-mirror"', false)
             ->assertSee('name="attendance_scope"', false)
             ->assertSee('Ficha cadastral da escola');
 
@@ -172,6 +174,55 @@ class DocumentIssuancePanelTest extends TestCase
             ->assertJsonPath('targets.1.id', $olderEnrollment->id);
     }
 
+    public function test_class_academic_documents_redirect_to_their_emitters_with_score_view(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $student = $this->personWithRole('Estudante da Turma', PersonSchoolRole::ROLE_STUDENT, $school->id);
+        $year = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Educação Básica',
+            'reference_year' => 2026,
+            'starts_at' => '2026-01-01',
+            'ends_at' => '2026-12-31',
+            'active' => true,
+        ]);
+        $class = SchoolClass::query()->create([
+            'academic_year_id' => $year->id,
+            'name' => '2º Ano',
+            'active' => true,
+        ]);
+        StudentEnrollment::query()->create([
+            'school_class_id' => $class->id,
+            'person_id' => $student->id,
+            'enrolled_at' => '2026-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+
+        $this->actingAs($administrator)
+            ->get(route('document-issuance.issue', [
+                'type' => 'class-report-cards',
+                'target_id' => $class->id,
+                'score_view' => 'numeros',
+            ]))
+            ->assertRedirect(route('classes.report-cards.pdf', [
+                'class' => $class,
+                'notas' => 'numeros',
+            ]));
+
+        $this->actingAs($administrator)
+            ->get(route('document-issuance.issue', [
+                'type' => 'class-grade-mirror',
+                'target_id' => $class->id,
+                'score_view' => 'conceitos',
+            ]))
+            ->assertRedirect(route('classes.grade-mirror.pdf', [
+                'class' => $class,
+                'notas' => 'conceitos',
+            ]));
+    }
+
     public function test_attendance_certificate_selection_preserves_the_period_scope(): void
     {
         $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
@@ -264,6 +315,8 @@ class DocumentIssuancePanelTest extends TestCase
             'person-record',
             'academic-history',
             'class-schedule',
+            'class-report-cards',
+            'class-grade-mirror',
             'academic-calendar',
             'school-record',
             'teacher-diary',

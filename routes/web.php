@@ -12,6 +12,7 @@ use App\Http\Controllers\AttendanceJustificationController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\CalendarDayController;
+use App\Http\Controllers\ClassAcademicDocumentsController;
 use App\Http\Controllers\ClassFinalResultsPdfController;
 use App\Http\Controllers\CurriculumComponentController;
 use App\Http\Controllers\DashboardController;
@@ -188,6 +189,8 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::post('turmas/{class}/matriculas', [StudentEnrollmentController::class, 'store'])->name('classes.enrollments.store');
     Route::post('turmas/{class}/resultados-finais', [StudentEnrollmentController::class, 'calculateFinalResults'])->name('classes.final-results.calculate');
     Route::get('turmas/{class}/resultados-finais-pdf', ClassFinalResultsPdfController::class)->name('classes.final-results.pdf');
+    Route::get('turmas/{class}/boletins-pdf', [ClassAcademicDocumentsController::class, 'reportCards'])->name('classes.report-cards.pdf');
+    Route::get('turmas/{class}/espelho-de-notas-pdf', [ClassAcademicDocumentsController::class, 'gradeMirror'])->name('classes.grade-mirror.pdf');
     Route::patch('matriculas/{enrollment}/transferir', [StudentEnrollmentController::class, 'transfer'])->name('enrollments.transfer');
     Route::post('matriculas/{enrollment}/reclassificar', [StudentEnrollmentController::class, 'reclassify'])->name('enrollments.reclassify');
     Route::patch('matriculas/{enrollment}/cancelar', [StudentEnrollmentController::class, 'cancel'])->name('enrollments.cancel');

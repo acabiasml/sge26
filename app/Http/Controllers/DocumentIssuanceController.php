@@ -99,6 +99,22 @@ class DocumentIssuanceController extends Controller
             'target' => 'class',
             'icon' => 'fa-calendar-week',
         ],
+        'class-report-cards' => [
+            'group' => 'Turma e diário',
+            'label' => 'Boletins da turma',
+            'description' => 'Reúne em um único PDF o boletim de todas as matrículas ativas da turma.',
+            'target' => 'class',
+            'icon' => 'fa-file-pdf',
+            'score_view' => true,
+        ],
+        'class-grade-mirror' => [
+            'group' => 'Turma e diário',
+            'label' => 'Espelho de notas da turma',
+            'description' => 'Apresenta estudantes e resultados por período, com notas numéricas ou conceitos.',
+            'target' => 'class',
+            'icon' => 'fa-table',
+            'score_view' => true,
+        ],
         'class-final-results' => [
             'group' => 'Turma e diário',
             'label' => 'Ata de resultados finais da turma',
@@ -212,7 +228,7 @@ class DocumentIssuanceController extends Controller
             'enrollment' => $this->enrollmentTargets($request, $schoolIds, $term, $data['type']),
             'person' => $this->personTargets($request, $schoolIds, $term),
             'history' => $this->historyTargets($request, $schoolIds, $term),
-            'class' => $this->classTargets($request, $schoolIds, $term),
+            'class' => $this->classTargets($request, $schoolIds, $term, $data['type']),
             'academic_year' => $this->academicYearTargets($request, $schoolIds, $term),
             'school' => $this->schoolTargets($request, $schoolIds, $term),
             'diary' => $this->diaryTargets($request, $schoolIds, $term),
@@ -423,11 +439,14 @@ class DocumentIssuanceController extends Controller
      * @param  list<int>  $schoolIds
      * @return Collection<int, array<string, bool|int|string|null>>
      */
-    private function classTargets(Request $request, array $schoolIds, string $term): Collection
+    private function classTargets(Request $request, array $schoolIds, string $term, string $type): Collection
     {
         return SchoolClass::query()
             ->with(['academicYear.school:id,name', 'courses:id,name,stage'])
             ->withCount('schedules')
+            ->withCount([
+                'enrollments as active_enrollments_count' => fn (Builder $query) => $query->where('status', StudentEnrollment::STATUS_ENROLLED),
+            ])
             ->whereHas('academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
             ->when($request->filled('school_id'), fn (Builder $query) => $query->whereHas('academicYear', fn (Builder $year) => $year->where('school_id', $request->integer('school_id'))))
             ->when($request->filled('academic_year_id'), fn (Builder $query) => $query->where('academic_year_id', $request->integer('academic_year_id')))
@@ -436,17 +455,25 @@ class DocumentIssuanceController extends Controller
             ->orderBy('name')
             ->limit(40)
             ->get()
-            ->map(fn (SchoolClass $class): array => [
-                'id' => $class->id,
-                'title' => AcademicContextLabel::classWithStages($class->name, $class->courses),
-                'subtitle' => collect([
-                    $class->academicYear?->school?->name,
-                    $class->academicYear ? $class->academicYear->name.' · '.$class->academicYear->reference_year : null,
-                    $class->active ? 'Turma ativa' : 'Turma inativa',
-                ])->filter()->join(' · '),
-                'enabled' => true,
-                'reason' => null,
-            ]);
+            ->map(function (SchoolClass $class) use ($type): array {
+                $requiresEnrollments = in_array($type, ['class-report-cards', 'class-grade-mirror'], true);
+                $hasEnrollments = (int) $class->active_enrollments_count > 0;
+
+                return [
+                    'id' => $class->id,
+                    'title' => AcademicContextLabel::classWithStages($class->name, $class->courses),
+                    'subtitle' => collect([
+                        $class->academicYear?->school?->name,
+                        $class->academicYear ? $class->academicYear->name.' · '.$class->academicYear->reference_year : null,
+                        (int) $class->active_enrollments_count.' '.((int) $class->active_enrollments_count === 1 ? 'matrícula ativa' : 'matrículas ativas'),
+                        $class->active ? 'Turma ativa' : 'Turma inativa',
+                    ])->filter()->join(' · '),
+                    'enabled' => ! $requiresEnrollments || $hasEnrollments,
+                    'reason' => $requiresEnrollments && ! $hasEnrollments
+                        ? 'A turma não possui matrículas ativas.'
+                        : null,
+                ];
+            });
     }
 
     /**
@@ -621,6 +648,14 @@ class DocumentIssuanceController extends Controller
 
         return match ($data['type']) {
             'class-schedule' => redirect()->route('academic-years.classes.schedules.pdf', [$class->academicYear, $class]),
+            'class-report-cards' => redirect()->route('classes.report-cards.pdf', [
+                'class' => $class,
+                'notas' => $data['score_view'] ?? 'conceitos',
+            ]),
+            'class-grade-mirror' => redirect()->route('classes.grade-mirror.pdf', [
+                'class' => $class,
+                'notas' => $data['score_view'] ?? 'conceitos',
+            ]),
             'class-final-results' => redirect()->route('classes.final-results.pdf', $class),
             default => abort(404),
         };

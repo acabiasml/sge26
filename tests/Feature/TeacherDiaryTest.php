@@ -213,6 +213,39 @@ class TeacherDiaryTest extends TestCase
             ->assertOk();
     }
 
+    public function test_management_can_emit_class_report_cards_and_grade_mirror_as_pdf(): void
+    {
+        [, $year, $class] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-documentos-turma@ctjj.org');
+
+        $this->actingAs($manager)
+            ->get(route('classes.report-cards.pdf', [
+                'class' => $class,
+                'notas' => 'numeros',
+            ]))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        $this->actingAs($manager)
+            ->get(route('classes.grade-mirror.pdf', [
+                'class' => $class,
+                'notas' => 'numeros',
+            ]))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        $this->assertDatabaseHas('issued_documents', [
+            'type' => 'class-report-cards',
+            'school_id' => $year->school_id,
+            'issued_by_user_id' => $manager->id,
+        ]);
+        $this->assertDatabaseHas('issued_documents', [
+            'type' => 'class-grade-mirror',
+            'school_id' => $year->school_id,
+            'issued_by_user_id' => $manager->id,
+        ]);
+    }
+
     public function test_individual_record_report_includes_calculated_final_result(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
