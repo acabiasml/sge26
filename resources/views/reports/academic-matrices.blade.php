@@ -27,6 +27,7 @@
             border: .6px solid #2f241f;
             padding: 2.6px 3.2px;
             text-align: center;
+            vertical-align: middle;
             font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif;
             font-weight: 600;
         }
@@ -100,15 +101,12 @@
                         </tr>
                     @else
                         <tr>
-                            <th style="width: 22px;"></th>
-                            <th>Área</th>
-                            <th>Componente curricular</th>
+                            <th style="width: 22px;" rowspan="2"></th>
+                            <th rowspan="2">Área</th>
+                            <th rowspan="2">Componente curricular</th>
                             <th colspan="{{ $matrixGroup['courses']->count() }}">Aulas semanais por matriz</th>
                         </tr>
                         <tr>
-                            <th style="width: 22px;"></th>
-                            <th>Área</th>
-                            <th>Componente curricular</th>
                             @foreach ($matrixGroup['courses'] as $course)
                                 <th>{{ $course->name }}</th>
                             @endforeach

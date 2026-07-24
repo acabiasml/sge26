@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\AcademicMatricesPdfController;
 use App\Models\AcademicCourse;
 use App\Models\AcademicPeriodDiaryConsolidation;
 use App\Models\AcademicYear;
@@ -1759,6 +1760,29 @@ class AcademicCalendarTest extends TestCase
         $this->assertSame($year->school_id, $document->school_id);
         $this->assertSame($year->id, $document->payload['academic_year_id']);
         $this->assertStringStartsWith('BEABA-', $document->verification_code);
+    }
+
+    public function test_academic_matrix_pdf_title_does_not_repeat_stage_words_from_modality(): void
+    {
+        $year = $this->academicYear();
+        $course = $year->courses()->create([
+            'name' => '1º Ano',
+            'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
+            'modality' => 'Medio Regular',
+            'status' => 'iniciado',
+            'class_hour_minutes' => 50,
+            'active' => true,
+        ]);
+
+        $controller = new AcademicMatricesPdfController;
+        $method = new ReflectionMethod($controller, 'matrixTitle');
+        $method->setAccessible(true);
+
+        $this->assertSame('Matriz do Ensino Médio Regular', $method->invoke($controller, collect([$course])));
+
+        $course->forceFill(['modality' => 'Ensino Medio']);
+
+        $this->assertSame('Matriz do Ensino Médio', $method->invoke($controller, collect([$course])));
     }
 
     public function test_single_academic_matrix_pdf_creates_verifiable_document(): void

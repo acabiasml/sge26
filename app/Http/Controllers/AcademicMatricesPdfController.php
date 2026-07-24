@@ -144,19 +144,49 @@ class AcademicMatricesPdfController extends Controller
     private function matrixTitle(Collection $courses): string
     {
         $firstCourse = $courses->first();
+        $stageLabel = $firstCourse?->stageLabel() ?? 'Curso';
         $modalities = $courses
             ->pluck('modality')
+            ->map(fn ($modality): string => trim((string) $modality))
             ->filter()
             ->unique()
             ->values();
 
-        $title = 'Matriz do '.($firstCourse?->stageLabel() ?? 'Curso');
+        $title = 'Matriz do '.$stageLabel;
 
         if ($modalities->count() === 1) {
-            $title .= ' '.$modalities->first();
+            $modality = $this->modalityWithoutRepeatedStageWords($modalities->first(), $stageLabel);
+
+            if ($modality !== '') {
+                $title .= ' '.$modality;
+            }
         }
 
         return $title;
+    }
+
+    private function modalityWithoutRepeatedStageWords(string $modality, string $stageLabel): string
+    {
+        $stageWords = explode(' ', $this->comparableLabel($stageLabel));
+        $modalityWords = preg_split('/\s+/u', trim($modality)) ?: [];
+
+        $filteredWords = array_filter($modalityWords, function (string $word) use ($stageWords): bool {
+            $comparableWord = $this->comparableLabel($word);
+
+            return $comparableWord === '' || ! in_array($comparableWord, $stageWords, true);
+        });
+
+        return trim(implode(' ', $filteredWords));
+    }
+
+    private function comparableLabel(string $value): string
+    {
+        return Str::of($value)
+            ->ascii()
+            ->lower()
+            ->replaceMatches('/[^a-z0-9]+/', ' ')
+            ->squish()
+            ->toString();
     }
 
     private function issuedDocument(Request $request, AcademicYear $academicYear, Collection $courses): IssuedDocument
