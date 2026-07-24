@@ -3,16 +3,16 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { size: A4 portrait; margin: 18px 22px 34px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 12px; line-height: 1.45; }
+        @page { size: A4 portrait; margin: 20px 24px 40px; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 11.6px; line-height: 1.5; }
         @include('reports.partials.letterhead-styles')
-        .declaration-text { font-size: 13px; text-align: justify; margin: 20px 0; }
+        .declaration-text { font-size: 12.4px; text-align: justify; margin: 22px 0; }
         .summary { width: 100%; border-collapse: collapse; margin-top: 22px; }
-        .summary th { width: 30%; text-align: left; background: #f6f0ea; color: #2f241f; padding: 7px; border: 1px solid #ead8cc; }
-        .summary td { padding: 7px; border: 1px solid #ead8cc; }
-        .place-date { margin-top: 42px; text-align: right; }
-        .signature { margin-top: 80px; width: 100%; }
-        .signature td { border: 0; text-align: center; padding-top: 50px; }
+        .summary th { width: 30%; text-align: left; background: #f6f0ea; color: #2f241f; padding: 6.5px 7px; border: .7px solid #ead8cc; }
+        .summary td { padding: 6.5px 7px; border: .7px solid #ead8cc; }
+        .place-date { margin-top: 48px; text-align: right; }
+        .signature { margin-top: 92px; width: 100%; }
+        .signature td { border: 0; text-align: center; padding-top: 56px; }
         .line { border-top: 1px solid #6b3d2e; display: inline-block; min-width: 280px; padding-top: 6px; }
     </style>
 </head>

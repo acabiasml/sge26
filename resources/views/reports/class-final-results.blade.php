@@ -3,20 +3,20 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { margin: 18px 22px 34px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 8px; line-height: 1.18; }
+        @page { size: A4 landscape; margin: 18px 22px 34px; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 7.8px; line-height: 1.18; }
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 8px; padding-bottom: 6px; }
         .letterhead-logo img { max-width: 66px; max-height: 50px; }
         .document-title { font-size: 14px; margin: 5px 0 2px; text-transform: uppercase; }
         .context-table, .results-table, .summary-table { border-collapse: collapse; width: 100%; }
         .context-table { margin: 6px 0 8px; }
-        .context-table td, .summary-table td { border: .45px solid #d8ccc4; padding: 3px 4px; vertical-align: top; }
-        .context-table .label, .summary-table .label { background: #f3eee9; font-weight: 700; width: 14%; }
+        .context-table td, .summary-table td { border: .45px solid #d8ccc4; padding: 2.8px 4px; vertical-align: top; }
+        .context-table .label, .summary-table .label { background: #f3eee9; font-weight: 600; width: 14%; }
         .summary-table { margin-bottom: 8px; }
-        .results-table th, .results-table td { border: .55px solid #111; padding: 3px 4px; vertical-align: middle; }
-        .results-table th { background: #f1ede9; font-size: 7px; font-weight: 700; text-transform: uppercase; }
-        .results-table td { font-size: 7.4px; }
+        .results-table th, .results-table td { border: .5px solid #111; padding: 2.7px 3.5px; vertical-align: middle; }
+        .results-table th { background: #f1ede9; font-size: 6.8px; font-weight: 600; text-transform: uppercase; }
+        .results-table td { font-size: 7px; }
         .center { text-align: center; }
         .muted { color: #666; }
         .signatures { border-collapse: collapse; margin-top: 48px; width: 100%; }

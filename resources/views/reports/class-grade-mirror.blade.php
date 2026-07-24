@@ -3,28 +3,28 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { margin: 14px 18px 32px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 7px; line-height: 1.14; }
+        @page { size: A4 landscape; margin: 13px 16px 30px; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 6.9px; line-height: 1.13; }
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 6px; padding-bottom: 5px; }
         .letterhead-logo img { max-width: 62px; max-height: 44px; }
         .letterhead-line { font-size: 6.6px; line-height: 1.12; }
         .letterhead-line-main { font-size: 8.2px; }
-        .document-title { font-size: 13px; margin: 4px 0 1px; text-transform: uppercase; }
+        .document-title { font-size: 12.5px; margin: 4px 0 1px; text-transform: uppercase; }
         .mirror-context { margin: 0 0 6px; text-align: center; }
         .mirror-context strong { font-size: 9px; text-transform: uppercase; }
         .mirror-context span { color: #555; display: block; margin-top: 2px; }
         .mirror-table { border-collapse: collapse; table-layout: fixed; width: 100%; }
-        .mirror-table th, .mirror-table td { border: .55px solid #111; padding: 2.2px 2.5px; vertical-align: middle; }
-        .mirror-table th { background: #eee9e5; font-size: 5.8px; font-weight: 700; text-align: center; }
-        .mirror-table td { font-size: 6.6px; }
+        .mirror-table th, .mirror-table td { border: .5px solid #111; padding: 2px 2.2px; vertical-align: middle; }
+        .mirror-table th { background: #eee9e5; font-size: 5.6px; font-weight: 600; text-align: center; }
+        .mirror-table td { font-size: 6.4px; }
         .mirror-table .number-column { text-align: center; width: 3%; }
         .mirror-table .student-column { width: 21%; }
         .mirror-table .student-name { font-weight: 600; }
         .mirror-table .score-cell { text-align: center; }
         .formation-heading { background: #ded7d2 !important; text-transform: uppercase; }
         .area-heading { background: #e9e4df !important; }
-        .component-heading { height: 42px; overflow-wrap: anywhere; }
+        .component-heading { height: 38px; overflow-wrap: anywhere; }
         .behavior-heading { background: #f5e7ce !important; }
         .mirror-notes { color: #4f4945; font-size: 6.4px; margin-top: 5px; }
         .mirror-notes strong { color: #222; }

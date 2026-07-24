@@ -3,18 +3,18 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { margin: 16px 18px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 8px; line-height: 1.15; }
+        @page { size: A4 landscape; margin: 14px 16px 30px; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 7.8px; line-height: 1.14; }
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 6px; padding-bottom: 5px; }
-        .document-title { font-size: 12.5px; margin-top: 4px; text-transform: uppercase; }
-        .document-meta { font-size: 6.8px; }
-        .calendar-subtitle { text-align: center; font-size: 8px; margin: -2px 0 6px; color: #534741; }
+        .document-title { font-size: 12px; margin-top: 4px; text-transform: uppercase; }
+        .document-meta { font-size: 6.6px; }
+        .calendar-subtitle { text-align: center; font-size: 7.6px; margin: -1px 0 5px; color: #534741; }
         table { width: 100%; border-collapse: collapse; }
         .calendar-wrap { border: 1px solid #6B3D2E; padding: 2px; }
-        .calendar th { background: #6B3D2E; color: #fff; border: .5px solid #6B3D2E; padding: 2px 1px; text-align: center; }
-        .calendar td { border: .5px solid #b99686; padding: 1px; text-align: center; height: 11px; font-weight: 700; }
-        .calendar .month { text-align: left; font-weight: 700; color: #6B3D2E; width: 68px; background: #fffaf1; padding-left: 4px; }
+        .calendar th { background: #6B3D2E; color: #fff; border: .45px solid #6B3D2E; padding: 2px 1px; text-align: center; }
+        .calendar td { border: .45px solid #b99686; padding: .8px 1px; text-align: center; height: 10.4px; font-weight: 600; }
+        .calendar .month { text-align: left; font-weight: 600; color: #6B3D2E; width: 68px; background: #fffaf1; padding-left: 4px; }
         .calendar .day-number { width: 18px; }
         .calendar .school-day { background: #7FB069; color: #11270b; }
         .calendar .weekend { background: #ffffff; color: #1f1b18; }
@@ -36,18 +36,18 @@
         .calendar td.period-color-8, .period-color-8 { background: #BFA88F; color: #2f241f; }
         .summary { margin-top: 6px; }
         .summary td { vertical-align: top; }
-        .panel { border: .7px solid #d8c8bf; padding: 4px; }
-        .panel-title { color: #6B3D2E; font-weight: 700; text-transform: uppercase; font-size: 7.2px; margin-bottom: 2px; }
+        .panel { border: .6px solid #d8c8bf; padding: 4px; }
+        .panel-title { color: #6B3D2E; font-weight: 600; text-transform: uppercase; font-size: 7px; margin-bottom: 2px; }
         .legend { width: 34%; }
         .legend-table td { padding: 1px 2px; border-bottom: .4px solid #eadfd8; }
-        .legend .code { width: 18px; font-weight: 700; color: #6B3D2E; text-align: center; }
+        .legend .code { width: 18px; font-weight: 600; color: #6B3D2E; text-align: center; }
         .special-dates { width: 30%; padding-left: 6px; }
         .special-dates td { padding: 1px 2px; border-bottom: .4px solid #eadfd8; }
-        .special-dates .date { width: 42px; font-weight: 700; color: #6B3D2E; }
+        .special-dates .date { width: 42px; font-weight: 600; color: #6B3D2E; }
         .meta { width: 18%; padding-left: 6px; font-size: 7.1px; color: #534741; }
         .meta table td { padding: 1px 2px; border-bottom: .4px solid #eadfd8; }
         .signature { width: 18%; text-align: center; padding-left: 8px; font-size: 7.2px; }
-        .signature .line { border-top: .7px solid #6B3D2E; margin-top: 48px; padding-top: 4px; font-weight: 700; }
+        .signature .line { border-top: .7px solid #6B3D2E; margin-top: 54px; padding-top: 4px; font-weight: 600; }
         .signature .role { display: block; font-weight: 400; margin-top: 2px; }
         .document-footer { font-size: 6.2px; padding-top: 3px; }
     </style>

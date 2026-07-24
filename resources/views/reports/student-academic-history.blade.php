@@ -10,14 +10,14 @@
         .document-title { font-size: 14px; text-transform: uppercase; margin: 5px 0 2px; }
         .student-box, .history-table, .studies-table { border-collapse: collapse; width: 100%; }
         .student-box td { border: 0; padding: 2px 4px; }
-        .label { font-weight: 700; }
+        .label { font-weight: 600; }
         .history-table { margin-top: 8px; }
         .history-table th, .history-table td, .studies-table th, .studies-table td { border: .55px solid #111; padding: 3px 4px; vertical-align: middle; }
         .history-table th, .studies-table th { background: #f1ede9; font-size: 7px; text-transform: uppercase; }
         .history-table td, .studies-table td { font-size: 7.2px; }
         .center { text-align: center; }
         .muted { color: #666; }
-        .section-title { font-size: 9px; font-weight: 700; margin: 10px 0 4px; text-transform: uppercase; }
+        .section-title { font-size: 9px; font-weight: 600; margin: 10px 0 4px; text-transform: uppercase; }
         .notes { margin-top: 7px; }
         .signatures { border-collapse: collapse; margin-top: 42px; width: 100%; }
         .signatures td { border: 0; text-align: center; width: 50%; }

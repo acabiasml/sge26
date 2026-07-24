@@ -3,34 +3,34 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { margin: 18px 22px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #1f1713; font-size: 8.4px; line-height: 1.18; }
+        @page { size: A4 portrait; margin: 17px 20px 30px; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #1f1713; font-size: 8.1px; line-height: 1.18; }
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 7px; padding-bottom: 5px; }
-        .document-title { font-size: 12px; margin-top: 4px; text-transform: uppercase; }
+        .document-title { font-size: 11.6px; margin-top: 4px; text-transform: uppercase; }
         .matrix-title {
             border: .8px solid #2f241f;
             border-bottom: 0;
             text-align: center;
-            font-family: 'Atkinson Hyperlegible Next', DejaVu Serif, serif;
-            font-size: 11px;
-            font-weight: 700;
+            font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif;
+            font-size: 10.6px;
+            font-weight: 600;
             text-transform: uppercase;
             padding: 3px 5px;
         }
-        .matrix-subtitle { text-align: center; font-size: 7.7px; color: #534741; margin: 4px 0 6px; }
+        .matrix-subtitle { text-align: center; font-size: 7.3px; color: #534741; margin: 4px 0 5px; }
         table { width: 100%; border-collapse: collapse; }
         .matrix-table { border: .8px solid #2f241f; table-layout: fixed; }
         .matrix-table th {
             background: #ece8e4;
             color: #1f1713;
             border: .6px solid #2f241f;
-            padding: 3px 4px;
+            padding: 2.6px 3.2px;
             text-align: center;
-            font-family: 'Atkinson Hyperlegible Next', DejaVu Serif, serif;
-            font-weight: 700;
+            font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif;
+            font-weight: 600;
         }
-        .matrix-table td { border: .5px solid #2f241f; padding: 3px 4px; vertical-align: middle; }
+        .matrix-table td { border: .5px solid #2f241f; padding: 2.6px 3.2px; vertical-align: middle; }
         .formation-cell {
             width: 22px;
             min-height: 92px;
@@ -45,27 +45,27 @@
             display: block;
             width: 104px;
             margin-left: -41px;
-            font-family: 'Atkinson Hyperlegible Next', DejaVu Serif, serif;
-            font-size: 8px;
-            font-weight: 700;
+            font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif;
+            font-size: 7.4px;
+            font-weight: 600;
             line-height: 1;
             text-transform: uppercase;
             transform: rotate(-90deg);
             white-space: nowrap;
         }
-        .area-cell { width: 25%; text-align: center; background: #f5f2ef; font-family: 'Atkinson Hyperlegible Next', DejaVu Serif, serif; font-size: 8.8px; }
-        .component-cell { width: 32%; font-size: 8.6px; }
+        .area-cell { width: 25%; text-align: center; background: #f5f2ef; font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; font-size: 8.2px; }
+        .component-cell { width: 32%; font-size: 8.1px; }
         .center-cell { text-align: center; width: auto; }
-        .total-row td { font-weight: 700; background: #eee5df; text-transform: uppercase; }
+        .total-row td { font-weight: 600; background: #eee5df; text-transform: uppercase; }
         .meta-grid { margin-top: 7px; }
-        .meta-grid td { border: .5px solid #d8c8bf; padding: 4px; }
-        .meta-label { width: 26%; background: #f8f1eb; color: #6B3D2E; font-weight: 700; }
+        .meta-grid td { border: .5px solid #d8c8bf; padding: 3.4px 4px; }
+        .meta-label { width: 26%; background: #f8f1eb; color: #6B3D2E; font-weight: 600; }
         .course-summary { margin-top: 7px; }
-        .course-summary th { background: #f8f1eb; color: #6B3D2E; border: .5px solid #d8c8bf; padding: 4px; text-align: left; }
-        .course-summary td { border: .5px solid #d8c8bf; padding: 4px; }
-        .signature-block { width: 36%; margin-left: auto; margin-top: 28px; text-align: center; font-size: 8.2px; }
-        .signature-date { margin-bottom: 42px; }
-        .signature-line { border-top: .8px solid #6B3D2E; padding-top: 5px; font-weight: 700; }
+        .course-summary th { background: #f8f1eb; color: #6B3D2E; border: .5px solid #d8c8bf; padding: 3.4px 4px; text-align: left; }
+        .course-summary td { border: .5px solid #d8c8bf; padding: 3.4px 4px; }
+        .signature-block { width: 38%; margin-left: auto; margin-top: 30px; text-align: center; font-size: 8px; }
+        .signature-date { margin-bottom: 48px; }
+        .signature-line { border-top: .8px solid #6B3D2E; padding-top: 5px; font-weight: 600; }
         .signature-role { display: block; font-weight: 400; margin-top: 2px; }
         .document-footer { position: fixed; bottom: -10px; left: 0; right: 0; font-size: 6.2px; }
     </style>

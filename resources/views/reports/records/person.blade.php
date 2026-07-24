@@ -3,12 +3,13 @@
 <head>
     <meta charset="utf-8">
     <style>
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 12px; }
+        @page { size: A4 portrait; margin: 20px 24px 38px; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 11px; line-height: 1.32; }
         @include('reports.partials.letterhead-styles')
-        h2 { color: #44693D; font-size: 15px; margin: 18px 0 8px; }
+        h2 { color: #44693D; font-size: 13px; margin: 16px 0 7px; }
         table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; background: #f6f0ea; padding: 7px; }
-        td { padding: 7px; border-bottom: 1px solid #eee2dc; }
+        th { text-align: left; background: #f6f0ea; padding: 6px 7px; }
+        td { padding: 6px 7px; border-bottom: .6px solid #eee2dc; }
         .label { width: 30%; }
     </style>
 </head>

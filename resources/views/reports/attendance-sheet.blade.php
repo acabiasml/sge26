@@ -3,21 +3,21 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { margin: 18px 20px 28px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 8px; line-height: 1.15; }
+        @page { size: A4 landscape; margin: 16px 18px 30px; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 7.8px; line-height: 1.18; }
         @include('reports.partials.letterhead-styles')
         .document-title { font-size: 14px; margin-top: 6px; text-transform: uppercase; }
         table { width: 100%; border-collapse: collapse; }
         th { background: #6B3D2E; color: #fff; }
-        th, td { border: .45px solid #b99686; padding: 3px; vertical-align: middle; }
+        th, td { border: .45px solid #b99686; padding: 2.8px 3px; vertical-align: middle; }
         .meta { margin-bottom: 8px; }
         .meta td { border-color: #e1d5ce; }
-        .meta-label { width: 14%; background: #faf4ef; font-weight: 700; color: #6B3D2E; }
-        .name { width: 24%; font-weight: 700; }
+        .meta-label { width: 14%; background: #faf4ef; font-weight: 600; color: #6B3D2E; }
+        .name { width: 24%; font-weight: 600; }
         .day { width: 22px; text-align: center; font-size: 7px; }
         .lesson-count { display: block; font-size: 6px; font-weight: 400; color: #f8e6d8; }
-        .signature { margin-top: 28px; text-align: center; }
-        .signature-line { display: inline-block; min-width: 260px; border-top: .8px solid #6B3D2E; padding-top: 5px; font-weight: 700; }
+        .signature { margin-top: 36px; text-align: center; }
+        .signature-line { display: inline-block; min-width: 260px; border-top: .8px solid #6B3D2E; padding-top: 5px; font-weight: 600; }
         .document-footer { font-size: 7px; }
     </style>
 </head>

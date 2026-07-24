@@ -3,25 +3,25 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { margin: 24px 28px 30px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #1f1713; font-size: 9px; line-height: 1.25; }
+        @page { size: A4 portrait; margin: 22px 26px 34px; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #1f1713; font-size: 8.8px; line-height: 1.24; }
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 8px; padding-bottom: 6px; }
         .document-title { font-size: 14px; margin-top: 5px; text-transform: uppercase; }
         h2 { color: #6B3D2E; font-size: 12px; margin: 12px 0 5px; border-bottom: 1px solid #6B3D2E; padding-bottom: 3px; }
         h3 { color: #3F6B3D; font-size: 10px; margin: 9px 0 4px; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-        th { background: #f2e9e3; color: #6B3D2E; font-weight: 700; }
-        th, td { border: .5px solid #d8c8bf; padding: 4px; vertical-align: top; }
+        th { background: #f2e9e3; color: #6B3D2E; font-weight: 600; }
+        th, td { border: .5px solid #d8c8bf; padding: 3.6px 4px; vertical-align: top; }
         .meta td { border-color: #e1d5ce; }
-        .meta-label { width: 22%; background: #faf4ef; font-weight: 700; color: #6B3D2E; }
+        .meta-label { width: 22%; background: #faf4ef; font-weight: 600; color: #6B3D2E; }
         .center { text-align: center; }
         .small { font-size: 7.5px; color: #6b625e; }
         .period-page { page-break-after: always; }
         .period-page:last-child { page-break-after: auto; }
-        .signature-grid { width: 100%; margin-top: 34px; }
-        .signature-grid td { border: 0; width: 50%; text-align: center; padding-top: 30px; }
-        .signature-line { border-top: .8px solid #6B3D2E; display: inline-block; min-width: 230px; padding-top: 5px; font-weight: 700; }
+        .signature-grid { width: 100%; margin-top: 42px; }
+        .signature-grid td { border: 0; width: 50%; text-align: center; padding-top: 38px; }
+        .signature-line { border-top: .8px solid #6B3D2E; display: inline-block; min-width: 230px; padding-top: 5px; font-weight: 600; }
         .document-footer { position: fixed; bottom: -18px; left: 0; right: 0; font-size: 6.5px; color: #6b625e; }
     </style>
 </head>
