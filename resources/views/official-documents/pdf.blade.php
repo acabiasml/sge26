@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <style>
-        body { font-family: DejaVu Sans, sans-serif; color: #2f241f; font-size: 12px; line-height: {{ number_format((float) $officialDocument->line_spacing, 2, '.', '') }}; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 12px; line-height: {{ number_format((float) $officialDocument->line_spacing, 2, '.', '') }}; }
         @include('reports.partials.letterhead-styles')
         .official-content { margin-top: 16px; }
         .official-content h2 { font-size: 16px; color: #44693D; margin: 14px 0 8px; }

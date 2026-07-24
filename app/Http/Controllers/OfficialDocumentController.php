@@ -146,7 +146,7 @@ class OfficialDocumentController extends Controller
         }
 
         $allowed = [];
-        $fontFamilies = ['DejaVu Sans', 'DejaVu Serif', 'DejaVu Sans Mono'];
+        $fontFamilies = ['Atkinson Hyperlegible Next', 'DejaVu Sans', 'DejaVu Serif', 'DejaVu Sans Mono'];
 
         $style = html_entity_decode($match[2], ENT_QUOTES | ENT_HTML5, 'UTF-8');
 

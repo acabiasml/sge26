@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <style>
         @page { margin: 24px 28px 30px; }
-        body { font-family: DejaVu Sans, sans-serif; color: #1f1713; font-size: 9px; line-height: 1.25; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #1f1713; font-size: 9px; line-height: 1.25; }
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 8px; padding-bottom: 6px; }
         .document-title { font-size: 14px; margin-top: 5px; text-transform: uppercase; }

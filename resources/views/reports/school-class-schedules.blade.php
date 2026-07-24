@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <style>
         @page { margin: 18px 20px 28px; }
-        body { font-family: DejaVu Sans, sans-serif; color: #2f241f; font-size: 9px; line-height: 1.2; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 9px; line-height: 1.2; }
         @include('reports.partials.letterhead-styles')
         .document-title { font-size: 15px; margin-top: 7px; text-transform: uppercase; }
         .schedule-title { margin: 8px 0 4px; color: #6B3D2E; font-size: 12px; text-transform: uppercase; }

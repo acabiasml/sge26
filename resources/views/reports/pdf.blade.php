@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <style>
-        body { font-family: DejaVu Sans, sans-serif; color: #2f241f; font-size: 11px; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 11px; }
         @include('reports.partials.letterhead-styles')
         table { width: 100%; border-collapse: collapse; }
         th { background: #6B3D2E; color: #fff; text-align: left; padding: 6px; }

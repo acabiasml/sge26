@@ -59,7 +59,7 @@
                                     <span>Fonte</span>
                                     <select id="editor_font_family" class="form-control form-control-sm" data-editor-font-family>
                                         <option value="">Padrão</option>
-                                        <option value="DejaVu Sans">Sem serifa</option>
+                                        <option value="Atkinson Hyperlegible Next">Atkinson Hyperlegible</option>
                                         <option value="DejaVu Serif">Serifada</option>
                                         <option value="DejaVu Sans Mono">Monoespaçada</option>
                                     </select>

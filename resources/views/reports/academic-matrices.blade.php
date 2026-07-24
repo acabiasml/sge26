@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <style>
         @page { margin: 18px 22px; }
-        body { font-family: DejaVu Sans, sans-serif; color: #1f1713; font-size: 8.4px; line-height: 1.18; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #1f1713; font-size: 8.4px; line-height: 1.18; }
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 7px; padding-bottom: 5px; }
         .document-title { font-size: 12px; margin-top: 4px; text-transform: uppercase; }
@@ -12,7 +12,7 @@
             border: .8px solid #2f241f;
             border-bottom: 0;
             text-align: center;
-            font-family: DejaVu Serif, serif;
+            font-family: 'Atkinson Hyperlegible Next', DejaVu Serif, serif;
             font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
@@ -27,7 +27,7 @@
             border: .6px solid #2f241f;
             padding: 3px 4px;
             text-align: center;
-            font-family: DejaVu Serif, serif;
+            font-family: 'Atkinson Hyperlegible Next', DejaVu Serif, serif;
             font-weight: 700;
         }
         .matrix-table td { border: .5px solid #2f241f; padding: 3px 4px; vertical-align: middle; }
@@ -45,7 +45,7 @@
             display: block;
             width: 104px;
             margin-left: -41px;
-            font-family: DejaVu Serif, serif;
+            font-family: 'Atkinson Hyperlegible Next', DejaVu Serif, serif;
             font-size: 8px;
             font-weight: 700;
             line-height: 1;
@@ -53,7 +53,7 @@
             transform: rotate(-90deg);
             white-space: nowrap;
         }
-        .area-cell { width: 25%; text-align: center; background: #f5f2ef; font-family: DejaVu Serif, serif; font-size: 8.8px; }
+        .area-cell { width: 25%; text-align: center; background: #f5f2ef; font-family: 'Atkinson Hyperlegible Next', DejaVu Serif, serif; font-size: 8.8px; }
         .component-cell { width: 32%; font-size: 8.6px; }
         .center-cell { text-align: center; width: auto; }
         .total-row td { font-weight: 700; background: #eee5df; text-transform: uppercase; }
