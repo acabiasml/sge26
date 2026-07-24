@@ -146,6 +146,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('anos-letivos/{academicYear}/resultados-finais-pdf', AcademicYearFinalResultsPdfController::class)->name('academic-years.final-results.pdf');
     Route::get('anos-letivos/{academicYear}/periodos', [AcademicPeriodController::class, 'index'])->name('academic-years.periods.index');
     Route::post('anos-letivos/{academicYear}/periodos', [AcademicPeriodController::class, 'store'])->name('academic-years.periods.store');
+    Route::put('anos-letivos/{academicYear}/periodos/{period}', [AcademicPeriodController::class, 'update'])->name('academic-years.periods.update');
     Route::post('anos-letivos/{academicYear}/periodos/{period}/consolidar-diarios', [AcademicPeriodController::class, 'consolidate'])->name('academic-years.periods.diaries.consolidate');
     Route::post('anos-letivos/{academicYear}/periodos/{period}/reabrir-diarios', [AcademicPeriodController::class, 'reopenConsolidation'])->name('academic-years.periods.diaries.reopen');
     Route::put('anos-letivos/{academicYear}/periodos/{period}/comportamento', [AcademicPeriodController::class, 'updateBehaviorGrades'])->name('academic-years.periods.behavior.update');

@@ -311,6 +311,109 @@ class AcademicCalendarTest extends TestCase
             ->assertSessionHasErrors('starts_at');
     }
 
+    public function test_academic_period_can_be_updated_and_calendar_days_are_rebuilt(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear([
+            'starts_at' => '2026-02-01',
+            'ends_at' => '2026-02-15',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('academic-years.periods.store', $year), [
+                'name' => '1º Bimestre',
+                'starts_at' => '2026-02-02',
+                'ends_at' => '2026-02-06',
+                'position' => 1,
+                'ignore_saturdays' => '1',
+                'ignore_sundays' => '1',
+            ])
+            ->assertRedirect();
+
+        $period = $year->periods()->firstOrFail();
+
+        $this->actingAs($admin)
+            ->put(route('academic-years.periods.update', [$year, $period]), [
+                'name' => 'I Bimestre',
+                'starts_at' => '2026-02-04',
+                'ends_at' => '2026-02-10',
+                'position' => 2,
+                'ignore_saturdays' => '1',
+                'ignore_sundays' => '1',
+                'notes' => 'Período ajustado pela gestão.',
+            ])
+            ->assertRedirect(route('academic-years.periods.index', $year));
+
+        $this->assertDatabaseHas('academic_periods', [
+            'id' => $period->id,
+            'name' => 'I Bimestre',
+            'starts_at' => '2026-02-04 00:00:00',
+            'ends_at' => '2026-02-10 00:00:00',
+            'position' => 2,
+            'notes' => 'Período ajustado pela gestão.',
+        ]);
+        $this->assertDatabaseHas('calendar_days', [
+            'academic_year_id' => $year->id,
+            'date' => '2026-02-03 00:00:00',
+            'type' => CalendarDay::TYPE_FINAL_VACATION,
+            'counts_as_school_day' => false,
+        ]);
+        $this->assertDatabaseHas('calendar_days', [
+            'academic_year_id' => $year->id,
+            'date' => '2026-02-04 00:00:00',
+            'type' => CalendarDay::TYPE_SCHOOL_DAY,
+            'counts_as_school_day' => true,
+        ]);
+        $this->assertDatabaseHas('calendar_days', [
+            'academic_year_id' => $year->id,
+            'date' => '2026-02-07 00:00:00',
+            'type' => CalendarDay::TYPE_WEEKEND,
+            'counts_as_school_day' => false,
+        ]);
+        $this->assertDatabaseHas('calendar_days', [
+            'academic_year_id' => $year->id,
+            'date' => '2026-02-09 00:00:00',
+            'type' => CalendarDay::TYPE_SCHOOL_DAY,
+            'counts_as_school_day' => true,
+        ]);
+    }
+
+    public function test_academic_period_update_cannot_overlap_another_period(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear();
+        $firstPeriod = $year->periods()->create([
+            'name' => '1º Bimestre',
+            'starts_at' => '2026-02-01',
+            'ends_at' => '2026-04-30',
+            'position' => 1,
+        ]);
+        $secondPeriod = $year->periods()->create([
+            'name' => '2º Bimestre',
+            'starts_at' => '2026-05-01',
+            'ends_at' => '2026-07-10',
+            'position' => 2,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('academic-years.periods.update', [$year, $secondPeriod]), [
+                'name' => '2º Bimestre',
+                'starts_at' => '2026-04-15',
+                'ends_at' => '2026-07-10',
+                'position' => 2,
+            ])
+            ->assertSessionHasErrors('starts_at');
+
+        $this->assertDatabaseHas('academic_periods', [
+            'id' => $firstPeriod->id,
+            'ends_at' => '2026-04-30 00:00:00',
+        ]);
+        $this->assertDatabaseHas('academic_periods', [
+            'id' => $secondPeriod->id,
+            'starts_at' => '2026-05-01 00:00:00',
+        ]);
+    }
+
     public function test_approved_academic_year_can_be_changed_only_by_global_administrator(): void
     {
         $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
@@ -332,6 +435,22 @@ class AcademicCalendarTest extends TestCase
             ->post(route('academic-years.periods.store', $year), [
                 'name' => '1º Bimestre',
                 'starts_at' => '2026-02-01',
+                'ends_at' => '2026-04-30',
+                'position' => 1,
+            ])
+            ->assertSessionHasErrors('approved_at');
+
+        $period = $year->periods()->create([
+            'name' => '1º Bimestre',
+            'starts_at' => '2026-02-01',
+            'ends_at' => '2026-04-30',
+            'position' => 1,
+        ]);
+
+        $this->actingAs($manager)
+            ->put(route('academic-years.periods.update', [$year, $period]), [
+                'name' => 'I Bimestre',
+                'starts_at' => '2026-02-02',
                 'ends_at' => '2026-04-30',
                 'position' => 1,
             ])

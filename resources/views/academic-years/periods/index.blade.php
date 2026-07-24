@@ -72,8 +72,10 @@
                 @php($canConsolidatePeriod = $diarySummaries->isNotEmpty() && $confirmedDiaries === $diarySummaries->count() && $pendingDiaries === 0 && $missingBehaviorGrades === 0)
                 @php($consolidation = $period->diaryConsolidation)
                 @php($useOldForPeriod = (int) old('period_form_id') === $period->id)
+                @php($useOldForPeriodEdit = (int) old('period_edit_form_id') === $period->id)
                 @php($assessmentErrorKeys = ['assessment_count', 'weights', 'assessment_names', 'recovery_mode', 'recovery_weight', 'recovery_replaced_position'])
                 @php($periodHasAssessmentErrors = $useOldForPeriod && collect($assessmentErrorKeys)->contains(fn ($key) => $errors->has($key) || $errors->has($key.'.*')))
+                @php($periodHasEditErrors = $useOldForPeriodEdit && collect(['name', 'position', 'starts_at', 'ends_at', 'notes', 'approved_at', 'closed_at'])->contains(fn ($key) => $errors->has($key)))
 
                 <article class="sge-period-card">
                     <div class="sge-period-card-header">
@@ -97,6 +99,60 @@
                             </form>
                         @endif
                     </div>
+
+                    @if ($canChangeCalendar)
+                        <details class="sge-period-assessments mb-3" @if($periodHasEditErrors) open @endif>
+                            <summary>
+                                <span><i class="fas fa-edit" aria-hidden="true"></i>Editar período</span>
+                                <small>Nome, ordem, datas e fins de semana</small>
+                            </summary>
+                            <div class="pt-3">
+                                <form method="POST" action="{{ route('academic-years.periods.update', [$academicYear, $period]) }}">
+                                    @csrf @method('PUT')
+                                    <input type="hidden" name="period_edit_form_id" value="{{ $period->id }}">
+                                    @if($periodHasEditErrors)
+                                        <div class="alert alert-danger" role="alert">
+                                            <strong>Não foi possível atualizar este período.</strong>
+                                            <ul class="mb-0 pl-3">
+                                                @foreach($errors->all() as $message)
+                                                    <li>{{ $message }}</li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                    @endif
+                                    <div class="row sge-period-form-row">
+                                        <div class="col-md-4 form-group">
+                                            <label for="edit_period_name_{{ $period->id }}">Nome</label>
+                                            <input id="edit_period_name_{{ $period->id }}" name="name" class="form-control" value="{{ $useOldForPeriodEdit ? old('name', $period->name) : $period->name }}" required>
+                                        </div>
+                                        <div class="col-md-2 form-group">
+                                            <label for="edit_period_position_{{ $period->id }}">Ordem</label>
+                                            <input id="edit_period_position_{{ $period->id }}" name="position" type="number" min="1" max="99" class="form-control" value="{{ $useOldForPeriodEdit ? old('position', $period->position) : $period->position }}" required>
+                                        </div>
+                                        <div class="col-md-3 form-group">
+                                            <label for="edit_period_starts_at_{{ $period->id }}">Início</label>
+                                            <input id="edit_period_starts_at_{{ $period->id }}" name="starts_at" type="date" class="form-control" value="{{ $useOldForPeriodEdit ? old('starts_at', $period->starts_at?->toDateString()) : $period->starts_at?->toDateString() }}" required>
+                                        </div>
+                                        <div class="col-md-3 form-group">
+                                            <label for="edit_period_ends_at_{{ $period->id }}">Fim</label>
+                                            <input id="edit_period_ends_at_{{ $period->id }}" name="ends_at" type="date" class="form-control" value="{{ $useOldForPeriodEdit ? old('ends_at', $period->ends_at?->toDateString()) : $period->ends_at?->toDateString() }}" required>
+                                        </div>
+                                    </div>
+                                    <div class="form-group mb-2">
+                                        <label for="edit_period_notes_{{ $period->id }}">Observações</label>
+                                        <input id="edit_period_notes_{{ $period->id }}" name="notes" class="form-control" value="{{ $useOldForPeriodEdit ? old('notes', $period->notes) : $period->notes }}" placeholder="Opcional">
+                                    </div>
+                                    <div class="sge-weekday-options mb-3">
+                                        <input type="checkbox" class="sge-weekday-input" id="edit_period_ignore_saturdays_{{ $period->id }}" name="ignore_saturdays" value="1" @checked($useOldForPeriodEdit ? old('ignore_saturdays', $period->ignore_saturdays) : $period->ignore_saturdays)>
+                                        <label class="sge-weekday-option" for="edit_period_ignore_saturdays_{{ $period->id }}"><span class="sge-weekday-icon"><i class="fas fa-calendar-day" aria-hidden="true"></i></span><span><strong>Sábados</strong><small>Manter como fim de semana.</small></span></label>
+                                        <input type="checkbox" class="sge-weekday-input" id="edit_period_ignore_sundays_{{ $period->id }}" name="ignore_sundays" value="1" @checked($useOldForPeriodEdit ? old('ignore_sundays', $period->ignore_sundays) : $period->ignore_sundays)>
+                                        <label class="sge-weekday-option" for="edit_period_ignore_sundays_{{ $period->id }}"><span class="sge-weekday-icon"><i class="fas fa-calendar-check" aria-hidden="true"></i></span><span><strong>Domingos</strong><small>Manter como fim de semana.</small></span></label>
+                                    </div>
+                                    <button class="btn btn-primary" type="submit"><i class="fas fa-save mr-1" aria-hidden="true"></i>Salvar período</button>
+                                </form>
+                            </div>
+                        </details>
+                    @endif
 
                     <section class="sge-period-assessments mb-3" aria-labelledby="diary-closing-{{ $period->id }}">
                         <div class="p-3">

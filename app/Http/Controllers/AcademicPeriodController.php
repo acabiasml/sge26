@@ -251,6 +251,53 @@ class AcademicPeriodController extends Controller
             ->with('status', 'Período removido com sucesso.');
     }
 
+    public function update(Request $request, AcademicYear $academicYear, AcademicPeriod $period): RedirectResponse
+    {
+        abort_unless($period->academic_year_id === $academicYear->id, 404);
+        abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
+        $this->ensureYearIsOpen($academicYear);
+        $this->ensureCanChangeApprovedCalendar($request, $academicYear);
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'starts_at' => ['required', 'date', 'after_or_equal:'.$academicYear->starts_at->toDateString(), 'before_or_equal:'.$academicYear->ends_at->toDateString()],
+            'ends_at' => ['required', 'date', 'after_or_equal:starts_at', 'before_or_equal:'.$academicYear->ends_at->toDateString()],
+            'ignore_saturdays' => ['nullable', 'boolean'],
+            'ignore_sundays' => ['nullable', 'boolean'],
+            'position' => ['required', 'integer', 'min:1', 'max:99'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+        $data['ignore_saturdays'] = $request->boolean('ignore_saturdays');
+        $data['ignore_sundays'] = $request->boolean('ignore_sundays');
+
+        $overlaps = $academicYear->periods()
+            ->whereKeyNot($period->id)
+            ->where(function (Builder $query) use ($data): void {
+                $query->whereDate('starts_at', '<=', $data['ends_at'])
+                    ->whereDate('ends_at', '>=', $data['starts_at']);
+            })
+            ->exists();
+
+        if ($overlaps) {
+            return back()->withErrors(['starts_at' => 'O período informado se sobrepõe a outro período deste ano letivo.'])->withInput();
+        }
+
+        $oldStartsAt = $period->starts_at->copy();
+        $oldEndsAt = $period->ends_at->copy();
+
+        DB::transaction(function () use ($academicYear, $period, $data, $oldStartsAt, $oldEndsAt): void {
+            $period->update($data);
+            $period->refresh();
+
+            $this->resetCalendarDaysOutsidePeriods($academicYear, $oldStartsAt, $oldEndsAt);
+            $this->applyPeriodToCalendarDays($period);
+            $this->normalizeRecessBetweenPeriods($academicYear);
+        });
+
+        return redirect()->route('academic-years.periods.index', $academicYear)
+            ->with('status', 'Período atualizado com sucesso.');
+    }
+
     public function updateAssessmentRules(Request $request, AcademicYear $academicYear, AcademicPeriod $period): RedirectResponse
     {
         abort_unless($period->academic_year_id === $academicYear->id, 404);
@@ -561,7 +608,7 @@ class AcademicPeriodController extends Controller
             CalendarDay::query()->updateOrCreate(
                 [
                     'academic_year_id' => $period->academic_year_id,
-                    'date' => $date->toDateString(),
+                    'date' => $date->toDateTimeString(),
                 ],
                 [
                     'type' => $isIgnoredWeekend ? CalendarDay::TYPE_WEEKEND : CalendarDay::TYPE_SCHOOL_DAY,
@@ -585,6 +632,48 @@ class AcademicPeriodController extends Controller
                 'title' => 'Férias',
                 'description' => null,
             ]);
+    }
+
+    private function resetCalendarDaysOutsidePeriods(AcademicYear $academicYear, $startsAt, $endsAt): void
+    {
+        $periods = $academicYear->periods()->get(['id', 'starts_at', 'ends_at']);
+        $preservedTypes = [
+            CalendarDay::TYPE_HOLIDAY,
+            CalendarDay::TYPE_TRAINING,
+            CalendarDay::TYPE_CLASS_COUNCIL,
+            CalendarDay::TYPE_OTHER,
+        ];
+
+        foreach (CarbonPeriod::create($startsAt, $endsAt) as $date) {
+            $belongsToPeriod = $periods->contains(
+                fn (AcademicPeriod $period): bool => $date->betweenIncluded($period->starts_at, $period->ends_at)
+            );
+
+            if ($belongsToPeriod) {
+                continue;
+            }
+
+            $calendarDay = $academicYear->days()
+                ->whereDate('date', $date->toDateString())
+                ->first();
+
+            if (in_array($calendarDay?->type, $preservedTypes, true)) {
+                continue;
+            }
+
+            CalendarDay::query()->updateOrCreate(
+                [
+                    'academic_year_id' => $academicYear->id,
+                    'date' => $date->toDateTimeString(),
+                ],
+                [
+                    'type' => $date->isWeekend() ? CalendarDay::TYPE_WEEKEND : CalendarDay::TYPE_FINAL_VACATION,
+                    'counts_as_school_day' => false,
+                    'title' => $date->isWeekend() ? null : 'Férias',
+                    'description' => null,
+                ]
+            );
+        }
     }
 
     private function normalizeRecessBetweenPeriods(AcademicYear $academicYear): void
@@ -629,7 +718,7 @@ class AcademicPeriodController extends Controller
                     if (! $calendarDay) {
                         CalendarDay::query()->create([
                             'academic_year_id' => $academicYear->id,
-                            'date' => $date->toDateString(),
+                            'date' => $date->toDateTimeString(),
                             'type' => CalendarDay::TYPE_WEEKEND,
                             'counts_as_school_day' => false,
                             'title' => null,
@@ -647,7 +736,7 @@ class AcademicPeriodController extends Controller
                 CalendarDay::query()->updateOrCreate(
                     [
                         'academic_year_id' => $academicYear->id,
-                        'date' => $date->toDateString(),
+                        'date' => $date->toDateTimeString(),
                     ],
                     [
                         'type' => CalendarDay::TYPE_RECESS,
