@@ -5879,6 +5879,7 @@ small,
 .btn {
     align-items: center;
     display: inline-flex;
+    gap: .45rem;
     justify-content: center;
     line-height: 1.25;
     text-align: center;
@@ -5890,6 +5891,11 @@ small,
 .btn > .sge-button-spinner {
     flex: 0 0 auto;
     line-height: 1;
+}
+
+.btn > i.mr-1,
+.btn > svg.mr-1 {
+    margin-right: 0 !important;
 }
 
 .dropdown-item,
