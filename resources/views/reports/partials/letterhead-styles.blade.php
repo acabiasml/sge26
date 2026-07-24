@@ -1,30 +1,24 @@
 @php
-    $atkinsonFontBase = 'file:///'.str_replace('\\', '/', public_path('template/fonts/atkinson-hyperlegible-next'));
+    $atkinsonFontDir = public_path('template/fonts/atkinson-hyperlegible-next');
+    $atkinsonFontPath = str_replace('\\', '/', $atkinsonFontDir);
+    $atkinsonFontBase = (str_starts_with($atkinsonFontPath, '/') ? 'file://' : 'file:///').$atkinsonFontPath;
+    $atkinsonFonts = [
+        ['file' => 'AtkinsonHyperlegibleNext-Regular.ttf', 'style' => 'normal', 'weight' => 400],
+        ['file' => 'AtkinsonHyperlegibleNext-Italic.ttf', 'style' => 'italic', 'weight' => 400],
+        ['file' => 'AtkinsonHyperlegibleNext-SemiBold.ttf', 'style' => 'normal', 'weight' => 600],
+        ['file' => 'AtkinsonHyperlegibleNext-Bold.ttf', 'style' => 'normal', 'weight' => 700],
+    ];
 @endphp
+@foreach ($atkinsonFonts as $atkinsonFont)
+@if (is_file($atkinsonFontDir.DIRECTORY_SEPARATOR.$atkinsonFont['file']))
 @font-face {
     font-family: 'Atkinson Hyperlegible Next';
-    font-style: normal;
-    font-weight: 400;
-    src: url('{{ $atkinsonFontBase }}/AtkinsonHyperlegibleNext-Regular.ttf') format('truetype');
+    font-style: {{ $atkinsonFont['style'] }};
+    font-weight: {{ $atkinsonFont['weight'] }};
+    src: url('{{ $atkinsonFontBase }}/{{ $atkinsonFont['file'] }}') format('truetype');
 }
-@font-face {
-    font-family: 'Atkinson Hyperlegible Next';
-    font-style: italic;
-    font-weight: 400;
-    src: url('{{ $atkinsonFontBase }}/AtkinsonHyperlegibleNext-Italic.ttf') format('truetype');
-}
-@font-face {
-    font-family: 'Atkinson Hyperlegible Next';
-    font-style: normal;
-    font-weight: 600;
-    src: url('{{ $atkinsonFontBase }}/AtkinsonHyperlegibleNext-SemiBold.ttf') format('truetype');
-}
-@font-face {
-    font-family: 'Atkinson Hyperlegible Next';
-    font-style: normal;
-    font-weight: 700;
-    src: url('{{ $atkinsonFontBase }}/AtkinsonHyperlegibleNext-Bold.ttf') format('truetype');
-}
+@endif
+@endforeach
 .letterhead { border-bottom: 2px solid #6B3D2E; margin-bottom: 14px; padding-bottom: 8px; }
 .letterhead-table { width: 100%; border-collapse: collapse; }
 .letterhead-table td { border: 0; padding: 0; vertical-align: middle; }
