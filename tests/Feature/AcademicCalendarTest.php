@@ -18,6 +18,7 @@ use App\Support\AcademicStructureValidator;
 use App\Support\AcademicYearClosureStatus;
 use App\Support\CurriculumCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class AcademicCalendarTest extends TestCase
@@ -539,6 +540,58 @@ class AcademicCalendarTest extends TestCase
             'counts_as_school_day' => false,
             'title' => 'Conselho de Classe',
         ]);
+    }
+
+    public function test_calendar_pdf_data_uses_period_markers_and_description_special_dates(): void
+    {
+        $year = $this->academicYear([
+            'starts_at' => '2026-01-01',
+            'ends_at' => '2026-01-31',
+        ]);
+
+        $year->periods()->create([
+            'name' => 'I Bimestre',
+            'starts_at' => '2026-01-05',
+            'ends_at' => '2026-01-23',
+            'position' => 1,
+        ]);
+
+        $year->days()->create([
+            'date' => '2026-01-05',
+            'type' => CalendarDay::TYPE_SCHOOL_DAY,
+            'counts_as_school_day' => true,
+        ]);
+
+        $year->days()->create([
+            'date' => '2026-01-23',
+            'type' => CalendarDay::TYPE_SCHOOL_DAY,
+            'counts_as_school_day' => true,
+        ]);
+
+        $year->days()->create([
+            'date' => '2026-01-15',
+            'type' => CalendarDay::TYPE_HOLIDAY,
+            'counts_as_school_day' => false,
+            'description' => 'Feriado municipal',
+        ]);
+
+        $controller = app(\App\Http\Controllers\AcademicCalendarPdfController::class);
+        $calendarMethod = new ReflectionMethod($controller, 'calendar');
+        $calendarMethod->setAccessible(true);
+        $specialDatesMethod = new ReflectionMethod($controller, 'specialDates');
+        $specialDatesMethod->setAccessible(true);
+        $year->load(['days', 'periods']);
+
+        $calendar = $calendarMethod->invoke($controller, $year);
+        $specialDates = $specialDatesMethod->invoke($controller, $year);
+        $grid = \App\Support\AcademicCalendarGrid::forAcademicYear($year)->first();
+        $gridEntries = $grid['weeks']->flatten(1)->keyBy(fn (array $entry): string => $entry['date']->toDateString());
+
+        $this->assertSame('IP', $calendar[0]['days'][5]['code']);
+        $this->assertSame('TP', $calendar[0]['days'][23]['code']);
+        $this->assertSame('IP', $gridEntries->get('2026-01-05')['code']);
+        $this->assertSame('TP', $gridEntries->get('2026-01-23')['code']);
+        $this->assertContains('Feriado municipal - Feriado', array_column($specialDates, 'description'));
     }
 
     public function test_administrator_can_create_course_component_and_class_inside_academic_year(): void

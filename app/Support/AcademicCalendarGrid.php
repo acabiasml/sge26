@@ -40,16 +40,17 @@ class AcademicCalendarGrid
         foreach (CarbonPeriod::create($gridStart, $gridEnd) as $date) {
             $day = $days->get($date->toDateString());
             $periodIndex = self::periodIndexForDate($periods, $date, $day);
+            $periodMarker = self::periodMarkerForDate($periods, $date);
 
             $week->push([
                 'date' => $date->copy(),
                 'in_month' => $date->betweenIncluded($monthStart, $monthEnd),
                 'in_academic_year' => $date->betweenIncluded($academicYear->starts_at, $academicYear->ends_at),
                 'day' => $day,
-                'code' => self::codeForDate($date, $day),
+                'code' => $periodMarker['code'] ?? self::codeForDate($date, $day),
                 'period_index' => $periodIndex,
                 'period_class' => $periodIndex ? 'sge-calendar-period-'.$periodIndex : null,
-                'label' => $day?->label() ?? ($date->isSunday() ? 'Domingo' : ($date->isSaturday() ? 'Sábado' : 'Sem registro')),
+                'label' => self::labelForDate($date, $day, $periodMarker),
             ]);
 
             if ($week->count() === 7) {
@@ -79,7 +80,9 @@ class AcademicCalendarGrid
 
         $daysByDate = $academicYears
             ->flatMap(fn (AcademicYear $academicYear): Collection => $academicYear->days->map(function (CalendarDay $day) use ($academicYear): array {
-                $periodIndex = self::periodIndexForDate($academicYear->periods->sortBy('position')->values(), $day->date, $day);
+                $periods = $academicYear->periods->sortBy('position')->values();
+                $periodIndex = self::periodIndexForDate($periods, $day->date, $day);
+                $periodMarker = self::periodMarkerForDate($periods, $day->date);
 
                 return [
                     'academic_year' => $academicYear,
@@ -87,6 +90,7 @@ class AcademicCalendarGrid
                     'day' => $day,
                     'period_index' => $periodIndex,
                     'period_class' => $periodIndex ? 'sge-calendar-period-'.$periodIndex : null,
+                    'period_marker' => $periodMarker,
                 ];
             }))
             ->groupBy(fn (array $entry): string => $entry['day']->date->toDateString());
@@ -145,7 +149,7 @@ class AcademicCalendarGrid
         }
 
         return $dayEntries
-            ->map(fn (array $entry): string => self::codeForDate($date, $entry['day']))
+            ->map(fn (array $entry): string => $entry['period_marker']['code'] ?? self::codeForDate($date, $entry['day']))
             ->filter()
             ->unique()
             ->values();
@@ -184,6 +188,30 @@ class AcademicCalendarGrid
         return is_int($index) ? ($index % 8) + 1 : null;
     }
 
+    private static function periodMarkerForDate(Collection $periods, Carbon $date): ?array
+    {
+        $period = $periods->first(fn ($period): bool => $period->starts_at->isSameDay($date));
+
+        if ($period) {
+            return ['code' => 'IP', 'label' => 'Início de '.$period->name];
+        }
+
+        $period = $periods->first(fn ($period): bool => $period->ends_at->isSameDay($date));
+
+        if ($period) {
+            return ['code' => 'TP', 'label' => 'Término de '.$period->name];
+        }
+
+        return null;
+    }
+
+    private static function labelForDate(Carbon $date, ?CalendarDay $day, ?array $periodMarker = null): string
+    {
+        $label = $day?->label() ?? ($date->isSunday() ? 'Domingo' : ($date->isSaturday() ? 'Sábado' : 'Sem registro'));
+
+        return $periodMarker ? $periodMarker['label'].' - '.$label : $label;
+    }
+
     private static function combinedLabel(Carbon $date, Collection $dayEntries, Collection $birthdays): string
     {
         $parts = collect();
@@ -194,10 +222,12 @@ class AcademicCalendarGrid
             $dayEntries->each(function (array $entry) use ($parts): void {
                 $day = $entry['day'];
                 $school = $entry['school']?->name;
-                $parts->push(trim($day->label().($school ? ' - '.$school : '')));
+                $parts->push(trim(self::labelForDate($day->date, $day, $entry['period_marker'] ?? null).($school ? ' - '.$school : '')));
 
                 if (filled($day->title)) {
                     $parts->push(trim($day->title.($school ? ' - '.$school : '')));
+                } elseif (filled($day->description)) {
+                    $parts->push(trim($day->description.($school ? ' - '.$school : '')));
                 }
             });
         }

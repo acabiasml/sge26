@@ -75,7 +75,7 @@ class AcademicCalendarPdfController extends Controller
                 if ($periodStarts->has($dateKey)) {
                     $markerPeriod = $periodStarts->get($dateKey);
                     $monthDays[$dayNumber] = [
-                        'code' => 'IB',
+                        'code' => 'IP',
                         'class' => $this->periodMarkerClass($markerPeriod, $periodColorIndexes->all(), 'period-start'),
                         'title' => $markerPeriod?->name,
                     ];
@@ -85,7 +85,7 @@ class AcademicCalendarPdfController extends Controller
                 if ($periodEnds->has($dateKey)) {
                     $markerPeriod = $periodEnds->get($dateKey);
                     $monthDays[$dayNumber] = [
-                        'code' => 'TB',
+                        'code' => 'TP',
                         'class' => $this->periodMarkerClass($markerPeriod, $periodColorIndexes->all(), 'period-end'),
                         'title' => $markerPeriod?->name,
                     ];
@@ -251,7 +251,7 @@ class AcademicCalendarPdfController extends Controller
     {
         $daysByDate = $academicYear->days->keyBy(fn (CalendarDay $day): string => $day->date->toDateString());
         $specialDays = $academicYear->days
-            ->filter(fn (CalendarDay $day): bool => $day->type !== CalendarDay::TYPE_SCHOOL_DAY && $day->type !== CalendarDay::TYPE_WEEKEND && filled($day->title))
+            ->filter(fn (CalendarDay $day): bool => $day->type !== CalendarDay::TYPE_SCHOOL_DAY && $day->type !== CalendarDay::TYPE_WEEKEND && filled($this->specialDateName($day)))
             ->sortBy('date')
             ->values();
 
@@ -259,7 +259,8 @@ class AcademicCalendarPdfController extends Controller
         $current = null;
 
         foreach ($specialDays as $day) {
-            $key = $day->type.'|'.$day->title.'|'.$day->label();
+            $specialDateName = $this->specialDateName($day);
+            $key = $day->type.'|'.$specialDateName.'|'.$day->label();
 
             if (
                 $current === null
@@ -274,7 +275,7 @@ class AcademicCalendarPdfController extends Controller
                     'key' => $key,
                     'start' => $day->date->copy(),
                     'end' => $day->date->copy(),
-                    'description' => $day->title.' - '.$day->label(),
+                    'description' => $specialDateName.' - '.$day->label(),
                 ];
 
                 continue;
@@ -288,6 +289,13 @@ class AcademicCalendarPdfController extends Controller
         }
 
         return $groups;
+    }
+
+    private function specialDateName(CalendarDay $day): ?string
+    {
+        $name = trim((string) ($day->title ?: $day->description ?: ''));
+
+        return $name !== '' ? $name : null;
     }
 
     private function canContinueSpecialDateGroup(Carbon $currentEnd, Carbon $nextDate, $daysByDate): bool

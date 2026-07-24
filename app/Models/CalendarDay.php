@@ -87,8 +87,8 @@ class CalendarDay extends Model
             'RE' => 'Recesso escolar',
             'EP' => 'Estudos pedagógicos',
             'CC' => 'Conselho de classe',
-            'IB' => 'Início de período avaliativo',
-            'TB' => 'Término de período avaliativo',
+            'IP' => 'Início de período avaliativo',
+            'TP' => 'Término de período avaliativo',
             'O' => 'Outro',
         ];
     }
