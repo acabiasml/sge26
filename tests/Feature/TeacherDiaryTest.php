@@ -378,7 +378,7 @@ class TeacherDiaryTest extends TestCase
         $this->assertSame(6, $annual['attendance']['lessons']);
         $this->assertCount(2, $monthly['matrices']);
         $this->assertSame(
-            ['Ensino Médio', 'Ensino Técnico'],
+            ['Ensino Médio', 'Educação Profissional Técnica de Nível Médio'],
             $monthly['matrices']->pluck('stage')->all(),
         );
         $this->assertSame(0, $monthly['matrices']->firstWhere('course.id', $technicalCourse->id)['attendance']['lessons']);

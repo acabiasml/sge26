@@ -606,7 +606,7 @@ class AcademicCalendarTest extends TestCase
             ->post(route('academic-years.courses.store', $year), [
                 'name' => '3º Ano',
                 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
-                'modality' => 'Regular',
+                'modality' => AcademicCourse::MODALITY_REGULAR,
                 'status' => 'iniciado',
                 'workload_hours' => 1000,
                 'class_hour_minutes' => 50,
@@ -1007,7 +1007,7 @@ class AcademicCalendarTest extends TestCase
         $course = $year->courses()->create([
             'name' => '1º Ano',
             'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
-            'modality' => 'Regular',
+            'modality' => AcademicCourse::MODALITY_REGULAR,
             'status' => 'iniciado',
             'class_hour_minutes' => 50,
             'active' => true,
@@ -1029,8 +1029,8 @@ class AcademicCalendarTest extends TestCase
             ->firstOrFail();
 
         $this->assertSame(AcademicCourse::STAGE_HIGH_SCHOOL, $copy->stage);
-        $this->assertSame('Regular', $copy->modality);
-        $this->assertSame('planejado', $copy->status);
+        $this->assertSame(AcademicCourse::MODALITY_REGULAR, $copy->modality);
+        $this->assertSame('curricular', $copy->status);
         $this->assertSame(50, (int) $copy->class_hour_minutes);
         $this->assertCount(1, $copy->components);
 
@@ -1590,18 +1590,19 @@ class AcademicCalendarTest extends TestCase
             ->assertDontSee('Outra Escola');
     }
 
-    public function test_student_cannot_be_enrolled_in_inactive_matrix(): void
+    public function test_student_cannot_be_enrolled_in_inactive_class(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
         $year = $this->academicYear();
         $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'aluno.matriz.inativa@ctjj.org');
         $course = $year->courses()->create([
-            'name' => 'Matriz Inativa',
+            'name' => 'Matriz Regular',
             'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
             'status' => 'iniciado',
-            'active' => false,
+            'active' => true,
         ]);
-        $class = $year->classes()->create(['name' => 'Turma A', 'active' => true]);
+        $course->components()->create(['name' => 'Matemática', 'weekly_lessons' => 5, 'active' => true]);
+        $class = $year->classes()->create(['name' => 'Turma A', 'active' => false]);
         $class->courses()->attach($course);
 
         $this->actingAs($admin)
@@ -1612,7 +1613,7 @@ class AcademicCalendarTest extends TestCase
                 'status' => StudentEnrollment::STATUS_ENROLLED,
                 'type' => StudentEnrollment::TYPE_REGULAR,
             ])
-            ->assertSessionHasErrors('course_ids.0');
+            ->assertSessionHasErrors('school_class_id');
 
         $this->assertDatabaseMissing('student_enrollments', [
             'person_id' => $student->person_id,

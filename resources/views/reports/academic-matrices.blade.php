@@ -187,20 +187,20 @@
                 <thead>
                     <tr>
                         <th>Matriz</th>
-                        <th>Período</th>
+                        <th>Etapa</th>
+                        <th>Modalidade</th>
                         <th>Hora-aula</th>
                         <th>Carga horária calculada</th>
-                        <th>Situação</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($matrixGroup['courses'] as $course)
                         <tr>
                             <td>{{ $course->name }}</td>
-                            <td>{{ $course->startsPeriod?->name ?? 'início não definido' }} até {{ $course->endsPeriod?->name ?? 'fim não definido' }}</td>
+                            <td>{{ $course->stageLabel() }}</td>
+                            <td>{{ $course->modalityLabel() }}</td>
                             <td>{{ $course->class_hour_minutes }} minutos</td>
                             <td>{{ $matrixGroup['total_hours'][$course->id] ?? $course->formattedCalculatedWorkloadHours() }} h</td>
-                            <td>{{ $course->active ? 'Ativa' : 'Inativa' }} · {{ ucfirst((string) $course->status) }}</td>
                         </tr>
                     @endforeach
                 </tbody>

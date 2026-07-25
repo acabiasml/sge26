@@ -27,41 +27,13 @@
                     @error('stage') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-3 form-group">
-                    <label for="status">Situação</label>
-                    <select id="status" name="status" class="form-control @error('status') is-invalid @enderror" required>
-                        @foreach (['planejado' => 'Planejado', 'iniciado' => 'Iniciado', 'finalizado' => 'Finalizado', 'suspenso' => 'Suspenso'] as $value => $label)
-                            <option value="{{ $value }}" @selected(old('status', $course->status) === $value)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                    @error('status') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-4 form-group">
                     <label for="modality">Modalidade</label>
-                    <input id="modality" name="modality" class="form-control @error('modality') is-invalid @enderror" value="{{ old('modality', $course->modality) }}" placeholder="Regular, integral, técnico...">
+                    <select id="modality" name="modality" class="form-control @error('modality') is-invalid @enderror" required>
+                        @foreach (\App\Models\AcademicCourse::MODALITY_LABELS as $value => $label)
+                            <option value="{{ $value }}" @selected(old('modality', $course->modality) === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
                     @error('modality') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                </div>
-                <div class="col-md-4 form-group">
-                    <label for="starts_period_id">Período inicial</label>
-                    <select id="starts_period_id" name="starts_period_id" class="form-control @error('starts_period_id') is-invalid @enderror">
-                        <option value="">Não definido</option>
-                        @foreach ($academicYear->periods->sortBy('position') as $period)
-                            <option value="{{ $period->id }}" @selected((int) old('starts_period_id', $course->starts_period_id) === $period->id)>{{ $period->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('starts_period_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                </div>
-                <div class="col-md-4 form-group">
-                    <label for="ends_period_id">Período final</label>
-                    <select id="ends_period_id" name="ends_period_id" class="form-control @error('ends_period_id') is-invalid @enderror">
-                        <option value="">Não definido</option>
-                        @foreach ($academicYear->periods->sortBy('position') as $period)
-                            <option value="{{ $period->id }}" @selected((int) old('ends_period_id', $course->ends_period_id) === $period->id)>{{ $period->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('ends_period_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
             </div>
 
@@ -76,11 +48,6 @@
                     <textarea id="notes" name="notes" class="form-control @error('notes') is-invalid @enderror" rows="3">{{ old('notes', $course->notes) }}</textarea>
                     @error('notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
-            </div>
-
-            <div class="custom-control custom-checkbox">
-                <input class="custom-control-input" id="active" name="active" type="checkbox" value="1" @checked(old('active', $course->active ?? true))>
-                <label class="custom-control-label" for="active">Matriz ativa</label>
             </div>
         </div>
     </div>

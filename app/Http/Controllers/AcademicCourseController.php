@@ -4,12 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicCourse;
 use App\Models\AcademicYear;
-use App\Support\AcademicStructureStatus;
 use App\Support\AcademicStructureValidator;
 use App\Support\CurriculumCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -23,9 +23,9 @@ class AcademicCourseController extends Controller
         return view('academic-courses.create', [
             'academicYear' => $academicYear->load('school', 'periods'),
             'course' => new AcademicCourse([
-                'status' => 'planejado',
+                'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
+                'modality' => AcademicCourse::MODALITY_REGULAR,
                 'class_hour_minutes' => 50,
-                'active' => true,
             ]),
         ]);
     }
@@ -41,11 +41,8 @@ class AcademicCourseController extends Controller
                 'components.area',
                 'components.startsPeriod',
                 'components.endsPeriod',
-                'startsPeriod',
-                'endsPeriod',
                 'classes.enrollments.student',
             ]),
-            'courseStatus' => AcademicStructureStatus::course($course),
             'structureIssues' => AcademicStructureValidator::forCourse($course),
             'knowledgeAreas' => \App\Models\KnowledgeArea::query()
                 ->where('active', true)
@@ -113,16 +110,14 @@ class AcademicCourseController extends Controller
 
         $duplicatedCourse = DB::transaction(function () use ($academicYear, $course): AcademicCourse {
             $duplicatedCourse = $academicYear->courses()->create([
-                'starts_period_id' => $course->starts_period_id,
-                'ends_period_id' => $course->ends_period_id,
                 'name' => $this->nextDuplicateName($academicYear, $course->name),
                 'stage' => $course->stage,
                 'modality' => $course->modality,
-                'status' => 'planejado',
+                'status' => 'curricular',
                 'workload_hours' => $course->workload_hours,
                 'class_hour_minutes' => $course->class_hour_minutes,
                 'notes' => $course->notes,
-                'active' => $course->active,
+                'active' => true,
             ]);
 
             foreach ($course->components as $component) {
@@ -144,7 +139,7 @@ class AcademicCourseController extends Controller
         });
 
         return redirect()->route('academic-years.courses.edit', [$academicYear, $duplicatedCourse])
-            ->with('status', 'Matriz duplicada com sucesso. Ajuste o nome e os períodos conforme necessário.');
+            ->with('status', 'Matriz duplicada com sucesso. Ajuste o nome conforme necessário.');
     }
 
     /**
@@ -152,7 +147,9 @@ class AcademicCourseController extends Controller
      */
     private function validatedData(Request $request, AcademicYear $academicYear, ?AcademicCourse $course = null): array
     {
-        $periodIds = $academicYear->periods()->pluck('id')->all();
+        $request->merge([
+            'modality' => $this->normalizeModalityInput($request->input('modality')),
+        ]);
 
         $data = $request->validate([
             'name' => [
@@ -164,19 +161,39 @@ class AcademicCourseController extends Controller
                     ->ignore($course?->id),
             ],
             'stage' => ['required', Rule::in(array_keys(AcademicCourse::STAGE_LABELS))],
-            'modality' => ['nullable', 'string', 'max:255'],
-            'status' => ['required', 'string', 'max:255'],
-            'starts_period_id' => ['nullable', Rule::in($periodIds)],
-            'ends_period_id' => ['nullable', Rule::in($periodIds)],
+            'modality' => ['required', Rule::in(array_keys(AcademicCourse::MODALITY_LABELS))],
             'class_hour_minutes' => ['required', 'integer', 'min:1', 'max:240'],
             'notes' => ['nullable', 'string', 'max:5000'],
-            'active' => ['nullable', 'boolean'],
         ]);
 
-        $data['active'] = $request->boolean('active', true);
+        $data['status'] = 'curricular';
+        $data['active'] = true;
         $data['workload_hours'] = $course?->calculatedWorkloadHours() ?? 0;
 
         return $data;
+    }
+
+    private function normalizeModalityInput(mixed $value): string
+    {
+        $value = trim((string) $value);
+
+        if (array_key_exists($value, AcademicCourse::MODALITY_LABELS)) {
+            return $value;
+        }
+
+        $text = Str::of($value)->ascii()->lower()->toString();
+
+        return match (true) {
+            str_contains($text, 'eja') || str_contains($text, 'jovens e adultos') => AcademicCourse::MODALITY_EJA,
+            str_contains($text, 'especial') => AcademicCourse::MODALITY_SPECIAL,
+            str_contains($text, 'indigena') => AcademicCourse::MODALITY_INDIGENOUS,
+            str_contains($text, 'quilombola') => AcademicCourse::MODALITY_QUILOMBOLA,
+            str_contains($text, 'campo') => AcademicCourse::MODALITY_RURAL,
+            str_contains($text, 'distancia') || str_contains($text, 'ead') => AcademicCourse::MODALITY_DISTANCE,
+            str_contains($text, 'tecnico') || str_contains($text, 'profissional') || str_contains($text, 'tecnologica') || str_contains($text, 'moveis') => AcademicCourse::MODALITY_PROFESSIONAL_TECHNOLOGICAL,
+            $text === '' || str_contains($text, 'regular') || str_contains($text, 'fundamental') || str_contains($text, 'medio') => AcademicCourse::MODALITY_REGULAR,
+            default => AcademicCourse::MODALITY_OTHER,
+        };
     }
 
     private function ensureCanChangeApprovedCalendar(Request $request, AcademicYear $academicYear): void

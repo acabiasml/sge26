@@ -38,7 +38,7 @@
                         <dt>Matrizes vinculadas</dt>
                         <dd>{{ $class->courses->pluck('name')->join(' + ') ?: '-' }}</dd>
                         <dt>Matrizes disponíveis para matrícula</dt>
-                        <dd>{{ $availableCourses->pluck('name')->join(' + ') ?: 'Nenhuma matriz ativa vinculada' }}</dd>
+                        <dd>{{ $availableCourses->pluck('name')->join(' + ') ?: 'Nenhuma matriz vinculada' }}</dd>
                     </dl>
                 </div>
             </div>
@@ -93,7 +93,7 @@
                             </div>
                         </div>
                         @if ($availableCourses->isEmpty())
-                            <p class="text-muted small mb-3">Vincule uma matriz ativa a esta turma antes de cadastrar novas matrículas.</p>
+                            <p class="text-muted small mb-3">Vincule uma matriz curricular a esta turma antes de cadastrar novas matrículas.</p>
                         @endif
                         <p class="small text-muted">A nova matrícula será registrada como ativa. Transferência, reclassificação ou cancelamento ficam registrados no histórico.</p>
                         <button class="btn btn-primary" type="submit" @disabled($students->isEmpty() || $availableCourses->isEmpty())>Adicionar matrícula</button>

@@ -19,10 +19,10 @@ class DiaryPeriodStatus
     public function assignments(AcademicYear $academicYear): Collection
     {
         return SchoolClassComponent::query()
-            ->with(['schoolClass.courses', 'component.area', 'component.course', 'teacher'])
+            ->with(['schoolClass.courses', 'schoolClass.startsPeriod', 'schoolClass.endsPeriod', 'component.area', 'component.course', 'component.startsPeriod', 'component.endsPeriod', 'teacher'])
             ->where('active', true)
             ->whereHas('schoolClass', fn (Builder $query) => $query->where('academic_year_id', $academicYear->id)->where('active', true))
-            ->whereHas('component.course', fn (Builder $query) => $query->where('academic_year_id', $academicYear->id)->where('active', true))
+            ->whereHas('component.course', fn (Builder $query) => $query->where('academic_year_id', $academicYear->id))
             ->get()
             ->filter(fn (SchoolClassComponent $assignment): bool => $assignment->schoolClass?->courses->contains('id', $assignment->component?->course?->id) ?? false)
             ->values();
@@ -82,7 +82,7 @@ class DiaryPeriodStatus
             ->keyBy(fn (DiaryPeriodConfirmation $confirmation): string => $confirmation->school_class_id.'-'.$confirmation->curriculum_component_id);
 
         return $this->assignments($academicYear)
-            ->filter(fn (SchoolClassComponent $assignment): bool => $assignment->component?->isActiveInPeriod($period) ?? false)
+            ->filter(fn (SchoolClassComponent $assignment): bool => $this->assignmentIsActiveInPeriod($assignment, $period))
             ->map(function (SchoolClassComponent $assignment) use ($period, $confirmations): array {
                 return [
                     'assignment' => $assignment,
@@ -95,5 +95,26 @@ class DiaryPeriodStatus
                 [fn (array $summary): string => $summary['assignment']->component?->name ?? '', 'asc'],
             ])
             ->values();
+    }
+
+    private function assignmentIsActiveInPeriod(SchoolClassComponent $assignment, AcademicPeriod $period): bool
+    {
+        $componentActive = $assignment->component?->isActiveInPeriod($period) ?? false;
+
+        if (! $componentActive) {
+            return false;
+        }
+
+        $class = $assignment->schoolClass;
+
+        if ($class?->startsPeriod && $period->position < $class->startsPeriod->position) {
+            return false;
+        }
+
+        if ($class?->endsPeriod && $period->position > $class->endsPeriod->position) {
+            return false;
+        }
+
+        return true;
     }
 }

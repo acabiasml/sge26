@@ -37,21 +37,15 @@ class AcademicStructureStatus
      */
     public static function course(AcademicCourse $course): array
     {
-        if (! $course->active) {
-            return ['label' => 'Inativa', 'tone' => 'secondary', 'description' => 'Matriz fora de uso.'];
-        }
-
         if (! $course->hasMatrixComponents()) {
-            return ['label' => 'Incompleta', 'tone' => 'danger', 'description' => 'Ainda não possui componentes curriculares ativos.'];
+            return ['label' => 'Incompleta', 'tone' => 'danger', 'description' => 'Ainda não possui componentes curriculares.'];
         }
 
-        $status = trim((string) $course->status);
+        if ($course->relationLoaded('classes') && $course->classes->isEmpty()) {
+            return ['label' => 'Sem turma', 'tone' => 'info', 'description' => 'Matriz cadastrada, ainda não vinculada a uma turma.'];
+        }
 
-        return match ($status) {
-            'ativa', 'ativo', 'iniciado', 'em andamento' => ['label' => 'Ativa', 'tone' => 'success', 'description' => 'Matriz disponível para turmas e matrículas.'],
-            'encerrado', 'encerrada' => ['label' => 'Encerrada', 'tone' => 'secondary', 'description' => 'Matriz encerrada para novas rotinas.'],
-            default => ['label' => 'Planejada', 'tone' => 'info', 'description' => 'Matriz pronta para revisão antes do uso.'],
-        };
+        return ['label' => 'Organizada', 'tone' => 'success', 'description' => 'Matriz com estrutura curricular básica.'];
     }
 
     /**

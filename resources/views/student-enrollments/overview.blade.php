@@ -95,7 +95,7 @@
                 @empty
                     <div class="sge-empty-state">
                         <i class="fas fa-users" aria-hidden="true"></i>
-                        <p>Nenhuma turma com matriz ativa encontrada nesta escola.</p>
+                        <p>Nenhuma turma com matriz curricular encontrada nesta escola.</p>
                     </div>
                 @endforelse
             </div>

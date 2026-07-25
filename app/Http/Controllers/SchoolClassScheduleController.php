@@ -189,15 +189,17 @@ class SchoolClassScheduleController extends Controller
 
     private function ensureAssignmentFitsSchedule(SchoolClassSchedule $schedule, int $assignmentId): void
     {
+        $schedule->loadMissing('schoolClass.startsPeriod', 'schoolClass.endsPeriod');
+
         $assignment = $schedule->schoolClass
             ->componentAssignments()
-            ->with('component.startsPeriod', 'component.endsPeriod', 'component.course.startsPeriod', 'component.course.endsPeriod')
+            ->with('component.startsPeriod', 'component.endsPeriod')
             ->whereKey($assignmentId)
             ->firstOrFail();
 
         $component = $assignment->component;
-        $startsAt = ($component?->startsPeriod ?? $component?->course?->startsPeriod)?->starts_at;
-        $endsAt = ($component?->endsPeriod ?? $component?->course?->endsPeriod)?->ends_at;
+        $startsAt = ($component?->startsPeriod ?? $schedule->schoolClass?->startsPeriod)?->starts_at;
+        $endsAt = ($component?->endsPeriod ?? $schedule->schoolClass?->endsPeriod)?->ends_at;
 
         if ($startsAt && $schedule->starts_at->lt($startsAt->copy()->startOfDay())) {
             throw ValidationException::withMessages([

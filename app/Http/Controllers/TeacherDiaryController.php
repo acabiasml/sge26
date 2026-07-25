@@ -233,15 +233,16 @@ class TeacherDiaryController extends Controller
     {
         $this->authorizeDiaryAccess($request, $schoolClass, $component);
 
-        $course = $component->course()->with('academicYear.school', 'startsPeriod', 'endsPeriod')->firstOrFail();
+        $course = $component->course()->with('academicYear.school')->firstOrFail();
         $academicYear = $course->academicYear;
+        $schoolClass->loadMissing('startsPeriod', 'endsPeriod');
         $assignment = SchoolClassComponent::query()
             ->with('teacher')
             ->where('school_class_id', $schoolClass->id)
             ->where('curriculum_component_id', $component->id)
             ->firstOrFail();
         $periods = $academicYear->periods()->orderBy('starts_at')->get();
-        $periods = $periods->filter(fn (AcademicPeriod $availablePeriod): bool => $component->isActiveInPeriod($availablePeriod))->values();
+        $periods = $periods->filter(fn (AcademicPeriod $availablePeriod): bool => $this->diaryIsActiveInPeriod($schoolClass, $component, $availablePeriod))->values();
         abort_if($periods->isEmpty(), 404);
         $period = $this->selectedPeriod($request, $periods);
         $enrollments = $this->enrollments($schoolClass, $course->id);
@@ -1176,6 +1177,23 @@ class TeacherDiaryController extends Controller
                     ->orWhereDate('ends_at', '>=', now()->toDateString());
             })
             ->exists();
+    }
+
+    private function diaryIsActiveInPeriod(SchoolClass $schoolClass, CurriculumComponent $component, AcademicPeriod $period): bool
+    {
+        if (! $component->isActiveInPeriod($period)) {
+            return false;
+        }
+
+        if ($schoolClass->startsPeriod && $period->position < $schoolClass->startsPeriod->position) {
+            return false;
+        }
+
+        if ($schoolClass->endsPeriod && $period->position > $schoolClass->endsPeriod->position) {
+            return false;
+        }
+
+        return true;
     }
 
     private function selectedPeriod(Request $request, Collection $periods): ?AcademicPeriod

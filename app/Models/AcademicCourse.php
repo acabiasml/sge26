@@ -24,8 +24,30 @@ class AcademicCourse extends Model
     public const STAGE_LABELS = [
         self::STAGE_ELEMENTARY => 'Ensino Fundamental',
         self::STAGE_HIGH_SCHOOL => 'Ensino Médio',
-        self::STAGE_TECHNICAL => 'Ensino Técnico',
+        self::STAGE_TECHNICAL => 'Educação Profissional Técnica de Nível Médio',
         self::STAGE_OTHER => 'Outra etapa',
+    ];
+
+    public const MODALITY_REGULAR = 'regular';
+    public const MODALITY_PROFESSIONAL_TECHNOLOGICAL = 'educacao_profissional_tecnologica';
+    public const MODALITY_EJA = 'eja';
+    public const MODALITY_SPECIAL = 'educacao_especial';
+    public const MODALITY_INDIGENOUS = 'educacao_indigena';
+    public const MODALITY_QUILOMBOLA = 'educacao_quilombola';
+    public const MODALITY_RURAL = 'educacao_do_campo';
+    public const MODALITY_DISTANCE = 'educacao_a_distancia';
+    public const MODALITY_OTHER = 'outra';
+
+    public const MODALITY_LABELS = [
+        self::MODALITY_REGULAR => 'Regular',
+        self::MODALITY_PROFESSIONAL_TECHNOLOGICAL => 'Educação Profissional e Tecnológica',
+        self::MODALITY_EJA => 'Educação de Jovens e Adultos',
+        self::MODALITY_SPECIAL => 'Educação Especial',
+        self::MODALITY_INDIGENOUS => 'Educação Escolar Indígena',
+        self::MODALITY_QUILOMBOLA => 'Educação Escolar Quilombola',
+        self::MODALITY_RURAL => 'Educação do Campo',
+        self::MODALITY_DISTANCE => 'Educação a Distância',
+        self::MODALITY_OTHER => 'Outra modalidade',
     ];
 
     protected $fillable = [
@@ -57,7 +79,6 @@ class AcademicCourse extends Model
     {
         return [
             'name',
-            'modality',
         ];
     }
 
@@ -169,6 +190,11 @@ class AcademicCourse extends Model
     public function stageLabel(): string
     {
         return self::STAGE_LABELS[$this->stage] ?? $this->stage;
+    }
+
+    public function modalityLabel(): string
+    {
+        return self::MODALITY_LABELS[$this->modality] ?? (string) $this->modality;
     }
 
     public function calculatedWorkloadHours(): float

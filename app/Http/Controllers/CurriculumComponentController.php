@@ -23,7 +23,7 @@ class CurriculumComponentController extends Controller
 
         return view('curriculum-components.show', [
             'academicYear' => $academicYear->load('school'),
-            'course' => $course->load('startsPeriod', 'endsPeriod'),
+            'course' => $course,
             'component' => $component->load('area', 'startsPeriod', 'endsPeriod'),
             'periods' => $academicYear->periods()->orderBy('position')->get(),
         ]);
@@ -108,12 +108,8 @@ class CurriculumComponentController extends Controller
      */
     private function allowedPeriodIds(AcademicYear $academicYear, AcademicCourse $course): array
     {
-        $periods = $academicYear->periods()->orderBy('position')->get();
-        $startsPosition = $course->startsPeriod?->position ?? $periods->min('position');
-        $endsPosition = $course->endsPeriod?->position ?? $periods->max('position');
-
-        return $periods
-            ->filter(fn ($period): bool => $period->position >= $startsPosition && $period->position <= $endsPosition)
+        return $academicYear->periods()
+            ->orderBy('position')
             ->pluck('id')
             ->all();
     }

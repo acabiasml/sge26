@@ -39,12 +39,8 @@
                         <dd>{{ $academicYear->name }}</dd>
                         <dt>Etapa</dt>
                         <dd>{{ $course->stageLabel() }}</dd>
-                        <dt>Estado</dt>
-                        <dd><span class="badge badge-{{ $courseStatus['tone'] }}">{{ $courseStatus['label'] }}</span> <span class="small text-muted">{{ $courseStatus['description'] }}</span></dd>
                         <dt>Modalidade</dt>
-                        <dd>{{ $course->modality ?: '-' }}</dd>
-                        <dt>Período da matriz</dt>
-                        <dd>{{ $course->startsPeriod?->name ?? 'Início não definido' }} até {{ $course->endsPeriod?->name ?? 'fim não definido' }}</dd>
+                        <dd>{{ $course->modalityLabel() ?: '-' }}</dd>
                         <dt>Hora-aula</dt>
                         <dd>{{ $course->class_hour_minutes }} minutos</dd>
                         <dt>Carga horária calculada</dt>
@@ -91,7 +87,7 @@
                                 <div class="col-md-4 form-group">
                                     <label for="new_component_starts_period_id">Período inicial</label>
                                     <select id="new_component_starts_period_id" name="starts_period_id" class="form-control">
-                                        <option value="">Início da matriz</option>
+                                        <option value="">Desde o início da turma</option>
                                         @foreach ($academicYear->periods as $period)
                                             <option value="{{ $period->id }}">{{ $period->name }}</option>
                                         @endforeach
@@ -100,7 +96,7 @@
                                 <div class="col-md-4 form-group">
                                     <label for="new_component_ends_period_id">Período final</label>
                                     <select id="new_component_ends_period_id" name="ends_period_id" class="form-control">
-                                        <option value="">Fim da matriz</option>
+                                        <option value="">Até o fim da turma</option>
                                         @foreach ($academicYear->periods as $period)
                                             <option value="{{ $period->id }}">{{ $period->name }}</option>
                                         @endforeach
@@ -142,7 +138,7 @@
                                         @if ($component->weekly_lessons !== null)
                                             · {{ $component->weekly_lessons }} aulas semanais
                                         @endif
-                                        · {{ $component->startsPeriod?->name ?? $course->startsPeriod?->name ?? 'início da matriz' }} até {{ $component->endsPeriod?->name ?? $course->endsPeriod?->name ?? 'fim da matriz' }}
+                                        · {{ $component->startsPeriod?->name ?? 'início da turma' }} até {{ $component->endsPeriod?->name ?? 'fim da turma' }}
                                     </div>
                                 </div>
                                 <div class="sge-action-buttons mt-2 mt-md-0" aria-label="Ações do componente {{ $component->name }}">

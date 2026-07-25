@@ -28,12 +28,10 @@ class AcademicMatricesPdfController extends Controller
         $academicYear->load([
             'school',
             'courses.components.area',
-            'courses.startsPeriod',
-            'courses.endsPeriod',
         ]);
 
         $courses = $course
-            ? collect([$course->load(['components.area', 'startsPeriod', 'endsPeriod'])])
+            ? collect([$course->load(['components.area'])])
             : $academicYear->courses->sortBy('name')->values();
 
         $issuedDocument = $this->issuedDocument($request, $academicYear, $courses);
@@ -146,8 +144,8 @@ class AcademicMatricesPdfController extends Controller
         $firstCourse = $courses->first();
         $stageLabel = $firstCourse?->stageLabel() ?? 'Curso';
         $modalities = $courses
-            ->pluck('modality')
-            ->map(fn ($modality): string => trim((string) $modality))
+            ->map(fn (AcademicCourse $course): string => $course->modalityLabel())
+            ->map(fn (string $modality): string => trim($modality))
             ->filter()
             ->unique()
             ->values();

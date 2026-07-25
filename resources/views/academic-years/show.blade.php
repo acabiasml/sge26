@@ -280,7 +280,7 @@
                                 <div>
                                     <h3 class="h6 mb-1">{{ $course->name }}</h3>
                                     <div class="small text-gray-600">
-                                        {{ $course->stageLabel() }} · {{ $course->components->count() }} componentes ·
+                                        {{ $course->stageLabel() }} · {{ $course->modalityLabel() }} · {{ $course->components->count() }} componentes ·
                                         {{ $course->formattedCalculatedWorkloadHours() }} horas
                                         <span class="badge badge-{{ $courseStatus['tone'] }} ml-1">{{ $courseStatus['label'] }}</span>
                                     </div>
@@ -365,7 +365,7 @@
                     @empty
                         <div class="sge-empty-state">
                             <i class="fas fa-users" aria-hidden="true"></i>
-                            <p>Nenhuma turma cadastrada. Crie turmas quando houver matriz ativa com componentes curriculares.</p>
+                            <p>Nenhuma turma cadastrada. Crie turmas quando houver matriz curricular com componentes.</p>
                         </div>
                     @endforelse
                 </div>

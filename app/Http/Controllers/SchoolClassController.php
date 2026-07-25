@@ -22,7 +22,7 @@ class SchoolClassController extends Controller
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
 
         return view('school-classes.create', [
-            'academicYear' => $academicYear->load('school', 'courses.components'),
+            'academicYear' => $academicYear->load('school', 'courses.components', 'periods'),
             'class' => new SchoolClass([
                 'starts_at' => $academicYear->starts_at,
                 'ends_at' => $academicYear->ends_at,
@@ -41,6 +41,8 @@ class SchoolClassController extends Controller
             'academicYear' => $academicYear->load(['school', 'classes.courses']),
             'class' => $class->load([
                 'courses.components',
+                'startsPeriod',
+                'endsPeriod',
                 'enrollments',
                 'componentAssignments.component.area',
                 'componentAssignments.component.course',
@@ -60,8 +62,8 @@ class SchoolClassController extends Controller
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
 
         return view('school-classes.edit', [
-            'academicYear' => $academicYear->load('school', 'courses.components'),
-            'class' => $class->load('courses'),
+            'academicYear' => $academicYear->load('school', 'courses.components', 'periods'),
+            'class' => $class->load('courses', 'startsPeriod', 'endsPeriod'),
             'readyCourses' => $this->readyCourses($academicYear),
         ]);
     }
@@ -142,10 +144,8 @@ class SchoolClassController extends Controller
      */
     private function validatedData(Request $request, AcademicYear $academicYear, ?SchoolClass $class = null): array
     {
-        $courseIds = $academicYear->courses()
-            ->where('active', true)
-            ->pluck('id')
-            ->all();
+        $courseIds = $academicYear->courses()->pluck('id')->all();
+        $periodIds = $academicYear->periods()->pluck('id')->all();
 
         $data = $request->validate([
             'name' => [
@@ -157,6 +157,8 @@ class SchoolClassController extends Controller
                     ->ignore($class?->id),
             ],
             'shift' => ['nullable', 'string', 'max:255'],
+            'starts_period_id' => ['nullable', Rule::in($periodIds)],
+            'ends_period_id' => ['nullable', Rule::in($periodIds)],
             'starts_at' => ['nullable', 'date', 'after_or_equal:'.$academicYear->starts_at->toDateString(), 'before_or_equal:'.$academicYear->ends_at->toDateString()],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at', 'before_or_equal:'.$academicYear->ends_at->toDateString()],
             'course_ids' => ['required', 'array', 'min:1'],
@@ -168,6 +170,7 @@ class SchoolClassController extends Controller
         $data['active'] = $request->boolean('active', true);
         $data['starts_at'] ??= $academicYear->starts_at->toDateString();
         $data['ends_at'] ??= $academicYear->ends_at->toDateString();
+        $this->ensureValidPeriodSpan($academicYear, $data['starts_period_id'] ?? null, $data['ends_period_id'] ?? null);
 
         return $data;
     }
@@ -176,10 +179,26 @@ class SchoolClassController extends Controller
     {
         return $academicYear->courses()
             ->with('components')
-            ->where('active', true)
             ->orderBy('name')
             ->get()
             ->filter->hasMatrixComponents();
+    }
+
+    private function ensureValidPeriodSpan(AcademicYear $academicYear, ?int $startsPeriodId, ?int $endsPeriodId): void
+    {
+        if (! $startsPeriodId || ! $endsPeriodId) {
+            return;
+        }
+
+        $periods = $academicYear->periods()->whereIn('id', [$startsPeriodId, $endsPeriodId])->get()->keyBy('id');
+        $starts = $periods->get($startsPeriodId);
+        $ends = $periods->get($endsPeriodId);
+
+        if ($starts && $ends && $starts->position > $ends->position) {
+            throw ValidationException::withMessages([
+                'ends_period_id' => 'O período final da turma deve ser igual ou posterior ao período inicial.',
+            ]);
+        }
     }
 
     private function syncComponentAssignments(SchoolClass $class): void

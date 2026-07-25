@@ -686,7 +686,6 @@ class ImportLegacyData extends Command
             }
 
             $name = trim((string) $this->title($legacyCourse['nome'] ?? 'Curso legado '.$legacyId));
-            $active = ! in_array(strtolower((string) ($legacyCourse['status'] ?? '')), ['0', 'inativo', 'inactive', 'encerrado'], true);
 
             $course = AcademicCourse::query()->updateOrCreate(
                 [
@@ -695,15 +694,15 @@ class ImportLegacyData extends Command
                 ],
                 [
                     'academic_year_id' => $academicYearId,
-                    'starts_period_id' => $this->periodIdForDate($source, $academicYearId, $legacyCourse['inicio'] ?? null),
-                    'ends_period_id' => $this->periodIdForDate($source, $academicYearId, $legacyCourse['fim'] ?? null),
+                    'starts_period_id' => null,
+                    'ends_period_id' => null,
                     'name' => $name,
                     'stage' => $this->stageFromCourseName($name, $legacyCourse['modalidade'] ?? null),
-                    'modality' => $this->title($legacyCourse['modalidade'] ?? null),
-                    'status' => $active ? 'planejado' : 'inativo',
+                    'modality' => $this->modalityFromCourseName($name, $legacyCourse['modalidade'] ?? null),
+                    'status' => 'curricular',
                     'class_hour_minutes' => 50,
                     'notes' => 'Importado da base legada '.$source.'.',
-                    'active' => $active,
+                    'active' => true,
                     'legacy_metadata' => $legacyCourse,
                 ]
             );
@@ -794,12 +793,14 @@ class ImportLegacyData extends Command
                 ],
                 [
                     'academic_year_id' => $course->academic_year_id,
+                    'starts_period_id' => $this->periodIdForDate($source, $course->academic_year_id, $legacyCourse['inicio'] ?? null),
+                    'ends_period_id' => $this->periodIdForDate($source, $course->academic_year_id, $legacyCourse['fim'] ?? null),
                     'name' => $course->name,
                     'shift' => null,
                     'starts_at' => $this->dateOrNull($legacyCourse['inicio'] ?? null),
                     'ends_at' => $this->dateOrNull($legacyCourse['fim'] ?? null),
                     'notes' => 'Turma inicial criada a partir do curso legado '.$source.' #'.$legacyCourseId.'.',
-                    'active' => $course->active,
+                    'active' => true,
                     'legacy_metadata' => $legacyCourse,
                 ]
             );
@@ -1389,6 +1390,23 @@ class ImportLegacyData extends Command
         }
 
         return AcademicCourse::STAGE_OTHER;
+    }
+
+    private function modalityFromCourseName(string $name, ?string $modality): string
+    {
+        $text = Str::of($name.' '.$modality)->ascii()->lower()->toString();
+
+        return match (true) {
+            str_contains($text, 'eja') || str_contains($text, 'jovens e adultos') => AcademicCourse::MODALITY_EJA,
+            str_contains($text, 'especial') => AcademicCourse::MODALITY_SPECIAL,
+            str_contains($text, 'indigena') => AcademicCourse::MODALITY_INDIGENOUS,
+            str_contains($text, 'quilombola') => AcademicCourse::MODALITY_QUILOMBOLA,
+            str_contains($text, 'campo') => AcademicCourse::MODALITY_RURAL,
+            str_contains($text, 'distancia') || str_contains($text, 'ead') => AcademicCourse::MODALITY_DISTANCE,
+            str_contains($text, 'tecnico') || str_contains($text, 'profissional') || str_contains($text, 'tecnologica') || str_contains($text, 'moveis') => AcademicCourse::MODALITY_PROFESSIONAL_TECHNOLOGICAL,
+            $text === '' || str_contains($text, 'regular') || str_contains($text, 'fundamental') || str_contains($text, 'medio') => AcademicCourse::MODALITY_REGULAR,
+            default => AcademicCourse::MODALITY_OTHER,
+        };
     }
 
     private function enrollmentStatus(?string $status): string

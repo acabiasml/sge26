@@ -99,10 +99,10 @@ class CurriculumComponent extends Model
 
     public function isActiveInPeriod(AcademicPeriod $period): bool
     {
-        $this->loadMissing('course.startsPeriod', 'course.endsPeriod', 'startsPeriod', 'endsPeriod');
+        $this->loadMissing('startsPeriod', 'endsPeriod');
 
-        $starts = $this->startsPeriod ?? $this->course?->startsPeriod;
-        $ends = $this->endsPeriod ?? $this->course?->endsPeriod;
+        $starts = $this->startsPeriod;
+        $ends = $this->endsPeriod;
 
         if ($starts && $period->position < $starts->position) {
             return false;

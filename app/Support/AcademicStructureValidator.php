@@ -19,6 +19,8 @@ class AcademicStructureValidator
             'days',
             'courses.components.area',
             'classes.courses.components',
+            'classes.startsPeriod',
+            'classes.endsPeriod',
             'classes.componentAssignments.teacher',
             'classes.enrollments',
         ]);
@@ -59,10 +61,6 @@ class AcademicStructureValidator
         $items = [];
         $baseUrl = route('academic-years.courses.show', [$course->academic_year_id, $course]);
 
-        if (! $course->active) {
-            $items[] = self::issue('warning', 'Matriz inativa', 'Matrizes inativas não devem receber novas turmas ou matrículas.', 'Editar matriz', route('academic-years.courses.edit', [$course->academic_year_id, $course]));
-        }
-
         if ($course->components->where('active', true)->isEmpty()) {
             $items[] = self::issue('danger', 'Matriz sem componentes ativos', 'Inclua os componentes curriculares antes de criar turmas para esta matriz.', 'Gerenciar matriz', $baseUrl);
         }
@@ -76,8 +74,8 @@ class AcademicStructureValidator
                 $items[] = self::issue('warning', 'Componente sem aulas semanais', "{$component->name} precisa de aulas semanais para cálculo de carga horária e horários.", 'Abrir componente', route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
             }
 
-            $starts = $component->startsPeriod ?? $course->startsPeriod;
-            $ends = $component->endsPeriod ?? $course->endsPeriod;
+            $starts = $component->startsPeriod;
+            $ends = $component->endsPeriod;
 
             if ($starts && $ends && $starts->position > $ends->position) {
                 $items[] = self::issue('danger', 'Duração inválida de componente', "{$component->name} começa depois do período final informado.", 'Abrir componente', route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
@@ -99,6 +97,8 @@ class AcademicStructureValidator
         if ($load) {
             $class->loadMissing([
                 'academicYear.periods',
+                'startsPeriod',
+                'endsPeriod',
                 'courses.components',
                 'componentAssignments.component.course',
                 'componentAssignments.teacher',
@@ -115,7 +115,11 @@ class AcademicStructureValidator
         }
 
         if ($class->courses->isEmpty()) {
-            $items[] = self::issue('danger', 'Turma sem matriz', 'Vincule ao menos uma matriz ativa para gerar componentes, matrículas e diários.', 'Editar turma', route('academic-years.classes.edit', [$academicYear, $class]));
+            $items[] = self::issue('danger', 'Turma sem matriz', 'Vincule ao menos uma matriz curricular para gerar componentes, matrículas e diários.', 'Editar turma', route('academic-years.classes.edit', [$academicYear, $class]));
+        }
+
+        if ($class->startsPeriod && $class->endsPeriod && $class->startsPeriod->position > $class->endsPeriod->position) {
+            $items[] = self::issue('danger', 'Duração inválida da turma', 'O período inicial da turma está depois do período final.', 'Editar turma', route('academic-years.classes.edit', [$academicYear, $class]));
         }
 
         if ($class->enrollments->isEmpty()) {

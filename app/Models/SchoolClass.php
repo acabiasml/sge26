@@ -16,6 +16,8 @@ class SchoolClass extends Model
 
     protected $fillable = [
         'academic_year_id',
+        'starts_period_id',
+        'ends_period_id',
         'name',
         'shift',
         'starts_at',
@@ -48,6 +50,16 @@ class SchoolClass extends Model
     public function academicYear(): BelongsTo
     {
         return $this->belongsTo(AcademicYear::class);
+    }
+
+    public function startsPeriod(): BelongsTo
+    {
+        return $this->belongsTo(AcademicPeriod::class, 'starts_period_id');
+    }
+
+    public function endsPeriod(): BelongsTo
+    {
+        return $this->belongsTo(AcademicPeriod::class, 'ends_period_id');
     }
 
     public function courses(): BelongsToMany

@@ -35,9 +35,9 @@ class StudentEnrollmentController extends Controller
                             'classes' => function ($classes): void {
                                 $classes
                                     ->where('active', true)
-                                    ->whereHas('courses', fn ($courses) => $courses->where('academic_courses.active', true))
+                                    ->whereHas('courses')
                                     ->with([
-                                        'courses' => fn ($courses) => $courses->where('academic_courses.active', true)->orderBy('name'),
+                                        'courses' => fn ($courses) => $courses->orderBy('name'),
                                         'enrollments',
                                     ])
                                     ->orderBy('name');
@@ -61,7 +61,6 @@ class StudentEnrollmentController extends Controller
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
 
         $availableCourses = $class->courses()
-            ->where('academic_courses.active', true)
             ->orderBy('name')
             ->get();
 
@@ -85,14 +84,14 @@ class StudentEnrollmentController extends Controller
             'targetClasses' => $academicYear->classes()
                 ->whereKeyNot($class->id)
                 ->where('active', true)
-                ->whereHas('courses', fn ($courses) => $courses->where('academic_courses.active', true))
-                ->with(['courses' => fn ($courses) => $courses->where('academic_courses.active', true)->orderBy('name')])
+                ->whereHas('courses')
+                ->with(['courses' => fn ($courses) => $courses->orderBy('name')])
                 ->orderBy('name')
                 ->get(),
             'targetClassCourseOptions' => $academicYear->classes()
                 ->whereKeyNot($class->id)
                 ->where('active', true)
-                ->with(['courses' => fn ($courses) => $courses->where('academic_courses.active', true)->orderBy('name')])
+                ->with(['courses' => fn ($courses) => $courses->orderBy('name')])
                 ->get()
                 ->mapWithKeys(fn (SchoolClass $targetClass) => [
                     $targetClass->id => $targetClass->courses
@@ -108,7 +107,17 @@ class StudentEnrollmentController extends Controller
     {
         $academicYear = $class->academicYear()->firstOrFail();
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
-        abort_unless($class->active && $academicYear->active, 404);
+        if (! $academicYear->active) {
+            throw ValidationException::withMessages([
+                'academic_year_id' => 'Não é possível matricular estudante em ano letivo inativo.',
+            ]);
+        }
+
+        if (! $class->active) {
+            throw ValidationException::withMessages([
+                'school_class_id' => 'Não é possível matricular estudante em turma inativa.',
+            ]);
+        }
         $this->ensureAcademicYearIsOpen($academicYear);
 
         $data = $this->validatedData($request, $academicYear, $class);
@@ -190,7 +199,7 @@ class StudentEnrollmentController extends Controller
         $targetClassIds = $academicYear->classes()
             ->whereKeyNot($class->id)
             ->where('active', true)
-            ->whereHas('courses', fn ($query) => $query->where('academic_courses.active', true))
+            ->whereHas('courses')
             ->pluck('id')
             ->all();
 
@@ -216,7 +225,7 @@ class StudentEnrollmentController extends Controller
             ]);
         }
 
-        $targetCourseIds = $targetClass->courses()->where('academic_courses.active', true)->pluck('academic_courses.id')->all();
+        $targetCourseIds = $targetClass->courses()->pluck('academic_courses.id')->all();
         $selectedCourseIds = collect($data['course_ids'])->map(fn ($id): int => (int) $id)->all();
 
         if (array_diff($selectedCourseIds, $targetCourseIds) !== []) {
@@ -322,6 +331,12 @@ class StudentEnrollmentController extends Controller
      */
     private function validatedData(Request $request, AcademicYear $academicYear, SchoolClass $class): array
     {
+        if (! $class->active) {
+            throw ValidationException::withMessages([
+                'school_class_id' => 'Não é possível matricular estudante em turma inativa.',
+            ]);
+        }
+
         $studentIds = Person::query()
             ->where('active', true)
             ->whereNotNull('cpf')
@@ -330,7 +345,6 @@ class StudentEnrollmentController extends Controller
             ->all();
 
         $courseIds = $class->courses()
-            ->where('academic_courses.active', true)
             ->pluck('academic_courses.id')
             ->all();
 
@@ -382,7 +396,7 @@ class StudentEnrollmentController extends Controller
             ->where('person_id', $student->id)
             ->where('status', '!=', StudentEnrollment::STATUS_CANCELLED)
             ->whereHas('schoolClass.academicYear', fn ($years) => $years->where('school_id', $schoolId))
-            ->with(['schoolClass.academicYear', 'courses.endsPeriod'])
+            ->with(['schoolClass.academicYear', 'courses'])
             ->get();
 
         $role = $student->schoolRoles()->firstOrNew([
@@ -407,15 +421,7 @@ class StudentEnrollmentController extends Controller
             ->min();
 
         $endedAt = $enrollments
-            ->flatMap(function (StudentEnrollment $enrollment): array {
-                if ($enrollment->courses->isEmpty()) {
-                    return [$this->enrollmentEndDate($enrollment)];
-                }
-
-                return $enrollment->courses
-                    ->map(fn ($course): ?string => $course->endsPeriod?->ends_at?->toDateString() ?? $this->enrollmentEndDate($enrollment))
-                    ->all();
-            })
+            ->map(fn (StudentEnrollment $enrollment): ?string => $this->enrollmentEndDate($enrollment))
             ->filter()
             ->max();
 

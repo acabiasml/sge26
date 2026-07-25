@@ -36,7 +36,7 @@
                         <dt>Área</dt>
                         <dd>{{ $component->area?->name ?? 'Não definida' }}</dd>
                         <dt>Duração</dt>
-                        <dd>{{ $component->startsPeriod?->name ?? $course->startsPeriod?->name ?? 'início da matriz' }} até {{ $component->endsPeriod?->name ?? $course->endsPeriod?->name ?? 'fim da matriz' }}</dd>
+                        <dd>{{ $component->startsPeriod?->name ?? 'início da turma' }} até {{ $component->endsPeriod?->name ?? 'fim da turma' }}</dd>
                         <dt>Carga horária calculada</dt>
                         <dd>{{ $component->formattedCalculatedWorkloadHours($course) }} horas</dd>
                         <dt>Aulas semanais</dt>
@@ -75,7 +75,7 @@
                                 <div class="col-md-4 form-group">
                                     <label for="component_starts_period_id">Período inicial</label>
                                     <select id="component_starts_period_id" name="starts_period_id" class="form-control">
-                                        <option value="">Início da matriz</option>
+                                        <option value="">Desde o início da turma</option>
                                         @foreach ($periods as $period)
                                             <option value="{{ $period->id }}" @selected((int) old('starts_period_id', $component->starts_period_id) === $period->id)>{{ $period->name }}</option>
                                         @endforeach
@@ -84,7 +84,7 @@
                                 <div class="col-md-4 form-group">
                                     <label for="component_ends_period_id">Período final</label>
                                     <select id="component_ends_period_id" name="ends_period_id" class="form-control">
-                                        <option value="">Fim da matriz</option>
+                                        <option value="">Até o fim da turma</option>
                                         @foreach ($periods as $period)
                                             <option value="{{ $period->id }}" @selected((int) old('ends_period_id', $component->ends_period_id) === $period->id)>{{ $period->name }}</option>
                                         @endforeach

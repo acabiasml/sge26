@@ -545,7 +545,7 @@ class AcademicPeriodController extends Controller
         $assignments = SchoolClassComponent::query()
             ->where('active', true)
             ->whereHas('schoolClass', fn (Builder $query) => $query->where('academic_year_id', $academicYearId)->where('active', true))
-            ->whereHas('component.course', fn (Builder $query) => $query->where('academic_year_id', $academicYearId)->where('active', true))
+            ->whereHas('component.course', fn (Builder $query) => $query->where('academic_year_id', $academicYearId))
             ->get();
 
         foreach ($assignments as $assignment) {
@@ -572,7 +572,7 @@ class AcademicPeriodController extends Controller
         $assignments = SchoolClassComponent::query()
             ->where('active', true)
             ->whereHas('schoolClass', fn (Builder $query) => $query->where('academic_year_id', $academicYearId)->where('active', true))
-            ->whereHas('component.course', fn (Builder $query) => $query->where('academic_year_id', $academicYearId)->where('active', true))
+            ->whereHas('component.course', fn (Builder $query) => $query->where('academic_year_id', $academicYearId))
             ->get();
 
         foreach ($assignments as $assignment) {

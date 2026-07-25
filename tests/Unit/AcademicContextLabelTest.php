@@ -14,7 +14,7 @@ class AcademicContextLabelTest extends TestCase
         $technical = new AcademicCourse(['stage' => AcademicCourse::STAGE_TECHNICAL]);
 
         $this->assertSame(
-            '3º Ano A · Ensino Médio / Ensino Técnico',
+            '3º Ano A · Ensino Médio / Educação Profissional Técnica de Nível Médio',
             AcademicContextLabel::classWithStages('3º Ano A', collect([$regular, $technical, $regular])),
         );
         $this->assertSame('Etapas', AcademicContextLabel::stageHeading([$regular, $technical]));

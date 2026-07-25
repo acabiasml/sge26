@@ -14,7 +14,7 @@
         <div class="card-body">
             @if ($readyCourses->isEmpty())
                 <div class="alert alert-warning">
-                    Cadastre ao menos uma matriz ativa com componentes curriculares antes de criar turmas.
+                    Cadastre ao menos uma matriz com componentes curriculares antes de criar turmas.
                 </div>
             @endif
 
@@ -39,15 +39,35 @@
             </div>
 
             <div class="row">
-                <div class="col-md-6 form-group">
+                <div class="col-md-3 form-group">
                     <label for="starts_at">Início</label>
                     <input id="starts_at" name="starts_at" type="date" class="form-control @error('starts_at') is-invalid @enderror" value="{{ old('starts_at', $class->starts_at?->toDateString()) }}">
                     @error('starts_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
-                <div class="col-md-6 form-group">
+                <div class="col-md-3 form-group">
                     <label for="ends_at">Fim</label>
                     <input id="ends_at" name="ends_at" type="date" class="form-control @error('ends_at') is-invalid @enderror" value="{{ old('ends_at', $class->ends_at?->toDateString()) }}">
                     @error('ends_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-3 form-group">
+                    <label for="starts_period_id">Período inicial</label>
+                    <select id="starts_period_id" name="starts_period_id" class="form-control @error('starts_period_id') is-invalid @enderror">
+                        <option value="">Início do ano letivo</option>
+                        @foreach ($academicYear->periods->sortBy('position') as $period)
+                            <option value="{{ $period->id }}" @selected((int) old('starts_period_id', $class->starts_period_id) === $period->id)>{{ $period->name }}</option>
+                        @endforeach
+                    </select>
+                    @error('starts_period_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-3 form-group">
+                    <label for="ends_period_id">Período final</label>
+                    <select id="ends_period_id" name="ends_period_id" class="form-control @error('ends_period_id') is-invalid @enderror">
+                        <option value="">Fim do ano letivo</option>
+                        @foreach ($academicYear->periods->sortBy('position') as $period)
+                            <option value="{{ $period->id }}" @selected((int) old('ends_period_id', $class->ends_period_id) === $period->id)>{{ $period->name }}</option>
+                        @endforeach
+                    </select>
+                    @error('ends_period_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
             </div>
 
@@ -56,7 +76,7 @@
                 <select id="course_ids" name="course_ids[]" class="form-control @error('course_ids') is-invalid @enderror" multiple required>
                     @foreach ($readyCourses as $course)
                         <option value="{{ $course->id }}" @selected(in_array($course->id, $selectedCourseIds, true))>
-                            {{ $course->name }} · {{ $course->stageLabel() }}
+                            {{ $course->name }} · {{ $course->stageLabel() }} · {{ $course->modalityLabel() }}
                         </option>
                     @endforeach
                 </select>
