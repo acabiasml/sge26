@@ -33,9 +33,9 @@ use Illuminate\Support\Str;
 
 class ImportLegacyData extends Command
 {
-    protected $signature = 'legacy:import {--fresh : Remove dados importados das bases legadas antes de importar}';
+    protected $signature = 'legacy:import {--fresh : Remove dados trazidos das bases anteriores antes de importar}';
 
-    protected $description = 'Importa escolas, pessoas, vínculos e responsáveis das três bases legadas.';
+    protected $description = 'Importa escolas, pessoas, vínculos e responsáveis das três bases anteriores.';
 
     /**
      * @var array<string, string>
@@ -93,7 +93,7 @@ class ImportLegacyData extends Command
             }
         });
 
-        $this->info('Importação legada concluída.');
+        $this->info('Importação das bases anteriores concluída.');
 
         return self::SUCCESS;
     }
@@ -241,7 +241,7 @@ class ImportLegacyData extends Command
             $this->importLegacyAttendance($source, $tables['frequencias'] ?? [], $tables['diarios'] ?? []);
             $this->importLegacyGrades($source, $tables['medias'] ?? []);
 
-            $this->line("{$source}: ".count($tables['users'] ?? []).' pessoas importadas/atualizadas.');
+            $this->line("{$source}: ".count($tables['users'] ?? []).' pessoas processadas.');
         });
     }
 
@@ -316,7 +316,7 @@ class ImportLegacyData extends Command
             'legacy_source' => $source,
             'legacy_code' => $legacyUser['codigo'] ?? null,
             'student_inep' => ($legacyUser['tipo'] ?? null) === 'estud' ? ($legacyUser['inep'] ?? null) : null,
-            'full_name' => $this->title($legacyUser['nome'] ?? 'Pessoa legada '.$source.' #'.$legacyId),
+            'full_name' => $this->title($legacyUser['nome'] ?? 'Pessoa sem nome '.$source.' #'.$legacyId),
             'social_name' => $this->title($legacyUser['nomesocial'] ?? null),
             'cpf' => $cpf,
             'birth_date' => $this->dateOrNull($legacyUser['nascimento'] ?? null),
@@ -531,7 +531,7 @@ class ImportLegacyData extends Command
                 'secondary_phone' => $secondaryPhone,
                 'legal_guardian' => $type === PersonContact::TYPE_LEGAL_GUARDIAN,
                 'emergency_contact' => $type === PersonContact::TYPE_LEGAL_GUARDIAN,
-                'notes' => 'Importado da base '.$source.'.',
+                'notes' => null,
                 'legacy_source' => $source,
                 'legacy_metadata' => [
                     'original_name' => $name,
@@ -619,7 +619,7 @@ class ImportLegacyData extends Command
                     'minimum_school_days' => 200,
                     'passing_points' => 24,
                     'minimum_attendance_percentage' => 75,
-                    'notes' => 'Importado da base legada '.$source.'. Revise datas, aprovação e regras antes de usar oficialmente.',
+                    'notes' => 'Revise datas, aprovação e regras antes de usar oficialmente.',
                     'active' => $isOperationalYear,
                     'legacy_metadata' => $legacyCalendar,
                 ]
@@ -662,7 +662,7 @@ class ImportLegacyData extends Command
                     'ignore_saturdays' => true,
                     'ignore_sundays' => true,
                     'position' => $positions[$academicYearId],
-                    'notes' => 'Importado da base legada '.$source.'.',
+                    'notes' => null,
                     'recovery_mode' => AcademicPeriod::RECOVERY_NONE,
                     'legacy_metadata' => $legacyPeriod,
                 ]
@@ -686,7 +686,7 @@ class ImportLegacyData extends Command
                 continue;
             }
 
-            $name = trim((string) $this->title($legacyCourse['nome'] ?? 'Curso legado '.$legacyId));
+            $name = trim((string) $this->title($legacyCourse['nome'] ?? 'Curso '.$legacyId));
 
             $course = AcademicCourse::query()->updateOrCreate(
                 [
@@ -702,7 +702,7 @@ class ImportLegacyData extends Command
                     'modality' => $this->modalityFromCourseName($name, $legacyCourse['modalidade'] ?? null),
                     'status' => 'curricular',
                     'class_hour_minutes' => 50,
-                    'notes' => 'Importado da base legada '.$source.'.',
+                    'notes' => null,
                     'active' => true,
                     'legacy_metadata' => $legacyCourse,
                 ]
@@ -741,12 +741,12 @@ class ImportLegacyData extends Command
                 [
                     'academic_course_id' => $courseId,
                     'knowledge_area_id' => $areaMap[(int) ($legacyComponent['area_id'] ?? 0)] ?? null,
-                    'name' => $this->title($legacyComponent['nome'] ?? 'Componente legado '.$legacyId),
+                    'name' => $this->title($legacyComponent['nome'] ?? 'Componente '.$legacyId),
                     'weekly_lessons' => $weeklyLessons,
                     'workload_hours' => $weeklyLessons && $course
                         ? (int) round(($weeklyLessons * (int) $course->class_hour_minutes * 40) / 60)
                         : null,
-                    'notes' => 'Importado da base legada '.$source.'.',
+                    'notes' => null,
                     'active' => true,
                     'legacy_metadata' => $legacyComponent,
                 ]
@@ -800,7 +800,7 @@ class ImportLegacyData extends Command
                     'shift' => null,
                     'starts_at' => $this->dateOrNull($legacyCourse['inicio'] ?? null),
                     'ends_at' => $this->dateOrNull($legacyCourse['fim'] ?? null),
-                    'notes' => 'Turma inicial criada a partir do curso legado '.$source.' #'.$legacyCourseId.'.',
+                    'notes' => null,
                     'active' => true,
                     'legacy_metadata' => $legacyCourse,
                 ]
@@ -868,7 +868,7 @@ class ImportLegacyData extends Command
                 'type' => strtolower((string) ($legacyEnrollment['tipo'] ?? '')) === 'ouvinte'
                     ? StudentEnrollment::TYPE_LISTENER
                     : StudentEnrollment::TYPE_REGULAR,
-                'notes' => 'Importado da base legada '.$source.'.',
+                'notes' => null,
                 'legacy_source' => $enrollment->legacy_source ?? $source,
                 'legacy_id' => $enrollment->legacy_id ?? $legacyId,
                 'legacy_metadata' => array_merge($enrollment->legacy_metadata ?? [], [
@@ -913,7 +913,7 @@ class ImportLegacyData extends Command
                         'type' => $type,
                         'counts_as_school_day' => $counts,
                         'title' => $title,
-                        'description' => $period ? 'Gerado a partir do período legado '.$period->name.'.' : null,
+                        'description' => null,
                     ]
                 );
             }
@@ -942,7 +942,7 @@ class ImportLegacyData extends Command
                 [
                     'school_id' => $school->id,
                     'created_by_user_id' => null,
-                    'title' => 'Aviso legado',
+                    'title' => 'Aviso',
                     'body' => $body,
                     'starts_at' => Carbon::parse($date)->startOfDay(),
                     'ends_at' => Carbon::parse($date)->endOfDay(),

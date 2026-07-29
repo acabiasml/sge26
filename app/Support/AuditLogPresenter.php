@@ -102,7 +102,7 @@ class AuditLogPresenter
         'legal_name' => 'Razão social',
         'letterhead_text' => 'Texto institucional',
         'logo_path' => 'Logo',
-        'minimum_school_days' => 'Referência de dias letivos (legado)',
+        'minimum_school_days' => 'Referência de dias letivos',
         'minimum_attendance_percentage' => 'Frequência mínima para aprovação',
         'name' => 'Nome',
         'notes' => 'Observações',

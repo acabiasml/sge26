@@ -18,8 +18,8 @@
         .center { text-align: center; }
         .small { font-size: 7.5px; color: #6b625e; }
         .student-column { min-width: 128px; }
-        .date-heading { height: 58px; padding: 1px; vertical-align: bottom; width: 18px; }
-        .date-heading span { display: inline-block; line-height: 1; transform: rotate(-90deg); transform-origin: center; white-space: nowrap; width: 58px; }
+        .date-heading { height: 74px; padding: 0; position: relative; vertical-align: middle; width: 24px; min-width: 24px; overflow: hidden; }
+        .date-heading span { display: block; line-height: 1.05; position: absolute; left: -24px; top: 30px; text-align: center; transform: rotate(-90deg); transform-origin: center; white-space: nowrap; width: 74px; }
         .compact-score-heading { min-width: 32px; }
         .period-page { page-break-after: always; }
         .period-page:last-child { page-break-after: auto; }
