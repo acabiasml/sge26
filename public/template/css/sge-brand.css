@@ -395,15 +395,17 @@ strong {
 
 .sge-livewire-table-card,
 .sge-livewire-table-card > .card-body {
-    overflow: visible;
+    overflow: visible !important;
 }
 
 .sge-livewire-table-card > .card-body {
-    min-height: 18rem;
+    min-height: 22rem;
 }
 
-.sge-livewire-table-card:has(.dropdown-menu.show) > .card-body {
-    padding-bottom: 13rem;
+.sge-livewire-table-card:has(.dropdown-menu.show) > .card-body,
+.sge-livewire-table-card:has([aria-haspopup="true"][aria-expanded="true"]) > .card-body {
+    min-height: 32rem;
+    padding-bottom: 18rem;
 }
 
 .sge-livewire-table-card .d-md-flex.justify-content-between {
@@ -427,6 +429,10 @@ strong {
     min-width: 10rem;
     overflow-y: auto;
     z-index: 1100;
+}
+
+.sge-livewire-table-card .dropdown-menu.mt-md-5 {
+    margin-top: .35rem !important;
 }
 
 .card-header {
