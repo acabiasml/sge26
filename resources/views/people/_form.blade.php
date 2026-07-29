@@ -2,6 +2,7 @@
     $lockInstitutionalEmail = $lockInstitutionalEmail ?? false;
     $lockOwnIdentity = $lockOwnIdentity ?? false;
     $showActiveControl = $showActiveControl ?? true;
+    $requiresCompleteActiveData = $requiresCompleteActiveData ?? true;
     $lockFullName = $lockOwnIdentity && filled($person->full_name ?? null);
     $lockCpf = $lockOwnIdentity && filled($person->cpf ?? null);
     $lockBirthDate = $lockOwnIdentity && filled($person->birth_date ?? null);
@@ -13,7 +14,8 @@
     }
     $nationalityOptions = \App\Support\Nationalities::options();
     $activeValue = (bool) old('active', $person->active ?? true);
-    $requiresBrazilianBirthPlace = $activeValue && $nationalityValue === 'Brasileira';
+    $requiresCompleteFields = $requiresCompleteActiveData && $activeValue;
+    $requiresBrazilianBirthPlace = $requiresCompleteFields && $nationalityValue === 'Brasileira';
 @endphp
 
 <div class="form-row">
@@ -36,7 +38,7 @@
 <div class="form-row">
     <div class="form-group col-md-4">
         <label for="cpf">CPF</label>
-        <input id="cpf" name="cpf" data-mask="cpf" inputmode="numeric" autocomplete="off" class="form-control @error('cpf') is-invalid @enderror" value="{{ old('cpf', $person->cpf ?? '') }}" @readonly($lockCpf) required>
+        <input id="cpf" name="cpf" data-mask="cpf" inputmode="numeric" autocomplete="off" class="form-control @error('cpf') is-invalid @enderror" value="{{ old('cpf', $person->cpf ?? '') }}" @readonly($lockCpf) @required($requiresCompleteFields)>
         @if ($lockCpf)
             <small class="form-text text-muted">Seu CPF não pode ser alterado por você.</small>
         @endif
@@ -45,7 +47,7 @@
 
     <div class="form-group col-md-4">
         <label for="birth_date">Data de nascimento</label>
-        <input id="birth_date" name="birth_date" type="date" class="form-control @error('birth_date') is-invalid @enderror" value="{{ old('birth_date', isset($person) && $person->birth_date ? $person->birth_date->format('Y-m-d') : '') }}" @readonly($lockBirthDate) required>
+        <input id="birth_date" name="birth_date" type="date" class="form-control @error('birth_date') is-invalid @enderror" value="{{ old('birth_date', isset($person) && $person->birth_date ? $person->birth_date->format('Y-m-d') : '') }}" @readonly($lockBirthDate) @required($requiresCompleteFields)>
         @if ($lockBirthDate)
             <small class="form-text text-muted">Sua data de nascimento não pode ser alterada por você.</small>
         @endif
@@ -85,7 +87,7 @@
 
     <div class="form-group col-md-5">
         <label for="nationality">Nacionalidade</label>
-        <select id="nationality" name="nationality" class="form-control @error('nationality') is-invalid @enderror" data-nationality-input required>
+        <select id="nationality" name="nationality" class="form-control @error('nationality') is-invalid @enderror" data-nationality-input data-requires-complete-active-data="{{ $requiresCompleteActiveData ? '1' : '0' }}" @required($requiresCompleteFields)>
             <option value="">Selecione</option>
             @foreach ($nationalityOptions as $value => $label)
                 <option value="{{ $value }}" @selected($nationalityValue === $value)>{{ $label }}</option>
@@ -110,7 +112,7 @@
 <div class="form-row">
     <div class="form-group col-md-6">
         <label for="mother_name">Nome da mãe</label>
-        <input id="mother_name" name="mother_name" class="form-control @error('mother_name') is-invalid @enderror" value="{{ old('mother_name', $person->mother_name ?? '') }}" @readonly($lockMotherName) required>
+        <input id="mother_name" name="mother_name" class="form-control @error('mother_name') is-invalid @enderror" value="{{ old('mother_name', $person->mother_name ?? '') }}" @readonly($lockMotherName) @required($requiresCompleteFields)>
         @if ($lockMotherName)
             <small class="form-text text-muted">O nome da sua mãe não pode ser alterado por você.</small>
         @endif
@@ -152,7 +154,7 @@
 <div class="form-row">
     <div class="form-group col-md-6">
         <label for="address">Endereço</label>
-        <input id="address" name="address" autocomplete="street-address" class="form-control @error('address') is-invalid @enderror" value="{{ old('address', $person->address ?? '') }}" required>
+        <input id="address" name="address" autocomplete="street-address" class="form-control @error('address') is-invalid @enderror" value="{{ old('address', $person->address ?? '') }}" @required($requiresCompleteFields)>
         @error('address') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
@@ -172,14 +174,14 @@
 <div class="form-row">
     <div class="form-group col-md-5">
         <label for="city">Cidade</label>
-        <input id="city" name="city" class="form-control @error('city') is-invalid @enderror" value="{{ old('city', $person->city ?? '') }}" required>
+        <input id="city" name="city" class="form-control @error('city') is-invalid @enderror" value="{{ old('city', $person->city ?? '') }}" @required($requiresCompleteFields)>
         @error('city') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
     <div class="form-group col-md-2">
         <label for="state">UF</label>
         @php($selectedState = old('state', $person->state ?? ''))
-        <select id="state" name="state" class="form-control @error('state') is-invalid @enderror" required>
+        <select id="state" name="state" class="form-control @error('state') is-invalid @enderror" @required($requiresCompleteFields)>
             <option value="">Selecione</option>
             @foreach (\App\Support\BrazilianStates::codes() as $state)
                 <option value="{{ $state }}" @selected($selectedState === $state)>{{ $state }}</option>
@@ -190,7 +192,7 @@
 
     <div class="form-group col-md-5">
         <label for="postal_code">CEP</label>
-        <input id="postal_code" name="postal_code" data-mask="cep" inputmode="numeric" autocomplete="postal-code" class="form-control @error('postal_code') is-invalid @enderror" value="{{ old('postal_code', $person->postal_code ?? '') }}" required>
+        <input id="postal_code" name="postal_code" data-mask="cep" inputmode="numeric" autocomplete="postal-code" class="form-control @error('postal_code') is-invalid @enderror" value="{{ old('postal_code', $person->postal_code ?? '') }}" @required($requiresCompleteFields)>
         @error('postal_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 </div>
@@ -213,6 +215,7 @@
                     return;
                 }
 
+                const requiresCompleteActiveData = nationalityInput.dataset.requiresCompleteActiveData === '1';
                 const isBrazilian = () => nationalityInput.value
                     .normalize('NFD')
                     .replace(/[\u0300-\u036f]/g, '')
@@ -220,7 +223,9 @@
                     .toLowerCase() === 'brasileira';
 
                 const syncBirthPlaceRequirement = () => {
-                    const requiresBirthPlace = (activeInput ? activeInput.checked : true) && isBrazilian();
+                    const requiresBirthPlace = requiresCompleteActiveData
+                        && (activeInput ? activeInput.checked : true)
+                        && isBrazilian();
 
                     birthFields.forEach((field) => {
                         field.required = requiresBirthPlace;

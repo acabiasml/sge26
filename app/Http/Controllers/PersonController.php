@@ -47,6 +47,7 @@ class PersonController extends Controller
             'roles' => $this->availableRoles($request),
             'positions' => PersonSchoolRole::POSITION_LABELS,
             'requiresInitialRole' => ! $request->user()->isAdministrator(),
+            'requiresCompleteActiveData' => true,
         ]);
     }
 
@@ -102,6 +103,7 @@ class PersonController extends Controller
             'person' => $person,
             'lockInstitutionalEmail' => ! $this->canChangeInstitutionalEmail($request, $person),
             'lockOwnIdentity' => $this->shouldLockOwnIdentity($request, $person),
+            'requiresCompleteActiveData' => ! $request->user()->isAdministrator(),
         ]);
     }
 
@@ -118,7 +120,7 @@ class PersonController extends Controller
             ]);
         }
 
-        if ($data['active'] && blank($data['cpf'] ?? null)) {
+        if (! $request->user()->isAdministrator() && $data['active'] && blank($data['cpf'] ?? null)) {
             throw ValidationException::withMessages([
                 'active' => 'Para ativar uma pessoa, informe o CPF.',
             ]);
@@ -237,35 +239,36 @@ class PersonController extends Controller
      */
     private function validatedData(Request $request, ?Person $person = null): array
     {
-        $isOwnRecord = $person && $request->user()->person_id === $person->id;
         $lockOwnIdentity = $person && $this->shouldLockOwnIdentity($request, $person);
         $canChangeInstitutionalEmail = ! $person || $this->canChangeInstitutionalEmail($request, $person);
-        $requiresBrazilianBirthPlace = $request->boolean('active') && $this->isBrazilianNationality($request->input('nationality'));
+        $requiresCompleteActiveData = $request->boolean('active')
+            && (! $person || ! $request->user()->isAdministrator());
+        $requiresBrazilianBirthPlace = $requiresCompleteActiveData && $this->isBrazilianNationality($request->input('nationality'));
 
         $rules = [
             'full_name' => ['required', 'string', 'max:255'],
             'social_name' => ['nullable', 'string', 'max:255'],
             'cpf' => [
-                $request->boolean('active') ? 'required' : 'nullable',
+                $requiresCompleteActiveData ? 'required' : 'nullable',
                 'string',
                 'max:20',
                 ...($lockOwnIdentity && filled($person->cpf) ? [] : [Rule::unique('people', 'cpf')->ignore($person)]),
             ],
-            'birth_date' => [$request->boolean('active') ? 'required' : 'nullable', 'date'],
+            'birth_date' => [$requiresCompleteActiveData ? 'required' : 'nullable', 'date'],
             'birth_city' => [$requiresBrazilianBirthPlace ? 'required' : 'nullable', 'string', 'max:255'],
             'birth_state' => [$requiresBrazilianBirthPlace ? 'required' : 'nullable', 'string', 'size:2', Rule::in(BrazilianStates::codes())],
-            'nationality' => [$request->boolean('active') ? 'required' : 'nullable', 'string', 'max:255'],
+            'nationality' => [$requiresCompleteActiveData ? 'required' : 'nullable', 'string', 'max:255'],
             'student_inep' => ['nullable', 'string', 'max:255'],
-            'mother_name' => ['required', 'string', 'max:255'],
+            'mother_name' => [$requiresCompleteActiveData ? 'required' : 'nullable', 'string', 'max:255'],
             'father_name' => ['nullable', 'string', 'max:255'],
             'personal_email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:255'],
-            'address' => [$request->boolean('active') ? 'required' : 'nullable', 'string', 'max:255'],
+            'address' => [$requiresCompleteActiveData ? 'required' : 'nullable', 'string', 'max:255'],
             'number' => ['nullable', 'string', 'max:255'],
             'district' => ['nullable', 'string', 'max:255'],
-            'city' => [$request->boolean('active') ? 'required' : 'nullable', 'string', 'max:255'],
-            'state' => [$request->boolean('active') ? 'required' : 'nullable', 'string', 'size:2', Rule::in(BrazilianStates::codes())],
-            'postal_code' => [$request->boolean('active') ? 'required' : 'nullable', 'string', 'max:255'],
+            'city' => [$requiresCompleteActiveData ? 'required' : 'nullable', 'string', 'max:255'],
+            'state' => [$requiresCompleteActiveData ? 'required' : 'nullable', 'string', 'size:2', Rule::in(BrazilianStates::codes())],
+            'postal_code' => [$requiresCompleteActiveData ? 'required' : 'nullable', 'string', 'max:255'],
             'address_complement' => ['nullable', 'string', 'max:255'],
             'active' => ['nullable', 'boolean'],
         ];

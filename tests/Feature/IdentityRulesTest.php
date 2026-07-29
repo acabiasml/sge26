@@ -119,6 +119,81 @@ class IdentityRulesTest extends TestCase
             ->assertSessionHasErrors(['mother_name']);
     }
 
+    public function test_administrator_can_update_active_person_without_completing_registration_data(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin@ctjj.org');
+        $person = Person::query()->create([
+            'full_name' => 'Cadastro Incompleto',
+            'active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('people.update', $person), $this->personPayload([
+                'full_name' => 'Cadastro Revisado',
+                'institutional_email' => null,
+                'cpf' => null,
+                'birth_date' => null,
+                'birth_city' => null,
+                'birth_state' => null,
+                'nationality' => null,
+                'mother_name' => null,
+                'address' => null,
+                'city' => null,
+                'state' => null,
+                'postal_code' => null,
+                'active' => '1',
+            ]))
+            ->assertRedirect(route('people.show', $person))
+            ->assertSessionDoesntHaveErrors();
+
+        $person->refresh();
+
+        $this->assertTrue($person->active);
+        $this->assertSame('Cadastro Revisado', $person->full_name);
+        $this->assertNull($person->cpf);
+        $this->assertNull($person->mother_name);
+    }
+
+    public function test_manager_must_complete_required_data_when_updating_active_person(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A']);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id, 'gestao@ctjj.org');
+        $person = Person::query()->create([
+            'full_name' => 'Cadastro Incompleto',
+            'active' => true,
+        ]);
+
+        $person->schoolRoles()->create([
+            'school_id' => $school->id,
+            'role' => PersonSchoolRole::ROLE_STUDENT,
+            'active' => true,
+            'started_at' => now()->subMonth()->toDateString(),
+        ]);
+
+        $this->actingAs($manager)
+            ->put(route('people.update', $person), $this->personPayload([
+                'cpf' => null,
+                'birth_date' => null,
+                'nationality' => null,
+                'mother_name' => null,
+                'address' => null,
+                'city' => null,
+                'state' => null,
+                'postal_code' => null,
+                'active' => '1',
+            ]))
+            ->assertSessionHasErrors([
+                'cpf',
+                'birth_date',
+                'nationality',
+                'mother_name',
+                'address',
+                'city',
+                'state',
+                'postal_code',
+            ]);
+    }
+
     public function test_person_form_shows_nationality_select_with_brazil_first(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin@ctjj.org');
