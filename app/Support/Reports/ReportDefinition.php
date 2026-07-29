@@ -80,9 +80,12 @@ class ReportDefinition
                 $query->whereHas('schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $user->manageableSchoolIds()));
             })
             ->when(($filters['situacao'] ?? '') !== '', fn (Builder $query) => $query->where('active', ($filters['situacao'] ?? '') === '1'))
-            ->when(filled($filters['papel'] ?? null) || filled($filters['escola'] ?? null), function (Builder $query) use ($filters): void {
-                $query->whereHasActiveSchoolRole($filters['papel'] ?? null, $filters['escola'] ?? null);
-            })
+            ->when(
+                filled($filters['papel'] ?? null) || filled($filters['escola'] ?? null) || filled($filters['vinculo'] ?? null),
+                function (Builder $query) use ($filters): void {
+                    $query->whereHasSchoolRole($filters['papel'] ?? null, $filters['escola'] ?? null, $filters['vinculo'] ?? null);
+                }
+            )
             ->when(filled($search), function (Builder $query) use ($search): void {
                 $query->where(function (Builder $query) use ($search): void {
                     $query->where('full_name', 'like', "%{$search}%")

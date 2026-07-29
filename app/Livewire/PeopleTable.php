@@ -26,14 +26,15 @@ class PeopleTable extends DataTableComponent
         $user = auth()->user();
         $roleFilter = $this->currentFilterValue('papel');
         $schoolFilter = $this->currentFilterValue('escola');
+        $roleStatusFilter = $this->currentFilterValue('vinculo');
 
         return Person::query()
             ->with('schoolRoles.school')
             ->when(! $user->isAdministrator(), function (Builder $query) use ($user): void {
                 $query->whereHas('schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $user->manageableSchoolIds()));
             })
-            ->when(filled($roleFilter) || filled($schoolFilter), function (Builder $query) use ($roleFilter, $schoolFilter): void {
-                $query->whereHasActiveSchoolRole($roleFilter ?: null, $schoolFilter ?: null);
+            ->when(filled($roleFilter) || filled($schoolFilter) || filled($roleStatusFilter), function (Builder $query) use ($roleFilter, $schoolFilter, $roleStatusFilter): void {
+                $query->whereHasSchoolRole($roleFilter ?: null, $schoolFilter ?: null, $roleStatusFilter ?: null);
             });
     }
 
@@ -78,6 +79,14 @@ class PeopleTable extends DataTableComponent
                 ->filter(fn (Builder $builder, string $value) => $builder),
             SelectFilter::make('Escola')
                 ->options(['' => 'Todas'] + $schools)
+                ->filter(fn (Builder $builder, string $value) => $builder),
+            SelectFilter::make('Vínculo')
+                ->options([
+                    '' => 'Todos',
+                    'ativos' => 'Ativos hoje',
+                    'inativos' => 'Inativos ou encerrados',
+                    'sem' => 'Sem vínculo cadastrado',
+                ])
                 ->filter(fn (Builder $builder, string $value) => $builder),
         ];
     }

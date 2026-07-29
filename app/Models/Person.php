@@ -174,19 +174,48 @@ class Person extends Model
 
     public function scopeWhereHasActiveSchoolRole(Builder $query, ?string $role = null, mixed $schoolId = null): Builder
     {
-        return $query->whereHas('schoolRoles', function (Builder $roles) use ($role, $schoolId): void {
+        return $query->whereHasSchoolRole($role, $schoolId, 'ativos');
+    }
+
+    public function scopeWhereHasSchoolRole(Builder $query, ?string $role = null, mixed $schoolId = null, ?string $status = null): Builder
+    {
+        if ($status === 'sem') {
+            if (filled($role) || filled($schoolId)) {
+                return $query->whereRaw('0 = 1');
+            }
+
+            return $query->whereDoesntHave('schoolRoles');
+        }
+
+        return $query->whereHas('schoolRoles', function (Builder $roles) use ($role, $schoolId, $status): void {
             $roles
                 ->when(filled($role), fn (Builder $roles) => $roles->where('role', $role))
                 ->when(filled($schoolId), fn (Builder $roles) => $roles->where('school_id', (int) $schoolId))
-                ->where('active', true)
-                ->where(function (Builder $roles): void {
-                    $roles->whereNull('started_at')
-                        ->orWhereDate('started_at', '<=', now()->toDateString());
-                })
-                ->where(function (Builder $roles): void {
-                    $roles->whereNull('ended_at')
-                        ->orWhereDate('ended_at', '>=', now()->toDateString());
-                });
+                ->when($status === 'ativos', fn (Builder $roles) => self::activeSchoolRoleForDate($roles))
+                ->when($status === 'inativos', fn (Builder $roles) => self::inactiveSchoolRoleForDate($roles));
+        });
+    }
+
+    private static function activeSchoolRoleForDate(Builder $roles): Builder
+    {
+        return $roles
+            ->where('active', true)
+            ->where(function (Builder $roles): void {
+                $roles->whereNull('started_at')
+                    ->orWhereDate('started_at', '<=', now()->toDateString());
+            })
+            ->where(function (Builder $roles): void {
+                $roles->whereNull('ended_at')
+                    ->orWhereDate('ended_at', '>=', now()->toDateString());
+            });
+    }
+
+    private static function inactiveSchoolRoleForDate(Builder $roles): Builder
+    {
+        return $roles->where(function (Builder $roles): void {
+            $roles->where('active', false)
+                ->orWhereDate('started_at', '>', now()->toDateString())
+                ->orWhereDate('ended_at', '<', now()->toDateString());
         });
     }
 }

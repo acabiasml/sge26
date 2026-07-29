@@ -283,6 +283,81 @@ class ReportExportTest extends TestCase
         $this->assertSame(1, $document->payload['rows_count']);
     }
 
+    public function test_people_report_uses_school_role_status_filter(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $school = School::query()->create($this->officialSchoolData([
+            'name' => 'Escola dos Vínculos',
+        ]));
+
+        $activeTeacher = Person::query()->create([
+            'full_name' => 'Docente Com Vínculo Atual',
+            'institutional_email' => 'docente-atual@ctjj.org',
+            'cpf' => '11122233344',
+            'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
+            'mother_name' => 'Maria da Silva',
+            'father_name' => 'José da Silva',
+            'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
+            'profile_completed_at' => now(),
+            'active' => true,
+        ]);
+        $activeTeacher->schoolRoles()->create([
+            'school_id' => $school->id,
+            'role' => PersonSchoolRole::ROLE_TEACHER,
+            'active' => true,
+            'started_at' => now()->subMonth()->toDateString(),
+        ]);
+
+        $endedTeacher = Person::query()->create([
+            'full_name' => 'Docente Com Vínculo Encerrado',
+            'institutional_email' => 'docente-encerrado@ctjj.org',
+            'cpf' => '55566677788',
+            'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoreu',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
+            'mother_name' => 'Maria da Silva',
+            'father_name' => 'José da Silva',
+            'phone' => '(65) 99999-0000',
+            'address' => 'Rua de Teste',
+            'city' => 'Poxoreu',
+            'state' => 'MT',
+            'postal_code' => '78700-000',
+            'profile_completed_at' => now(),
+            'active' => true,
+        ]);
+        $endedTeacher->schoolRoles()->create([
+            'school_id' => $school->id,
+            'role' => PersonSchoolRole::ROLE_TEACHER,
+            'active' => true,
+            'started_at' => now()->subYear()->toDateString(),
+            'ended_at' => now()->subDay()->toDateString(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('reports.pdf', [
+                'type' => 'people',
+                'table-filters' => [
+                    'papel' => PersonSchoolRole::ROLE_TEACHER,
+                    'escola' => (string) $school->id,
+                    'vinculo' => 'inativos',
+                ],
+            ]))
+            ->assertOk();
+
+        $document = IssuedDocument::query()->firstOrFail();
+
+        $this->assertSame(1, $document->payload['rows_count']);
+        $this->assertSame('inativos', $document->payload['filters']['vinculo']);
+    }
+
     public function test_roles_pdf_report_uses_current_table_filters(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);

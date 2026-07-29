@@ -266,7 +266,9 @@ class IdentityRulesTest extends TestCase
                 'position' => PersonSchoolRole::POSITION_DIRECTOR,
                 'active' => '1',
             ])
-            ->assertSessionHasErrors(['started_at']);
+            ->assertSessionHasErrors([
+                'started_at' => 'O campo início é obrigatório.',
+            ]);
     }
 
     public function test_manager_role_requires_position(): void

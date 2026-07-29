@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AuditLog;
+use App\Models\DiaryAssessmentResult;
 use App\Livewire\AuditLogsTable;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
@@ -122,8 +123,30 @@ class AuditLogTest extends TestCase
             ->test(AuditLogsTable::class)
             ->assertSee($admin->person->full_name)
             ->assertSee('Cadastro alterado')
-            ->assertSee('Escola #'.$school->id)
+            ->assertSee('Escola (registro '.$school->id.')')
             ->assertSee('Escola Auditada');
+    }
+
+    public function test_audit_table_uses_human_labels_for_diary_grade_records(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $school = School::query()->create(['name' => 'Escola Auditada']);
+
+        AuditLog::query()->forceCreate([
+            'actor_user_id' => $admin->id,
+            'actor_person_id' => $admin->person_id,
+            'school_id' => $school->id,
+            'actor_role' => PersonSchoolRole::ROLE_ADMINISTRATOR,
+            'auditable_type' => DiaryAssessmentResult::class,
+            'auditable_id' => 18352,
+            'action' => 'created',
+            'created_at' => now()->addMinute(),
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(AuditLogsTable::class)
+            ->assertSee('Nota de avaliação (registro 18352)')
+            ->assertDontSee('DiaryAssessmentResult');
     }
 
     public function test_non_administrator_cannot_change_audit_timezone(): void

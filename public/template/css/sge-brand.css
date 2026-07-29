@@ -393,6 +393,22 @@ strong {
     overflow: hidden;
 }
 
+.sge-livewire-table-card,
+.sge-livewire-table-card > .card-body {
+    overflow: visible;
+}
+
+.sge-livewire-table-card .btn-group,
+.sge-livewire-table-card .dropdown {
+    position: relative;
+}
+
+.sge-livewire-table-card .dropdown-menu {
+    max-height: min(28rem, calc(100vh - 8rem));
+    overflow-y: auto;
+    z-index: 1085;
+}
+
 .card-header {
     background-color: #fffdf8;
     border-bottom-color: var(--sge-border);

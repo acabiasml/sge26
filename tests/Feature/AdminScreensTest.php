@@ -448,6 +448,51 @@ class AdminScreensTest extends TestCase
             ->assertDontSee('Estudante do Liceu Docente Fora');
     }
 
+    public function test_people_filter_can_select_inactive_or_ended_school_roles(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $school = School::query()->create(['name' => 'Escola dos Vínculos', 'active' => true]);
+
+        $activeTeacher = Person::query()->create([
+            'full_name' => 'Docente Com Vínculo Atual',
+            'institutional_email' => 'docente.atual@ctjj.org',
+            'cpf' => '11122233344',
+            'active' => true,
+        ]);
+        $activeTeacher->schoolRoles()->create([
+            'school_id' => $school->id,
+            'role' => PersonSchoolRole::ROLE_TEACHER,
+            'active' => true,
+            'started_at' => now()->subMonth()->toDateString(),
+        ]);
+
+        $endedTeacher = Person::query()->create([
+            'full_name' => 'Docente Com Vínculo Encerrado',
+            'institutional_email' => 'docente.encerrado@ctjj.org',
+            'cpf' => '55566677788',
+            'active' => true,
+        ]);
+        $endedTeacher->schoolRoles()->create([
+            'school_id' => $school->id,
+            'role' => PersonSchoolRole::ROLE_TEACHER,
+            'active' => true,
+            'started_at' => now()->subYear()->toDateString(),
+            'ended_at' => now()->subDay()->toDateString(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('people.index', [
+                'table-filters' => [
+                    'papel' => PersonSchoolRole::ROLE_TEACHER,
+                    'escola' => (string) $school->id,
+                    'vinculo' => 'inativos',
+                ],
+            ]))
+            ->assertOk()
+            ->assertSee('Docente Com Vínculo Encerrado')
+            ->assertDontSee('Docente Com Vínculo Atual');
+    }
+
     public function test_inactive_incomplete_people_do_not_appear_as_registration_pendencies(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);

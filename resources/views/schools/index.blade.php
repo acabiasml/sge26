@@ -18,7 +18,7 @@
 @endsection
 
 @section('content')
-    <div class="card shadow mb-4">
+    <div class="card shadow mb-4 sge-livewire-table-card">
         <div class="card-body">
             <livewire:schools-table />
         </div>

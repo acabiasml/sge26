@@ -3,29 +3,45 @@
 namespace App\Support;
 
 use App\Models\AcademicPeriod;
+use App\Models\AcademicPeriodDiaryConsolidation;
+use App\Models\AcademicCourse;
 use App\Models\AcademicYear;
 use App\Models\Announcement;
 use App\Models\AuditLog;
 use App\Models\CalendarDay;
 use App\Models\CurriculumComponent;
 use App\Models\CurriculumComponentSubstitution;
+use App\Models\DiaryAlert;
 use App\Models\DiaryAssessment;
+use App\Models\DiaryAssessmentResult;
 use App\Models\DiaryAttendanceEntry;
 use App\Models\DiaryAttendanceJustification;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\DiaryContent;
 use App\Models\DiaryPeriodConfirmation;
 use App\Models\IssuedDocument;
+use App\Models\KnowledgeArea;
+use App\Models\OfficialDocument;
 use App\Models\Person;
 use App\Models\PersonContact;
 use App\Models\PersonRelationship;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
+use App\Models\SchoolAcademicCriteria;
 use App\Models\SchoolAssessmentRule;
 use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
 use App\Models\SchoolClassComponentSubstitution;
+use App\Models\SchoolClassSchedule;
+use App\Models\SchoolClassScheduleSlot;
+use App\Models\SchoolConcept;
+use App\Models\StudentAcademicHistory;
+use App\Models\StudentAcademicHistoryComponent;
+use App\Models\StudentAcademicHistoryRecord;
+use App\Models\StudentAcademicHistoryYear;
+use App\Models\StudentBehaviorGrade;
 use App\Models\StudentEnrollment;
+use App\Models\StudentPeriodConvalidation;
 use App\Models\User;
 
 class AuditLogPresenter
@@ -37,73 +53,117 @@ class AuditLogPresenter
     ];
 
     public const MODEL_LABELS = [
+        AcademicCourse::class => 'Matriz curricular',
         AcademicPeriod::class => 'Período avaliativo',
+        AcademicPeriodDiaryConsolidation::class => 'Consolidação de período avaliativo',
         AcademicYear::class => 'Ano letivo',
         Announcement::class => 'Recado',
         CalendarDay::class => 'Dia do calendário',
         CurriculumComponent::class => 'Componente curricular',
         CurriculumComponentSubstitution::class => 'Substituição docente',
+        DiaryAlert::class => 'Alerta do diário',
         DiaryAttendanceEntry::class => 'Registro de presença',
         DiaryAttendanceJustification::class => 'Justificativa de ausência',
         DiaryAttendanceRecord::class => 'Chamada',
         DiaryAssessment::class => 'Avaliação do diário',
+        DiaryAssessmentResult::class => 'Nota de avaliação',
         DiaryContent::class => 'Conteúdo do diário',
         DiaryPeriodConfirmation::class => 'Confirmação de diário',
-        SchoolAssessmentRule::class => 'Configuração de avaliações',
         IssuedDocument::class => 'Documento emitido',
+        KnowledgeArea::class => 'Área do conhecimento',
+        OfficialDocument::class => 'Documento oficial',
         Person::class => 'Pessoa',
         PersonContact::class => 'Contato/responsável',
         PersonRelationship::class => 'Relação entre pessoas',
         PersonSchoolRole::class => 'Vínculo',
         School::class => 'Escola',
+        SchoolAcademicCriteria::class => 'Critério acadêmico',
+        SchoolAssessmentRule::class => 'Configuração de avaliações',
         SchoolClass::class => 'Turma',
         SchoolClassComponent::class => 'Docência da turma',
         SchoolClassComponentSubstitution::class => 'Substituição docente da turma',
+        SchoolClassSchedule::class => 'Horário da turma',
+        SchoolClassScheduleSlot::class => 'Bloco do horário',
+        SchoolConcept::class => 'Conceito avaliativo',
+        StudentAcademicHistory::class => 'Histórico escolar',
+        StudentAcademicHistoryComponent::class => 'Componente do histórico escolar',
+        StudentAcademicHistoryRecord::class => 'Resultado do histórico escolar',
+        StudentAcademicHistoryYear::class => 'Ano do histórico escolar',
+        StudentBehaviorGrade::class => 'Nota de comportamento',
         StudentEnrollment::class => 'Matrícula',
+        StudentPeriodConvalidation::class => 'Convalidação de nota',
         User::class => 'Usuário',
     ];
 
     public const FIELD_LABELS = [
         'academic_course_id' => 'Matriz',
+        'academic_period_id' => 'Período avaliativo',
         'active' => 'Situação',
         'address' => 'Endereço',
         'address_complement' => 'Complemento',
+        'abbreviation' => 'Abreviatura',
         'approved_at' => 'Data de aprovação',
+        'assessment_date' => 'Data da avaliação',
+        'attendance_label' => 'Frequência informada',
         'birth_date' => 'Data de nascimento',
         'body' => 'Texto',
         'category' => 'Categoria',
         'city' => 'Cidade',
         'class_hour_minutes' => 'Minutos da hora-aula',
         'cnpj' => 'CNPJ',
+        'component_name' => 'Componente curricular',
         'counts_as_school_day' => 'Conta como dia letivo',
+        'consolidated' => 'Consolidado',
+        'consolidated_at' => 'Consolidado em',
+        'consolidated_by_person_id' => 'Consolidado por',
         'confirmed' => 'Confirmado',
         'confirmed_at' => 'Confirmado em',
         'confirmed_by_person_id' => 'Confirmado por',
         'content' => 'Conteúdo ministrado',
+        'country' => 'País',
         'cpf' => 'CPF',
+        'created_by_person_id' => 'Criado por',
         'curriculum_component_id' => 'Componente curricular',
         'date' => 'Data',
         'description' => 'Descrição',
+        'dismissed_at' => 'Dispensado em',
         'attended_lessons' => 'Aulas com presença',
         'district' => 'Bairro',
         'email' => 'E-mail',
         'ended_at' => 'Fim',
         'ends_at' => 'Fim',
+        'ends_period_id' => 'Período final',
         'enrolled_at' => 'Data de matrícula',
+        'final_result' => 'Resultado final',
+        'formation' => 'Formação',
         'founded_at' => 'Data de fundação',
+        'frequency_label' => 'Frequência informada',
+        'frequency_percentage' => 'Percentual de frequência',
         'full_name' => 'Nome completo',
+        'grade_phase' => 'Ano/série/etapa',
         'highlight' => 'Destaque',
         'inep' => 'INEP',
         'institutional_email' => 'E-mail institucional',
         'issued_at' => 'Emitido em',
+        'issued_date' => 'Data de emissão',
+        'issued_place' => 'Local de emissão',
         'is_recovery' => 'É recuperação',
+        'knowledge_area' => 'Área do conhecimento',
+        'label' => 'Rótulo',
         'lesson_count' => 'Quantidade de aulas',
         'lesson_presence' => 'Presença por aula',
         'legal_name' => 'Razão social',
+        'legal_basis' => 'Base legal',
         'letterhead_text' => 'Texto institucional',
         'logo_path' => 'Logo',
+        'maximum_inclusive' => 'Inclui nota máxima',
+        'maximum_score' => 'Nota máxima',
+        'message' => 'Mensagem',
+        'minimum_inclusive' => 'Inclui nota mínima',
+        'minimum_score' => 'Nota mínima',
         'minimum_school_days' => 'Referência de dias letivos',
         'minimum_attendance_percentage' => 'Frequência mínima para aprovação',
+        'modality' => 'Modalidade',
         'name' => 'Nome',
         'notes' => 'Observações',
         'number' => 'Número',
@@ -124,20 +184,38 @@ class AuditLogPresenter
         'reopened_at' => 'Reaberto em',
         'reopened_by_person_id' => 'Reaberto por',
         'relationship_type' => 'Relação',
+        'resolved_at' => 'Resolvido em',
         'role' => 'Papel',
         'school_class_id' => 'Turma',
+        'school_class_component_id' => 'Componente da turma',
         'school_id' => 'Escola',
+        'school_days' => 'Dias letivos',
+        'school_name' => 'Nome da escola',
+        'score' => 'Nota',
+        'score_label' => 'Nota informada',
+        'score_numeric' => 'Nota numérica',
         'social_name' => 'Nome social',
+        'sort_order' => 'Ordem',
         'started_at' => 'Início',
         'starts_at' => 'Início',
+        'starts_period_id' => 'Período inicial',
         'state' => 'UF',
+        'student_academic_history_component_id' => 'Componente do histórico escolar',
+        'student_academic_history_id' => 'Histórico escolar',
+        'student_academic_history_year_id' => 'Ano do histórico escolar',
+        'student_enrollment_id' => 'Matrícula',
         'substitute_teacher_person_id' => 'Docência substituta',
+        'teacher_person_id' => 'Docência titular',
         'title' => 'Título',
+        'transcript_mode' => 'Formato do histórico',
         'transferred_at' => 'Data de transferência',
         'transferred_by_person_id' => 'Transferido por',
         'type' => 'Tipo',
         'updated_by_person_id' => 'Última alteração por',
+        'weekday' => 'Dia da semana',
         'website' => 'Site',
+        'workload_hours' => 'Carga horária',
+        'year' => 'Ano',
     ];
 
     public static function actionLabel(?string $action): string
@@ -152,7 +230,13 @@ class AuditLogPresenter
 
     public static function recordLabel(AuditLog $auditLog): string
     {
-        return self::modelLabel($auditLog->auditable_type).' #'.$auditLog->auditable_id;
+        $label = self::modelLabel($auditLog->auditable_type);
+
+        if (blank($auditLog->auditable_id)) {
+            return $label;
+        }
+
+        return $label.' (registro '.$auditLog->auditable_id.')';
     }
 
     public static function fieldLabel(string $field): string
