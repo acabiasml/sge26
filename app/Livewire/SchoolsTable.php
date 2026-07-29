@@ -21,7 +21,10 @@ class SchoolsTable extends DataTableComponent
 
     public function builder(): Builder
     {
-        return School::query();
+        $user = auth()->user();
+
+        return School::query()
+            ->when($user && ! $user->isAdministrator(), fn (Builder $query) => $query->whereIn('id', $user->manageableSchoolIds()));
     }
 
     public function columns(): array

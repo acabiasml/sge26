@@ -183,57 +183,10 @@
                                         <i class="fas fa-exchange-alt" aria-hidden="true"></i>
                                     </a>
                                 @endif
-                                @if ($enrollment->isActive())
-                                    <details class="sge-row-menu text-left">
-                                        <summary class="btn btn-sm btn-outline-secondary sge-icon-action" aria-label="Abrir movimentações da matrícula de {{ $enrollment->student?->full_name }}" title="Movimentar matrícula">
-                                            <i class="fas fa-random" aria-hidden="true"></i>
-                                        </summary>
-                                        <div class="sge-action-popover mt-2">
-                                            <form method="POST" action="{{ route('enrollments.transfer', $enrollment) }}" class="mb-2">
-                                            @csrf
-                                            @method('PATCH')
-                                            <div class="small font-weight-bold mb-1">Transferência</div>
-                                            <label class="sr-only" for="transferred_at_{{ $enrollment->id }}">Data de transferência de {{ $enrollment->student?->full_name }}</label>
-                                            <input id="transferred_at_{{ $enrollment->id }}" name="transferred_at" type="date" min="{{ $enrollment->enrolled_at?->format('Y-m-d') }}" max="{{ $enrollmentEndsAt }}" class="form-control form-control-sm mb-1" required>
-                                            <label class="sr-only" for="transfer_notes_{{ $enrollment->id }}">Observações da transferência de {{ $enrollment->student?->full_name }}</label>
-                                            <input id="transfer_notes_{{ $enrollment->id }}" name="notes" class="form-control form-control-sm mb-1" placeholder="Observações">
-                                            <button class="btn btn-sm btn-warning btn-block" type="submit">Transferir</button>
-                                            </form>
-
-                                            <form method="POST" action="{{ route('enrollments.reclassify', $enrollment) }}" class="mb-2">
-                                            @csrf
-                                            <div class="small font-weight-bold mb-1">Reclassificação</div>
-                                            <label class="sr-only" for="target_school_class_id_{{ $enrollment->id }}">Turma de destino para {{ $enrollment->student?->full_name }}</label>
-                                            <select id="target_school_class_id_{{ $enrollment->id }}" name="target_school_class_id" class="form-control form-control-sm mb-1" data-reclassify-target required>
-                                                <option value="">Turma de destino</option>
-                                                @foreach ($targetClasses as $targetClass)
-                                                    <option value="{{ $targetClass->id }}">{{ $targetClass->name }}</option>
-                                                @endforeach
-                                            </select>
-                                            <label class="sr-only" for="reclassify_course_ids_{{ $enrollment->id }}">Matrizes de destino para {{ $enrollment->student?->full_name }}</label>
-                                            <select id="reclassify_course_ids_{{ $enrollment->id }}" name="course_ids[]" class="form-control form-control-sm mb-1" data-reclassify-courses multiple required disabled></select>
-                                            <label class="sr-only" for="reclassified_at_{{ $enrollment->id }}">Data de reclassificação de {{ $enrollment->student?->full_name }}</label>
-                                            <input id="reclassified_at_{{ $enrollment->id }}" name="reclassified_at" type="date" min="{{ $enrollment->enrolled_at?->format('Y-m-d') }}" max="{{ $enrollmentEndsAt }}" class="form-control form-control-sm mb-1" required>
-                                            <label class="sr-only" for="reclassify_notes_{{ $enrollment->id }}">Observações da reclassificação de {{ $enrollment->student?->full_name }}</label>
-                                            <input id="reclassify_notes_{{ $enrollment->id }}" name="notes" class="form-control form-control-sm mb-1" placeholder="Observações">
-                                            <button class="btn btn-sm btn-info btn-block" type="submit">Reclassificar</button>
-                                            </form>
-
-                                            <form method="POST" action="{{ route('enrollments.cancel', $enrollment) }}" onsubmit="return confirm('Cancelar esta matrícula? O histórico será preservado.')">
-                                                @csrf
-                                                @method('PATCH')
-                                                <div class="small font-weight-bold mb-1">Cancelamento</div>
-                                                <label class="sr-only" for="cancelled_at_{{ $enrollment->id }}">Data de cancelamento da matrícula de {{ $enrollment->student?->full_name }}</label>
-                                                <input id="cancelled_at_{{ $enrollment->id }}" name="cancelled_at" type="date" min="{{ $enrollment->enrolled_at?->format('Y-m-d') }}" max="{{ $enrollmentEndsAt }}" class="form-control form-control-sm mb-1" required>
-                                                <label class="sr-only" for="cancellation_notes_{{ $enrollment->id }}">Motivo do cancelamento da matrícula de {{ $enrollment->student?->full_name }}</label>
-                                                <input id="cancellation_notes_{{ $enrollment->id }}" name="notes" class="form-control form-control-sm mb-1" placeholder="Motivo do cancelamento" required>
-                                                <button class="btn btn-sm btn-outline-danger btn-block" type="submit">
-                                                    <i class="fas fa-ban mr-1" aria-hidden="true"></i>
-                                                    <span>Cancelar matrícula</span>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </details>
+                                @if ($enrollment->isActive() || $enrollment->status === \App\Models\StudentEnrollment::STATUS_CANCELLED)
+                                    <button class="btn btn-sm btn-outline-secondary sge-icon-action" type="button" data-toggle="modal" data-target="#enrollmentMovementModal{{ $enrollment->id }}" aria-label="Abrir movimentações da matrícula de {{ $enrollment->student?->full_name }}" title="Movimentar matrícula">
+                                        <i class="fas fa-random" aria-hidden="true"></i>
+                                    </button>
                                 @endif
                                 </div>
                             </td>
@@ -245,6 +198,123 @@
             </table>
         </div>
     </div>
+
+    @foreach ($class->enrollments->sortBy(fn ($enrollment) => $enrollment->student?->full_name) as $enrollment)
+        @if ($enrollment->isActive() || $enrollment->status === \App\Models\StudentEnrollment::STATUS_CANCELLED)
+            <div class="modal fade" id="enrollmentMovementModal{{ $enrollment->id }}" tabindex="-1" role="dialog" aria-labelledby="enrollmentMovementTitle{{ $enrollment->id }}" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div>
+                                <h2 class="modal-title h5" id="enrollmentMovementTitle{{ $enrollment->id }}">Movimentar matrícula</h2>
+                                <p class="mb-0 small text-muted">{{ $enrollment->student?->full_name }} · {{ $enrollment->statusLabel() }} · {{ $enrollment->courses->pluck('name')->join(' + ') ?: '-' }}</p>
+                            </div>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            @if ($enrollment->status === \App\Models\StudentEnrollment::STATUS_CANCELLED)
+                                <div class="alert alert-warning" role="alert">
+                                    Esta matrícula está cancelada desde {{ $enrollment->cancelled_at?->format('d/m/Y') ?? 'data não informada' }}. Use esta ação apenas para corrigir cancelamento feito por engano.
+                                </div>
+                                <form method="POST" action="{{ route('enrollments.restore-cancellation', $enrollment) }}">
+                                    @csrf
+                                    @method('PATCH')
+                                    <div class="form-group">
+                                        <label for="restore_notes_{{ $enrollment->id }}">Observações da reversão</label>
+                                        <textarea id="restore_notes_{{ $enrollment->id }}" name="notes" class="form-control" rows="3" placeholder="Opcional"></textarea>
+                                    </div>
+                                    <button class="btn btn-primary" type="submit">
+                                        <i class="fas fa-undo mr-1" aria-hidden="true"></i>Desfazer cancelamento
+                                    </button>
+                                </form>
+                            @else
+                                <div class="row">
+                                    <div class="col-lg-6 mb-4">
+                                        <section class="sge-movement-panel h-100">
+                                            <h3 class="h6">Transferência</h3>
+                                            <p class="small text-muted">Registra a saída do estudante preservando o histórico desta matrícula.</p>
+                                            <form method="POST" action="{{ route('enrollments.transfer', $enrollment) }}">
+                                                @csrf
+                                                @method('PATCH')
+                                                <div class="form-group">
+                                                    <label for="transferred_at_{{ $enrollment->id }}">Data de transferência</label>
+                                                    <input id="transferred_at_{{ $enrollment->id }}" name="transferred_at" type="date" min="{{ $enrollment->enrolled_at?->format('Y-m-d') }}" max="{{ $enrollmentEndsAt }}" class="form-control" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="transfer_notes_{{ $enrollment->id }}">Observações</label>
+                                                    <textarea id="transfer_notes_{{ $enrollment->id }}" name="notes" class="form-control" rows="3" placeholder="Opcional"></textarea>
+                                                </div>
+                                                <button class="btn btn-warning btn-block" type="submit">
+                                                    <i class="fas fa-exchange-alt mr-1" aria-hidden="true"></i>Transferir
+                                                </button>
+                                            </form>
+                                        </section>
+                                    </div>
+                                    <div class="col-lg-6 mb-4">
+                                        <section class="sge-movement-panel h-100">
+                                            <h3 class="h6">Reclassificação</h3>
+                                            <p class="small text-muted">Move o estudante para outra turma e mantém o vínculo com os lançamentos já realizados.</p>
+                                            <form method="POST" action="{{ route('enrollments.reclassify', $enrollment) }}">
+                                                @csrf
+                                                <div class="form-group">
+                                                    <label for="target_school_class_id_{{ $enrollment->id }}">Turma de destino</label>
+                                                    <select id="target_school_class_id_{{ $enrollment->id }}" name="target_school_class_id" class="form-control" data-reclassify-target required>
+                                                        <option value="">Selecione</option>
+                                                        @foreach ($targetClasses as $targetClass)
+                                                            <option value="{{ $targetClass->id }}">{{ $targetClass->name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="reclassify_course_ids_{{ $enrollment->id }}">Matrizes de destino</label>
+                                                    <select id="reclassify_course_ids_{{ $enrollment->id }}" name="course_ids[]" class="form-control" data-reclassify-courses multiple required disabled></select>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="reclassified_at_{{ $enrollment->id }}">Data de reclassificação</label>
+                                                    <input id="reclassified_at_{{ $enrollment->id }}" name="reclassified_at" type="date" min="{{ $enrollment->enrolled_at?->format('Y-m-d') }}" max="{{ $enrollmentEndsAt }}" class="form-control" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="reclassify_notes_{{ $enrollment->id }}">Observações</label>
+                                                    <textarea id="reclassify_notes_{{ $enrollment->id }}" name="notes" class="form-control" rows="3" placeholder="Opcional"></textarea>
+                                                </div>
+                                                <button class="btn btn-info btn-block" type="submit">
+                                                    <i class="fas fa-random mr-1" aria-hidden="true"></i>Reclassificar
+                                                </button>
+                                            </form>
+                                        </section>
+                                    </div>
+                                </div>
+
+                                <section class="sge-movement-panel sge-movement-danger">
+                                    <h3 class="h6">Cancelamento</h3>
+                                    <p class="small text-muted">Use apenas quando a matrícula foi registrada indevidamente. Transferência deve ser usada para saída para outra escola.</p>
+                                    <form method="POST" action="{{ route('enrollments.cancel', $enrollment) }}" onsubmit="return confirm('Cancelar esta matrícula? O histórico será preservado.')">
+                                        @csrf
+                                        @method('PATCH')
+                                        <div class="row">
+                                            <div class="col-md-4 form-group">
+                                                <label for="cancelled_at_{{ $enrollment->id }}">Data de cancelamento</label>
+                                                <input id="cancelled_at_{{ $enrollment->id }}" name="cancelled_at" type="date" min="{{ $enrollment->enrolled_at?->format('Y-m-d') }}" max="{{ $enrollmentEndsAt }}" class="form-control" required>
+                                            </div>
+                                            <div class="col-md-8 form-group">
+                                                <label for="cancellation_notes_{{ $enrollment->id }}">Motivo</label>
+                                                <input id="cancellation_notes_{{ $enrollment->id }}" name="notes" class="form-control" placeholder="Motivo do cancelamento" required>
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-outline-danger" type="submit">
+                                            <i class="fas fa-ban mr-1" aria-hidden="true"></i>Cancelar matrícula
+                                        </button>
+                                    </form>
+                                </section>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+    @endforeach
 @endsection
 
 @push('scripts')

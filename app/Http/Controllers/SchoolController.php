@@ -15,10 +15,13 @@ class SchoolController extends Controller
 {
     public function index(Request $request): View
     {
-        abort_unless($request->user()->canManageSchools(), 403);
+        abort_unless($request->user()->canManageSchools() || $request->user()->canManagePeople(), 403);
 
         return view('schools.index', [
-            'schools' => School::query()->orderBy('name')->paginate(15),
+            'schools' => School::query()
+                ->when(! $request->user()->isAdministrator(), fn ($query) => $query->whereIn('id', $request->user()->manageableSchoolIds()))
+                ->orderBy('name')
+                ->paginate(15),
         ]);
     }
 

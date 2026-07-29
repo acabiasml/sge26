@@ -112,7 +112,7 @@
                     </a>
                     <div id="collapseSchoolManagement" class="collapse {{ $schoolManagementActive ? 'show' : '' }}" aria-labelledby="headingSchoolManagement" data-parent="#accordionSidebar">
                         <div class="bg-white py-2 collapse-inner rounded">
-                            @if ($canManageSchools)
+                            @if ($canManageSchools || $canManagePeople)
                                 <a class="collapse-item {{ request()->routeIs('schools.*') || request()->routeIs('academic-years.*') ? 'active' : '' }}" href="{{ route('schools.index') }}">
                                     <i class="fas fa-building" aria-hidden="true"></i>
                                     <span>Escolas e anos letivos</span>

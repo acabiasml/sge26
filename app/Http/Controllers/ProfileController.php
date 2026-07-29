@@ -49,7 +49,7 @@ class ProfileController extends Controller
             'mother_name' => ['required', 'string', 'max:255'],
             'father_name' => ['nullable', 'string', 'max:255'],
             'personal_email' => ['nullable', 'email', 'max:255'],
-            'phone' => ['required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:255'],
             'address' => ['required', 'string', 'max:255'],
             'number' => ['nullable', 'string', 'max:255'],
             'district' => ['nullable', 'string', 'max:255'],
@@ -62,7 +62,7 @@ class ProfileController extends Controller
 
         if ($canChangeInstitutionalEmail) {
             $validated += $request->validate([
-                'institutional_email' => ['required', 'email', 'max:255', 'ends_with:@ctjj.org', Rule::unique('people', 'institutional_email')->ignore($person)],
+                'institutional_email' => ['nullable', 'email', 'max:255', 'ends_with:@ctjj.org', Rule::unique('people', 'institutional_email')->ignore($person)],
             ]);
         }
 

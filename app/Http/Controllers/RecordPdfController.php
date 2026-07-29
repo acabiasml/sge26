@@ -18,10 +18,10 @@ class RecordPdfController extends Controller
 {
     public function school(Request $request, School $school): Response|RedirectResponse
     {
-        abort_unless($request->user()->canManageSchools(), 403);
+        abort_unless($request->user()->canManageSchool($school->id), 403);
 
         if ($message = OfficialDocumentCompliance::schoolMessage($school)) {
-            return redirect()->route('schools.edit', $school)->with('status', $message);
+            return redirect()->route($request->user()->canManageSchools() ? 'schools.edit' : 'schools.academic-years.index', $school)->with('status', $message);
         }
 
         $issuedDocument = $this->issuedDocument($request, 'school-record', 'Ficha da escola', $school->id);
@@ -44,7 +44,7 @@ class RecordPdfController extends Controller
 
         if (! $person->active && ! $person->hasRequiredIdentityForOfficialUse()) {
             return redirect()->route('people.show', $person)
-                ->with('status', 'Não é possível emitir documento de pessoa inativa sem CPF e e-mail institucional.');
+                ->with('status', 'Não é possível emitir documento de pessoa inativa sem CPF.');
         }
 
         $school = $this->schoolForPerson($person);
@@ -54,7 +54,7 @@ class RecordPdfController extends Controller
         }
 
         if ($school && $message = OfficialDocumentCompliance::schoolMessage($school)) {
-            return redirect()->route('schools.edit', $school)->with('status', $message);
+            return redirect()->route($request->user()->canManageSchools() ? 'schools.edit' : 'schools.academic-years.index', $school)->with('status', $message);
         }
 
         $issuedDocument = $this->issuedDocument($request, 'person-record', 'Ficha da pessoa', $school?->id, $person->id);

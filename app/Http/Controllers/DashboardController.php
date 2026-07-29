@@ -146,13 +146,9 @@ class DashboardController extends Controller
             ->where(function (Builder $query): void {
                 $query->whereNull('cpf')
                     ->orWhere('cpf', '')
-                    ->orWhereNull('institutional_email')
-                    ->orWhere('institutional_email', '')
                     ->orWhereNull('birth_date')
                     ->orWhereNull('mother_name')
                     ->orWhere('mother_name', '')
-                    ->orWhereNull('phone')
-                    ->orWhere('phone', '')
                     ->orWhereNull('profile_completed_at');
             })
             ->when($schoolIds !== null, function (Builder $query) use ($schoolIds): void {

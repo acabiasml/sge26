@@ -170,7 +170,7 @@ class PersonRoleController extends Controller
         }
 
         throw ValidationException::withMessages([
-            'person' => 'Pessoa inativa sem CPF e e-mail institucional não pode receber vínculo.',
+            'person' => 'Pessoa inativa sem CPF não pode receber vínculo.',
         ]);
     }
 

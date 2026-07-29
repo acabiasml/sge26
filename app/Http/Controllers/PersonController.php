@@ -57,9 +57,9 @@ class PersonController extends Controller
         $roleData = $this->validatedInitialRole($request);
         $personData = $this->validatedData($request);
 
-        if ($roleData && ! $personData['active'] && (blank($personData['cpf'] ?? null) || blank($personData['institutional_email'] ?? null))) {
+        if ($roleData && ! $personData['active'] && blank($personData['cpf'] ?? null)) {
             throw ValidationException::withMessages([
-                'active' => 'Pessoa inativa sem CPF e e-mail institucional não pode receber vínculo.',
+                'active' => 'Pessoa inativa sem CPF não pode receber vínculo.',
             ]);
         }
 
@@ -118,9 +118,9 @@ class PersonController extends Controller
             ]);
         }
 
-        if ($data['active'] && (blank($data['cpf'] ?? null) || blank($data['institutional_email'] ?? null))) {
+        if ($data['active'] && blank($data['cpf'] ?? null)) {
             throw ValidationException::withMessages([
-                'active' => 'Para ativar uma pessoa, informe CPF e e-mail institucional.',
+                'active' => 'Para ativar uma pessoa, informe o CPF.',
             ]);
         }
 
@@ -259,7 +259,7 @@ class PersonController extends Controller
             'mother_name' => ['required', 'string', 'max:255'],
             'father_name' => ['nullable', 'string', 'max:255'],
             'personal_email' => ['nullable', 'email', 'max:255'],
-            'phone' => [$request->boolean('active') ? 'required' : 'nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:255'],
             'address' => [$request->boolean('active') ? 'required' : 'nullable', 'string', 'max:255'],
             'number' => ['nullable', 'string', 'max:255'],
             'district' => ['nullable', 'string', 'max:255'],
@@ -271,7 +271,7 @@ class PersonController extends Controller
         ];
 
         if ($canChangeInstitutionalEmail) {
-            $rules['institutional_email'] = [$request->boolean('active') ? 'required' : 'nullable', 'email', 'max:255', 'ends_with:@ctjj.org', Rule::unique('people', 'institutional_email')->ignore($person)];
+            $rules['institutional_email'] = ['nullable', 'email', 'max:255', 'ends_with:@ctjj.org', Rule::unique('people', 'institutional_email')->ignore($person)];
         }
 
         $data = $request->validate($rules);

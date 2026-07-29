@@ -138,7 +138,7 @@ class DataQualityController extends Controller
                 'title' => 'Matricular estudante',
                 'description' => 'Cadastros civis, responsáveis e cursos associados devem estar prontos para a matrícula fluir.',
                 'icon' => 'fa-user-graduate',
-                'count' => $count($personChecks, ['Pessoas sem CPF', 'Pessoas sem e-mail institucional'])
+                'count' => $count($personChecks, ['Pessoas sem CPF'])
                     + $count($contactChecks, ['Estudantes menores sem responsável'])
                     + $count($academicChecks, ['Matrículas ativas sem curso associado']),
                 'route' => route('enrollments.index'),
@@ -156,7 +156,7 @@ class DataQualityController extends Controller
             ],
             [
                 'title' => 'Liberar acesso ao sistema',
-                'description' => 'Usuários ativos precisam ter e-mail institucional válido, CPF e vínculo ativo.',
+                'description' => 'Usuários ativos que acessam o sistema precisam ter e-mail institucional válido, CPF e vínculo ativo.',
                 'icon' => 'fa-sign-in-alt',
                 'count' => $count($personChecks, [
                     'Pessoas sem CPF',
@@ -259,14 +259,14 @@ class DataQualityController extends Controller
             ),
             $this->check(
                 'Pessoas sem e-mail institucional',
-                'Bloqueia acesso pelo Google Workspace até receberem um e-mail @ctjj.org.',
+                'Não bloqueia matrícula nem documentos, mas impede acesso pelo Google Workspace até receberem um e-mail @ctjj.org.',
                 $this->personScope(Person::query(), $schoolIds)
                     ->where(fn (Builder $query) => $query->whereNull('institutional_email')->orWhere('institutional_email', '')),
-                'danger'
+                'warning'
             ),
             $this->check(
                 'Pessoas ativas com cadastro incompleto',
-                'Bloqueia emissão de documentos oficiais. Complete dados civis, filiação, telefone e endereço.',
+                'Bloqueia emissão de documentos oficiais. Complete dados civis, filiação e endereço.',
                 $this->missingPersonDocumentDataScope($this->personScope(Person::query(), $schoolIds)),
                 'danger'
             ),
@@ -700,10 +700,14 @@ class DataQualityController extends Controller
                 ->orWhere('nationality', '')
                 ->orWhereNull('mother_name')
                 ->orWhere('mother_name', '')
-                ->orWhereNull('institutional_email')
-                ->orWhere('institutional_email', '')
-                ->orWhereNull('phone')
-                ->orWhere('phone', '');
+                ->orWhereNull('address')
+                ->orWhere('address', '')
+                ->orWhereNull('city')
+                ->orWhere('city', '')
+                ->orWhereNull('state')
+                ->orWhere('state', '')
+                ->orWhereNull('postal_code')
+                ->orWhere('postal_code', '');
         });
     }
 

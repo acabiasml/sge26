@@ -195,6 +195,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::patch('matriculas/{enrollment}/transferir', [StudentEnrollmentController::class, 'transfer'])->name('enrollments.transfer');
     Route::post('matriculas/{enrollment}/reclassificar', [StudentEnrollmentController::class, 'reclassify'])->name('enrollments.reclassify');
     Route::patch('matriculas/{enrollment}/cancelar', [StudentEnrollmentController::class, 'cancel'])->name('enrollments.cancel');
+    Route::patch('matriculas/{enrollment}/desfazer-cancelamento', [StudentEnrollmentController::class, 'restoreCancellation'])->name('enrollments.restore-cancellation');
     Route::get('matriculas/{enrollment}/documentos', [StudentEnrollmentCertificateController::class, 'documents'])->name('enrollments.documents');
     Route::get('matriculas/{enrollment}/pdf', EnrollmentPdfController::class)->name('enrollments.pdf');
     Route::get('matriculas/{enrollment}/declaracao-matricula-pdf', [StudentEnrollmentCertificateController::class, 'enrollmentDeclaration'])->name('enrollments.enrollment-declaration.pdf');

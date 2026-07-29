@@ -413,7 +413,7 @@ class TeacherDiaryController extends Controller
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
             'letterhead' => PdfLetterhead::make($academicYear->school),
-        ])->setPaper('a4', 'portrait');
+        ])->setPaper('a4', 'landscape');
 
         return $pdf->download('beaba-diario-'.$schoolClass->id.'-'.$component->id.'-'.now()->format('Ymd-His').'.pdf');
     }

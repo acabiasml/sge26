@@ -294,7 +294,7 @@
                                         </ul>
                                     </div>
                                 @endif
-                                @php($ruleCount = (int) ($useOldForPeriod ? old('assessment_count') : max(1, $period->assessmentRules->count())))
+                                @php($ruleCount = (int) ($useOldForPeriod ? old('assessment_count') : ($period->assessmentRules->max('position') ?? 0)))
                                 <div class="sge-assessment-workspace">
                                     <div class="sge-assessment-intro">
                                         <div>
@@ -304,6 +304,7 @@
                                         <div class="form-group mb-0">
                                             <label for="assessment_count_{{ $period->id }}">Quantidade</label>
                                             <select id="assessment_count_{{ $period->id }}" name="assessment_count" class="form-control" data-assessment-count>
+                                                <option value="0" @selected($ruleCount === 0)>Sem avaliações</option>
                                                 @for($count = 1; $count <= 10; $count++)
                                                     <option value="{{ $count }}" @selected($ruleCount === $count)>{{ $count }}</option>
                                                 @endfor
@@ -357,7 +358,7 @@
 document.querySelectorAll('[data-assessment-rules-form]').forEach((container) => {
     const count = container.querySelector('[data-assessment-count]');
     const sync = () => {
-        const selectedCount = Number(count.value);
+        const selectedCount = Number(count.value || 0);
         container.querySelectorAll('[data-assessment-weight]').forEach((field) => {
             const visible = Number(field.dataset.assessmentWeight) <= selectedCount;
             field.hidden = !visible;
@@ -366,6 +367,20 @@ document.querySelectorAll('[data-assessment-rules-form]').forEach((container) =>
             });
         });
         container.querySelectorAll('[data-recovery-option]').forEach((option) => { const available = Number(option.dataset.recoveryOption) <= selectedCount; option.hidden = !available; option.disabled = !available; });
+        if (selectedCount === 0) {
+            const noRecovery = container.querySelector('[data-recovery-mode][value="none"]');
+            if (noRecovery) {
+                noRecovery.checked = true;
+            }
+            container.querySelectorAll('[data-recovery-mode]').forEach((input) => {
+                input.disabled = input.value !== 'none';
+            });
+        } else {
+            container.querySelectorAll('[data-recovery-mode]').forEach((input) => {
+                input.disabled = false;
+            });
+        }
+        syncRecovery();
     };
     const syncRecovery = () => {
         const mode = container.querySelector('[data-recovery-mode]:checked')?.value;

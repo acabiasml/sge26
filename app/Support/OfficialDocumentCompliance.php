@@ -30,6 +30,6 @@ class OfficialDocumentCompliance
 
         return 'Documento bloqueado: complete o cadastro da pessoa antes de emitir. Campos pendentes: '
             .implode(', ', $missing)
-            .'. Abra a ficha da pessoa e revise os dados civis e de contato.';
+            .'. Abra a ficha da pessoa e revise os dados civis e de endereço.';
     }
 }

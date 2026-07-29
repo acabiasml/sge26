@@ -1088,6 +1088,24 @@ dd,
     padding: .75rem;
 }
 
+.sge-movement-panel {
+    background: var(--sge-surface-soft);
+    border: 1px solid var(--sge-border);
+    border-radius: .7rem;
+    padding: 1rem;
+}
+
+.sge-movement-panel h3 {
+    color: var(--sge-ink);
+    font-weight: 700;
+    margin-bottom: .25rem;
+}
+
+.sge-movement-danger {
+    background: #fff8f5;
+    border-color: rgba(204, 74, 38, .28);
+}
+
 .sge-brand-logo-sm {
     height: auto;
     width: 42px;

@@ -1621,13 +1621,13 @@ class AcademicCalendarTest extends TestCase
         ]);
     }
 
-    public function test_student_without_official_identity_cannot_be_enrolled(): void
+    public function test_student_without_cpf_cannot_be_enrolled(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
         $year = $this->academicYear();
         $student = Person::query()->create([
-            'full_name' => 'Estudante Sem Email',
-            'cpf' => '12345678901',
+            'full_name' => 'Estudante Sem CPF',
+            'cpf' => null,
             'active' => true,
         ]);
         $student->schoolRoles()->create([

@@ -58,7 +58,7 @@
                 <input type="hidden" name="active" value="0">
                 <input id="active" name="active" value="1" type="checkbox" class="form-check-input" data-active-input @checked(old('active', $person->active ?? true))>
                 <label for="active" class="form-check-label">Cadastro ativo</label>
-                <small class="form-text text-muted">Cadastros inativos não acessam o sistema, não recebem novos vínculos e não emitem documentos sem CPF e e-mail institucional.</small>
+                <small class="form-text text-muted">Cadastros inativos não acessam o sistema, não recebem novos vínculos e não emitem documentos sem CPF.</small>
             </div>
         </div>
     @endif
@@ -127,7 +127,7 @@
 <div class="form-row">
     <div class="form-group col-md-4">
         <label for="institutional_email">E-mail institucional</label>
-        <input id="institutional_email" name="institutional_email" type="email" inputmode="email" autocomplete="email" class="form-control @error('institutional_email') is-invalid @enderror" value="{{ old('institutional_email', $person->institutional_email ?? '') }}" @readonly($lockInstitutionalEmail) required>
+        <input id="institutional_email" name="institutional_email" type="email" inputmode="email" autocomplete="email" class="form-control @error('institutional_email') is-invalid @enderror" value="{{ old('institutional_email', $person->institutional_email ?? '') }}" @readonly($lockInstitutionalEmail)>
         @if ($lockInstitutionalEmail)
             <small class="form-text text-muted">Seu e-mail institucional não pode ser alterado por você.</small>
         @endif
@@ -142,7 +142,7 @@
 
     <div class="form-group col-md-4">
         <label for="phone">Telefone</label>
-        <input id="phone" name="phone" data-mask="phone" inputmode="tel" autocomplete="tel" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $person->phone ?? '') }}" required>
+        <input id="phone" name="phone" data-mask="phone" inputmode="tel" autocomplete="tel" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $person->phone ?? '') }}">
         @error('phone') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 </div>

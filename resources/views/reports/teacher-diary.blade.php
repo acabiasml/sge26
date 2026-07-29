@@ -3,8 +3,8 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { size: A4 portrait; margin: 22px 26px 34px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #1f1713; font-size: 8.8px; line-height: 1.24; }
+        @page { size: A4 landscape; margin: 18px 18px 32px; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #1f1713; font-size: 7.6px; line-height: 1.18; }
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 8px; padding-bottom: 6px; }
         .document-title { font-size: 14px; margin-top: 5px; text-transform: uppercase; }
@@ -12,11 +12,15 @@
         h3 { color: #3F6B3D; font-size: 10px; margin: 9px 0 4px; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
         th { background: #f2e9e3; color: #6B3D2E; font-weight: 600; }
-        th, td { border: .5px solid #d8c8bf; padding: 3.6px 4px; vertical-align: top; }
+        th, td { border: .5px solid #d8c8bf; padding: 3px 3.4px; vertical-align: top; }
         .meta td { border-color: #e1d5ce; }
         .meta-label { width: 22%; background: #faf4ef; font-weight: 600; color: #6B3D2E; }
         .center { text-align: center; }
         .small { font-size: 7.5px; color: #6b625e; }
+        .student-column { min-width: 128px; }
+        .date-heading { height: 58px; padding: 1px; vertical-align: bottom; width: 18px; }
+        .date-heading span { display: inline-block; line-height: 1; transform: rotate(-90deg); transform-origin: center; white-space: nowrap; width: 58px; }
+        .compact-score-heading { min-width: 32px; }
         .period-page { page-break-after: always; }
         .period-page:last-child { page-break-after: auto; }
         .signature-grid { width: 100%; margin-top: 42px; }
@@ -77,9 +81,9 @@
         <table>
             <thead>
                 <tr>
-                    <th>Estudante</th>
+                    <th class="student-column">Estudante</th>
                     @foreach($report['attendance'] as $attendance)
-                        <th class="center">{{ $attendance->class_date->format('d/m') }}<br><span class="small">{{ $attendance->lesson_count }} aula(s)</span></th>
+                        <th class="center date-heading"><span>{{ $attendance->class_date->format('d/m') }} · {{ $attendance->lesson_count }} aula(s)</span></th>
                     @endforeach
                     <th class="center">Presenças</th>
                     <th class="center">Faltas</th>
@@ -112,9 +116,9 @@
         <table>
             <thead>
                 <tr>
-                    <th>Estudante</th>
+                    <th class="student-column">Estudante</th>
                     @foreach($report['assessments'] as $assessment)
-                        <th class="center">{{ $assessment->title }}</th>
+                        <th class="center compact-score-heading">{{ $assessment->title }}</th>
                     @endforeach
                     <th class="center">Média</th>
                 </tr>

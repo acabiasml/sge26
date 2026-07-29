@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <style>
         @page { size: A4 landscape; margin: 13px 16px 30px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 6.9px; line-height: 1.13; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 6.6px; line-height: 1.1; }
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 6px; padding-bottom: 5px; }
         .letterhead-logo img { max-width: 62px; max-height: 44px; }
@@ -15,16 +15,17 @@
         .mirror-context strong { font-size: 9px; text-transform: uppercase; }
         .mirror-context span { color: #555; display: block; margin-top: 2px; }
         .mirror-table { border-collapse: collapse; table-layout: fixed; width: 100%; }
-        .mirror-table th, .mirror-table td { border: .5px solid #111; padding: 2px 2.2px; vertical-align: middle; }
-        .mirror-table th { background: #eee9e5; font-size: 5.6px; font-weight: 600; text-align: center; }
-        .mirror-table td { font-size: 6.4px; }
+        .mirror-table th, .mirror-table td { border: .5px solid #111; padding: 1.8px 2px; vertical-align: middle; }
+        .mirror-table th { background: #eee9e5; font-size: 5.2px; font-weight: 600; text-align: center; }
+        .mirror-table td { font-size: 6.1px; }
         .mirror-table .number-column { text-align: center; width: 3%; }
-        .mirror-table .student-column { width: 21%; }
+        .mirror-table .student-column { width: 22%; }
         .mirror-table .student-name { font-weight: 600; }
         .mirror-table .score-cell { text-align: center; }
         .formation-heading { background: #ded7d2 !important; text-transform: uppercase; }
         .area-heading { background: #e9e4df !important; }
-        .component-heading { height: 38px; overflow-wrap: anywhere; }
+        .component-heading { height: 76px; padding: 1px; vertical-align: bottom; width: 3.2%; }
+        .component-heading span { display: inline-block; line-height: 1; transform: rotate(-90deg); transform-origin: center; white-space: nowrap; width: 74px; }
         .behavior-heading { background: #f5e7ce !important; }
         .mirror-notes { color: #4f4945; font-size: 6.4px; margin-top: 5px; }
         .mirror-notes strong { color: #222; }
@@ -36,7 +37,7 @@
 </head>
 <body>
 @php
-    $componentChunks = $components->chunk(10)->values();
+    $componentChunks = $components->chunk(24)->values();
     $totalPages = max(1, $periods->count() * $componentChunks->count());
     $pageNumber = 0;
     $scoreLabel = function ($score, $date = null) use ($academicYear, $scoreView): string {
@@ -90,7 +91,7 @@
                 {{ $academicYear->name }} · {{ $academicYear->reference_year }}
                 · apresentação em {{ $scoreView === 'conceitos' ? 'conceitos' : 'notas numéricas' }}
                 @if($componentChunks->count() > 1)
-                    · componentes {{ (($loop->iteration - 1) * 10) + 1 }} a {{ (($loop->iteration - 1) * 10) + $componentChunk->count() }}
+                    · componentes {{ (($loop->iteration - 1) * 24) + 1 }} a {{ (($loop->iteration - 1) * 24) + $componentChunk->count() }}
                 @endif
             </span>
         </div>
@@ -118,7 +119,7 @@
                     @foreach($formationGroups as $formationGroup)
                         @foreach($formationGroup['areas'] as $areaGroup)
                             @foreach($areaGroup['items'] as $componentItem)
-                                <th class="component-heading">{{ $componentItem['name'] }}</th>
+                                <th class="component-heading"><span>{{ $componentItem['name'] }}</span></th>
                             @endforeach
                         @endforeach
                     @endforeach

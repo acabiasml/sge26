@@ -78,7 +78,6 @@ class StudentEnrollmentController extends Controller
             'students' => Person::query()
                 ->where('active', true)
                 ->whereNotNull('cpf')
-                ->whereNotNull('institutional_email')
                 ->orderBy('full_name')
                 ->get(),
             'targetClasses' => $academicYear->classes()
@@ -128,7 +127,7 @@ class StudentEnrollmentController extends Controller
 
         if (! $student->active || ! $student->hasRequiredIdentityForOfficialUse()) {
             throw ValidationException::withMessages([
-                'person_id' => 'A matrícula exige estudante ativo com CPF e e-mail institucional.',
+                'person_id' => 'A matrícula exige estudante ativo com CPF.',
             ]);
         }
 
@@ -299,6 +298,54 @@ class StudentEnrollmentController extends Controller
             ->with('status', 'Matrícula cancelada com sucesso. O histórico foi preservado.');
     }
 
+    public function restoreCancellation(Request $request, StudentEnrollment $enrollment): RedirectResponse
+    {
+        $class = $enrollment->schoolClass()->firstOrFail();
+        $academicYear = $class->academicYear()->firstOrFail();
+        abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
+        $this->ensureAcademicYearIsOpen($academicYear);
+
+        if ($enrollment->status !== StudentEnrollment::STATUS_CANCELLED) {
+            throw ValidationException::withMessages([
+                'enrollment' => 'Apenas matrículas canceladas podem ter o cancelamento desfeito.',
+            ]);
+        }
+
+        $hasActiveEnrollmentInYear = StudentEnrollment::query()
+            ->whereKeyNot($enrollment->id)
+            ->where('person_id', $enrollment->person_id)
+            ->where('status', StudentEnrollment::STATUS_ENROLLED)
+            ->whereHas('schoolClass', fn ($classes) => $classes->where('academic_year_id', $academicYear->id))
+            ->exists();
+
+        if ($hasActiveEnrollmentInYear) {
+            throw ValidationException::withMessages([
+                'enrollment' => 'Este estudante já possui matrícula ativa neste ano letivo.',
+            ]);
+        }
+
+        $data = $request->validate([
+            'notes' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $restorationNote = trim(collect([
+            'Cancelamento desfeito em '.now()->timezone('America/Sao_Paulo')->format('d/m/Y H:i').' por '.($request->user()->person?->full_name ?? 'usuário identificado').'.',
+            $data['notes'] ?? null,
+        ])->filter()->implode(' '));
+
+        $enrollment->update([
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'cancelled_at' => null,
+            'cancelled_by_person_id' => null,
+            'notes' => $this->appendNote($enrollment->notes, $restorationNote),
+        ]);
+
+        $this->syncStudentRole($enrollment->student()->firstOrFail(), $academicYear->school_id);
+
+        return redirect()->route('classes.enrollments.index', $class)
+            ->with('status', 'Cancelamento de matrícula desfeito com sucesso.');
+    }
+
     public function calculateFinalResults(Request $request, SchoolClass $class, StudentFinalResultCalculator $calculator): RedirectResponse
     {
         $academicYear = $class->academicYear()->firstOrFail();
@@ -340,7 +387,6 @@ class StudentEnrollmentController extends Controller
         $studentIds = Person::query()
             ->where('active', true)
             ->whereNotNull('cpf')
-            ->whereNotNull('institutional_email')
             ->pluck('id')
             ->all();
 

@@ -77,7 +77,6 @@ class Person extends Model
             && filled($this->birth_state)
             && filled($this->nationality)
             && filled($this->mother_name)
-            && filled($this->phone)
             && filled($this->address)
             && filled($this->city)
             && filled($this->state)
@@ -87,8 +86,7 @@ class Person extends Model
 
     public function hasRequiredIdentityForOfficialUse(): bool
     {
-        return filled($this->cpf)
-            && filled($this->institutional_email);
+        return filled($this->cpf);
     }
 
     public function hasRequiredIdentityForSchoolDocuments(): bool
@@ -101,8 +99,6 @@ class Person extends Model
             $this->birth_state,
             $this->nationality,
             $this->mother_name,
-            $this->institutional_email,
-            $this->phone,
             $this->address,
             $this->city,
             $this->state,
@@ -120,8 +116,6 @@ class Person extends Model
             'cpf' => 'CPF',
             'birth_date' => 'data de nascimento',
             'mother_name' => 'nome da mãe',
-            'institutional_email' => 'e-mail institucional',
-            'phone' => 'telefone',
         ];
 
         return collect($fields)

@@ -1096,6 +1096,51 @@ class TeacherDiaryTest extends TestCase
             ->assertSessionHasErrors('assessment_count');
     }
 
+    public function test_management_can_remove_unused_assessment_after_grade_entry(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-remove-vazia@ctjj.org');
+
+        $this->actingAs($manager)
+            ->put(route('academic-years.periods.assessment-rules.update', [$year, $period]), [
+                'assessment_count' => 2,
+                'weights' => [1, 1],
+                'assessment_names' => ['Avaliação 1', 'Avaliação sem uso'],
+                'recovery_mode' => AcademicPeriod::RECOVERY_NONE,
+            ])
+            ->assertRedirect(route('academic-years.periods.index', $year));
+
+        $assessment = DiaryAssessment::query()
+            ->whereHas('rule', fn ($query) => $query->where('position', 1))
+            ->firstOrFail();
+
+        $this->actingAs($teacher)
+            ->put(route('teacher-diaries.grades.update', [$class, $component]), [
+                'academic_period_id' => $period->id,
+                'scores' => [$assessment->id => [$enrollment->id => 8]],
+            ])
+            ->assertRedirect(route('teacher-diaries.show', [$class, $component, 'period' => $period->id]));
+
+        $this->actingAs($manager)
+            ->put(route('academic-years.periods.assessment-rules.update', [$year, $period]), [
+                'assessment_count' => 1,
+                'weights' => [1],
+                'assessment_names' => ['Avaliação 1'],
+                'recovery_mode' => AcademicPeriod::RECOVERY_NONE,
+            ])
+            ->assertRedirect(route('academic-years.periods.index', $year));
+
+        $this->assertDatabaseHas('school_assessment_rules', [
+            'academic_period_id' => $period->id,
+            'position' => 1,
+            'name' => 'Avaliação 1',
+        ]);
+        $this->assertDatabaseMissing('school_assessment_rules', [
+            'academic_period_id' => $period->id,
+            'position' => 2,
+        ]);
+    }
+
     public function test_management_can_change_only_recovery_rule_after_regular_grade_entry(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();

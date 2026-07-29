@@ -311,23 +311,30 @@ class AcademicPeriodController extends Controller
         }
 
         $data = $request->validate([
-            'assessment_count' => ['required', 'integer', 'min:1', 'max:10'],
-            'weights' => ['required', 'array'],
-            'weights.*' => ['required', 'integer', 'min:1', 'max:100'],
+            'assessment_count' => ['required', 'integer', 'min:0', 'max:10'],
+            'weights' => ['nullable', 'array'],
+            'weights.*' => ['nullable', 'integer', 'min:1', 'max:100'],
             'assessment_names' => ['nullable', 'array'],
-            'assessment_names.*' => ['required', 'string', 'max:100'],
+            'assessment_names.*' => ['nullable', 'string', 'max:100'],
             'recovery_mode' => ['required', Rule::in(array_keys(AcademicPeriod::RECOVERY_MODE_LABELS))],
             'recovery_weight' => ['nullable', 'integer', 'min:1', 'max:100'],
             'recovery_replaced_position' => ['nullable', 'integer', 'min:1', 'max:10'],
         ]);
-        $weights = array_values(array_slice($data['weights'], 0, $data['assessment_count']));
-        $names = array_values(array_slice($data['assessment_names'] ?? [], 0, $data['assessment_count']));
-        if (count($weights) !== (int) $data['assessment_count']) {
+        $assessmentCount = (int) $data['assessment_count'];
+        $weights = array_values(array_slice($data['weights'] ?? [], 0, $assessmentCount));
+        $names = array_values(array_slice($data['assessment_names'] ?? [], 0, $assessmentCount));
+        if ($assessmentCount > 0 && count($weights) !== $assessmentCount) {
             throw ValidationException::withMessages(['weights' => 'Informe um peso para cada avaliação.']);
         }
-        $names = collect(range(1, (int) $data['assessment_count']))
-            ->map(fn (int $position): string => $names[$position - 1] ?? 'Avaliação '.$position)
-            ->all();
+        $names = $assessmentCount === 0
+            ? []
+            : collect(range(1, $assessmentCount))
+                ->map(fn (int $position): string => filled($names[$position - 1] ?? null) ? $names[$position - 1] : 'Avaliação '.$position)
+                ->all();
+
+        if ($assessmentCount === 0 && $data['recovery_mode'] !== AcademicPeriod::RECOVERY_NONE) {
+            throw ValidationException::withMessages(['recovery_mode' => 'A recuperação exige ao menos uma avaliação regular neste período.']);
+        }
 
         if ($data['recovery_mode'] === AcademicPeriod::RECOVERY_WEIGHTED && empty($data['recovery_weight'])) {
             $data['recovery_weight'] = 1;
@@ -335,7 +342,7 @@ class AcademicPeriodController extends Controller
         if ($data['recovery_mode'] === AcademicPeriod::RECOVERY_REPLACE_ASSESSMENT && empty($data['recovery_replaced_position'])) {
             $data['recovery_replaced_position'] = 1;
         }
-        if ($data['recovery_mode'] === AcademicPeriod::RECOVERY_REPLACE_ASSESSMENT && $data['recovery_replaced_position'] > $data['assessment_count']) {
+        if ($data['recovery_mode'] === AcademicPeriod::RECOVERY_REPLACE_ASSESSMENT && $data['recovery_replaced_position'] > $assessmentCount) {
             throw ValidationException::withMessages(['recovery_replaced_position' => 'Selecione uma avaliação existente neste período.']);
         }
 
@@ -354,9 +361,21 @@ class AcademicPeriodController extends Controller
         $regularConfigurationChanged = $this->regularAssessmentConfigurationChanged($existingRules, $weights, $names);
         $recoveryConfigurationChanged = $this->recoveryConfigurationChanged($period, $data);
 
-        if ($regularHasResults && $regularConfigurationChanged && ! $recoveryConfigurationChanged) {
+        if ($regularHasResults && $this->regularAssessmentConfigurationTouchesRulesWithResults($existingRules, $weights, $names) && ! $recoveryConfigurationChanged) {
             throw ValidationException::withMessages([
-                'assessment_count' => 'As avaliações já têm notas lançadas. Não é possível mudar quantidade, nomes ou pesos das avaliações já usadas.',
+                'assessment_count' => 'As avaliações já usadas têm notas lançadas. Você pode remover avaliações vazias, mas não pode mudar quantidade, nomes ou pesos das avaliações já usadas.',
+            ]);
+        }
+
+        if ($regularHasResults && count($weights) > (int) ($existingRules->max('position') ?? 0)) {
+            throw ValidationException::withMessages([
+                'assessment_count' => 'As avaliações já têm notas lançadas. Não é possível acrescentar novas avaliações regulares neste período.',
+            ]);
+        }
+
+        if ($recoveryHasResults && $regularConfigurationChanged) {
+            throw ValidationException::withMessages([
+                'assessment_count' => 'A recuperação já tem notas lançadas. Não altere as avaliações regulares antes de corrigir ou reabrir esses lançamentos.',
             ]);
         }
 
@@ -367,12 +386,13 @@ class AcademicPeriodController extends Controller
         }
 
         if ($regularHasResults || $recoveryHasResults) {
-            DB::transaction(function () use ($existingRules, $academicYear, $period, $data): void {
-                $this->updateRecoveryConfiguration($academicYear, $period, $existingRules, $data);
+            DB::transaction(function () use ($existingRules, $weights, $names, $academicYear, $period, $data, $regularHasResults): void {
+                $rules = $this->syncRegularAssessmentRules($academicYear, $period, $existingRules, $weights, $names, $regularHasResults);
+                $this->updateRecoveryConfiguration($academicYear, $period, $rules, $data);
             });
 
             return redirect()->route('academic-years.periods.index', $academicYear)
-                ->with('status', 'Recuperação do período atualizada para a escola.');
+                ->with('status', 'Configuração do período atualizada para a escola.');
         }
 
         DB::transaction(function () use ($existingRules, $weights, $names, $academicYear, $period, $data): void {
@@ -440,6 +460,113 @@ class AcademicPeriodController extends Controller
         }
 
         return false;
+    }
+
+    /**
+     * @param Collection<int, SchoolAssessmentRule> $existingRules
+     * @param array<int, int> $weights
+     * @param array<int, string> $names
+     */
+    private function regularAssessmentConfigurationTouchesRulesWithResults(Collection $existingRules, array $weights, array $names): bool
+    {
+        foreach ($existingRules as $rule) {
+            $hasResults = $rule->assessments
+                ->contains(fn (DiaryAssessment $assessment): bool => ! $assessment->is_recovery && $assessment->results->isNotEmpty());
+
+            if (! $hasResults) {
+                continue;
+            }
+
+            $index = ((int) $rule->position) - 1;
+
+            if (! array_key_exists($index, $weights) || ! array_key_exists($index, $names)) {
+                return true;
+            }
+
+            if ((int) $rule->weight !== (int) $weights[$index]) {
+                return true;
+            }
+
+            if ((string) $rule->name !== (string) $names[$index]) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param Collection<int, SchoolAssessmentRule> $existingRules
+     * @param array<int, int> $weights
+     * @param array<int, string> $names
+     * @return Collection<int, SchoolAssessmentRule>
+     */
+    private function syncRegularAssessmentRules(AcademicYear $academicYear, AcademicPeriod $period, Collection $existingRules, array $weights, array $names, bool $protectRulesWithResults): Collection
+    {
+        $desiredCount = count($weights);
+
+        foreach ($existingRules as $rule) {
+            $hasResults = $rule->assessments
+                ->contains(fn (DiaryAssessment $assessment): bool => ! $assessment->is_recovery && $assessment->results->isNotEmpty());
+
+            if ($protectRulesWithResults && $hasResults) {
+                continue;
+            }
+
+            if ((int) $rule->position > $desiredCount) {
+                $rule->assessments()->delete();
+                $rule->delete();
+            }
+        }
+
+        for ($position = 1; $position <= $desiredCount; $position++) {
+            $rule = SchoolAssessmentRule::query()
+                ->where('school_id', $academicYear->school_id)
+                ->where('academic_period_id', $period->id)
+                ->where('position', $position)
+                ->with('assessments.results')
+                ->first();
+
+            $hasResults = $rule?->assessments
+                ->contains(fn (DiaryAssessment $assessment): bool => ! $assessment->is_recovery && $assessment->results->isNotEmpty()) ?? false;
+
+            if ($rule && (! $protectRulesWithResults || ! $hasResults)) {
+                if ($protectRulesWithResults) {
+                    continue;
+                }
+
+                $rule->update([
+                    'name' => $names[$position - 1],
+                    'weight' => $weights[$position - 1],
+                    'maximum_score' => 10,
+                ]);
+                $this->createAssessmentsForRule($academicYear->id, $rule->fresh());
+
+                continue;
+            }
+
+            if (! $rule) {
+                if ($protectRulesWithResults) {
+                    continue;
+                }
+
+                $rule = SchoolAssessmentRule::query()->create([
+                    'school_id' => $academicYear->school_id,
+                    'academic_period_id' => $period->id,
+                    'name' => $names[$position - 1],
+                    'position' => $position,
+                    'weight' => $weights[$position - 1],
+                    'maximum_score' => 10,
+                ]);
+                $this->createAssessmentsForRule($academicYear->id, $rule);
+            }
+        }
+
+        return $period->assessmentRules()
+            ->where('school_id', $academicYear->school_id)
+            ->with('assessments.results')
+            ->orderBy('position')
+            ->get();
     }
 
     private function recoveryConfigurationChanged(AcademicPeriod $period, array $data): bool

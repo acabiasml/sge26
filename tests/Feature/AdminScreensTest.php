@@ -36,12 +36,19 @@ class AdminScreensTest extends TestCase
         $this->actingAs($admin)->get(route('audit-logs.index'))->assertOk();
     }
 
-    public function test_manager_cannot_manage_global_school_registry(): void
+    public function test_manager_sees_only_managed_schools_and_cannot_manage_global_registry(): void
     {
         $school = School::query()->create(['name' => 'Escola A']);
+        $otherSchool = School::query()->create(['name' => 'Escola B']);
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
 
-        $this->actingAs($manager)->get(route('schools.index'))->assertForbidden();
+        $this->actingAs($manager)->get(route('schools.index'))->assertOk()
+            ->assertSee('Escola A')
+            ->assertDontSee('Escola B');
+        $this->actingAs($manager)->get(route('schools.create'))->assertForbidden();
+        $this->actingAs($manager)->get(route('schools.edit', $school))->assertForbidden();
+        $this->actingAs($manager)->get(route('schools.academic-years.index', $school))->assertOk();
+        $this->actingAs($manager)->get(route('schools.academic-years.index', $otherSchool))->assertForbidden();
         $this->actingAs($manager)->get(route('people.index'))->assertOk();
         $this->actingAs($manager)->get(route('people.create'))->assertOk();
         $this->actingAs($manager)->get(route('official-documents.create'))->assertOk();
@@ -763,7 +770,7 @@ class AdminScreensTest extends TestCase
         $this->actingAs($admin)
             ->get(route('people.pdf', $person))
             ->assertRedirect(route('people.show', $person))
-            ->assertSessionHas('status', 'Não é possível emitir documento de pessoa inativa sem CPF e e-mail institucional.');
+            ->assertSessionHas('status', 'Não é possível emitir documento de pessoa inativa sem CPF.');
 
         $this->assertDatabaseMissing('issued_documents', [
             'person_id' => $person->id,

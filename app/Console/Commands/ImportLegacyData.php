@@ -19,6 +19,7 @@ use App\Models\DiaryAttendanceRecord;
 use App\Models\DiaryContent;
 use App\Models\KnowledgeArea;
 use App\Models\School;
+use App\Models\SchoolAssessmentRule;
 use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
 use App\Models\StudentEnrollment;
@@ -1051,7 +1052,7 @@ class ImportLegacyData extends Command
                 'updated_by_person_id' => $assignment?->teacher_person_id,
                 'class_date' => $date,
                 'lesson_count' => max(1, (int) ($legacyDiary['geminada'] ?? 1)),
-                'notes' => 'Chamada importada da base legada '.$source.'.',
+                'notes' => null,
                 'legacy_source' => $record->legacy_source ?? $source,
                 'legacy_id' => $record->legacy_id ?? $legacyDiaryId,
                 'legacy_metadata' => array_merge($record->legacy_metadata ?? [], [
@@ -1130,6 +1131,8 @@ class ImportLegacyData extends Command
                 ->where('school_class_id', $class->id)
                 ->where('curriculum_component_id', $component->id)
                 ->first();
+            $period = AcademicPeriod::query()->with('academicYear')->find($periodId);
+            $assessmentRule = $period ? $this->legacyPeriodAverageRule($period) : null;
 
             $assessment = DiaryAssessment::query()->updateOrCreate(
                 [
@@ -1140,14 +1143,14 @@ class ImportLegacyData extends Command
                     'school_class_id' => $class->id,
                     'curriculum_component_id' => $component->id,
                     'academic_period_id' => $periodId,
-                    'school_assessment_rule_id' => null,
+                    'school_assessment_rule_id' => $assessmentRule?->id,
                     'is_recovery' => false,
                     'teacher_person_id' => $assignment?->teacher_person_id,
-                    'title' => 'Média legada',
+                    'title' => 'Média do período',
                     'weight' => 1,
                     'maximum_score' => 10,
                     'assessment_date' => null,
-                    'notes' => 'Média importada da base legada '.$source.'.',
+                    'notes' => null,
                     'legacy_metadata' => [
                         'source' => 'medias',
                         'component_legacy_id' => $component->legacy_id,
@@ -1165,13 +1168,57 @@ class ImportLegacyData extends Command
                 [
                     'updated_by_person_id' => $assignment?->teacher_person_id,
                     'score' => $score,
-                    'notes' => 'Registro legado #'.$legacyId
-                        .'; nota1: '.($legacyGrade['nota1'] ?? '-')
-                        .'; nota2: '.($legacyGrade['nota2'] ?? '-')
-                        .'; substitutiva: '.($legacyGrade['substitutiva'] ?? '-').'.',
+                    'notes' => null,
                 ]
             );
         }
+    }
+
+    private function legacyPeriodAverageRule(AcademicPeriod $period): SchoolAssessmentRule
+    {
+        $period->loadMissing('academicYear');
+        $schoolId = (int) $period->academicYear->school_id;
+
+        $existingRule = SchoolAssessmentRule::query()
+            ->where('school_id', $schoolId)
+            ->where('academic_period_id', $period->id)
+            ->where('name', 'Média do período')
+            ->first();
+
+        if ($existingRule) {
+            return $existingRule;
+        }
+
+        $reusableRule = SchoolAssessmentRule::query()
+            ->where('school_id', $schoolId)
+            ->where('academic_period_id', $period->id)
+            ->whereDoesntHave('assessments.results')
+            ->orderBy('position')
+            ->first();
+
+        if ($reusableRule) {
+            $reusableRule->update([
+                'name' => 'Média do período',
+                'weight' => 1,
+                'maximum_score' => 10,
+            ]);
+
+            return $reusableRule;
+        }
+
+        $position = ((int) SchoolAssessmentRule::query()
+            ->where('school_id', $schoolId)
+            ->where('academic_period_id', $period->id)
+            ->max('position')) + 1;
+
+        return SchoolAssessmentRule::query()->create([
+            'school_id' => $schoolId,
+            'academic_period_id' => $period->id,
+            'name' => 'Média do período',
+            'position' => max(1, $position),
+            'weight' => 1,
+            'maximum_score' => 10,
+        ]);
     }
 
     /**

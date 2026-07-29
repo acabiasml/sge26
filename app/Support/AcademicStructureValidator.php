@@ -6,6 +6,7 @@ use App\Models\AcademicCourse;
 use App\Models\AcademicYear;
 use App\Models\SchoolClass;
 use App\Models\SchoolClassScheduleSlot;
+use Illuminate\Support\Str;
 
 class AcademicStructureValidator
 {
@@ -66,6 +67,10 @@ class AcademicStructureValidator
         }
 
         foreach ($course->components->where('active', true) as $component) {
+            if (self::isBehaviorComponentName($component->name)) {
+                continue;
+            }
+
             if (blank($component->knowledge_area_id)) {
                 $items[] = self::issue('warning', 'Componente sem área', "{$component->name} ainda não possui área do conhecimento.", 'Abrir componente', route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
             }
@@ -127,6 +132,10 @@ class AcademicStructureValidator
         }
 
         foreach ($class->componentAssignments->where('active', true) as $assignment) {
+            if (self::isBehaviorComponentName($assignment->component?->name)) {
+                continue;
+            }
+
             if (blank($assignment->teacher_person_id)) {
                 $items[] = self::issue('warning', 'Componente sem docência titular', ($assignment->component?->name ?? 'Componente sem nome').' ainda não possui professor titular.', 'Gerenciar turma', route('academic-years.classes.show', [$academicYear, $class]));
             }
@@ -139,6 +148,10 @@ class AcademicStructureValidator
             ->map->count();
 
         foreach ($class->componentAssignments->where('active', true) as $assignment) {
+            if (self::isBehaviorComponentName($assignment->component?->name)) {
+                continue;
+            }
+
             $expected = (int) ($assignment->component?->weekly_lessons ?? 0);
 
             if ($expected > 0 && $class->schedules->isNotEmpty()) {
@@ -182,5 +195,10 @@ class AcademicStructureValidator
             'action_label' => $actionLabel,
             'action_url' => $actionUrl,
         ], fn ($value) => $value !== null);
+    }
+
+    private static function isBehaviorComponentName(?string $name): bool
+    {
+        return Str::lower(Str::ascii(trim((string) $name))) === 'comportamento';
     }
 }
