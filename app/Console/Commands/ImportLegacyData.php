@@ -229,7 +229,7 @@ class ImportLegacyData extends Command
             foreach ($tables['users'] ?? [] as $legacyUser) {
                 $person = $this->importPerson($source, $legacyUser);
                 $this->personIdMap[$source][(int) $legacyUser['id']] = $person->id;
-                $this->importRoleFromType($person, $school, $legacyUser);
+                $this->importRoleFromType($person, $school, $legacyUser, $this->shouldActivateLegacyUser($source, $legacyUser));
             }
 
             $this->importSchoolManagementRoles($source, $school, $tables['escolas'][0] ?? []);
@@ -335,7 +335,7 @@ class ImportLegacyData extends Command
             'state' => $this->stateOrNull($legacyUser['enduf'] ?? null),
             'postal_code' => $legacyUser['endcep'] ?? null,
             'address_complement' => $legacyUser['endcomplemento'] ?? null,
-            'active' => $this->shouldActivateLegacyUser($source, $legacyUser),
+            'active' => false,
             'profile_completed_at' => null,
             'legacy_metadata' => [
                 'tipo' => $legacyUser['tipo'] ?? null,
@@ -368,7 +368,7 @@ class ImportLegacyData extends Command
     /**
      * @param array<string, mixed> $legacyUser
      */
-    private function importRoleFromType(Person $person, School $school, array $legacyUser): void
+    private function importRoleFromType(Person $person, School $school, array $legacyUser, bool $active): void
     {
         $role = match ($legacyUser['tipo'] ?? null) {
             'admin' => PersonSchoolRole::ROLE_ADMINISTRATOR,
@@ -394,12 +394,12 @@ class ImportLegacyData extends Command
                 [
                 'active' => $role === PersonSchoolRole::ROLE_ADMINISTRATOR
                     ? $this->isAcabias($legacyUser)
-                    : $person->active,
+                    : $active,
                 'started_at' => null,
                 'ended_at' => (
                     $role === PersonSchoolRole::ROLE_ADMINISTRATOR
                         ? $this->isAcabias($legacyUser)
-                        : $person->active
+                        : $active
                 ) ? null : now()->toDateString(),
             ]
         );
@@ -422,12 +422,6 @@ class ImportLegacyData extends Command
 
             if (! $personId) {
                 continue;
-            }
-
-            $person = Person::query()->find($personId);
-
-            if ($person) {
-                $person->forceFill(['active' => true])->save();
             }
 
             PersonSchoolRole::query()->updateOrCreate(
@@ -457,10 +451,6 @@ class ImportLegacyData extends Command
             if (! $personId) {
                 continue;
             }
-
-            Person::query()
-                ->whereKey($personId)
-                ->update(['active' => true]);
 
             PersonSchoolRole::query()->updateOrCreate(
                 [

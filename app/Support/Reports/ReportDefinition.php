@@ -79,7 +79,9 @@ class ReportDefinition
             ->when(! $user->isAdministrator(), function (Builder $query) use ($user): void {
                 $query->whereHas('schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $user->manageableSchoolIds()));
             })
-            ->when(($filters['situacao'] ?? '') !== '', fn (Builder $query) => $query->where('active', ($filters['situacao'] ?? '') === '1'))
+            ->when(($filters['situacao'] ?? '') !== '', fn (Builder $query) => ($filters['situacao'] ?? '') === '1'
+                ? $query->whereActiveByRoles()
+                : $query->whereInactiveByRoles())
             ->when(
                 filled($filters['papel'] ?? null) || filled($filters['escola'] ?? null) || filled($filters['vinculo'] ?? null),
                 function (Builder $query) use ($filters): void {
@@ -101,7 +103,7 @@ class ReportDefinition
                 $person->institutional_email,
                 $person->cpf,
                 $person->phone,
-                $person->active ? 'Ativa' : 'Inativa',
+                $person->hasActiveRoleForDate() ? 'Ativa' : 'Inativa',
             ]);
 
         return new self('people', 'Relatório de Pessoas', ['Nome', 'E-mail institucional', 'CPF', 'Telefone', 'Situação'], $rows, $filters, $search);

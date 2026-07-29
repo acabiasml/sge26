@@ -57,7 +57,6 @@ class ProfileController extends Controller
             'state' => ['required', 'string', 'size:2', Rule::in(BrazilianStates::codes())],
             'postal_code' => ['required', 'string', 'max:255'],
             'address_complement' => ['nullable', 'string', 'max:255'],
-            'active' => ['nullable', 'boolean'],
         ]);
 
         if ($canChangeInstitutionalEmail) {
@@ -65,8 +64,6 @@ class ProfileController extends Controller
                 'institutional_email' => ['nullable', 'email', 'max:255', 'ends_with:@ctjj.org', Rule::unique('people', 'institutional_email')->ignore($person)],
             ]);
         }
-
-        $validated['active'] = true;
 
         if (! $canChangeInstitutionalEmail) {
             $validated['institutional_email'] = $person->institutional_email;
@@ -83,6 +80,7 @@ class ProfileController extends Controller
         $person->fill($validated);
         $person->profile_completed_at = now();
         $person->save();
+        $person->syncActiveFromRoles();
 
         return redirect()->route('dashboard')
             ->with('status', 'Cadastro atualizado com sucesso.');

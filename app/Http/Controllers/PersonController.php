@@ -10,7 +10,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PersonController extends Controller
@@ -47,7 +46,7 @@ class PersonController extends Controller
             'roles' => $this->availableRoles($request),
             'positions' => PersonSchoolRole::POSITION_LABELS,
             'requiresInitialRole' => ! $request->user()->isAdministrator(),
-            'requiresCompleteActiveData' => true,
+            'requiresCompleteActiveData' => ! $request->user()->isAdministrator(),
         ]);
     }
 
@@ -57,17 +56,14 @@ class PersonController extends Controller
 
         $roleData = $this->validatedInitialRole($request);
         $personData = $this->validatedData($request);
-
-        if ($roleData && ! $personData['active'] && blank($personData['cpf'] ?? null)) {
-            throw ValidationException::withMessages([
-                'active' => 'Pessoa inativa sem CPF não pode receber vínculo.',
-            ]);
-        }
+        $personData['active'] = false;
 
         $person = Person::query()->create($personData);
 
         if ($roleData) {
             $person->schoolRoles()->create($roleData);
+        } else {
+            $person->syncActiveFromRoles();
         }
 
         return redirect()->route('people.show', $person)
@@ -103,7 +99,7 @@ class PersonController extends Controller
             'person' => $person,
             'lockInstitutionalEmail' => ! $this->canChangeInstitutionalEmail($request, $person),
             'lockOwnIdentity' => $this->shouldLockOwnIdentity($request, $person),
-            'requiresCompleteActiveData' => ! $request->user()->isAdministrator(),
+            'requiresCompleteActiveData' => $person->hasActiveRoleForDate() && ! $request->user()->isAdministrator(),
         ]);
     }
 
@@ -111,26 +107,10 @@ class PersonController extends Controller
     {
         abort_unless($this->canSeePerson($request, $person), 403);
 
-        $wasActive = $person->active;
         $data = $this->validatedData($request, $person);
 
-        if ($wasActive && ! $data['active'] && $this->hasOnlyActiveAdministratorRole($person)) {
-            throw ValidationException::withMessages([
-                'active' => 'Não é possível desativar a única pessoa com Administração ativa no sistema.',
-            ]);
-        }
-
-        if (! $request->user()->isAdministrator() && $data['active'] && blank($data['cpf'] ?? null)) {
-            throw ValidationException::withMessages([
-                'active' => 'Para ativar uma pessoa, informe o CPF.',
-            ]);
-        }
-
         $person->update($data);
-
-        if ($wasActive && ! $person->active) {
-            $this->endActiveRoles($person);
-        }
+        $person->syncActiveFromRoles();
 
         return redirect()->route('people.show', $person)
             ->with('status', 'Pessoa atualizada com sucesso.');
@@ -241,7 +221,10 @@ class PersonController extends Controller
     {
         $lockOwnIdentity = $person && $this->shouldLockOwnIdentity($request, $person);
         $canChangeInstitutionalEmail = ! $person || $this->canChangeInstitutionalEmail($request, $person);
-        $requiresCompleteActiveData = $request->boolean('active')
+        $hasActiveOrInitialRole = $person
+            ? $person->hasActiveRoleForDate()
+            : filled($request->input('initial_role'));
+        $requiresCompleteActiveData = $hasActiveOrInitialRole
             && (! $person || ! $request->user()->isAdministrator());
         $requiresBrazilianBirthPlace = $requiresCompleteActiveData && $this->isBrazilianNationality($request->input('nationality'));
 
@@ -270,7 +253,6 @@ class PersonController extends Controller
             'state' => [$requiresCompleteActiveData ? 'required' : 'nullable', 'string', 'size:2', Rule::in(BrazilianStates::codes())],
             'postal_code' => [$requiresCompleteActiveData ? 'required' : 'nullable', 'string', 'max:255'],
             'address_complement' => ['nullable', 'string', 'max:255'],
-            'active' => ['nullable', 'boolean'],
         ];
 
         if ($canChangeInstitutionalEmail) {
@@ -293,8 +275,6 @@ class PersonController extends Controller
         if (! $canChangeInstitutionalEmail) {
             $data['institutional_email'] = $person->institutional_email;
         }
-
-        $data['active'] = $request->boolean('active');
 
         return $data;
     }
@@ -324,20 +304,6 @@ class PersonController extends Controller
 
         return $request->user()->isAdministrator()
             && ! $this->hasOnlyActiveAdministratorRole($person);
-    }
-
-    private function endActiveRoles(Person $person): void
-    {
-        $person->schoolRoles()
-            ->where('active', true)
-            ->where(function ($query): void {
-                $query->whereNull('ended_at')
-                    ->orWhere('ended_at', '>', now()->toDateString());
-            })
-            ->update([
-                'active' => false,
-                'ended_at' => now()->toDateString(),
-            ]);
     }
 
     private function hasOnlyActiveAdministratorRole(Person $person): bool

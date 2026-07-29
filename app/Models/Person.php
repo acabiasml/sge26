@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 class Person extends Model
 {
@@ -172,9 +173,51 @@ class Person extends Model
             ->first();
     }
 
+    public function hasActiveRoleForDate(mixed $date = null): bool
+    {
+        $date = $date ? Carbon::parse($date)->toDateString() : now()->toDateString();
+
+        if ($this->relationLoaded('schoolRoles')) {
+            return $this->schoolRoles->contains(fn (PersonSchoolRole $role): bool => $role->isActiveForDate($date));
+        }
+
+        return $this->schoolRoles()
+            ->where('active', true)
+            ->where(function (Builder $roles) use ($date): void {
+                $roles->whereNull('started_at')
+                    ->orWhereDate('started_at', '<=', $date);
+            })
+            ->where(function (Builder $roles) use ($date): void {
+                $roles->whereNull('ended_at')
+                    ->orWhereDate('ended_at', '>=', $date);
+            })
+            ->exists();
+    }
+
+    public function syncActiveFromRoles(): bool
+    {
+        $active = $this->hasActiveRoleForDate();
+
+        if ((bool) $this->active === $active) {
+            return true;
+        }
+
+        return $this->forceFill(['active' => $active])->save();
+    }
+
     public function scopeWhereHasActiveSchoolRole(Builder $query, ?string $role = null, mixed $schoolId = null): Builder
     {
         return $query->whereHasSchoolRole($role, $schoolId, 'ativos');
+    }
+
+    public function scopeWhereActiveByRoles(Builder $query): Builder
+    {
+        return $query->whereHas('schoolRoles', fn (Builder $roles) => self::activeSchoolRoleForDate($roles));
+    }
+
+    public function scopeWhereInactiveByRoles(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('schoolRoles', fn (Builder $roles) => self::activeSchoolRoleForDate($roles));
     }
 
     public function scopeWhereHasSchoolRole(Builder $query, ?string $role = null, mixed $schoolId = null, ?string $status = null): Builder

@@ -48,7 +48,7 @@
                 @endif
             </td>
         </tr>
-        <tr><th class="label">Situação</th><td>{{ $person->active ? 'Ativa' : 'Inativa' }}</td></tr>
+        <tr><th class="label">Situação</th><td>{{ $person->hasActiveRoleForDate() ? 'Ativa' : 'Inativa' }}</td></tr>
     </table>
 
     <h2>Vínculos e papéis</h2>

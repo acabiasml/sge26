@@ -496,14 +496,20 @@ class AdminScreensTest extends TestCase
     public function test_inactive_incomplete_people_do_not_appear_as_registration_pendencies(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $school = School::query()->create(['name' => 'Escola de Teste']);
 
         Person::query()->create([
             'full_name' => 'Pessoa Inativa Incompleta',
             'active' => false,
         ]);
 
-        Person::query()->create([
+        $activePerson = Person::query()->create([
             'full_name' => 'Pessoa Ativa Incompleta',
+            'active' => false,
+        ]);
+        $activePerson->schoolRoles()->create([
+            'school_id' => $school->id,
+            'role' => PersonSchoolRole::ROLE_STUDENT,
             'active' => true,
         ]);
 
@@ -526,7 +532,7 @@ class AdminScreensTest extends TestCase
         $inactivePerson->schoolRoles()->create([
             'school_id' => $school->id,
             'role' => PersonSchoolRole::ROLE_STUDENT,
-            'active' => true,
+            'active' => false,
             'started_at' => null,
         ]);
         $inactivePerson->contacts()->create([

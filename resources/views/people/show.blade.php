@@ -46,7 +46,7 @@
                     <div class="sge-person-summary">
                         <div class="sge-avatar-lg">{{ mb_substr($person->social_name ?: $person->full_name, 0, 1) }}</div>
                         <div>
-                            <div class="sge-page-kicker">{{ $person->active ? 'Cadastro ativo' : 'Cadastro inativo' }}</div>
+                            <div class="sge-page-kicker">{{ $person->hasActiveRoleForDate() ? 'Com vínculo ativo' : 'Sem vínculo ativo' }}</div>
                             <h2 class="h5 mb-1">{{ $person->social_name ?: $person->full_name }}</h2>
                             <p class="mb-0 text-gray-600">{{ $person->institutional_email ?: 'Sem e-mail institucional' }}</p>
                         </div>

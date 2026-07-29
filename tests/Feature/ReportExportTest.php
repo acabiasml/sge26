@@ -182,7 +182,7 @@ class ReportExportTest extends TestCase
             $person->schoolRoles()->create([
                 'school_id' => $school->id,
                 'role' => PersonSchoolRole::ROLE_TEACHER,
-                'active' => true,
+                'active' => $person->is($activePerson),
                 'started_at' => now()->subMonth()->toDateString(),
             ]);
         }

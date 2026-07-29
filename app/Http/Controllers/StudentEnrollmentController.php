@@ -76,7 +76,7 @@ class StudentEnrollmentController extends Controller
             ]),
             'availableCourses' => $availableCourses,
             'students' => Person::query()
-                ->where('active', true)
+                ->whereActiveByRoles()
                 ->whereNotNull('cpf')
                 ->orderBy('full_name')
                 ->get(),
@@ -125,9 +125,9 @@ class StudentEnrollmentController extends Controller
 
         $student = Person::query()->findOrFail($data['person_id']);
 
-        if (! $student->active || ! $student->hasRequiredIdentityForOfficialUse()) {
+        if (! $student->hasRequiredIdentityForOfficialUse()) {
             throw ValidationException::withMessages([
-                'person_id' => 'A matrícula exige estudante ativo com CPF.',
+                'person_id' => 'A matrícula exige estudante com CPF.',
             ]);
         }
 

@@ -380,6 +380,7 @@ class DocumentIssuanceController extends Controller
     private function personTargets(Request $request, array $schoolIds, string $term): Collection
     {
         return Person::query()
+            ->with('schoolRoles')
             ->when(! $request->user()->isAdministrator(), fn (Builder $query) => $query->whereHas('schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $schoolIds)))
             ->when($request->filled('school_id'), fn (Builder $query) => $query->whereHas('schoolRoles', fn (Builder $roles) => $roles->where('school_id', $request->integer('school_id'))))
             ->when($term !== '', function (Builder $query) use ($term): void {
@@ -396,7 +397,7 @@ class DocumentIssuanceController extends Controller
             ->map(fn (Person $person): array => [
                 'id' => $person->id,
                 'title' => $person->social_name ?: $person->full_name,
-                'subtitle' => collect([$person->institutional_email, $person->active ? 'Cadastro ativo' : 'Cadastro inativo'])->filter()->join(' · '),
+                'subtitle' => collect([$person->institutional_email, $person->hasActiveRoleForDate() ? 'Com vínculo ativo' : 'Sem vínculo ativo'])->filter()->join(' · '),
                 'enabled' => true,
                 'reason' => null,
             ]);

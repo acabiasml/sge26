@@ -48,8 +48,7 @@ class PeopleTable extends DataTableComponent
                 ->label(fn (Person $row): string => view('livewire.tables.person-roles', ['person' => $row])->render())
                 ->html(),
             Column::make('Situação', 'active')
-                ->format(fn (bool $value): string => $value ? 'Ativa' : 'Inativa')
-                ->sortable(),
+                ->label(fn (Person $row): string => $row->hasActiveRoleForDate() ? 'Ativa' : 'Inativa'),
             Column::make('Ações')
                 ->label(fn (Person $row): string => view('livewire.tables.person-actions', ['person' => $row])->render())
                 ->html(),
@@ -73,7 +72,9 @@ class PeopleTable extends DataTableComponent
                     '1' => 'Ativas',
                     '0' => 'Inativas',
                 ])
-                ->filter(fn (Builder $builder, string $value) => $builder->where('active', $value === '1')),
+                ->filter(fn (Builder $builder, string $value) => $value === '1'
+                    ? $builder->whereActiveByRoles()
+                    : $builder->whereInactiveByRoles()),
             SelectFilter::make('Papel')
                 ->options(['' => 'Todos'] + PersonSchoolRole::ROLE_LABELS)
                 ->filter(fn (Builder $builder, string $value) => $builder),

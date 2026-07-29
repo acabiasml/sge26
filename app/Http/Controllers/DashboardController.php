@@ -89,11 +89,46 @@ class DashboardController extends Controller
     private function personCount(?array $schoolIds): int
     {
         return Person::query()
-            ->where('active', true)
-            ->when($schoolIds !== null, function (Builder $query) use ($schoolIds): void {
-                $query->whereHas('schoolRoles', fn (Builder $roles) => $this->activeRoleScope($roles)->whereIn('school_id', $schoolIds));
+            ->whereHas('schoolRoles', function (Builder $roles) use ($schoolIds): void {
+                $this->activeRoleScope($roles)
+                    ->when($schoolIds !== null, fn (Builder $roles) => $roles->whereIn('school_id', $schoolIds));
             })
             ->count();
+    }
+
+    /**
+     * @param  list<int>|null  $schoolIds
+     */
+    private function registrationPendingCount(?array $schoolIds): int
+    {
+        return Person::query()
+            ->whereHas('schoolRoles', function (Builder $roles) use ($schoolIds): void {
+                $this->activeRoleScope($roles)
+                    ->when($schoolIds !== null, fn (Builder $roles) => $roles->whereIn('school_id', $schoolIds));
+            })
+            ->where(function (Builder $query): void {
+                $query->whereNull('cpf')
+                    ->orWhere('cpf', '')
+                    ->orWhereNull('birth_date')
+                    ->orWhereNull('mother_name')
+                    ->orWhere('mother_name', '')
+                    ->orWhereNull('profile_completed_at');
+            })
+            ->count();
+    }
+
+    private function activeRoleScope(Builder $query): Builder
+    {
+        return $query
+            ->where('active', true)
+            ->where(function (Builder $query): void {
+                $query->whereNull('started_at')
+                    ->orWhereDate('started_at', '<=', now()->toDateString());
+            })
+            ->where(function (Builder $query): void {
+                $query->whereNull('ended_at')
+                    ->orWhereDate('ended_at', '>=', now()->toDateString());
+            });
     }
 
     /**
@@ -115,7 +150,10 @@ class DashboardController extends Controller
     {
         return StudentEnrollment::query()
             ->where('status', StudentEnrollment::STATUS_ENROLLED)
-            ->whereHas('student', fn (Builder $query) => $query->where('active', true))
+            ->whereHas('student.schoolRoles', function (Builder $roles) use ($schoolIds): void {
+                $this->activeRoleScope($roles)
+                    ->when($schoolIds !== null, fn (Builder $roles) => $roles->whereIn('school_id', $schoolIds));
+            })
             ->whereHas('schoolClass.academicYear', function (Builder $query) use ($schoolIds): void {
                 $query->where('active', true)
                     ->when($schoolIds !== null, fn (Builder $query) => $query->whereIn('school_id', $schoolIds));
@@ -132,44 +170,10 @@ class DashboardController extends Controller
             ->where('active', true)
             ->whereDate('starts_at', '<=', now()->toDateString())
             ->whereDate('ends_at', '>=', now()->toDateString())
-            ->when($schoolIds !== null, fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
-            ->count();
-    }
-
-    /**
-     * @param  list<int>|null  $schoolIds
-     */
-    private function registrationPendingCount(?array $schoolIds): int
-    {
-        return Person::query()
-            ->where('active', true)
-            ->where(function (Builder $query): void {
-                $query->whereNull('cpf')
-                    ->orWhere('cpf', '')
-                    ->orWhereNull('birth_date')
-                    ->orWhereNull('mother_name')
-                    ->orWhere('mother_name', '')
-                    ->orWhereNull('profile_completed_at');
-            })
             ->when($schoolIds !== null, function (Builder $query) use ($schoolIds): void {
-                $query->whereHas('schoolRoles', fn (Builder $roles) => $this->activeRoleScope($roles)->whereIn('school_id', $schoolIds));
+                $query->whereIn('school_id', $schoolIds);
             })
             ->count();
-    }
-
-    private function activeRoleScope(Builder $query): Builder
-    {
-        return $query
-            ->where('active', true)
-            ->whereHas('person', fn (Builder $person) => $person->where('active', true))
-            ->where(function (Builder $query): void {
-                $query->whereNull('started_at')
-                    ->orWhereDate('started_at', '<=', now()->toDateString());
-            })
-            ->where(function (Builder $query): void {
-                $query->whereNull('ended_at')
-                    ->orWhereDate('ended_at', '>=', now()->toDateString());
-            });
     }
 
     /**

@@ -214,7 +214,6 @@ class AcademicMatricesPdfController extends Controller
             ->where('role', PersonSchoolRole::ROLE_MANAGER)
             ->where('position', PersonSchoolRole::POSITION_DIRECTOR)
             ->where('active', true)
-            ->whereHas('person', fn ($query) => $query->where('active', true))
             ->where(function ($query) use ($date): void {
                 $query->whereNull('started_at')
                     ->orWhereDate('started_at', '<=', $date->toDateString());

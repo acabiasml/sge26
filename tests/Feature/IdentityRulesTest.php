@@ -111,10 +111,14 @@ class IdentityRulesTest extends TestCase
     public function test_mother_name_is_required_when_registering_person(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin@ctjj.org');
+        $school = School::query()->create(['name' => 'Escola A']);
 
         $this->actingAs($admin)
             ->post(route('people.store'), $this->personPayload([
                 'mother_name' => null,
+                'initial_role' => PersonSchoolRole::ROLE_STUDENT,
+                'initial_school_id' => $school->id,
+                'initial_started_at' => now()->toDateString(),
             ]))
             ->assertSessionHasErrors(['mother_name']);
     }
@@ -122,9 +126,16 @@ class IdentityRulesTest extends TestCase
     public function test_administrator_can_update_active_person_without_completing_registration_data(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin@ctjj.org');
+        $school = School::query()->create(['name' => 'Escola A']);
         $person = Person::query()->create([
             'full_name' => 'Cadastro Incompleto',
+            'active' => false,
+        ]);
+        $person->schoolRoles()->create([
+            'school_id' => $school->id,
+            'role' => PersonSchoolRole::ROLE_STUDENT,
             'active' => true,
+            'started_at' => now()->subMonth()->toDateString(),
         ]);
 
         $this->actingAs($admin)
@@ -141,7 +152,6 @@ class IdentityRulesTest extends TestCase
                 'city' => null,
                 'state' => null,
                 'postal_code' => null,
-                'active' => '1',
             ]))
             ->assertRedirect(route('people.show', $person))
             ->assertSessionDoesntHaveErrors();
@@ -243,12 +253,16 @@ class IdentityRulesTest extends TestCase
     public function test_brazilian_nationality_requires_birth_city_and_state(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin@ctjj.org');
+        $school = School::query()->create(['name' => 'Escola A']);
 
         $this->actingAs($admin)
             ->post(route('people.store'), $this->personPayload([
                 'nationality' => 'Brasileira',
                 'birth_city' => null,
                 'birth_state' => null,
+                'initial_role' => PersonSchoolRole::ROLE_STUDENT,
+                'initial_school_id' => $school->id,
+                'initial_started_at' => now()->toDateString(),
             ]))
             ->assertSessionHasErrors(['birth_city', 'birth_state']);
     }
@@ -334,7 +348,7 @@ class IdentityRulesTest extends TestCase
         $this->assertSame(now()->toDateString(), $role->started_at->toDateString());
     }
 
-    public function test_deactivating_person_ends_active_roles(): void
+    public function test_person_active_status_follows_role_deactivation(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin@ctjj.org');
         $school = School::query()->create(['name' => 'Escola A']);
@@ -347,31 +361,24 @@ class IdentityRulesTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->put(route('people.update', $person), $this->personPayload([
-                'institutional_email' => $person->institutional_email,
-                'active' => '0',
-            ]))
+            ->patch(route('people.roles.deactivate', [$person, $role]))
             ->assertRedirect(route('people.show', $person));
 
         $role->refresh();
 
         $this->assertFalse($role->active);
         $this->assertSame(now()->toDateString(), $role->ended_at->toDateString());
+        $this->assertFalse($person->refresh()->active);
     }
 
-    public function test_only_active_administrator_cannot_deactivate_their_person_record(): void
+    public function test_person_form_does_not_show_manual_active_control(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin@ctjj.org');
 
         $this->actingAs($admin)
-            ->put(route('people.update', $admin->person), $this->personPayload([
-                'institutional_email' => $admin->person->institutional_email,
-                'active' => '0',
-            ]))
-            ->assertRedirect()
-            ->assertSessionHasErrors(['active']);
-
-        $this->assertTrue($admin->person->refresh()->active);
+            ->get(route('people.edit', $admin->person))
+            ->assertOk()
+            ->assertDontSee('Cadastro ativo');
     }
 
     public function test_only_active_administrator_cannot_deactivate_or_remove_their_administration_role(): void
@@ -404,6 +411,7 @@ class IdentityRulesTest extends TestCase
             ->assertRedirect(route('people.show', $admin->person));
 
         $this->assertFalse($role->refresh()->active);
+        $this->assertFalse($admin->person->refresh()->active);
     }
 
     public function test_role_can_be_deactivated_without_removing_history(): void
@@ -426,6 +434,7 @@ class IdentityRulesTest extends TestCase
 
         $this->assertFalse($role->active);
         $this->assertSame(now()->toDateString(), $role->ended_at->toDateString());
+        $this->assertFalse($person->refresh()->active);
         $this->assertDatabaseHas('person_school_roles', ['id' => $role->id]);
     }
 
@@ -450,6 +459,7 @@ class IdentityRulesTest extends TestCase
 
         $this->assertTrue($role->active);
         $this->assertNull($role->ended_at);
+        $this->assertTrue($person->refresh()->active);
     }
 
     public function test_highest_active_role_is_shown_first(): void
@@ -527,7 +537,7 @@ class IdentityRulesTest extends TestCase
             'city' => 'Poxoreu',
             'state' => 'MT',
             'postal_code' => '78700-000',
-            'active' => true,
+            'active' => false,
             'profile_completed_at' => now(),
         ]);
     }

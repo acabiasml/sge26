@@ -42,7 +42,7 @@ class RecordPdfController extends Controller
 
         $person->load(['schoolRoles.school', 'contacts']);
 
-        if (! $person->active && ! $person->hasRequiredIdentityForOfficialUse()) {
+        if (! $person->hasActiveRoleForDate() && ! $person->hasRequiredIdentityForOfficialUse()) {
             return redirect()->route('people.show', $person)
                 ->with('status', 'Não é possível emitir documento de pessoa inativa sem CPF.');
         }

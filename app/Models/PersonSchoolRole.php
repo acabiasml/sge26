@@ -6,6 +6,7 @@ use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 class PersonSchoolRole extends Model
 {
@@ -62,6 +63,19 @@ class PersonSchoolRole extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::saved(fn (PersonSchoolRole $role): bool => self::syncPersonActive($role));
+        static::deleted(fn (PersonSchoolRole $role): bool => self::syncPersonActive($role));
+    }
+
+    private static function syncPersonActive(PersonSchoolRole $role): bool
+    {
+        return Person::query()
+            ->find($role->person_id)
+            ?->syncActiveFromRoles() ?? true;
+    }
+
     public function person(): BelongsTo
     {
         return $this->belongsTo(Person::class);
@@ -74,7 +88,7 @@ class PersonSchoolRole extends Model
 
     public function isActiveForDate(mixed $date = null): bool
     {
-        $date = $date ? now()->parse($date)->toDateString() : now()->toDateString();
+        $date = $date ? Carbon::parse($date)->toDateString() : now()->toDateString();
 
         if (! $this->active) {
             return false;
@@ -104,7 +118,6 @@ class PersonSchoolRole extends Model
         return self::query()
             ->where('role', self::ROLE_ADMINISTRATOR)
             ->where('active', true)
-            ->whereHas('person', fn (Builder $query) => $query->where('active', true))
             ->where(function (Builder $query): void {
                 $query->whereNull('started_at')
                     ->orWhereDate('started_at', '<=', now()->toDateString());
@@ -119,7 +132,6 @@ class PersonSchoolRole extends Model
     {
         return $this->role === self::ROLE_ADMINISTRATOR
             && $this->isActiveForDate()
-            && ($this->person?->active ?? $this->person()->value('active'))
             && self::activeAdministratorCount() <= 1;
     }
 

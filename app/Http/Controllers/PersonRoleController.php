@@ -15,7 +15,7 @@ class PersonRoleController extends Controller
     {
         $data = $this->validatedData($request);
         $this->authorizeRoleChange($request, $data);
-        $this->preventIncompleteInactivePersonFromReceivingRole($person);
+        $this->preventIncompleteInactivePersonFromReceivingActiveRole($person, $data['active']);
 
         $person->schoolRoles()->create($data);
 
@@ -165,12 +165,12 @@ class PersonRoleController extends Controller
 
     private function preventIncompleteInactivePersonFromReceivingRole(Person $person): void
     {
-        if ($person->active || $person->hasRequiredIdentityForOfficialUse()) {
+        if ($person->hasRequiredIdentityForOfficialUse()) {
             return;
         }
 
         throw ValidationException::withMessages([
-            'person' => 'Pessoa inativa sem CPF não pode receber vínculo.',
+            'person' => 'Informe o CPF antes de atribuir um vínculo ativo a esta pessoa.',
         ]);
     }
 

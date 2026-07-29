@@ -92,14 +92,11 @@ class GoogleController extends Controller
                     ->with('status', 'Seu e-mail institucional ainda não foi cadastrado no Beabá. Procure a administração da escola.');
             }
 
-            if (! $person->active) {
-                return redirect('/')
-                    ->with('status', 'Seu cadastro está inativo no Beabá. Procure a administração da escola.');
-            }
+            $person->syncActiveFromRoles();
 
-            if (! $person->schoolRoles()->where('active', true)->exists()) {
+            if (! $person->hasActiveRoleForDate()) {
                 return redirect('/')
-                    ->with('status', 'Seu cadastro ainda não possui um papel ativo no Beabá. Procure a administração da escola.');
+                    ->with('status', 'Seu cadastro está sem vínculo ativo no Beabá. Procure a administração da escola.');
             }
 
             $user ??= $this->createUserForPerson($person, $email, $googleUser);
@@ -132,7 +129,7 @@ class GoogleController extends Controller
     {
         return Person::query()
             ->where('institutional_email', $email)
-            ->where('active', true)
+            ->whereHasActiveSchoolRole()
             ->first();
     }
 
@@ -149,22 +146,22 @@ class GoogleController extends Controller
             $person = Person::query()->create([
                 'full_name' => $googleUser->getName() ?: $email,
                 'institutional_email' => $email,
-                'active' => true,
+                'active' => false,
             ]);
-        } elseif (! $person->active) {
-            $person->forceFill(['active' => true])->save();
         }
 
-        $person->schoolRoles()->firstOrCreate(
-            [
-                'school_id' => null,
-                'role' => PersonSchoolRole::ROLE_ADMINISTRATOR,
-            ],
-            [
-                'active' => true,
-                'started_at' => now()->toDateString(),
-            ],
-        );
+        $role = $person->schoolRoles()->firstOrNew([
+            'school_id' => null,
+            'role' => PersonSchoolRole::ROLE_ADMINISTRATOR,
+        ]);
+
+        $role->forceFill([
+            'active' => true,
+            'started_at' => $role->started_at ?? now()->toDateString(),
+            'ended_at' => null,
+        ])->save();
+
+        $person->syncActiveFromRoles();
 
         $user ??= $this->createUserForPerson($person, $email, $googleUser);
 

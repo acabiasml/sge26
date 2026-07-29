@@ -162,7 +162,6 @@ class DataQualityController extends Controller
                     'Pessoas sem CPF',
                     'Pessoas sem e-mail institucional',
                     'E-mails institucionais fora do domínio',
-                    'Pessoas ativas sem vínculo ativo',
                 ]),
                 'route' => route('people.index'),
             ],
@@ -287,13 +286,6 @@ class DataQualityController extends Controller
                     ->where('institutional_email', '!=', '')
                     ->where('institutional_email', 'not like', '%@ctjj.org'),
                 'danger'
-            ),
-            $this->check(
-                'Pessoas ativas sem vínculo ativo',
-                'Pessoas ativas que não aparecem como estudante, docência, gestão, equipe ou administração ativa.',
-                $this->personScope(Person::query(), $schoolIds)
-                    ->whereDoesntHave('schoolRoles', fn (Builder $roles) => $this->activeRoleScope($roles, $schoolIds)),
-                'info'
             ),
         ]);
     }
@@ -456,7 +448,9 @@ class DataQualityController extends Controller
                 'Bloqueia documentos do estudante e exige regularização antes de novas emissões oficiais.',
                 $this->enrollmentScope(StudentEnrollment::query(), $schoolIds)
                     ->where('status', StudentEnrollment::STATUS_ENROLLED)
-                    ->whereHas('student', fn (Builder $student) => $this->missingPersonDocumentDataScope($student->where('active', true))),
+                    ->whereHas('student', fn (Builder $student) => $this->missingPersonDocumentDataScope(
+                        $student->whereHas('schoolRoles', fn (Builder $roles) => $this->activeRoleDateScope($roles, $schoolIds))
+                    )),
                 'danger'
             ),
             $this->enrollmentCheck(
@@ -596,11 +590,7 @@ class DataQualityController extends Controller
      */
     private function personScope(Builder $query, ?array $schoolIds): Builder
     {
-        return $query
-            ->where('active', true)
-            ->when($schoolIds !== null, function (Builder $query) use ($schoolIds): void {
-                $query->whereHas('schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $schoolIds));
-            });
+        return $query->whereHas('schoolRoles', fn (Builder $roles) => $this->activeRoleDateScope($roles, $schoolIds));
     }
 
     /**
@@ -610,9 +600,7 @@ class DataQualityController extends Controller
      */
     private function roleScope(Builder $query, ?array $schoolIds): Builder
     {
-        return $query
-            ->whereHas('person', fn (Builder $person) => $person->where('active', true))
-            ->when($schoolIds !== null, fn (Builder $query) => $query->whereIn('school_id', $schoolIds));
+        return $this->activeRoleDateScope($query, $schoolIds);
     }
 
     /**
@@ -623,10 +611,7 @@ class DataQualityController extends Controller
     private function contactScope(Builder $query, ?array $schoolIds): Builder
     {
         return $query
-            ->whereHas('person', fn (Builder $person) => $person->where('active', true))
-            ->when($schoolIds !== null, function (Builder $query) use ($schoolIds): void {
-                $query->whereHas('person.schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $schoolIds));
-            });
+            ->whereHas('person', fn (Builder $person) => $this->personScope($person, $schoolIds));
     }
 
     /**
@@ -668,7 +653,18 @@ class DataQualityController extends Controller
      */
     private function activeRoleScope(Builder $query, ?array $schoolIds = null): Builder
     {
-        return $this->roleScope($query, $schoolIds)
+        return $this->activeRoleDateScope($this->roleScope($query, $schoolIds));
+    }
+
+    /**
+     * @param  Builder<PersonSchoolRole>  $query
+     * @param  list<int>|null  $schoolIds
+     * @return Builder<PersonSchoolRole>
+     */
+    private function activeRoleDateScope(Builder $query, ?array $schoolIds = null): Builder
+    {
+        return $query
+            ->when($schoolIds !== null, fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
             ->where('active', true)
             ->where(function (Builder $query): void {
                 $query->whereNull('started_at')

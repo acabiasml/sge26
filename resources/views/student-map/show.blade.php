@@ -79,7 +79,7 @@
                     @if ($person->student_inep)
                         <span><i class="fas fa-id-card" aria-hidden="true"></i>INEP {{ $person->student_inep }}</span>
                     @endif
-                    <span><i class="fas fa-user-check" aria-hidden="true"></i>{{ $person->active ? 'Cadastro ativo' : 'Cadastro inativo' }}</span>
+                    <span><i class="fas fa-user-check" aria-hidden="true"></i>{{ $person->hasActiveRoleForDate() ? 'Com vínculo ativo' : 'Sem vínculo ativo' }}</span>
                 </div>
             </div>
         </div>

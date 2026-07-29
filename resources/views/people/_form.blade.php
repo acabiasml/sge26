@@ -1,7 +1,6 @@
 @php
     $lockInstitutionalEmail = $lockInstitutionalEmail ?? false;
     $lockOwnIdentity = $lockOwnIdentity ?? false;
-    $showActiveControl = $showActiveControl ?? true;
     $requiresCompleteActiveData = $requiresCompleteActiveData ?? true;
     $lockFullName = $lockOwnIdentity && filled($person->full_name ?? null);
     $lockCpf = $lockOwnIdentity && filled($person->cpf ?? null);
@@ -13,8 +12,7 @@
         $nationalityValue = 'Brasileira';
     }
     $nationalityOptions = \App\Support\Nationalities::options();
-    $activeValue = (bool) old('active', $person->active ?? true);
-    $requiresCompleteFields = $requiresCompleteActiveData && $activeValue;
+    $requiresCompleteFields = $requiresCompleteActiveData;
     $requiresBrazilianBirthPlace = $requiresCompleteFields && $nationalityValue === 'Brasileira';
 @endphp
 
@@ -54,16 +52,11 @@
         @error('birth_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
-    @if ($showActiveControl)
-        <div class="form-group col-md-4 d-flex align-items-end">
-            <div class="form-check mb-2">
-                <input type="hidden" name="active" value="0">
-                <input id="active" name="active" value="1" type="checkbox" class="form-check-input" data-active-input @checked(old('active', $person->active ?? true))>
-                <label for="active" class="form-check-label">Cadastro ativo</label>
-                <small class="form-text text-muted">Cadastros inativos não acessam o sistema, não recebem novos vínculos e não emitem documentos sem CPF.</small>
-            </div>
-        </div>
-    @endif
+    <div class="form-group col-md-4 d-flex align-items-end">
+        <p class="form-text text-muted mb-2">
+            A situação do cadastro é definida automaticamente pelos vínculos ativos da pessoa.
+        </p>
+    </div>
 </div>
 
 <div class="form-row">
@@ -208,7 +201,6 @@
         <script>
             document.querySelectorAll('[data-nationality-input]').forEach((nationalityInput) => {
                 const form = nationalityInput.closest('form');
-                const activeInput = form?.querySelector('[data-active-input]');
                 const birthFields = form?.querySelectorAll('[data-brazilian-birth-field]');
 
                 if (!form || !birthFields?.length) {
@@ -224,7 +216,6 @@
 
                 const syncBirthPlaceRequirement = () => {
                     const requiresBirthPlace = requiresCompleteActiveData
-                        && (activeInput ? activeInput.checked : true)
                         && isBrazilian();
 
                     birthFields.forEach((field) => {
@@ -234,7 +225,6 @@
 
                 nationalityInput.addEventListener('input', syncBirthPlaceRequirement);
                 nationalityInput.addEventListener('change', syncBirthPlaceRequirement);
-                activeInput?.addEventListener('change', syncBirthPlaceRequirement);
                 syncBirthPlaceRequirement();
             });
         </script>

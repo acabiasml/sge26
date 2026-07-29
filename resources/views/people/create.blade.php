@@ -8,7 +8,7 @@
         <div class="card-body">
             <form method="POST" action="{{ route('people.store') }}">
                 @csrf
-                @include('people._form', ['person' => new \App\Models\Person(['active' => true])])
+                @include('people._form', ['person' => new \App\Models\Person()])
 
                 <hr>
                 <h2 class="h5 text-gray-900">Vínculo inicial</h2>
