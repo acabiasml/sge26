@@ -128,6 +128,7 @@
                 @if ($assessmentRules->isEmpty())
                     <p class="mb-0">A gestão ainda não definiu as avaliações e os pesos deste período.</p>
                 @else
+                    @php($activeEnrollmentCount = $enrollments->filter->isActive()->count())
                     <form method="POST" action="{{ route('teacher-diaries.grades.update', [$schoolClass, $component]) }}">
                         @csrf
                         @method('PUT')
@@ -160,20 +161,26 @@
                                 </thead>
                                 <tbody>
                                     @foreach ($enrollments as $enrollment)
-                                        <tr>
-                                            <td>{{ $enrollment->student?->full_name }}</td>
+                                        @php($enrollmentLocked = ! $enrollment->isActive())
+                                        <tr class="{{ $enrollmentLocked ? 'table-light' : '' }}">
+                                            <td>
+                                                {{ $enrollment->student?->full_name }}
+                                                @if ($enrollmentLocked)
+                                                    <span class="badge badge-secondary ml-1">{{ $enrollment->statusLabel() }}</span>
+                                                @endif
+                                            </td>
                                             @foreach ($assessments as $assessment)
                                                 @php($result = $assessment->results->firstWhere('student_enrollment_id', $enrollment->id))
-                                                <td><label class="sr-only" for="score_{{ $assessment->id }}_{{ $enrollment->id }}">Nota de {{ $enrollment->student?->full_name }} em {{ $assessment->title }}</label><input id="score_{{ $assessment->id }}_{{ $enrollment->id }}" name="scores[{{ $assessment->id }}][{{ $enrollment->id }}]" data-mask="decimal" inputmode="decimal" class="form-control form-control-sm" value="{{ $result?->score }}">@if($result?->updatedBy && $result->updated_by_person_id !== $assignment->teacher_person_id)<span class="d-block small text-warning mt-1" title="Lançamento alterado por {{ $result->updatedBy->full_name }}"><i class="fas fa-user-shield" aria-hidden="true"></i><span class="sr-only">Alterado por {{ $result->updatedBy->full_name }}</span></span>@endif</td>
+                                                <td><label class="sr-only" for="score_{{ $assessment->id }}_{{ $enrollment->id }}">Nota de {{ $enrollment->student?->full_name }} em {{ $assessment->title }}</label><input id="score_{{ $assessment->id }}_{{ $enrollment->id }}" name="scores[{{ $assessment->id }}][{{ $enrollment->id }}]" data-mask="decimal" inputmode="decimal" class="form-control form-control-sm" value="{{ $result?->score }}" @disabled($enrollmentLocked)>@if($result?->updatedBy && $result->updated_by_person_id !== $assignment->teacher_person_id)<span class="d-block small text-warning mt-1" title="Lançamento alterado por {{ $result->updatedBy->full_name }}"><i class="fas fa-user-shield" aria-hidden="true"></i><span class="sr-only">Alterado por {{ $result->updatedBy->full_name }}</span></span>@endif</td>
                                             @endforeach
-                                            @php($average = $averages[$enrollment->id])
+                                            @php($average = $averages[$enrollment->id] ?? ['value' => null, 'complete' => false, 'completed_assessments' => 0, 'total_assessments' => $assessments->where('is_recovery', false)->count()])
                                             <td class="text-center font-weight-bold">{{ $average['value'] ?? '-' }}@if (($average['value'] ?? null) !== null)<span class="d-block small text-muted">{{ $average['complete'] ? 'Completa' : $average['completed_assessments'].' de '.$average['total_assessments'].' lançada(s)' }}</span>@endif</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
                             </table>
                         </div>
-                        <button class="btn btn-primary" type="submit" @disabled($enrollments->isEmpty())>Salvar notas</button>
+                        <button class="btn btn-primary" type="submit" @disabled($activeEnrollmentCount === 0)>Salvar notas</button>
                     </form>
                 @endif
             </div>

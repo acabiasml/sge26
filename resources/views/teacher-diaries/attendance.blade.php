@@ -53,8 +53,14 @@
                             </tr></thead>
                             <tbody>
                                 @forelse ($enrollments as $enrollment)
+                                    @php($enrollmentLocked = ! $enrollment->isActive())
                                     <tr>
-                                        <th scope="row" class="sge-attendance-student-column">{{ $enrollment->student?->full_name }}</th>
+                                        <th scope="row" class="sge-attendance-student-column">
+                                            {{ $enrollment->student?->full_name }}
+                                            @if ($enrollmentLocked)
+                                                <span class="badge badge-secondary ml-1">{{ $enrollment->statusLabel() }}</span>
+                                            @endif
+                                        </th>
                                         @foreach ($days as $day)
                                             @php($date = $day->date->toDateString())
                                             @php($record = $records->get($date))
@@ -66,7 +72,7 @@
                                                     @for ($lesson = 1; $lesson <= 24; $lesson++)
                                                         @php($isPresent = array_is_list((array) $presence) ? (bool) data_get($presence, $lesson - 1, false) : (bool) data_get($presence, $lesson, false))
                                                         <span data-lesson-checkbox="{{ $lesson }}">
-                                                            <input id="attendance_{{ $date }}_{{ $enrollment->id }}_{{ $lesson }}" name="attendance[{{ $date }}][{{ $enrollment->id }}][{{ $lesson }}]" type="checkbox" value="1" @checked($isPresent)>
+                                                            <input id="attendance_{{ $date }}_{{ $enrollment->id }}_{{ $lesson }}" name="attendance[{{ $date }}][{{ $enrollment->id }}][{{ $lesson }}]" type="checkbox" value="1" data-locked="{{ $enrollmentLocked ? '1' : '0' }}" @checked($isPresent) @disabled($enrollmentLocked)>
                                                             <label for="attendance_{{ $date }}_{{ $enrollment->id }}_{{ $lesson }}" title="Aula {{ $lesson }}"><span class="sr-only">Presente na aula {{ $lesson }}</span>{{ $lesson }}</label>
                                                         </span>
                                                     @endfor
@@ -98,7 +104,8 @@
                     cell.querySelectorAll('[data-lesson-checkbox]').forEach((lesson) => {
                         const visible = Number(lesson.dataset.lessonCheckbox) <= lessonCount;
                         lesson.hidden = !visible;
-                        lesson.querySelector('input').disabled = !visible;
+                        const input = lesson.querySelector('input');
+                        input.disabled = !visible || input.dataset.locked === '1';
                     });
                 });
             };

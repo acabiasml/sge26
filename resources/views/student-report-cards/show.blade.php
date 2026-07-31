@@ -186,6 +186,18 @@
                             <label for="convalidated_at">Data</label>
                             <input id="convalidated_at" name="convalidated_at" type="date" class="form-control" value="{{ now('America/Sao_Paulo')->toDateString() }}">
                         </div>
+                        <div class="form-group col-md-4">
+                            <label for="attendance_lessons">Aulas cursadas na origem</label>
+                            <input id="attendance_lessons" name="attendance_lessons" type="number" min="1" max="999" class="form-control" inputmode="numeric" placeholder="Opcional">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="attendance_absences">Faltas na origem</label>
+                            <input id="attendance_absences" name="attendance_absences" type="number" min="0" max="999" class="form-control" inputmode="numeric" placeholder="0">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="attendance_justified_absences">Faltas justificadas na origem</label>
+                            <input id="attendance_justified_absences" name="attendance_justified_absences" type="number" min="0" max="999" class="form-control" inputmode="numeric" placeholder="0">
+                        </div>
                         <div class="form-group col-md-5">
                             <label for="source_school">Escola de origem</label>
                             <input id="source_school" name="source_school" class="form-control">
@@ -207,6 +219,7 @@
                                 <th>Período</th>
                                 <th>Componente</th>
                                 <th>Média</th>
+                                <th>Frequência externa</th>
                                 <th>Origem</th>
                                 <th class="text-right">Ações</th>
                             </tr>
@@ -217,6 +230,16 @@
                                     <td>{{ $convalidation->period?->name }}</td>
                                     <td>{{ $convalidation->component?->name }}</td>
                                     <td>{{ number_format((float) $convalidation->score, 1, ',', '.') }}</td>
+                                    <td>
+                                        @if((int) ($convalidation->attendance_lessons ?? 0) > 0)
+                                            {{ $convalidation->attendance_lessons }} aula(s), {{ (int) ($convalidation->attendance_absences ?? 0) }} falta(s)
+                                            @if((int) ($convalidation->attendance_justified_absences ?? 0) > 0)
+                                                <span class="d-block small text-muted">{{ $convalidation->attendance_justified_absences }} justificada(s)</span>
+                                            @endif
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
                                     <td>
                                         {{ $convalidation->source_school ?: '-' }}
                                         @if($convalidation->notes)<span class="d-block small text-muted">{{ $convalidation->notes }}</span>@endif
@@ -232,7 +255,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="5" class="text-center text-muted">Nenhum resultado convalidado.</td></tr>
+                                <tr><td colspan="6" class="text-center text-muted">Nenhum resultado convalidado.</td></tr>
                             @endforelse
                         </tbody>
                     </table>

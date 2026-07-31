@@ -16,17 +16,35 @@ class StudentPeriodConvalidationController extends Controller
         $academicYear = $enrollment->schoolClass->academicYear;
         abort_if($academicYear->isClosed(), 422, 'Não é possível convalidar lançamentos em ano letivo fechado.');
 
-        if ($request->filled('score')) {
-            $request->merge(['score' => str_replace(',', '.', (string) $request->input('score'))]);
+        foreach (['score', 'attendance_lessons', 'attendance_absences', 'attendance_justified_absences'] as $field) {
+            if ($request->filled($field)) {
+                $request->merge([$field => str_replace(',', '.', (string) $request->input($field))]);
+            }
         }
 
         $data = $request->validate([
             'academic_period_id' => ['required', 'integer', Rule::exists('academic_periods', 'id')->where('academic_year_id', $academicYear->id)],
             'curriculum_component_id' => ['required', 'integer'],
             'score' => ['required', 'numeric', 'min:0', 'max:10'],
+            'attendance_lessons' => ['nullable', 'integer', 'min:1', 'max:999'],
+            'attendance_absences' => ['nullable', 'integer', 'min:0', 'max:999', 'lte:attendance_lessons'],
+            'attendance_justified_absences' => ['nullable', 'integer', 'min:0', 'max:999', 'lte:attendance_absences'],
             'source_school' => ['nullable', 'string', 'max:255'],
             'convalidated_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
+        ], [
+            'academic_period_id.required' => 'Selecione o período avaliativo.',
+            'curriculum_component_id.required' => 'Selecione o componente curricular.',
+            'score.required' => 'Informe a média recebida da escola de origem.',
+            'score.numeric' => 'Informe uma média válida.',
+            'score.min' => 'A média não pode ser menor que zero.',
+            'score.max' => 'A média não pode ser maior que dez.',
+            'attendance_lessons.integer' => 'Informe a quantidade de aulas como número inteiro.',
+            'attendance_lessons.min' => 'A quantidade de aulas precisa ser maior que zero.',
+            'attendance_absences.integer' => 'Informe a quantidade de faltas como número inteiro.',
+            'attendance_absences.lte' => 'As faltas não podem ser maiores que a quantidade de aulas.',
+            'attendance_justified_absences.integer' => 'Informe as faltas justificadas como número inteiro.',
+            'attendance_justified_absences.lte' => 'As faltas justificadas não podem ser maiores que o total de faltas.',
         ]);
 
         abort_unless(
@@ -44,6 +62,9 @@ class StudentPeriodConvalidationController extends Controller
             ],
             [
                 'score' => $data['score'],
+                'attendance_lessons' => $data['attendance_lessons'] ?? null,
+                'attendance_absences' => $data['attendance_absences'] ?? null,
+                'attendance_justified_absences' => $data['attendance_justified_absences'] ?? null,
                 'source_school' => $data['source_school'] ?? null,
                 'convalidated_at' => $data['convalidated_at'] ?? now('America/Sao_Paulo')->toDateString(),
                 'notes' => $data['notes'] ?? null,

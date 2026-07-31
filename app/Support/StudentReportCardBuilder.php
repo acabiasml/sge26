@@ -117,6 +117,18 @@ class StudentReportCardBuilder
                         ->where('academic_period_id', $period->id)
                         ->where('curriculum_component_id', $component->id)
                         ->values();
+                    $attendanceSummary = $this->attendanceCalculator->summarize($componentAttendance, $justifications);
+
+                    if ($convalidation && (int) ($convalidation->attendance_lessons ?? 0) > 0) {
+                        $attendanceSummary = $this->attendanceCalculator->aggregate(collect([
+                            $attendanceSummary,
+                            $this->attendanceCalculator->fromTotals(
+                                (int) $convalidation->attendance_lessons,
+                                max(0, (int) $convalidation->attendance_lessons - (int) ($convalidation->attendance_absences ?? 0)),
+                                (int) ($convalidation->attendance_justified_absences ?? 0),
+                            ),
+                        ]));
+                    }
 
                     return [
                         'period' => $period,
@@ -125,7 +137,7 @@ class StudentReportCardBuilder
                         'assessments' => $componentAssessments,
                         'average' => $average,
                         'convalidation' => $convalidation,
-                        'attendance' => $this->attendanceCalculator->summarize($componentAttendance, $justifications),
+                        'attendance' => $attendanceSummary,
                     ];
                 })
                 ->values();

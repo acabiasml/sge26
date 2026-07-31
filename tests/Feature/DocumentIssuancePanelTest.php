@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
 use App\Models\AcademicYear;
 use App\Models\Person;
@@ -170,8 +171,124 @@ class DocumentIssuancePanelTest extends TestCase
             ]))
             ->assertOk();
 
-        $response->assertJsonPath('targets.0.id', $currentEnrollment->id)
+        $response->assertJsonPath('targets.0.id', $currentEnrollment->id);
+        $this->assertCount(1, $response->json('targets'));
+
+        $archiveResponse = $this->actingAs($administrator)
+            ->getJson(route('document-issuance.targets', [
+                'type' => 'individual-record',
+                'q' => 'Estudante com',
+            ]))
+            ->assertOk();
+
+        $archiveResponse->assertJsonPath('targets.0.id', $currentEnrollment->id)
             ->assertJsonPath('targets.1.id', $olderEnrollment->id);
+    }
+
+    public function test_current_enrollment_documents_keep_ongoing_technical_enrollments_visible(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $student = $this->personWithRole('Estudante Tecnico', PersonSchoolRole::ROLE_STUDENT, $school->id);
+
+        $closedYear = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Educacao Basica',
+            'reference_year' => 2025,
+            'starts_at' => '2025-01-01',
+            'ends_at' => '2025-12-31',
+            'active' => false,
+            'closed_at' => '2025-12-31 18:00:00',
+        ]);
+        $technicalClass = SchoolClass::query()->create([
+            'academic_year_id' => $closedYear->id,
+            'name' => 'Curso Tecnico em Moveis',
+            'active' => true,
+        ]);
+        $regularClass = SchoolClass::query()->create([
+            'academic_year_id' => $closedYear->id,
+            'name' => '2 Ano',
+            'active' => false,
+        ]);
+        $technicalCourse = AcademicCourse::query()->create([
+            'academic_year_id' => $closedYear->id,
+            'name' => 'Curso Tecnico em Moveis',
+            'stage' => AcademicCourse::STAGE_TECHNICAL,
+            'modality' => AcademicCourse::MODALITY_PROFESSIONAL_TECHNOLOGICAL,
+            'active' => true,
+        ]);
+        $regularCourse = AcademicCourse::query()->create([
+            'academic_year_id' => $closedYear->id,
+            'name' => '2 Ano',
+            'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
+            'modality' => AcademicCourse::MODALITY_REGULAR,
+            'active' => false,
+        ]);
+        $technicalCourse->classes()->attach($technicalClass);
+        $regularCourse->classes()->attach($regularClass);
+        $technicalEnrollment = StudentEnrollment::query()->create([
+            'school_class_id' => $technicalClass->id,
+            'person_id' => $student->id,
+            'enrolled_at' => '2025-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $regularEnrollment = StudentEnrollment::query()->create([
+            'school_class_id' => $regularClass->id,
+            'person_id' => $student->id,
+            'enrolled_at' => '2025-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $technicalEnrollment->courses()->attach($technicalCourse);
+        $regularEnrollment->courses()->attach($regularCourse);
+
+        $response = $this->actingAs($administrator)
+            ->getJson(route('document-issuance.targets', [
+                'type' => 'enrollment-form',
+                'q' => 'Estudante Tecnico',
+            ]))
+            ->assertOk();
+
+        $response->assertJsonPath('targets.0.id', $technicalEnrollment->id);
+        $this->assertCount(1, $response->json('targets'));
+    }
+
+    public function test_current_enrollment_documents_cannot_be_forced_for_closed_regular_year(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $student = $this->personWithRole('Estudante Arquivado', PersonSchoolRole::ROLE_STUDENT, $school->id);
+        $year = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Educacao Basica',
+            'reference_year' => 2025,
+            'starts_at' => '2025-01-01',
+            'ends_at' => '2025-12-31',
+            'active' => false,
+            'closed_at' => '2025-12-31 18:00:00',
+        ]);
+        $class = SchoolClass::query()->create([
+            'academic_year_id' => $year->id,
+            'name' => '1 Ano',
+            'active' => false,
+        ]);
+        $enrollment = StudentEnrollment::query()->create([
+            'school_class_id' => $class->id,
+            'person_id' => $student->id,
+            'enrolled_at' => '2025-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+
+        $this->actingAs($administrator)
+            ->from(route('document-issuance.index'))
+            ->get(route('document-issuance.issue', [
+                'type' => 'enrollment-form',
+                'target_id' => $enrollment->id,
+            ]))
+            ->assertRedirect(route('document-issuance.index'))
+            ->assertSessionHasErrors('target_id');
     }
 
     public function test_class_academic_documents_redirect_to_their_emitters_with_score_view(): void

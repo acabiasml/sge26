@@ -183,7 +183,7 @@
                                         <i class="fas fa-exchange-alt" aria-hidden="true"></i>
                                     </a>
                                 @endif
-                                @if ($enrollment->isActive() || $enrollment->status === \App\Models\StudentEnrollment::STATUS_CANCELLED)
+                                @if ($enrollment->isActive() || in_array($enrollment->status, [\App\Models\StudentEnrollment::STATUS_TRANSFERRED, \App\Models\StudentEnrollment::STATUS_CANCELLED], true))
                                     <button class="btn btn-sm btn-outline-secondary sge-icon-action" type="button" data-toggle="modal" data-target="#enrollmentMovementModal{{ $enrollment->id }}" aria-label="Abrir movimentações da matrícula de {{ $enrollment->student?->full_name }}" title="Movimentar matrícula">
                                         <i class="fas fa-random" aria-hidden="true"></i>
                                     </button>
@@ -200,7 +200,7 @@
     </div>
 
     @foreach ($class->enrollments->sortBy(fn ($enrollment) => $enrollment->student?->full_name) as $enrollment)
-        @if ($enrollment->isActive() || $enrollment->status === \App\Models\StudentEnrollment::STATUS_CANCELLED)
+        @if ($enrollment->isActive() || in_array($enrollment->status, [\App\Models\StudentEnrollment::STATUS_TRANSFERRED, \App\Models\StudentEnrollment::STATUS_CANCELLED], true))
             <div class="modal fade" id="enrollmentMovementModal{{ $enrollment->id }}" tabindex="-1" role="dialog" aria-labelledby="enrollmentMovementTitle{{ $enrollment->id }}" aria-hidden="true">
                 <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
                     <div class="modal-content">
@@ -229,18 +229,37 @@
                                         <i class="fas fa-undo mr-1" aria-hidden="true"></i>Desfazer cancelamento
                                     </button>
                                 </form>
+                            @elseif ($enrollment->status === \App\Models\StudentEnrollment::STATUS_TRANSFERRED)
+                                <div class="alert alert-warning" role="alert">
+                                    Esta matrícula está transferida desde {{ $enrollment->transferred_at?->format('d/m/Y') ?? 'data não informada' }}. Use esta ação somente quando a transferência foi registrada por engano.
+                                </div>
+                                <form method="POST" action="{{ route('enrollments.restore-transfer', $enrollment) }}" onsubmit="return confirm('Desfazer a transferência desta matrícula? O estudante voltará a ficar ativo nesta turma se não houver outra matrícula ativa no mesmo ano letivo.')">
+                                    @csrf
+                                    @method('PATCH')
+                                    <div class="form-group">
+                                        <label for="restore_transfer_notes_{{ $enrollment->id }}">Observações da reversão</label>
+                                        <textarea id="restore_transfer_notes_{{ $enrollment->id }}" name="notes" class="form-control" rows="3" placeholder="Opcional"></textarea>
+                                    </div>
+                                    <button class="btn btn-primary" type="submit">
+                                        <i class="fas fa-undo mr-1" aria-hidden="true"></i>Desfazer transferência
+                                    </button>
+                                </form>
                             @else
                                 <div class="row">
                                     <div class="col-lg-6 mb-4">
                                         <section class="sge-movement-panel h-100">
                                             <h3 class="h6">Transferência</h3>
                                             <p class="small text-muted">Registra a saída do estudante preservando o histórico desta matrícula.</p>
-                                            <form method="POST" action="{{ route('enrollments.transfer', $enrollment) }}">
+                                            <form method="POST" action="{{ route('enrollments.transfer', $enrollment) }}" onsubmit="return confirm('Confirmar transferência desta matrícula? Antes de registrar, confira se as notas do período atual estão completas.')">
                                                 @csrf
                                                 @method('PATCH')
                                                 <div class="form-group">
                                                     <label for="transferred_at_{{ $enrollment->id }}">Data de transferência</label>
                                                     <input id="transferred_at_{{ $enrollment->id }}" name="transferred_at" type="date" min="{{ $enrollment->enrolled_at?->format('Y-m-d') }}" max="{{ $enrollmentEndsAt }}" class="form-control" required>
+                                                </div>
+                                                <div class="custom-control custom-checkbox mb-3">
+                                                    <input class="custom-control-input" type="checkbox" name="confirm_transfer" value="1" id="confirm_transfer_{{ $enrollment->id }}" required>
+                                                    <label class="custom-control-label" for="confirm_transfer_{{ $enrollment->id }}">Conferi a matrícula, a data e as notas do período atual.</label>
                                                 </div>
                                                 <div class="form-group">
                                                     <label for="transfer_notes_{{ $enrollment->id }}">Observações</label>

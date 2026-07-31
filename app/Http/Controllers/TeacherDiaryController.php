@@ -7,28 +7,28 @@ use App\Models\AcademicPeriodDiaryConsolidation;
 use App\Models\AcademicYear;
 use App\Models\CalendarDay;
 use App\Models\CurriculumComponent;
-use App\Models\DiaryAssessment;
 use App\Models\DiaryAlert;
-use App\Models\DiaryContent;
-use App\Models\DiaryAttendanceRecord;
+use App\Models\DiaryAssessment;
 use App\Models\DiaryAttendanceJustification;
+use App\Models\DiaryAttendanceRecord;
+use App\Models\DiaryContent;
 use App\Models\DiaryPeriodConfirmation;
 use App\Models\IssuedDocument;
+use App\Models\School;
+use App\Models\SchoolAssessmentRule;
 use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
-use App\Models\SchoolAssessmentRule;
-use App\Models\School;
 use App\Models\StudentEnrollment;
 use App\Support\DiaryGradeCalculator;
 use App\Support\DiaryPeriodStatus;
 use App\Support\PdfLetterhead;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -42,7 +42,7 @@ class TeacherDiaryController extends Controller
         $user = $request->user();
 
         if ($user->isAdministrator() || $user->isManager()) {
-            return $this->managementIndex($request, new DiaryPeriodStatus());
+            return $this->managementIndex($request, new DiaryPeriodStatus);
         }
 
         $assignments = SchoolClassComponent::query()
@@ -575,7 +575,7 @@ class TeacherDiaryController extends Controller
         $this->ensureComponentActiveInPeriod($component, $period);
         $this->ensurePeriodOpen($schoolClass, $component, $period);
         $assignment = SchoolClassComponent::query()->where('school_class_id', $schoolClass->id)->where('curriculum_component_id', $component->id)->firstOrFail();
-        $enrollmentIds = $this->enrollments($schoolClass, $course->id)->pluck('id')->all();
+        $enrollmentIds = $this->activeEnrollments($schoolClass, $course->id)->pluck('id')->all();
 
         $data = $request->validate([
             'academic_period_id' => ['required', Rule::in([$period->id])],
@@ -726,6 +726,7 @@ class TeacherDiaryController extends Controller
             ->where('school_class_id', $schoolClass->id)->where('curriculum_component_id', $component->id)
             ->where('academic_period_id', $period->id)->get()
             ->keyBy(fn (DiaryContent $content): string => $content->class_date->toDateString());
+
         return view('teacher-diaries.contents', compact('academicYear', 'course', 'schoolClass', 'component', 'periods', 'period', 'days', 'contents', 'attendanceDates', 'selectedDates', 'page', 'totalPages', 'usesScheduledDiary'));
     }
 
@@ -761,6 +762,7 @@ class TeacherDiaryController extends Controller
                 }
                 if (blank($content)) {
                     DiaryContent::query()->where('school_class_id', $schoolClass->id)->where('curriculum_component_id', $component->id)->whereDate('class_date', $date)->delete();
+
                     continue;
                 }
                 $record = DiaryContent::query()
@@ -815,7 +817,7 @@ class TeacherDiaryController extends Controller
             ->firstOrFail();
         $this->ensureRecoveryAssessment($schoolClass, $component, $period, $assignment);
 
-        $enrollmentIds = $this->enrollments($schoolClass, $course->id)->pluck('id')->all();
+        $enrollmentIds = $this->activeEnrollments($schoolClass, $course->id)->pluck('id')->all();
         $assessments = DiaryAssessment::query()
             ->where('school_class_id', $schoolClass->id)
             ->where('curriculum_component_id', $component->id)
@@ -1145,11 +1147,12 @@ class TeacherDiaryController extends Controller
      */
     private function periodPending(Collection $enrollments, Collection $assessments, Collection $attendance, Collection $contents): array
     {
+        $activeEnrollments = $enrollments->filter->isActive()->values();
         $attendanceDates = collect($attendance->map(fn (DiaryAttendanceRecord $record): string => $record->class_date->toDateString())->all())->unique()->sort()->values();
         $contentDates = collect($contents->map(fn (DiaryContent $content): string => $content->class_date->toDateString())->all())->unique()->sort()->values();
         $regularAssessments = $assessments->where('is_recovery', false);
-        $missingGrades = $regularAssessments->sum(function (DiaryAssessment $assessment) use ($enrollments): int {
-            return $enrollments->filter(fn (StudentEnrollment $enrollment): bool => $assessment->results->firstWhere('student_enrollment_id', $enrollment->id)?->score === null)->count();
+        $missingGrades = $regularAssessments->sum(function (DiaryAssessment $assessment) use ($activeEnrollments): int {
+            return $activeEnrollments->filter(fn (StudentEnrollment $enrollment): bool => $assessment->results->firstWhere('student_enrollment_id', $enrollment->id)?->score === null)->count();
         });
 
         return [
@@ -1327,10 +1330,38 @@ class TeacherDiaryController extends Controller
     {
         return $schoolClass->enrollments()
             ->with('student')
-            ->where('status', StudentEnrollment::STATUS_ENROLLED)
+            ->whereIn('status', [
+                StudentEnrollment::STATUS_ENROLLED,
+                StudentEnrollment::STATUS_TRANSFERRED,
+                StudentEnrollment::STATUS_RECLASSIFIED,
+            ])
             ->whereHas('courses', fn (Builder $query) => $query->whereKey($courseId))
             ->get()
-            ->sortBy(fn (StudentEnrollment $enrollment): string => $enrollment->student?->full_name ?? '')
+            ->sort(function (StudentEnrollment $first, StudentEnrollment $second): int {
+                $firstKey = [
+                    $first->isActive() ? 0 : 1,
+                    $first->isActive()
+                        ? ($first->enrolled_at?->format('Y-m-d') ?? '9999-12-31')
+                        : ($first->transferred_at?->format('Y-m-d') ?? $first->reclassified_at?->format('Y-m-d') ?? '9999-12-31'),
+                    $first->id,
+                ];
+                $secondKey = [
+                    $second->isActive() ? 0 : 1,
+                    $second->isActive()
+                        ? ($second->enrolled_at?->format('Y-m-d') ?? '9999-12-31')
+                        : ($second->transferred_at?->format('Y-m-d') ?? $second->reclassified_at?->format('Y-m-d') ?? '9999-12-31'),
+                    $second->id,
+                ];
+
+                return $firstKey <=> $secondKey;
+            })
+            ->values();
+    }
+
+    private function activeEnrollments(SchoolClass $schoolClass, int $courseId): Collection
+    {
+        return $this->enrollments($schoolClass, $courseId)
+            ->filter->isActive()
             ->values();
     }
 
@@ -1340,7 +1371,7 @@ class TeacherDiaryController extends Controller
     }
 
     /**
-     * @param array<int|string, mixed> $submittedLessons
+     * @param  array<int|string, mixed>  $submittedLessons
      * @return array<int, bool>
      */
     private function lessonPresence(array $submittedLessons, int $lessonCount): array

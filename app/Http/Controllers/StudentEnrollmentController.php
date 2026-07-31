@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
+use App\Models\DiaryAssessment;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\SchoolClass;
 use App\Models\StudentEnrollment;
 use App\Support\StudentFinalResultCalculator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -170,8 +172,16 @@ class StudentEnrollmentController extends Controller
 
         $data = $request->validate([
             'transferred_at' => ['required', 'date', 'after_or_equal:'.$window['starts_at'], 'before_or_equal:'.$window['ends_at']],
+            'confirm_transfer' => ['accepted'],
             'notes' => ['nullable', 'string', 'max:5000'],
+        ], [
+            'transferred_at.required' => 'Informe a data da transferência.',
+            'transferred_at.after_or_equal' => 'A data da transferência não pode ser anterior ao início da matrícula.',
+            'transferred_at.before_or_equal' => 'A data da transferência não pode ser posterior ao fim da turma.',
+            'confirm_transfer.accepted' => 'Confirme que a transferência foi conferida antes de registrar.',
         ]);
+
+        $this->ensureCurrentPeriodGradesAreComplete($enrollment, $class, $academicYear, $data['transferred_at']);
 
         $enrollment->update([
             'status' => StudentEnrollment::STATUS_TRANSFERRED,
@@ -184,6 +194,43 @@ class StudentEnrollmentController extends Controller
 
         return redirect()->route('classes.enrollments.index', $class)
             ->with('status', 'Transferência registrada com sucesso.');
+    }
+
+    public function restoreTransfer(Request $request, StudentEnrollment $enrollment): RedirectResponse
+    {
+        $class = $enrollment->schoolClass()->firstOrFail();
+        $academicYear = $class->academicYear()->firstOrFail();
+        abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
+        $this->ensureAcademicYearIsOpen($academicYear);
+
+        if ($enrollment->status !== StudentEnrollment::STATUS_TRANSFERRED) {
+            throw ValidationException::withMessages([
+                'enrollment' => 'Apenas matrículas transferidas podem ter a transferência desfeita.',
+            ]);
+        }
+
+        $this->ensureNoOtherActiveEnrollmentInYear($enrollment, $academicYear);
+
+        $data = $request->validate([
+            'notes' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $restorationNote = trim(collect([
+            'Transferência desfeita em '.now()->timezone('America/Sao_Paulo')->format('d/m/Y H:i').' por '.($request->user()->person?->full_name ?? 'usuário identificado').'.',
+            $data['notes'] ?? null,
+        ])->filter()->implode(' '));
+
+        $enrollment->update([
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'transferred_at' => null,
+            'transferred_by_person_id' => null,
+            'notes' => $this->appendNote($enrollment->notes, $restorationNote),
+        ]);
+
+        $this->syncStudentRole($enrollment->student()->firstOrFail(), $academicYear->school_id);
+
+        return redirect()->route('classes.enrollments.index', $class)
+            ->with('status', 'Transferência de matrícula desfeita com sucesso.');
     }
 
     public function reclassify(Request $request, StudentEnrollment $enrollment): RedirectResponse
@@ -311,18 +358,7 @@ class StudentEnrollmentController extends Controller
             ]);
         }
 
-        $hasActiveEnrollmentInYear = StudentEnrollment::query()
-            ->whereKeyNot($enrollment->id)
-            ->where('person_id', $enrollment->person_id)
-            ->where('status', StudentEnrollment::STATUS_ENROLLED)
-            ->whereHas('schoolClass', fn ($classes) => $classes->where('academic_year_id', $academicYear->id))
-            ->exists();
-
-        if ($hasActiveEnrollmentInYear) {
-            throw ValidationException::withMessages([
-                'enrollment' => 'Este estudante já possui matrícula ativa neste ano letivo.',
-            ]);
-        }
+        $this->ensureNoOtherActiveEnrollmentInYear($enrollment, $academicYear);
 
         $data = $request->validate([
             'notes' => ['nullable', 'string', 'max:5000'],
@@ -398,14 +434,26 @@ class StudentEnrollmentController extends Controller
             'person_id' => [
                 'required',
                 Rule::in($studentIds),
-                Rule::unique('student_enrollments')
-                    ->where('school_class_id', $class->id),
+                Rule::unique('student_enrollments', 'person_id')
+                    ->where('school_class_id', $class->id)
+                    ->where('status', StudentEnrollment::STATUS_ENROLLED),
             ],
             'course_ids' => ['required', 'array', 'min:1'],
             'course_ids.*' => ['required', 'distinct', Rule::in($courseIds)],
             'enrolled_at' => ['required', 'date', 'after_or_equal:'.$this->enrollmentWindow($academicYear, $class)['starts_at'], 'before_or_equal:'.$this->enrollmentWindow($academicYear, $class)['ends_at']],
             'type' => ['required', Rule::in(array_keys(StudentEnrollment::TYPE_LABELS))],
             'notes' => ['nullable', 'string', 'max:5000'],
+        ], [
+            'person_id.required' => 'Selecione o estudante.',
+            'person_id.in' => 'Selecione um estudante ativo com CPF cadastrado.',
+            'person_id.unique' => 'Este estudante já possui matrícula ativa nesta turma.',
+            'course_ids.required' => 'Selecione ao menos uma matriz para a matrícula.',
+            'course_ids.min' => 'Selecione ao menos uma matriz para a matrícula.',
+            'course_ids.*.in' => 'Selecione apenas matrizes vinculadas a esta turma.',
+            'enrolled_at.required' => 'Informe a data da matrícula.',
+            'enrolled_at.after_or_equal' => 'A data da matrícula não pode ser anterior ao início da turma.',
+            'enrolled_at.before_or_equal' => 'A data da matrícula não pode ser posterior ao fim da turma.',
+            'type.required' => 'Informe o tipo de matrícula.',
         ]);
     }
 
@@ -490,6 +538,72 @@ class StudentEnrollmentController extends Controller
     {
         return $enrollment->schoolClass?->ends_at?->toDateString()
             ?? $enrollment->schoolClass?->academicYear?->ends_at?->toDateString();
+    }
+
+    private function ensureNoOtherActiveEnrollmentInYear(StudentEnrollment $enrollment, AcademicYear $academicYear): void
+    {
+        $hasActiveEnrollmentInYear = StudentEnrollment::query()
+            ->whereKeyNot($enrollment->id)
+            ->where('person_id', $enrollment->person_id)
+            ->where('status', StudentEnrollment::STATUS_ENROLLED)
+            ->whereHas('schoolClass', fn (Builder $classes) => $classes->where('academic_year_id', $academicYear->id))
+            ->exists();
+
+        if ($hasActiveEnrollmentInYear) {
+            throw ValidationException::withMessages([
+                'enrollment' => 'Este estudante já possui matrícula ativa neste ano letivo.',
+            ]);
+        }
+    }
+
+    private function ensureCurrentPeriodGradesAreComplete(StudentEnrollment $enrollment, SchoolClass $class, AcademicYear $academicYear, string $transferDate): void
+    {
+        $period = $academicYear->periods()
+            ->whereDate('starts_at', '<=', $transferDate)
+            ->whereDate('ends_at', '>=', $transferDate)
+            ->first();
+
+        if (! $period) {
+            return;
+        }
+
+        $componentIds = $enrollment->courses()
+            ->with('components:id,academic_course_id,name')
+            ->get()
+            ->flatMap(fn ($course) => $course->components->pluck('id'))
+            ->unique()
+            ->values();
+
+        if ($componentIds->isEmpty()) {
+            return;
+        }
+
+        $assessments = DiaryAssessment::query()
+            ->with(['component', 'results' => fn ($results) => $results->where('student_enrollment_id', $enrollment->id)])
+            ->where('school_class_id', $class->id)
+            ->where('academic_period_id', $period->id)
+            ->whereIn('curriculum_component_id', $componentIds)
+            ->where('is_recovery', false)
+            ->whereNotNull('school_assessment_rule_id')
+            ->get();
+
+        if ($assessments->isEmpty()) {
+            throw ValidationException::withMessages([
+                'transferred_at' => 'Antes de transferir, configure as avaliações e conclua as notas do período '.$period->name.'.',
+            ]);
+        }
+
+        $missing = $assessments
+            ->filter(fn (DiaryAssessment $assessment): bool => $assessment->results->first()?->score === null)
+            ->map(fn (DiaryAssessment $assessment): string => trim(($assessment->component?->name ?? 'Componente').' - '.$assessment->title))
+            ->unique()
+            ->values();
+
+        if ($missing->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'transferred_at' => 'Antes de transferir, conclua as notas do período '.$period->name.'. Pendências: '.$missing->take(5)->join(', ').($missing->count() > 5 ? '...' : '').'.',
+            ]);
+        }
     }
 
     private function ensureActiveEnrollment(StudentEnrollment $enrollment): void

@@ -91,10 +91,16 @@
             </thead>
             <tbody>
                 @forelse($enrollments as $enrollment)
+                    @php($enrollmentLocked = ! $enrollment->isActive())
                     @php($present = 0)
                     @php($absent = 0)
                     <tr>
-                        <td>{{ $enrollment->student?->full_name }}</td>
+                        <td>
+                            {{ $enrollment->student?->full_name }}
+                            @if($enrollmentLocked)
+                                <span class="small">({{ $enrollment->statusLabel() }})</span>
+                            @endif
+                        </td>
                         @foreach($report['attendance'] as $attendance)
                             @php($entry = $attendance->entries->firstWhere('student_enrollment_id', $enrollment->id))
                             @php($attended = (int) ($entry?->attended_lessons ?? 0))
@@ -125,8 +131,14 @@
             </thead>
             <tbody>
                 @forelse($enrollments as $enrollment)
+                    @php($enrollmentLocked = ! $enrollment->isActive())
                     <tr>
-                        <td>{{ $enrollment->student?->full_name }}</td>
+                        <td>
+                            {{ $enrollment->student?->full_name }}
+                            @if($enrollmentLocked)
+                                <span class="small">({{ $enrollment->statusLabel() }})</span>
+                            @endif
+                        </td>
                         @foreach($report['assessments'] as $assessment)
                             @php($result = $assessment->results->firstWhere('student_enrollment_id', $enrollment->id))
                             <td class="center">{{ $scoreLabel($result?->score, $period->ends_at ?? $period->starts_at) }}</td>

@@ -7,6 +7,7 @@ use App\Models\AcademicPeriod;
 use App\Models\DiaryAttendanceJustification;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\StudentEnrollment;
+use App\Models\StudentPeriodConvalidation;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
@@ -65,22 +66,60 @@ final class StudentAttendanceCertificateBuilder
             ->whereDate('ends_at', '>=', $startsAt->toDateString())
             ->get();
 
-        $matrices = $courses->map(function (AcademicCourse $course) use ($records, $justifications): array {
+        $convalidations = StudentPeriodConvalidation::query()
+            ->with('period')
+            ->where('student_enrollment_id', $enrollment->id)
+            ->whereIn('curriculum_component_id', $componentIds)
+            ->whereNotNull('attendance_lessons')
+            ->when(
+                $period,
+                fn ($query) => $query->where('academic_period_id', $period->id),
+                fn ($query) => $query->whereHas('period', fn ($periods) => $periods
+                    ->whereDate('starts_at', '>=', $startsAt->toDateString())
+                    ->whereDate('ends_at', '<=', $endsAt->toDateString())),
+            )
+            ->get();
+
+        $matrices = $courses->map(function (AcademicCourse $course) use ($records, $justifications, $convalidations): array {
             $componentIds = $course->components->where('active', true)->pluck('id');
+            $attendance = $this->attendanceCalculator->summarize(
+                $records->whereIn('curriculum_component_id', $componentIds)->values(),
+                $justifications,
+            );
 
             return [
                 'course' => $course,
                 'stage' => $course->stageLabel(),
-                'attendance' => $this->attendanceCalculator->summarize(
-                    $records->whereIn('curriculum_component_id', $componentIds)->values(),
-                    $justifications,
-                ),
+                'attendance' => $this->attendanceCalculator->aggregate(collect([
+                    $attendance,
+                    $this->externalAttendance($convalidations->whereIn('curriculum_component_id', $componentIds)->values()),
+                ])),
             ];
         })->values();
 
         return [
-            'attendance' => $this->attendanceCalculator->summarize($records, $justifications),
+            'attendance' => $this->attendanceCalculator->aggregate(collect([
+                $this->attendanceCalculator->summarize($records, $justifications),
+                $this->externalAttendance($convalidations),
+            ])),
             'matrices' => $matrices,
         ];
+    }
+
+    /**
+     * @param  Collection<int, StudentPeriodConvalidation>  $convalidations
+     * @return array{lessons: int, attended: int, absent: int, justified: int, effective_attended: int, percentage: float|null}
+     */
+    private function externalAttendance(Collection $convalidations): array
+    {
+        $lessons = $convalidations->sum(fn (StudentPeriodConvalidation $convalidation): int => (int) ($convalidation->attendance_lessons ?? 0));
+        $absences = $convalidations->sum(fn (StudentPeriodConvalidation $convalidation): int => (int) ($convalidation->attendance_absences ?? 0));
+        $justified = $convalidations->sum(fn (StudentPeriodConvalidation $convalidation): int => (int) ($convalidation->attendance_justified_absences ?? 0));
+
+        return $this->attendanceCalculator->fromTotals(
+            $lessons,
+            max(0, $lessons - $absences),
+            $justified,
+        );
     }
 }

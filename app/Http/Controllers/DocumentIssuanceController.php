@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
 use App\Models\AcademicYear;
 use App\Models\Person;
@@ -18,10 +19,25 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class DocumentIssuanceController extends Controller
 {
+    private const CURRENT_ENROLLMENT_DOCUMENTS = [
+        'enrollment-declaration',
+        'attendance-certificate',
+        'enrollment-form',
+    ];
+
+    private const CURRENT_CLASS_DOCUMENTS = [
+        'class-schedule',
+    ];
+
+    private const CURRENT_DIARY_DOCUMENTS = [
+        'attendance-sheet',
+    ];
+
     /**
      * @var array<string, array<string, bool|string>>
      */
@@ -231,7 +247,7 @@ class DocumentIssuanceController extends Controller
             'class' => $this->classTargets($request, $schoolIds, $term, $data['type']),
             'academic_year' => $this->academicYearTargets($request, $schoolIds, $term),
             'school' => $this->schoolTargets($request, $schoolIds, $term),
-            'diary' => $this->diaryTargets($request, $schoolIds, $term),
+            'diary' => $this->diaryTargets($request, $schoolIds, $term, $data['type']),
             default => collect(),
         };
 
@@ -318,6 +334,7 @@ class DocumentIssuanceController extends Controller
                 'courses:id,name,stage',
             ])
             ->whereHas('schoolClass.academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
+            ->when($this->requiresCurrentEnrollment($type), fn (Builder $query) => $this->scopeCurrentEnrollments($query))
             ->when($request->filled('school_id'), fn (Builder $query) => $query->whereHas('schoolClass.academicYear', fn (Builder $year) => $year->where('school_id', $request->integer('school_id'))))
             ->when($request->filled('academic_year_id'), fn (Builder $query) => $query->whereHas('schoolClass', fn (Builder $class) => $class->where('academic_year_id', $request->integer('academic_year_id'))))
             ->when($request->filled('class_id'), fn (Builder $query) => $query->where('school_class_id', $request->integer('class_id')))
@@ -358,6 +375,10 @@ class DocumentIssuanceController extends Controller
      */
     private function enrollmentAvailability(StudentEnrollment $enrollment, string $type): array
     {
+        if ($this->requiresCurrentEnrollment($type) && ! $this->isCurrentEnrollment($enrollment)) {
+            return [false, 'Use documentos de arquivo, como ficha individual ou histórico escolar, para anos letivos encerrados.'];
+        }
+
         if ($type === 'enrollment-declaration' && ! $enrollment->isActive()) {
             return [false, 'A matrícula precisa estar ativa.'];
         }
@@ -371,6 +392,120 @@ class DocumentIssuanceController extends Controller
         }
 
         return [true, null];
+    }
+
+    private function requiresCurrentEnrollment(string $type): bool
+    {
+        return in_array($type, self::CURRENT_ENROLLMENT_DOCUMENTS, true);
+    }
+
+    private function requiresCurrentClass(string $type): bool
+    {
+        return in_array($type, self::CURRENT_CLASS_DOCUMENTS, true);
+    }
+
+    private function requiresCurrentDiary(string $type): bool
+    {
+        return in_array($type, self::CURRENT_DIARY_DOCUMENTS, true);
+    }
+
+    private function scopeCurrentEnrollments(Builder $query): Builder
+    {
+        return $query
+            ->where('student_enrollments.status', StudentEnrollment::STATUS_ENROLLED)
+            ->where(function (Builder $enrollment): void {
+                $enrollment
+                    ->whereNull('student_enrollments.final_result_status')
+                    ->orWhere('student_enrollments.final_result_status', StudentEnrollment::FINAL_PENDING);
+            })
+            ->whereHas('schoolClass', function (Builder $class): void {
+                $class
+                    ->where('school_classes.active', true)
+                    ->where(function (Builder $context): void {
+                        $context
+                            ->whereHas('academicYear', fn (Builder $year) => $this->scopeOpenAcademicYear($year))
+                            ->orWhereHas('courses', function (Builder $course): void {
+                                $course
+                                    ->where('academic_courses.stage', AcademicCourse::STAGE_TECHNICAL)
+                                    ->where('academic_courses.active', true);
+                            });
+                    });
+            });
+    }
+
+    private function scopeCurrentClasses(Builder $query): Builder
+    {
+        return $query
+            ->where('school_classes.active', true)
+            ->where(function (Builder $context): void {
+                $context
+                    ->whereHas('academicYear', fn (Builder $year) => $this->scopeOpenAcademicYear($year))
+                    ->orWhere(function (Builder $technicalClass): void {
+                        $technicalClass
+                            ->whereHas('courses', function (Builder $course): void {
+                                $course
+                                    ->where('academic_courses.stage', AcademicCourse::STAGE_TECHNICAL)
+                                    ->where('academic_courses.active', true);
+                            })
+                            ->whereHas('enrollments', function (Builder $enrollment): void {
+                                $enrollment
+                                    ->where('student_enrollments.status', StudentEnrollment::STATUS_ENROLLED)
+                                    ->where(function (Builder $result): void {
+                                        $result
+                                            ->whereNull('student_enrollments.final_result_status')
+                                            ->orWhere('student_enrollments.final_result_status', StudentEnrollment::FINAL_PENDING);
+                                    });
+                            });
+                    });
+            });
+    }
+
+    private function scopeOpenAcademicYear(Builder $query): Builder
+    {
+        return $query
+            ->where('academic_years.active', true)
+            ->whereNull('academic_years.closed_at');
+    }
+
+    private function isCurrentEnrollment(StudentEnrollment $enrollment): bool
+    {
+        $enrollment->loadMissing('schoolClass.academicYear', 'courses');
+
+        if (! $enrollment->isActive() || ! $enrollment->schoolClass?->active) {
+            return false;
+        }
+
+        if (! in_array($enrollment->final_result_status, [null, StudentEnrollment::FINAL_PENDING], true)) {
+            return false;
+        }
+
+        $year = $enrollment->schoolClass->academicYear;
+        $openYear = $year && $year->active && ! $year->isClosed();
+        $ongoingTechnicalCourse = $enrollment->courses->contains(
+            fn (AcademicCourse $course): bool => $course->active && $course->stage === AcademicCourse::STAGE_TECHNICAL
+        );
+
+        return $openYear || $ongoingTechnicalCourse;
+    }
+
+    private function isCurrentClass(SchoolClass $class): bool
+    {
+        $class->loadMissing('academicYear', 'courses', 'enrollments');
+
+        if (! $class->active) {
+            return false;
+        }
+
+        $year = $class->academicYear;
+        $openYear = $year && $year->active && ! $year->isClosed();
+        $ongoingTechnicalCourse = $class->courses->contains(
+            fn (AcademicCourse $course): bool => $course->active && $course->stage === AcademicCourse::STAGE_TECHNICAL
+        ) && $class->enrollments->contains(
+            fn (StudentEnrollment $enrollment): bool => $enrollment->isActive()
+                && in_array($enrollment->final_result_status, [null, StudentEnrollment::FINAL_PENDING], true)
+        );
+
+        return $openYear || $ongoingTechnicalCourse;
     }
 
     /**
@@ -449,6 +584,7 @@ class DocumentIssuanceController extends Controller
                 'enrollments as active_enrollments_count' => fn (Builder $query) => $query->where('status', StudentEnrollment::STATUS_ENROLLED),
             ])
             ->whereHas('academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
+            ->when($this->requiresCurrentClass($type), fn (Builder $query) => $this->scopeCurrentClasses($query))
             ->when($request->filled('school_id'), fn (Builder $query) => $query->whereHas('academicYear', fn (Builder $year) => $year->where('school_id', $request->integer('school_id'))))
             ->when($request->filled('academic_year_id'), fn (Builder $query) => $query->where('academic_year_id', $request->integer('academic_year_id')))
             ->when($request->filled('class_id'), fn (Builder $query) => $query->whereKey($request->integer('class_id')))
@@ -459,6 +595,8 @@ class DocumentIssuanceController extends Controller
             ->map(function (SchoolClass $class) use ($type): array {
                 $requiresEnrollments = in_array($type, ['class-report-cards', 'class-grade-mirror'], true);
                 $hasEnrollments = (int) $class->active_enrollments_count > 0;
+                $requiresCurrentClass = $this->requiresCurrentClass($type);
+                $isCurrentClass = ! $requiresCurrentClass || $this->isCurrentClass($class);
 
                 return [
                     'id' => $class->id,
@@ -469,10 +607,12 @@ class DocumentIssuanceController extends Controller
                         (int) $class->active_enrollments_count.' '.((int) $class->active_enrollments_count === 1 ? 'matrícula ativa' : 'matrículas ativas'),
                         $class->active ? 'Turma ativa' : 'Turma inativa',
                     ])->filter()->join(' · '),
-                    'enabled' => ! $requiresEnrollments || $hasEnrollments,
-                    'reason' => $requiresEnrollments && ! $hasEnrollments
-                        ? 'A turma não possui matrículas ativas.'
-                        : null,
+                    'enabled' => (! $requiresEnrollments || $hasEnrollments) && $isCurrentClass,
+                    'reason' => match (true) {
+                        $requiresCurrentClass && ! $isCurrentClass => 'Use documentos de arquivo para turmas de anos letivos encerrados.',
+                        $requiresEnrollments && ! $hasEnrollments => 'A turma não possui matrículas ativas.',
+                        default => null,
+                    },
                 ];
             });
     }
@@ -529,7 +669,7 @@ class DocumentIssuanceController extends Controller
      * @param  list<int>  $schoolIds
      * @return Collection<int, array<string, bool|int|string|null>>
      */
-    private function diaryTargets(Request $request, array $schoolIds, string $term): Collection
+    private function diaryTargets(Request $request, array $schoolIds, string $term, string $type): Collection
     {
         return SchoolClassComponent::query()
             ->with([
@@ -537,8 +677,12 @@ class DocumentIssuanceController extends Controller
                 'component.course:id,name,stage,academic_year_id',
                 'teacher:id,full_name',
             ])
-            ->where('active', true)
-            ->whereHas('schoolClass.academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds)->whereNotNull('approved_at')->where('active', true))
+            ->whereHas('schoolClass.academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
+            ->when($this->requiresCurrentDiary($type), function (Builder $query): void {
+                $query
+                    ->where('school_class_components.active', true)
+                    ->whereHas('schoolClass', fn (Builder $class) => $this->scopeCurrentClasses($class));
+            })
             ->when($request->filled('school_id'), fn (Builder $query) => $query->whereHas('schoolClass.academicYear', fn (Builder $year) => $year->where('school_id', $request->integer('school_id'))))
             ->when($request->filled('academic_year_id'), fn (Builder $query) => $query->whereHas('schoolClass', fn (Builder $class) => $class->where('academic_year_id', $request->integer('academic_year_id'))))
             ->when($request->filled('class_id'), fn (Builder $query) => $query->where('school_class_id', $request->integer('class_id')))
@@ -582,6 +726,15 @@ class DocumentIssuanceController extends Controller
             ->whereKey($data['target_id'])
             ->whereHas('schoolClass.academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
             ->firstOrFail();
+        $enrollment->loadMissing('schoolClass.academicYear', 'courses');
+        [$enabled, $reason] = $this->enrollmentAvailability($enrollment, $data['type']);
+
+        if (! $enabled) {
+            throw ValidationException::withMessages([
+                'target_id' => $reason ?? 'Este documento nÃ£o estÃ¡ disponÃ­vel para esta matrÃ­cula.',
+            ]);
+        }
+
         $route = match ($data['type']) {
             'enrollment-declaration' => 'enrollments.enrollment-declaration.pdf',
             'schooling-declaration' => 'enrollments.schooling-declaration.pdf',
@@ -642,10 +795,23 @@ class DocumentIssuanceController extends Controller
     private function issueClass(array $data, array $schoolIds): RedirectResponse
     {
         $class = SchoolClass::query()
-            ->with('academicYear')
+            ->with(['academicYear', 'courses', 'enrollments'])
             ->whereKey($data['target_id'])
             ->whereHas('academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
             ->firstOrFail();
+
+        if ($this->requiresCurrentClass($data['type']) && ! $this->isCurrentClass($class)) {
+            throw ValidationException::withMessages([
+                'target_id' => 'Use documentos de arquivo para turmas de anos letivos encerrados.',
+            ]);
+        }
+
+        if (in_array($data['type'], ['class-report-cards', 'class-grade-mirror'], true)
+            && ! $class->enrollments->contains(fn (StudentEnrollment $enrollment): bool => $enrollment->isActive())) {
+            throw ValidationException::withMessages([
+                'target_id' => 'A turma nÃ£o possui matrÃ­culas ativas.',
+            ]);
+        }
 
         return match ($data['type']) {
             'class-schedule' => redirect()->route('academic-years.classes.schedules.pdf', [$class->academicYear, $class]),
@@ -689,11 +855,18 @@ class DocumentIssuanceController extends Controller
     private function issueDiary(array $data, array $schoolIds): RedirectResponse
     {
         $assignment = SchoolClassComponent::query()
-            ->with(['schoolClass.academicYear', 'component'])
+            ->with(['schoolClass.academicYear', 'schoolClass.courses', 'schoolClass.enrollments', 'component'])
             ->whereKey($data['target_id'])
-            ->where('active', true)
-            ->whereHas('schoolClass.academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds)->whereNotNull('approved_at')->where('active', true))
+            ->whereHas('schoolClass.academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
             ->firstOrFail();
+
+        if ($this->requiresCurrentDiary($data['type'])
+            && (! $assignment->active || ! $this->isCurrentClass($assignment->schoolClass))) {
+            throw ValidationException::withMessages([
+                'target_id' => 'A lista de chamada manual sÃ³ fica disponÃ­vel para turmas em andamento.',
+            ]);
+        }
+
         $parameters = [
             'schoolClass' => $assignment->schoolClass,
             'component' => $assignment->component,

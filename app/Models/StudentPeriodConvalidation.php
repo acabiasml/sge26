@@ -17,6 +17,9 @@ class StudentPeriodConvalidation extends Model
         'curriculum_component_id',
         'convalidated_by_person_id',
         'score',
+        'attendance_lessons',
+        'attendance_absences',
+        'attendance_justified_absences',
         'source_school',
         'notes',
         'convalidated_at',
@@ -26,6 +29,9 @@ class StudentPeriodConvalidation extends Model
     {
         return [
             'score' => 'decimal:1',
+            'attendance_lessons' => 'integer',
+            'attendance_absences' => 'integer',
+            'attendance_justified_absences' => 'integer',
             'convalidated_at' => 'date',
         ];
     }

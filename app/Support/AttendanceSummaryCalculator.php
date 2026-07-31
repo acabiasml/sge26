@@ -53,7 +53,7 @@ final class AttendanceSummaryCalculator
     /**
      * @return array{lessons: int, attended: int, absent: int, justified: int, effective_attended: int, percentage: float|null}
      */
-    private function fromTotals(int $lessons, int $attended, int $justified): array
+    public function fromTotals(int $lessons, int $attended, int $justified): array
     {
         $effectiveAttended = min($lessons, $attended + $justified);
 

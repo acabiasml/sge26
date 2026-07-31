@@ -487,6 +487,9 @@ class TeacherDiaryTest extends TestCase
                 'academic_period_id' => $period->id,
                 'curriculum_component_id' => $component->id,
                 'score' => '7,0',
+                'attendance_lessons' => 10,
+                'attendance_absences' => 2,
+                'attendance_justified_absences' => 1,
                 'source_school' => 'Escola de origem',
                 'convalidated_at' => '2026-03-01',
                 'notes' => 'Resultado parcial apresentado na matrícula.',
@@ -499,9 +502,16 @@ class TeacherDiaryTest extends TestCase
         $this->assertSame(7.0, $componentReport['average']['value']);
         $this->assertTrue($componentReport['average']['complete']);
         $this->assertSame('convalidated', $componentReport['average']['source']);
+        $this->assertSame(10, $componentReport['attendance']['lessons']);
+        $this->assertSame(2, $componentReport['attendance']['absent']);
+        $this->assertSame(1, $componentReport['attendance']['justified']);
+        $this->assertSame(90.0, $componentReport['attendance']['percentage']);
         $this->assertDatabaseHas('student_period_convalidations', [
             'student_enrollment_id' => $enrollment->id,
             'score' => 7.0,
+            'attendance_lessons' => 10,
+            'attendance_absences' => 2,
+            'attendance_justified_absences' => 1,
         ]);
     }
 

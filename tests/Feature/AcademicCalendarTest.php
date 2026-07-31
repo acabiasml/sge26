@@ -2,19 +2,23 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\AcademicCalendarPdfController;
 use App\Http\Controllers\AcademicMatricesPdfController;
 use App\Models\AcademicCourse;
 use App\Models\AcademicPeriodDiaryConsolidation;
 use App\Models\AcademicYear;
 use App\Models\Announcement;
 use App\Models\CalendarDay;
+use App\Models\DiaryAssessment;
 use App\Models\IssuedDocument;
 use App\Models\KnowledgeArea;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
+use App\Models\SchoolAssessmentRule;
 use App\Models\StudentEnrollment;
 use App\Models\User;
+use App\Support\AcademicCalendarGrid;
 use App\Support\AcademicStructureValidator;
 use App\Support\AcademicYearClosureStatus;
 use App\Support\CurriculumCatalog;
@@ -576,7 +580,7 @@ class AcademicCalendarTest extends TestCase
             'description' => 'Feriado municipal',
         ]);
 
-        $controller = app(\App\Http\Controllers\AcademicCalendarPdfController::class);
+        $controller = app(AcademicCalendarPdfController::class);
         $calendarMethod = new ReflectionMethod($controller, 'calendar');
         $calendarMethod->setAccessible(true);
         $specialDatesMethod = new ReflectionMethod($controller, 'specialDates');
@@ -585,7 +589,7 @@ class AcademicCalendarTest extends TestCase
 
         $calendar = $calendarMethod->invoke($controller, $year);
         $specialDates = $specialDatesMethod->invoke($controller, $year);
-        $grid = \App\Support\AcademicCalendarGrid::forAcademicYear($year)->first();
+        $grid = AcademicCalendarGrid::forAcademicYear($year)->first();
         $gridEntries = $grid['weeks']->flatten(1)->keyBy(fn (array $entry): string => $entry['date']->toDateString());
 
         $this->assertSame('IP', $calendar[0]['days'][5]['code']);
@@ -1095,6 +1099,7 @@ class AcademicCalendarTest extends TestCase
         $this->actingAs($manager)
             ->patch(route('enrollments.transfer', $newEnrollment), [
                 'transferred_at' => '2026-05-01',
+                'confirm_transfer' => '1',
                 'notes' => 'Transferência externa.',
             ])
             ->assertRedirect(route('classes.enrollments.index', $classB));
@@ -1158,6 +1163,185 @@ class AcademicCalendarTest extends TestCase
                 'transferred_at' => '2026-03-12',
             ])
             ->assertSessionHasErrors('enrollment');
+    }
+
+    public function test_transfer_requires_confirmation_and_complete_current_period_grades(): void
+    {
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear();
+        $period = $year->periods()->create([
+            'name' => '1º Bimestre',
+            'starts_at' => '2026-02-02',
+            'ends_at' => '2026-04-10',
+            'position' => 1,
+        ]);
+        $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'aluno.transferencia@ctjj.org');
+        $course = $year->courses()->create([
+            'name' => '6º Ano',
+            'stage' => AcademicCourse::STAGE_ELEMENTARY,
+            'status' => 'curricular',
+            'class_hour_minutes' => 50,
+            'active' => true,
+        ]);
+        $component = $course->components()->create([
+            'name' => 'Matemática',
+            'weekly_lessons' => 5,
+            'active' => true,
+        ]);
+        $class = $year->classes()->create(['name' => '6º Ano', 'active' => true]);
+        $class->courses()->attach($course);
+        $enrollment = $class->enrollments()->create([
+            'person_id' => $student->person_id,
+            'enrolled_by_person_id' => $administrator->person_id,
+            'enrolled_at' => '2026-02-02',
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $enrollment->courses()->attach($course);
+
+        $rule = SchoolAssessmentRule::query()->create([
+            'school_id' => $year->school_id,
+            'academic_period_id' => $period->id,
+            'name' => 'Avaliação 1',
+            'position' => 1,
+            'weight' => 10,
+            'maximum_score' => 10,
+        ]);
+        $assessment = DiaryAssessment::query()->create([
+            'school_class_id' => $class->id,
+            'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id,
+            'school_assessment_rule_id' => $rule->id,
+            'title' => 'Avaliação 1',
+            'weight' => 10,
+            'maximum_score' => 10,
+            'is_recovery' => false,
+        ]);
+
+        $this->actingAs($administrator)
+            ->patch(route('enrollments.transfer', $enrollment), [
+                'transferred_at' => '2026-03-15',
+            ])
+            ->assertSessionHasErrors('confirm_transfer');
+
+        $this->actingAs($administrator)
+            ->patch(route('enrollments.transfer', $enrollment), [
+                'transferred_at' => '2026-03-15',
+                'confirm_transfer' => '1',
+            ])
+            ->assertSessionHasErrors('transferred_at');
+
+        $assessment->results()->create([
+            'student_enrollment_id' => $enrollment->id,
+            'updated_by_person_id' => $administrator->person_id,
+            'score' => 8,
+        ]);
+
+        $this->actingAs($administrator)
+            ->patch(route('enrollments.transfer', $enrollment), [
+                'transferred_at' => '2026-03-15',
+                'confirm_transfer' => '1',
+            ])
+            ->assertRedirect(route('classes.enrollments.index', $class));
+
+        $this->assertDatabaseHas('student_enrollments', [
+            'id' => $enrollment->id,
+            'status' => StudentEnrollment::STATUS_TRANSFERRED,
+            'transferred_at' => '2026-03-15 00:00:00',
+        ]);
+    }
+
+    public function test_transferred_student_can_be_enrolled_again_and_restore_is_blocked_when_new_active_exists(): void
+    {
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear();
+        $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'aluna.retorno@ctjj.org');
+        $course = $year->courses()->create([
+            'name' => '9º Ano',
+            'stage' => AcademicCourse::STAGE_ELEMENTARY,
+            'status' => 'curricular',
+            'class_hour_minutes' => 50,
+            'active' => true,
+        ]);
+        $course->components()->create([
+            'name' => 'Língua Portuguesa',
+            'weekly_lessons' => 5,
+            'active' => true,
+        ]);
+        $class = $year->classes()->create(['name' => '9º Ano', 'active' => true]);
+        $class->courses()->attach($course);
+        $oldEnrollment = $class->enrollments()->create([
+            'person_id' => $student->person_id,
+            'enrolled_by_person_id' => $administrator->person_id,
+            'transferred_by_person_id' => $administrator->person_id,
+            'enrolled_at' => '2026-02-02',
+            'transferred_at' => '2026-05-20',
+            'status' => StudentEnrollment::STATUS_TRANSFERRED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $oldEnrollment->courses()->attach($course);
+
+        $this->actingAs($administrator)
+            ->post(route('classes.enrollments.store', $class), [
+                'person_id' => $student->person_id,
+                'course_ids' => [$course->id],
+                'enrolled_at' => '2026-07-31',
+                'type' => StudentEnrollment::TYPE_REGULAR,
+            ])
+            ->assertRedirect(route('classes.enrollments.index', $class));
+
+        $this->assertSame(2, $class->enrollments()->where('person_id', $student->person_id)->count());
+        $this->assertSame(1, $class->enrollments()->where('person_id', $student->person_id)->where('status', StudentEnrollment::STATUS_ENROLLED)->count());
+
+        $this->actingAs($administrator)
+            ->patch(route('enrollments.restore-transfer', $oldEnrollment), [
+                'notes' => 'Tentativa de reversão depois do retorno.',
+            ])
+            ->assertSessionHasErrors('enrollment');
+    }
+
+    public function test_transfer_can_be_restored_when_no_other_active_enrollment_exists(): void
+    {
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear();
+        $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'aluno.reversao@ctjj.org');
+        $course = $year->courses()->create([
+            'name' => '7º Ano',
+            'stage' => AcademicCourse::STAGE_ELEMENTARY,
+            'status' => 'curricular',
+            'class_hour_minutes' => 50,
+            'active' => true,
+        ]);
+        $course->components()->create([
+            'name' => 'Ciências',
+            'weekly_lessons' => 3,
+            'active' => true,
+        ]);
+        $class = $year->classes()->create(['name' => '7º Ano', 'active' => true]);
+        $class->courses()->attach($course);
+        $enrollment = $class->enrollments()->create([
+            'person_id' => $student->person_id,
+            'enrolled_by_person_id' => $administrator->person_id,
+            'transferred_by_person_id' => $administrator->person_id,
+            'enrolled_at' => '2026-02-02',
+            'transferred_at' => '2026-05-20',
+            'status' => StudentEnrollment::STATUS_TRANSFERRED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $enrollment->courses()->attach($course);
+
+        $this->actingAs($administrator)
+            ->patch(route('enrollments.restore-transfer', $enrollment), [
+                'notes' => 'Transferência registrada por engano.',
+            ])
+            ->assertRedirect(route('classes.enrollments.index', $class));
+
+        $this->assertDatabaseHas('student_enrollments', [
+            'id' => $enrollment->id,
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'transferred_at' => null,
+            'transferred_by_person_id' => null,
+        ]);
     }
 
     public function test_management_can_calculate_final_results_for_class_enrollments(): void
