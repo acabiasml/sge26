@@ -64,13 +64,16 @@
                                 @error('person_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-4 form-group">
-                                <label for="enrollment_course_ids">Matrizes</label>
-                                <select id="enrollment_course_ids" name="course_ids[]" class="form-control @error('course_ids') is-invalid @enderror" multiple required>
-                                    @foreach ($availableCourses as $course)
-                                        <option value="{{ $course->id }}">{{ $course->name }}</option>
-                                    @endforeach
-                                </select>
-                                @error('course_ids') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                                <label>Matrizes vinculadas à turma</label>
+                                @if ($availableCourses->isNotEmpty())
+                                    <div class="border rounded p-2 bg-light">
+                                        @foreach ($availableCourses as $course)
+                                            <div class="small">{{ $course->name }}</div>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <p class="text-muted small mb-0">Nenhuma matriz vinculada a esta turma.</p>
+                                @endif
                             </div>
                             <div class="col-md-4 form-group">
                                 <label for="enrollment_enrolled_at">Data da matrícula</label>
@@ -94,8 +97,10 @@
                         </div>
                         @if ($availableCourses->isEmpty())
                             <p class="text-muted small mb-3">Vincule uma matriz curricular a esta turma antes de cadastrar novas matrículas.</p>
+                        @else
+                            <p class="small text-muted">A matrícula será registrada na turma e automaticamente associada às matrizes vinculadas a ela.</p>
                         @endif
-                        <p class="small text-muted">A nova matrícula será registrada como ativa. Transferência, reclassificação ou cancelamento ficam registrados no histórico.</p>
+                        <p class="small text-muted">Transferência, reclassificação ou cancelamento ficam registrados no histórico.</p>
                         <button class="btn btn-primary" type="submit" @disabled($students->isEmpty() || $availableCourses->isEmpty())>Adicionar matrícula</button>
                     </form>
                 </div>

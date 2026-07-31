@@ -1616,6 +1616,60 @@ class AcademicCalendarTest extends TestCase
         $this->assertSame('2025-12-10', $year->approved_at?->toDateString());
     }
 
+    public function test_manager_can_enroll_student_in_approved_academic_year_class_without_selecting_courses(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id, 'gestao.matricula@ctjj.org');
+        $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $school->id, 'aluno.matricula@ctjj.org');
+        $year = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Educação Básica',
+            'reference_year' => 2026,
+            'starts_at' => '2026-01-20',
+            'ends_at' => '2026-12-18',
+            'approved_at' => '2025-12-10',
+            'class_hour_minutes' => 50,
+            'minimum_school_days' => 200,
+            'active' => true,
+        ]);
+        $course = $year->courses()->create([
+            'name' => '3º Ano',
+            'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
+            'status' => 'iniciado',
+            'active' => true,
+        ]);
+        $class = $year->classes()->create([
+            'name' => '3º Ano A',
+            'active' => true,
+        ]);
+        $class->courses()->attach($course);
+
+        $this->actingAs($manager)
+            ->post(route('classes.enrollments.store', $class), [
+                'person_id' => $student->person_id,
+                'enrolled_at' => '2026-01-20',
+                'status' => StudentEnrollment::STATUS_ENROLLED,
+                'type' => StudentEnrollment::TYPE_REGULAR,
+            ])
+            ->assertRedirect(route('classes.enrollments.index', $class));
+
+        $enrollment = StudentEnrollment::query()
+            ->where('school_class_id', $class->id)
+            ->where('person_id', $student->person_id)
+            ->firstOrFail();
+
+        $this->assertDatabaseHas('student_enrollments', [
+            'id' => $enrollment->id,
+            'school_class_id' => $class->id,
+            'person_id' => $student->person_id,
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+        ]);
+        $this->assertDatabaseHas('academic_course_student_enrollment', [
+            'student_enrollment_id' => $enrollment->id,
+            'academic_course_id' => $course->id,
+        ]);
+    }
+
     public function test_manager_can_enroll_student_in_approved_academic_year_class(): void
     {
         $school = School::query()->create(['name' => 'Escola A', 'active' => true]);

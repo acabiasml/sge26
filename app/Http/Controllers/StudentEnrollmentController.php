@@ -272,7 +272,9 @@ class StudentEnrollmentController extends Controller
         }
 
         $targetCourseIds = $targetClass->courses()->pluck('academic_courses.id')->all();
-        $selectedCourseIds = collect($data['course_ids'])->map(fn ($id): int => (int) $id)->all();
+        $selectedCourseIds = collect($data['course_ids'] ?? $targetCourseIds)
+            ->map(fn ($id): int => (int) $id)
+            ->all();
 
         if (array_diff($selectedCourseIds, $targetCourseIds) !== []) {
             throw ValidationException::withMessages([
@@ -430,7 +432,7 @@ class StudentEnrollmentController extends Controller
             ->pluck('academic_courses.id')
             ->all();
 
-        return $request->validate([
+        $validated = $request->validate([
             'person_id' => [
                 'required',
                 Rule::in($studentIds),
@@ -438,7 +440,7 @@ class StudentEnrollmentController extends Controller
                     ->where('school_class_id', $class->id)
                     ->where('status', StudentEnrollment::STATUS_ENROLLED),
             ],
-            'course_ids' => ['required', 'array', 'min:1'],
+            'course_ids' => ['nullable', 'array'],
             'course_ids.*' => ['required', 'distinct', Rule::in($courseIds)],
             'enrolled_at' => ['required', 'date', 'after_or_equal:'.$this->enrollmentWindow($academicYear, $class)['starts_at'], 'before_or_equal:'.$this->enrollmentWindow($academicYear, $class)['ends_at']],
             'type' => ['required', Rule::in(array_keys(StudentEnrollment::TYPE_LABELS))],
@@ -447,14 +449,25 @@ class StudentEnrollmentController extends Controller
             'person_id.required' => 'Selecione o estudante.',
             'person_id.in' => 'Selecione um estudante ativo com CPF cadastrado.',
             'person_id.unique' => 'Este estudante já possui matrícula ativa nesta turma.',
-            'course_ids.required' => 'Selecione ao menos uma matriz para a matrícula.',
-            'course_ids.min' => 'Selecione ao menos uma matriz para a matrícula.',
+            'course_ids.array' => 'Selecione apenas matrizes vinculadas a esta turma.',
             'course_ids.*.in' => 'Selecione apenas matrizes vinculadas a esta turma.',
             'enrolled_at.required' => 'Informe a data da matrícula.',
             'enrolled_at.after_or_equal' => 'A data da matrícula não pode ser anterior ao início da turma.',
             'enrolled_at.before_or_equal' => 'A data da matrícula não pode ser posterior ao fim da turma.',
             'type.required' => 'Informe o tipo de matrícula.',
         ]);
+
+        $selectedCourseIds = collect($validated['course_ids'] ?? $courseIds)
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        if ($selectedCourseIds === []) {
+            throw ValidationException::withMessages([
+                'course_ids' => 'Vincule ao menos uma matriz curricular a esta turma antes de cadastrar a matrícula.',
+            ]);
+        }
+
+        return array_merge($validated, ['course_ids' => $selectedCourseIds]);
     }
 
     private function appendNote(?string $current, ?string $addition): ?string
