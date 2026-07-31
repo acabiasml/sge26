@@ -736,6 +736,28 @@ class AcademicCalendarTest extends TestCase
         ])->assertSessionHasErrors('starts_at');
     }
 
+    public function test_schedule_creation_uses_academic_year_dates_when_class_dates_are_missing(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear();
+        $course = $year->courses()->create(['name' => '1º Ano', 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL, 'status' => 'iniciado', 'class_hour_minutes' => 50, 'active' => true]);
+        $class = $year->classes()->create(['name' => '1º Ano A', 'active' => true]);
+        $class->courses()->attach($course);
+
+        $this->actingAs($admin)
+            ->post(route('academic-years.classes.schedules.store', [$year, $class]), [
+                'name' => 'Horário regular',
+                'starts_at' => $year->starts_at->toDateString(),
+                'ends_at' => $year->ends_at->toDateString(),
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('school_class_schedules', [
+            'school_class_id' => $class->id,
+            'name' => 'Horário Regular',
+        ]);
+    }
+
     public function test_schedule_blocks_respect_school_saturdays_and_weekly_lesson_limit(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);

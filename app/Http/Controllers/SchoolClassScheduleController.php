@@ -47,14 +47,18 @@ class SchoolClassScheduleController extends Controller
     public function store(Request $request, AcademicYear $academicYear, SchoolClass $class): RedirectResponse
     {
         $this->authorize($request, $academicYear, $class);
+
+        $scheduleStartsAt = $class->starts_at?->toDateString() ?? $academicYear->starts_at->toDateString();
+        $scheduleEndsAt = $class->ends_at?->toDateString() ?? $academicYear->ends_at->toDateString();
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
-            'starts_at' => ['required', 'date', 'after_or_equal:'.$class->starts_at->toDateString(), 'before_or_equal:'.$class->ends_at->toDateString()],
-            'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at', 'before_or_equal:'.$class->ends_at->toDateString()],
+            'starts_at' => ['required', 'date', 'after_or_equal:'.$scheduleStartsAt, 'before_or_equal:'.$scheduleEndsAt],
+            'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at', 'before_or_equal:'.$scheduleEndsAt],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $effectiveEnd = $data['ends_at'] ?? $class->ends_at->toDateString();
+        $effectiveEnd = $data['ends_at'] ?? $scheduleEndsAt;
         $overlaps = $class->schedules()
             ->whereDate('starts_at', '<=', $effectiveEnd)
             ->where(function ($query) use ($data): void {
