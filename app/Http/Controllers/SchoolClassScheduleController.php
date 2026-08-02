@@ -229,7 +229,7 @@ class SchoolClassScheduleController extends Controller
 
         if ($startsAt && $schedule->starts_at->lt($startsAt->copy()->startOfDay())) {
             throw ValidationException::withMessages([
-                'school_class_component_id' => 'Este componente começa depois do início desta versão de horário.',
+                'school_class_component_id' => 'Este componente começa após o início desta versão de horário.',
             ]);
         }
 
