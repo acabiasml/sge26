@@ -794,6 +794,28 @@ class AcademicCalendarTest extends TestCase
         ])->assertSessionHasErrors('school_class_component_id');
     }
 
+    public function test_schedule_block_can_be_created_when_schedule_and_class_have_no_end_date(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear();
+        $course = $year->courses()->create(['name' => '1º Ano', 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL, 'status' => 'iniciado', 'class_hour_minutes' => 50, 'active' => true]);
+        $component = $course->components()->create(['name' => 'Filosofia', 'weekly_lessons' => 1, 'active' => true]);
+        $class = $year->classes()->create(['name' => '1º Ano A', 'starts_at' => null, 'ends_at' => null, 'active' => true]);
+        $class->courses()->attach($course);
+        $assignment = $class->componentAssignments()->create(['curriculum_component_id' => $component->id, 'active' => true]);
+        $schedule = $class->schedules()->create(['name' => 'Horário regular', 'starts_at' => '2026-01-20']);
+
+        $this->actingAs($admin)->post(route('academic-years.classes.schedules.slots.store', [$year, $class, $schedule]), [
+            'weekday' => 1,
+            'type' => 'aula',
+            'school_class_component_id' => $assignment->id,
+            'starts_at' => '07:00',
+            'ends_at' => '07:50',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('school_class_schedule_slots', ['school_class_schedule_id' => $schedule->id, 'starts_at' => '07:00', 'ends_at' => '07:50']);
+    }
+
     public function test_schedule_block_can_be_updated_and_schedule_pdfs_create_verifiable_documents(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);

@@ -233,8 +233,21 @@ class SchoolClassScheduleController extends Controller
             ]);
         }
 
-        $scheduleEndsAt = ($schedule->ends_at ?? $schedule->schoolClass->ends_at)->copy()->startOfDay();
-        if ($endsAt && $scheduleEndsAt->gt($endsAt->copy()->startOfDay())) {
+        $scheduleEndsAt = null;
+
+        if ($schedule->ends_at) {
+            $scheduleEndsAt = $schedule->ends_at->copy()->startOfDay();
+        } elseif ($schedule->schoolClass->ends_at) {
+            $scheduleEndsAt = $schedule->schoolClass->ends_at->copy()->startOfDay();
+        }
+
+        if ($endsAt && $scheduleEndsAt && $scheduleEndsAt->gt($endsAt->copy()->startOfDay())) {
+            throw ValidationException::withMessages([
+                'school_class_component_id' => 'Este componente termina antes do fim desta versão de horário.',
+            ]);
+        }
+
+        if ($endsAt && ! $scheduleEndsAt) {
             throw ValidationException::withMessages([
                 'school_class_component_id' => 'Este componente termina antes do fim desta versão de horário.',
             ]);
