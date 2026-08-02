@@ -83,6 +83,9 @@
                     <div class="card-body">
                         <form method="POST" action="{{ route('academic-years.classes.schedules.slots.store', [$academicYear, $class, $schedule]) }}" data-schedule-slot-form data-class-minutes="{{ $classMinutes }}">
                             @csrf
+                            @error('schedule_slot_error')
+                                <div class="alert alert-danger" role="alert">{{ $message }}</div>
+                            @enderror
                             @include('school-class-schedules._slot-fields', [
                                 'prefix' => 'slot',
                                 'slot' => null,

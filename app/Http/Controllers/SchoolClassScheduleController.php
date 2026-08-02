@@ -9,9 +9,11 @@ use App\Models\SchoolClassScheduleSlot;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Throwable;
 
 class SchoolClassScheduleController extends Controller
 {
@@ -81,7 +83,17 @@ class SchoolClassScheduleController extends Controller
         $this->authorize($request, $academicYear, $class);
         abort_unless($schedule->school_class_id === $class->id, 404);
 
-        $schedule->slots()->create($this->validatedSlotData($request, $academicYear, $class, $schedule));
+        try {
+            $schedule->slots()->create($this->validatedSlotData($request, $academicYear, $class, $schedule));
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            $this->logScheduleSlotError($exception, $request, $class, $schedule, null, 'store');
+
+            return back()
+                ->withInput()
+                ->withErrors(['schedule_slot_error' => 'Falha ao criar bloco: '.$exception->getMessage()]);
+        }
 
         return back()->with('status', 'Bloco incluído no horário.');
     }
@@ -91,7 +103,17 @@ class SchoolClassScheduleController extends Controller
         $this->authorize($request, $academicYear, $class);
         abort_unless($schedule->school_class_id === $class->id && $slot->school_class_schedule_id === $schedule->id, 404);
 
-        $slot->update($this->validatedSlotData($request, $academicYear, $class, $schedule, $slot));
+        try {
+            $slot->update($this->validatedSlotData($request, $academicYear, $class, $schedule, $slot));
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            $this->logScheduleSlotError($exception, $request, $class, $schedule, $slot, 'update');
+
+            return back()
+                ->withInput()
+                ->withErrors(['schedule_slot_error' => 'Falha ao atualizar bloco: '.$exception->getMessage()]);
+        }
 
         return back()->with('status', 'Bloco atualizado no horário.');
     }
@@ -227,6 +249,20 @@ class SchoolClassScheduleController extends Controller
             ->where('starts_at', '<', $endsAt)
             ->where('ends_at', '>', $startsAt)
             ->exists();
+    }
+
+    private function logScheduleSlotError(Throwable $exception, Request $request, SchoolClass $class, SchoolClassSchedule $schedule, ?SchoolClassScheduleSlot $slot, string $action): void
+    {
+        $context = [
+            'academic_year_id' => $class->academic_year_id,
+            'school_class_id' => $class->id,
+            'school_class_schedule_id' => $schedule->id,
+            'school_class_schedule_slot_id' => $slot?->id,
+            'action' => $action,
+            'request' => $request->except(['_token', '_method']),
+        ];
+
+        Log::error('Falha ao processar bloco de horário da turma.', array_merge($context, ['exception' => $exception]));
     }
 
     private function classMinutes(AcademicYear $academicYear, SchoolClass $class): int
