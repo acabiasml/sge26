@@ -77,9 +77,21 @@ class SchoolClassController extends Controller
         abort_unless($class->academic_year_id === $academicYear->id, 404);
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
 
+        try {
+            $academicYear->load('school', 'courses.components', 'periods');
+            $class->load('courses', 'startsPeriod', 'endsPeriod');
+        } catch (\Throwable $exception) {
+            Log::error('Erro ao carregar edição da turma', ['exception' => $exception, 'class_id' => $class->id]);
+
+            return response()->view('errors.custom', [
+                'message' => 'Erro ao carregar a edição da turma: '.$exception->getMessage(),
+                'exception' => $exception,
+            ], 500);
+        }
+
         return view('school-classes.edit', [
-            'academicYear' => $academicYear->load('school', 'courses.components', 'periods'),
-            'class' => $class->load('courses', 'startsPeriod', 'endsPeriod'),
+            'academicYear' => $academicYear,
+            'class' => $class,
             'readyCourses' => $this->readyCourses($academicYear),
         ]);
     }
