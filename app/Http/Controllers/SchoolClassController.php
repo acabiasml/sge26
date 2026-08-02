@@ -11,6 +11,8 @@ use App\Support\AcademicStructureStatus;
 use App\Support\AcademicStructureValidator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -37,9 +39,8 @@ class SchoolClassController extends Controller
         abort_unless($class->academic_year_id === $academicYear->id, 404);
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
 
-        return view('school-classes.show', [
-            'academicYear' => $academicYear->load(['school', 'classes.courses']),
-            'class' => $class->load([
+        try {
+            $class->load([
                 'courses.components',
                 'startsPeriod',
                 'endsPeriod',
@@ -49,9 +50,24 @@ class SchoolClassController extends Controller
                 'componentAssignments.teacher',
                 'componentAssignments.substitutions.substituteTeacher',
                 'schedules.slots.componentAssignment.component',
-            ]),
-            'classStatus' => AcademicStructureStatus::schoolClass($class),
-            'structureIssues' => AcademicStructureValidator::forClass($class),
+            ]);
+
+            $classStatus = AcademicStructureStatus::schoolClass($class);
+            $structureIssues = AcademicStructureValidator::forClass($class);
+        } catch (\Throwable $exception) {
+            Log::error('Erro ao carregar página da turma', ['exception' => $exception, 'class_id' => $class->id]);
+
+            return response()->view('errors.custom', [
+                'message' => 'Erro ao carregar a página da turma: '.$exception->getMessage(),
+                'exception' => $exception,
+            ], 500);
+        }
+
+        return view('school-classes.show', [
+            'academicYear' => $academicYear->load(['school', 'classes.courses']),
+            'class' => $class,
+            'classStatus' => $classStatus,
+            'structureIssues' => $structureIssues,
             'teachers' => $this->teachers($academicYear),
         ]);
     }
