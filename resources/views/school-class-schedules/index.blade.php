@@ -142,13 +142,16 @@
                                                 @php($endMinutes = ((int) $endParts[0] * 60) + (int) $endParts[1])
                                                 @php($top = (($startMinutes - 360) / 960) * 100)
                                                 @php($height = (($endMinutes - $startMinutes) / 960) * 100)
-                                                @php($teacher = $slot->componentAssignment?->teacher)
-                                                @php($colors = \App\Support\ScheduleTeacherColor::for($teacher?->id, $teacher?->full_name))
+                                                @php($componentAssignment = $slot->componentAssignment)
+                                                @php($teacher = $componentAssignment?->teacher)
+                                                @php($component = $componentAssignment?->component)
+                                                @php($teacherName = $teacher?->full_name ?? $component?->teacher?->full_name)
+                                                @php($colors = \App\Support\ScheduleTeacherColor::for($teacher?->id, $teacherName))
                                                 <article class="sge-week-schedule-slot sge-week-schedule-slot-{{ $slot->type }}" style="top: {{ $top }}%; height: {{ $height }}%; border-left-color: {{ $colors['border'] }}; background: {{ $slot->type === \App\Models\SchoolClassScheduleSlot::TYPE_BREAK ? 'rgba(240, 144, 48, .22)' : $colors['background'] }};">
-                                                    <button class="sge-week-schedule-edit" type="button" data-toggle="modal" data-target="#edit-slot-{{ $slot->id }}" aria-label="Editar bloco {{ $slot->type === 'aula' ? $slot->componentAssignment?->component?->name : $slot->label }}">
-                                                        <strong>{{ $slot->type === 'aula' ? $slot->componentAssignment?->component?->name : $slot->label }}</strong>
+                                                    <button class="sge-week-schedule-edit" type="button" data-toggle="modal" data-target="#edit-slot-{{ $slot->id }}" aria-label="Editar bloco {{ $slot->type === 'aula' ? $component?->name : $slot->label }}">
+                                                        <strong>{{ $slot->type === 'aula' ? $component?->name : $slot->label }}</strong>
                                                         @if($slot->type === 'aula')
-                                                            <span>{{ $teacher?->full_name ?? 'Docência não definida' }}</span>
+                                                            <span>{{ $teacherName ?? 'Docência não definida' }}</span>
                                                         @endif
                                                         <small>{{ substr($slot->starts_at, 0, 5) }}-{{ substr($slot->ends_at, 0, 5) }}</small>
                                                     </button>
