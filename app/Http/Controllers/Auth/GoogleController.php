@@ -25,7 +25,10 @@ class GoogleController extends Controller
         }
 
         return Socialite::driver('google')
-            ->with(['hd' => config('services.google.allowed_domain')])
+            ->with([
+                'hd' => config('services.google.allowed_domain'),
+                'prompt' => 'select_account',
+            ])
             ->redirect();
     }
 

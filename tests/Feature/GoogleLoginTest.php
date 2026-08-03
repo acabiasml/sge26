@@ -6,6 +6,7 @@ use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\RedirectResponse;
 use Laravel\Socialite\Contracts\Factory as SocialiteFactory;
 use Mockery;
 use Tests\TestCase;
@@ -44,6 +45,49 @@ class GoogleLoginTest extends TestCase
 
         $response->assertRedirect(route('login'));
         $response->assertSessionHas('status');
+    }
+
+    public function test_google_login_always_requires_account_selection(): void
+    {
+        config([
+            'services.google.client_id' => 'client-id',
+            'services.google.client_secret' => 'client-secret',
+            'services.google.allowed_domain' => 'ctjj.org',
+        ]);
+
+        $redirect = new RedirectResponse('https://accounts.google.com/o/oauth2/auth');
+        $provider = Mockery::mock();
+        $provider->shouldReceive('with')->once()->with([
+            'hd' => 'ctjj.org',
+            'prompt' => 'select_account',
+        ])->andReturnSelf();
+        $provider->shouldReceive('redirect')->once()->andReturn($redirect);
+
+        $socialite = Mockery::mock(SocialiteFactory::class);
+        $socialite->shouldReceive('driver')->with('google')->once()->andReturn($provider);
+        $this->app->instance(SocialiteFactory::class, $socialite);
+
+        $response = $this->get(route('auth.google.redirect'));
+
+        $response->assertRedirect('https://accounts.google.com/o/oauth2/auth');
+    }
+
+    public function test_logout_invalidates_the_local_authenticated_session(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('logout'));
+
+        $response->assertRedirect(route('login'));
+        $this->assertGuest();
+    }
+
+    public function test_logout_is_not_available_by_get_request(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get('/logout')->assertMethodNotAllowed();
+        $this->assertAuthenticatedAs($user);
     }
 
     public function test_dashboard_requires_authentication(): void

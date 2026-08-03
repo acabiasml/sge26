@@ -232,4 +232,3 @@ $logout = function () {
 };
 
 Route::post('/logout', $logout)->middleware('auth')->name('logout');
-Route::get('/logout', $logout)->middleware('auth');
