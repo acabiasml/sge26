@@ -9,8 +9,10 @@ use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use RuntimeException;
 use Tests\TestCase;
 
 class AuditLogTest extends TestCase
@@ -69,6 +71,46 @@ class AuditLogTest extends TestCase
         $this->assertSame($admin->id, $audit->actor_user_id);
         $this->assertSame($admin->person_id, $audit->actor_person_id);
         $this->assertSame(PersonSchoolRole::ROLE_ADMINISTRATOR, $audit->actor_role);
+    }
+
+    public function test_model_updates_continue_when_audit_log_creation_fails(): void
+    {
+        $model = new class extends \Illuminate\Database\Eloquent\Model {
+            use \App\Models\Concerns\Auditable;
+
+            protected $guarded = [];
+
+            public function getMorphClass(): string
+            {
+                return 'test-model';
+            }
+
+            public function getKey()
+            {
+                return 7;
+            }
+
+            protected function auditLogRepository(): Builder
+            {
+                return new class extends \Illuminate\Database\Eloquent\Builder {
+                    public function __construct()
+                    {
+                    }
+
+                    public function create(array $attributes = [])
+                    {
+                        throw new RuntimeException('db fail');
+                    }
+                };
+            }
+        };
+
+        $method = new \ReflectionMethod($model, 'writeAuditLog');
+        $method->setAccessible(true);
+
+        $method->invoke($model, 'updated');
+
+        $this->assertTrue(true);
     }
 
     public function test_audit_log_uses_brasilia_timezone_by_default(): void

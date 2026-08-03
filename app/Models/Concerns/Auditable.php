@@ -5,8 +5,10 @@ namespace App\Models\Concerns;
 use App\Models\AuditLog;
 use App\Models\PersonSchoolRole;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 trait Auditable
@@ -36,21 +38,35 @@ trait Auditable
         $role = $this->auditActorRole($user);
         $changes = $this->auditableChanges($action);
 
-        AuditLog::query()->create([
-            'actor_user_id' => $user?->id,
-            'actor_person_id' => $user?->person_id,
-            'school_id' => $this->auditSchoolId() ?? $role?->school_id,
-            'actor_role' => $role?->role,
-            'actor_position' => $role?->position,
-            'auditable_type' => $this->getMorphClass(),
-            'auditable_id' => $this->getKey(),
-            'action' => $action,
-            'old_values' => $changes['old'],
-            'new_values' => $changes['new'],
-            'metadata' => null,
-            'ip_address' => request()?->ip(),
-            'user_agent' => request()?->userAgent(),
-        ]);
+        try {
+            $this->auditLogRepository()->create([
+                'actor_user_id' => $user?->id,
+                'actor_person_id' => $user?->person_id,
+                'school_id' => $this->auditSchoolId() ?? $role?->school_id,
+                'actor_role' => $role?->role,
+                'actor_position' => $role?->position,
+                'auditable_type' => $this->getMorphClass(),
+                'auditable_id' => $this->getKey(),
+                'action' => $action,
+                'old_values' => $changes['old'],
+                'new_values' => $changes['new'],
+                'metadata' => null,
+                'ip_address' => request()?->ip(),
+                'user_agent' => request()?->userAgent(),
+            ]);
+        } catch (\Throwable $exception) {
+            Log::warning('Não foi possível registrar auditoria do modelo.', [
+                'exception' => $exception,
+                'auditable_type' => $this->getMorphClass(),
+                'auditable_id' => $this->getKey(),
+                'action' => $action,
+            ]);
+        }
+    }
+
+    protected function auditLogRepository(): Builder
+    {
+        return AuditLog::query();
     }
 
     protected function auditActorUser(): ?User
