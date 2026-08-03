@@ -30,15 +30,15 @@ trait Auditable
 
     protected function writeAuditLog(string $action): void
     {
-        if (! Schema::hasTable('audit_logs')) {
-            return;
-        }
-
-        $user = $this->auditActorUser();
-        $role = $this->auditActorRole($user);
-        $changes = $this->auditableChanges($action);
-
         try {
+            if (! Schema::hasTable('audit_logs')) {
+                return;
+            }
+
+            $user = $this->auditActorUser();
+            $role = $this->auditActorRole($user);
+            $changes = $this->auditableChanges($action);
+
             $this->auditLogRepository()->create([
                 'actor_user_id' => $user?->id,
                 'actor_person_id' => $user?->person_id,
