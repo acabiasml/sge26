@@ -147,6 +147,8 @@
                                                             Peso {{ $assessment->weight }}
                                                         @elseif ($assessment->recovery_mode === \App\Models\AcademicPeriod::RECOVERY_REPLACE_LOWEST)
                                                             Substitui a menor nota
+                                                        @elseif ($assessment->recovery_mode === \App\Models\AcademicPeriod::RECOVERY_REPLACE_PERIOD_AVERAGE)
+                                                            Mantém a maior entre média e recuperação
                                                         @else
                                                             Substitui avaliação configurada
                                                         @endif
@@ -162,6 +164,7 @@
                                 <tbody>
                                     @foreach ($enrollments as $enrollment)
                                         @php($enrollmentLocked = ! $enrollment->isActive())
+                                        @php($average = $averages[$enrollment->id] ?? ['value' => null, 'regular_value' => null, 'recovery_value' => null, 'recovery_required' => false, 'complete' => false, 'completed_assessments' => 0, 'total_assessments' => $assessments->where('is_recovery', false)->count()])
                                         <tr class="{{ $enrollmentLocked ? 'table-light' : '' }}">
                                             <td>
                                                 {{ $enrollment->student?->full_name }}
@@ -171,10 +174,9 @@
                                             </td>
                                             @foreach ($assessments as $assessment)
                                                 @php($result = $assessment->results->firstWhere('student_enrollment_id', $enrollment->id))
-                                                <td><label class="sr-only" for="score_{{ $assessment->id }}_{{ $enrollment->id }}">Nota de {{ $enrollment->student?->full_name }} em {{ $assessment->title }}</label><input id="score_{{ $assessment->id }}_{{ $enrollment->id }}" name="scores[{{ $assessment->id }}][{{ $enrollment->id }}]" data-mask="decimal" inputmode="decimal" class="form-control form-control-sm" value="{{ $result?->score }}" @disabled($enrollmentLocked)>@if($result?->updatedBy && $result->updated_by_person_id !== $assignment->teacher_person_id)<span class="d-block small text-warning mt-1" title="Lançamento alterado por {{ $result->updatedBy->full_name }}"><i class="fas fa-user-shield" aria-hidden="true"></i><span class="sr-only">Alterado por {{ $result->updatedBy->full_name }}</span></span>@endif</td>
+                                                <td><label class="sr-only" for="score_{{ $assessment->id }}_{{ $enrollment->id }}">Nota de {{ $enrollment->student?->full_name }} em {{ $assessment->title }}</label><input id="score_{{ $assessment->id }}_{{ $enrollment->id }}" name="scores[{{ $assessment->id }}][{{ $enrollment->id }}]" data-mask="decimal" inputmode="decimal" class="form-control form-control-sm" value="{{ $result?->score }}" @disabled($enrollmentLocked)>@if($assessment->is_recovery && $assessment->recovery_mode === \App\Models\AcademicPeriod::RECOVERY_REPLACE_PERIOD_AVERAGE && ! $average['recovery_required'])<span class="d-block small text-muted mt-1">Opcional; a média do período já atingiu a referência.</span>@endif @if($result?->updatedBy && $result->updated_by_person_id !== $assignment->teacher_person_id)<span class="d-block small text-warning mt-1" title="Lançamento alterado por {{ $result->updatedBy->full_name }}"><i class="fas fa-user-shield" aria-hidden="true"></i><span class="sr-only">Alterado por {{ $result->updatedBy->full_name }}</span></span>@endif</td>
                                             @endforeach
-                                            @php($average = $averages[$enrollment->id] ?? ['value' => null, 'complete' => false, 'completed_assessments' => 0, 'total_assessments' => $assessments->where('is_recovery', false)->count()])
-                                            <td class="text-center font-weight-bold">{{ $average['value'] ?? '-' }}@if (($average['value'] ?? null) !== null)<span class="d-block small text-muted">{{ $average['complete'] ? 'Completa' : $average['completed_assessments'].' de '.$average['total_assessments'].' lançada(s)' }}</span>@endif</td>
+                                            <td class="text-center font-weight-bold">{{ $average['value'] ?? '-' }}@if (($average['value'] ?? null) !== null)<span class="d-block small text-muted">{{ $average['complete'] ? 'Completa' : $average['completed_assessments'].' de '.$average['total_assessments'].' lançada(s)' }}</span>@if($average['recovery_value'] !== null)<span class="d-block small text-muted">Original: {{ $average['regular_value'] }} · Recuperação: {{ $average['recovery_value'] }}</span>@elseif($average['recovery_required'])<span class="d-block small text-muted">Recuperação disponível</span>@endif @endif</td>
                                         </tr>
                                     @endforeach
                                 </tbody>

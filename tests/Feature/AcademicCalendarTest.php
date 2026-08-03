@@ -1013,11 +1013,19 @@ class AcademicCalendarTest extends TestCase
             'class_hour_minutes' => 50,
             'active' => true,
         ]);
+        $period = $year->periods()->create([
+            'name' => 'I Bimestre',
+            'starts_at' => '2026-02-02',
+            'ends_at' => '2026-04-10',
+            'position' => 1,
+        ]);
 
         $this->actingAs($admin)
             ->post(route('academic-years.classes.store', $year), [
                 'name' => '3º Ano A',
                 'course_ids' => [$course->id],
+                'starts_period_id' => $period->id,
+                'ends_period_id' => $period->id,
                 'active' => '1',
             ])
             ->assertSessionHasErrors('course_ids');
@@ -1071,6 +1079,46 @@ class AcademicCalendarTest extends TestCase
             'substitute_teacher_person_id' => $substitute->person_id,
             'starts_at' => '2026-03-01 00:00:00',
             'ends_at' => '2026-03-20 00:00:00',
+        ]);
+    }
+
+    public function test_school_management_can_change_teacher_after_calendar_approval(): void
+    {
+        $year = $this->academicYear();
+        $year->update(['approved_at' => '2025-12-15']);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'coordenacao-docente@ctjj.org');
+        $teacher = $this->userWithRole(PersonSchoolRole::ROLE_TEACHER, $year->school_id, 'nova-docencia@ctjj.org');
+        $course = $year->courses()->create([
+            'name' => 'Ensino Médio',
+            'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
+            'status' => 'iniciado',
+            'class_hour_minutes' => 50,
+            'active' => true,
+        ]);
+        $component = $course->components()->create(['name' => 'Matemática', 'weekly_lessons' => 5, 'active' => true]);
+        $class = $year->classes()->create(['name' => '1º Ano A', 'active' => true]);
+        $class->courses()->attach($course);
+        $assignment = $class->componentAssignments()->create([
+            'curriculum_component_id' => $component->id,
+            'active' => true,
+        ]);
+
+        $this->actingAs($manager)
+            ->get(route('academic-years.classes.show', [$year, $class]))
+            ->assertOk()
+            ->assertSee($teacher->person->full_name);
+
+        $this->actingAs($manager)
+            ->put(route('academic-years.classes.components.update', [$year, $class, $assignment]), [
+                'teacher_person_id' => $teacher->person_id,
+                'active' => '1',
+            ])
+            ->assertRedirect(route('academic-years.classes.show', [$year, $class]));
+
+        $this->assertDatabaseHas('school_class_components', [
+            'id' => $assignment->id,
+            'teacher_person_id' => $teacher->person_id,
+            'active' => true,
         ]);
     }
 

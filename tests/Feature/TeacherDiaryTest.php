@@ -738,6 +738,77 @@ class TeacherDiaryTest extends TestCase
         $this->assertSame(8.5, $response->viewData('averages')[$enrollment->id]['value']);
     }
 
+    public function test_recovery_can_keep_the_greater_between_period_average_and_recovery_score(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-media-recuperacao@ctjj.org');
+
+        foreach ([2, 3, 4] as $position) {
+            $year->periods()->create([
+                'name' => $position.'º Bimestre',
+                'starts_at' => "2026-0{$position}-01",
+                'ends_at' => "2026-0{$position}-28",
+                'position' => $position,
+            ]);
+        }
+
+        $this->actingAs($manager)
+            ->put(route('academic-years.periods.assessment-rules.update', [$year, $period]), [
+                'assessment_count' => 2,
+                'weights' => [1, 1],
+                'recovery_mode' => AcademicPeriod::RECOVERY_REPLACE_PERIOD_AVERAGE,
+            ])
+            ->assertRedirect(route('academic-years.periods.index', $year));
+
+        $assessments = DiaryAssessment::query()
+            ->where('school_class_id', $class->id)
+            ->where('curriculum_component_id', $component->id)
+            ->orderBy('is_recovery')
+            ->orderBy('school_assessment_rule_id')
+            ->get();
+        $regularAssessments = $assessments->where('is_recovery', false)->values();
+        $recoveryAssessment = $assessments->firstWhere('is_recovery', true);
+
+        $this->actingAs($teacher)->put(route('teacher-diaries.grades.update', [$class, $component]), [
+            'academic_period_id' => $period->id,
+            'scores' => [
+                $regularAssessments[0]->id => [$enrollment->id => 4],
+                $regularAssessments[1]->id => [$enrollment->id => 5],
+            ],
+        ]);
+
+        $average = $this->actingAs($teacher)
+            ->get(route('teacher-diaries.show', [$class, $component, 'period' => $period->id]))
+            ->viewData('averages')[$enrollment->id];
+        $this->assertSame(4.5, $average['regular_value']);
+        $this->assertSame(6.0, $average['period_passing_score']);
+        $this->assertTrue($average['recovery_required']);
+        $this->assertTrue($average['complete']);
+
+        $this->actingAs($teacher)->put(route('teacher-diaries.grades.update', [$class, $component]), [
+            'academic_period_id' => $period->id,
+            'scores' => [$recoveryAssessment->id => [$enrollment->id => 3]],
+        ]);
+        $average = $this->actingAs($teacher)
+            ->get(route('teacher-diaries.show', [$class, $component, 'period' => $period->id]))
+            ->viewData('averages')[$enrollment->id];
+        $this->assertSame(4.5, $average['value']);
+        $this->assertFalse($average['recovery_applied']);
+
+        $this->actingAs($teacher)->put(route('teacher-diaries.grades.update', [$class, $component]), [
+            'academic_period_id' => $period->id,
+            'scores' => [$recoveryAssessment->id => [$enrollment->id => 8]],
+        ]);
+        $average = $this->actingAs($teacher)
+            ->get(route('teacher-diaries.show', [$class, $component, 'period' => $period->id]))
+            ->viewData('averages')[$enrollment->id];
+        $this->assertSame(4.5, $average['regular_value']);
+        $this->assertSame(8.0, $average['recovery_value']);
+        $this->assertSame(8.0, $average['value']);
+        $this->assertTrue($average['recovery_applied']);
+        $this->assertTrue($average['complete']);
+    }
+
     public function test_period_average_is_rounded_to_the_nearest_half_point(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();

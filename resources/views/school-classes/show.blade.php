@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @php($canChangeAcademicStructure = ! $academicYear->approved_at || auth()->user()->isAdministrator())
+@php($canManageTeaching = ! $academicYear->isClosed() && auth()->user()->canManageSchool($academicYear->school_id))
 @php($enrollmentCount = $class->enrollments->count())
 @php($assignments = $class->componentAssignments->sortBy(fn ($assignment) => ($assignment->component?->area?->name ?? '').' '.$assignment->component?->name)->values())
 @php($assignmentGroups = $assignments->groupBy(fn ($assignment) => $assignment->component?->area?->name ?? 'Área não definida'))
@@ -137,7 +138,7 @@
                                         <div class="row align-items-end">
                                             <div class="col-lg-7 form-group">
                                                 <label for="teacher_person_id_{{ $assignment->id }}">Docência titular</label>
-                                                <select id="teacher_person_id_{{ $assignment->id }}" name="teacher_person_id" class="form-control" @disabled(! $canChangeAcademicStructure)>
+                                                <select id="teacher_person_id_{{ $assignment->id }}" name="teacher_person_id" class="form-control" @disabled(! $canManageTeaching)>
                                                     <option value="">Definir depois</option>
                                                     @foreach ($teachers as $teacher)
                                                         <option value="{{ $teacher->id }}" @selected((int) old('teacher_person_id', $assignment->teacher_person_id) === $teacher->id)>{{ $teacher->full_name }}</option>
@@ -146,11 +147,11 @@
                                             </div>
                                             <div class="col-lg-3 form-group">
                                                 <div class="custom-control custom-checkbox mt-2">
-                                                    <input class="custom-control-input" id="assignment_active_{{ $assignment->id }}" name="active" type="checkbox" value="1" @checked(old('active', $assignment->active)) @disabled(! $canChangeAcademicStructure)>
+                                                    <input class="custom-control-input" id="assignment_active_{{ $assignment->id }}" name="active" type="checkbox" value="1" @checked(old('active', $assignment->active)) @disabled(! $canManageTeaching)>
                                                     <label class="custom-control-label" for="assignment_active_{{ $assignment->id }}">Docência ativa</label>
                                                 </div>
                                             </div>
-                                            @if ($canChangeAcademicStructure)
+                                            @if ($canManageTeaching)
                                                 <div class="col-lg-2 form-group">
                                                     <button class="btn btn-primary btn-block" type="submit"><i class="fas fa-save mr-1" aria-hidden="true"></i>Salvar</button>
                                                 </div>
@@ -178,7 +179,7 @@
                                                         <td>{{ $substitution->ends_at?->format('d/m/Y') ?? 'Indeterminado' }}</td>
                                                         <td>{{ $substitution->notes ?: '-' }}</td>
                                                         <td class="text-right">
-                                                            @if ($canChangeAcademicStructure)
+                                                            @if ($canManageTeaching)
                                                                 <form method="POST" action="{{ route('academic-years.classes.components.substitutions.destroy', [$academicYear, $class, $assignment, $substitution]) }}" onsubmit="return confirm('Remover esta substituição?')">
                                                                     @csrf
                                                                     @method('DELETE')
@@ -196,7 +197,7 @@
                                         </table>
                                     </div>
 
-                                    @if ($canChangeAcademicStructure)
+                                    @if ($canManageTeaching)
                                         <form method="POST" action="{{ route('academic-years.classes.components.substitutions.store', [$academicYear, $class, $assignment]) }}" class="sge-substitution-form">
                                             @csrf
                                             <div class="row">

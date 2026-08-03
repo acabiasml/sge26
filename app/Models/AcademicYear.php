@@ -102,4 +102,9 @@ class AcademicYear extends Model
     {
         return $this->closed_at !== null;
     }
+
+    public function passingScorePerPeriod(): float
+    {
+        return (float) $this->passing_points / max(1, $this->periods()->count());
+    }
 }

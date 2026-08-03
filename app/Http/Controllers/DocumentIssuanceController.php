@@ -352,7 +352,12 @@ class DocumentIssuanceController extends Controller
             ->get()
             ->map(function (StudentEnrollment $enrollment) use ($type): array {
                 $year = $enrollment->schoolClass?->academicYear;
-                [$enabled, $reason] = $this->enrollmentAvailability($enrollment, $type);
+                // Current-enrollment documents were already restricted by the
+                // database query above. Do not classify the same record again
+                // with a second, potentially divergent, presentation rule.
+                [$enabled, $reason] = $this->requiresCurrentEnrollment($type)
+                    ? [true, null]
+                    : $this->enrollmentAvailability($enrollment, $type);
 
                 return [
                     'id' => $enrollment->id,
@@ -376,7 +381,7 @@ class DocumentIssuanceController extends Controller
     private function enrollmentAvailability(StudentEnrollment $enrollment, string $type): array
     {
         if ($this->requiresCurrentEnrollment($type) && ! $this->isCurrentEnrollment($enrollment)) {
-            return [false, 'Use documentos de arquivo, como ficha individual ou histórico escolar, para anos letivos encerrados.'];
+            return [false, $this->currentEnrollmentUnavailableReason($enrollment)];
         }
 
         if ($type === 'enrollment-declaration' && ! $enrollment->isActive()) {
@@ -392,6 +397,21 @@ class DocumentIssuanceController extends Controller
         }
 
         return [true, null];
+    }
+
+    private function currentEnrollmentUnavailableReason(StudentEnrollment $enrollment): string
+    {
+        $enrollment->loadMissing('schoolClass.academicYear');
+        $class = $enrollment->schoolClass;
+        $year = $class?->academicYear;
+
+        return match (true) {
+            ! $enrollment->isActive() => 'A matrícula não está ativa.',
+            ! $class?->active => 'A turma desta matrícula está inativa.',
+            ! in_array($enrollment->final_result_status, [null, StudentEnrollment::FINAL_PENDING], true) => 'A matrícula já possui resultado final. Use os documentos acadêmicos de arquivo.',
+            ! $year?->active || $year?->isClosed() => 'O ano letivo está encerrado. Use ficha individual ou histórico escolar.',
+            default => 'Esta matrícula não está disponível para este documento.',
+        };
     }
 
     private function requiresCurrentEnrollment(string $type): bool

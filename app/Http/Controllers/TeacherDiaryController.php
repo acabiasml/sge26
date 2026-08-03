@@ -1154,7 +1154,6 @@ class TeacherDiaryController extends Controller
         $missingGrades = $regularAssessments->sum(function (DiaryAssessment $assessment) use ($activeEnrollments): int {
             return $activeEnrollments->filter(fn (StudentEnrollment $enrollment): bool => $assessment->results->firstWhere('student_enrollment_id', $enrollment->id)?->score === null)->count();
         });
-
         return [
             'attendance_without_content' => $attendanceDates->diff($contentDates)->all(),
             'content_without_attendance' => $contentDates->diff($attendanceDates)->all(),

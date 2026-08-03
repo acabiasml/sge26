@@ -323,7 +323,7 @@
                                                     </div>
                                                     <div>
                                                         <label for="weight_{{ $period->id }}_{{ $position }}">Peso</label>
-                                                        <input id="weight_{{ $period->id }}_{{ $position }}" name="weights[]" data-mask="digits" data-mask-max="3" inputmode="numeric" autocomplete="off" class="form-control" value="{{ $useOldForPeriod ? old('weights.'.($position - 1), $rule?->weight ?? 1) : ($rule?->weight ?? 1) }}">
+                                                        <input id="weight_{{ $period->id }}_{{ $position }}" name="weights[]" data-mask="digits" data-mask-max="3" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" class="form-control" value="{{ $useOldForPeriod ? old('weights.'.($position - 1), $rule?->weight ?? 1) : ($rule?->weight ?? 1) }}">
                                                     </div>
                                                 </div>
                                             </div>
@@ -364,6 +364,9 @@ document.querySelectorAll('[data-assessment-rules-form]').forEach((container) =>
             field.hidden = !visible;
             field.querySelectorAll('input, select, textarea').forEach((input) => {
                 input.disabled = !visible;
+                if (visible && input.dataset.mask === 'digits') {
+                    input.value = input.value.replace(/\D/g, '').slice(0, Number(input.dataset.maskMax || 255));
+                }
             });
         });
         container.querySelectorAll('[data-recovery-option]').forEach((option) => { const available = Number(option.dataset.recoveryOption) <= selectedCount; option.hidden = !available; option.disabled = !available; });

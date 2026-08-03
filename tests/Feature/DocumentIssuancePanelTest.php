@@ -172,6 +172,8 @@ class DocumentIssuancePanelTest extends TestCase
             ->assertOk();
 
         $response->assertJsonPath('targets.0.id', $currentEnrollment->id);
+        $response->assertJsonPath('targets.0.enabled', true);
+        $response->assertJsonPath('targets.0.reason', null);
         $this->assertCount(1, $response->json('targets'));
 
         $archiveResponse = $this->actingAs($administrator)

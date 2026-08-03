@@ -126,7 +126,12 @@
                     @foreach($report['assessments'] as $assessment)
                         <th class="center compact-score-heading">{{ $assessment->title }}</th>
                     @endforeach
-                    <th class="center">Média</th>
+                    @if($period->recovery_mode === \App\Models\AcademicPeriod::RECOVERY_REPLACE_PERIOD_AVERAGE)
+                        <th class="center">Média original</th>
+                        <th class="center">Média considerada</th>
+                    @else
+                        <th class="center">Média</th>
+                    @endif
                 </tr>
             </thead>
             <tbody>
@@ -143,10 +148,16 @@
                             @php($result = $assessment->results->firstWhere('student_enrollment_id', $enrollment->id))
                             <td class="center">{{ $scoreLabel($result?->score, $period->ends_at ?? $period->starts_at) }}</td>
                         @endforeach
-                        <td class="center">{{ $scoreLabel($report['averages'][$enrollment->id]['value'] ?? null, $period->ends_at ?? $period->starts_at) }}</td>
+                        @php($average = $report['averages'][$enrollment->id] ?? [])
+                        @if($period->recovery_mode === \App\Models\AcademicPeriod::RECOVERY_REPLACE_PERIOD_AVERAGE)
+                            <td class="center">{{ $scoreLabel($average['regular_value'] ?? null, $period->ends_at ?? $period->starts_at) }}</td>
+                            <td class="center">{{ $scoreLabel($average['value'] ?? null, $period->ends_at ?? $period->starts_at) }}</td>
+                        @else
+                            <td class="center">{{ $scoreLabel($average['value'] ?? null, $period->ends_at ?? $period->starts_at) }}</td>
+                        @endif
                     </tr>
                 @empty
-                    <tr><td colspan="{{ $report['assessments']->count() + 2 }}">Nenhum estudante matriculado.</td></tr>
+                    <tr><td colspan="{{ $report['assessments']->count() + ($period->recovery_mode === \App\Models\AcademicPeriod::RECOVERY_REPLACE_PERIOD_AVERAGE ? 3 : 2) }}">Nenhum estudante matriculado.</td></tr>
                 @endforelse
             </tbody>
         </table>

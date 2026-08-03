@@ -17,12 +17,14 @@ class AcademicPeriod extends Model
     public const RECOVERY_WEIGHTED = 'weighted';
     public const RECOVERY_REPLACE_ASSESSMENT = 'replace_assessment';
     public const RECOVERY_REPLACE_LOWEST = 'replace_lowest';
+    public const RECOVERY_REPLACE_PERIOD_AVERAGE = 'replace_period_average';
 
     public const RECOVERY_MODE_LABELS = [
         self::RECOVERY_NONE => 'Sem recuperação',
         self::RECOVERY_WEIGHTED => 'Nota própria com peso na média',
         self::RECOVERY_REPLACE_ASSESSMENT => 'Substitui uma avaliação definida',
         self::RECOVERY_REPLACE_LOWEST => 'Substitui a menor nota do período',
+        self::RECOVERY_REPLACE_PERIOD_AVERAGE => 'Substitui a média do período quando for maior',
     ];
 
     protected $fillable = [
