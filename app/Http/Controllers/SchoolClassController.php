@@ -211,7 +211,12 @@ class SchoolClassController extends Controller
         $data['active'] = $request->boolean('active', true);
         $data['starts_at'] ??= $academicYear->starts_at->toDateString();
         $data['ends_at'] ??= $academicYear->ends_at->toDateString();
-        $this->ensureValidPeriodSpan($academicYear, $data['starts_period_id'] ?? null, $data['ends_period_id'] ?? null);
+
+        if (! $this->requestIncludesPeriodFields($request)) {
+            unset($data['starts_period_id'], $data['ends_period_id']);
+        } else {
+            $this->ensureValidPeriodSpan($academicYear, $data['starts_period_id'] ?? null, $data['ends_period_id'] ?? null);
+        }
 
         return $data;
     }
@@ -223,6 +228,11 @@ class SchoolClassController extends Controller
             ->orderBy('name')
             ->get()
             ->filter->hasMatrixComponents();
+    }
+
+    private function requestIncludesPeriodFields(Request $request): bool
+    {
+        return $request->exists('starts_period_id') || $request->exists('ends_period_id');
     }
 
     private function handleSaveFailure(Throwable $exception, Request $request, AcademicYear $academicYear, ?SchoolClass $class = null): RedirectResponse
