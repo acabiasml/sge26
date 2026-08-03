@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -101,28 +102,34 @@ class SchoolClassController extends Controller
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
         $this->ensureCanChangeApprovedCalendar($request, $academicYear);
 
-        $data = $this->validatedData($request, $academicYear);
-        $courseIds = $data['course_ids'];
-        unset($data['course_ids']);
+        try {
+            $data = $this->validatedData($request, $academicYear);
+            $courseIds = $data['course_ids'];
+            unset($data['course_ids']);
 
-        $coursesWithoutComponents = $academicYear->courses()
-            ->whereIn('id', $courseIds)
-            ->whereDoesntHave('components', fn ($query) => $query->where('active', true))
-            ->pluck('name')
-            ->all();
+            $coursesWithoutComponents = $academicYear->courses()
+                ->whereIn('id', $courseIds)
+                ->whereDoesntHave('components', fn ($query) => $query->where('active', true))
+                ->pluck('name')
+                ->all();
 
-        if ($coursesWithoutComponents !== []) {
-            throw ValidationException::withMessages([
-                'course_ids' => 'Cadastre os componentes da matriz antes de criar turma para: '.implode(', ', $coursesWithoutComponents).'.',
-            ]);
+            if ($coursesWithoutComponents !== []) {
+                throw ValidationException::withMessages([
+                    'course_ids' => 'Cadastre os componentes da matriz antes de criar turma para: '.implode(', ', $coursesWithoutComponents).'.',
+                ]);
+            }
+
+            $class = $academicYear->classes()->create($data);
+            $class->courses()->sync($courseIds);
+            $this->syncComponentAssignments($class);
+
+            return redirect()->route('academic-years.classes.show', [$academicYear, $class])
+                ->with('status', 'Turma cadastrada com sucesso.');
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            return $this->handleSaveFailure($exception, $request, $academicYear);
         }
-
-        $class = $academicYear->classes()->create($data);
-        $class->courses()->sync($courseIds);
-        $this->syncComponentAssignments($class);
-
-        return redirect()->route('academic-years.classes.show', [$academicYear, $class])
-            ->with('status', 'Turma cadastrada com sucesso.');
     }
 
     public function update(Request $request, AcademicYear $academicYear, SchoolClass $class): RedirectResponse
@@ -131,28 +138,34 @@ class SchoolClassController extends Controller
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
         $this->ensureCanChangeApprovedCalendar($request, $academicYear);
 
-        $data = $this->validatedData($request, $academicYear, $class);
-        $courseIds = $data['course_ids'];
-        unset($data['course_ids']);
+        try {
+            $data = $this->validatedData($request, $academicYear, $class);
+            $courseIds = $data['course_ids'];
+            unset($data['course_ids']);
 
-        $coursesWithoutComponents = $academicYear->courses()
-            ->whereIn('id', $courseIds)
-            ->whereDoesntHave('components', fn ($query) => $query->where('active', true))
-            ->pluck('name')
-            ->all();
+            $coursesWithoutComponents = $academicYear->courses()
+                ->whereIn('id', $courseIds)
+                ->whereDoesntHave('components', fn ($query) => $query->where('active', true))
+                ->pluck('name')
+                ->all();
 
-        if ($coursesWithoutComponents !== []) {
-            throw ValidationException::withMessages([
-                'course_ids' => 'Cadastre os componentes da matriz antes de vincular turma para: '.implode(', ', $coursesWithoutComponents).'.',
-            ]);
+            if ($coursesWithoutComponents !== []) {
+                throw ValidationException::withMessages([
+                    'course_ids' => 'Cadastre os componentes da matriz antes de vincular turma para: '.implode(', ', $coursesWithoutComponents).'.',
+                ]);
+            }
+
+            $class->update($data);
+            $class->courses()->sync($courseIds);
+            $this->syncComponentAssignments($class);
+
+            return redirect()->route('academic-years.classes.show', [$academicYear, $class])
+                ->with('status', 'Turma atualizada com sucesso.');
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            return $this->handleSaveFailure($exception, $request, $academicYear, $class);
         }
-
-        $class->update($data);
-        $class->courses()->sync($courseIds);
-        $this->syncComponentAssignments($class);
-
-        return redirect()->route('academic-years.classes.show', [$academicYear, $class])
-            ->with('status', 'Turma atualizada com sucesso.');
     }
 
     public function destroy(Request $request, AcademicYear $academicYear, SchoolClass $class): RedirectResponse
@@ -210,6 +223,22 @@ class SchoolClassController extends Controller
             ->orderBy('name')
             ->get()
             ->filter->hasMatrixComponents();
+    }
+
+    private function handleSaveFailure(Throwable $exception, Request $request, AcademicYear $academicYear, ?SchoolClass $class = null): RedirectResponse
+    {
+        Log::error('Erro ao salvar turma', [
+            'exception' => $exception,
+            'academic_year_id' => $academicYear->id,
+            'class_id' => $class?->id,
+            'request' => $request->except(['_token']),
+        ]);
+
+        return back()
+            ->withInput()
+            ->withErrors([
+                'general' => 'Erro ao salvar turma: '.$exception->getMessage(),
+            ]);
     }
 
     private function ensureValidPeriodSpan(AcademicYear $academicYear, ?int $startsPeriodId, ?int $endsPeriodId): void

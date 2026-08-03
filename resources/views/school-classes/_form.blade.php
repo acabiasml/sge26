@@ -12,6 +12,12 @@
             <h2 class="h6 m-0 font-weight-bold text-primary">Dados da turma</h2>
         </div>
         <div class="card-body">
+            @error('general')
+                <div class="alert alert-danger" role="alert">
+                    {{ $message }}
+                </div>
+            @enderror
+
             @if ($readyCourses->isEmpty())
                 <div class="alert alert-warning">
                     Cadastre ao menos uma matriz com componentes curriculares antes de criar turmas.
