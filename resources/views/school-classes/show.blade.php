@@ -53,8 +53,7 @@
 
                     <dl class="sge-inline-definition-list mb-0">
                         <div><dt>Turno</dt><dd>{{ $class->shift ?: '-' }}</dd></div>
-                        <div><dt>Datas da turma</dt><dd>{{ $class->starts_at?->format('d/m/Y') ?? '-' }} a {{ $class->ends_at?->format('d/m/Y') ?? '-' }}</dd></div>
-                        <div><dt>Períodos avaliativos</dt><dd>{{ $class->startsPeriod?->name ?? 'início do ano letivo' }} até {{ $class->endsPeriod?->name ?? 'fim do ano letivo' }}</dd></div>
+                        <div><dt>Vigência acadêmica</dt><dd>{{ $class->startsPeriod?->name ?? 'Período inicial não definido' }} até {{ $class->endsPeriod?->name ?? 'período final não definido' }}</dd></div>
                         <div><dt>Critérios</dt><dd>{{ number_format((float) $academicYear->passing_points, 1, ',', '.') }} pontos · {{ $academicYear->minimum_attendance_percentage }}% frequência</dd></div>
                     </dl>
                 </div>

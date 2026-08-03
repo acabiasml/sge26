@@ -45,30 +45,18 @@
             </div>
 
             <div class="row">
-                <div class="col-md-3 form-group">
-                    <label for="starts_at">Início</label>
-                    <input id="starts_at" name="starts_at" type="date" class="form-control @error('starts_at') is-invalid @enderror" value="{{ old('starts_at', $class->starts_at?->toDateString()) }}">
-                    @error('starts_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                </div>
-                <div class="col-md-3 form-group">
-                    <label for="ends_at">Fim</label>
-                    <input id="ends_at" name="ends_at" type="date" class="form-control @error('ends_at') is-invalid @enderror" value="{{ old('ends_at', $class->ends_at?->toDateString()) }}">
-                    @error('ends_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                </div>
-                <div class="col-md-3 form-group">
+                <div class="col-md-6 form-group">
                     <label for="starts_period_id">Período inicial</label>
-                    <select id="starts_period_id" name="starts_period_id" class="form-control @error('starts_period_id') is-invalid @enderror">
-                        <option value="">Início do ano letivo</option>
+                    <select id="starts_period_id" name="starts_period_id" class="form-control @error('starts_period_id') is-invalid @enderror" required>
                         @foreach ($academicYear->periods->sortBy('position') as $period)
                             <option value="{{ $period->id }}" @selected((int) old('starts_period_id', $class->starts_period_id) === $period->id)>{{ $period->name }}</option>
                         @endforeach
                     </select>
                     @error('starts_period_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
-                <div class="col-md-3 form-group">
+                <div class="col-md-6 form-group">
                     <label for="ends_period_id">Período final</label>
-                    <select id="ends_period_id" name="ends_period_id" class="form-control @error('ends_period_id') is-invalid @enderror">
-                        <option value="">Fim do ano letivo</option>
+                    <select id="ends_period_id" name="ends_period_id" class="form-control @error('ends_period_id') is-invalid @enderror" required>
                         @foreach ($academicYear->periods->sortBy('position') as $period)
                             <option value="{{ $period->id }}" @selected((int) old('ends_period_id', $class->ends_period_id) === $period->id)>{{ $period->name }}</option>
                         @endforeach
@@ -76,6 +64,12 @@
                     @error('ends_period_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
             </div>
+
+            @if ($academicYear->periods->isEmpty())
+                <div class="alert alert-warning" role="alert">
+                    Cadastre os períodos avaliativos deste ano letivo antes de criar ou editar turmas.
+                </div>
+            @endif
 
             <div class="form-group">
                 <label for="course_ids">Matrizes vinculadas</label>
@@ -100,6 +94,6 @@
 
     <div class="d-flex justify-content-between">
         <a class="btn btn-outline-secondary" href="{{ $isEdit ? route('academic-years.classes.show', [$academicYear, $class]) : route('academic-years.show', $academicYear) }}">Cancelar</a>
-        <button class="btn btn-primary" type="submit" @disabled($readyCourses->isEmpty())>{{ $isEdit ? 'Salvar turma' : 'Cadastrar turma' }}</button>
+        <button class="btn btn-primary" type="submit" @disabled($readyCourses->isEmpty() || $academicYear->periods->isEmpty())>{{ $isEdit ? 'Salvar turma' : 'Cadastrar turma' }}</button>
     </div>
 </form>

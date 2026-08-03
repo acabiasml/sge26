@@ -2,10 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Person;
-use App\Models\PersonContact;
-use App\Models\PersonRelationship;
-use App\Models\PersonSchoolRole;
 use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
 use App\Models\AcademicYear;
@@ -18,6 +14,10 @@ use App\Models\DiaryAttendanceEntry;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\DiaryContent;
 use App\Models\KnowledgeArea;
+use App\Models\Person;
+use App\Models\PersonContact;
+use App\Models\PersonRelationship;
+use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\SchoolAssessmentRule;
 use App\Models\SchoolClass;
@@ -246,7 +246,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param array<string, mixed> $legacySchool
+     * @param  array<string, mixed>  $legacySchool
      */
     private function importSchool(string $source, array $legacySchool): School
     {
@@ -283,7 +283,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param array<string, mixed> $legacyUser
+     * @param  array<string, mixed>  $legacyUser
      */
     private function importPerson(string $source, array $legacyUser): Person
     {
@@ -305,7 +305,7 @@ class ImportLegacyData extends Command
                 ->first();
         }
 
-        $person ??= new Person();
+        $person ??= new Person;
 
         $email = $this->validEmail($legacyUser['email'] ?? null);
         $institutionalEmail = $email && str_ends_with(strtolower($email), '@ctjj.org') ? $email : null;
@@ -366,7 +366,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param array<string, mixed> $legacyUser
+     * @param  array<string, mixed>  $legacyUser
      */
     private function importRoleFromType(Person $person, School $school, array $legacyUser, bool $active): void
     {
@@ -391,7 +391,7 @@ class ImportLegacyData extends Command
                 'role' => $role,
                 'position' => null,
             ],
-                [
+            [
                 'active' => $role === PersonSchoolRole::ROLE_ADMINISTRATOR
                     ? $this->isAcabias($legacyUser)
                     : $active,
@@ -406,7 +406,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param array<string, mixed> $legacySchool
+     * @param  array<string, mixed>  $legacySchool
      */
     private function importSchoolManagementRoles(string $source, School $school, array $legacySchool): void
     {
@@ -441,7 +441,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param array<string, list<array<string, mixed>>> $tables
+     * @param  array<string, list<array<string, mixed>>>  $tables
      */
     private function importTeacherRolesFor2026(string $source, School $school, array $tables): void
     {
@@ -469,7 +469,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param list<array<string, mixed>> $legacyUsers
+     * @param  list<array<string, mixed>>  $legacyUsers
      */
     private function importContacts(string $source, array $legacyUsers): void
     {
@@ -531,7 +531,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param array<string, list<array<string, mixed>>> $tables
+     * @param  array<string, list<array<string, mixed>>>  $tables
      */
     private function importAcademicStructure(string $source, School $school, array $tables): void
     {
@@ -552,7 +552,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param list<array<string, mixed>> $legacyAreas
+     * @param  list<array<string, mixed>>  $legacyAreas
      * @return array<int, int>
      */
     private function importKnowledgeAreas(array $legacyAreas): array
@@ -579,7 +579,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param list<array<string, mixed>> $legacyCalendars
+     * @param  list<array<string, mixed>>  $legacyCalendars
      */
     private function importAcademicYears(string $source, School $school, array $legacyCalendars): void
     {
@@ -620,7 +620,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param list<array<string, mixed>> $legacyPeriods
+     * @param  list<array<string, mixed>>  $legacyPeriods
      */
     private function importAcademicPeriods(string $source, array $legacyPeriods): void
     {
@@ -663,7 +663,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param list<array<string, mixed>> $legacyCourses
+     * @param  list<array<string, mixed>>  $legacyCourses
      */
     private function importAcademicCourses(string $source, array $legacyCourses): void
     {
@@ -703,8 +703,8 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param array<int, int> $areaMap
-     * @param list<array<string, mixed>> $legacyComponents
+     * @param  array<int, int>  $areaMap
+     * @param  list<array<string, mixed>>  $legacyComponents
      */
     private function importCurriculumComponents(string $source, array $areaMap, array $legacyComponents): void
     {
@@ -759,7 +759,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param list<array<string, mixed>> $legacyCourses
+     * @param  list<array<string, mixed>>  $legacyCourses
      */
     private function importSchoolClassesAndAssignments(string $source, array $legacyCourses): void
     {
@@ -788,8 +788,6 @@ class ImportLegacyData extends Command
                     'ends_period_id' => $this->periodIdForDate($source, $course->academic_year_id, $legacyCourse['fim'] ?? null),
                     'name' => $course->name,
                     'shift' => null,
-                    'starts_at' => $this->dateOrNull($legacyCourse['inicio'] ?? null),
-                    'ends_at' => $this->dateOrNull($legacyCourse['fim'] ?? null),
                     'notes' => null,
                     'active' => true,
                     'legacy_metadata' => $legacyCourse,
@@ -816,7 +814,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param list<array<string, mixed>> $legacyEnrollments
+     * @param  list<array<string, mixed>>  $legacyEnrollments
      */
     private function importStudentEnrollments(string $source, array $legacyEnrollments): void
     {
@@ -911,7 +909,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param list<array<string, mixed>> $legacyAnnouncements
+     * @param  list<array<string, mixed>>  $legacyAnnouncements
      */
     private function importAnnouncements(string $source, School $school, array $legacyAnnouncements): void
     {
@@ -945,7 +943,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param list<array<string, mixed>> $legacyDiaries
+     * @param  list<array<string, mixed>>  $legacyDiaries
      */
     private function importLegacyDiaryContents(string $source, array $legacyDiaries): void
     {
@@ -991,8 +989,8 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param list<array<string, mixed>> $legacyAttendances
-     * @param list<array<string, mixed>> $legacyDiaries
+     * @param  list<array<string, mixed>>  $legacyAttendances
+     * @param  list<array<string, mixed>>  $legacyDiaries
      */
     private function importLegacyAttendance(string $source, array $legacyAttendances, array $legacyDiaries): void
     {
@@ -1095,7 +1093,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param list<array<string, mixed>> $legacyGrades
+     * @param  list<array<string, mixed>>  $legacyGrades
      */
     private function importLegacyGrades(string $source, array $legacyGrades): void
     {
@@ -1271,6 +1269,7 @@ class ImportLegacyData extends Command
             if ($char === "'") {
                 $quote = true;
                 $buffer .= $char;
+
                 continue;
             }
 
@@ -1280,6 +1279,7 @@ class ImportLegacyData extends Command
                 }
 
                 $depth++;
+
                 continue;
             }
 
@@ -1312,7 +1312,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param array<string, list<array<string, mixed>>> $tables
+     * @param  array<string, list<array<string, mixed>>>  $tables
      * @return array<int, true>
      */
     private function activeLegacyUserIds(array $tables): array
@@ -1361,7 +1361,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param array<string, list<array<string, mixed>>> $tables
+     * @param  array<string, list<array<string, mixed>>>  $tables
      * @return list<int>
      */
     private function teacherLegacyUserIdsFor2026(array $tables): array
@@ -1386,7 +1386,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param array<string, mixed> $legacyUser
+     * @param  array<string, mixed>  $legacyUser
      */
     private function shouldActivateLegacyUser(string $source, array $legacyUser): bool
     {
@@ -1578,7 +1578,7 @@ class ImportLegacyData extends Command
     }
 
     /**
-     * @param array<string, mixed> $legacyUser
+     * @param  array<string, mixed>  $legacyUser
      */
     private function isAcabias(array $legacyUser): bool
     {

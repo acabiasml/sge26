@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasTitleCaseAttributes;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,8 +21,6 @@ class SchoolClass extends Model
         'ends_period_id',
         'name',
         'shift',
-        'starts_at',
-        'ends_at',
         'notes',
         'active',
         'legacy_source',
@@ -32,8 +31,6 @@ class SchoolClass extends Model
     protected function casts(): array
     {
         return [
-            'starts_at' => 'date',
-            'ends_at' => 'date',
             'active' => 'boolean',
             'legacy_metadata' => 'array',
         ];
@@ -60,6 +57,20 @@ class SchoolClass extends Model
     public function endsPeriod(): BelongsTo
     {
         return $this->belongsTo(AcademicPeriod::class, 'ends_period_id');
+    }
+
+    protected function startsAt(): Attribute
+    {
+        return Attribute::get(
+            fn () => $this->startsPeriod?->starts_at ?? $this->academicYear?->starts_at,
+        );
+    }
+
+    protected function endsAt(): Attribute
+    {
+        return Attribute::get(
+            fn () => $this->endsPeriod?->ends_at ?? $this->academicYear?->ends_at,
+        );
     }
 
     public function courses(): BelongsToMany

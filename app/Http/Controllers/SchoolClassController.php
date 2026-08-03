@@ -11,12 +11,11 @@ use App\Support\AcademicStructureStatus;
 use App\Support\AcademicStructureValidator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
-use Throwable;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Throwable;
 
 class SchoolClassController extends Controller
 {
@@ -27,8 +26,8 @@ class SchoolClassController extends Controller
         return view('school-classes.create', [
             'academicYear' => $academicYear->load('school', 'courses.components', 'periods'),
             'class' => new SchoolClass([
-                'starts_at' => $academicYear->starts_at,
-                'ends_at' => $academicYear->ends_at,
+                'starts_period_id' => $academicYear->periods()->orderBy('position')->orderBy('starts_at')->value('id'),
+                'ends_period_id' => $academicYear->periods()->orderByDesc('position')->orderByDesc('ends_at')->value('id'),
                 'active' => true,
             ]),
             'readyCourses' => $this->readyCourses($academicYear),
@@ -55,7 +54,7 @@ class SchoolClassController extends Controller
 
             $classStatus = AcademicStructureStatus::schoolClass($class);
             $structureIssues = AcademicStructureValidator::forClass($class);
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             Log::error('Erro ao carregar página da turma', ['exception' => $exception, 'class_id' => $class->id]);
 
             return response()->view('errors.custom', [
@@ -81,7 +80,7 @@ class SchoolClassController extends Controller
         try {
             $academicYear->load('school', 'courses.components', 'periods');
             $class->load('courses', 'startsPeriod', 'endsPeriod');
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             Log::error('Erro ao carregar edição da turma', ['exception' => $exception, 'class_id' => $class->id]);
 
             return response()->view('errors.custom', [
@@ -198,10 +197,8 @@ class SchoolClassController extends Controller
                     ->ignore($class?->id),
             ],
             'shift' => ['nullable', 'string', 'max:255'],
-            'starts_period_id' => ['nullable', Rule::in($periodIds)],
-            'ends_period_id' => ['nullable', Rule::in($periodIds)],
-            'starts_at' => ['nullable', 'date', 'after_or_equal:'.$academicYear->starts_at->toDateString(), 'before_or_equal:'.$academicYear->ends_at->toDateString()],
-            'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at', 'before_or_equal:'.$academicYear->ends_at->toDateString()],
+            'starts_period_id' => ['required', Rule::in($periodIds)],
+            'ends_period_id' => ['required', Rule::in($periodIds)],
             'course_ids' => ['required', 'array', 'min:1'],
             'course_ids.*' => ['required', Rule::in($courseIds)],
             'notes' => ['nullable', 'string', 'max:5000'],
@@ -209,14 +206,7 @@ class SchoolClassController extends Controller
         ]);
 
         $data['active'] = $request->boolean('active', true);
-        $data['starts_at'] ??= $academicYear->starts_at->toDateString();
-        $data['ends_at'] ??= $academicYear->ends_at->toDateString();
-
-        if (! $this->requestIncludesPeriodFields($request)) {
-            unset($data['starts_period_id'], $data['ends_period_id']);
-        } else {
-            $this->ensureValidPeriodSpan($academicYear, $data['starts_period_id'] ?? null, $data['ends_period_id'] ?? null);
-        }
+        $this->ensureValidPeriodSpan($academicYear, $data['starts_period_id'], $data['ends_period_id']);
 
         return $data;
     }
@@ -228,11 +218,6 @@ class SchoolClassController extends Controller
             ->orderBy('name')
             ->get()
             ->filter->hasMatrixComponents();
-    }
-
-    private function requestIncludesPeriodFields(Request $request): bool
-    {
-        return $request->exists('starts_period_id') || $request->exists('ends_period_id');
     }
 
     private function handleSaveFailure(Throwable $exception, Request $request, AcademicYear $academicYear, ?SchoolClass $class = null): RedirectResponse

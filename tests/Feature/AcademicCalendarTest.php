@@ -603,6 +603,18 @@ class AcademicCalendarTest extends TestCase
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
         $year = $this->academicYear();
+        $firstPeriod = $year->periods()->create([
+            'name' => 'I Bimestre',
+            'starts_at' => '2026-02-02',
+            'ends_at' => '2026-04-10',
+            'position' => 1,
+        ]);
+        $lastPeriod = $year->periods()->create([
+            'name' => 'IV Bimestre',
+            'starts_at' => '2026-10-14',
+            'ends_at' => '2026-12-18',
+            'position' => 4,
+        ]);
         $area = KnowledgeArea::query()->where('name', 'Linguagens')->firstOrFail();
         $teacher = $this->userWithRole(PersonSchoolRole::ROLE_TEACHER, $year->school_id, 'docente@ctjj.org');
 
@@ -634,6 +646,8 @@ class AcademicCalendarTest extends TestCase
             ->post(route('academic-years.classes.store', $year), [
                 'name' => '3º Ano A',
                 'shift' => 'Vespertino',
+                'starts_period_id' => $firstPeriod->id,
+                'ends_period_id' => $lastPeriod->id,
                 'course_ids' => [$course->id],
                 'active' => '1',
             ])
@@ -654,8 +668,21 @@ class AcademicCalendarTest extends TestCase
         ]);
         $this->assertDatabaseHas('school_classes', [
             'academic_year_id' => $year->id,
+            'starts_period_id' => $firstPeriod->id,
+            'ends_period_id' => $lastPeriod->id,
             'name' => '3º Ano A',
         ]);
+        $class = $year->classes()->firstOrFail();
+        $this->assertSame('2026-02-02', $class->starts_at->toDateString());
+        $this->assertSame('2026-12-18', $class->ends_at->toDateString());
+
+        $this->actingAs($admin)
+            ->get(route('academic-years.classes.edit', [$year, $class]))
+            ->assertOk()
+            ->assertDontSee('name="starts_at"', false)
+            ->assertDontSee('name="ends_at"', false)
+            ->assertSee('name="starts_period_id"', false)
+            ->assertSee('name="ends_period_id"', false);
         $this->assertDatabaseHas('academic_course_school_class', [
             'academic_course_id' => $course->id,
         ]);

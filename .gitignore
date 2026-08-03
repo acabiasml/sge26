@@ -19,6 +19,8 @@
 /public/hot
 /public/storage
 /storage/*.key
+/storage/fonts/*
+!/storage/fonts/.gitignore
 /storage/pail
 /vendor
 Homestead.json

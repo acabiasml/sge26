@@ -33,8 +33,8 @@
                         <dd>{{ $academicYear->name }}</dd>
                         <dt>Turma</dt>
                         <dd>{{ $class->name }}</dd>
-                        <dt>Período da turma</dt>
-                        <dd>{{ $class->starts_at?->format('d/m/Y') ?? '-' }} a {{ $class->ends_at?->format('d/m/Y') ?? '-' }}</dd>
+                        <dt>Vigência acadêmica da turma</dt>
+                        <dd>{{ $class->startsPeriod?->name ?? 'Período inicial não definido' }} até {{ $class->endsPeriod?->name ?? 'período final não definido' }}</dd>
                         <dt>Matrizes vinculadas</dt>
                         <dd>{{ $class->courses->pluck('name')->join(' + ') ?: '-' }}</dd>
                         <dt>Matrizes disponíveis para matrícula</dt>
