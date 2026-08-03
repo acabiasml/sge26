@@ -47,7 +47,7 @@
         <td class="label">Escola</td>
         <td>{{ $academicYear->school?->name }}</td>
         <td class="label">Ano letivo</td>
-        <td>{{ $academicYear->name }} · {{ $academicYear->reference_year }}</td>
+        <td>{{ $academicYear->referenceYearsLabel() }}</td>
     </tr>
     <tr>
         <td class="label">Período</td>

@@ -109,8 +109,7 @@
     $classLine = collect([
         $schoolClass->name,
         $stageLine,
-        $academicYear->name,
-        $academicYear->reference_year,
+        $academicYear->referenceYearsLabel(),
     ])->filter()->unique()->join(' · ');
     $annualComponents = $report['annualComponents']
         ->sort(function (array $first, array $second) use ($courses, $sortText): int {
@@ -216,7 +215,7 @@
     </tr>
     <tr>
         <td class="label">Ano letivo</td>
-        <td>{{ $academicYear->name }} · {{ $academicYear->reference_year }}</td>
+        <td>{{ $academicYear->referenceYearsLabel() }}</td>
         <td class="label">Matrizes</td>
         <td>{{ $courses->pluck('name')->join(' + ') ?: '-' }}</td>
     </tr>

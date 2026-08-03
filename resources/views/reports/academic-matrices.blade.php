@@ -83,7 +83,8 @@
 
             <div class="matrix-title">{{ $matrixGroup['title'] }}</div>
             <div class="matrix-subtitle">
-                {{ $academicYear->name }}
+                Ano letivo {{ $academicYear->referenceYearsLabel() }}
+                &middot; Calendário: {{ $academicYear->name }}
                 &middot; {{ $academicYear->starts_at?->format('d/m/Y') }} a {{ $academicYear->ends_at?->format('d/m/Y') }}
                 &middot; Dias letivos: {{ $academicYear->schoolDayCount() }}
                 &middot; Aprovação: {{ number_format((float) $academicYear->passing_points, 1, ',', '.') }} pontos e {{ $academicYear->minimum_attendance_percentage }}% de frequência
@@ -167,7 +168,7 @@
             <table class="meta-grid">
                 <tr>
                     <td class="meta-label">Ano letivo</td>
-                    <td>{{ $academicYear->name }}</td>
+                    <td>{{ $academicYear->referenceYearsLabel() }}</td>
                     <td class="meta-label">Período do calendário</td>
                     <td>{{ $academicYear->starts_at?->format('d/m/Y') }} a {{ $academicYear->ends_at?->format('d/m/Y') }}</td>
                 </tr>

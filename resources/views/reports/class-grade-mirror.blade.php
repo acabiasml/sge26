@@ -88,7 +88,7 @@
         <div class="mirror-context">
             <strong>{{ $period->name }} · {{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $schoolClass->courses) }}</strong>
             <span>
-                {{ $academicYear->name }} · {{ $academicYear->reference_year }}
+                Ano letivo {{ $academicYear->referenceYearsLabel() }}
                 · apresentação em {{ $scoreView === 'conceitos' ? 'conceitos' : 'notas numéricas' }}
                 @if($componentChunks->count() > 1)
                     · componentes {{ (($loop->iteration - 1) * 24) + 1 }} a {{ (($loop->iteration - 1) * 24) + $componentChunk->count() }}

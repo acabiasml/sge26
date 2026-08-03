@@ -103,7 +103,7 @@
                                     <option value="{{ $year->id }}" data-school-id="{{ $year->school_id }}"
                                         data-starts-at="{{ $year->starts_at?->format('Y-m-d') }}"
                                         data-ends-at="{{ $year->ends_at?->format('Y-m-d') }}">
-                                        {{ $year->name }} · {{ $year->reference_year }}
+                                        {{ $year->referenceYearsLabel() }} · {{ $year->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -117,7 +117,7 @@
                                     <option value="{{ $class->id }}"
                                         data-year-id="{{ $class->academic_year_id }}"
                                         data-school-id="{{ $class->academicYear?->school_id }}">
-                                        {{ \App\Support\AcademicContextLabel::classWithStages($class->name, $class->courses) }} · {{ $class->academicYear?->name }}
+                                        {{ \App\Support\AcademicContextLabel::classWithStages($class->name, $class->courses) }} · {{ $class->academicYear?->referenceYearsLabel() }}
                                     </option>
                                 @endforeach
                             </select>

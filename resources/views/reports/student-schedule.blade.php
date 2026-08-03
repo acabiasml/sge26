@@ -27,8 +27,8 @@
 
     <p>
         <strong>Estudante:</strong> {{ $enrollment->student?->full_name }} ·
-        <strong>Turma e etapa:</strong> {{ \App\Support\AcademicContextLabel::classWithStages($enrollment->schoolClass?->name, $enrollment->courses) }} ·
-        <strong>Ano letivo:</strong> {{ $academicYear->name }}
+        <strong>Turma e etapa:</strong> {{ \App\Support\AcademicContextLabel::classWithStages($enrollment->schoolClass?->name, $enrollment->schoolClass?->courses ?? collect()) }} ·
+        <strong>Ano letivo:</strong> {{ $academicYear->referenceYearsLabel() }}
     </p>
 
     @php($slots = $enrollment->schoolClass->schedules->flatMap->slots->where('type', \App\Models\SchoolClassScheduleSlot::TYPE_CLASS)->sortBy([['weekday', 'asc'], ['starts_at', 'asc']]))

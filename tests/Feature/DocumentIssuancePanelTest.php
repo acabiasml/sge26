@@ -149,6 +149,14 @@ class DocumentIssuancePanelTest extends TestCase
             'name' => '2º Ano',
             'active' => true,
         ]);
+        $fundamentalMatrix = AcademicCourse::query()->create([
+            'academic_year_id' => $currentYear->id,
+            'name' => '2º Ano',
+            'stage' => AcademicCourse::STAGE_ELEMENTARY,
+            'modality' => AcademicCourse::MODALITY_REGULAR,
+            'active' => true,
+        ]);
+        $currentClass->courses()->attach($fundamentalMatrix);
         $olderEnrollment = StudentEnrollment::query()->create([
             'school_class_id' => $olderClass->id,
             'person_id' => $student->id,
@@ -174,6 +182,8 @@ class DocumentIssuancePanelTest extends TestCase
         $response->assertJsonPath('targets.0.id', $currentEnrollment->id);
         $response->assertJsonPath('targets.0.enabled', true);
         $response->assertJsonPath('targets.0.reason', null);
+        $this->assertStringContainsString('Ensino Fundamental', $response->json('targets.0.subtitle'));
+        $this->assertStringNotContainsString('Etapa não informada', $response->json('targets.0.subtitle'));
         $this->assertCount(1, $response->json('targets'));
 
         $archiveResponse = $this->actingAs($administrator)

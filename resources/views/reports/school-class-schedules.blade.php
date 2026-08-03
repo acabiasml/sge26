@@ -34,7 +34,7 @@
     ])
 
     <p class="schedule-subtitle">
-        Ano letivo: {{ $academicYear->name }} ·
+        Ano letivo: {{ $academicYear->referenceYearsLabel() }} ·
         Período: {{ $academicYear->starts_at?->format('d/m/Y') }} a {{ $academicYear->ends_at?->format('d/m/Y') }}
     </p>
 

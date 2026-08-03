@@ -30,8 +30,8 @@
         <tr><th>Nome da mãe</th><td>{{ $enrollment->student?->mother_name ?: '-' }}</td></tr>
         <tr><th>Nome do pai</th><td>{{ $enrollment->student?->father_name ?: '-' }}</td></tr>
         <tr><th>Escola</th><td>{{ $academicYear->school?->name }}</td></tr>
-        <tr><th>Ano letivo</th><td>{{ $academicYear->name }}</td></tr>
-        <tr><th>Turma e etapa</th><td>{{ \App\Support\AcademicContextLabel::classWithStages($class->name, $enrollment->courses) }}</td></tr>
+        <tr><th>Ano letivo</th><td>{{ $academicYear->referenceYearsLabel() }}</td></tr>
+        <tr><th>Turma e etapa</th><td>{{ \App\Support\AcademicContextLabel::classWithStages($class->name, $class->courses) }}</td></tr>
         <tr><th>Matriz(es)</th><td>{{ $enrollment->courses->pluck('name')->join(' + ') ?: '-' }}</td></tr>
         <tr><th>Data de matrícula</th><td>{{ $enrollment->enrolled_at?->format('d/m/Y') ?? '-' }}</td></tr>
         <tr><th>Situação</th><td>{{ $enrollment->statusLabel() }} · {{ $enrollment->typeLabel() }}</td></tr>
@@ -42,7 +42,7 @@
             <tr><th>Data de cancelamento</th><td>{{ $enrollment->cancelled_at->format('d/m/Y') }}</td></tr>
         @endif
         @if ($enrollment->reclassifiedFrom)
-            <tr><th>Reclassificação de origem</th><td>{{ \App\Support\AcademicContextLabel::classWithStages($enrollment->reclassifiedFrom->schoolClass?->name, $enrollment->reclassifiedFrom->courses) }} em {{ $enrollment->reclassified_at?->format('d/m/Y') ?? '-' }}</td></tr>
+            <tr><th>Reclassificação de origem</th><td>{{ \App\Support\AcademicContextLabel::classWithStages($enrollment->reclassifiedFrom->schoolClass?->name, $enrollment->reclassifiedFrom->schoolClass?->courses ?? collect()) }} em {{ $enrollment->reclassified_at?->format('d/m/Y') ?? '-' }}</td></tr>
         @endif
         <tr><th>Observações</th><td>{{ $enrollment->notes ?: '-' }}</td></tr>
     </table>

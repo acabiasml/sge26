@@ -66,8 +66,7 @@
     $classLine = collect([
         $schoolClass->name,
         $stageLine,
-        $academicYear->name,
-        $academicYear->reference_year,
+        $academicYear->referenceYearsLabel(),
     ])->filter()->unique()->join(' · ');
     $annualComponents = $report['annualComponents']
         ->sort(function (array $first, array $second) use ($courses, $sortText): int {

@@ -22,7 +22,7 @@
         $courses = $enrollment->courses->pluck('name')->join(' + ') ?: '-';
         $stages = \App\Support\AcademicContextLabel::stages($enrollment->courses);
         $stageLabel = \App\Support\AcademicContextLabel::stageHeading($enrollment->courses);
-        $classContext = \App\Support\AcademicContextLabel::classWithStages($class->name, $enrollment->courses);
+        $classContext = \App\Support\AcademicContextLabel::classWithStages($class->name, $class->courses);
         $location = collect([$academicYear->school?->city, $academicYear->school?->state])->filter()->join('-') ?: 'Local';
     @endphp
 
@@ -40,7 +40,7 @@
         O vínculo refere-se ao(à) estudante <strong>{{ $student?->full_name }}</strong>,
         CPF {{ $student?->cpf ?: '-' }}, filho(a) de {{ $student?->mother_name ?: '-' }},
         na turma <strong>{{ $class->name }}</strong>, {{ mb_strtolower($stageLabel) }}
-        <strong>{{ $stages }}</strong>, ano letivo <strong>{{ $academicYear->name }}</strong>,
+        <strong>{{ $stages }}</strong>, ano letivo <strong>{{ $academicYear->referenceYearsLabel() }}</strong>,
         matriz(es) <strong>{{ $courses }}</strong>, com matrícula registrada em
         <strong>{{ $enrollment->enrolled_at?->format('d/m/Y') ?? '-' }}</strong>.
         A situação atual da matrícula é <strong>{{ $enrollment->statusLabel() }}</strong>.
@@ -51,7 +51,7 @@
         <tr><th>Data de nascimento</th><td>{{ $student?->birth_date?->format('d/m/Y') ?? '-' }}</td></tr>
         <tr><th>CPF</th><td>{{ $student?->cpf ?: '-' }}</td></tr>
         <tr><th>Escola</th><td>{{ $academicYear->school?->name }}</td></tr>
-        <tr><th>Ano letivo</th><td>{{ $academicYear->name }}</td></tr>
+        <tr><th>Ano letivo</th><td>{{ $academicYear->referenceYearsLabel() }}</td></tr>
         <tr><th>Turma e {{ mb_strtolower($stageLabel) }}</th><td>{{ $classContext }}</td></tr>
         <tr><th>Matriz(es)</th><td>{{ $courses }}</td></tr>
         <tr><th>Situação</th><td>{{ $enrollment->statusLabel() }}</td></tr>

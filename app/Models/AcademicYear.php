@@ -103,6 +103,20 @@ class AcademicYear extends Model
         return $this->closed_at !== null;
     }
 
+    public function referenceYearsLabel(): string
+    {
+        $startYear = $this->starts_at?->year ?? $this->reference_year;
+        $endYear = $this->ends_at?->year ?? $startYear;
+
+        if (! $startYear) {
+            return 'Não informado';
+        }
+
+        return (int) $startYear === (int) $endYear
+            ? (string) $startYear
+            : $startYear.' a '.$endYear;
+    }
+
     public function passingScorePerPeriod(): float
     {
         return (float) $this->passing_points / max(1, $this->periods()->count());

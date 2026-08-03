@@ -31,7 +31,7 @@
 
     <table class="meta">
         <tr>
-            <td class="meta-label">Ano letivo</td><td>{{ $academicYear->name }}</td>
+            <td class="meta-label">Ano letivo</td><td>{{ $academicYear->referenceYearsLabel() }}</td>
             <td class="meta-label">Mês</td><td>{{ $month->translatedFormat('F/Y') }}</td>
         </tr>
         <tr>

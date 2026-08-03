@@ -219,7 +219,7 @@ class DocumentIssuanceController extends Controller
                 ->get(['id', 'academic_year_id', 'name', 'starts_at', 'ends_at']),
             'classes' => SchoolClass::query()
                 ->whereHas('academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
-                ->with(['academicYear:id,school_id,name,reference_year', 'courses:id,name,stage'])
+                ->with(['academicYear:id,school_id,name,reference_year,starts_at,ends_at', 'courses:id,name,stage'])
                 ->orderBy('name')
                 ->get(['id', 'academic_year_id', 'name']),
         ]);
@@ -330,6 +330,7 @@ class DocumentIssuanceController extends Controller
             ->with([
                 'student:id,full_name,social_name',
                 'schoolClass.academicYear.school:id,name',
+                'schoolClass.courses:id,name,stage',
                 'schoolClass:id,academic_year_id,name',
                 'courses:id,name,stage',
             ])
@@ -364,8 +365,8 @@ class DocumentIssuanceController extends Controller
                     'title' => $enrollment->student?->social_name ?: $enrollment->student?->full_name ?: 'Estudante sem nome',
                     'subtitle' => collect([
                         $year?->school?->name,
-                        $year ? $year->name.' · '.$year->reference_year : null,
-                        AcademicContextLabel::classWithStages($enrollment->schoolClass?->name, $enrollment->courses),
+                        $year?->referenceYearsLabel(),
+                        AcademicContextLabel::classWithStages($enrollment->schoolClass?->name, $enrollment->schoolClass?->courses ?? collect()),
                         $enrollment->statusLabel(),
                     ])->filter()->join(' · '),
                     'enabled' => $enabled,
@@ -623,7 +624,7 @@ class DocumentIssuanceController extends Controller
                     'title' => AcademicContextLabel::classWithStages($class->name, $class->courses),
                     'subtitle' => collect([
                         $class->academicYear?->school?->name,
-                        $class->academicYear ? $class->academicYear->name.' · '.$class->academicYear->reference_year : null,
+                        $class->academicYear?->referenceYearsLabel(),
                         (int) $class->active_enrollments_count.' '.((int) $class->active_enrollments_count === 1 ? 'matrícula ativa' : 'matrículas ativas'),
                         $class->active ? 'Turma ativa' : 'Turma inativa',
                     ])->filter()->join(' · '),
@@ -657,8 +658,8 @@ class DocumentIssuanceController extends Controller
             ->get()
             ->map(fn (AcademicYear $year): array => [
                 'id' => $year->id,
-                'title' => $year->name.' · '.$year->reference_year,
-                'subtitle' => collect([$year->school?->name, $year->active ? 'Ano letivo ativo' : 'Ano letivo inativo'])->filter()->join(' · '),
+                'title' => $year->referenceYearsLabel(),
+                'subtitle' => collect([$year->school?->name, 'Calendário: '.$year->name, $year->active ? 'Ano letivo ativo' : 'Ano letivo inativo'])->filter()->join(' · '),
                 'enabled' => true,
                 'reason' => null,
             ]);
@@ -729,7 +730,7 @@ class DocumentIssuanceController extends Controller
                         ),
                     'subtitle' => collect([
                         $year?->school?->name,
-                        $year ? $year->name.' · '.$year->reference_year : null,
+                        $year?->referenceYearsLabel(),
                         $assignment->component?->course?->name,
                         $assignment->teacher?->full_name ? 'Docência: '.$assignment->teacher->full_name : 'Docência não definida',
                     ])->filter()->join(' · '),

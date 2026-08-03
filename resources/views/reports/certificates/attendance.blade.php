@@ -27,7 +27,7 @@
         $courses = $enrollment->courses->pluck('name')->join(' + ') ?: '-';
         $stages = \App\Support\AcademicContextLabel::stages($enrollment->courses);
         $stageHeading = \App\Support\AcademicContextLabel::stageHeading($enrollment->courses);
-        $classContext = \App\Support\AcademicContextLabel::classWithStages($class->name, $enrollment->courses);
+        $classContext = \App\Support\AcademicContextLabel::classWithStages($class->name, $class->courses);
         $percentage = $attendance['percentage'] !== null ? number_format((float) $attendance['percentage'], 1, ',', '.').'%' : null;
     @endphp
 
@@ -41,7 +41,7 @@
         Atestamos, para os devidos fins, que <strong>{{ $student?->full_name }}</strong>,
         CPF {{ $student?->cpf ?: '-' }}, filho(a) de {{ $student?->mother_name ?: '-' }},
         {{ $enrollment->isActive() ? 'encontra-se matriculado(a)' : 'esteve matriculado(a)' }}
-        nesta instituição no ano letivo <strong>{{ $academicYear->name }}</strong>,
+        nesta instituição no ano letivo <strong>{{ $academicYear->referenceYearsLabel() }}</strong>,
         na turma <strong>{{ $class->name }}</strong>, {{ mb_strtolower($stageHeading) }} <strong>{{ $stages }}</strong>, vinculada à(s) matriz(es)
         <strong>{{ $courses }}</strong>, com matrícula registrada em
         <strong>{{ $enrollment->enrolled_at?->format('d/m/Y') ?? '-' }}</strong>.
@@ -64,7 +64,7 @@
     <table class="summary">
         <tr><th>Estudante</th><td>{{ $student?->full_name }}</td></tr>
         <tr><th>Escola</th><td>{{ $academicYear->school?->name }}</td></tr>
-        <tr><th>Ano letivo</th><td>{{ $academicYear->name }}</td></tr>
+        <tr><th>Ano letivo</th><td>{{ $academicYear->referenceYearsLabel() }}</td></tr>
         <tr><th>Turma e etapa</th><td>{{ $classContext }}</td></tr>
         <tr><th>Matriz(es)</th><td>{{ $courses }}</td></tr>
         <tr><th>Recorte da frequência</th><td>{{ $scope['label'] }} · {{ $scope['starts_at']->format('d/m/Y') }} a {{ $scope['ends_at']->format('d/m/Y') }}</td></tr>
