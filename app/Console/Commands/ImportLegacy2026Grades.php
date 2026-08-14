@@ -14,6 +14,7 @@ use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ImportLegacy2026Grades extends Command
 {
@@ -109,14 +110,27 @@ class ImportLegacy2026Grades extends Command
                 (int) ($grade['periodos_id'] ?? 0),
             ]));
 
+        $legacyUsers = collect($tables['users'] ?? [])->keyBy(fn (array $user): int => (int) ($user['id'] ?? 0));
+        $legacyComponents = collect($tables['componentes'] ?? [])->keyBy(fn (array $component): int => (int) ($component['id'] ?? 0));
+
         foreach ($grades as $grade) {
             $this->stats['lidas']++;
-            $this->importGrade($source, $grade, $dryRun);
+            $this->importGrade(
+                $source,
+                $grade,
+                $legacyUsers->get((int) ($grade['users_id'] ?? 0)),
+                $legacyComponents->get((int) ($grade['componentes_id'] ?? 0)),
+                $dryRun,
+            );
         }
     }
 
-    /** @param array<string, mixed> $grade */
-    private function importGrade(string $source, array $grade, bool $dryRun): void
+    /**
+     * @param  array<string, mixed>  $grade
+     * @param  array<string, mixed>|null  $legacyUser
+     * @param  array<string, mixed>|null  $legacyComponent
+     */
+    private function importGrade(string $source, array $grade, ?array $legacyUser, ?array $legacyComponent, bool $dryRun): void
     {
         $legacyGradeId = (int) ($grade['id'] ?? 0);
         $legacyPeriodId = (int) ($grade['periodos_id'] ?? 0);
@@ -139,27 +153,55 @@ class ImportLegacy2026Grades extends Command
             return;
         }
 
-        $component = CurriculumComponent::query()->with('course')->where('legacy_source', $source)->where('legacy_id', $legacyComponentId)->first();
-        if (! $component) {
-            $this->stats['sem_componente']++;
-            $this->recordIssue($source, $legacyGradeId, 'componente_nao_encontrado', ['componente_antigo' => $legacyComponentId]);
-
-            return;
-        }
-
         $class = SchoolClass::query()
             ->where('legacy_source', $source)
-            ->where('legacy_id', $component->course?->legacy_id)
+            ->where('legacy_id', (int) ($legacyComponent['cursos_id'] ?? 0))
             ->where('academic_year_id', $period->academic_year_id)
             ->first();
         if (! $class) {
             $this->stats['sem_turma']++;
-            $this->recordIssue($source, $legacyGradeId, 'turma_equivalente_nao_encontrada', ['componente' => $component->name]);
+            $this->recordIssue($source, $legacyGradeId, 'turma_equivalente_nao_encontrada', ['componente_antigo' => $legacyComponent['nome'] ?? $legacyComponentId]);
+
+            return;
+        }
+
+        $component = CurriculumComponent::query()->with('course')->where('legacy_source', $source)->where('legacy_id', $legacyComponentId)->first();
+        if (! $component) {
+            $courseIds = $class->courses()->pluck('academic_courses.id');
+            $componentCandidates = CurriculumComponent::query()
+                ->whereIn('academic_course_id', $courseIds)
+                ->get()
+                ->filter(fn (CurriculumComponent $candidate): bool => $this->normalized($candidate->name) === $this->normalized($legacyComponent['nome'] ?? ''));
+            $component = $componentCandidates->count() === 1 ? $componentCandidates->first() : null;
+        }
+
+        if (! $component) {
+            $this->stats['sem_componente']++;
+            $this->recordIssue($source, $legacyGradeId, 'componente_nao_encontrado', [
+                'componente_antigo' => $legacyComponentId,
+                'nome' => $legacyComponent['nome'] ?? null,
+                'turma' => $class->name,
+            ]);
 
             return;
         }
 
         $person = Person::query()->where('legacy_source', $source)->where('legacy_id', $legacyUserId)->first();
+        $cpf = preg_replace('/\D+/', '', (string) ($legacyUser['cpf'] ?? ''));
+        if (! $person && strlen($cpf) === 11) {
+            $person = Person::query()->where('cpf', $cpf)->first();
+        }
+
+        if (! $person) {
+            $birthDate = $legacyUser['nascimento'] ?? null;
+            $candidates = $class->enrollments()->with('student')->get()
+                ->pluck('student')
+                ->filter(fn (?Person $candidate): bool => $candidate
+                    && $this->normalized($candidate->full_name) === $this->normalized($legacyUser['nome'] ?? '')
+                    && (! $birthDate || $candidate->birth_date?->format('Y-m-d') === $birthDate));
+            $person = $candidates->count() === 1 ? $candidates->first() : null;
+        }
+
         if (! $person) {
             $this->stats['sem_estudante']++;
             $this->recordIssue($source, $legacyGradeId, 'estudante_nao_encontrado', ['usuario_antigo' => $legacyUserId]);
@@ -279,6 +321,11 @@ class ImportLegacy2026Grades extends Command
         $value = str_replace(',', '.', trim((string) $value));
 
         return $value !== '' && is_numeric($value) ? round((float) $value, 2) : null;
+    }
+
+    private function normalized(mixed $value): string
+    {
+        return Str::of((string) $value)->ascii()->lower()->squish()->value();
     }
 
     /** @return array<string, list<array<string, mixed>>> */
