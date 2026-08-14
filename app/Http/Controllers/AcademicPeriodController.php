@@ -22,10 +22,11 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class AcademicPeriodController extends Controller
 {
-    public function index(Request $request, AcademicYear $academicYear, DiaryPeriodStatus $diaryStatus): \Illuminate\View\View
+    public function index(Request $request, AcademicYear $academicYear, DiaryPeriodStatus $diaryStatus): View
     {
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
 
@@ -221,6 +222,8 @@ class AcademicPeriodController extends Controller
         }
 
         $period = $academicYear->periods()->create($data);
+        $defaultRule = $period->assessmentRules()->where('position', 1)->firstOrFail();
+        $this->createAssessmentsForRule($academicYear->id, $defaultRule);
         $this->applyPeriodToCalendarDays($period);
         $this->normalizeRecessBetweenPeriods($academicYear);
 
@@ -311,7 +314,7 @@ class AcademicPeriodController extends Controller
         }
 
         $data = $request->validate([
-            'assessment_count' => ['required', 'integer', 'min:0', 'max:10'],
+            'assessment_count' => ['required', 'integer', 'min:1', 'max:10'],
             'weights' => ['nullable', 'array'],
             'weights.*' => ['nullable', 'integer', 'min:1', 'max:100'],
             'assessment_names' => ['nullable', 'array'],
@@ -323,18 +326,12 @@ class AcademicPeriodController extends Controller
         $assessmentCount = (int) $data['assessment_count'];
         $weights = array_values(array_slice($data['weights'] ?? [], 0, $assessmentCount));
         $names = array_values(array_slice($data['assessment_names'] ?? [], 0, $assessmentCount));
-        if ($assessmentCount > 0 && count($weights) !== $assessmentCount) {
+        if (count($weights) !== $assessmentCount) {
             throw ValidationException::withMessages(['weights' => 'Informe um peso para cada avaliação.']);
         }
-        $names = $assessmentCount === 0
-            ? []
-            : collect(range(1, $assessmentCount))
-                ->map(fn (int $position): string => filled($names[$position - 1] ?? null) ? $names[$position - 1] : 'Avaliação '.$position)
-                ->all();
-
-        if ($assessmentCount === 0 && $data['recovery_mode'] !== AcademicPeriod::RECOVERY_NONE) {
-            throw ValidationException::withMessages(['recovery_mode' => 'A recuperação exige ao menos uma avaliação regular neste período.']);
-        }
+        $names = collect(range(1, $assessmentCount))
+            ->map(fn (int $position): string => filled($names[$position - 1] ?? null) ? $names[$position - 1] : 'Avaliação '.$position)
+            ->all();
 
         if ($data['recovery_mode'] === AcademicPeriod::RECOVERY_WEIGHTED && empty($data['recovery_weight'])) {
             $data['recovery_weight'] = 1;
@@ -433,9 +430,9 @@ class AcademicPeriodController extends Controller
     }
 
     /**
-     * @param Collection<int, SchoolAssessmentRule> $existingRules
-     * @param array<int, int> $weights
-     * @param array<int, string> $names
+     * @param  Collection<int, SchoolAssessmentRule>  $existingRules
+     * @param  array<int, int>  $weights
+     * @param  array<int, string>  $names
      */
     private function regularAssessmentConfigurationChanged(Collection $existingRules, array $weights, array $names): bool
     {
@@ -463,9 +460,9 @@ class AcademicPeriodController extends Controller
     }
 
     /**
-     * @param Collection<int, SchoolAssessmentRule> $existingRules
-     * @param array<int, int> $weights
-     * @param array<int, string> $names
+     * @param  Collection<int, SchoolAssessmentRule>  $existingRules
+     * @param  array<int, int>  $weights
+     * @param  array<int, string>  $names
      */
     private function regularAssessmentConfigurationTouchesRulesWithResults(Collection $existingRules, array $weights, array $names): bool
     {
@@ -496,9 +493,9 @@ class AcademicPeriodController extends Controller
     }
 
     /**
-     * @param Collection<int, SchoolAssessmentRule> $existingRules
-     * @param array<int, int> $weights
-     * @param array<int, string> $names
+     * @param  Collection<int, SchoolAssessmentRule>  $existingRules
+     * @param  array<int, int>  $weights
+     * @param  array<int, string>  $names
      * @return Collection<int, SchoolAssessmentRule>
      */
     private function syncRegularAssessmentRules(AcademicYear $academicYear, AcademicPeriod $period, Collection $existingRules, array $weights, array $names, bool $protectRulesWithResults): Collection
@@ -592,7 +589,7 @@ class AcademicPeriodController extends Controller
     }
 
     /**
-     * @param Collection<int, SchoolAssessmentRule> $rules
+     * @param  Collection<int, SchoolAssessmentRule>  $rules
      */
     private function updateRecoveryConfiguration(AcademicYear $academicYear, AcademicPeriod $period, Collection $rules, array $data): void
     {

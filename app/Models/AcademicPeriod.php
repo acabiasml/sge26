@@ -14,9 +14,13 @@ class AcademicPeriod extends Model
     use Auditable, HasTitleCaseAttributes;
 
     public const RECOVERY_NONE = 'none';
+
     public const RECOVERY_WEIGHTED = 'weighted';
+
     public const RECOVERY_REPLACE_ASSESSMENT = 'replace_assessment';
+
     public const RECOVERY_REPLACE_LOWEST = 'replace_lowest';
+
     public const RECOVERY_REPLACE_PERIOD_AVERAGE = 'replace_period_average';
 
     public const RECOVERY_MODE_LABELS = [
@@ -68,6 +72,29 @@ class AcademicPeriod extends Model
         return [
             'name',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (AcademicPeriod $period): void {
+            $schoolId = $period->academicYear()->value('school_id');
+
+            if (! $schoolId) {
+                return;
+            }
+
+            $period->assessmentRules()->firstOrCreate(
+                [
+                    'school_id' => $schoolId,
+                    'position' => 1,
+                ],
+                [
+                    'name' => 'Avaliação 1',
+                    'weight' => 10,
+                    'maximum_score' => 10,
+                ],
+            );
+        });
     }
 
     public function academicYear(): BelongsTo

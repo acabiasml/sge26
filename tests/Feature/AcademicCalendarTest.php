@@ -15,7 +15,6 @@ use App\Models\KnowledgeArea;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
-use App\Models\SchoolAssessmentRule;
 use App\Models\StudentEnrollment;
 use App\Models\User;
 use App\Support\AcademicCalendarGrid;
@@ -177,6 +176,31 @@ class AcademicCalendarTest extends TestCase
             'date' => '2026-01-11 00:00:00',
             'type' => CalendarDay::TYPE_WEEKEND,
             'counts_as_school_day' => false,
+        ]);
+    }
+
+    public function test_academic_period_starts_with_one_assessment_of_weight_ten(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear();
+
+        $this->actingAs($admin)
+            ->post(route('academic-years.periods.store', $year), [
+                'name' => '1º Bimestre',
+                'starts_at' => '2026-02-02',
+                'ends_at' => '2026-04-10',
+                'position' => 1,
+            ])
+            ->assertRedirect();
+
+        $period = $year->periods()->firstOrFail();
+        $this->assertDatabaseHas('school_assessment_rules', [
+            'school_id' => $year->school_id,
+            'academic_period_id' => $period->id,
+            'name' => 'Avaliação 1',
+            'position' => 1,
+            'weight' => 10,
+            'maximum_score' => 10,
         ]);
     }
 
@@ -1318,14 +1342,7 @@ class AcademicCalendarTest extends TestCase
         ]);
         $enrollment->courses()->attach($course);
 
-        $rule = SchoolAssessmentRule::query()->create([
-            'school_id' => $year->school_id,
-            'academic_period_id' => $period->id,
-            'name' => 'Avaliação 1',
-            'position' => 1,
-            'weight' => 10,
-            'maximum_score' => 10,
-        ]);
+        $rule = $period->assessmentRules()->firstOrFail();
         $assessment = DiaryAssessment::query()->create([
             'school_class_id' => $class->id,
             'curriculum_component_id' => $component->id,

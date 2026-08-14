@@ -294,7 +294,7 @@
                                         </ul>
                                     </div>
                                 @endif
-                                @php($ruleCount = (int) ($useOldForPeriod ? old('assessment_count') : ($period->assessmentRules->max('position') ?? 0)))
+                                @php($ruleCount = max(1, (int) ($useOldForPeriod ? old('assessment_count') : ($period->assessmentRules->max('position') ?? 1))))
                                 <div class="sge-assessment-workspace">
                                     <div class="sge-assessment-intro">
                                         <div>
@@ -304,7 +304,6 @@
                                         <div class="form-group mb-0">
                                             <label for="assessment_count_{{ $period->id }}">Quantidade</label>
                                             <select id="assessment_count_{{ $period->id }}" name="assessment_count" class="form-control" data-assessment-count>
-                                                <option value="0" @selected($ruleCount === 0)>Sem avaliações</option>
                                                 @for($count = 1; $count <= 10; $count++)
                                                     <option value="{{ $count }}" @selected($ruleCount === $count)>{{ $count }}</option>
                                                 @endfor
@@ -323,7 +322,7 @@
                                                     </div>
                                                     <div>
                                                         <label for="weight_{{ $period->id }}_{{ $position }}">Peso</label>
-                                                        <input id="weight_{{ $period->id }}_{{ $position }}" name="weights[]" data-mask="digits" data-mask-max="3" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" class="form-control" value="{{ $useOldForPeriod ? old('weights.'.($position - 1), $rule?->weight ?? 1) : ($rule?->weight ?? 1) }}">
+                                                        <input id="weight_{{ $period->id }}_{{ $position }}" name="weights[]" data-mask="digits" data-mask-max="3" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" class="form-control" value="{{ $useOldForPeriod ? old('weights.'.($position - 1), $rule?->weight ?? 10) : ($rule?->weight ?? 10) }}">
                                                     </div>
                                                 </div>
                                             </div>

@@ -150,6 +150,25 @@ class TeacherDiaryTest extends TestCase
             ->assertDontSee('Alerta da gestão em Matemática');
     }
 
+    public function test_period_cannot_be_configured_without_an_assessment(): void
+    {
+        [, $year, , , $period] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-avaliacao-obrigatoria@ctjj.org');
+
+        $this->actingAs($manager)
+            ->put(route('academic-years.periods.assessment-rules.update', [$year, $period]), [
+                'assessment_count' => 0,
+                'recovery_mode' => AcademicPeriod::RECOVERY_NONE,
+            ])
+            ->assertSessionHasErrors('assessment_count');
+
+        $this->assertDatabaseHas('school_assessment_rules', [
+            'academic_period_id' => $period->id,
+            'position' => 1,
+            'weight' => 10,
+        ]);
+    }
+
     public function test_student_can_view_own_diary_entries_without_editing_them(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
