@@ -19,6 +19,11 @@
                 'schools' => route('schools.edit', $item),
                 'years' => route('academic-years.show', $item),
                 'enrollments' => $item->student ? route('enrollments.documents', $item) : null,
+                'periods' => $item->academicYear ? route('academic-years.periods.index', $item->academicYear) : null,
+                'classes' => $item->academicYear ? route('academic-years.classes.show', [$item->academicYear, $item]) : null,
+                'assignments' => $item->schoolClass?->academicYear
+                    ? route('academic-years.classes.show', [$item->schoolClass->academicYear, $item->schoolClass])
+                    : null,
                 default => null,
             };
         };
@@ -31,6 +36,9 @@
                 'schools' => $item->name,
                 'years' => $item->name,
                 'enrollments' => $item->student?->full_name ?? 'Estudante não localizado',
+                'periods' => $item->name,
+                'classes' => $item->name,
+                'assignments' => $item->component?->name ?? 'Componente não localizado',
                 default => 'Registro',
             };
         };
@@ -43,6 +51,9 @@
                 'schools' => trim(($item->city ?? '').' / '.($item->state ?? ''), ' /') ?: 'Sem cidade/UF',
                 'years' => ($item->school?->name ?? 'Escola não localizada').' · '.optional($item->starts_at)->format('d/m/Y').' a '.optional($item->ends_at)->format('d/m/Y'),
                 'enrollments' => ($item->schoolClass?->name ?? 'Turma não localizada').' · '.($item->schoolClass?->academicYear?->school?->name ?? 'Escola não localizada'),
+                'periods' => ($item->academicYear?->school?->name ?? 'Escola não localizada').' · '.($item->academicYear?->referenceYearsLabel() ?? 'Ano não informado'),
+                'classes' => ($item->academicYear?->school?->name ?? 'Escola não localizada').' · '.($item->academicYear?->referenceYearsLabel() ?? 'Ano não informado'),
+                'assignments' => ($item->schoolClass?->name ?? 'Turma não localizada').' · '.($item->schoolClass?->academicYear?->school?->name ?? 'Escola não localizada'),
                 default => '',
             };
         };
@@ -58,8 +69,8 @@
             <span class="sge-eyebrow">Beabá</span>
             <h2 id="quality-title">Central única de conformidade</h2>
             <p>
-                Aqui ficam juntas as pendências de cadastro, documentos, escola, matrícula, ano letivo e rotina acadêmica.
-                Bloqueios devem ser resolvidos antes da emissão oficial ou do fechamento.
+                Uma leitura operacional dos dados que realmente sustentam acesso, matrículas, documentos, diários e fechamentos.
+                Comece pelos bloqueios; avisos podem ser tratados conforme a rotina da escola.
             </p>
         </div>
         <div class="sge-quality-actions">
@@ -78,7 +89,7 @@
         <article>
             <span>Total em análise</span>
             <strong>{{ number_format($summary['total'], 0, ',', '.') }}</strong>
-            <small>registros que merecem revisão</small>
+            <small>ocorrências encontradas nas regras atuais</small>
         </article>
         @foreach ($severityMeta as $severity => $meta)
             <a href="{{ route('data-quality.index', array_filter(['severity' => $severity, 'school_id' => $selectedSchoolId])) }}"
@@ -95,7 +106,7 @@
             <div class="mb-3 mb-lg-0">
                 <h2 class="h5 font-weight-bold text-gray-900 mb-1">Filtros da conferência</h2>
                 <p class="text-gray-700 mb-0">
-                    Administração visualiza todas as escolas. Gestão visualiza apenas as escolas em que possui vínculo ativo.
+                    Administração visualiza todas as escolas. Gestão confere somente as unidades em que possui vínculo atual.
                 </p>
             </div>
 
@@ -128,6 +139,16 @@
             </form>
         </div>
     </div>
+
+    @if ($compliantGroups->isNotEmpty())
+        <section class="sge-quality-ok mb-4" aria-labelledby="quality-ok-title">
+            <span class="sge-quality-ok-icon"><i class="fas fa-check" aria-hidden="true"></i></span>
+            <div>
+                <h2 id="quality-ok-title">Sem ocorrências nestas áreas</h2>
+                <p>{{ $compliantGroups->join(', ', ' e ') }}.</p>
+            </div>
+        </section>
+    @endif
 
     <section class="mb-4" aria-labelledby="workflow-title">
         <div class="d-flex justify-content-between align-items-end flex-wrap mb-3">
@@ -220,8 +241,12 @@
         <div class="card shadow">
             <div class="card-body text-center py-5">
                 <i class="fas fa-check-circle fa-3x text-success mb-3" aria-hidden="true"></i>
-                <h2 class="h5 font-weight-bold text-gray-900">Nada encontrado com estes filtros</h2>
-                <p class="text-gray-700 mb-0">Troque a escola ou a gravidade para conferir outras ocorrências.</p>
+                <h2 class="h5 font-weight-bold text-gray-900">
+                    {{ $summary['total'] === 0 ? 'Conferência em dia' : 'Nada encontrado com estes filtros' }}
+                </h2>
+                <p class="text-gray-700 mb-0">
+                    {{ $summary['total'] === 0 ? 'Nenhum bloqueio, aviso ou ponto de atenção foi encontrado para este escopo.' : 'Troque a escola ou a gravidade para conferir outras ocorrências.' }}
+                </p>
             </div>
         </div>
     @endforelse

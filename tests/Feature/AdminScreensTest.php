@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\AcademicPeriod;
 use App\Models\CalendarDay;
 use App\Models\IssuedDocument;
 use App\Models\OfficialDocument;
@@ -10,6 +11,7 @@ use App\Models\Person;
 use App\Models\PersonContact;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
+use App\Models\SchoolClass;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -631,6 +633,77 @@ class AdminScreensTest extends TestCase
             'person_id' => $admin->person_id,
             'school_id' => $school->id,
         ]);
+    }
+
+    public function test_conformity_accepts_student_without_cpf_when_parent_has_cpf(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $school = School::query()->create(['name' => 'Escola Conferência']);
+        $student = Person::query()->create([
+            'full_name' => 'Estudante Sem CPF Próprio',
+            'birth_date' => now()->subYears(12),
+            'birth_city' => 'Rondonópolis',
+            'birth_state' => 'MT',
+            'nationality' => 'Brasileira',
+            'mother_name' => 'Mãe Identificada',
+            'address' => 'Rua Um',
+            'city' => 'Rondonópolis',
+            'state' => 'MT',
+            'postal_code' => '78700000',
+        ]);
+        $student->schoolRoles()->create([
+            'school_id' => $school->id,
+            'role' => PersonSchoolRole::ROLE_STUDENT,
+            'active' => true,
+        ]);
+        $student->contacts()->create([
+            'name' => 'Mãe Identificada',
+            'relationship_type' => PersonContact::TYPE_MOTHER,
+            'cpf' => '12345678901',
+            'legal_guardian' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('data-quality.index', ['school_id' => $school->id, 'severity' => 'danger']))
+            ->assertOk()
+            ->assertDontSee('Estudantes sem CPF próprio e sem CPF na filiação')
+            ->assertDontSee('Profissionais ativos sem CPF');
+    }
+
+    public function test_conformity_flags_current_class_without_matrix_and_period_without_assessment(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $school = School::query()->create(['name' => 'Escola Acadêmica']);
+        $year = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Educação Básica',
+            'reference_year' => 2026,
+            'starts_at' => '2026-01-01',
+            'ends_at' => '2026-12-31',
+            'active' => true,
+        ]);
+        $period = AcademicPeriod::withoutEvents(fn () => AcademicPeriod::query()->create([
+            'academic_year_id' => $year->id,
+            'name' => 'I Bimestre',
+            'starts_at' => '2026-02-01',
+            'ends_at' => '2026-04-10',
+            'position' => 1,
+        ]));
+        SchoolClass::query()->create([
+            'academic_year_id' => $year->id,
+            'starts_period_id' => $period->id,
+            'ends_period_id' => $period->id,
+            'name' => '6º Ano A',
+            'active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('data-quality.index', ['school_id' => $school->id, 'severity' => 'danger']))
+            ->assertOk()
+            ->assertSee('Turmas ativas sem matriz vinculada')
+            ->assertSee('Períodos sem avaliação configurada')
+            ->assertSee('6º Ano A')
+            ->assertSee('I Bimestre');
     }
 
     public function test_manager_only_sees_registration_pendencies_from_managed_school(): void

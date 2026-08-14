@@ -5630,6 +5630,38 @@ textarea:focus-visible {
     gap: .75rem;
 }
 
+.sge-quality-ok {
+    align-items: center;
+    background: #f2f8f1;
+    border: 1px solid rgba(67, 112, 59, .24);
+    border-radius: .85rem;
+    color: var(--sge-ink);
+    display: flex;
+    gap: .85rem;
+    padding: .85rem 1rem;
+}
+
+.sge-quality-ok-icon {
+    align-items: center;
+    background: #43703b;
+    border-radius: 50%;
+    color: #fff;
+    display: inline-flex;
+    flex: 0 0 2.25rem;
+    height: 2.25rem;
+    justify-content: center;
+}
+
+.sge-quality-ok h2 {
+    font-size: 1rem;
+    margin: 0 0 .1rem;
+}
+
+.sge-quality-ok p {
+    color: var(--sge-muted);
+    margin: 0;
+}
+
 .sge-quality-check {
     border: 1px solid var(--sge-border);
     border-radius: .75rem;
