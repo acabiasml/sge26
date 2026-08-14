@@ -35,6 +35,13 @@ return [
         'allowed_domain' => env('GOOGLE_ALLOWED_DOMAIN', 'ctjj.org'),
     ],
 
+    'google_workspace' => [
+        'enabled' => env('GOOGLE_WORKSPACE_ENABLED', false),
+        'credentials_path' => env('GOOGLE_WORKSPACE_CREDENTIALS_PATH'),
+        'administrator_email' => env('GOOGLE_WORKSPACE_ADMIN_EMAIL'),
+        'organizational_unit' => env('GOOGLE_WORKSPACE_ORG_UNIT', '/'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

@@ -342,6 +342,16 @@
                             {{ session('status') }}
                         </div>
                     @endif
+                    @if (session('error'))
+                        <div class="alert alert-danger" role="alert" aria-live="assertive">{{ session('error') }}</div>
+                    @endif
+                    @if (session('workspace_temporary_password'))
+                        <div class="alert alert-warning" role="alert" aria-live="assertive">
+                            <strong>Senha temporária:</strong>
+                            <code class="ml-2">{{ session('workspace_temporary_password') }}</code>
+                            <span class="d-block mt-1">Informe-a à pessoa por um canal seguro. Ela deverá trocá-la no primeiro acesso.</span>
+                        </div>
+                    @endif
 
                     @if ($errors->any())
                         <div class="alert alert-danger sge-validation-summary" role="alert" tabindex="-1" data-validation-summary>

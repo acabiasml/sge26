@@ -53,6 +53,8 @@ class Person extends Model
         'address_complement',
         'active',
         'profile_completed_at',
+        'google_workspace_id',
+        'google_workspace_provisioned_at',
     ];
 
     protected function casts(): array
@@ -62,6 +64,7 @@ class Person extends Model
             'active' => 'boolean',
             'profile_completed_at' => 'datetime',
             'legacy_metadata' => 'array',
+            'google_workspace_provisioned_at' => 'datetime',
         ];
     }
 

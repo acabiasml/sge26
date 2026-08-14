@@ -22,6 +22,7 @@ use App\Http\Controllers\EnrollmentPdfController;
 use App\Http\Controllers\OfficialDocumentController;
 use App\Http\Controllers\PersonContactController;
 use App\Http\Controllers\PersonController;
+use App\Http\Controllers\GoogleWorkspaceController;
 use App\Http\Controllers\PersonRoleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RecordPdfController;
@@ -83,6 +84,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
         ->parameters(['pessoas' => 'person'])
         ->names('people');
     Route::get('pessoas/{person}/pdf', [RecordPdfController::class, 'person'])->name('people.pdf');
+    Route::post('pessoas/{person}/google-workspace', [GoogleWorkspaceController::class, 'store'])->name('people.google-workspace.store');
     Route::get('pessoas/{person}/vida-escolar', [StudentMapController::class, 'show'])->name('people.student-map.show');
     Route::get('pessoas/{person}/mapa-do-estudante', fn ($person) => redirect()->route('people.student-map.show', $person));
     Route::get('pessoas/{person}/historicos/create', [StudentAcademicHistoryController::class, 'create'])->name('people.histories.create');

@@ -16,6 +16,14 @@
 @section('page-title', $person->full_name)
 
 @section('page-actions')
+    @if (auth()->user()->isAdministrator() && config('services.google_workspace.enabled'))
+        <form class="d-inline mr-2" method="POST" action="{{ route('people.google-workspace.store', $person) }}" onsubmit="return confirm('{{ $person->google_workspace_id ? 'Verificar e atualizar o vínculo desta conta com o Google Workspace?' : 'Criar uma conta real no Google Workspace para este e-mail institucional?' }}');">
+            @csrf
+            <button class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" type="submit" aria-label="{{ $person->google_workspace_id ? 'Verificar conta no Google Workspace' : 'Criar conta no Google Workspace' }} de {{ $person->full_name }}" title="{{ $person->google_workspace_id ? 'Conta vinculada ao Google Workspace' : 'Criar conta no Google Workspace' }}">
+                <i class="fab fa-google" aria-hidden="true"></i>
+            </button>
+        </form>
+    @endif
     @if ($person->studentEnrollments->isNotEmpty() || $person->schoolRoles->contains('role', \App\Models\PersonSchoolRole::ROLE_STUDENT))
         <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.student-map.show', $person) }}" aria-label="Abrir vida escolar de {{ $person->full_name }}" title="Vida escolar">
             <i class="fas fa-map-marked-alt" aria-hidden="true"></i>
