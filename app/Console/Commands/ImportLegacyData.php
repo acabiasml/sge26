@@ -1134,7 +1134,7 @@ class ImportLegacyData extends Command
                     'school_assessment_rule_id' => $assessmentRule?->id,
                     'is_recovery' => false,
                     'teacher_person_id' => $assignment?->teacher_person_id,
-                    'title' => 'Média do período',
+                    'title' => $assessmentRule?->name ?? 'Avaliação 1',
                     'weight' => 10,
                     'maximum_score' => 10,
                     'assessment_date' => null,
@@ -1170,7 +1170,7 @@ class ImportLegacyData extends Command
         $existingRule = SchoolAssessmentRule::query()
             ->where('school_id', $schoolId)
             ->where('academic_period_id', $period->id)
-            ->where('name', 'Média do período')
+            ->where('name', 'Avaliação 1')
             ->first();
 
         if ($existingRule) {
@@ -1186,7 +1186,7 @@ class ImportLegacyData extends Command
 
         if ($reusableRule) {
             $reusableRule->update([
-                'name' => 'Média do período',
+                'name' => 'Avaliação 1',
                 'weight' => 10,
                 'maximum_score' => 10,
             ]);
@@ -1202,7 +1202,7 @@ class ImportLegacyData extends Command
         return SchoolAssessmentRule::query()->create([
             'school_id' => $schoolId,
             'academic_period_id' => $period->id,
-            'name' => 'Média do período',
+            'name' => 'Avaliação 1',
             'position' => max(1, $position),
             'weight' => 10,
             'maximum_score' => 10,

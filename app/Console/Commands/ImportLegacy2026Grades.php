@@ -306,7 +306,7 @@ class ImportLegacy2026Grades extends Command
                 'school_assessment_rule_id' => $rule->id,
                 'is_recovery' => false,
                 'teacher_person_id' => null,
-                'title' => 'Média do período',
+                'title' => $rule->name,
                 'weight' => 10,
                 'maximum_score' => 10,
                 'assessment_date' => null,
@@ -331,7 +331,7 @@ class ImportLegacy2026Grades extends Command
         $rule = SchoolAssessmentRule::query()
             ->where('school_id', $schoolId)
             ->where('academic_period_id', $period->id)
-            ->where('name', 'Média do período')
+            ->where('name', 'Avaliação 1')
             ->first();
 
         if ($rule) {
@@ -346,7 +346,7 @@ class ImportLegacy2026Grades extends Command
             ->first();
 
         if ($reusable) {
-            $reusable->update(['name' => 'Média do período', 'weight' => 10, 'maximum_score' => 10]);
+            $reusable->update(['name' => 'Avaliação 1', 'weight' => 10, 'maximum_score' => 10]);
 
             return $reusable;
         }
@@ -354,7 +354,7 @@ class ImportLegacy2026Grades extends Command
         return SchoolAssessmentRule::query()->create([
             'school_id' => $schoolId,
             'academic_period_id' => $period->id,
-            'name' => 'Média do período',
+            'name' => 'Avaliação 1',
             'position' => ((int) SchoolAssessmentRule::query()->where('academic_period_id', $period->id)->max('position')) + 1,
             'weight' => 10,
             'maximum_score' => 10,
