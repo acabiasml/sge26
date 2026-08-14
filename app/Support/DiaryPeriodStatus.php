@@ -33,10 +33,8 @@ class DiaryPeriodStatus
      */
     public function pending(SchoolClassComponent $assignment, AcademicPeriod $period): array
     {
-        $courseId = $assignment->component?->course_id;
         $enrollments = $assignment->schoolClass->enrollments()
             ->where('status', StudentEnrollment::STATUS_ENROLLED)
-            ->whereHas('courses', fn (Builder $query) => $query->whereKey($courseId))
             ->get();
         $assessments = DiaryAssessment::query()
             ->with('results')

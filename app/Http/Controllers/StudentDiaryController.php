@@ -12,7 +12,6 @@ use App\Models\StudentBehaviorGrade;
 use App\Models\StudentEnrollment;
 use App\Support\PdfLetterhead;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -23,7 +22,7 @@ class StudentDiaryController extends Controller
     public function index(Request $request): View
     {
         $enrollments = StudentEnrollment::query()
-            ->with(['schoolClass.academicYear.school', 'courses.components.area'])
+            ->with(['schoolClass.academicYear.school', 'schoolClass.courses.components.area'])
             ->where('person_id', $request->user()->person_id)
             ->get();
 
@@ -33,15 +32,14 @@ class StudentDiaryController extends Controller
     public function show(Request $request, StudentEnrollment $enrollment, CurriculumComponent $component): View
     {
         abort_unless($enrollment->person_id === $request->user()->person_id, 403);
-        $enrollment->load('schoolClass.academicYear.school.concepts', 'courses');
-        abort_unless($enrollment->courses->contains('id', $component->academic_course_id), 404);
+        $enrollment->load('schoolClass.academicYear.school.concepts', 'schoolClass.courses');
         abort_unless($enrollment->schoolClass->courses->contains('id', $component->academic_course_id), 404);
 
         $academicYear = $enrollment->schoolClass->academicYear;
         $periods = $academicYear->periods()->orderBy('position')->get();
-        $assessments = DiaryAssessment::query()->with(['results' => fn (Builder $query) => $query->where('student_enrollment_id', $enrollment->id)])
+        $assessments = DiaryAssessment::query()->with(['results' => fn ($query) => $query->where('student_enrollment_id', $enrollment->id)])
             ->where('school_class_id', $enrollment->school_class_id)->where('curriculum_component_id', $component->id)->orderBy('assessment_date')->get();
-        $attendance = DiaryAttendanceRecord::query()->with(['entries' => fn (Builder $query) => $query->where('student_enrollment_id', $enrollment->id)])
+        $attendance = DiaryAttendanceRecord::query()->with(['entries' => fn ($query) => $query->where('student_enrollment_id', $enrollment->id)])
             ->where('school_class_id', $enrollment->school_class_id)->where('curriculum_component_id', $component->id)->orderBy('class_date')->get();
         $contents = DiaryContent::query()->where('school_class_id', $enrollment->school_class_id)->where('curriculum_component_id', $component->id)->orderBy('class_date')->get();
         $behaviorGrades = StudentBehaviorGrade::query()

@@ -193,6 +193,34 @@ class TeacherDiaryTest extends TestCase
             ->assertDontSee('Notas lançadas');
     }
 
+    public function test_diary_lists_students_enrolled_in_the_class_without_a_direct_course_link(): void
+    {
+        [$teacher, , $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $studentName = $enrollment->student->full_name;
+
+        $enrollment->courses()->detach();
+
+        $this->actingAs($teacher)
+            ->get(route('teacher-diaries.show', [
+                'schoolClass' => $class,
+                'component' => $component,
+                'period' => $period->id,
+            ]))
+            ->assertOk()
+            ->assertSee($studentName);
+
+        $student = User::query()->where('person_id', $enrollment->person_id)->firstOrFail();
+
+        $this->actingAs($student)
+            ->get(route('student-diaries.index'))
+            ->assertOk()
+            ->assertSee($component->name);
+
+        $this->actingAs($student)
+            ->get(route('student-diaries.show', [$enrollment, $component]))
+            ->assertOk();
+    }
+
     public function test_report_card_respects_student_concept_view_and_manager_pdf(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();

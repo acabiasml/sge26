@@ -245,7 +245,7 @@ class TeacherDiaryController extends Controller
         $periods = $periods->filter(fn (AcademicPeriod $availablePeriod): bool => $this->diaryIsActiveInPeriod($schoolClass, $component, $availablePeriod))->values();
         abort_if($periods->isEmpty(), 404);
         $period = $this->selectedPeriod($request, $periods);
-        $enrollments = $this->enrollments($schoolClass, $course->id);
+        $enrollments = $this->enrollments($schoolClass);
 
         $assessmentRules = SchoolAssessmentRule::query()
             ->where('school_id', $academicYear->school_id)
@@ -359,7 +359,7 @@ class TeacherDiaryController extends Controller
             ->values();
         abort_if($periods->isEmpty(), 404);
 
-        $enrollments = $this->enrollments($schoolClass, $course->id);
+        $enrollments = $this->enrollments($schoolClass);
         $periodReports = $periods->map(function (AcademicPeriod $period) use ($schoolClass, $component, $assignment, $enrollments): array {
             $this->ensureRecoveryAssessment($schoolClass, $component, $period, $assignment);
 
@@ -469,7 +469,7 @@ class TeacherDiaryController extends Controller
                 ->each(fn (CalendarDay $day) => $day->setAttribute('scheduled_lessons', null));
         }
 
-        $enrollments = $this->enrollments($schoolClass, $course->id);
+        $enrollments = $this->enrollments($schoolClass);
         $issuedDocument = $this->issuedAttendanceSheetDocument($request, $academicYear, $schoolClass, $component, $month);
 
         $pdf = Pdf::loadView('reports.attendance-sheet', [
@@ -536,7 +536,7 @@ class TeacherDiaryController extends Controller
             )
             ->get()
             ->keyBy(fn (DiaryContent $content): string => $content->class_date->toDateString());
-        $enrollments = $this->enrollments($schoolClass, $course->id);
+        $enrollments = $this->enrollments($schoolClass);
         $justifications = DiaryAttendanceJustification::query()
             ->with(['enrollment.student', 'grantedBy'])
             ->whereIn('student_enrollment_id', $enrollments->pluck('id'))
@@ -576,7 +576,7 @@ class TeacherDiaryController extends Controller
         $this->ensureComponentActiveInPeriod($component, $period);
         $this->ensurePeriodOpen($schoolClass, $component, $period);
         $assignment = SchoolClassComponent::query()->where('school_class_id', $schoolClass->id)->where('curriculum_component_id', $component->id)->firstOrFail();
-        $enrollmentIds = $this->activeEnrollments($schoolClass, $course->id)->pluck('id')->all();
+        $enrollmentIds = $this->activeEnrollments($schoolClass)->pluck('id')->all();
 
         $data = $request->validate([
             'academic_period_id' => ['required', Rule::in([$period->id])],
@@ -818,7 +818,7 @@ class TeacherDiaryController extends Controller
             ->firstOrFail();
         $this->ensureRecoveryAssessment($schoolClass, $component, $period, $assignment);
 
-        $enrollmentIds = $this->activeEnrollments($schoolClass, $course->id)->pluck('id')->all();
+        $enrollmentIds = $this->activeEnrollments($schoolClass)->pluck('id')->all();
         $assessments = DiaryAssessment::query()
             ->where('school_class_id', $schoolClass->id)
             ->where('curriculum_component_id', $component->id)
@@ -893,7 +893,7 @@ class TeacherDiaryController extends Controller
             throw ValidationException::withMessages(['academic_period_id' => 'A confirmação estará disponível a partir do último dia do período avaliativo.']);
         }
 
-        $enrollments = $this->enrollments($schoolClass, $course->id);
+        $enrollments = $this->enrollments($schoolClass);
         $assessments = DiaryAssessment::query()->with('results')->where('school_class_id', $schoolClass->id)
             ->where('curriculum_component_id', $component->id)->where('academic_period_id', $period->id)
             ->where(fn (Builder $query) => $query->whereNotNull('school_assessment_rule_id')->orWhere('is_recovery', true))->get();
@@ -1327,7 +1327,7 @@ class TeacherDiaryController extends Controller
         return [collect($scheduledDays->forPage($page, $perPage)->values()->all()), $page, $totalPages];
     }
 
-    private function enrollments(SchoolClass $schoolClass, int $courseId): Collection
+    private function enrollments(SchoolClass $schoolClass): Collection
     {
         return $schoolClass->enrollments()
             ->with('student')
@@ -1336,7 +1336,6 @@ class TeacherDiaryController extends Controller
                 StudentEnrollment::STATUS_TRANSFERRED,
                 StudentEnrollment::STATUS_RECLASSIFIED,
             ])
-            ->whereHas('courses', fn (Builder $query) => $query->whereKey($courseId))
             ->get()
             ->sort(function (StudentEnrollment $first, StudentEnrollment $second): int {
                 $firstKey = [
@@ -1359,9 +1358,9 @@ class TeacherDiaryController extends Controller
             ->values();
     }
 
-    private function activeEnrollments(SchoolClass $schoolClass, int $courseId): Collection
+    private function activeEnrollments(SchoolClass $schoolClass): Collection
     {
-        return $this->enrollments($schoolClass, $courseId)
+        return $this->enrollments($schoolClass)
             ->filter->isActive()
             ->values();
     }

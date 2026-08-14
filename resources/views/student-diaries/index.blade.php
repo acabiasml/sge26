@@ -30,7 +30,7 @@
                         </div>
                     </div>
                     <div class="row">
-                        @foreach($enrollment->courses as $course)
+                        @foreach($enrollment->schoolClass?->courses ?? collect() as $course)
                             @foreach($course->components->sortBy('name') as $component)
                                 <div class="col-md-6 mb-2">
                                     <a class="sge-student-diary-link" href="{{ route('student-diaries.show', [$enrollment, $component]) }}">
