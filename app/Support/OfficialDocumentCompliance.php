@@ -46,7 +46,7 @@ class OfficialDocumentCompliance
                 .implode(', ', $missing).'.';
         }
 
-        if (! self::hasParentCpf($student)) {
+        if (self::studentHasNoCpf($student) && ! self::hasParentCpf($student)) {
             return 'Documento bloqueado: cadastre o CPF da mãe ou do pai na seção Responsáveis e contatos.';
         }
 

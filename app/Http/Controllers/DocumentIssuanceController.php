@@ -636,8 +636,9 @@ class DocumentIssuanceController extends Controller
                 $isCurrentClass = ! $requiresCurrentClass || $this->isCurrentClass($class);
                 $studentDocuments = in_array($type, ['class-report-cards', 'class-grade-mirror', 'class-final-results'], true);
                 $students = $class->enrollments->map->student->filter();
-                $missingParentCpf = $studentDocuments && $students->contains(
-                    fn (Person $student): bool => ! OfficialDocumentCompliance::hasParentCpf($student)
+                $missingIdentityCpf = $studentDocuments && $students->contains(
+                    fn (Person $student): bool => OfficialDocumentCompliance::studentHasNoCpf($student)
+                        && ! OfficialDocumentCompliance::hasParentCpf($student)
                 );
                 $missingStudentCpf = $studentDocuments && $students->contains(
                     fn (Person $student): bool => OfficialDocumentCompliance::studentHasNoCpf($student)
@@ -652,11 +653,11 @@ class DocumentIssuanceController extends Controller
                         (int) $class->active_enrollments_count.' '.((int) $class->active_enrollments_count === 1 ? 'matrícula ativa' : 'matrículas ativas'),
                         $class->active ? 'Turma ativa' : 'Turma inativa',
                     ])->filter()->join(' · '),
-                    'enabled' => (! $requiresEnrollments || $hasEnrollments) && $isCurrentClass && ! $missingParentCpf,
+                    'enabled' => (! $requiresEnrollments || $hasEnrollments) && $isCurrentClass && ! $missingIdentityCpf,
                     'reason' => match (true) {
                         $requiresCurrentClass && ! $isCurrentClass => 'Use documentos de arquivo para turmas de anos letivos encerrados.',
                         $requiresEnrollments && ! $hasEnrollments => 'A turma não possui matrículas ativas.',
-                        $missingParentCpf => 'Há estudante sem CPF cadastrado para mãe ou pai. Revise os responsáveis antes da emissão.',
+                        $missingIdentityCpf => 'Há estudante sem CPF próprio e sem CPF cadastrado para mãe ou pai. Revise os responsáveis antes da emissão.',
                         $missingStudentCpf => 'Há estudante sem CPF. A emissão exigirá confirmação.',
                         default => null,
                     },
@@ -963,7 +964,8 @@ class DocumentIssuanceController extends Controller
             return [$enabled, $reason];
         }
 
-        if (! OfficialDocumentCompliance::hasParentCpf($student)) {
+        if (OfficialDocumentCompliance::studentHasNoCpf($student)
+            && ! OfficialDocumentCompliance::hasParentCpf($student)) {
             return [false, 'Cadastre o CPF da mãe ou do pai em Responsáveis e contatos antes da emissão.'];
         }
 

@@ -505,7 +505,7 @@ class DocumentIssuancePanelTest extends TestCase
             ]));
     }
 
-    public function test_student_document_is_blocked_without_a_parent_cpf(): void
+    public function test_student_with_own_cpf_does_not_require_parent_cpf_for_document(): void
     {
         $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
         $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
@@ -531,8 +531,16 @@ class DocumentIssuancePanelTest extends TestCase
         $this->actingAs($administrator)
             ->getJson(route('document-issuance.targets', ['type' => 'enrollment-form', 'q' => 'responsável identificado']))
             ->assertOk()
-            ->assertJsonPath('targets.0.enabled', false)
+            ->assertJsonPath('targets.0.enabled', true)
             ->assertJsonPath('targets.0.missing_student_cpf', false);
+
+        $student->update(['cpf' => null]);
+
+        $this->actingAs($administrator)
+            ->getJson(route('document-issuance.targets', ['type' => 'enrollment-form', 'q' => 'responsável identificado']))
+            ->assertOk()
+            ->assertJsonPath('targets.0.enabled', false)
+            ->assertJsonPath('targets.0.missing_student_cpf', true);
     }
 
     private function userWithRole(string $role, ?int $schoolId = null): User
