@@ -6,6 +6,7 @@ use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
 use App\Models\AcademicYear;
 use App\Models\Person;
+use App\Models\PersonContact;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\SchoolClass;
@@ -457,6 +458,83 @@ class DocumentIssuancePanelTest extends TestCase
         }
     }
 
+    public function test_student_without_cpf_can_be_issued_only_after_confirmation_when_parent_has_cpf(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $student = $this->personWithRole('Estudante sem CPF', PersonSchoolRole::ROLE_STUDENT, $school->id);
+        $student->update(['cpf' => null]);
+        $year = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Educação Básica',
+            'reference_year' => 2026,
+            'starts_at' => '2026-01-01',
+            'ends_at' => '2026-12-31',
+            'active' => true,
+        ]);
+        $class = SchoolClass::query()->create(['academic_year_id' => $year->id, 'name' => '6º Ano', 'active' => true]);
+        $enrollment = StudentEnrollment::query()->create([
+            'school_class_id' => $class->id,
+            'person_id' => $student->id,
+            'enrolled_at' => '2026-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+
+        $this->actingAs($administrator)
+            ->getJson(route('document-issuance.targets', ['type' => 'enrollment-form', 'q' => 'Estudante sem CPF']))
+            ->assertOk()
+            ->assertJsonPath('targets.0.enabled', true)
+            ->assertJsonPath('targets.0.missing_student_cpf', true);
+
+        $this->actingAs($administrator)
+            ->from(route('document-issuance.index'))
+            ->get(route('document-issuance.issue', ['type' => 'enrollment-form', 'target_id' => $enrollment->id]))
+            ->assertRedirect(route('document-issuance.index'))
+            ->assertSessionHasErrors('target_id');
+
+        $this->actingAs($administrator)
+            ->get(route('document-issuance.issue', [
+                'type' => 'enrollment-form',
+                'target_id' => $enrollment->id,
+                'confirm_missing_student_cpf' => 1,
+            ]))
+            ->assertRedirect(route('enrollments.pdf', [
+                'enrollment' => $enrollment,
+                'confirm_missing_student_cpf' => 1,
+            ]));
+    }
+
+    public function test_student_document_is_blocked_without_a_parent_cpf(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $student = $this->personWithRole('Estudante sem responsável identificado', PersonSchoolRole::ROLE_STUDENT, $school->id);
+        $student->contacts()->delete();
+        $year = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Educação Básica',
+            'reference_year' => 2026,
+            'starts_at' => '2026-01-01',
+            'ends_at' => '2026-12-31',
+            'active' => true,
+        ]);
+        $class = SchoolClass::query()->create(['academic_year_id' => $year->id, 'name' => '7º Ano', 'active' => true]);
+        StudentEnrollment::query()->create([
+            'school_class_id' => $class->id,
+            'person_id' => $student->id,
+            'enrolled_at' => '2026-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+
+        $this->actingAs($administrator)
+            ->getJson(route('document-issuance.targets', ['type' => 'enrollment-form', 'q' => 'responsável identificado']))
+            ->assertOk()
+            ->assertJsonPath('targets.0.enabled', false)
+            ->assertJsonPath('targets.0.missing_student_cpf', false);
+    }
+
     private function userWithRole(string $role, ?int $schoolId = null): User
     {
         $person = $this->personWithRole('Usuário '.$role, $role, $schoolId);
@@ -495,6 +573,14 @@ class DocumentIssuancePanelTest extends TestCase
             'active' => true,
             'started_at' => '2026-01-01',
         ]);
+
+        if ($role === PersonSchoolRole::ROLE_STUDENT) {
+            $person->contacts()->create([
+                'name' => 'Maria de Teste',
+                'relationship_type' => PersonContact::TYPE_MOTHER,
+                'cpf' => str_pad((string) (900000 + $this->personSequence), 11, '0', STR_PAD_LEFT),
+            ]);
+        }
 
         return $person;
     }

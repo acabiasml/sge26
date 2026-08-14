@@ -97,7 +97,7 @@ class StudentEnrollmentCertificateController extends Controller
     {
         [$academicYear, $class] = $this->context($request, $enrollment);
 
-        if ($redirect = $this->complianceRedirect($academicYear, $enrollment)) {
+        if ($redirect = $this->complianceRedirect($request, $academicYear, $enrollment)) {
             return $redirect;
         }
 
@@ -147,7 +147,7 @@ class StudentEnrollmentCertificateController extends Controller
             return $this->blocked($enrollment, 'Atestado de transferência bloqueado: registre a transferência da matrícula antes de emitir o documento.');
         }
 
-        if ($redirect = $this->complianceRedirect($academicYear, $enrollment)) {
+        if ($redirect = $this->complianceRedirect($request, $academicYear, $enrollment)) {
             return $redirect;
         }
 
@@ -176,7 +176,7 @@ class StudentEnrollmentCertificateController extends Controller
         string $title,
         string $statement
     ): Response|RedirectResponse {
-        if ($redirect = $this->complianceRedirect($academicYear, $enrollment)) {
+        if ($redirect = $this->complianceRedirect($request, $academicYear, $enrollment)) {
             return $redirect;
         }
 
@@ -218,9 +218,9 @@ class StudentEnrollmentCertificateController extends Controller
         return [$academicYear, $class];
     }
 
-    private function complianceRedirect(AcademicYear $academicYear, StudentEnrollment $enrollment): ?RedirectResponse
+    private function complianceRedirect(Request $request, AcademicYear $academicYear, StudentEnrollment $enrollment): ?RedirectResponse
     {
-        if ($message = OfficialDocumentCompliance::personMessage($enrollment->student)) {
+        if ($message = OfficialDocumentCompliance::studentMessage($enrollment->student, $request->boolean('confirm_missing_student_cpf'))) {
             return redirect()->route('people.show', $enrollment->student)->with('status', $message);
         }
 
@@ -325,7 +325,8 @@ class StudentEnrollmentCertificateController extends Controller
      */
     private function documentChecks(AcademicYear $academicYear, StudentEnrollment $enrollment): array
     {
-        $personMessage = OfficialDocumentCompliance::personMessage($enrollment->student);
+        $personMessage = OfficialDocumentCompliance::studentMessage($enrollment->student, true);
+        $studentHasNoCpf = OfficialDocumentCompliance::studentHasNoCpf($enrollment->student);
         $schoolMessage = OfficialDocumentCompliance::schoolMessage($academicYear->school);
         $hasFinalResult = $enrollment->final_result_status !== null
             && $enrollment->final_result_status !== StudentEnrollment::FINAL_PENDING;
@@ -334,8 +335,11 @@ class StudentEnrollmentCertificateController extends Controller
             [
                 'label' => 'Cadastro do estudante',
                 'ok' => $personMessage === null,
-                'message' => $personMessage ?? 'Dados civis mínimos preenchidos para emissão oficial.',
-                'severity' => $personMessage ? 'danger' : 'success',
+                'message' => $personMessage
+                    ?? ($studentHasNoCpf
+                        ? 'Estudante sem CPF. A emissão será permitida mediante confirmação, pois há CPF da mãe ou do pai cadastrado.'
+                        : 'Dados civis mínimos preenchidos para emissão oficial.'),
+                'severity' => $personMessage ? 'danger' : ($studentHasNoCpf ? 'warning' : 'success'),
             ],
             [
                 'label' => 'Papel timbrado da escola',

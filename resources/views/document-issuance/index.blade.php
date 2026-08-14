@@ -155,6 +155,7 @@
                     <div id="target-results" class="sge-target-results" aria-label="Resultados da busca"></div>
 
                     <input type="hidden" name="target_id" id="target-id" value="{{ old('target_id') }}" required>
+                    <input type="hidden" name="confirm_missing_student_cpf" id="confirm-missing-student-cpf" value="0">
                     <div id="selected-target" class="sge-selected-target" hidden>
                         <span class="sge-selected-target-icon" aria-hidden="true"><i class="fas fa-check"></i></span>
                         <div>
@@ -256,6 +257,31 @@
             </div>
         </section>
     </form>
+
+    <div class="modal fade" id="missing-student-cpf-modal" tabindex="-1" role="dialog"
+        aria-labelledby="missing-student-cpf-title" aria-describedby="missing-student-cpf-description" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="missing-student-cpf-title">Documento sem CPF do estudante</h2>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="missing-student-cpf-description">
+                    <p>O estudante selecionado ainda não possui CPF cadastrado.</p>
+                    <p class="mb-0">O documento será emitido sem esse dado. O CPF da mãe ou do pai já foi conferido pelo sistema.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="confirm-missing-student-cpf-button">
+                        <i class="fas fa-check" aria-hidden="true"></i>
+                        <span>Estou ciente e emitir</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
@@ -277,6 +303,9 @@
             const status = document.getElementById('target-status');
             const results = document.getElementById('target-results');
             const targetId = document.getElementById('target-id');
+            const missingCpfConfirmation = document.getElementById('confirm-missing-student-cpf');
+            const missingCpfModal = document.getElementById('missing-student-cpf-modal');
+            const confirmMissingCpfButton = document.getElementById('confirm-missing-student-cpf-button');
             const selectedTarget = document.getElementById('selected-target');
             const selectedTitle = document.getElementById('selected-target-title');
             const selectedSubtitle = document.getElementById('selected-target-subtitle');
@@ -311,6 +340,7 @@
             };
             let searchController = null;
             let selectedAcademicYearId = '';
+            let selectedNeedsCpfConfirmation = false;
 
             const selectedOption = () => typeSelect.options[typeSelect.selectedIndex];
             const targetKind = () => selectedOption()?.dataset.targetKind || '';
@@ -321,6 +351,8 @@
                 selectedTitle.textContent = '';
                 selectedSubtitle.textContent = '';
                 selectedAcademicYearId = '';
+                selectedNeedsCpfConfirmation = false;
+                missingCpfConfirmation.value = '0';
                 issueButton.disabled = true;
                 results.replaceChildren();
                 status.textContent = message;
@@ -421,6 +453,8 @@
                 selectedTitle.textContent = target.title;
                 selectedSubtitle.textContent = target.subtitle || '';
                 selectedAcademicYearId = target.academic_year_id ? String(target.academic_year_id) : '';
+                selectedNeedsCpfConfirmation = target.missing_student_cpf === true;
+                missingCpfConfirmation.value = '0';
                 selectedTarget.hidden = false;
                 issueButton.disabled = false;
                 results.replaceChildren();
@@ -557,7 +591,18 @@
                     event.preventDefault();
                     status.textContent = 'Selecione um registro antes de emitir o documento.';
                     queryInput.focus();
+                    return;
                 }
+
+                if (selectedNeedsCpfConfirmation && missingCpfConfirmation.value !== '1') {
+                    event.preventDefault();
+                    window.jQuery(missingCpfModal).modal('show');
+                }
+            });
+            confirmMissingCpfButton.addEventListener('click', () => {
+                missingCpfConfirmation.value = '1';
+                window.jQuery(missingCpfModal).modal('hide');
+                form.requestSubmit();
             });
 
             updateType();

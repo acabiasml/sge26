@@ -33,7 +33,9 @@ use Illuminate\Support\Str;
 
 class ImportLegacyData extends Command
 {
-    protected $signature = 'legacy:import {--fresh : Remove dados trazidos das bases anteriores antes de importar}';
+    protected $signature = 'legacy:import
+        {--fresh : Remove dados trazidos das bases anteriores antes de importar}
+        {--source=* : Limita a importação a beaba, lar ou laura}';
 
     protected $description = 'Importa escolas, pessoas, vínculos e responsáveis das três bases anteriores.';
 
@@ -83,12 +85,23 @@ class ImportLegacyData extends Command
 
     public function handle(): int
     {
-        if ($this->option('fresh')) {
-            $this->removePreviousImport();
+        $selected = $this->option('source');
+        $sources = $selected === []
+            ? $this->sources
+            : array_intersect_key($this->sources, array_flip($selected));
+
+        if ($sources === []) {
+            $this->error('Informe uma fonte válida: beaba, lar ou laura.');
+
+            return self::FAILURE;
         }
 
-        Model::withoutEvents(function (): void {
-            foreach ($this->sources as $source => $path) {
+        if ($this->option('fresh')) {
+            $this->removePreviousImport(array_keys($sources));
+        }
+
+        Model::withoutEvents(function () use ($sources): void {
+            foreach ($sources as $source => $path) {
                 $this->importSource($source, base_path($path));
             }
         });
@@ -98,47 +111,48 @@ class ImportLegacyData extends Command
         return self::SUCCESS;
     }
 
-    private function removePreviousImport(): void
+    /** @param list<string> $sources */
+    private function removePreviousImport(array $sources): void
     {
-        DB::transaction(function (): void {
+        DB::transaction(function () use ($sources): void {
             $academicYearIds = AcademicYear::query()
-                ->whereIn('legacy_source', array_keys($this->sources))
+                ->whereIn('legacy_source', $sources)
                 ->pluck('id');
 
             $courseIds = AcademicCourse::query()
-                ->whereIn('legacy_source', array_keys($this->sources))
+                ->whereIn('legacy_source', $sources)
                 ->pluck('id');
 
             $classIds = SchoolClass::query()
-                ->whereIn('legacy_source', array_keys($this->sources))
+                ->whereIn('legacy_source', $sources)
                 ->pluck('id');
 
             $enrollmentIds = StudentEnrollment::query()
-                ->whereIn('legacy_source', array_keys($this->sources))
+                ->whereIn('legacy_source', $sources)
                 ->pluck('id');
 
             DiaryAssessmentResult::query()
-                ->whereHas('assessment', fn ($query) => $query->whereIn('legacy_source', array_keys($this->sources)))
+                ->whereHas('assessment', fn ($query) => $query->whereIn('legacy_source', $sources))
                 ->delete();
 
             DiaryAssessment::query()
-                ->whereIn('legacy_source', array_keys($this->sources))
+                ->whereIn('legacy_source', $sources)
                 ->delete();
 
             DiaryAttendanceEntry::query()
-                ->whereHas('record', fn ($query) => $query->whereIn('legacy_source', array_keys($this->sources)))
+                ->whereHas('record', fn ($query) => $query->whereIn('legacy_source', $sources))
                 ->delete();
 
             DiaryAttendanceRecord::query()
-                ->whereIn('legacy_source', array_keys($this->sources))
+                ->whereIn('legacy_source', $sources)
                 ->delete();
 
             DiaryContent::query()
-                ->whereIn('legacy_source', array_keys($this->sources))
+                ->whereIn('legacy_source', $sources)
                 ->delete();
 
             Announcement::query()
-                ->whereIn('legacy_source', array_keys($this->sources))
+                ->whereIn('legacy_source', $sources)
                 ->delete();
 
             if ($enrollmentIds->isNotEmpty()) {
@@ -148,7 +162,7 @@ class ImportLegacyData extends Command
             }
 
             StudentEnrollment::query()
-                ->whereIn('legacy_source', array_keys($this->sources))
+                ->whereIn('legacy_source', $sources)
                 ->delete();
 
             if ($courseIds->isNotEmpty()) {
@@ -162,27 +176,27 @@ class ImportLegacyData extends Command
                 ->delete();
 
             SchoolClass::query()
-                ->whereIn('legacy_source', array_keys($this->sources))
+                ->whereIn('legacy_source', $sources)
                 ->delete();
 
             CurriculumComponent::query()
-                ->whereIn('legacy_source', array_keys($this->sources))
+                ->whereIn('legacy_source', $sources)
                 ->delete();
 
             AcademicCourse::query()
-                ->whereIn('legacy_source', array_keys($this->sources))
+                ->whereIn('legacy_source', $sources)
                 ->delete();
 
             AcademicPeriod::query()
-                ->whereIn('legacy_source', array_keys($this->sources))
+                ->whereIn('legacy_source', $sources)
                 ->delete();
 
             AcademicYear::query()
-                ->whereIn('legacy_source', array_keys($this->sources))
+                ->whereIn('legacy_source', $sources)
                 ->delete();
 
             $peopleIds = Person::query()
-                ->whereIn('legacy_source', array_keys($this->sources))
+                ->whereIn('legacy_source', $sources)
                 ->whereDoesntHave('user')
                 ->pluck('id');
 
@@ -193,7 +207,7 @@ class ImportLegacyData extends Command
 
             PersonContact::query()
                 ->whereIn('person_id', $peopleIds)
-                ->orWhereIn('legacy_source', array_keys($this->sources))
+                ->orWhereIn('legacy_source', $sources)
                 ->delete();
 
             PersonSchoolRole::query()
@@ -205,7 +219,7 @@ class ImportLegacyData extends Command
                 ->delete();
 
             School::query()
-                ->whereIn('legacy_source', array_keys($this->sources))
+                ->whereIn('legacy_source', $sources)
                 ->delete();
         });
     }
@@ -866,7 +880,34 @@ class ImportLegacyData extends Command
             $enrollment->save();
 
             $enrollment->courses()->syncWithoutDetaching([$course->id]);
+
+            $this->restoreCurrentStudentAccess($enrollment, $course);
         }
+    }
+
+    private function restoreCurrentStudentAccess(StudentEnrollment $enrollment, AcademicCourse $course): void
+    {
+        $academicYear = $course->academicYear;
+
+        if ($enrollment->status !== StudentEnrollment::STATUS_ENROLLED
+            || ! $academicYear
+            || $academicYear->closed_at
+            || $academicYear->ends_at?->isPast()) {
+            return;
+        }
+
+        PersonSchoolRole::query()->updateOrCreate(
+            [
+                'person_id' => $enrollment->person_id,
+                'school_id' => $academicYear->school_id,
+                'role' => PersonSchoolRole::ROLE_STUDENT,
+            ],
+            [
+                'active' => true,
+                'started_at' => $enrollment->enrolled_at ?? $academicYear->starts_at,
+                'ended_at' => null,
+            ],
+        );
     }
 
     private function generateImportedCalendarDays(string $source): void

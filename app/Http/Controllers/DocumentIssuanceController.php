@@ -13,6 +13,7 @@ use App\Models\StudentAcademicHistory;
 use App\Models\StudentEnrollment;
 use App\Models\User;
 use App\Support\AcademicContextLabel;
+use App\Support\OfficialDocumentCompliance;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -266,6 +267,7 @@ class DocumentIssuanceController extends Controller
             'attendance_scope' => ['nullable', Rule::in(['annual', 'period', 'month'])],
             'academic_period_id' => ['nullable', 'required_if:attendance_scope,period', 'integer'],
             'attendance_month' => ['nullable', 'required_if:attendance_scope,month', 'date_format:Y-m'],
+            'confirm_missing_student_cpf' => ['nullable', 'boolean'],
         ]);
         $schoolIds = $this->accessibleSchoolIds($request->user());
 
@@ -328,7 +330,8 @@ class DocumentIssuanceController extends Controller
             ->select('student_enrollments.*')
             ->join('people', 'people.id', '=', 'student_enrollments.person_id')
             ->with([
-                'student:id,full_name,social_name',
+                'student:id,full_name,social_name,cpf',
+                'student.contacts:id,person_id,relationship_type,cpf',
                 'schoolClass.academicYear.school:id,name',
                 'schoolClass.courses:id,name,stage',
                 'schoolClass:id,academic_year_id,name',
@@ -359,6 +362,7 @@ class DocumentIssuanceController extends Controller
                 [$enabled, $reason] = $this->requiresCurrentEnrollment($type)
                     ? [true, null]
                     : $this->enrollmentAvailability($enrollment, $type);
+                [$enabled, $reason] = $this->applyStudentAvailability($enrollment->student, $enabled, $reason);
 
                 return [
                     'id' => $enrollment->id,
@@ -372,6 +376,7 @@ class DocumentIssuanceController extends Controller
                     'enabled' => $enabled,
                     'reason' => $reason,
                     'academic_year_id' => $year?->id,
+                    'missing_student_cpf' => OfficialDocumentCompliance::studentHasNoCpf($enrollment->student),
                 ];
             });
     }
@@ -568,7 +573,7 @@ class DocumentIssuanceController extends Controller
         return StudentAcademicHistory::query()
             ->select('student_academic_histories.*')
             ->join('people', 'people.id', '=', 'student_academic_histories.person_id')
-            ->with(['student:id,full_name,social_name', 'school:id,name'])
+            ->with(['student:id,full_name,social_name,cpf', 'student.contacts:id,person_id,relationship_type,cpf', 'school:id,name'])
             ->whereIn('school_id', $schoolIds)
             ->when(! $request->user()->isAdministrator(), fn (Builder $query) => $query->whereHas('student.schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $schoolIds)))
             ->when($request->filled('school_id'), fn (Builder $query) => $query->where('school_id', $request->integer('school_id')))
@@ -583,13 +588,18 @@ class DocumentIssuanceController extends Controller
             ->orderBy('people.full_name')
             ->limit(40)
             ->get()
-            ->map(fn (StudentAcademicHistory $history): array => [
-                'id' => $history->id,
-                'title' => $history->student?->social_name ?: $history->student?->full_name ?: 'Estudante sem nome',
-                'subtitle' => collect([$history->title, $history->stage, $history->school?->name])->filter()->join(' · '),
-                'enabled' => true,
-                'reason' => null,
-            ]);
+            ->map(function (StudentAcademicHistory $history): array {
+                [$enabled, $reason] = $this->applyStudentAvailability($history->student, true, null);
+
+                return [
+                    'id' => $history->id,
+                    'title' => $history->student?->social_name ?: $history->student?->full_name ?: 'Estudante sem nome',
+                    'subtitle' => collect([$history->title, $history->stage, $history->school?->name])->filter()->join(' · '),
+                    'enabled' => $enabled,
+                    'reason' => $reason,
+                    'missing_student_cpf' => OfficialDocumentCompliance::studentHasNoCpf($history->student),
+                ];
+            });
     }
 
     /**
@@ -599,7 +609,13 @@ class DocumentIssuanceController extends Controller
     private function classTargets(Request $request, array $schoolIds, string $term, string $type): Collection
     {
         return SchoolClass::query()
-            ->with(['academicYear.school:id,name', 'courses:id,name,stage'])
+            ->with([
+                'academicYear.school:id,name',
+                'courses:id,name,stage',
+                'enrollments' => fn ($query) => $query->where('status', StudentEnrollment::STATUS_ENROLLED),
+                'enrollments.student:id,full_name,cpf',
+                'enrollments.student.contacts:id,person_id,relationship_type,cpf',
+            ])
             ->withCount('schedules')
             ->withCount([
                 'enrollments as active_enrollments_count' => fn (Builder $query) => $query->where('status', StudentEnrollment::STATUS_ENROLLED),
@@ -618,6 +634,14 @@ class DocumentIssuanceController extends Controller
                 $hasEnrollments = (int) $class->active_enrollments_count > 0;
                 $requiresCurrentClass = $this->requiresCurrentClass($type);
                 $isCurrentClass = ! $requiresCurrentClass || $this->isCurrentClass($class);
+                $studentDocuments = in_array($type, ['class-report-cards', 'class-grade-mirror', 'class-final-results'], true);
+                $students = $class->enrollments->map->student->filter();
+                $missingParentCpf = $studentDocuments && $students->contains(
+                    fn (Person $student): bool => ! OfficialDocumentCompliance::hasParentCpf($student)
+                );
+                $missingStudentCpf = $studentDocuments && $students->contains(
+                    fn (Person $student): bool => OfficialDocumentCompliance::studentHasNoCpf($student)
+                );
 
                 return [
                     'id' => $class->id,
@@ -628,12 +652,15 @@ class DocumentIssuanceController extends Controller
                         (int) $class->active_enrollments_count.' '.((int) $class->active_enrollments_count === 1 ? 'matrícula ativa' : 'matrículas ativas'),
                         $class->active ? 'Turma ativa' : 'Turma inativa',
                     ])->filter()->join(' · '),
-                    'enabled' => (! $requiresEnrollments || $hasEnrollments) && $isCurrentClass,
+                    'enabled' => (! $requiresEnrollments || $hasEnrollments) && $isCurrentClass && ! $missingParentCpf,
                     'reason' => match (true) {
                         $requiresCurrentClass && ! $isCurrentClass => 'Use documentos de arquivo para turmas de anos letivos encerrados.',
                         $requiresEnrollments && ! $hasEnrollments => 'A turma não possui matrículas ativas.',
+                        $missingParentCpf => 'Há estudante sem CPF cadastrado para mãe ou pai. Revise os responsáveis antes da emissão.',
+                        $missingStudentCpf => 'Há estudante sem CPF. A emissão exigirá confirmação.',
                         default => null,
                     },
+                    'missing_student_cpf' => $missingStudentCpf,
                 ];
             });
     }
@@ -747,7 +774,7 @@ class DocumentIssuanceController extends Controller
             ->whereKey($data['target_id'])
             ->whereHas('schoolClass.academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
             ->firstOrFail();
-        $enrollment->loadMissing('schoolClass.academicYear', 'courses');
+        $enrollment->loadMissing('schoolClass.academicYear', 'courses', 'student.contacts');
         [$enabled, $reason] = $this->enrollmentAvailability($enrollment, $data['type']);
 
         if (! $enabled) {
@@ -755,6 +782,8 @@ class DocumentIssuanceController extends Controller
                 'target_id' => $reason ?? 'Este documento nÃ£o estÃ¡ disponÃ­vel para esta matrÃ­cula.',
             ]);
         }
+
+        $this->ensureStudentCanIssue($enrollment->student, (bool) ($data['confirm_missing_student_cpf'] ?? false));
 
         $route = match ($data['type']) {
             'enrollment-declaration' => 'enrollments.enrollment-declaration.pdf',
@@ -768,6 +797,9 @@ class DocumentIssuanceController extends Controller
             default => abort(404),
         };
         $parameters = ['enrollment' => $enrollment];
+        if (! empty($data['confirm_missing_student_cpf'])) {
+            $parameters['confirm_missing_student_cpf'] = 1;
+        }
 
         if (in_array($data['type'], ['report-card', 'individual-record'], true)) {
             $parameters['notas'] = $data['score_view'] ?? 'numeros';
@@ -803,20 +835,26 @@ class DocumentIssuanceController extends Controller
     private function issueHistory(array $data, User $user, array $schoolIds): RedirectResponse
     {
         $history = StudentAcademicHistory::query()
-            ->with('student')
+            ->with('student.contacts')
             ->whereKey($data['target_id'])
             ->whereIn('school_id', $schoolIds)
             ->when(! $user->isAdministrator(), fn (Builder $query) => $query->whereHas('student.schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $schoolIds)))
             ->firstOrFail();
 
-        return redirect()->route('people.histories.pdf', [$history->student, $history]);
+        $this->ensureStudentCanIssue($history->student, (bool) ($data['confirm_missing_student_cpf'] ?? false));
+
+        return redirect()->route('people.histories.pdf', [
+            'person' => $history->student,
+            'history' => $history,
+            'confirm_missing_student_cpf' => ! empty($data['confirm_missing_student_cpf']) ? 1 : null,
+        ]);
     }
 
     /** @param array<string, mixed> $data @param list<int> $schoolIds */
     private function issueClass(array $data, array $schoolIds): RedirectResponse
     {
         $class = SchoolClass::query()
-            ->with(['academicYear', 'courses', 'enrollments'])
+            ->with(['academicYear', 'courses', 'enrollments.student.contacts'])
             ->whereKey($data['target_id'])
             ->whereHas('academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
             ->firstOrFail();
@@ -834,17 +872,30 @@ class DocumentIssuanceController extends Controller
             ]);
         }
 
+        if (in_array($data['type'], ['class-report-cards', 'class-grade-mirror', 'class-final-results'], true)) {
+            foreach ($class->enrollments->where('status', StudentEnrollment::STATUS_ENROLLED) as $enrollment) {
+                $this->ensureStudentCanIssue($enrollment->student, (bool) ($data['confirm_missing_student_cpf'] ?? false));
+            }
+        }
+
+        $confirmation = ! empty($data['confirm_missing_student_cpf']) ? 1 : null;
+
         return match ($data['type']) {
             'class-schedule' => redirect()->route('academic-years.classes.schedules.pdf', [$class->academicYear, $class]),
             'class-report-cards' => redirect()->route('classes.report-cards.pdf', [
                 'class' => $class,
                 'notas' => $data['score_view'] ?? 'conceitos',
+                'confirm_missing_student_cpf' => $confirmation,
             ]),
             'class-grade-mirror' => redirect()->route('classes.grade-mirror.pdf', [
                 'class' => $class,
                 'notas' => $data['score_view'] ?? 'conceitos',
+                'confirm_missing_student_cpf' => $confirmation,
             ]),
-            'class-final-results' => redirect()->route('classes.final-results.pdf', $class),
+            'class-final-results' => redirect()->route('classes.final-results.pdf', [
+                'class' => $class,
+                'confirm_missing_student_cpf' => $confirmation,
+            ]),
             default => abort(404),
         };
     }
@@ -903,5 +954,28 @@ class DocumentIssuanceController extends Controller
         $parameters['notas'] = $data['score_view'] ?? 'numeros';
 
         return redirect()->route('teacher-diaries.pdf', $parameters);
+    }
+
+    /** @return array{0: bool, 1: string|null} */
+    private function applyStudentAvailability(?Person $student, bool $enabled, ?string $reason): array
+    {
+        if (! $enabled || ! $student) {
+            return [$enabled, $reason];
+        }
+
+        if (! OfficialDocumentCompliance::hasParentCpf($student)) {
+            return [false, 'Cadastre o CPF da mãe ou do pai em Responsáveis e contatos antes da emissão.'];
+        }
+
+        return [true, OfficialDocumentCompliance::studentHasNoCpf($student)
+            ? 'O estudante não possui CPF. A emissão exigirá confirmação.'
+            : null];
+    }
+
+    private function ensureStudentCanIssue(Person $student, bool $missingCpfConfirmed): void
+    {
+        if ($message = OfficialDocumentCompliance::studentMessage($student, $missingCpfConfirmed)) {
+            throw ValidationException::withMessages(['target_id' => $message]);
+        }
     }
 }

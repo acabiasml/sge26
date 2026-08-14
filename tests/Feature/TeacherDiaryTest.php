@@ -13,6 +13,7 @@ use App\Models\DiaryAttendanceJustification;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\IssuedDocument;
 use App\Models\Person;
+use App\Models\PersonContact;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\SchoolClass;
@@ -1539,6 +1540,14 @@ class TeacherDiaryTest extends TestCase
             'started_at' => '2026-01-01',
             'active' => true,
         ]);
+
+        if ($role === PersonSchoolRole::ROLE_STUDENT) {
+            $person->contacts()->create([
+                'name' => 'Maria da Silva',
+                'relationship_type' => PersonContact::TYPE_MOTHER,
+                'cpf' => fake()->unique()->numerify('###########'),
+            ]);
+        }
 
         return User::factory()->create([
             'person_id' => $person->id,

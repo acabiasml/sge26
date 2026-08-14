@@ -25,7 +25,7 @@ class EnrollmentPdfController extends Controller
         $enrollment->load(['student.contacts', 'courses', 'schoolClass.courses', 'enrolledBy', 'transferredBy', 'reclassifiedFrom.schoolClass', 'reclassifiedFrom.courses']);
         $academicYear->load('school');
 
-        if ($message = OfficialDocumentCompliance::personMessage($enrollment->student)) {
+        if ($message = OfficialDocumentCompliance::studentMessage($enrollment->student, $request->boolean('confirm_missing_student_cpf'))) {
             return redirect()->route('classes.enrollments.index', $class)->with('status', $message);
         }
 

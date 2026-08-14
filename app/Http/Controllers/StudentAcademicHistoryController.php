@@ -104,7 +104,7 @@ class StudentAcademicHistoryController extends Controller
 
         $history->load(['school', 'student', 'years.records', 'components.records.year']);
 
-        if ($message = OfficialDocumentCompliance::personMessage($person)) {
+        if ($message = OfficialDocumentCompliance::studentMessage($person, $request->boolean('confirm_missing_student_cpf'))) {
             return redirect()->route('people.histories.show', [$person, $history])->with('status', $message);
         }
 
@@ -292,7 +292,7 @@ class StudentAcademicHistoryController extends Controller
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function syncRows(StudentAcademicHistory $history, array $data): void
     {

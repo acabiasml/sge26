@@ -13,6 +13,7 @@ use App\Models\DiaryAssessment;
 use App\Models\IssuedDocument;
 use App\Models\KnowledgeArea;
 use App\Models\Person;
+use App\Models\PersonContact;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\StudentEnrollment;
@@ -2269,6 +2270,14 @@ class AcademicCalendarTest extends TestCase
             'active' => true,
             'started_at' => now()->subMonth()->toDateString(),
         ]);
+
+        if ($role === PersonSchoolRole::ROLE_STUDENT) {
+            $person->contacts()->create([
+                'name' => 'Maria da Silva',
+                'relationship_type' => PersonContact::TYPE_MOTHER,
+                'cpf' => fake()->unique()->numerify('###########'),
+            ]);
+        }
 
         return User::factory()->create([
             'person_id' => $person->id,

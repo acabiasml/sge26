@@ -34,7 +34,7 @@ class ClassAcademicDocumentsController extends Controller
             return $this->blocked('Não foi possível emitir os boletins: a turma não possui matrículas ativas.');
         }
 
-        if ($message = $this->complianceMessage($academicYear->school, $enrollments)) {
+        if ($message = $this->complianceMessage($request, $academicYear->school, $enrollments)) {
             return $this->blocked($message);
         }
 
@@ -83,7 +83,7 @@ class ClassAcademicDocumentsController extends Controller
             return $this->blocked('Não foi possível emitir o espelho: a turma não possui matrículas ativas.');
         }
 
-        if ($message = OfficialDocumentCompliance::schoolMessage($academicYear->school)) {
+        if ($message = $this->complianceMessage($request, $academicYear->school, $enrollments)) {
             return $this->blocked($message);
         }
 
@@ -143,7 +143,7 @@ class ClassAcademicDocumentsController extends Controller
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
 
         $enrollments = StudentEnrollment::query()
-            ->with('student')
+            ->with('student.contacts')
             ->where('school_class_id', $class->id)
             ->where('status', StudentEnrollment::STATUS_ENROLLED)
             ->get()
@@ -158,15 +158,19 @@ class ClassAcademicDocumentsController extends Controller
         return $request->query('notas') === 'numeros' ? 'numeros' : 'conceitos';
     }
 
-    private function complianceMessage(School $school, Collection $enrollments): ?string
+    private function complianceMessage(Request $request, School $school, Collection $enrollments): ?string
     {
         if ($message = OfficialDocumentCompliance::schoolMessage($school)) {
             return $message;
         }
 
-        $incomplete = $enrollments
-            ->filter(fn (StudentEnrollment $enrollment): bool => $enrollment->student?->missingSchoolDocumentFields() !== [])
-            ->values();
+        $incomplete = $enrollments->filter(
+            fn (StudentEnrollment $enrollment): bool => $enrollment->student
+                && OfficialDocumentCompliance::studentMessage(
+                    $enrollment->student,
+                    $request->boolean('confirm_missing_student_cpf')
+                ) !== null
+        )->values();
 
         if ($incomplete->isEmpty()) {
             return null;

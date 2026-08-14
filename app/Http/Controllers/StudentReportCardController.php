@@ -33,7 +33,7 @@ class StudentReportCardController extends Controller
 
         $report = $builder->build($enrollment);
 
-        if ($message = $this->complianceMessage($report)) {
+        if ($message = $this->complianceMessage($request, $report)) {
             return redirect()->route('enrollments.report-card.show', $enrollment)->with('status', $message);
         }
 
@@ -57,7 +57,7 @@ class StudentReportCardController extends Controller
 
         $report = $builder->build($enrollment);
 
-        if ($message = $this->complianceMessage($report)) {
+        if ($message = $this->complianceMessage($request, $report)) {
             return redirect()->route('enrollments.report-card.show', $enrollment)->with('status', $message);
         }
 
@@ -103,16 +103,16 @@ class StudentReportCardController extends Controller
     }
 
     /**
-     * @param array<string, mixed> $report
+     * @param  array<string, mixed>  $report
      */
-    private function complianceMessage(array $report): ?string
+    private function complianceMessage(Request $request, array $report): ?string
     {
-        return OfficialDocumentCompliance::personMessage($report['student'])
+        return OfficialDocumentCompliance::studentMessage($report['student'], $request->boolean('confirm_missing_student_cpf'))
             ?? OfficialDocumentCompliance::schoolMessage($report['academicYear']->school);
     }
 
     /**
-     * @param array<string, mixed> $report
+     * @param  array<string, mixed>  $report
      */
     private function issuedDocument(Request $request, StudentEnrollment $enrollment, array $report, string $type, string $title): IssuedDocument
     {

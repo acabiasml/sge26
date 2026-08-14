@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\IssuedDocument;
 use App\Models\SchoolClass;
 use App\Support\AcademicContextLabel;
+use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ class ClassFinalResultsPdfController extends Controller
         $class->load([
             'academicYear.school',
             'courses',
-            'enrollments.student',
+            'enrollments.student.contacts',
             'enrollments.courses',
             'enrollments.finalResultCalculatedBy',
         ]);
@@ -30,6 +31,15 @@ class ClassFinalResultsPdfController extends Controller
         $enrollments = $class->enrollments
             ->sortBy(fn ($enrollment): string => $enrollment->student?->full_name ?? '')
             ->values();
+
+        foreach ($enrollments as $enrollment) {
+            if ($enrollment->student && ($message = OfficialDocumentCompliance::studentMessage(
+                $enrollment->student,
+                $request->boolean('confirm_missing_student_cpf')
+            ))) {
+                return redirect()->back()->with('status', $message);
+            }
+        }
 
         $issuedDocument = IssuedDocument::query()->create([
             'uuid' => (string) Str::uuid(),
