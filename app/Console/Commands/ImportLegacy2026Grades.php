@@ -9,6 +9,7 @@ use App\Models\DiaryAssessmentResult;
 use App\Models\Person;
 use App\Models\SchoolAssessmentRule;
 use App\Models\SchoolClass;
+use App\Models\StudentBehaviorGrade;
 use App\Models\StudentEnrollment;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
@@ -165,27 +166,6 @@ class ImportLegacy2026Grades extends Command
             return;
         }
 
-        $component = CurriculumComponent::query()->with('course')->where('legacy_source', $source)->where('legacy_id', $legacyComponentId)->first();
-        if (! $component) {
-            $courseIds = $class->courses()->pluck('academic_courses.id');
-            $componentCandidates = CurriculumComponent::query()
-                ->whereIn('academic_course_id', $courseIds)
-                ->get()
-                ->filter(fn (CurriculumComponent $candidate): bool => $this->normalized($candidate->name) === $this->normalized($legacyComponent['nome'] ?? ''));
-            $component = $componentCandidates->count() === 1 ? $componentCandidates->first() : null;
-        }
-
-        if (! $component) {
-            $this->stats['sem_componente']++;
-            $this->recordIssue($source, $legacyGradeId, 'componente_nao_encontrado', [
-                'componente_antigo' => $legacyComponentId,
-                'nome' => $legacyComponent['nome'] ?? null,
-                'turma' => $class->name,
-            ]);
-
-            return;
-        }
-
         $person = Person::query()->where('legacy_source', $source)->where('legacy_id', $legacyUserId)->first();
         $cpf = preg_replace('/\D+/', '', (string) ($legacyUser['cpf'] ?? ''));
         if (! $person && strlen($cpf) === 11) {
@@ -209,10 +189,72 @@ class ImportLegacy2026Grades extends Command
             return;
         }
 
+        $isBehavior = $this->normalized($legacyComponent['nome'] ?? '') === 'comportamento';
+        $component = null;
+
+        if (! $isBehavior) {
+            $component = CurriculumComponent::query()->with('course')->where('legacy_source', $source)->where('legacy_id', $legacyComponentId)->first();
+            if (! $component) {
+                $courseIds = $class->courses()->pluck('academic_courses.id');
+                $componentCandidates = CurriculumComponent::query()
+                    ->whereIn('academic_course_id', $courseIds)
+                    ->get()
+                    ->filter(fn (CurriculumComponent $candidate): bool => $this->normalized($candidate->name) === $this->normalized($legacyComponent['nome'] ?? ''));
+                $component = $componentCandidates->count() === 1 ? $componentCandidates->first() : null;
+            }
+
+            if (! $component) {
+                $this->stats['sem_componente']++;
+                $this->recordIssue($source, $legacyGradeId, 'componente_nao_encontrado', [
+                    'componente_antigo' => $legacyComponentId,
+                    'nome' => $legacyComponent['nome'] ?? null,
+                    'turma' => $class->name,
+                ]);
+
+                return;
+            }
+        }
+
         $enrollment = StudentEnrollment::query()->where('school_class_id', $class->id)->where('person_id', $person->id)->first();
         if (! $enrollment) {
+            $enrollmentCandidates = StudentEnrollment::query()
+                ->where('person_id', $person->id)
+                ->whereHas('schoolClass', fn ($query) => $query->where('academic_year_id', $period->academic_year_id))
+                ->with('schoolClass.courses')
+                ->get()
+                ->filter(fn (StudentEnrollment $candidate): bool => ! $component
+                    || $candidate->schoolClass->courses->contains('id', $component->academic_course_id));
+            $enrollment = $enrollmentCandidates->count() === 1 ? $enrollmentCandidates->first() : null;
+        }
+
+        if (! $enrollment) {
             $this->stats['sem_matricula']++;
-            $this->recordIssue($source, $legacyGradeId, 'matricula_equivalente_nao_encontrada', ['estudante' => $person->name, 'turma' => $class->name]);
+            $this->recordIssue($source, $legacyGradeId, 'matricula_equivalente_nao_encontrada', ['estudante' => $person->full_name, 'turma' => $class->name]);
+
+            return;
+        }
+
+        if ($isBehavior) {
+            $existingBehavior = StudentBehaviorGrade::query()
+                ->where('academic_period_id', $period->id)
+                ->where('student_enrollment_id', $enrollment->id)
+                ->first();
+            $this->stats['correspondencias']++;
+
+            if ($existingBehavior && abs((float) $existingBehavior->score - $score) < 0.001) {
+                $this->stats['inalteradas']++;
+
+                return;
+            }
+
+            if (! $dryRun) {
+                StudentBehaviorGrade::query()->updateOrCreate(
+                    ['academic_period_id' => $period->id, 'student_enrollment_id' => $enrollment->id],
+                    ['updated_by_person_id' => null, 'score' => $score, 'notes' => null],
+                );
+            }
+
+            $this->stats[$existingBehavior ? 'atualizadas' : 'criadas']++;
 
             return;
         }
