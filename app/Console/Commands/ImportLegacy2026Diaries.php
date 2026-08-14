@@ -56,6 +56,9 @@ class ImportLegacy2026Diaries extends Command
     /** @var list<array<string, mixed>> */
     private array $issues = [];
 
+    /** @var list<array<string, mixed>> */
+    private array $unmatchedAbsences = [];
+
     public function handle(): int
     {
         $selected = $this->option('source');
@@ -214,7 +217,12 @@ class ImportLegacy2026Diaries extends Command
 
         if ($absentEnrollmentIds === null) {
             $this->stats['faltas_sem_matricula'] += $legacyAbsences->count();
-            $this->recordIssue($source, $legacyDiaryId, 'falta_sem_matricula_inequivoca', ['data' => $date->toDateString()]);
+            $this->recordIssue($source, $legacyDiaryId, 'falta_sem_matricula_inequivoca', [
+                'data' => $date->toDateString(),
+                'turma' => $class->name,
+                'componente' => $component->name,
+                'faltas_nao_correspondentes' => $this->unmatchedAbsences,
+            ]);
 
             return;
         }
@@ -321,6 +329,7 @@ class ImportLegacy2026Diaries extends Command
     private function absentEnrollmentIds(string $source, Collection $legacyAbsences, Collection $users, Collection $enrollments): ?array
     {
         $ids = [];
+        $this->unmatchedAbsences = [];
         foreach ($legacyAbsences as $absence) {
             $legacyUserId = (int) ($absence['users_id'] ?? 0);
             $legacyUser = $users->get($legacyUserId);
@@ -341,12 +350,19 @@ class ImportLegacy2026Diaries extends Command
 
             $enrollment = $person ? $enrollments->firstWhere('person_id', $person->id) : null;
             if (! $enrollment) {
-                return null;
+                $this->unmatchedAbsences[] = [
+                    'usuario_antigo_id' => $legacyUserId,
+                    'nome' => $legacyUser['nome'] ?? null,
+                    'cpf' => $legacyUser['cpf'] ?? null,
+                    'pessoa_encontrada_id' => $person?->id,
+                ];
+
+                continue;
             }
             $ids[] = $enrollment->id;
         }
 
-        return array_values(array_unique($ids));
+        return $this->unmatchedAbsences === [] ? array_values(array_unique($ids)) : null;
     }
 
     private function date(mixed $value): ?Carbon
