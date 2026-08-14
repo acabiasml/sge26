@@ -254,6 +254,7 @@ class TeacherDiaryController extends Controller
             ->get();
 
         if ($period) {
+            $this->ensureRegularAssessments($schoolClass, $component, $period, $assignment, $assessmentRules);
             $this->ensureRecoveryAssessment($schoolClass, $component, $period, $assignment);
         }
 
@@ -1154,6 +1155,7 @@ class TeacherDiaryController extends Controller
         $missingGrades = $regularAssessments->sum(function (DiaryAssessment $assessment) use ($activeEnrollments): int {
             return $activeEnrollments->filter(fn (StudentEnrollment $enrollment): bool => $assessment->results->firstWhere('student_enrollment_id', $enrollment->id)?->score === null)->count();
         });
+
         return [
             'attendance_without_content' => $attendanceDates->diff($contentDates)->all(),
             'content_without_attendance' => $contentDates->diff($attendanceDates)->all(),
@@ -1367,6 +1369,33 @@ class TeacherDiaryController extends Controller
     private function averages(Collection $enrollments, Collection $assessments): array
     {
         return app(DiaryGradeCalculator::class)->averages($enrollments, $assessments);
+    }
+
+    /** @param Collection<int, SchoolAssessmentRule> $rules */
+    private function ensureRegularAssessments(
+        SchoolClass $schoolClass,
+        CurriculumComponent $component,
+        AcademicPeriod $period,
+        SchoolClassComponent $assignment,
+        Collection $rules,
+    ): void {
+        foreach ($rules as $rule) {
+            DiaryAssessment::query()->updateOrCreate(
+                [
+                    'school_class_id' => $schoolClass->id,
+                    'curriculum_component_id' => $component->id,
+                    'academic_period_id' => $period->id,
+                    'school_assessment_rule_id' => $rule->id,
+                ],
+                [
+                    'teacher_person_id' => $assignment->teacher_person_id,
+                    'title' => $rule->label(),
+                    'weight' => $rule->weight,
+                    'maximum_score' => $rule->maximum_score,
+                    'assessment_date' => $period->ends_at,
+                ],
+            );
+        }
     }
 
     /**

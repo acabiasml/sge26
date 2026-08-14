@@ -618,6 +618,44 @@ class TeacherDiaryTest extends TestCase
             ->assertSee('8.5');
     }
 
+    public function test_opening_diary_creates_missing_assessment_from_period_rule(): void
+    {
+        [$teacher, , $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $rule = $period->assessmentRules()->firstOrFail();
+
+        $this->assertDatabaseMissing('diary_assessments', [
+            'school_class_id' => $class->id,
+            'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id,
+            'school_assessment_rule_id' => $rule->id,
+        ]);
+
+        $this->actingAs($teacher)
+            ->get(route('teacher-diaries.show', [$class, $component, 'period' => $period->id]))
+            ->assertOk()
+            ->assertSee('scores[');
+
+        $assessment = DiaryAssessment::query()
+            ->where('school_class_id', $class->id)
+            ->where('curriculum_component_id', $component->id)
+            ->where('academic_period_id', $period->id)
+            ->where('school_assessment_rule_id', $rule->id)
+            ->firstOrFail();
+
+        $this->actingAs($teacher)
+            ->put(route('teacher-diaries.grades.update', [$class, $component]), [
+                'academic_period_id' => $period->id,
+                'scores' => [$assessment->id => [$enrollment->id => '8,5']],
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('diary_assessment_results', [
+            'diary_assessment_id' => $assessment->id,
+            'student_enrollment_id' => $enrollment->id,
+            'score' => 8.5,
+        ]);
+    }
+
     public function test_teacher_cannot_change_school_assessment_rules(): void
     {
         [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
