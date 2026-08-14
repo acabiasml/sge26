@@ -9,6 +9,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SchoolAssessmentRule extends Model
 {
+    protected $attributes = [
+        'weight' => 10,
+        'maximum_score' => 10,
+    ];
+
     use Auditable;
 
     protected $fillable = [

@@ -307,7 +307,7 @@ class ImportLegacy2026Grades extends Command
                 'is_recovery' => false,
                 'teacher_person_id' => null,
                 'title' => 'Média do período',
-                'weight' => 1,
+                'weight' => 10,
                 'maximum_score' => 10,
                 'assessment_date' => null,
                 'notes' => null,
@@ -346,7 +346,7 @@ class ImportLegacy2026Grades extends Command
             ->first();
 
         if ($reusable) {
-            $reusable->update(['name' => 'Média do período', 'weight' => 1, 'maximum_score' => 10]);
+            $reusable->update(['name' => 'Média do período', 'weight' => 10, 'maximum_score' => 10]);
 
             return $reusable;
         }
@@ -356,7 +356,7 @@ class ImportLegacy2026Grades extends Command
             'academic_period_id' => $period->id,
             'name' => 'Média do período',
             'position' => ((int) SchoolAssessmentRule::query()->where('academic_period_id', $period->id)->max('position')) + 1,
-            'weight' => 1,
+            'weight' => 10,
             'maximum_score' => 10,
         ]);
     }

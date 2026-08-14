@@ -1135,7 +1135,7 @@ class ImportLegacyData extends Command
                     'is_recovery' => false,
                     'teacher_person_id' => $assignment?->teacher_person_id,
                     'title' => 'Média do período',
-                    'weight' => 1,
+                    'weight' => 10,
                     'maximum_score' => 10,
                     'assessment_date' => null,
                     'notes' => null,
@@ -1187,7 +1187,7 @@ class ImportLegacyData extends Command
         if ($reusableRule) {
             $reusableRule->update([
                 'name' => 'Média do período',
-                'weight' => 1,
+                'weight' => 10,
                 'maximum_score' => 10,
             ]);
 
@@ -1204,7 +1204,7 @@ class ImportLegacyData extends Command
             'academic_period_id' => $period->id,
             'name' => 'Média do período',
             'position' => max(1, $position),
-            'weight' => 1,
+            'weight' => 10,
             'maximum_score' => 10,
         ]);
     }
