@@ -40,6 +40,7 @@ return [
         'credentials_path' => env('GOOGLE_WORKSPACE_CREDENTIALS_PATH'),
         'administrator_email' => env('GOOGLE_WORKSPACE_ADMIN_EMAIL'),
         'organizational_unit' => env('GOOGLE_WORKSPACE_ORG_UNIT', '/'),
+        'temporary_password' => env('GOOGLE_WORKSPACE_TEMPORARY_PASSWORD'),
     ],
 
     'slack' => [

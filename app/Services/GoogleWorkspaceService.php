@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\Person;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use RuntimeException;
 
 class GoogleWorkspaceService
@@ -42,7 +41,11 @@ class GoogleWorkspaceService
             $this->throwGoogleError($existing->json('error.message'), $existing->status());
         }
 
-        $password = Str::password(16, symbols: true);
+        $password = (string) config('services.google_workspace.temporary_password');
+
+        if (mb_strlen($password) < 8) {
+            throw new RuntimeException('Configure uma senha temporária do Google Workspace com pelo menos 8 caracteres.');
+        }
         [$givenName, $familyName] = $this->splitName($person->full_name);
 
         $response = $this->request()->post('users', [
