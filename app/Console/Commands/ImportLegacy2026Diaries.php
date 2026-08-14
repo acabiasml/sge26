@@ -49,7 +49,7 @@ class ImportLegacy2026Diaries extends Command
         'sem_periodo' => 0,
         'sem_turma' => 0,
         'sem_componente' => 0,
-        'faltas_sem_matricula' => 0,
+        'faltas_fora_do_vinculo' => 0,
         'conflitos' => 0,
     ];
 
@@ -216,16 +216,14 @@ class ImportLegacy2026Diaries extends Command
             $eligibleEnrollments,
         );
 
-        if ($absentEnrollmentIds === null) {
-            $this->stats['faltas_sem_matricula'] += $legacyAbsences->count();
-            $this->recordIssue($source, $legacyDiaryId, 'falta_sem_matricula_inequivoca', [
+        if ($this->unmatchedAbsences !== []) {
+            $this->stats['faltas_fora_do_vinculo'] += count($this->unmatchedAbsences);
+            $this->recordIssue($source, $legacyDiaryId, 'falta_fora_da_vigencia_da_matricula', [
                 'data' => $date->toDateString(),
                 'turma' => $class->name,
                 'componente' => $component->name,
-                'faltas_nao_correspondentes' => $this->unmatchedAbsences,
+                'faltas_desconsideradas' => $this->unmatchedAbsences,
             ]);
-
-            return;
         }
 
         $this->stats['datas_correspondentes']++;
@@ -253,11 +251,9 @@ class ImportLegacy2026Diaries extends Command
             $this->recordIssue($source, $legacyDiaryId, 'conteudo_manual_diferente', [
                 'data' => $date->toDateString(), 'turma' => $class->name, 'componente' => $component->name,
             ]);
-
-            return;
         }
 
-        if ($content !== '') {
+        if ($content !== '' && ! $contentConflict) {
             $contentChanged = ! $existingContent || $existingContent->content !== $content || $existingContent->academic_period_id !== $period->id;
             $this->stats[$existingContent ? ($contentChanged ? 'conteudos_atualizados' : 'conteudos_inalterados') : 'conteudos_criados']++;
         }
@@ -294,7 +290,7 @@ class ImportLegacy2026Diaries extends Command
         }
         $record->entries()->whereNotIn('student_enrollment_id', $eligibleEnrollments->pluck('id'))->delete();
 
-        if ($content !== '') {
+        if ($content !== '' && ! $contentConflict) {
             $existingContent ??= new DiaryContent;
             $existingContent->fill([
                 'school_class_id' => $class->id,
@@ -325,9 +321,9 @@ class ImportLegacy2026Diaries extends Command
      * @param  Collection<int, array<string, mixed>>  $legacyAbsences
      * @param  Collection<int, array<string, mixed>>  $users
      * @param  Collection<int, StudentEnrollment>  $enrollments
-     * @return list<int>|null
+     * @return list<int>
      */
-    private function absentEnrollmentIds(string $source, int $classId, Collection $legacyAbsences, Collection $users, Collection $enrollments): ?array
+    private function absentEnrollmentIds(string $source, int $classId, Collection $legacyAbsences, Collection $users, Collection $enrollments): array
     {
         $ids = [];
         $this->unmatchedAbsences = [];
@@ -372,7 +368,7 @@ class ImportLegacy2026Diaries extends Command
             $ids[] = $enrollment->id;
         }
 
-        return $this->unmatchedAbsences === [] ? array_values(array_unique($ids)) : null;
+        return array_values(array_unique($ids));
     }
 
     private function date(mixed $value): ?Carbon
