@@ -14,6 +14,7 @@
     $nationalityOptions = \App\Support\Nationalities::options();
     $requiresCompleteFields = $requiresCompleteActiveData;
     $requiresBrazilianBirthPlace = $requiresCompleteFields && $nationalityValue === 'Brasileira';
+    $willGenerateInstitutionalEmail = ! ($person->exists ?? false);
 @endphp
 
 <div class="form-row">
@@ -122,8 +123,10 @@
 <div class="form-row">
     <div class="form-group col-md-4">
         <label for="institutional_email">E-mail institucional</label>
-        <input id="institutional_email" name="institutional_email" type="email" inputmode="email" autocomplete="email" class="form-control @error('institutional_email') is-invalid @enderror" value="{{ old('institutional_email', $person->institutional_email ?? '') }}" @readonly($lockInstitutionalEmail)>
-        @if ($lockInstitutionalEmail)
+        <input id="institutional_email" @unless($willGenerateInstitutionalEmail) name="institutional_email" @endunless type="email" inputmode="email" autocomplete="email" class="form-control @error('institutional_email') is-invalid @enderror" value="{{ $willGenerateInstitutionalEmail ? '' : old('institutional_email', $person->institutional_email ?? '') }}" placeholder="{{ $willGenerateInstitutionalEmail ? 'Gerado automaticamente ao salvar' : '' }}" @disabled($willGenerateInstitutionalEmail) @readonly($lockInstitutionalEmail)>
+        @if ($willGenerateInstitutionalEmail)
+            <small class="form-text text-muted">Será criado a partir do nome, sem repetir endereços já cadastrados.</small>
+        @elseif ($lockInstitutionalEmail)
             <small class="form-text text-muted">Seu e-mail institucional não pode ser alterado por você.</small>
         @endif
         @error('institutional_email') <div class="invalid-feedback">{{ $message }}</div> @enderror

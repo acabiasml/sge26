@@ -4,8 +4,9 @@ namespace App\Models;
 
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasTitleCaseAttributes;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Support\InstitutionalEmailGenerator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -14,6 +15,16 @@ use Illuminate\Support\Carbon;
 class Person extends Model
 {
     use Auditable, HasFactory, HasTitleCaseAttributes;
+
+    protected static function booted(): void
+    {
+        static::saving(function (Person $person): void {
+            if (blank($person->institutional_email) && filled($person->full_name)) {
+                $person->institutional_email = app(InstitutionalEmailGenerator::class)
+                    ->generate($person->full_name, $person->exists ? $person->getKey() : null);
+            }
+        });
+    }
 
     protected $fillable = [
         'legacy_id',
