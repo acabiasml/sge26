@@ -210,6 +210,7 @@ class ImportLegacy2026Diaries extends Command
         $eligibleEnrollments = $this->eligibleEnrollments($class, $date);
         $absentEnrollmentIds = $this->absentEnrollmentIds(
             $source,
+            $class->id,
             $legacyAbsences,
             $users,
             $eligibleEnrollments,
@@ -326,7 +327,7 @@ class ImportLegacy2026Diaries extends Command
      * @param  Collection<int, StudentEnrollment>  $enrollments
      * @return list<int>|null
      */
-    private function absentEnrollmentIds(string $source, Collection $legacyAbsences, Collection $users, Collection $enrollments): ?array
+    private function absentEnrollmentIds(string $source, int $classId, Collection $legacyAbsences, Collection $users, Collection $enrollments): ?array
     {
         $ids = [];
         $this->unmatchedAbsences = [];
@@ -350,11 +351,20 @@ class ImportLegacy2026Diaries extends Command
 
             $enrollment = $person ? $enrollments->firstWhere('person_id', $person->id) : null;
             if (! $enrollment) {
+                $classEnrollment = $person ? StudentEnrollment::query()
+                    ->where('person_id', $person->id)
+                    ->where('school_class_id', $classId)
+                    ->latest('id')
+                    ->first() : null;
                 $this->unmatchedAbsences[] = [
                     'usuario_antigo_id' => $legacyUserId,
                     'nome' => $legacyUser['nome'] ?? null,
                     'cpf' => $legacyUser['cpf'] ?? null,
                     'pessoa_encontrada_id' => $person?->id,
+                    'matricula_na_turma_id' => $classEnrollment?->id,
+                    'matriculado_em' => $classEnrollment?->enrolled_at?->toDateString(),
+                    'transferido_em' => $classEnrollment?->transferred_at?->toDateString(),
+                    'cancelado_em' => $classEnrollment?->cancelled_at?->toDateString(),
                 ];
 
                 continue;
