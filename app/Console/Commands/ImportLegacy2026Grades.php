@@ -217,14 +217,17 @@ class ImportLegacy2026Grades extends Command
 
         $enrollment = StudentEnrollment::query()->where('school_class_id', $class->id)->where('person_id', $person->id)->first();
         if (! $enrollment) {
-            $enrollmentCandidates = StudentEnrollment::query()
+            $yearEnrollmentCandidates = StudentEnrollment::query()
                 ->where('person_id', $person->id)
                 ->whereHas('schoolClass', fn ($query) => $query->where('academic_year_id', $period->academic_year_id))
                 ->with('schoolClass.courses')
-                ->get()
+                ->get();
+            $compatibleCandidates = $yearEnrollmentCandidates
                 ->filter(fn (StudentEnrollment $candidate): bool => ! $component
                     || $candidate->schoolClass->courses->contains('id', $component->academic_course_id));
-            $enrollment = $enrollmentCandidates->count() === 1 ? $enrollmentCandidates->first() : null;
+            $enrollment = $compatibleCandidates->count() === 1
+                ? $compatibleCandidates->first()
+                : ($yearEnrollmentCandidates->count() === 1 ? $yearEnrollmentCandidates->first() : null);
         }
 
         if (! $enrollment) {
