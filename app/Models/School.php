@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class School extends Model
 {
@@ -96,16 +97,23 @@ class School extends Model
     {
         $date = $date ? Carbon::parse($date)->toDateString() : now()->toDateString();
         $concepts = $this->relationLoaded('concepts') ? $this->concepts : $this->concepts()->get();
-        $effectiveFrom = $concepts
-            ->filter(fn (SchoolConcept $concept): bool => $concept->effective_from !== null && $concept->effective_from->toDateString() <= $date)
-            ->max(fn (SchoolConcept $concept): string => $concept->effective_from->toDateString());
+        $eligible = $concepts->filter(
+            fn (SchoolConcept $concept): bool => $concept->effective_from !== null
+                && $concept->effective_from->toDateString() <= $date
+        );
 
-        if (! $effectiveFrom) {
-            $effectiveFrom = $concepts->max(fn (SchoolConcept $concept): ?string => $concept->effective_from?->toDateString());
+        if ($eligible->isEmpty()) {
+            $firstEffectiveFrom = $concepts->min(
+                fn (SchoolConcept $concept): ?string => $concept->effective_from?->toDateString()
+            );
+            $eligible = $concepts->filter(
+                fn (SchoolConcept $concept): bool => $concept->effective_from?->toDateString() === $firstEffectiveFrom
+            );
         }
 
-        return $concepts
-            ->filter(fn (SchoolConcept $concept): bool => $concept->effective_from?->toDateString() === $effectiveFrom)
+        return $eligible
+            ->sortByDesc(fn (SchoolConcept $concept): string => $concept->effective_from->toDateString())
+            ->unique(fn (SchoolConcept $concept): string => Str::lower(trim($concept->name)))
             ->sortBy([['sort_order', 'asc'], ['name', 'asc']])
             ->values();
     }
