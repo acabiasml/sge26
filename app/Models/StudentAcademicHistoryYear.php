@@ -15,12 +15,16 @@ class StudentAcademicHistoryYear extends Model
     protected $fillable = [
         'student_academic_history_id',
         'position',
+        'source',
+        'student_enrollment_id',
         'label',
         'year',
         'stage',
         'modality',
         'grade_phase',
         'school_name',
+        'school_authorization',
+        'source_document',
         'city',
         'state',
         'country',
@@ -65,5 +69,10 @@ class StudentAcademicHistoryYear extends Model
     public function records(): HasMany
     {
         return $this->hasMany(StudentAcademicHistoryRecord::class);
+    }
+
+    public function enrollment(): BelongsTo
+    {
+        return $this->belongsTo(StudentEnrollment::class, 'student_enrollment_id');
     }
 }

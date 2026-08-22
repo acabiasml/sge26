@@ -6,9 +6,11 @@ use App\Models\IssuedDocument;
 use App\Models\Person;
 use App\Models\School;
 use App\Models\StudentAcademicHistory;
+use App\Models\StudentEnrollment;
 use App\Support\BrazilianStates;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
+use App\Support\UnifiedStudentHistorySynchronizer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,6 +21,40 @@ use Symfony\Component\HttpFoundation\Response;
 
 class StudentAcademicHistoryController extends Controller
 {
+    public function index(Request $request): View
+    {
+        abort_unless($request->user()->canManagePeople(), 403);
+        $schoolIds = $request->user()->isAdministrator()
+            ? School::query()->pluck('id')->all()
+            : $request->user()->manageableSchoolIds();
+
+        $students = Person::query()
+            ->whereHas('studentEnrollments.schoolClass.academicYear', fn ($query) => $query->whereIn('school_id', $schoolIds))
+            ->when($request->filled('q'), fn ($query) => $query->where('full_name', 'like', '%'.trim((string) $request->input('q')).'%'))
+            ->withCount('studentEnrollments')
+            ->with(['academicHistories' => fn ($query) => $query->where('is_unified', true), 'studentEnrollments.schoolClass.academicYear.school'])
+            ->orderBy('full_name')
+            ->paginate(25)
+            ->withQueryString();
+
+        return view('student-histories.index', compact('students'));
+    }
+
+    public function unified(Request $request, Person $person, UnifiedStudentHistorySynchronizer $synchronizer): RedirectResponse
+    {
+        $this->authorizePerson($request, $person);
+        $schoolId = $person->studentEnrollments()
+            ->whereHas('schoolClass.academicYear', fn ($query) => $query->whereIn('school_id', $request->user()->isAdministrator() ? School::query()->pluck('id') : $request->user()->manageableSchoolIds()))
+            ->with('schoolClass.academicYear')
+            ->latest('enrolled_at')
+            ->firstOrFail()
+            ->schoolClass->academicYear->school_id;
+        $history = $synchronizer->synchronize($person, $schoolId, $request->user()->person_id);
+
+        return redirect()->route('people.histories.edit', [$person, $history])
+            ->with('status', 'Histórico unificado atualizado com os dados disponíveis no sistema. Os lançamentos manuais foram preservados.');
+    }
+
     public function create(Request $request, Person $person): View
     {
         $this->authorizePerson($request, $person);
@@ -241,13 +277,18 @@ class StudentAcademicHistoryController extends Controller
             'issued_place' => ['required', 'string', 'max:255'],
             'issued_date' => ['required', 'date'],
             'active' => ['nullable', 'boolean'],
+            'is_unified' => ['nullable', 'boolean'],
             'years' => ['required', 'array', 'min:1'],
             'years.*.label' => ['required', 'string', 'max:255'],
+            'years.*.source' => ['nullable', Rule::in(['manual', 'system'])],
+            'years.*.student_enrollment_id' => ['nullable', 'integer', Rule::exists('student_enrollments', 'id')],
             'years.*.year' => ['required', 'string', 'max:20'],
             'years.*.stage' => ['required', 'string', 'max:255'],
             'years.*.modality' => ['required', 'string', 'max:255'],
             'years.*.grade_phase' => ['required', 'string', 'max:255'],
             'years.*.school_name' => ['required', 'string', 'max:255'],
+            'years.*.school_authorization' => ['nullable', 'string'],
+            'years.*.source_document' => ['nullable', 'string', 'max:255'],
             'years.*.city' => ['required', 'string', 'max:255'],
             'years.*.state' => ['required', 'string', 'size:2', Rule::in(BrazilianStates::codes())],
             'years.*.country' => ['nullable', 'string', 'max:255'],
@@ -274,6 +315,14 @@ class StudentAcademicHistoryController extends Controller
 
         $schoolId = $data['school_id'] ?? null;
         abort_unless($request->user()->canManageSchool($schoolId), 403);
+        $studentId = (int) ($request->route('person')?->id ?? 0);
+        $enrollmentIds = collect($data['years'])->pluck('student_enrollment_id')->filter()->map(fn ($id) => (int) $id);
+        abort_unless(
+            $enrollmentIds->isEmpty() || StudentEnrollment::query()->where('person_id', $studentId)->whereIn('id', $enrollmentIds)->count() === $enrollmentIds->unique()->count(),
+            422,
+            'Uma das matrículas informadas não pertence ao estudante deste histórico.',
+        );
+        $routeHistory = $request->route('history');
 
         return [
             'history' => [
@@ -285,6 +334,7 @@ class StudentAcademicHistoryController extends Controller
                 'issued_place' => $data['issued_place'] ?? null,
                 'issued_date' => $data['issued_date'] ?? null,
                 'active' => $request->boolean('active'),
+                'is_unified' => $routeHistory instanceof StudentAcademicHistory && $routeHistory->is_unified,
             ],
             'years' => $data['years'],
             'components' => $data['components'] ?? [],

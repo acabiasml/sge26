@@ -25,6 +25,7 @@ class StudentAcademicHistory extends Model
         'issued_place',
         'issued_date',
         'active',
+        'is_unified',
     ];
 
     protected function casts(): array
@@ -32,6 +33,7 @@ class StudentAcademicHistory extends Model
         return [
             'issued_date' => 'date',
             'active' => 'boolean',
+            'is_unified' => 'boolean',
         ];
     }
 

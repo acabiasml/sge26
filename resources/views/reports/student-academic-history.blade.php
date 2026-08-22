@@ -118,6 +118,7 @@
             <th>Modalidade</th>
             <th>Série/Ano/Fase</th>
             <th>Estabelecimento de ensino</th>
+            <th>Ato autorizativo</th>
             <th>Município</th>
             <th>UF</th>
             <th>País</th>
@@ -134,6 +135,7 @@
                 <td>{{ $year->modality ?: '-' }}</td>
                 <td>{{ $year->grade_phase ?: $year->label }}</td>
                 <td>{{ $year->school_name ?: '-' }}</td>
+                <td>{{ $year->school_authorization ?: '-' }}@if($year->source_document)<br><span class="muted">{{ $year->source_document }}</span>@endif</td>
                 <td>{{ $year->city ?: '-' }}</td>
                 <td>{{ $year->state ?: '-' }}</td>
                 <td>{{ $year->country ?: 'Brasil' }}</td>

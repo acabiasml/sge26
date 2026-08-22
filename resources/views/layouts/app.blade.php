@@ -52,7 +52,7 @@
                     || request()->routeIs('people.roles.*');
                 $personalMenuActive = request()->routeIs('profile.*') || request()->routeIs('student-diaries.*') || $ownStudentLifeActive || request()->routeIs('teacher-schedules.*');
                 $schoolManagementActive = request()->routeIs('schools.*') || request()->routeIs('academic-years.*') || $peopleRegistryActive || request()->routeIs('data-quality.*');
-                $academicRoutineActive = request()->routeIs('enrollments.*') || request()->routeIs('classes.enrollments.*') || request()->routeIs('attendance-justifications.*') || request()->routeIs('teacher-diaries.*') || ($studentLifeActive && ! $ownStudentLifeActive);
+                $academicRoutineActive = request()->routeIs('enrollments.*') || request()->routeIs('classes.enrollments.*') || request()->routeIs('attendance-justifications.*') || request()->routeIs('teacher-diaries.*') || request()->routeIs('student-histories.*') || ($studentLifeActive && ! $ownStudentLifeActive);
                 $documentsMenuActive = request()->routeIs('document-issuance.*') || request()->routeIs('official-documents.*') || request()->routeIs('documents.verify.*');
             @endphp
 
@@ -169,6 +169,10 @@
                                     <span>Justificativas de ausência</span>
                                 </a>
                             @endif
+                            <a class="collapse-item {{ request()->routeIs('student-histories.*') ? 'active' : '' }}" href="{{ route('student-histories.index') }}">
+                                <i class="fas fa-history" aria-hidden="true"></i>
+                                <span>Históricos escolares</span>
+                            </a>
                             <a class="collapse-item {{ request()->routeIs('teacher-diaries.*') ? 'active' : '' }}" href="{{ route('teacher-diaries.index') }}">
                                 <i class="fas fa-book" aria-hidden="true"></i>
                                 <span>Gestão dos diários</span>

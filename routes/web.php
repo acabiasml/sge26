@@ -86,6 +86,8 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('pessoas/{person}/pdf', [RecordPdfController::class, 'person'])->name('people.pdf');
     Route::post('pessoas/{person}/google-workspace', [GoogleWorkspaceController::class, 'store'])->name('people.google-workspace.store');
     Route::get('pessoas/{person}/vida-escolar', [StudentMapController::class, 'show'])->name('people.student-map.show');
+    Route::get('historicos-escolares', [StudentAcademicHistoryController::class, 'index'])->name('student-histories.index');
+    Route::post('historicos-escolares/{person}/unificado', [StudentAcademicHistoryController::class, 'unified'])->name('student-histories.unified');
     Route::get('pessoas/{person}/mapa-do-estudante', fn ($person) => redirect()->route('people.student-map.show', $person));
     Route::get('pessoas/{person}/historicos/create', [StudentAcademicHistoryController::class, 'create'])->name('people.histories.create');
     Route::post('pessoas/{person}/historicos', [StudentAcademicHistoryController::class, 'store'])->name('people.histories.store');

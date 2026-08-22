@@ -3,11 +3,15 @@
     $yearsInput = collect(old('years', $history->exists
         ? $history->years->map(fn ($year) => [
             'label' => $year->label,
+            'source' => $year->source,
+            'student_enrollment_id' => $year->student_enrollment_id,
             'year' => $year->year,
             'stage' => $year->stage,
             'modality' => $year->modality,
             'grade_phase' => $year->grade_phase,
             'school_name' => $year->school_name,
+            'school_authorization' => $year->school_authorization,
+            'source_document' => $year->source_document,
             'city' => $year->city,
             'state' => $year->state,
             'country' => $year->country,
@@ -56,6 +60,7 @@
 @endphp
 
 <section class="sge-history-workspace mb-4" aria-label="Cadastro de histórico escolar">
+    <input type="hidden" name="is_unified" value="{{ old('is_unified', $history->is_unified) ? 1 : 0 }}">
     <aside class="sge-history-sidebar">
         <div class="card shadow sge-panel-card mb-4">
             <div class="sge-panel-header">
@@ -139,6 +144,8 @@
                 <div id="history-years" class="sge-history-year-grid">
                     @foreach($yearsInput as $yearIndex => $year)
                         <article class="sge-history-year-card" data-history-year>
+                            <input type="hidden" name="years[{{ $yearIndex }}][source]" value="{{ $year['source'] ?? 'manual' }}">
+                            <input type="hidden" name="years[{{ $yearIndex }}][student_enrollment_id]" value="{{ $year['student_enrollment_id'] ?? '' }}">
                             <header>
                                 <strong>Coluna {{ $loop->iteration }}</strong>
                                 <button class="btn btn-sm btn-outline-danger sge-icon-action" type="button" data-remove-history-year aria-label="Remover esta coluna do histórico" title="Remover coluna">
@@ -178,6 +185,14 @@
                                 <div class="form-group col-md-12">
                                     <label>Escola onde cursou</label>
                                     <input name="years[{{ $yearIndex }}][school_name]" class="form-control" value="{{ $year['school_name'] ?? '' }}" required>
+                                </div>
+                                <div class="form-group col-md-7">
+                                    <label>Ato autorizativo/credenciamento</label>
+                                    <textarea name="years[{{ $yearIndex }}][school_authorization]" class="form-control" rows="2" placeholder="Ato, resolução, portaria ou credenciamento da escola">{{ $year['school_authorization'] ?? '' }}</textarea>
+                                </div>
+                                <div class="form-group col-md-5">
+                                    <label>Documento de origem</label>
+                                    <input name="years[{{ $yearIndex }}][source_document]" class="form-control" value="{{ $year['source_document'] ?? '' }}" placeholder="Ex.: Histórico nº 123/2025">
                                 </div>
                                 <div class="form-group col-md-4">
                                     <label>Cidade</label>
@@ -416,6 +431,8 @@ document.addEventListener('DOMContentLoaded', function () {
         clone.querySelectorAll('input').forEach(function (input) { input.value = ''; });
         clone.querySelectorAll('textarea').forEach(function (textarea) { textarea.value = ''; });
         clone.querySelectorAll('select').forEach(function (select) { select.value = ''; });
+        const sourceField = clone.querySelector('[name$="[source]"]');
+        if (sourceField) sourceField.value = 'manual';
         const country = clone.querySelector('[name$="[country]"]');
         if (country) country.value = 'Brasil';
         const mode = clone.querySelector('[name$="[transcript_mode]"]');
