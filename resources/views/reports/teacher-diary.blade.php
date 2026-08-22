@@ -58,9 +58,11 @@
                 'lesson_index' => $lessonIndex,
             ]);
         })->values();
+        $attendancePageCount = max(1, (int) ceil($attendanceColumns->count() / 24));
+        $attendanceColumnsPerPage = max(1, (int) ceil($attendanceColumns->count() / $attendancePageCount));
         $attendanceColumnGroups = $attendanceColumns->isEmpty()
             ? collect([collect()])
-            : $attendanceColumns->chunk(24);
+            : $attendanceColumns->chunk($attendanceColumnsPerPage);
     @endphp
     <section class="period-page">
         @include('reports.partials.letterhead', [
