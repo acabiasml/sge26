@@ -48,8 +48,8 @@
     };
 @endphp
 @foreach($periodReports as $report)
-    @php($period = $report['period'])
     @php
+        $period = $report['period'];
         $attendanceColumns = $report['attendance']->flatMap(function ($attendance) {
             return collect(range(0, max(1, (int) $attendance->lesson_count) - 1))->map(fn ($lessonIndex) => [
                 'record' => $attendance,
