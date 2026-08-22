@@ -24,7 +24,8 @@
         .attendance-mark { font-weight: 600; white-space: nowrap; }
         .attendance-total { width: 54px; min-width: 54px; }
         .attendance-page-break { page-break-before: always; height: 0; }
-        .compact-score-heading { min-width: 32px; }
+        .scores-table .student-column { width: auto; }
+        .score-column { width: 1%; min-width: 32px; white-space: nowrap; }
         .period-break { page-break-after: always; height: 0; }
         .signature-grid { width: 100%; margin-top: 42px; }
         .signature-grid td { border: 0; width: 50%; text-align: center; padding-top: 38px; }
@@ -155,18 +156,18 @@
         @endforeach
 
         <h2>Notas e médias</h2>
-        <table>
+        <table class="scores-table">
             <thead>
                 <tr>
                     <th class="student-column">Estudante</th>
                     @foreach($report['assessments'] as $assessment)
-                        <th class="center compact-score-heading">{{ $assessment->title }}</th>
+                        <th class="center score-column">{{ $assessment->title }}</th>
                     @endforeach
                     @if($period->recovery_mode === \App\Models\AcademicPeriod::RECOVERY_REPLACE_PERIOD_AVERAGE)
-                        <th class="center">Média original</th>
-                        <th class="center">Média considerada</th>
+                        <th class="center score-column">Média original</th>
+                        <th class="center score-column">Média considerada</th>
                     @else
-                        <th class="center">Média</th>
+                        <th class="center score-column">Média</th>
                     @endif
                 </tr>
             </thead>
@@ -182,14 +183,14 @@
                         </td>
                         @foreach($report['assessments'] as $assessment)
                             @php($result = $assessment->results->firstWhere('student_enrollment_id', $enrollment->id))
-                            <td class="center">{{ $scoreLabel($result?->score, $period->ends_at ?? $period->starts_at) }}</td>
+                            <td class="center score-column">{{ $scoreLabel($result?->score, $period->ends_at ?? $period->starts_at) }}</td>
                         @endforeach
                         @php($average = $report['averages'][$enrollment->id] ?? [])
                         @if($period->recovery_mode === \App\Models\AcademicPeriod::RECOVERY_REPLACE_PERIOD_AVERAGE)
-                            <td class="center">{{ $scoreLabel($average['regular_value'] ?? null, $period->ends_at ?? $period->starts_at) }}</td>
-                            <td class="center">{{ $scoreLabel($average['value'] ?? null, $period->ends_at ?? $period->starts_at) }}</td>
+                            <td class="center score-column">{{ $scoreLabel($average['regular_value'] ?? null, $period->ends_at ?? $period->starts_at) }}</td>
+                            <td class="center score-column">{{ $scoreLabel($average['value'] ?? null, $period->ends_at ?? $period->starts_at) }}</td>
                         @else
-                            <td class="center">{{ $scoreLabel($average['value'] ?? null, $period->ends_at ?? $period->starts_at) }}</td>
+                            <td class="center score-column">{{ $scoreLabel($average['value'] ?? null, $period->ends_at ?? $period->starts_at) }}</td>
                         @endif
                     </tr>
                 @empty
