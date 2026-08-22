@@ -137,7 +137,7 @@
                                         @php($weeklyLessons = $component['weekly_lessons'][$course->id] ?? null)
                                         <td class="center-cell">{{ $weeklyLessons !== null ? (int) $weeklyLessons : '-' }}</td>
                                         <td class="center-cell">
-                                            {{ $weeklyLessons !== null ? number_format(((int) $weeklyLessons * (int) $course->class_hour_minutes * 40) / 60, 2, ',', '.') : '-' }} h
+                                            {{ isset($component['workload_hours'][$course->id]) ? number_format((float) $component['workload_hours'][$course->id], 2, ',', '.') : '-' }} h
                                         </td>
                                     @else
                                         @foreach ($matrixGroup['courses'] as $course)

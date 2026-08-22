@@ -88,7 +88,9 @@ class CurriculumComponentController extends Controller
             'knowledge_area_id' => ['nullable', Rule::exists('knowledge_areas', 'id')],
             'starts_period_id' => ['nullable', Rule::in($this->allowedPeriodIds($academicYear, $course))],
             'ends_period_id' => ['nullable', Rule::in($this->allowedPeriodIds($academicYear, $course))],
-            'weekly_lessons' => ['nullable', 'integer', 'min:0', 'max:99'],
+            'workload_mode' => ['required', Rule::in(['weekly_lessons', 'workload_hours'])],
+            'weekly_lessons' => ['nullable', 'required_if:workload_mode,weekly_lessons', 'prohibited_if:workload_mode,workload_hours', 'integer', 'min:1', 'max:99'],
+            'workload_hours' => ['nullable', 'required_if:workload_mode,workload_hours', 'prohibited_if:workload_mode,weekly_lessons', 'integer', 'min:1', 'max:99999'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'active' => ['nullable', 'boolean'],
         ]);
@@ -96,7 +98,12 @@ class CurriculumComponentController extends Controller
         $this->ensureValidPeriodSpan($academicYear, $data['starts_period_id'] ?? null, $data['ends_period_id'] ?? null);
 
         $data['active'] = $request->boolean('active', true);
-        $data['workload_hours'] = null;
+        if ($data['workload_mode'] === 'weekly_lessons') {
+            $data['workload_hours'] = null;
+        } else {
+            $data['weekly_lessons'] = null;
+        }
+        unset($data['workload_mode']);
         $data['knowledge_area_id'] = ($data['knowledge_area_id'] ?? null)
             ?: CurriculumCatalog::areaIdForComponent($course, $data['name']);
 

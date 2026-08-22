@@ -83,6 +83,10 @@ class CurriculumComponent extends Model
 
     public function calculatedWorkloadHours(?AcademicCourse $course = null): float
     {
+        if ($this->workload_hours !== null) {
+            return (float) $this->workload_hours;
+        }
+
         $course ??= $this->relationLoaded('course') ? $this->course : $this->course()->first();
 
         if (! $course || $this->weekly_lessons === null) {

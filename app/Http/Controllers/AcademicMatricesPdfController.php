@@ -78,9 +78,11 @@ class AcademicMatricesPdfController extends Controller
                                     'area' => $areaGroup['area'],
                                     'component' => $component->name,
                                     'weekly_lessons' => [],
+                                    'workload_hours' => [],
                                 ]);
 
                                 $row['weekly_lessons'][$course->id] = $component->weekly_lessons;
+                                $row['workload_hours'][$course->id] = $component->calculatedWorkloadHours($course);
                                 $rows->put($key, $row);
                             }
                         }

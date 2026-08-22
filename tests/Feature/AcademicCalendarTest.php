@@ -661,8 +661,8 @@ class AcademicCalendarTest extends TestCase
             ->post(route('academic-years.courses.components.store', [$year, $course]), [
                 'name' => 'Língua Portuguesa',
                 'knowledge_area_id' => $area->id,
+                'workload_mode' => 'weekly_lessons',
                 'weekly_lessons' => '5',
-                'workload_hours' => 160,
                 'active' => '1',
             ])
             ->assertRedirect(route('academic-years.courses.show', [$year, $course]));
@@ -930,8 +930,8 @@ class AcademicCalendarTest extends TestCase
         $this->actingAs($admin)
             ->post(route('academic-years.courses.components.store', [$year, $course]), [
                 'name' => 'Matemática',
+                'workload_mode' => 'weekly_lessons',
                 'weekly_lessons' => '2.5',
-                'workload_hours' => 120,
                 'active' => '1',
             ])
             ->assertSessionHasErrors('weekly_lessons');
@@ -961,7 +961,7 @@ class AcademicCalendarTest extends TestCase
         $this->actingAs($admin)
             ->post(route('academic-years.courses.components.store', [$year, $course]), [
                 'name' => 'Biologia',
-                'weekly_lessons' => '2',
+                'workload_mode' => 'workload_hours',
                 'workload_hours' => 80,
                 'active' => '1',
             ])
@@ -971,6 +971,45 @@ class AcademicCalendarTest extends TestCase
             'academic_course_id' => $course->id,
             'name' => 'Biologia',
             'knowledge_area_id' => $area->id,
+            'weekly_lessons' => null,
+            'workload_hours' => 80,
+        ]);
+        $this->assertEqualsWithDelta(80, $course->fresh()->calculatedWorkloadHours(), 0.001);
+    }
+
+    public function test_component_requires_exactly_one_workload_definition(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear();
+        $course = $year->courses()->create([
+            'name' => 'Ensino Médio',
+            'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
+            'status' => 'iniciado',
+            'class_hour_minutes' => 50,
+            'active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('academic-years.courses.components.store', [$year, $course]), [
+                'name' => 'Matemática',
+                'workload_mode' => 'weekly_lessons',
+                'weekly_lessons' => 5,
+                'workload_hours' => 160,
+                'active' => '1',
+            ])
+            ->assertSessionHasErrors('workload_hours');
+
+        $this->actingAs($admin)
+            ->post(route('academic-years.courses.components.store', [$year, $course]), [
+                'name' => 'Matemática',
+                'workload_mode' => 'workload_hours',
+                'active' => '1',
+            ])
+            ->assertSessionHasErrors('workload_hours');
+
+        $this->assertDatabaseMissing('curriculum_components', [
+            'academic_course_id' => $course->id,
+            'name' => 'Matemática',
         ]);
     }
 

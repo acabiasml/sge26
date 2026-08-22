@@ -78,9 +78,24 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="col-md-4 form-group">
-                                    <label for="new_component_weekly_lessons">Aulas semanais</label>
-                                    <input id="new_component_weekly_lessons" name="weekly_lessons" data-mask="digits" data-mask-max="2" inputmode="numeric" autocomplete="off" class="form-control">
+                                <div class="col-md-4 form-group" data-workload-choice>
+                                    <label class="d-block">Como informar a carga horária?</label>
+                                    <div class="custom-control custom-radio custom-control-inline">
+                                        <input class="custom-control-input" type="radio" id="new_workload_mode_weekly" name="workload_mode" value="weekly_lessons" @checked(old('workload_mode', 'weekly_lessons') === 'weekly_lessons') required>
+                                        <label class="custom-control-label" for="new_workload_mode_weekly">Aulas por semana</label>
+                                    </div>
+                                    <div class="custom-control custom-radio custom-control-inline">
+                                        <input class="custom-control-input" type="radio" id="new_workload_mode_total" name="workload_mode" value="workload_hours" @checked(old('workload_mode') === 'workload_hours') required>
+                                        <label class="custom-control-label" for="new_workload_mode_total">Total de horas</label>
+                                    </div>
+                                    <div class="mt-2" data-workload-field="weekly_lessons">
+                                        <label for="new_component_weekly_lessons">Aulas por semana</label>
+                                        <input id="new_component_weekly_lessons" name="weekly_lessons" data-mask="digits" data-mask-max="2" inputmode="numeric" autocomplete="off" class="form-control" value="{{ old('weekly_lessons') }}">
+                                    </div>
+                                    <div class="mt-2" data-workload-field="workload_hours">
+                                        <label for="new_component_workload_hours">Carga horária total</label>
+                                        <div class="input-group"><input id="new_component_workload_hours" name="workload_hours" data-mask="digits" data-mask-max="5" inputmode="numeric" autocomplete="off" class="form-control" value="{{ old('workload_hours') }}"><div class="input-group-append"><span class="input-group-text">horas</span></div></div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="row">
@@ -183,6 +198,20 @@
             if (selectedSuggestion?.area_id && areaSelect) {
                 areaSelect.value = selectedSuggestion.area_id;
             }
+        });
+
+        document.querySelectorAll('[data-workload-choice]').forEach((choice) => {
+            const syncWorkloadChoice = () => {
+                const mode = choice.querySelector('input[name="workload_mode"]:checked')?.value;
+                choice.querySelectorAll('[data-workload-field]').forEach((field) => {
+                    const active = field.dataset.workloadField === mode;
+                    field.hidden = !active;
+                    field.querySelector('input').disabled = !active;
+                    field.querySelector('input').required = active;
+                });
+            };
+            choice.querySelectorAll('input[name="workload_mode"]').forEach((radio) => radio.addEventListener('change', syncWorkloadChoice));
+            syncWorkloadChoice();
         });
     </script>
 @endpush

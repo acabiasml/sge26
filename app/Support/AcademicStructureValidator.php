@@ -75,8 +75,8 @@ class AcademicStructureValidator
                 $items[] = self::issue('warning', 'Componente sem área', "{$component->name} ainda não possui área do conhecimento.", 'Abrir componente', route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
             }
 
-            if ((int) $component->weekly_lessons < 1) {
-                $items[] = self::issue('warning', 'Componente sem aulas semanais', "{$component->name} precisa de aulas semanais para cálculo de carga horária e horários.", 'Abrir componente', route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
+            if ((int) $component->weekly_lessons < 1 && (int) $component->workload_hours < 1) {
+                $items[] = self::issue('warning', 'Componente sem carga horária', "{$component->name} precisa de aulas semanais ou carga horária total.", 'Abrir componente', route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
             }
 
             $starts = $component->startsPeriod;
