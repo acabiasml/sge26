@@ -17,7 +17,7 @@
         .meta-label { width: 22%; background: #faf4ef; font-weight: 600; color: #6B3D2E; }
         .center { text-align: center; }
         .small { font-size: 11px; color: #6b625e; }
-        .student-column, .student-name { width: 1%; min-width: 190px; white-space: nowrap; }
+        .student-column, .student-name { width: 1%; min-width: 120px; }
         .date-heading { height: 48px; padding: 0; position: relative; vertical-align: middle; width: 18px; min-width: 18px; }
         .date-heading span { display: block; line-height: 1; position: absolute; left: -15px; top: 16px; text-align: center; transform: rotate(-90deg); transform-origin: center; white-space: nowrap; width: 48px; }
         .attendance-mark { font-weight: 600; white-space: nowrap; }
@@ -58,7 +58,7 @@
                 'lesson_index' => $lessonIndex,
             ]);
         })->values();
-        $attendancePageCount = max(1, (int) ceil($attendanceColumns->count() / 24));
+        $attendancePageCount = max(1, (int) ceil($attendanceColumns->count() / 32));
         $attendanceColumnsPerPage = max(1, (int) ceil($attendanceColumns->count() / $attendancePageCount));
         $attendanceColumnGroups = $attendanceColumns->isEmpty()
             ? collect([collect()])
