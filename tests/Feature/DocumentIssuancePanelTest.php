@@ -400,6 +400,50 @@ class DocumentIssuancePanelTest extends TestCase
             ]));
     }
 
+    public function test_class_attendance_certificates_selection_preserves_scope_and_targets_the_class(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $student = $this->personWithRole('Estudante da Turma', PersonSchoolRole::ROLE_STUDENT, $school->id);
+        $year = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Educação Básica',
+            'reference_year' => 2026,
+            'starts_at' => '2026-01-01',
+            'ends_at' => '2026-12-31',
+            'active' => true,
+        ]);
+        $class = SchoolClass::query()->create(['academic_year_id' => $year->id, 'name' => '3º Ano', 'active' => true]);
+        StudentEnrollment::query()->create([
+            'school_class_id' => $class->id,
+            'person_id' => $student->id,
+            'enrolled_at' => '2026-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+
+        $this->actingAs($administrator)
+            ->getJson(route('document-issuance.targets', ['type' => 'class-attendance-certificates']))
+            ->assertOk()
+            ->assertJsonPath('targets.0.id', $class->id)
+            ->assertJsonPath('targets.0.enabled', true);
+
+        $this->actingAs($administrator)
+            ->get(route('document-issuance.issue', [
+                'type' => 'class-attendance-certificates',
+                'target_id' => $class->id,
+                'attendance_scope' => 'month',
+                'attendance_month' => '2026-05',
+            ]))
+            ->assertRedirect(route('classes.attendance-certificates.pdf', [
+                'class' => $class,
+                'attendance_scope' => 'month',
+                'academic_period_id' => null,
+                'attendance_month' => '2026-05',
+                'confirm_missing_student_cpf' => null,
+            ]));
+    }
+
     public function test_manager_cannot_force_emission_for_enrollment_from_another_school(): void
     {
         $managedSchool = School::query()->create(['name' => 'Escola Gerenciada', 'active' => true]);

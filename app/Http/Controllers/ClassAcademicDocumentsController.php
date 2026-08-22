@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AcademicCourse;
+use App\Models\AcademicPeriod;
 use App\Models\AcademicYear;
 use App\Models\CurriculumComponent;
 use App\Models\IssuedDocument;
@@ -14,15 +15,74 @@ use App\Support\CurriculumCatalog;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
 use App\Support\StudentReportCardBuilder;
+use App\Support\StudentAttendanceCertificateBuilder;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
 class ClassAcademicDocumentsController extends Controller
 {
+    public function __construct(private readonly StudentAttendanceCertificateBuilder $attendanceCertificateBuilder) {}
+
+    public function attendanceCertificates(Request $request, SchoolClass $class): Response|RedirectResponse
+    {
+        [$academicYear, $enrollments] = $this->classContext($request, $class);
+
+        if ($enrollments->isEmpty()) {
+            return $this->blocked('Não foi possível emitir os atestados: a turma não possui matrículas ativas.');
+        }
+
+        if ($message = $this->complianceMessage($request, $academicYear->school, $enrollments)) {
+            return $this->blocked($message);
+        }
+
+        $scope = $this->attendanceScope($request, $academicYear);
+        $certificates = $enrollments->map(function (StudentEnrollment $enrollment) use ($scope): array {
+            $report = $this->attendanceCertificateBuilder->build(
+                $enrollment,
+                $scope['starts_at'],
+                $scope['ends_at'],
+                $scope['period'],
+            );
+
+            return ['enrollment' => $enrollment, 'attendance' => $report['attendance'], 'matrices' => $report['matrices']];
+        })->values();
+
+        $issuedDocument = IssuedDocument::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'verification_code' => $this->verificationCode(),
+            'type' => 'class-attendance-certificates',
+            'person_id' => $request->user()->person_id,
+            'school_id' => $academicYear->school_id,
+            'issued_by_user_id' => $request->user()->id,
+            'payload' => [
+                'title' => 'Atestados de frequência da turma',
+                'scope_label' => $scope['label'],
+                'school_class_id' => $class->id,
+                'academic_year_id' => $class->academic_year_id,
+                'rows_count' => $enrollments->count(),
+            ],
+            'issued_at' => now(),
+        ]);
+
+        return Pdf::loadView('reports.class-attendance-certificates', [
+            'academicYear' => $academicYear,
+            'class' => $class,
+            'certificates' => $certificates,
+            'scope' => $scope,
+            'issuedDocument' => $issuedDocument,
+            'letterhead' => PdfLetterhead::make($academicYear->school),
+        ])->setPaper('a4', 'portrait')
+            ->download('beaba-atestados-frequencia-turma-'.$class->id.'-'.$scope['filename'].'-'.now()->format('Ymd-His').'.pdf');
+    }
+
     public function reportCards(
         Request $request,
         SchoolClass $class,
@@ -156,6 +216,47 @@ class ClassAcademicDocumentsController extends Controller
     private function scoreView(Request $request): string
     {
         return $request->query('notas') === 'numeros' ? 'numeros' : 'conceitos';
+    }
+
+    /** @return array{type: string, label: string, filename: string, starts_at: CarbonInterface, ends_at: CarbonInterface, period: AcademicPeriod|null} */
+    private function attendanceScope(Request $request, AcademicYear $academicYear): array
+    {
+        $data = $request->validate([
+            'attendance_scope' => ['nullable', Rule::in(['annual', 'period', 'month'])],
+            'academic_period_id' => ['nullable', 'integer'],
+            'attendance_month' => ['nullable', 'date_format:Y-m'],
+        ]);
+        $type = $data['attendance_scope'] ?? 'annual';
+        $yearStartsAt = $academicYear->starts_at?->toImmutable() ?? CarbonImmutable::create((int) $academicYear->reference_year, 1, 1);
+        $yearEndsAt = $academicYear->ends_at?->toImmutable() ?? CarbonImmutable::create((int) $academicYear->reference_year, 12, 31);
+
+        if ($type === 'period') {
+            $period = empty($data['academic_period_id']) ? null : $academicYear->periods()->find($data['academic_period_id']);
+            if (! $period) {
+                throw ValidationException::withMessages(['academic_period_id' => 'Selecione um período avaliativo deste ano letivo.']);
+            }
+
+            return ['type' => $type, 'label' => 'Período avaliativo: '.$period->name, 'filename' => 'periodo-'.$period->id,
+                'starts_at' => $period->starts_at->toImmutable(), 'ends_at' => $period->ends_at->toImmutable(), 'period' => $period];
+        }
+
+        if ($type === 'month') {
+            if (empty($data['attendance_month'])) {
+                throw ValidationException::withMessages(['attendance_month' => 'Selecione o mês do atestado.']);
+            }
+            $monthStartsAt = CarbonImmutable::createFromFormat('Y-m-d', $data['attendance_month'].'-01')->startOfMonth();
+            $monthEndsAt = $monthStartsAt->endOfMonth();
+            if ($monthEndsAt->isBefore($yearStartsAt) || $monthStartsAt->isAfter($yearEndsAt)) {
+                throw ValidationException::withMessages(['attendance_month' => 'O mês selecionado está fora da duração deste ano letivo.']);
+            }
+
+            return ['type' => $type, 'label' => 'Mensal: '.Str::ucfirst($monthStartsAt->locale('pt_BR')->translatedFormat('F \d\e Y')),
+                'filename' => 'mes-'.$data['attendance_month'], 'starts_at' => $monthStartsAt->isAfter($yearStartsAt) ? $monthStartsAt : $yearStartsAt,
+                'ends_at' => $monthEndsAt->isBefore($yearEndsAt) ? $monthEndsAt : $yearEndsAt, 'period' => null];
+        }
+
+        return ['type' => 'annual', 'label' => 'Ano letivo completo', 'filename' => 'anual',
+            'starts_at' => $yearStartsAt, 'ends_at' => $yearEndsAt, 'period' => null];
     }
 
     private function complianceMessage(Request $request, School $school, Collection $enrollments): ?string

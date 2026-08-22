@@ -33,6 +33,7 @@ class DocumentIssuanceController extends Controller
 
     private const CURRENT_CLASS_DOCUMENTS = [
         'class-schedule',
+        'class-attendance-certificates',
     ];
 
     private const CURRENT_DIARY_DOCUMENTS = [
@@ -69,6 +70,14 @@ class DocumentIssuanceController extends Controller
             'label' => 'Atestado de frequência',
             'description' => 'Apresenta a frequência mensal, por período avaliativo ou anual, com todas as matrizes da matrícula.',
             'target' => 'enrollment',
+            'icon' => 'fa-user-check',
+            'attendance_scope' => true,
+        ],
+        'class-attendance-certificates' => [
+            'group' => 'Turma e diário',
+            'label' => 'Atestados de frequência da turma',
+            'description' => 'Reúne em um único PDF o atestado de frequência de todas as matrículas ativas da turma.',
+            'target' => 'class',
             'icon' => 'fa-user-check',
             'attendance_scope' => true,
         ],
@@ -630,11 +639,11 @@ class DocumentIssuanceController extends Controller
             ->limit(40)
             ->get()
             ->map(function (SchoolClass $class) use ($type): array {
-                $requiresEnrollments = in_array($type, ['class-report-cards', 'class-grade-mirror'], true);
+                $requiresEnrollments = in_array($type, ['class-report-cards', 'class-grade-mirror', 'class-attendance-certificates'], true);
                 $hasEnrollments = (int) $class->active_enrollments_count > 0;
                 $requiresCurrentClass = $this->requiresCurrentClass($type);
                 $isCurrentClass = ! $requiresCurrentClass || $this->isCurrentClass($class);
-                $studentDocuments = in_array($type, ['class-report-cards', 'class-grade-mirror', 'class-final-results'], true);
+                $studentDocuments = in_array($type, ['class-report-cards', 'class-grade-mirror', 'class-final-results', 'class-attendance-certificates'], true);
                 $students = $class->enrollments->map->student->filter();
                 $missingIdentityCpf = $studentDocuments && $students->contains(
                     fn (Person $student): bool => OfficialDocumentCompliance::studentHasNoCpf($student)
@@ -866,14 +875,14 @@ class DocumentIssuanceController extends Controller
             ]);
         }
 
-        if (in_array($data['type'], ['class-report-cards', 'class-grade-mirror'], true)
+        if (in_array($data['type'], ['class-report-cards', 'class-grade-mirror', 'class-attendance-certificates'], true)
             && ! $class->enrollments->contains(fn (StudentEnrollment $enrollment): bool => $enrollment->isActive())) {
             throw ValidationException::withMessages([
                 'target_id' => 'A turma nÃ£o possui matrÃ­culas ativas.',
             ]);
         }
 
-        if (in_array($data['type'], ['class-report-cards', 'class-grade-mirror', 'class-final-results'], true)) {
+        if (in_array($data['type'], ['class-report-cards', 'class-grade-mirror', 'class-final-results', 'class-attendance-certificates'], true)) {
             foreach ($class->enrollments->where('status', StudentEnrollment::STATUS_ENROLLED) as $enrollment) {
                 $this->ensureStudentCanIssue($enrollment->student, (bool) ($data['confirm_missing_student_cpf'] ?? false));
             }
@@ -886,6 +895,13 @@ class DocumentIssuanceController extends Controller
             'class-report-cards' => redirect()->route('classes.report-cards.pdf', [
                 'class' => $class,
                 'notas' => $data['score_view'] ?? 'conceitos',
+                'confirm_missing_student_cpf' => $confirmation,
+            ]),
+            'class-attendance-certificates' => redirect()->route('classes.attendance-certificates.pdf', [
+                'class' => $class,
+                'attendance_scope' => $data['attendance_scope'] ?? 'annual',
+                'academic_period_id' => $data['academic_period_id'] ?? null,
+                'attendance_month' => $data['attendance_month'] ?? null,
                 'confirm_missing_student_cpf' => $confirmation,
             ]),
             'class-grade-mirror' => redirect()->route('classes.grade-mirror.pdf', [
