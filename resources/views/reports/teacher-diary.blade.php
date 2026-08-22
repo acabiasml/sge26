@@ -17,10 +17,12 @@
         .meta-label { width: 22%; background: #faf4ef; font-weight: 600; color: #6B3D2E; }
         .center { text-align: center; }
         .small { font-size: 11px; color: #6b625e; }
-        .student-column { min-width: 128px; }
+        .student-column, .student-name { width: 1%; min-width: 190px; white-space: nowrap; }
         .date-heading { height: 48px; padding: 0; position: relative; vertical-align: middle; width: 18px; min-width: 18px; }
         .date-heading span { display: block; line-height: 1; position: absolute; left: -15px; top: 16px; text-align: center; transform: rotate(-90deg); transform-origin: center; white-space: nowrap; width: 48px; }
         .attendance-mark { font-weight: 600; white-space: nowrap; }
+        .attendance-total { width: 54px; min-width: 54px; }
+        .attendance-page-break { page-break-before: always; height: 0; }
         .compact-score-heading { min-width: 32px; }
         .period-break { page-break-after: always; height: 0; }
         .signature-grid { width: 100%; margin-top: 42px; }
@@ -56,6 +58,9 @@
                 'lesson_index' => $lessonIndex,
             ]);
         })->values();
+        $attendanceColumnGroups = $attendanceColumns->isEmpty()
+            ? collect([collect()])
+            : $attendanceColumns->chunk(24);
     @endphp
     <section class="period-page">
         @include('reports.partials.letterhead', [
@@ -85,51 +90,66 @@
             </tbody>
         </table>
 
-        <h2>Frequência</h2>
+        @foreach($attendanceColumnGroups as $attendanceGroup)
+            @if(! $loop->first)
+                <div class="attendance-page-break"></div>
+            @endif
+        <h2>
+            Frequência
+            @if($attendanceColumnGroups->count() > 1)
+                <span class="small">({{ $loop->iteration }}/{{ $attendanceColumnGroups->count() }})</span>
+            @endif
+        </h2>
         <table>
             <thead>
                 <tr>
                     <th class="student-column">Estudante</th>
-                    @foreach($attendanceColumns as $attendanceColumn)
+                    @foreach($attendanceGroup as $attendanceColumn)
                         <th class="center date-heading"><span>{{ $attendanceColumn['record']->class_date->format('d/m') }}</span></th>
                     @endforeach
-                    <th class="center">Presenças</th>
-                    <th class="center">Faltas</th>
+                    <th class="center attendance-total">Presenças</th>
+                    <th class="center attendance-total">Faltas</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($enrollments as $enrollment)
                     @php($enrollmentLocked = ! $enrollment->isActive())
-                    @php($present = 0)
-                    @php($absent = 0)
+                    @php
+                        $present = $report['attendance']->sum(function ($attendance) use ($enrollment) {
+                            return (int) ($attendance->entries->firstWhere('student_enrollment_id', $enrollment->id)?->attended_lessons ?? 0);
+                        });
+                        $absent = $report['attendance']->sum(function ($attendance) use ($enrollment) {
+                            $attendedLessons = (int) ($attendance->entries->firstWhere('student_enrollment_id', $enrollment->id)?->attended_lessons ?? 0);
+
+                            return max(0, (int) $attendance->lesson_count - $attendedLessons);
+                        });
+                    @endphp
                     <tr>
-                        <td>
+                        <td class="student-name">
                             {{ $enrollment->student?->full_name }}
                             @if($enrollmentLocked)
                                 <span class="small">({{ $enrollment->statusLabel() }})</span>
                             @endif
                         </td>
-                        @foreach($attendanceColumns as $attendanceColumn)
+                        @foreach($attendanceGroup as $attendanceColumn)
                             @php($attendance = $attendanceColumn['record'])
                             @php($lessonIndex = $attendanceColumn['lesson_index'])
                             @php($entry = $attendance->entries->firstWhere('student_enrollment_id', $enrollment->id))
                             @php($attended = (int) ($entry?->attended_lessons ?? 0))
-                            @php($lessons = (int) $attendance->lesson_count)
                             @php($lessonPresence = $entry?->lesson_presence ?? [])
                             @php($hasExplicitLesson = array_key_exists($lessonIndex, $lessonPresence))
                             @php($lessonWasPresent = $hasExplicitLesson ? (bool) $lessonPresence[$lessonIndex] : ($entry ? $lessonIndex < $attended : null))
-                            @php($present += $lessonIndex === 0 ? $attended : 0)
-                            @php($absent += $lessonIndex === 0 ? max(0, $lessons - $attended) : 0)
                             <td class="center attendance-mark">{{ $lessonWasPresent === null ? '-' : ($lessonWasPresent ? '*' : 'F') }}</td>
                         @endforeach
-                        <td class="center">{{ $present }}</td>
-                        <td class="center">{{ $absent }}</td>
+                        <td class="center attendance-total">{{ $present }}</td>
+                        <td class="center attendance-total">{{ $absent }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="{{ $attendanceColumns->count() + 3 }}">Nenhum estudante matriculado.</td></tr>
+                    <tr><td colspan="{{ $attendanceGroup->count() + 3 }}">Nenhum estudante matriculado.</td></tr>
                 @endforelse
             </tbody>
         </table>
+        @endforeach
 
         <h2>Notas e médias</h2>
         <table>
