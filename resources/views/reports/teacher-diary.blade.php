@@ -60,7 +60,7 @@
                 'lesson_index' => $lessonIndex,
             ]);
         })->values();
-        $attendancePageCount = max(1, (int) ceil($attendanceColumns->count() / 32));
+        $attendancePageCount = max(1, (int) ceil($attendanceColumns->count() / 36));
         $attendanceColumnsPerPage = max(1, (int) ceil($attendanceColumns->count() / $attendancePageCount));
         $attendanceColumnGroups = $attendanceColumns->isEmpty()
             ? collect([collect()])
