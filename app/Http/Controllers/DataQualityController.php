@@ -46,7 +46,7 @@ class DataQualityController extends Controller
             'letterhead' => PdfLetterhead::make($selectedSchool),
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->download('beaba-conformidade-'.now()->format('Ymd-His').'.pdf');
+        return $pdf->stream('beaba-conformidade-'.now()->format('Ymd-His').'.pdf');
     }
 
     /**

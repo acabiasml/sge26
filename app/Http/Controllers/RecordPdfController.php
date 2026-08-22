@@ -33,7 +33,7 @@ class RecordPdfController extends Controller
             'letterhead' => PdfLetterhead::make($school),
         ])->setPaper('a4', 'portrait');
 
-        return $pdf->download('beaba-ficha-escola-'.$school->id.'-'.now()->format('Ymd-His').'.pdf');
+        return $pdf->stream('beaba-ficha-escola-'.$school->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     public function person(Request $request, Person $person): Response|RedirectResponse
@@ -66,7 +66,7 @@ class RecordPdfController extends Controller
             'letterhead' => PdfLetterhead::make($school),
         ])->setPaper('a4', 'portrait');
 
-        return $pdf->download('beaba-ficha-pessoa-'.$person->id.'-'.now()->format('Ymd-His').'.pdf');
+        return $pdf->stream('beaba-ficha-pessoa-'.$person->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     private function canSeePerson(Request $request, Person $person): bool

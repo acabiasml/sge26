@@ -47,7 +47,7 @@ class AcademicMatricesPdfController extends Controller
             'signatureDate' => $signatureDate,
         ])->setPaper('a4', 'portrait');
 
-        return $pdf->download('beaba-matrizes-'.$academicYear->id.'-'.now()->format('Ymd-His').'.pdf');
+        return $pdf->stream('beaba-matrizes-'.$academicYear->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     private function matrixGroups(Collection $courses): Collection

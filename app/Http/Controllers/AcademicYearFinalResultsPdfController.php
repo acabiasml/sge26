@@ -69,7 +69,7 @@ class AcademicYearFinalResultsPdfController extends Controller
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->download('beaba-resultados-finais-ano-letivo-'.$academicYear->id.'-'.now()->format('Ymd-His').'.pdf');
+        return $pdf->stream('beaba-resultados-finais-ano-letivo-'.$academicYear->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     private function verificationCode(): string

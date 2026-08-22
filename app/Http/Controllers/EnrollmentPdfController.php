@@ -43,7 +43,7 @@ class EnrollmentPdfController extends Controller
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'portrait');
 
-        return $pdf->download('beaba-ficha-matricula-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
+        return $pdf->stream('beaba-ficha-matricula-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     private function issuedDocument(Request $request, AcademicYear $academicYear, StudentEnrollment $enrollment): IssuedDocument

@@ -41,7 +41,7 @@ class ReportController extends Controller
             'letterhead' => PdfLetterhead::make($school),
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->download($this->filename($report->type, 'pdf'));
+        return $pdf->stream($this->filename($report->type, 'pdf'));
     }
 
     public function verify(string $code): Response

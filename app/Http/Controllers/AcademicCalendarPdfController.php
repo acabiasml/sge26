@@ -38,7 +38,7 @@ class AcademicCalendarPdfController extends Controller
             'specialDates' => $this->specialDates($academicYear),
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->download('beaba-calendario-'.$academicYear->id.'-'.now()->format('Ymd-His').'.pdf');
+        return $pdf->stream('beaba-calendario-'.$academicYear->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     /**

@@ -416,7 +416,7 @@ class TeacherDiaryController extends Controller
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->download('beaba-diario-'.$schoolClass->id.'-'.$component->id.'-'.now()->format('Ymd-His').'.pdf');
+        return $pdf->stream('beaba-diario-'.$schoolClass->id.'-'.$component->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     public function attendanceSheet(Request $request, SchoolClass $schoolClass, CurriculumComponent $component): Response
@@ -486,7 +486,7 @@ class TeacherDiaryController extends Controller
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->download('beaba-lista-chamada-'.$schoolClass->id.'-'.$component->id.'-'.$month->format('Ym').'.pdf');
+        return $pdf->stream('beaba-lista-chamada-'.$schoolClass->id.'-'.$component->id.'-'.$month->format('Ym').'.pdf');
     }
 
     public function attendance(Request $request, SchoolClass $schoolClass, CurriculumComponent $component): View

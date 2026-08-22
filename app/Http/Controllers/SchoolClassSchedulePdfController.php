@@ -48,7 +48,7 @@ class SchoolClassSchedulePdfController extends Controller
             'weekdays' => $this->weekdays($academicYear),
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->download('beaba-horario-turma-'.$class->id.'-'.now()->format('Ymd-His').'.pdf');
+        return $pdf->stream('beaba-horario-turma-'.$class->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     private function canAccessClassSchedule(Request $request, AcademicYear $academicYear, SchoolClass $class): bool
@@ -114,7 +114,7 @@ class SchoolClassSchedulePdfController extends Controller
             'weekdays' => $this->weekdays($academicYear),
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->download('beaba-horarios-'.$academicYear->id.'-'.now()->format('Ymd-His').'.pdf');
+        return $pdf->stream('beaba-horarios-'.$academicYear->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     /**

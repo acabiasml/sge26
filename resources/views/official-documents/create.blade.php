@@ -11,7 +11,7 @@
                     <h2 class="h6 m-0 font-weight-bold text-primary">Novo documento em papel timbrado</h2>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ route('official-documents.store') }}" id="official-document-form" data-download-form="true">
+                    <form method="POST" action="{{ route('official-documents.store') }}" id="official-document-form">
                         @csrf
                         <input type="hidden" name="type" value="{{ \App\Models\OfficialDocument::TYPE_OTHER }}">
 
@@ -117,7 +117,7 @@
 
                         <button class="btn btn-primary" type="submit" @disabled($schools->isEmpty())>
                             <i class="fas fa-file-pdf mr-1" aria-hidden="true"></i>
-                            Gerar PDF oficial
+                            Visualizar PDF oficial
                         </button>
                     </form>
                 </div>

@@ -40,7 +40,7 @@
     @endif
 
     <form method="GET" action="{{ route('document-issuance.issue') }}" id="document-issuance-form"
-        class="sge-document-hub-form" data-download-form="true">
+        class="sge-document-hub-form">
         <section class="sge-document-flow" aria-label="Preparar emissão de documento">
             <div class="sge-document-step">
                 <div class="sge-document-step-number" aria-hidden="true">1</div>
@@ -248,11 +248,11 @@
             <div class="sge-document-submit">
                 <div>
                     <strong>Documento oficial em PDF</strong>
-                    <span>O arquivo será gerado pelo emissor correspondente após a conferência dos dados.</span>
+                    <span>O documento será aberto no visualizador do navegador para conferência, impressão ou download.</span>
                 </div>
-                <button type="submit" class="btn btn-primary" id="issue-document" disabled data-loading-label="Gerando PDF...">
+                <button type="submit" class="btn btn-primary" id="issue-document" disabled data-loading-label="Abrindo PDF...">
                     <i class="fas fa-file-pdf" aria-hidden="true"></i>
-                    <span>Emitir documento</span>
+                    <span>Visualizar documento</span>
                 </button>
             </div>
         </section>
