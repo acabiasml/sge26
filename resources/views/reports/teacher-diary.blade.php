@@ -113,8 +113,8 @@
             </thead>
             <tbody>
                 @forelse($enrollments as $enrollment)
-                    @php($enrollmentLocked = ! $enrollment->isActive())
                     @php
+                        $enrollmentLocked = ! $enrollment->isActive();
                         $present = $report['attendance']->sum(function ($attendance) use ($enrollment) {
                             return (int) ($attendance->entries->firstWhere('student_enrollment_id', $enrollment->id)?->attended_lessons ?? 0);
                         });
