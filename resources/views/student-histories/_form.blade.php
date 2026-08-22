@@ -1,6 +1,6 @@
 @php
     $history->loadMissing(['years.records', 'components.records.year']);
-    $yearsInput = collect(old('years', $history->exists
+    $yearsInput = collect(old('years', $history->exists && $history->years->isNotEmpty()
         ? $history->years->map(fn ($year) => [
             'label' => $year->label,
             'source' => $year->source,
@@ -29,7 +29,7 @@
             ['label' => '3º Ano', 'year' => '', 'stage' => '', 'modality' => 'Regular', 'grade_phase' => '', 'school_name' => '', 'city' => '', 'state' => '', 'country' => 'Brasil', 'transcript_mode' => 'detailed', 'final_result' => '', 'workload_hours' => '', 'school_days' => '', 'attendance_label' => '', 'minimum_attendance_percentage' => '', 'notes' => ''],
         ]))->values();
 
-    $componentsInput = collect(old('components', $history->exists
+    $componentsInput = collect(old('components', $history->exists && $history->components->isNotEmpty()
         ? $history->components->map(function ($component) use ($history) {
             $records = [];
             foreach ($history->years->values() as $yearIndex => $year) {

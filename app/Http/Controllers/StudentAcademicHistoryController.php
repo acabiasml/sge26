@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\IssuedDocument;
 use App\Models\Person;
+use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\StudentAcademicHistory;
 use App\Models\StudentEnrollment;
@@ -29,7 +30,7 @@ class StudentAcademicHistoryController extends Controller
             : $request->user()->manageableSchoolIds();
 
         $students = Person::query()
-            ->whereHas('studentEnrollments.schoolClass.academicYear', fn ($query) => $query->whereIn('school_id', $schoolIds))
+            ->whereHas('schoolRoles', fn ($query) => $query->where('role', PersonSchoolRole::ROLE_STUDENT)->whereIn('school_id', $schoolIds))
             ->when($request->filled('q'), fn ($query) => $query->where('full_name', 'like', '%'.trim((string) $request->input('q')).'%'))
             ->withCount('studentEnrollments')
             ->with(['academicHistories' => fn ($query) => $query->where('is_unified', true), 'studentEnrollments.schoolClass.academicYear.school'])
@@ -47,8 +48,10 @@ class StudentAcademicHistoryController extends Controller
             ->whereHas('schoolClass.academicYear', fn ($query) => $query->whereIn('school_id', $request->user()->isAdministrator() ? School::query()->pluck('id') : $request->user()->manageableSchoolIds()))
             ->with('schoolClass.academicYear')
             ->latest('enrolled_at')
-            ->firstOrFail()
-            ->schoolClass->academicYear->school_id;
+            ->first()
+            ?->schoolClass->academicYear->school_id
+            ?? $person->schoolRoles()->where('role', PersonSchoolRole::ROLE_STUDENT)->whereIn('school_id', $request->user()->isAdministrator() ? School::query()->pluck('id') : $request->user()->manageableSchoolIds())->value('school_id');
+        abort_unless($schoolId, 422, 'O estudante precisa estar vinculado a uma escola para ter o histórico cadastrado.');
         $history = $synchronizer->synchronize($person, $schoolId, $request->user()->person_id);
 
         return redirect()->route('people.histories.edit', [$person, $history])
