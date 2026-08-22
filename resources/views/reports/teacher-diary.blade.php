@@ -24,6 +24,7 @@
         .attendance-mark { font-weight: 600; white-space: nowrap; }
         .attendance-total { width: 54px; min-width: 54px; }
         .attendance-page-break { page-break-before: always; height: 0; }
+        .scores-table { margin-top: 10px; }
         .scores-table .student-column { width: auto; }
         .score-column { width: 1%; min-width: 32px; white-space: nowrap; }
         .scores-section { page-break-inside: avoid; }
