@@ -36,6 +36,8 @@ class DocumentIssuancePanelTest extends TestCase
             ->assertSee('value="class-report-cards"', false)
             ->assertSee('value="class-grade-mirror"', false)
             ->assertSee('name="attendance_scope"', false)
+            ->assertSee('target="_blank"', false)
+            ->assertSee('data-download-form="true"', false)
             ->assertSee('Ficha cadastral da escola');
 
         $this->actingAs($manager)

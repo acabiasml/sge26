@@ -40,7 +40,7 @@
     @endif
 
     <form method="GET" action="{{ route('document-issuance.issue') }}" id="document-issuance-form"
-        class="sge-document-hub-form">
+        class="sge-document-hub-form" target="_blank" rel="noopener" data-download-form="true">
         <section class="sge-document-flow" aria-label="Preparar emissão de documento">
             <div class="sge-document-step">
                 <div class="sge-document-step-number" aria-hidden="true">1</div>
