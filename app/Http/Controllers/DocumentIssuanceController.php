@@ -789,7 +789,7 @@ class DocumentIssuanceController extends Controller
 
         if (! $enabled) {
             throw ValidationException::withMessages([
-                'target_id' => $reason ?? 'Este documento nÃ£o estÃ¡ disponÃ­vel para esta matrÃ­cula.',
+                'target_id' => $reason ?? 'Este documento não está disponível para esta matrícula.',
             ]);
         }
 
@@ -878,7 +878,7 @@ class DocumentIssuanceController extends Controller
         if (in_array($data['type'], ['class-report-cards', 'class-grade-mirror', 'class-attendance-certificates'], true)
             && ! $class->enrollments->contains(fn (StudentEnrollment $enrollment): bool => $enrollment->isActive())) {
             throw ValidationException::withMessages([
-                'target_id' => 'A turma nÃ£o possui matrÃ­culas ativas.',
+                'target_id' => 'A turma não possui matrículas ativas.',
             ]);
         }
 

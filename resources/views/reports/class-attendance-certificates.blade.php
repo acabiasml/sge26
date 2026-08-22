@@ -37,7 +37,7 @@
     <table class="summary">
         <tr><th>Estudante</th><td>{{ $student?->full_name }}</td></tr><tr><th>Escola</th><td>{{ $academicYear->school?->name }}</td></tr>
         <tr><th>Ano letivo</th><td>{{ $academicYear->referenceYearsLabel() }}</td></tr><tr><th>Turma</th><td>{{ $class->name }}</td></tr>
-        <tr><th>Recorte</th><td>{{ $scope['label'] }}</td></tr><tr><th>Aulas lanÃ§adas</th><td>{{ $attendance['lessons'] }}</td></tr>
+        <tr><th>Recorte</th><td>{{ $scope['label'] }}</td></tr><tr><th>Aulas lançadas</th><td>{{ $attendance['lessons'] }}</td></tr>
         <tr><th>Faltas</th><td>{{ $attendance['absent'] }} ({{ $attendance['justified'] }} justificada(s))</td></tr><tr><th>Frequência</th><td>{{ $percentage ?? '-' }}</td></tr>
     </table>
     <table class="matrices"><thead><tr><th>Matriz</th><th>Etapa</th><th>Aulas</th><th>Presenças</th><th>Faltas</th><th>Frequência</th></tr></thead><tbody>
