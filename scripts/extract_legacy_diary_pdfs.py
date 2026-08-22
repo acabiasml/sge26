@@ -124,7 +124,10 @@ def parse_frequency_sections(lines: list[str], student_names: dict[int, str]) ->
                 issues.append({"type": "frequency_mark_count", "period": period, "student_id": int(id_match.group(1)), "dates": len(dates), "marks": len(marks)})
                 continue
             student_id = int(id_match.group(1))
-            student_name = line[id_match.end():marks[0][1]].strip() or student_names.get(student_id, "")
+            # Em grades muito largas, o nome quebra em várias linhas e apenas um
+            # sobrenome pode permanecer na mesma linha das marcações. O quadro de
+            # progressão fornece o nome completo associado ao mesmo ID.
+            student_name = student_names.get(student_id) or line[id_match.end():marks[0][1]].strip()
             if not student_name:
                 issues.append({"type": "frequency_student_name_missing", "period": period, "student_id": student_id})
                 continue
