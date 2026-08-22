@@ -18,11 +18,11 @@
         .center { text-align: center; }
         .small { font-size: 11px; color: #6b625e; }
         .student-column { min-width: 128px; }
-        .date-heading { height: 74px; padding: 0; position: relative; vertical-align: middle; width: 24px; min-width: 24px; overflow: hidden; }
-        .date-heading span { display: block; line-height: 1.05; position: absolute; left: -24px; top: 30px; text-align: center; transform: rotate(-90deg); transform-origin: center; white-space: nowrap; width: 74px; }
+        .date-heading { height: 48px; padding: 0; position: relative; vertical-align: middle; width: 18px; min-width: 18px; }
+        .date-heading span { display: block; line-height: 1; position: absolute; left: -15px; top: 16px; text-align: center; transform: rotate(-90deg); transform-origin: center; white-space: nowrap; width: 48px; }
+        .attendance-mark { font-weight: 600; white-space: nowrap; }
         .compact-score-heading { min-width: 32px; }
-        .period-page { page-break-after: always; }
-        .period-page:last-child { page-break-after: auto; }
+        .period-break { page-break-after: always; height: 0; }
         .signature-grid { width: 100%; margin-top: 42px; }
         .signature-grid td { border: 0; width: 50%; text-align: center; padding-top: 38px; }
         .signature-line { border-top: .8px solid #6B3D2E; display: inline-block; min-width: 230px; padding-top: 5px; font-weight: 600; }
@@ -49,6 +49,14 @@
 @endphp
 @foreach($periodReports as $report)
     @php($period = $report['period'])
+    @php
+        $attendanceColumns = $report['attendance']->flatMap(function ($attendance) {
+            return collect(range(0, max(1, (int) $attendance->lesson_count) - 1))->map(fn ($lessonIndex) => [
+                'record' => $attendance,
+                'lesson_index' => $lessonIndex,
+            ]);
+        })->values();
+    @endphp
     <section class="period-page">
         @include('reports.partials.letterhead', [
             'title' => 'Diário de classe - '.$component->name,
@@ -82,8 +90,8 @@
             <thead>
                 <tr>
                     <th class="student-column">Estudante</th>
-                    @foreach($report['attendance'] as $attendance)
-                        <th class="center date-heading"><span>{{ $attendance->class_date->format('d/m') }} · {{ $attendance->lesson_count }} aula(s)</span></th>
+                    @foreach($attendanceColumns as $attendanceColumn)
+                        <th class="center date-heading"><span>{{ $attendanceColumn['record']->class_date->format('d/m') }}</span></th>
                     @endforeach
                     <th class="center">Presenças</th>
                     <th class="center">Faltas</th>
@@ -101,19 +109,24 @@
                                 <span class="small">({{ $enrollment->statusLabel() }})</span>
                             @endif
                         </td>
-                        @foreach($report['attendance'] as $attendance)
+                        @foreach($attendanceColumns as $attendanceColumn)
+                            @php($attendance = $attendanceColumn['record'])
+                            @php($lessonIndex = $attendanceColumn['lesson_index'])
                             @php($entry = $attendance->entries->firstWhere('student_enrollment_id', $enrollment->id))
                             @php($attended = (int) ($entry?->attended_lessons ?? 0))
                             @php($lessons = (int) $attendance->lesson_count)
-                            @php($present += $attended)
-                            @php($absent += max(0, $lessons - $attended))
-                            <td class="center">{{ $attended }}/{{ $lessons }}</td>
+                            @php($lessonPresence = $entry?->lesson_presence ?? [])
+                            @php($hasExplicitLesson = array_key_exists($lessonIndex, $lessonPresence))
+                            @php($lessonWasPresent = $hasExplicitLesson ? (bool) $lessonPresence[$lessonIndex] : ($entry ? $lessonIndex < $attended : null))
+                            @php($present += $lessonIndex === 0 ? $attended : 0)
+                            @php($absent += $lessonIndex === 0 ? max(0, $lessons - $attended) : 0)
+                            <td class="center attendance-mark">{{ $lessonWasPresent === null ? '-' : ($lessonWasPresent ? '*' : 'F') }}</td>
                         @endforeach
                         <td class="center">{{ $present }}</td>
                         <td class="center">{{ $absent }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="{{ $report['attendance']->count() + 3 }}">Nenhum estudante matriculado.</td></tr>
+                    <tr><td colspan="{{ $attendanceColumns->count() + 3 }}">Nenhum estudante matriculado.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -169,6 +182,9 @@
             </tr>
         </table>
     </section>
+    @unless($loop->last)
+        <div class="period-break"></div>
+    @endunless
 @endforeach
 
 <div class="document-footer">
