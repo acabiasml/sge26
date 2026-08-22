@@ -64,11 +64,9 @@
                 'lesson_index' => $lessonIndex,
             ]);
         })->values();
-        $attendancePageCount = max(1, (int) ceil($attendanceColumns->count() / 36));
-        $attendanceColumnsPerPage = max(1, (int) ceil($attendanceColumns->count() / $attendancePageCount));
         $attendanceColumnGroups = $attendanceColumns->isEmpty()
             ? collect([collect()])
-            : $attendanceColumns->chunk($attendanceColumnsPerPage);
+            : $attendanceColumns->chunk(36);
     @endphp
     <section class="period-page">
         @include('reports.partials.letterhead', [
@@ -102,6 +100,9 @@
             @if(! $loop->first)
                 <div class="attendance-page-break"></div>
             @endif
+            @php
+                $showAttendanceTotals = $loop->last;
+            @endphp
         <h2>
             Frequência
             @if($attendanceColumnGroups->count() > 1)
@@ -115,21 +116,31 @@
                     @foreach($attendanceGroup as $attendanceColumn)
                         <th class="center date-heading"><span>{{ $attendanceColumn['record']->class_date->format('d/m') }}</span></th>
                     @endforeach
-                    <th class="center attendance-total">Presenças</th>
-                    <th class="center attendance-total">Faltas</th>
+                    @if($showAttendanceTotals)
+                        <th class="center attendance-total">Presenças</th>
+                        <th class="center attendance-total">Faltas</th>
+                    @endif
                 </tr>
             </thead>
             <tbody>
                 @forelse($enrollments as $enrollment)
                     @php
                         $enrollmentLocked = ! $enrollment->isActive();
-                        $present = $report['attendance']->sum(function ($attendance) use ($enrollment) {
-                            return (int) ($attendance->entries->firstWhere('student_enrollment_id', $enrollment->id)?->attended_lessons ?? 0);
+                        $enrolledAt = $enrollment->enrolled_at?->copy()->startOfDay();
+                        $countableAttendance = $report['attendance']->filter(function ($attendance) use ($enrolledAt) {
+                            return ! $enrolledAt || $attendance->class_date->gte($enrolledAt);
                         });
-                        $absent = $report['attendance']->sum(function ($attendance) use ($enrollment) {
-                            $attendedLessons = (int) ($attendance->entries->firstWhere('student_enrollment_id', $enrollment->id)?->attended_lessons ?? 0);
+                        $present = $countableAttendance->sum(function ($attendance) use ($enrollment) {
+                            $entry = $attendance->entries->firstWhere('student_enrollment_id', $enrollment->id);
 
-                            return max(0, (int) $attendance->lesson_count - $attendedLessons);
+                            return $entry ? (int) $entry->attended_lessons : 0;
+                        });
+                        $absent = $countableAttendance->sum(function ($attendance) use ($enrollment) {
+                            $entry = $attendance->entries->firstWhere('student_enrollment_id', $enrollment->id);
+
+                            return $entry
+                                ? max(0, (int) $attendance->lesson_count - (int) $entry->attended_lessons)
+                                : 0;
                         });
                     @endphp
                     <tr>
@@ -146,14 +157,17 @@
                             @php($attended = (int) ($entry?->attended_lessons ?? 0))
                             @php($lessonPresence = $entry?->lesson_presence ?? [])
                             @php($hasExplicitLesson = array_key_exists($lessonIndex, $lessonPresence))
-                            @php($lessonWasPresent = $hasExplicitLesson ? (bool) $lessonPresence[$lessonIndex] : ($entry ? $lessonIndex < $attended : null))
+                            @php($beforeEnrollment = $enrolledAt && $attendance->class_date->lt($enrolledAt))
+                            @php($lessonWasPresent = $beforeEnrollment ? null : ($hasExplicitLesson ? (bool) $lessonPresence[$lessonIndex] : ($entry ? $lessonIndex < $attended : null)))
                             <td class="center attendance-mark">{{ $lessonWasPresent === null ? '-' : ($lessonWasPresent ? '*' : 'F') }}</td>
                         @endforeach
-                        <td class="center attendance-total">{{ $present }}</td>
-                        <td class="center attendance-total">{{ $absent }}</td>
+                        @if($showAttendanceTotals)
+                            <td class="center attendance-total">{{ $present }}</td>
+                            <td class="center attendance-total">{{ $absent }}</td>
+                        @endif
                     </tr>
                 @empty
-                    <tr><td colspan="{{ $attendanceGroup->count() + 3 }}">Nenhum estudante matriculado.</td></tr>
+                    <tr><td colspan="{{ $attendanceGroup->count() + 1 + ($showAttendanceTotals ? 2 : 0) }}">Nenhum estudante matriculado.</td></tr>
                 @endforelse
             </tbody>
         </table>
