@@ -29,8 +29,8 @@ table { border-collapse: collapse; }
 .letterhead-logo { width: 82px; text-align: center; }
 .letterhead-logo img { max-width: 70px; max-height: 52px; }
 .letterhead-center { text-align: center; }
-.letterhead-line { font-size: 7.4px; color: #534741; line-height: 1.17; margin-top: 1px; }
-.letterhead-line-main { font-size: 9.2px; font-weight: 600; color: #6B3D2E; letter-spacing: .12px; text-transform: uppercase; }
+.letterhead-line { font-size: 11px; color: #534741; line-height: 1.17; margin-top: 1px; }
+.letterhead-line-main { font-size: 11px; font-weight: 600; color: #6B3D2E; letter-spacing: .12px; text-transform: uppercase; }
 .document-title { font-size: 16px; line-height: 1.12; margin: 8px 0 3px; color: #6B3D2E; font-weight: 600; text-align: center; }
-.document-meta { color: #5f5a55; font-size: 8px; line-height: 1.3; }
-.document-footer { position: fixed; bottom: -10px; left: 0; right: 0; border-top: .6px solid #d9c9c0; padding-top: 4px; font-size: 7px; line-height: 1.25; color: #5f5a55; text-align: center; }
+.document-meta { color: #5f5a55; font-size: 11px; line-height: 1.3; }
+.document-footer { position: fixed; bottom: -10px; left: 0; right: 0; border-top: .6px solid #d9c9c0; padding-top: 4px; font-size: 11px; line-height: 1.25; color: #5f5a55; text-align: center; }

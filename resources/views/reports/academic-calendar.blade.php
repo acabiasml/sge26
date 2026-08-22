@@ -4,12 +4,12 @@
     <meta charset="utf-8">
     <style>
         @page { size: A4 landscape; margin: 14px 16px 30px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 7.8px; line-height: 1.14; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 11px; line-height: 1.14; }
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 6px; padding-bottom: 5px; }
         .document-title { font-size: 12px; margin-top: 4px; text-transform: uppercase; }
-        .document-meta { font-size: 6.6px; }
-        .calendar-subtitle { text-align: center; font-size: 7.6px; margin: -1px 0 5px; color: #534741; }
+        .document-meta { font-size: 11px; }
+        .calendar-subtitle { text-align: center; font-size: 11px; margin: -1px 0 5px; color: #534741; }
         table { width: 100%; border-collapse: collapse; }
         .calendar-wrap { border: 1px solid #6B3D2E; padding: 2px; }
         .calendar th { background: #6B3D2E; color: #fff; border: .45px solid #6B3D2E; padding: 2px 1px; text-align: center; }
@@ -37,19 +37,19 @@
         .summary { margin-top: 6px; }
         .summary td { vertical-align: top; }
         .panel { border: .6px solid #d8c8bf; padding: 4px; }
-        .panel-title { color: #6B3D2E; font-weight: 600; text-transform: uppercase; font-size: 7px; margin-bottom: 2px; }
+        .panel-title { color: #6B3D2E; font-weight: 600; text-transform: uppercase; font-size: 11px; margin-bottom: 2px; }
         .legend { width: 34%; }
         .legend-table td { padding: 1px 2px; border-bottom: .4px solid #eadfd8; }
         .legend .code { width: 18px; font-weight: 600; color: #6B3D2E; text-align: center; }
         .special-dates { width: 30%; padding-left: 6px; }
         .special-dates td { padding: 1px 2px; border-bottom: .4px solid #eadfd8; }
         .special-dates .date { width: 42px; font-weight: 600; color: #6B3D2E; }
-        .meta { width: 18%; padding-left: 6px; font-size: 7.1px; color: #534741; }
+        .meta { width: 18%; padding-left: 6px; font-size: 11px; color: #534741; }
         .meta table td { padding: 1px 2px; border-bottom: .4px solid #eadfd8; }
-        .signature { width: 18%; text-align: center; padding-left: 8px; font-size: 7.2px; }
+        .signature { width: 18%; text-align: center; padding-left: 8px; font-size: 11px; }
         .signature .line { border-top: .7px solid #6B3D2E; margin-top: 54px; padding-top: 4px; font-weight: 600; }
         .signature .role { display: block; font-weight: 400; margin-top: 2px; }
-        .document-footer { font-size: 6.2px; padding-top: 3px; }
+        .document-footer { font-size: 11px; padding-top: 3px; }
     </style>
 </head>
 <body>

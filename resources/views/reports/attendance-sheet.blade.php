@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <style>
         @page { size: A4 landscape; margin: 16px 18px 30px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 7.8px; line-height: 1.18; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 11px; line-height: 1.18; }
         @include('reports.partials.letterhead-styles')
         .document-title { font-size: 14px; margin-top: 6px; text-transform: uppercase; }
         table { width: 100%; border-collapse: collapse; }
@@ -14,11 +14,11 @@
         .meta td { border-color: #e1d5ce; }
         .meta-label { width: 14%; background: #faf4ef; font-weight: 600; color: #6B3D2E; }
         .name { width: 24%; font-weight: 600; }
-        .day { width: 22px; text-align: center; font-size: 7px; }
-        .lesson-count { display: block; font-size: 6px; font-weight: 400; color: #f8e6d8; }
+        .day { width: 22px; text-align: center; font-size: 11px; }
+        .lesson-count { display: block; font-size: 11px; font-weight: 400; color: #f8e6d8; }
         .signature { margin-top: 36px; text-align: center; }
         .signature-line { display: inline-block; min-width: 260px; border-top: .8px solid #6B3D2E; padding-top: 5px; font-weight: 600; }
-        .document-footer { font-size: 7px; }
+        .document-footer { font-size: 11px; }
     </style>
 </head>
 <body>

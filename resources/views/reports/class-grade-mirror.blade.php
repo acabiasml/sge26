@@ -4,20 +4,20 @@
     <meta charset="utf-8">
     <style>
         @page { size: A4 landscape; margin: 13px 16px 30px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 6.6px; line-height: 1.1; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 11px; line-height: 1.1; }
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 6px; padding-bottom: 5px; }
         .letterhead-logo img { max-width: 62px; max-height: 44px; }
-        .letterhead-line { font-size: 6.6px; line-height: 1.12; }
-        .letterhead-line-main { font-size: 8.2px; }
+        .letterhead-line { font-size: 11px; line-height: 1.12; }
+        .letterhead-line-main { font-size: 11px; }
         .document-title { font-size: 12.5px; margin: 4px 0 1px; text-transform: uppercase; }
         .mirror-context { margin: 0 0 6px; text-align: center; }
-        .mirror-context strong { font-size: 9px; text-transform: uppercase; }
+        .mirror-context strong { font-size: 11px; text-transform: uppercase; }
         .mirror-context span { color: #555; display: block; margin-top: 2px; }
         .mirror-table { border-collapse: collapse; table-layout: fixed; width: 100%; }
         .mirror-table th, .mirror-table td { border: .5px solid #111; padding: 1.8px 2px; vertical-align: middle; }
-        .mirror-table th { background: #eee9e5; font-size: 5.2px; font-weight: 600; text-align: center; }
-        .mirror-table td { font-size: 6.1px; }
+        .mirror-table th { background: #eee9e5; font-size: 11px; font-weight: 600; text-align: center; }
+        .mirror-table td { font-size: 11px; }
         .mirror-table .number-column { text-align: center; width: 3%; }
         .mirror-table .student-column { width: 22%; }
         .mirror-table .student-name { font-weight: 600; }
@@ -27,12 +27,12 @@
         .component-heading { height: 76px; padding: 1px; vertical-align: bottom; width: 3.2%; }
         .component-heading span { display: inline-block; line-height: 1; transform: rotate(-90deg); transform-origin: center; white-space: nowrap; width: 74px; }
         .behavior-heading { background: #f5e7ce !important; }
-        .mirror-notes { color: #4f4945; font-size: 6.4px; margin-top: 5px; }
+        .mirror-notes { color: #4f4945; font-size: 11px; margin-top: 5px; }
         .mirror-notes strong { color: #222; }
         .concept-legend span { display: inline-block; margin-right: 8px; white-space: nowrap; }
         .page-number { float: right; }
         .page-break { page-break-after: always; }
-        .document-footer { position: fixed; bottom: -19px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 4px; text-align: center; font-size: 6.2px; color: #333; }
+        .document-footer { position: fixed; bottom: -19px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 4px; text-align: center; font-size: 11px; color: #333; }
     </style>
 </head>
 <body>

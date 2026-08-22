@@ -4,19 +4,19 @@
     <meta charset="utf-8">
     <style>
         @page { size: A4 landscape; margin: 18px 18px 32px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #1f1713; font-size: 7.6px; line-height: 1.18; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #1f1713; font-size: 11px; line-height: 1.18; }
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 8px; padding-bottom: 6px; }
         .document-title { font-size: 14px; margin-top: 5px; text-transform: uppercase; }
         h2 { color: #6B3D2E; font-size: 12px; margin: 12px 0 5px; border-bottom: 1px solid #6B3D2E; padding-bottom: 3px; }
-        h3 { color: #3F6B3D; font-size: 10px; margin: 9px 0 4px; }
+        h3 { color: #3F6B3D; font-size: 11px; margin: 9px 0 4px; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
         th { background: #f2e9e3; color: #6B3D2E; font-weight: 600; }
         th, td { border: .5px solid #d8c8bf; padding: 3px 3.4px; vertical-align: top; }
         .meta td { border-color: #e1d5ce; }
         .meta-label { width: 22%; background: #faf4ef; font-weight: 600; color: #6B3D2E; }
         .center { text-align: center; }
-        .small { font-size: 7.5px; color: #6b625e; }
+        .small { font-size: 11px; color: #6b625e; }
         .student-column { min-width: 128px; }
         .date-heading { height: 74px; padding: 0; position: relative; vertical-align: middle; width: 24px; min-width: 24px; overflow: hidden; }
         .date-heading span { display: block; line-height: 1.05; position: absolute; left: -24px; top: 30px; text-align: center; transform: rotate(-90deg); transform-origin: center; white-space: nowrap; width: 74px; }
@@ -26,7 +26,7 @@
         .signature-grid { width: 100%; margin-top: 42px; }
         .signature-grid td { border: 0; width: 50%; text-align: center; padding-top: 38px; }
         .signature-line { border-top: .8px solid #6B3D2E; display: inline-block; min-width: 230px; padding-top: 5px; font-weight: 600; }
-        .document-footer { position: fixed; bottom: -18px; left: 0; right: 0; font-size: 6.5px; color: #6b625e; }
+        .document-footer { position: fixed; bottom: -18px; left: 0; right: 0; font-size: 11px; color: #6b625e; }
     </style>
 </head>
 <body>

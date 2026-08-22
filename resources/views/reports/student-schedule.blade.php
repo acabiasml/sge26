@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <style>
         @page { size: A4 landscape; margin: 16px 18px 30px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 8.6px; line-height: 1.18; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 11px; line-height: 1.18; }
         @include('reports.partials.letterhead-styles')
         .document-title { font-size: 15px; margin-top: 7px; text-transform: uppercase; }
         table { width: 100%; border-collapse: collapse; margin-top: 8px; }
@@ -13,8 +13,8 @@
         .slot { border-left: 4px solid #9a8f86; background: #f4f1ed; padding: 4px; margin-bottom: 3px; }
         .slot strong, .slot span, .slot small { display: block; }
         .slot span { color: #6B3D2E; font-weight: 600; }
-        .slot small { color: #5f5a55; font-size: 7.5px; }
-        .document-footer { font-size: 7px; }
+        .slot small { color: #5f5a55; font-size: 11px; }
+        .document-footer { font-size: 11px; }
     </style>
 </head>
 <body>

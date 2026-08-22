@@ -4,11 +4,11 @@
     <meta charset="utf-8">
     <style>
         @page { size: A4 landscape; margin: 16px 18px 30px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 8.6px; line-height: 1.18; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 11px; line-height: 1.18; }
         @include('reports.partials.letterhead-styles')
         .document-title { font-size: 15px; margin-top: 7px; text-transform: uppercase; }
         .schedule-title { margin: 8px 0 4px; color: #6B3D2E; font-size: 12px; text-transform: uppercase; }
-        .schedule-subtitle { margin: 0 0 6px; color: #5f5a55; font-size: 8px; }
+        .schedule-subtitle { margin: 0 0 6px; color: #5f5a55; font-size: 11px; }
         .schedule-table { width: 100%; border-collapse: collapse; page-break-inside: avoid; margin-bottom: 12px; }
         .schedule-table th { background: #6B3D2E; color: #fff; border: .55px solid #6B3D2E; padding: 3.5px 3px; text-align: center; }
         .schedule-table td { border: .5px solid #b99686; padding: 3px; vertical-align: top; min-height: 28px; }
@@ -16,13 +16,13 @@
         .slot { border-left: 4px solid #9a8f86; background: #f4f1ed; padding: 3px 4px; min-height: 24px; }
         .slot + .slot { margin-top: 3px; }
         .slot strong, .slot span, .slot small { display: block; }
-        .slot strong { font-size: 8.4px; color: #2f241f; }
+        .slot strong { font-size: 11px; color: #2f241f; }
         .slot span { margin-top: 2px; color: #4f4650; }
-        .slot small { margin-top: 2px; color: #6f625b; font-size: 7px; }
+        .slot small { margin-top: 2px; color: #6f625b; font-size: 11px; }
         .slot-break { border-left-color: #DB6B30; background: #fff0e7; }
         .empty { color: #9b8c84; text-align: center; }
         .page-break { page-break-after: always; }
-        .document-footer { font-size: 7px; }
+        .document-footer { font-size: 11px; }
     </style>
 </head>
 <body>

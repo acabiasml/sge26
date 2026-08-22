@@ -11,7 +11,7 @@
         th { text-align: left; background: #f6f0ea; padding: 5px 6px; border: .7px solid #ead8cc; }
         td { padding: 5px 6px; border: .7px solid #ead8cc; }
         .summary th { width: 30%; }
-        .matrices { font-size: 9px; margin-top: 15px; }
+        .matrices { font-size: 11px; margin-top: 15px; }
         .matrices th { background: #6b3d2e; color: #fff; text-align: center; }
         .matrices td { text-align: center; }
         .matrices td:first-child, .matrices td:nth-child(2) { text-align: left; }

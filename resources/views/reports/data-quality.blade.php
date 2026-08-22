@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <style>
         @page { size: A4 landscape; margin: 20px 24px 34px; }
-        body { color: #2f241f; font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; font-size: 9.4px; line-height: 1.28; }
+        body { color: #2f241f; font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; font-size: 11px; line-height: 1.28; }
         @include('reports.partials.letterhead-styles')
         h2 { color: #6B3D2E; font-size: 15px; margin: 14px 0 6px; }
         h3 { color: #44693D; font-size: 12px; margin: 10px 0 4px; }
@@ -14,11 +14,11 @@
         td { border-bottom: .6px solid #e5d8cf; padding: 4px 5px; vertical-align: top; }
         .summary { display: table; margin: 10px 0 12px; width: 100%; }
         .summary div { border: 1px solid #d8c8bd; display: table-cell; padding: 7px; text-align: center; width: 25%; }
-        .summary span { color: #6d5a51; display: block; font-size: 8px; text-transform: uppercase; }
+        .summary span { color: #6d5a51; display: block; font-size: 11px; text-transform: uppercase; }
         .summary strong { color: #6B3D2E; display: block; font-size: 18px; }
         .workflow { border: 1px solid #d8c8bd; margin-bottom: 6px; padding: 6px; }
         .workflow strong { color: #6B3D2E; }
-        .badge { border-radius: 9px; color: #fff; display: inline-block; font-size: 8px; font-weight: 600; padding: 2px 6px; }
+        .badge { border-radius: 9px; color: #fff; display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 6px; }
         .danger { background: #b54a34; }
         .warning { background: #c88722; }
         .info { background: #3f89a1; }

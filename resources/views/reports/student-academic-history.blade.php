@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <style>
         @page { size: A4 landscape; margin: 18px 22px 34px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 8px; line-height: 1.2; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 11px; line-height: 1.2; }
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 8px; padding-bottom: 6px; }
         .document-title { font-size: 14px; text-transform: uppercase; margin: 5px 0 2px; }
@@ -13,16 +13,16 @@
         .label { font-weight: 600; }
         .history-table { margin-top: 8px; }
         .history-table th, .history-table td, .studies-table th, .studies-table td { border: .55px solid #111; padding: 3px 4px; vertical-align: middle; }
-        .history-table th, .studies-table th { background: #f1ede9; font-size: 7px; text-transform: uppercase; }
-        .history-table td, .studies-table td { font-size: 7.2px; }
+        .history-table th, .studies-table th { background: #f1ede9; font-size: 11px; text-transform: uppercase; }
+        .history-table td, .studies-table td { font-size: 11px; }
         .center { text-align: center; }
         .muted { color: #666; }
-        .section-title { font-size: 9px; font-weight: 600; margin: 10px 0 4px; text-transform: uppercase; }
+        .section-title { font-size: 11px; font-weight: 600; margin: 10px 0 4px; text-transform: uppercase; }
         .notes { margin-top: 7px; }
         .signatures { border-collapse: collapse; margin-top: 42px; width: 100%; }
         .signatures td { border: 0; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 280px; padding-top: 6px; }
-        .document-footer { position: fixed; bottom: -20px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 5px; text-align: center; font-size: 6.7px; color: #333; }
+        .document-footer { position: fixed; bottom: -20px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 5px; text-align: center; font-size: 11px; color: #333; }
     </style>
 </head>
 <body>

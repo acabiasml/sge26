@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <style>
         @page { size: A4 landscape; margin: 18px 22px 34px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 7.8px; line-height: 1.18; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 11px; line-height: 1.18; }
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 8px; padding-bottom: 6px; }
         .letterhead-logo img { max-width: 66px; max-height: 50px; }
@@ -16,14 +16,14 @@
         .summary-table { margin-bottom: 8px; }
         .class-title { background: #6B3D2E; color: #fff; font-weight: 600; margin-top: 9px; padding: 5px 7px; }
         .results-table th, .results-table td { border: .5px solid #111; padding: 2.7px 3.5px; vertical-align: middle; }
-        .results-table th { background: #f1ede9; font-size: 6.8px; font-weight: 600; text-transform: uppercase; }
-        .results-table td { font-size: 7px; }
+        .results-table th { background: #f1ede9; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .results-table td { font-size: 11px; }
         .center { text-align: center; }
         .muted { color: #666; }
         .signatures { border-collapse: collapse; margin-top: 44px; width: 100%; }
-        .signatures td { border: 0; font-size: 8px; text-align: center; width: 50%; }
+        .signatures td { border: 0; font-size: 11px; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 310px; padding-top: 6px; }
-        .document-footer { position: fixed; bottom: -20px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 5px; text-align: center; font-size: 6.7px; color: #333; }
+        .document-footer { position: fixed; bottom: -20px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 5px; text-align: center; font-size: 11px; color: #333; }
     </style>
 </head>
 <body>

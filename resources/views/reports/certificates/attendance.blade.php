@@ -10,7 +10,7 @@
         .summary { width: 100%; border-collapse: collapse; margin-top: 14px; }
         .summary th { width: 30%; text-align: left; background: #f6f0ea; color: #2f241f; padding: 6.5px 7px; border: .7px solid #ead8cc; }
         .summary td { padding: 6.5px 7px; border: .7px solid #ead8cc; }
-        .matrix-summary { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: 9.4px; }
+        .matrix-summary { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: 11px; }
         .matrix-summary caption { text-align: left; color: #6b3d2e; font-weight: 600; font-size: 11px; margin-bottom: 6px; }
         .matrix-summary th { background: #6b3d2e; color: #fff; padding: 5px 4px; border: .7px solid #6b3d2e; text-align: center; }
         .matrix-summary td { padding: 5px 4px; border: .7px solid #ead8cc; text-align: center; }

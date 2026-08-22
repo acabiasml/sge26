@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <style>
         @page { size: A4 landscape; margin: 18px 22px 34px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 10px; line-height: 1.28; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 11px; line-height: 1.28; }
         @include('reports.partials.letterhead-styles')
         table { width: 100%; border-collapse: collapse; }
         th { background: #6B3D2E; color: #fff; text-align: left; padding: 5px 6px; }
