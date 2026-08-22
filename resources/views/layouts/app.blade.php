@@ -744,6 +744,37 @@
         });
         scheduleResponsiveTableHints();
 
+        const isPdfReportLink = (link) => {
+            try {
+                const url = new URL(link.href, window.location.href);
+
+                return /(?:\/pdf|-pdf)\/?$/i.test(url.pathname);
+            } catch (error) {
+                return false;
+            }
+        };
+
+        const openPdfReportsInNewTab = (root = document) => {
+            root.querySelectorAll?.('a[href]').forEach((link) => {
+                if (!isPdfReportLink(link)) {
+                    return;
+                }
+
+                link.target = '_blank';
+                link.rel = 'noopener';
+            });
+        };
+
+        openPdfReportsInNewTab();
+        document.addEventListener('click', (event) => {
+            const link = event.target.closest?.('a[href]');
+
+            if (link && isPdfReportLink(link)) {
+                link.target = '_blank';
+                link.rel = 'noopener';
+            }
+        }, true);
+
         const validationSummary = document.querySelector('[data-validation-summary]');
 
         if (validationSummary) {
