@@ -429,11 +429,14 @@ class TeacherDiaryController extends Controller
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
             'letterhead' => PdfLetterhead::make($academicYear->school),
-        ])->addInfo([
+        ])->setPaper('a4', 'landscape');
+
+        $pdf->render();
+        $pdf->addInfo([
             'Title' => $documentTitle,
             'Subject' => 'Diário de classe emitido pelo Beabá',
             'Author' => $issuedDocument->person?->full_name ?? 'Beabá',
-        ])->setPaper('a4', 'landscape');
+        ]);
 
         return $pdf->stream($filename);
     }
