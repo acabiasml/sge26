@@ -26,6 +26,9 @@
         .attendance-page-break { page-break-before: always; height: 0; }
         .scores-table .student-column { width: auto; }
         .score-column { width: 1%; min-width: 32px; white-space: nowrap; }
+        .scores-section { page-break-inside: avoid; }
+        .scores-table thead { display: table-header-group; page-break-after: avoid; }
+        .scores-table thead tr { page-break-after: avoid; }
         .period-break { page-break-after: always; height: 0; }
         .signature-grid { width: 100%; margin-top: 42px; }
         .signature-grid td { border: 0; width: 50%; text-align: center; padding-top: 38px; }
@@ -155,6 +158,7 @@
         </table>
         @endforeach
 
+        <div class="scores-section">
         <h2>Notas e médias</h2>
         <table class="scores-table">
             <thead>
@@ -198,6 +202,7 @@
                 @endforelse
             </tbody>
         </table>
+        </div>
 
         <table class="signature-grid">
             <tr>
