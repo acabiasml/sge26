@@ -14,6 +14,8 @@ class ReportFontSizeTest extends TestCase
     {
         $contents = file_get_contents($path);
 
+        $this->assertIsString($contents);
+
         preg_match_all('/font-size\s*:\s*([0-9]+(?:\.[0-9]+)?)px/i', $contents, $matches);
 
         foreach ($matches[1] as $fontSize) {
