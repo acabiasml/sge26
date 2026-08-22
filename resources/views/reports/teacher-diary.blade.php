@@ -17,7 +17,8 @@
         .meta-label { width: 22%; background: #faf4ef; font-weight: 600; color: #6B3D2E; }
         .center { text-align: center; }
         .small { font-size: 11px; color: #6b625e; }
-        .student-column, .student-name { width: 1%; min-width: 120px; }
+        .student-column { width: 1%; min-width: 190px; }
+        .attendance-student-column, .student-name { width: 1%; min-width: 120px; }
         .date-heading { height: 48px; padding: 0; position: relative; vertical-align: middle; width: 18px; min-width: 18px; }
         .date-heading span { display: block; line-height: 1; position: absolute; left: -15px; top: 16px; text-align: center; transform: rotate(-90deg); transform-origin: center; white-space: nowrap; width: 48px; }
         .attendance-mark { font-weight: 600; white-space: nowrap; }
@@ -105,7 +106,7 @@
         <table>
             <thead>
                 <tr>
-                    <th class="student-column">Estudante</th>
+                    <th class="student-column attendance-student-column">Estudante</th>
                     @foreach($attendanceGroup as $attendanceColumn)
                         <th class="center date-heading"><span>{{ $attendanceColumn['record']->class_date->format('d/m') }}</span></th>
                     @endforeach
