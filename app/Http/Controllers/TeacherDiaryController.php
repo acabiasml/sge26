@@ -401,6 +401,21 @@ class TeacherDiaryController extends Controller
             ];
         });
         $issuedDocument = $this->issuedDiaryDocument($request, $academicYear, $schoolClass, $component, $periods);
+        $periodLabel = $periods->count() === 1 ? $periods->first()->name : 'Ano completo';
+        $documentTitle = collect([
+            'Diário de classe',
+            $schoolClass->name,
+            $component->name,
+            $periodLabel,
+            $issuedDocument->verification_code,
+        ])->implode(' · ');
+        $filename = collect([
+            'beaba-diario',
+            Str::slug($schoolClass->name),
+            Str::slug($component->name),
+            Str::slug($periodLabel),
+            Str::lower($issuedDocument->verification_code),
+        ])->implode('-').'.pdf';
 
         $pdf = Pdf::loadView('reports.teacher-diary', [
             'academicYear' => $academicYear,
@@ -414,9 +429,13 @@ class TeacherDiaryController extends Controller
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
             'letterhead' => PdfLetterhead::make($academicYear->school),
+        ])->addInfo([
+            'Title' => $documentTitle,
+            'Subject' => 'Diário de classe emitido pelo Beabá',
+            'Author' => $issuedDocument->person?->full_name ?? 'Beabá',
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->stream('beaba-diario-'.$schoolClass->id.'-'.$component->id.'-'.now()->format('Ymd-His').'.pdf');
+        return $pdf->stream($filename);
     }
 
     public function attendanceSheet(Request $request, SchoolClass $schoolClass, CurriculumComponent $component): Response
