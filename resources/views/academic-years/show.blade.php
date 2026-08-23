@@ -63,30 +63,30 @@
 
     <x-structure-validation :issues="$structureIssues" title="Validação do ano letivo" empty="Ano letivo sem inconsistências estruturais." />
 
-    <nav class="sge-section-nav sge-academic-nav mb-4" aria-label="Áreas do ano letivo">
-        <a href="#section-resumo" class="sge-section-nav-item">
+    <nav class="sge-section-nav sge-academic-nav sge-academic-tabs mb-4" aria-label="Áreas do ano letivo" role="tablist">
+        <a href="#section-resumo" class="sge-section-nav-item" data-academic-tab="resumo" role="tab" aria-controls="section-resumo">
             <i class="fas fa-clipboard-list"></i>
             <span>Resumo</span>
             <small>{{ $schoolDays }} dias letivos</small>
         </a>
-        <a href="#section-calendario" class="sge-section-nav-item">
+        <a href="#section-calendario" class="sge-section-nav-item" data-academic-tab="calendario" role="tab" aria-controls="section-calendario">
             <i class="fas fa-calendar-alt"></i>
             <span>Calendário</span>
             <small>{{ $academicYear->days->count() }} dias</small>
         </a>
-        <a href="#section-matrizes" class="sge-section-nav-item">
+        <a href="#section-matrizes" class="sge-section-nav-item" data-academic-tab="matrizes" role="tab" aria-controls="section-matrizes">
             <i class="fas fa-book-open"></i>
             <span>Matrizes</span>
             <small>{{ $academicYear->courses->count() }} cadastradas</small>
         </a>
-        <a href="#section-turmas" class="sge-section-nav-item">
+        <a href="#section-turmas" class="sge-section-nav-item" data-academic-tab="turmas" role="tab" aria-controls="section-turmas">
             <i class="fas fa-users"></i>
             <span>Turmas</span>
             <small>{{ $academicYear->classes->count() }} turmas</small>
         </a>
     </nav>
 
-    <div class="row">
+    <div class="row" data-academic-panel="resumo" role="tabpanel">
         <div class="col-lg-4 mb-4">
             <div id="section-resumo" class="card shadow sge-anchor-section">
                 <div class="card-header py-3">
@@ -213,7 +213,7 @@
         </div>
     </div>
 
-    <div id="section-calendario" class="card shadow mb-3 sge-anchor-section">
+    <div id="section-calendario" class="card shadow mb-3 sge-anchor-section" data-academic-panel="calendario" role="tabpanel">
         <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap">
             <h2 class="h6 m-0 font-weight-bold text-primary">Calendário visual</h2>
             <div class="sge-calendar-legend small">
@@ -230,7 +230,7 @@
         </div>
     </div>
 
-    <div class="row">
+    <div class="row" data-academic-panel="calendario">
         <div class="col-12 mb-4">
             <div class="card shadow sge-calendar-editor">
                 <div class="card-header py-3">
@@ -287,7 +287,7 @@
     </div>
 
     <div class="row">
-        <div class="col-md-6 mb-4">
+        <div class="col-12 mb-4" data-academic-panel="matrizes" role="tabpanel">
             <div class="card shadow">
                 <div class="card-header py-3 d-flex align-items-center justify-content-between">
                     <h2 id="section-matrizes" class="h6 m-0 font-weight-bold text-primary sge-anchor-section">Matrizes</h2>
@@ -343,7 +343,7 @@
             </div>
         </div>
 
-        <div class="col-md-6 mb-4">
+        <div class="col-12 mb-4" data-academic-panel="turmas" role="tabpanel">
             <div class="card shadow">
                 <div class="card-header py-3 d-flex align-items-center justify-content-between">
                     <h2 id="section-turmas" class="h6 m-0 font-weight-bold text-primary sge-anchor-section">Turmas</h2>
@@ -398,6 +398,46 @@
 
     @push('scripts')
         <script>
+            (() => {
+                const tabs = [...document.querySelectorAll('[data-academic-tab]')];
+                const panels = [...document.querySelectorAll('[data-academic-panel]')];
+                const names = tabs.map((tab) => tab.dataset.academicTab);
+
+                const nameFromHash = () => {
+                    const hash = window.location.hash.replace('#section-', '');
+                    return names.includes(hash) ? hash : 'resumo';
+                };
+
+                const activate = (name, updateHash = false) => {
+                    const selected = names.includes(name) ? name : 'resumo';
+
+                    tabs.forEach((tab) => {
+                        const active = tab.dataset.academicTab === selected;
+                        tab.classList.toggle('is-active', active);
+                        tab.setAttribute('aria-selected', active ? 'true' : 'false');
+                        tab.setAttribute('tabindex', active ? '0' : '-1');
+                    });
+
+                    panels.forEach((panel) => {
+                        panel.hidden = panel.dataset.academicPanel !== selected;
+                    });
+
+                    if (updateHash) {
+                        history.replaceState(null, '', '#section-' + selected);
+                    }
+                };
+
+                tabs.forEach((tab) => {
+                    tab.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        activate(tab.dataset.academicTab, true);
+                    });
+                });
+
+                window.addEventListener('hashchange', () => activate(nameFromHash()));
+                activate(nameFromHash());
+            })();
+
             document.querySelectorAll('[data-calendar-day]').forEach((button) => {
                 button.addEventListener('click', () => {
                     const dateInput = document.getElementById('date');

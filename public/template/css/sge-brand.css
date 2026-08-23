@@ -3955,6 +3955,22 @@ textarea:focus-visible {
     border-color: rgba(111, 57, 40, 0.32) !important;
 }
 
+.sge-academic-tabs .sge-section-nav-item.is-active {
+    color: #fff;
+    background: linear-gradient(135deg, #7b422f, #5f2f22);
+    border-color: #5f2f22;
+    box-shadow: 0 .45rem 1rem rgba(95, 47, 34, .2);
+}
+
+.sge-academic-tabs .sge-section-nav-item.is-active i,
+.sge-academic-tabs .sge-section-nav-item.is-active small {
+    color: #fff;
+}
+
+[data-academic-panel][hidden] {
+    display: none !important;
+}
+
 .sge-recovery-options {
     margin: 1rem 0;
     padding: .85rem 1rem .2rem;
