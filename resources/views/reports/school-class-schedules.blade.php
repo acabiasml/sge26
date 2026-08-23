@@ -22,6 +22,8 @@
         .slot span { margin-top: 1px; color: #4f4650; }
         .slot-break { border-left-color: #DB6B30; background: #fff0e7; }
         .empty { color: #9b8c84; text-align: center; }
+        .teacher-legend { margin: 3px 0 5px; color: #4f4650; font-size: 11px; line-height: 1.14; }
+        .teacher-legend strong { color: #2f241f; }
         .page-break { page-break-after: always; }
         .document-footer { font-size: 11px; }
     </style>
@@ -43,6 +45,7 @@
         @foreach ($class->schedules->sortBy('starts_at') as $schedule)
             @php($slots = $schedule->slots->sortBy([['starts_at', 'asc'], ['weekday', 'asc']])->values())
             @php($timeRanges = $slots->map(fn ($slot) => substr($slot->starts_at, 0, 5).'|'.substr($slot->ends_at, 0, 5))->unique()->sort()->values())
+            @php($teachingSlots = $slots->where('type', \App\Models\SchoolClassScheduleSlot::TYPE_CLASS)->unique('school_class_component_id'))
 
             <section>
                 <h2 class="schedule-title">{{ \App\Support\AcademicContextLabel::classWithStages($class->name, $class->courses) }} - {{ $schedule->name }}</h2>
@@ -73,11 +76,6 @@
                                             @php($colors = \App\Support\ScheduleTeacherColor::for($teacher?->id, $teacher?->full_name))
                                             <div class="slot {{ $slot->type === \App\Models\SchoolClassScheduleSlot::TYPE_BREAK ? 'slot-break' : '' }}" style="border-left-color: {{ $colors['border'] }}; background: {{ $slot->type === \App\Models\SchoolClassScheduleSlot::TYPE_BREAK ? '#fff0e7' : $colors['background'] }};">
                                                 <strong>{{ $slot->type === \App\Models\SchoolClassScheduleSlot::TYPE_CLASS ? $slot->componentAssignment?->component?->name : $slot->label }}</strong>
-                                                @if ($slot->type === \App\Models\SchoolClassScheduleSlot::TYPE_CLASS)
-                                                    <span>{{ $teacher?->full_name ?? 'Docência não definida' }}</span>
-                                                @else
-                                                    <span>Intervalo</span>
-                                                @endif
                                             </div>
                                         @empty
                                             <span class="empty">-</span>
@@ -92,6 +90,14 @@
                         @endforelse
                     </tbody>
                 </table>
+                @if($teachingSlots->isNotEmpty())
+                    <p class="teacher-legend">
+                        <strong>Docentes:</strong>
+                        @foreach($teachingSlots as $teachingSlot)
+                            {{ $teachingSlot->componentAssignment?->component?->name }} — {{ $teachingSlot->componentAssignment?->teacher?->full_name ?? 'não definido' }}{{ $loop->last ? '.' : ' ·' }}
+                        @endforeach
+                    </p>
+                @endif
             </section>
         @endforeach
 
