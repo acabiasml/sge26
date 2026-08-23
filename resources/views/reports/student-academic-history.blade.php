@@ -3,10 +3,10 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { size: A4 portrait; margin: 14px 18px 72px; }
+        @page { size: A4 portrait; margin: 110px 18px 72px; }
         body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 11px; line-height: 1.12; }
         @include('reports.partials.letterhead-styles')
-        .letterhead { margin-bottom: 8px; padding-bottom: 6px; }
+        .letterhead { position: fixed; top: -96px; left: 0; right: 0; margin-bottom: 0; padding-bottom: 6px; }
         .document-title { font-size: 14px; text-transform: uppercase; margin: 5px 0 2px; }
         .student-box, .history-table, .studies-table { border-collapse: collapse; width: 100%; }
         .student-box td { border: 0; padding: 2px 4px; }
@@ -114,26 +114,18 @@
 <table class="studies-table">
     <thead>
         <tr>
-            <th style="width: 13%;">Ano / Série</th>
-            <th style="width: 43%;">Estabelecimento / Local / Ato</th>
-            <th style="width: 13%;">Modalidade</th>
-            <th style="width: 17%;">Dias / Frequência</th>
-            <th style="width: 14%;">Resultado</th>
+            <th style="width: 16%;">Ano / Série</th>
+            <th style="width: 48%;">Estabelecimento / Local</th>
+            <th style="width: 18%;">Modalidade</th>
+            <th style="width: 18%;">Resultado</th>
         </tr>
     </thead>
     <tbody>
         @foreach($history->years as $year)
             <tr>
                 <td>{{ $year->year ?: '-' }}<br>{{ $year->grade_phase ?: $year->label }}</td>
-                <td><strong>{{ $year->school_name ?: '-' }}</strong><br>{{ collect([$year->city, $year->state, $year->country])->filter()->join(' / ') }}@if($year->school_authorization)<br><span class="muted">{{ $year->school_authorization }}</span>@endif @if($year->source_document)<br><span class="muted">{{ $year->source_document }}</span>@endif</td>
+                <td><strong>{{ $year->school_name ?: '-' }}</strong><br>{{ collect([$year->city, $year->state, $year->country])->filter()->join(' / ') }}@if($year->source_document)<br><span class="muted">{{ $year->source_document }}</span>@endif</td>
                 <td>{{ $year->modality ?: '-' }}</td>
-                <td>
-                    {{ collect([
-                        $year->school_days ? $year->school_days.' dias' : null,
-                        $year->attendance_label ?: null,
-                        $year->minimum_attendance_percentage ? 'mín. '.number_format((float) $year->minimum_attendance_percentage, 0, ',', '.').'%' : null,
-                    ])->filter()->join(' · ') ?: '-' }}
-                </td>
                 <td>{{ $year->final_result ?: '-' }}</td>
             </tr>
         @endforeach
