@@ -1,6 +1,8 @@
 @php
     $curriculumOnly = $curriculumOnly ?? false;
+    $manualOnly = $manualOnly ?? false;
     $history->loadMissing(['years.records', 'components.records.year']);
+    $editableYears = $manualOnly ? $history->years->where('source', 'manual')->values() : $history->years->values();
     $defaultYearCount = $history->education_stage === 'fundamental' ? 9 : 3;
     $defaultYears = collect(range(1, $defaultYearCount))->map(fn ($number) => [
         'label' => $number.'º Ano', 'year' => '', 'stage' => $history->stage ?: '', 'modality' => 'Regular',
@@ -8,8 +10,8 @@
         'transcript_mode' => 'detailed', 'final_result' => '', 'workload_hours' => '', 'school_days' => '',
         'attendance_label' => '', 'minimum_attendance_percentage' => '', 'notes' => '',
     ])->all();
-    $yearsInput = collect(old('years', $history->exists && $history->years->isNotEmpty()
-        ? $history->years->map(fn ($year) => [
+    $yearsInput = collect(old('years', $history->exists && $editableYears->isNotEmpty()
+        ? $editableYears->map(fn ($year) => [
             'label' => $year->label,
             'source' => $year->source,
             'student_enrollment_id' => $year->student_enrollment_id,
@@ -31,12 +33,12 @@
             'minimum_attendance_percentage' => $year->minimum_attendance_percentage,
             'notes' => $year->notes,
         ])->all()
-        : $defaultYears))->values();
+        : ($manualOnly ? [$defaultYears[0]] : $defaultYears)))->values();
 
     $componentsInput = collect(old('components', $history->exists && $history->components->isNotEmpty()
-        ? $history->components->map(function ($component) use ($history) {
+        ? $history->components->map(function ($component) use ($editableYears) {
             $records = [];
-            foreach ($history->years->values() as $yearIndex => $year) {
+            foreach ($editableYears as $yearIndex => $year) {
                 $record = $component->records->firstWhere('student_academic_history_year_id', $year->id);
                 $records[$yearIndex] = [
                     'score_label' => $record?->score_label,
@@ -55,12 +57,17 @@
                 'name' => $component->name,
                 'records' => $records,
             ];
-        })->all()
+        })->filter(fn ($component) => collect($component['records'])->flatten(1)->filter(fn ($value) => filled($value))->isNotEmpty() || ! $manualOnly)->values()->all()
         : [
             ['formation' => 'Formação Geral Básica', 'knowledge_area' => 'Linguagens', 'name' => 'Língua Portuguesa', 'records' => []],
             ['formation' => 'Formação Geral Básica', 'knowledge_area' => 'Matemática', 'name' => 'Matemática', 'records' => []],
             ['formation' => 'Formação Geral Básica', 'knowledge_area' => 'Ciências da Natureza', 'name' => 'Ciências', 'records' => []],
         ]))->values();
+    if ($componentsInput->isEmpty()) {
+        $componentsInput = collect([
+            ['formation' => 'Formação Geral Básica', 'knowledge_area' => '', 'name' => '', 'records' => []],
+        ]);
+    }
 @endphp
 
 <section class="sge-history-workspace mb-4" aria-label="Cadastro de histórico escolar">
@@ -149,8 +156,8 @@
         <section class="card shadow sge-panel-card mb-4">
             <div class="sge-panel-header">
                 <div>
-                    <h2>Anos, séries ou fases</h2>
-                    <p>Cada cartão abaixo vira uma coluna na tabela do histórico.</p>
+                    <h2>{{ $manualOnly ? 'Séries cursadas fora do sistema' : 'Anos, séries ou fases' }}</h2>
+                    <p>{{ $manualOnly ? 'Cadastre somente anos realizados em outras instituições.' : 'Cada cartão abaixo vira uma coluna na tabela do histórico.' }}</p>
                 </div>
                 <button class="btn btn-sm btn-outline-primary" type="button" data-add-history-year>
                     <i class="fas fa-plus mr-1" aria-hidden="true"></i>Adicionar coluna
@@ -264,8 +271,8 @@
         <section class="card shadow sge-panel-card mb-4">
             <div class="sge-panel-header">
                 <div>
-                    <h2>Componentes e resultados</h2>
-                    <p>Notas, conceitos, frequência, carga horária e resultado final conforme o documento original.</p>
+                    <h2>Componentes e resultados{{ $manualOnly ? ' externos' : '' }}</h2>
+                    <p>Notas, conceitos, frequência, carga horária e resultado final conforme o documento da outra instituição.</p>
                 </div>
                 <button class="btn btn-sm btn-outline-primary" type="button" data-add-history-component>
                     <i class="fas fa-plus mr-1" aria-hidden="true"></i>Adicionar componente

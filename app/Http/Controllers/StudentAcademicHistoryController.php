@@ -152,9 +152,18 @@ class StudentAcademicHistoryController extends Controller
         ]);
     }
 
-    public function edit(Request $request, Person $person, StudentAcademicHistory $history): View
+    public function edit(Request $request, Person $person, StudentAcademicHistory $history, UnifiedStudentHistorySynchronizer $synchronizer): View
     {
         $this->authorizeHistory($request, $person, $history);
+
+        if ($history->is_unified && $history->education_stage) {
+            $history = $synchronizer->synchronize(
+                $person,
+                $history->school_id,
+                $request->user()->person_id,
+                $history->education_stage,
+            );
+        }
 
         return view('student-histories.edit', [
             'person' => $person,
@@ -164,7 +173,7 @@ class StudentAcademicHistoryController extends Controller
         ]);
     }
 
-    public function update(Request $request, Person $person, StudentAcademicHistory $history): RedirectResponse
+    public function update(Request $request, Person $person, StudentAcademicHistory $history, UnifiedStudentHistorySynchronizer $synchronizer): RedirectResponse
     {
         $this->authorizeHistory($request, $person, $history);
 
@@ -172,7 +181,25 @@ class StudentAcademicHistoryController extends Controller
         $history->update($data['history'] + [
             'updated_by_person_id' => $request->user()->person_id,
         ]);
+        if ($history->is_unified) {
+            $data['years'] = collect($data['years'])->map(function (array $year): array {
+                $year['source'] = 'manual';
+                $year['student_enrollment_id'] = null;
+
+                return $year;
+            })->all();
+        }
+
         $this->syncRows($history, $data);
+
+        if ($history->is_unified && $history->education_stage) {
+            $synchronizer->synchronize(
+                $person,
+                $history->school_id,
+                $request->user()->person_id,
+                $history->education_stage,
+            );
+        }
 
         return redirect()->route('people.histories.show', [$person, $history])
             ->with('status', 'Histórico escolar atualizado com sucesso.');

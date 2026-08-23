@@ -11,7 +11,7 @@
         <i class="fas fa-file-alt mr-1" aria-hidden="true"></i>Dados gerais
     </a>
     <a class="btn btn-sm btn-outline-primary shadow-sm" href="{{ route('people.histories.edit', [$person, $history]) }}">
-        <i class="fas fa-table mr-1" aria-hidden="true"></i>Matriz curricular
+        <i class="fas fa-table mr-1" aria-hidden="true"></i>{{ $history->is_unified ? 'Séries externas' : 'Matriz curricular' }}
     </a>
     <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('student-histories.student', $person) }}" aria-label="Voltar aos históricos" title="Voltar aos históricos">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
