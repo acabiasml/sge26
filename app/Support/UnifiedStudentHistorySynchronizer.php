@@ -112,13 +112,20 @@ class UnifiedStudentHistorySynchronizer
                 ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($component->name), 'UTF-8')])
                 ->where('knowledge_area', $component->area?->name)
                 ->first();
+            $historyComponent ??= $history->components()
+                ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($component->name), 'UTF-8')])
+                ->whereIn('knowledge_area', ['Itinerário Formativo', 'Parte Complementar', 'Área não definida'])
+                ->first();
             $historyComponent ??= $history->components()->create([
                     'position' => $history->components()->count() + 1,
                     'formation' => $formation,
                     'knowledge_area' => $component->area?->name,
                     'name' => $component->name,
                 ]);
-            $historyComponent->update(['formation' => $formation]);
+            $historyComponent->update([
+                'formation' => $formation,
+                'knowledge_area' => $component->area?->name,
+            ]);
             $periodCount = max(1, (int) $componentReport['total_periods']);
             $rawScore = $componentReport['complete_periods'] > 0 ? (float) $componentReport['points'] / $periodCount : null;
             $usesLegacyScale = filled($component->legacy_source) || filled($component->legacy_metadata);
