@@ -35,4 +35,5 @@ table { border-collapse: collapse; }
 .document-meta { color: #5f5a55; font-size: 11px; line-height: 1.3; }
 .document-footer { position: fixed; bottom: -49px !important; left: 0; right: 0; border-top: .6px solid #d9c9c0; padding-top: 3px; font-size: 11px; line-height: 1.12; color: #5f5a55; text-align: center; }
 .document-footer-contact { white-space: nowrap; letter-spacing: -.08px; }
-.document-footer > div:last-child { padding-left: 90px; padding-right: 90px; }
+.document-footer-authentication { white-space: nowrap; }
+.document-footer-issuer { padding-right: 75px; }
