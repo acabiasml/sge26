@@ -18,6 +18,7 @@
         .center { text-align: center; }
         .muted { color: #666; }
         .section-title { font-size: 11px; font-weight: 600; margin: 4px 0 2px; text-transform: uppercase; page-break-after: avoid; }
+        .section-title-reference { font-weight: 400; margin-left: 6px; text-transform: none; }
         .formation-title { background: #e7dfd9; border: .55px solid #111; font-size: 11px; font-weight: 700; margin-top: 3px; padding: 2px 4px; text-transform: uppercase; page-break-after: avoid; }
         .formation-title-reference { font-weight: 400; margin-left: 6px; text-transform: none; }
         .area-group { page-break-inside: avoid; }
@@ -73,7 +74,10 @@
     </tr>
 </table>
 
-<div class="section-title">Componentes curriculares</div>
+<div class="section-title">
+    Componentes curriculares
+    <span class="section-title-reference">Fundamento Legal: Lei Federal 9.394/96; Resoluções CNE/CEB nº 03/1998.</span>
+</div>
 @forelse($history->components->groupBy(fn ($component) => $component->formation ?: '-') as $formation => $formationComponents)
     <div class="formation-title">
         {{ $formation }}
