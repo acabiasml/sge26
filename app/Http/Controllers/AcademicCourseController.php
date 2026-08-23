@@ -44,11 +44,7 @@ class AcademicCourseController extends Controller
                 'classes.enrollments.student',
             ]),
             'structureIssues' => AcademicStructureValidator::forCourse($course),
-            'knowledgeAreas' => \App\Models\KnowledgeArea::query()
-                ->where('active', true)
-                ->orderBy('sort_order')
-                ->orderBy('name')
-                ->get(),
+            'knowledgeAreas' => CurriculumCatalog::knowledgeAreasForCourse($course),
             'curriculumSuggestions' => CurriculumCatalog::suggestionsForCourse($course),
         ]);
     }

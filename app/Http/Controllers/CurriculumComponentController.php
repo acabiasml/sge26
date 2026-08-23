@@ -57,7 +57,7 @@ class CurriculumComponentController extends Controller
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
         $this->ensureCanChangeApprovedCalendar($request, $academicYear);
 
-        $component->update($this->validatedData($request, $academicYear, $course));
+        $component->update($this->validatedData($request, $academicYear, $course, $component));
         $course->refreshWorkloadHours();
 
         return redirect()->route('academic-years.courses.components.show', [$academicYear, $course, $component])
@@ -81,11 +81,22 @@ class CurriculumComponentController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function validatedData(Request $request, AcademicYear $academicYear, AcademicCourse $course): array
+    private function validatedData(
+        Request $request,
+        AcademicYear $academicYear,
+        AcademicCourse $course,
+        ?CurriculumComponent $component = null
+    ): array
     {
+        $allowedAreaIds = CurriculumCatalog::knowledgeAreasForCourse($course)
+            ->pluck('id')
+            ->when($component?->knowledge_area_id, fn ($ids) => $ids->push($component->knowledge_area_id))
+            ->unique()
+            ->all();
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'knowledge_area_id' => ['nullable', Rule::exists('knowledge_areas', 'id')],
+            'knowledge_area_id' => ['nullable', Rule::in($allowedAreaIds)],
             'starts_period_id' => ['nullable', Rule::in($this->allowedPeriodIds($academicYear, $course))],
             'ends_period_id' => ['nullable', Rule::in($this->allowedPeriodIds($academicYear, $course))],
             'workload_mode' => ['required', Rule::in(['weekly_lessons', 'workload_hours'])],

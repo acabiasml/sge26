@@ -661,7 +661,7 @@ class AcademicCalendarTest extends TestCase
             'ends_at' => '2026-12-18',
             'position' => 4,
         ]);
-        $area = KnowledgeArea::query()->where('name', 'Linguagens')->firstOrFail();
+        $area = KnowledgeArea::query()->where('name', 'Linguagens e suas Tecnologias')->firstOrFail();
         $teacher = $this->userWithRole(PersonSchoolRole::ROLE_TEACHER, $year->school_id, 'docente@ctjj.org');
 
         $this->actingAs($admin)
@@ -1041,6 +1041,60 @@ class AcademicCalendarTest extends TestCase
             'academic_course_id' => $course->id,
             'name' => 'Matemática',
         ]);
+    }
+
+    public function test_component_area_options_follow_the_course_stage(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear();
+        $unofficialArea = KnowledgeArea::query()->create([
+            'name' => 'Informática',
+            'sort_order' => 999,
+            'active' => true,
+        ]);
+        $highSchool = $year->courses()->create([
+            'name' => '2º Ano',
+            'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
+            'status' => 'curricular',
+            'class_hour_minutes' => 50,
+            'active' => true,
+        ]);
+        $elementarySchool = $year->courses()->create([
+            'name' => '9º Ano',
+            'stage' => AcademicCourse::STAGE_ELEMENTARY,
+            'status' => 'curricular',
+            'class_hour_minutes' => 50,
+            'active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('academic-years.courses.show', [$year, $highSchool]))
+            ->assertOk()
+            ->assertSee('Linguagens e suas Tecnologias')
+            ->assertSee('Ciências Humanas e Sociais Aplicadas')
+            ->assertSee('Itinerário Formativo')
+            ->assertDontSee('<option value="'.$unofficialArea->id.'">', false)
+            ->assertDontSee('Parte Diversificada');
+
+        $this->actingAs($admin)
+            ->get(route('academic-years.courses.show', [$year, $elementarySchool]))
+            ->assertOk()
+            ->assertSee('Linguagens')
+            ->assertSee('Ciências Humanas')
+            ->assertSee('Ensino Religioso')
+            ->assertSee('Parte Diversificada')
+            ->assertDontSee('<option value="'.$unofficialArea->id.'">', false)
+            ->assertDontSee('Itinerário Formativo');
+
+        $this->actingAs($admin)
+            ->post(route('academic-years.courses.components.store', [$year, $highSchool]), [
+                'name' => 'Informática Básica',
+                'knowledge_area_id' => $unofficialArea->id,
+                'workload_mode' => 'workload_hours',
+                'workload_hours' => 40,
+                'active' => '1',
+            ])
+            ->assertSessionHasErrors('knowledge_area_id');
     }
 
     public function test_course_components_are_grouped_by_area_and_sorted_by_name(): void
