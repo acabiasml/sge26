@@ -9,8 +9,8 @@ use App\Models\CurriculumComponent;
 use App\Models\StudentEnrollment;
 use App\Support\UnifiedStudentHistorySynchronizer;
 use Illuminate\Support\Collection;
-use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
+use Tests\TestCase;
 
 class UnifiedStudentHistoryTechnicalCalendarTest extends TestCase
 {
