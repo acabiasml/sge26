@@ -22,9 +22,9 @@
         $label = 'Página {PAGE_NUM} de {PAGE_COUNT}';
         $size = 8.25;
         $issuerWidth = $fontMetrics->getTextWidth($issuerText, $font, $size);
-        $labelWidth = $fontMetrics->getTextWidth($label, $font, $size);
         $gap = 4;
-        $x = ($pdf->get_width() - $issuerWidth - $gap - $labelWidth) / 2 + $issuerWidth + $gap;
-        $pdf->page_text($x, $pdf->get_height() - 13, $label, $font, $size, [0.37, 0.35, 0.33]);
+        $issuerOffset = 28.125;
+        $x = $pdf->get_width() / 2 - $issuerOffset + $issuerWidth / 2 + $gap;
+        $pdf->page_text($x, $pdf->get_height() - 30, $label, $font, $size, [0.37, 0.35, 0.33]);
     }
 </script>
