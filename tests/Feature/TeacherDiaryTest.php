@@ -18,6 +18,7 @@ use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
+use App\Models\SchoolAssessmentRule;
 use App\Models\StudentEnrollment;
 use App\Models\User;
 use App\Support\StudentAttendanceCertificateBuilder;
@@ -1232,7 +1233,7 @@ class TeacherDiaryTest extends TestCase
         $this->assertSame(1, DiaryAttendanceJustification::query()->count());
     }
 
-    public function test_management_cannot_change_assessment_configuration_after_grade_entry(): void
+    public function test_management_must_confirm_before_changing_assessment_configuration_with_grades(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-protegida@ctjj.org');
@@ -1260,7 +1261,21 @@ class TeacherDiaryTest extends TestCase
                 'weights' => [1, 1],
                 'recovery_mode' => AcademicPeriod::RECOVERY_NONE,
             ])
-            ->assertSessionHasErrors('assessment_count');
+            ->assertSessionHas('assessment_change_warning');
+
+        $this->assertDatabaseHas('diary_assessment_results', ['diary_assessment_id' => $assessment->id, 'score' => 8]);
+
+        $this->actingAs($manager)
+            ->put(route('academic-years.periods.assessment-rules.update', [$year, $period]), [
+                'assessment_count' => 2,
+                'weights' => [1, 1],
+                'recovery_mode' => AcademicPeriod::RECOVERY_NONE,
+                'confirm_delete_assessment_data' => 1,
+            ])
+            ->assertRedirect(route('academic-years.periods.index', $year));
+
+        $this->assertDatabaseMissing('diary_assessment_results', ['diary_assessment_id' => $assessment->id]);
+        $this->assertSame(2, SchoolAssessmentRule::query()->where('academic_period_id', $period->id)->count());
     }
 
     public function test_management_can_remove_unused_assessment_after_grade_entry(): void
@@ -1295,6 +1310,16 @@ class TeacherDiaryTest extends TestCase
                 'assessment_names' => ['Avaliação 1'],
                 'recovery_mode' => AcademicPeriod::RECOVERY_NONE,
             ])
+            ->assertSessionHas('assessment_change_warning');
+
+        $this->actingAs($manager)
+            ->put(route('academic-years.periods.assessment-rules.update', [$year, $period]), [
+                'assessment_count' => 1,
+                'weights' => [1],
+                'assessment_names' => ['Avaliação 1'],
+                'recovery_mode' => AcademicPeriod::RECOVERY_NONE,
+                'confirm_delete_assessment_data' => 1,
+            ])
             ->assertRedirect(route('academic-years.periods.index', $year));
 
         $this->assertDatabaseHas('school_assessment_rules', [
@@ -1308,7 +1333,7 @@ class TeacherDiaryTest extends TestCase
         ]);
     }
 
-    public function test_management_can_change_only_recovery_rule_after_regular_grade_entry(): void
+    public function test_management_can_confirm_recovery_rule_change_after_regular_grade_entry(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-recuperacao-tardia@ctjj.org');
@@ -1342,19 +1367,30 @@ class TeacherDiaryTest extends TestCase
                 'assessment_names' => ['Nome que não deve alterar', 'Outro nome que não deve alterar'],
                 'recovery_mode' => AcademicPeriod::RECOVERY_REPLACE_LOWEST,
             ])
+            ->assertSessionHas('assessment_change_warning');
+
+        $this->actingAs($manager)
+            ->put(route('academic-years.periods.assessment-rules.update', [$year, $period]), [
+                'period_form_id' => $period->id,
+                'assessment_count' => 2,
+                'weights' => [99, 99],
+                'assessment_names' => ['Nova Avaliação 1', 'Nova Avaliação 2'],
+                'recovery_mode' => AcademicPeriod::RECOVERY_REPLACE_LOWEST,
+                'confirm_delete_assessment_data' => 1,
+            ])
             ->assertRedirect(route('academic-years.periods.index', $year));
 
         $this->assertDatabaseHas('school_assessment_rules', [
             'academic_period_id' => $period->id,
             'position' => 1,
-            'name' => 'Avaliação 1',
-            'weight' => 5,
+            'name' => 'Nova Avaliação 1',
+            'weight' => 99,
         ]);
         $this->assertDatabaseHas('school_assessment_rules', [
             'academic_period_id' => $period->id,
             'position' => 2,
-            'name' => 'Avaliação 2',
-            'weight' => 5,
+            'name' => 'Nova Avaliação 2',
+            'weight' => 99,
         ]);
         $this->assertDatabaseHas('academic_periods', [
             'id' => $period->id,
@@ -1367,6 +1403,7 @@ class TeacherDiaryTest extends TestCase
             'is_recovery' => true,
             'recovery_mode' => AcademicPeriod::RECOVERY_REPLACE_LOWEST,
         ]);
+        $this->assertDatabaseMissing('diary_assessment_results', ['diary_assessment_id' => $assessment->id]);
     }
 
     public function test_diary_show_creates_missing_recovery_column_from_period_rule(): void

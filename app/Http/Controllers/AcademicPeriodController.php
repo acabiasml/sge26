@@ -322,6 +322,7 @@ class AcademicPeriodController extends Controller
             'recovery_mode' => ['required', Rule::in(array_keys(AcademicPeriod::RECOVERY_MODE_LABELS))],
             'recovery_weight' => ['nullable', 'integer', 'min:1', 'max:100'],
             'recovery_replaced_position' => ['nullable', 'integer', 'min:1', 'max:10'],
+            'confirm_delete_assessment_data' => ['nullable', 'boolean'],
         ]);
         $assessmentCount = (int) $data['assessment_count'];
         $weights = array_values(array_slice($data['weights'] ?? [], 0, $assessmentCount));
@@ -348,54 +349,35 @@ class AcademicPeriodController extends Controller
             ->where('school_id', $academicYear->school_id)
             ->orderBy('position')
             ->get();
-        $regularHasResults = $existingRules->flatMap->assessments
-            ->contains(fn (DiaryAssessment $assessment): bool => ! $assessment->is_recovery && $assessment->results->isNotEmpty());
-        $recoveryHasResults = DiaryAssessment::query()
+        $storedGradeCount = DiaryAssessment::query()
             ->where('academic_period_id', $period->id)
-            ->where('is_recovery', true)
-            ->whereHas('results')
-            ->exists();
+            ->whereHas('results', fn (Builder $query): Builder => $query->whereNotNull('score'))
+            ->withCount(['results' => fn (Builder $query): Builder => $query->whereNotNull('score')])
+            ->get()
+            ->sum('results_count');
         $regularConfigurationChanged = $this->regularAssessmentConfigurationChanged($existingRules, $weights, $names);
         $recoveryConfigurationChanged = $this->recoveryConfigurationChanged($period, $data);
+        $configurationChanged = $regularConfigurationChanged || $recoveryConfigurationChanged;
 
-        if ($regularHasResults && $this->regularAssessmentConfigurationTouchesRulesWithResults($existingRules, $weights, $names) && ! $recoveryConfigurationChanged) {
-            throw ValidationException::withMessages([
-                'assessment_count' => 'As avaliações já usadas têm notas lançadas. Você pode remover avaliações vazias, mas não pode mudar quantidade, nomes ou pesos das avaliações já usadas.',
-            ]);
-        }
-
-        if ($regularHasResults && count($weights) > (int) ($existingRules->max('position') ?? 0)) {
-            throw ValidationException::withMessages([
-                'assessment_count' => 'As avaliações já têm notas lançadas. Não é possível acrescentar novas avaliações regulares neste período.',
-            ]);
-        }
-
-        if ($recoveryHasResults && $regularConfigurationChanged) {
-            throw ValidationException::withMessages([
-                'assessment_count' => 'A recuperação já tem notas lançadas. Não altere as avaliações regulares antes de corrigir ou reabrir esses lançamentos.',
-            ]);
-        }
-
-        if ($recoveryHasResults && $recoveryConfigurationChanged) {
-            throw ValidationException::withMessages([
-                'recovery_mode' => 'A recuperação já tem notas lançadas. Reabra e corrija os lançamentos antes de mudar esta regra.',
-            ]);
-        }
-
-        if ($regularHasResults || $recoveryHasResults) {
-            DB::transaction(function () use ($existingRules, $weights, $names, $academicYear, $period, $data, $regularHasResults): void {
-                $rules = $this->syncRegularAssessmentRules($academicYear, $period, $existingRules, $weights, $names, $regularHasResults);
-                $this->updateRecoveryConfiguration($academicYear, $period, $rules, $data);
-            });
-
+        if (! $configurationChanged) {
             return redirect()->route('academic-years.periods.index', $academicYear)
-                ->with('status', 'Configuração do período atualizada para a escola.');
+                ->with('status', 'A configuração de avaliação já estava atualizada. Nenhum lançamento foi alterado.');
+        }
+
+        if ($storedGradeCount > 0 && ! $request->boolean('confirm_delete_assessment_data')) {
+            return back()
+                ->withInput()
+                ->with('assessment_change_warning', [
+                    'period_id' => $period->id,
+                    'grade_count' => $storedGradeCount,
+                ]);
         }
 
         DB::transaction(function () use ($existingRules, $weights, $names, $academicYear, $period, $data): void {
             $existingRules->flatMap->assessments->each->delete();
             $existingRules->each->delete();
             DiaryAssessment::query()->where('academic_period_id', $period->id)->where('is_recovery', true)->delete();
+            DiaryPeriodConfirmation::query()->where('academic_period_id', $period->id)->delete();
 
             $createdRules = collect();
             foreach ($weights as $index => $weight) {
@@ -426,7 +408,9 @@ class AcademicPeriodController extends Controller
         });
 
         return redirect()->route('academic-years.periods.index', $academicYear)
-            ->with('status', 'Avaliações do período configuradas para a escola.');
+            ->with('status', $storedGradeCount > 0
+                ? 'Forma de avaliação alterada. Os lançamentos anteriores foram apagados conforme a confirmação da gestão.'
+                : 'Avaliações do período configuradas para a escola.');
     }
 
     /**

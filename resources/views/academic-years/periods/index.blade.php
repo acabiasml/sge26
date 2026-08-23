@@ -81,6 +81,8 @@
                 @php($useOldForPeriodEdit = (int) old('period_edit_form_id') === $period->id)
                 @php($assessmentErrorKeys = ['assessment_count', 'weights', 'assessment_names', 'recovery_mode', 'recovery_weight', 'recovery_replaced_position'])
                 @php($periodHasAssessmentErrors = $useOldForPeriod && collect($assessmentErrorKeys)->contains(fn ($key) => $errors->has($key) || $errors->has($key.'.*')))
+                @php($assessmentChangeWarning = session('assessment_change_warning'))
+                @php($periodHasAssessmentWarning = (int) ($assessmentChangeWarning['period_id'] ?? 0) === $period->id)
                 @php($periodHasEditErrors = $useOldForPeriodEdit && collect(['name', 'position', 'starts_at', 'ends_at', 'notes', 'approved_at', 'closed_at'])->contains(fn ($key) => $errors->has($key)))
 
                 <article class="sge-period-card">
@@ -284,7 +286,7 @@
                         </div>
                     </details>
 
-                    <details class="sge-period-assessments" data-assessment-rules-form @if($periodHasAssessmentErrors) open @endif>
+                    <details class="sge-period-assessments" data-assessment-rules-form @if($periodHasAssessmentErrors || $periodHasAssessmentWarning) open @endif>
                         <summary><span><i class="fas fa-sliders-h" aria-hidden="true"></i>Configurar avaliações e recuperação</span><small>Regras aplicadas aos diários</small></summary>
                         <div class="pt-3">
                             <form method="POST" action="{{ route('academic-years.periods.assessment-rules.update', [$academicYear, $period]) }}">
@@ -298,6 +300,16 @@
                                                 <li>{{ $message }}</li>
                                             @endforeach
                                         </ul>
+                                    </div>
+                                @endif
+                                @if($periodHasAssessmentWarning)
+                                    <div class="alert alert-warning" role="alert" aria-labelledby="assessment-warning-title-{{ $period->id }}">
+                                        <strong id="assessment-warning-title-{{ $period->id }}" class="d-block mb-1">Há dados cadastrados nesta forma de avaliação.</strong>
+                                        <p class="mb-2">A alteração apagará {{ $assessmentChangeWarning['grade_count'] }} nota(s) lançada(s) e recriará as avaliações deste período. Conteúdos, chamadas e faltas não serão apagados.</p>
+                                        <div class="custom-control custom-checkbox">
+                                            <input class="custom-control-input" id="confirm_delete_assessment_data_{{ $period->id }}" type="checkbox" name="confirm_delete_assessment_data" value="1" required>
+                                            <label class="custom-control-label" for="confirm_delete_assessment_data_{{ $period->id }}">Sim, quero continuar e apagar esses lançamentos.</label>
+                                        </div>
                                     </div>
                                 @endif
                                 @php($ruleCount = max(1, (int) ($useOldForPeriod ? old('assessment_count') : ($period->assessmentRules->max('position') ?? 1))))

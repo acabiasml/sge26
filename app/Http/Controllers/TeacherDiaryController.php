@@ -881,14 +881,18 @@ class TeacherDiaryController extends Controller
                     ]);
                 }
 
-                $assessment->results()
-                    ->updateOrCreate(
-                        ['student_enrollment_id' => (int) $enrollmentId],
-                        [
-                            'score' => $score === null || $score === '' ? null : $score,
-                            'updated_by_person_id' => $request->user()->person_id,
-                        ]
-                    );
+                if ($score === null || $score === '') {
+                    $assessment->results()->where('student_enrollment_id', (int) $enrollmentId)->delete();
+                    continue;
+                }
+
+                $assessment->results()->updateOrCreate(
+                    ['student_enrollment_id' => (int) $enrollmentId],
+                    [
+                        'score' => $score,
+                        'updated_by_person_id' => $request->user()->person_id,
+                    ]
+                );
             }
         }
 
