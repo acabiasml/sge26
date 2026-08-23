@@ -108,6 +108,7 @@
                                             'schools' => $item->name,
                                             'years' => $item->name,
                                             'enrollments' => $item->student?->full_name ?? 'Estudante não localizado',
+                                            'history_enrollments' => $item->student?->full_name ?? 'Estudante não localizado',
                                             'periods' => $item->name,
                                             'classes' => $item->name,
                                             'assignments' => ($item->schoolClass?->name ?? 'Turma').' / '.($item->component?->name ?? 'Componente'),

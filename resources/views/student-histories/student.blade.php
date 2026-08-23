@@ -15,11 +15,15 @@
 <div class="row">
 @foreach(['fundamental' => ['Ensino Fundamental', '9 anos', 'Formação Geral Básica e Parte Diversificada'], 'medio' => ['Ensino Médio', '3 anos', 'Formação Geral Básica e Itinerário Formativo']] as $stage => $definition)
     @php($history = $person->academicHistories->firstWhere('education_stage', $stage))
+    @php($completeness = $history ? ($historyCompleteness[$history->id] ?? null) : null)
     <div class="col-lg-6"><section class="card shadow sge-panel-card mb-4 h-100">
         <div class="sge-panel-header"><div><h2>{{ $definition[0] }}</h2><p>{{ $definition[1] }} · {{ $definition[2] }}</p></div></div>
         <div class="card-body">
             @if($history)
                 <p><strong>{{ $history->years_count }}</strong> ano(s) e <strong>{{ $history->components_count }}</strong> componente(s) cadastrados.</p>
+                @if($completeness && ! $completeness['complete'])
+                    <div class="alert alert-warning py-2"><i class="fas fa-triangle-exclamation mr-1" aria-hidden="true"></i>{{ $completeness['message'] }}</div>
+                @endif
                 <a class="btn btn-outline-primary" href="{{ route('people.histories.show', [$person, $history]) }}">Abrir histórico</a>
             @else
                 <p class="text-muted">O arquivo desta etapa ainda não foi iniciado.</p>

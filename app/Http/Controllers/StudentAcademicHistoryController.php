@@ -11,6 +11,7 @@ use App\Models\StudentEnrollment;
 use App\Support\BrazilianStates;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
+use App\Support\StudentAcademicHistoryCompleteness;
 use App\Support\UnifiedStudentHistorySynchronizer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
@@ -45,12 +46,15 @@ class StudentAcademicHistoryController extends Controller
         return view('student-histories.index', compact('students', 'schools', 'selectedSchoolId', 'isAdministrator'));
     }
 
-    public function student(Request $request, Person $person): View
+    public function student(Request $request, Person $person, StudentAcademicHistoryCompleteness $completeness): View
     {
         $this->authorizeEnrolledStudent($request, $person);
 
+        $person->load(['academicHistories' => fn ($query) => $query->where('is_unified', true)->with('years')->withCount(['years', 'components'])]);
+
         return view('student-histories.student', [
-            'person' => $person->load(['academicHistories' => fn ($query) => $query->where('is_unified', true)->withCount(['years', 'components'])]),
+            'person' => $person,
+            'historyCompleteness' => $person->academicHistories->mapWithKeys(fn ($history) => [$history->id => $completeness->evaluate($history)]),
         ]);
     }
 
@@ -135,13 +139,16 @@ class StudentAcademicHistoryController extends Controller
             ->with('status', 'Histórico escolar cadastrado com sucesso.');
     }
 
-    public function show(Request $request, Person $person, StudentAcademicHistory $history): View
+    public function show(Request $request, Person $person, StudentAcademicHistory $history, StudentAcademicHistoryCompleteness $completeness): View
     {
         $this->authorizeHistory($request, $person, $history);
 
+        $history->load(['school', 'years.records', 'components.records.year']);
+
         return view('student-histories.show', [
             'person' => $person,
-            'history' => $history->load(['school', 'years.records', 'components.records.year']),
+            'history' => $history,
+            'historyCompleteness' => $completeness->evaluate($history),
         ]);
     }
 
@@ -181,7 +188,7 @@ class StudentAcademicHistoryController extends Controller
             ->with('status', 'Histórico escolar removido.');
     }
 
-    public function pdf(Request $request, Person $person, StudentAcademicHistory $history, UnifiedStudentHistorySynchronizer $synchronizer): Response|RedirectResponse
+    public function pdf(Request $request, Person $person, StudentAcademicHistory $history, UnifiedStudentHistorySynchronizer $synchronizer, StudentAcademicHistoryCompleteness $completeness): Response|RedirectResponse
     {
         $this->authorizeHistory($request, $person, $history);
 
@@ -195,6 +202,11 @@ class StudentAcademicHistoryController extends Controller
         }
 
         $history->load(['school', 'student', 'years.records', 'components.records.year']);
+
+        $historyCompleteness = $completeness->evaluate($history);
+        if (! $historyCompleteness['complete']) {
+            return redirect()->route('people.histories.show', [$person, $history])->with('status', $historyCompleteness['message']);
+        }
 
         if ($message = OfficialDocumentCompliance::studentMessage($person, $request->boolean('confirm_missing_student_cpf'))) {
             return redirect()->route('people.histories.show', [$person, $history])->with('status', $message);

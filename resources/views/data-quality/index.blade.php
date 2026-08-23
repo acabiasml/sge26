@@ -19,6 +19,7 @@
                 'schools' => route('schools.edit', $item),
                 'years' => route('academic-years.show', $item),
                 'enrollments' => $item->student ? route('enrollments.documents', $item) : null,
+                'history_enrollments' => $item->student ? route('student-histories.student', $item->student) : null,
                 'periods' => $item->academicYear ? route('academic-years.periods.index', $item->academicYear) : null,
                 'classes' => $item->academicYear ? route('academic-years.classes.show', [$item->academicYear, $item]) : null,
                 'assignments' => $item->schoolClass?->academicYear
@@ -36,6 +37,7 @@
                 'schools' => $item->name,
                 'years' => $item->name,
                 'enrollments' => $item->student?->full_name ?? 'Estudante não localizado',
+                'history_enrollments' => $item->student?->full_name ?? 'Estudante não localizado',
                 'periods' => $item->name,
                 'classes' => $item->name,
                 'assignments' => $item->component?->name ?? 'Componente não localizado',
@@ -51,6 +53,7 @@
                 'schools' => trim(($item->city ?? '').' / '.($item->state ?? ''), ' /') ?: 'Sem cidade/UF',
                 'years' => ($item->school?->name ?? 'Escola não localizada').' · '.optional($item->starts_at)->format('d/m/Y').' a '.optional($item->ends_at)->format('d/m/Y'),
                 'enrollments' => ($item->schoolClass?->name ?? 'Turma não localizada').' · '.($item->schoolClass?->academicYear?->school?->name ?? 'Escola não localizada'),
+                'history_enrollments' => $item->history_missing_message,
                 'periods' => ($item->academicYear?->school?->name ?? 'Escola não localizada').' · '.($item->academicYear?->referenceYearsLabel() ?? 'Ano não informado'),
                 'classes' => ($item->academicYear?->school?->name ?? 'Escola não localizada').' · '.($item->academicYear?->referenceYearsLabel() ?? 'Ano não informado'),
                 'assignments' => ($item->schoolClass?->name ?? 'Turma não localizada').' · '.($item->schoolClass?->academicYear?->school?->name ?? 'Escola não localizada'),

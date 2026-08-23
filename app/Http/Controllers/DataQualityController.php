@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AcademicYear;
+use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
+use App\Models\AcademicYear;
 use App\Models\IssuedDocument;
 use App\Models\Person;
 use App\Models\PersonContact;
@@ -11,8 +12,11 @@ use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
+use App\Models\StudentAcademicHistory;
+use App\Models\StudentAcademicHistoryYear;
 use App\Models\StudentEnrollment;
 use App\Support\PdfLetterhead;
+use App\Support\StudentAcademicHistoryCompleteness;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -142,7 +146,7 @@ class DataQualityController extends Controller
                 'count' => $count($personChecks, ['Pessoas ativas com dados documentais incompletos'])
                     + $count($schoolChecks, ['Escolas com dados oficiais incompletos'])
                     + $count($contactChecks, ['Estudantes sem CPF próprio e sem CPF na filiação'])
-                    + $count($academicChecks, ['Matrículas atuais com dados documentais incompletos', 'Turmas ativas sem matriz vinculada']),
+                    + $count($academicChecks, ['Matrículas atuais com dados documentais incompletos', 'Turmas ativas sem matriz vinculada', 'Históricos escolares incompletos']),
                 'route' => route('data-quality.index', ['severity' => 'danger']),
             ],
             [
@@ -534,7 +538,65 @@ class DataQualityController extends Controller
                     )),
                 'warning'
             ),
+            $this->incompleteHistoryCheck($schoolIds),
         ]);
+    }
+
+    /** @param list<int>|null $schoolIds @return array<string, mixed> */
+    private function incompleteHistoryCheck(?array $schoolIds): array
+    {
+        $completeness = app(StudentAcademicHistoryCompleteness::class);
+        $enrollments = $this->enrollmentScope(StudentEnrollment::query(), $schoolIds)
+            ->where('status', StudentEnrollment::STATUS_ENROLLED)
+            ->whereHas('schoolClass.academicYear', fn (Builder $year) => $year->where('active', true)->whereNull('closed_at'))
+            ->with([
+                'student.academicHistories' => fn ($query) => $query->where('is_unified', true)->with('years'),
+                'student.studentEnrollments.courses',
+                'courses',
+                'schoolClass.academicYear.school',
+            ])
+            ->get()
+            ->flatMap(function (StudentEnrollment $enrollment) use ($completeness): Collection {
+                return $enrollment->courses
+                    ->whereIn('stage', [AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL])
+                    ->map(function ($course) use ($enrollment, $completeness): ?StudentEnrollment {
+                        $targetGrade = $completeness->gradeNumber($course->name, $course->stage);
+                        if (! $targetGrade) {
+                            return null;
+                        }
+
+                        $history = $enrollment->student?->academicHistories->firstWhere('education_stage', $course->stage)
+                            ?? new StudentAcademicHistory(['education_stage' => $course->stage]);
+                        $manualAndSynchronizedYears = $history->relationLoaded('years') ? $history->years : collect();
+                        $internalYears = $enrollment->student?->studentEnrollments
+                            ->flatMap(fn (StudentEnrollment $studentEnrollment) => $studentEnrollment->courses)
+                            ->where('stage', $course->stage)
+                            ->map(fn ($studentCourse) => new StudentAcademicHistoryYear(['grade_phase' => $studentCourse->name]))
+                            ?? collect();
+                        $history->setRelation('years', $manualAndSynchronizedYears->concat($internalYears));
+                        $result = $completeness->evaluate($history, $targetGrade);
+                        if ($result['complete']) {
+                            return null;
+                        }
+
+                        $enrollment->setAttribute('history_stage', $course->stage);
+                        $enrollment->setAttribute('history_missing_message', $result['message']);
+
+                        return $enrollment;
+                    });
+            })
+            ->filter()
+            ->unique(fn (StudentEnrollment $enrollment): string => $enrollment->person_id.'-'.$enrollment->history_stage)
+            ->values();
+
+        return [
+            'title' => 'Históricos escolares incompletos',
+            'description' => 'A emissão exige o cadastro de todas as séries anteriores da mesma etapa de ensino.',
+            'severity' => 'danger',
+            'count' => $enrollments->count(),
+            'items' => $enrollments->take(8),
+            'type' => 'history_enrollments',
+        ];
     }
 
     /**
