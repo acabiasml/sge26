@@ -19,6 +19,7 @@
         .muted { color: #666; }
         .section-title { font-size: 11px; font-weight: 600; margin: 4px 0 2px; text-transform: uppercase; page-break-after: avoid; }
         .formation-title { background: #e7dfd9; border: .55px solid #111; font-size: 11px; font-weight: 700; margin-top: 3px; padding: 2px 4px; text-transform: uppercase; page-break-after: avoid; }
+        .formation-title-reference { font-weight: 400; margin-left: 6px; text-transform: none; }
         .area-group { page-break-inside: avoid; }
         .score-cell { white-space: nowrap; }
         .studies-table { page-break-inside: avoid; }
@@ -40,6 +41,9 @@
             : ($cpf ?: '-');
     };
     $transcriptModeLabels = ['detailed' => 'Detalhada', 'summary' => 'Global/AP', 'no_transcription' => 'Sem transcrição'];
+    $basicFormationReference = $history->education_stage === 'medio'
+        ? 'BNCC-EM — Resolução CNE/CP nº 4/2018'
+        : 'BNCC — Resolução CNE/CP nº 2/2017';
 @endphp
 
 @include('reports.partials.letterhead', [
@@ -63,14 +67,16 @@
     <tr>
         <td colspan="3"><span class="label">Pai:</span> {{ $person->father_name ?: '-' }}</td>
     </tr>
-    <tr>
-        <td colspan="3"><span class="label">Fundamento legal:</span> {{ $history->legal_basis ?: '-' }}</td>
-    </tr>
 </table>
 
 <div class="section-title">Componentes curriculares</div>
 @forelse($history->components->groupBy(fn ($component) => $component->formation ?: '-') as $formation => $formationComponents)
-    <div class="formation-title">{{ $formation }}</div>
+    <div class="formation-title">
+        {{ $formation }}
+        @if($formation === 'Formação Geral Básica')
+            <span class="formation-title-reference">{{ $basicFormationReference }}</span>
+        @endif
+    </div>
     <table class="history-table">
         <thead>
             <tr><th rowspan="2" style="width: 22%;">Área</th><th rowspan="2" style="width: 28%;">Componente curricular</th>@foreach($history->years as $year)<th colspan="2" class="center" style="width: {{ 50 / max(1, $history->years->count()) }}%;">{{ $year->label }}</th>@endforeach</tr>
