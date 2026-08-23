@@ -122,10 +122,12 @@
         @endforeach
     </colgroup>
     <tr>
-        <td colspan="2"><strong>Carga horária total geral</strong></td>
+        <td><strong>Carga horária total geral</strong></td>
+        <td></td>
         @foreach($history->years as $year)
             @php($generalWorkload = $history->components->sum(fn ($component) => (float) ($component->records->firstWhere('student_academic_history_year_id', $year->id)?->workload_hours ?? 0)))
-            <td colspan="2" class="center"><strong>{{ $year->transcript_mode === 'no_transcription' ? '-' : number_format($generalWorkload, 0, ',', '.').'h' }}</strong></td>
+            <td class="center">-</td>
+            <td class="center"><strong>{{ $year->transcript_mode === 'no_transcription' ? '-' : number_format($generalWorkload, 0, ',', '.').'h' }}</strong></td>
         @endforeach
     </tr>
 </table>
