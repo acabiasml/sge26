@@ -22,6 +22,8 @@
         .formation-title-reference { font-weight: 400; margin-left: 6px; text-transform: none; }
         .area-group { page-break-inside: avoid; }
         .score-cell { white-space: nowrap; }
+        .general-total-label { border-right: 0 !important; white-space: nowrap; }
+        .general-total-label-space { border-left: 0 !important; }
         .studies-table { page-break-inside: avoid; }
         .studies-nowrap { white-space: nowrap; }
         .notes { margin: 3px 0 0; }
@@ -122,8 +124,8 @@
         @endforeach
     </colgroup>
     <tr>
-        <td><strong>Carga horária total geral</strong></td>
-        <td></td>
+        <td class="general-total-label"><strong>Carga horária total geral</strong></td>
+        <td class="general-total-label-space"></td>
         @foreach($history->years as $year)
             @php($generalWorkload = $history->components->sum(fn ($component) => (float) ($component->records->firstWhere('student_academic_history_year_id', $year->id)?->workload_hours ?? 0)))
             <td class="center">-</td>
