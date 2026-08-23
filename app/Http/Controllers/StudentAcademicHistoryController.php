@@ -18,6 +18,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -187,6 +188,14 @@ class StudentAcademicHistoryController extends Controller
                 $year['student_enrollment_id'] = null;
 
                 return $year;
+            })->all();
+            $data['components'] = collect($data['components'])->map(function (array $component): array {
+                $component['records'] = collect($component['records'] ?? [])->map(fn (array $record): array => [
+                    'score_label' => $record['score_label'] ?? null,
+                    'score_numeric' => $record['score_numeric'] ?? null,
+                ])->all();
+
+                return $component;
             })->all();
         }
 
@@ -425,6 +434,25 @@ class StudentAcademicHistoryController extends Controller
             'Uma das matrículas informadas não pertence ao estudante deste histórico.',
         );
         $routeHistory = $request->route('history');
+        if ($routeHistory instanceof StudentAcademicHistory && $routeHistory->is_unified) {
+            $stage = $routeHistory->education_stage ?: AcademicCourse::STAGE_ELEMENTARY;
+            $areas = collect(config("curriculum.stages.{$stage}.formations.formacao_geral_basica.areas", []));
+            $componentsByArea = $areas->mapWithKeys(fn (array $area): array => [$area['name'] => $area['components'] ?? []]);
+            $flexibleFormation = $stage === AcademicCourse::STAGE_HIGH_SCHOOL ? 'Itinerário Formativo' : 'Parte Diversificada';
+
+            foreach ($data['components'] ?? [] as $index => $component) {
+                if (! in_array($component['formation'] ?? null, ['Formação Geral Básica', $flexibleFormation], true)) {
+                    throw ValidationException::withMessages(["components.{$index}.formation" => 'Selecione uma formação válida para esta etapa.']);
+                }
+                if (! $areas->pluck('name')->contains($component['knowledge_area'] ?? null)) {
+                    throw ValidationException::withMessages(["components.{$index}.knowledge_area" => 'Selecione uma área de conhecimento da BNCC.']);
+                }
+                if (($component['formation'] ?? null) === 'Formação Geral Básica'
+                    && ! collect($componentsByArea[$component['knowledge_area']] ?? [])->contains($component['name'])) {
+                    throw ValidationException::withMessages(["components.{$index}.name" => 'Selecione um componente da BNCC correspondente à área informada.']);
+                }
+            }
+        }
 
         return [
             'history' => [

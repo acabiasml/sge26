@@ -3,6 +3,11 @@
     $manualOnly = $manualOnly ?? false;
     $history->loadMissing(['years.records', 'components.records.year']);
     $editableYears = $manualOnly ? $history->years->where('source', 'manual')->values() : $history->years->values();
+    $catalogStage = $history->education_stage ?: 'fundamental';
+    $bnccAreas = collect(config("curriculum.stages.{$catalogStage}.formations.formacao_geral_basica.areas", []));
+    $bnccComponentsByArea = $bnccAreas->mapWithKeys(fn ($area) => [$area['name'] => $area['components'] ?? []]);
+    $flexibleFormation = $catalogStage === 'medio' ? 'Itinerário Formativo' : 'Parte Diversificada';
+    $formationOptions = ['Formação Geral Básica', $flexibleFormation];
     $defaultYearCount = $history->education_stage === 'fundamental' ? 9 : 3;
     $defaultYears = collect(range(1, $defaultYearCount))->map(fn ($number) => [
         'label' => $number.'º Ano', 'year' => '', 'stage' => $history->stage ?: '', 'modality' => 'Regular',
@@ -277,17 +282,11 @@
                 <button class="btn btn-sm btn-outline-primary" type="button" data-add-history-component>
                     <i class="fas fa-plus mr-1" aria-hidden="true"></i>Adicionar componente
                 </button>
-                <button class="btn btn-sm btn-outline-secondary" type="button" data-add-history-summary>
-                    <i class="fas fa-layer-group mr-1" aria-hidden="true"></i>Adicionar AP/síntese
-                </button>
             </div>
             <div class="card-body">
                 <div class="sge-history-table-hint">
-                    <span><strong>Nota/conceito</strong> aceita texto livre.</span>
-                    <span><strong>CH</strong> é carga horária cursada.</span>
-                    <span><strong>Freq.</strong> pode ser percentual ou texto.</span>
-                    <span><strong>Faltas</strong> é opcional.</span>
-                    <span><strong>RF</strong> é resultado final.</span>
+                    <span><strong>Nota/conceito</strong> é informada por componente.</span>
+                    <span><strong>Carga horária e resultado final</strong> são informados uma única vez no cartão do ano letivo.</span>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-bordered table-sm sge-history-edit-table" id="history-components">
@@ -305,18 +304,36 @@
                         <tbody>
                             @foreach($componentsInput as $componentIndex => $component)
                                 <tr data-history-component>
-                                    <td><input name="components[{{ $componentIndex }}][formation]" class="form-control form-control-sm" value="{{ $component['formation'] ?? '' }}"></td>
-                                    <td><input name="components[{{ $componentIndex }}][knowledge_area]" class="form-control form-control-sm" value="{{ $component['knowledge_area'] ?? '' }}"></td>
-                                    <td><input name="components[{{ $componentIndex }}][name]" class="form-control form-control-sm" value="{{ $component['name'] ?? '' }}" required></td>
+                                    @php
+                                        $selectedFormation = ($component['formation'] ?? '') === 'Formação Geral Básica' ? 'Formação Geral Básica' : $flexibleFormation;
+                                        $selectedArea = $component['knowledge_area'] ?? '';
+                                        $selectedComponent = $component['name'] ?? '';
+                                        $catalogComponents = collect($bnccComponentsByArea[$selectedArea] ?? []);
+                                    @endphp
+                                    <td>
+                                        <select name="components[{{ $componentIndex }}][formation]" class="form-control form-control-sm" data-history-formation required>
+                                            @foreach($formationOptions as $formation)<option value="{{ $formation }}" @selected($selectedFormation === $formation)>{{ $formation }}</option>@endforeach
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select name="components[{{ $componentIndex }}][knowledge_area]" class="form-control form-control-sm" data-history-area required>
+                                            <option value="">Selecione</option>
+                                            @foreach($bnccAreas as $area)<option value="{{ $area['name'] }}" @selected($selectedArea === $area['name'])>{{ $area['name'] }}</option>@endforeach
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-control form-control-sm" data-history-component-select @disabled($selectedFormation !== 'Formação Geral Básica')>
+                                            <option value="">Selecione</option>
+                                            @foreach($catalogComponents as $catalogComponent)<option value="{{ $catalogComponent }}" @selected($selectedComponent === $catalogComponent)>{{ $catalogComponent }}</option>@endforeach
+                                            @if($selectedComponent && ! $catalogComponents->contains($selectedComponent))<option value="{{ $selectedComponent }}" selected>{{ $selectedComponent }}</option>@endif
+                                        </select>
+                                        <input name="components[{{ $componentIndex }}][name]" class="form-control form-control-sm" data-history-component-input value="{{ $selectedComponent }}" @if($selectedFormation === 'Formação Geral Básica') type="hidden" @else type="text" @endif required>
+                                    </td>
                                     @foreach($yearsInput as $yearIndex => $year)
                                         @php($record = $component['records'][$yearIndex] ?? [])
                                         <td data-history-record-cell>
                                             <div class="sge-history-record-grid">
                                                 <label><span>Nota/conceito</span><input name="components[{{ $componentIndex }}][records][{{ $yearIndex }}][score_label]" class="form-control form-control-sm" value="{{ $record['score_label'] ?? '' }}"></label>
-                                                <label><span>CH</span><input name="components[{{ $componentIndex }}][records][{{ $yearIndex }}][workload_hours]" data-mask="decimal" inputmode="decimal" class="form-control form-control-sm" value="{{ $record['workload_hours'] ?? '' }}"></label>
-                                                <label><span>Freq.</span><input name="components[{{ $componentIndex }}][records][{{ $yearIndex }}][frequency_label]" class="form-control form-control-sm" value="{{ $record['frequency_label'] ?? '' }}"></label>
-                                                <label><span>Faltas</span><input name="components[{{ $componentIndex }}][records][{{ $yearIndex }}][absences]" data-mask="digits" data-mask-max="3" inputmode="numeric" autocomplete="off" class="form-control form-control-sm" value="{{ $record['absences'] ?? '' }}"></label>
-                                                <label><span>RF</span><input name="components[{{ $componentIndex }}][records][{{ $yearIndex }}][result]" class="form-control form-control-sm" value="{{ $record['result'] ?? '' }}"></label>
                                             </div>
                                         </td>
                                     @endforeach
@@ -346,6 +363,43 @@
 document.addEventListener('DOMContentLoaded', function () {
     const yearWrapper = document.querySelector('#history-years');
     const table = document.querySelector('#history-components');
+    const componentsByArea = @json($bnccComponentsByArea);
+
+    function refreshCurriculumRow(row, resetComponent) {
+        const formation = row.querySelector('[data-history-formation]');
+        const area = row.querySelector('[data-history-area]');
+        const select = row.querySelector('[data-history-component-select]');
+        const input = row.querySelector('[data-history-component-input]');
+        if (!formation || !area || !select || !input) return;
+
+        const isBasicFormation = formation.value === 'Formação Geral Básica';
+        if (isBasicFormation) {
+            const current = resetComponent ? '' : input.value;
+            select.innerHTML = '<option value="">Selecione</option>';
+            (componentsByArea[area.value] || []).forEach(function (component) {
+                const option = document.createElement('option');
+                option.value = component;
+                option.textContent = component;
+                option.selected = component === current;
+                select.appendChild(option);
+            });
+            select.disabled = false;
+            input.type = 'hidden';
+            input.value = select.value;
+        } else {
+            select.disabled = true;
+            input.type = 'text';
+            if (resetComponent) input.value = '';
+        }
+    }
+
+    table?.querySelectorAll('[data-history-component]').forEach(function (row) { refreshCurriculumRow(row, false); });
+    table?.addEventListener('change', function (event) {
+        const row = event.target.closest('[data-history-component]');
+        if (!row) return;
+        if (event.target.matches('[data-history-formation], [data-history-area]')) refreshCurriculumRow(row, true);
+        if (event.target.matches('[data-history-component-select]')) row.querySelector('[data-history-component-input]').value = event.target.value;
+    });
 
     function replaceGroupIndex(html, group, index) {
         return html.replace(new RegExp(group + '\\[[0-9]+\\]', 'g'), group + '[' + index + ']');
@@ -422,24 +476,7 @@ document.addEventListener('DOMContentLoaded', function () {
         clone.querySelectorAll('input').forEach(function (input) { input.value = ''; });
         clone.querySelectorAll('textarea').forEach(function (textarea) { textarea.value = ''; });
         tbody.appendChild(clone);
-        bindRemove(clone);
-        renumberYears();
-    });
-
-    document.querySelector('[data-add-history-summary]')?.addEventListener('click', function () {
-        const tbody = table?.querySelector('tbody');
-        const source = tbody?.querySelector('[data-history-component]:last-child');
-        if (!tbody || !source) return;
-
-        const next = tbody.querySelectorAll('[data-history-component]').length;
-        const clone = source.cloneNode(true);
-        clone.innerHTML = replaceGroupIndex(clone.innerHTML, 'components', next);
-        clone.querySelectorAll('input').forEach(function (input) { input.value = ''; });
-        clone.querySelector('[name$="[formation]"]').value = 'Síntese';
-        clone.querySelector('[name$="[knowledge_area]"]').value = '';
-        clone.querySelector('[name$="[name]"]').value = 'AP';
-        clone.querySelectorAll('[name$="[score_label]"]').forEach(function (input) { input.value = 'AP'; });
-        tbody.appendChild(clone);
+        refreshCurriculumRow(clone, true);
         bindRemove(clone);
         renumberYears();
     });
@@ -474,10 +511,6 @@ document.addEventListener('DOMContentLoaded', function () {
             cell.innerHTML = `
                 <div class="sge-history-record-grid">
                     <label><span>Nota/conceito</span><input name="components[${componentIndex}][records][${next}][score_label]" class="form-control form-control-sm"></label>
-                    <label><span>CH</span><input name="components[${componentIndex}][records][${next}][workload_hours]" data-mask="decimal" inputmode="decimal" class="form-control form-control-sm"></label>
-                    <label><span>Freq.</span><input name="components[${componentIndex}][records][${next}][frequency_label]" class="form-control form-control-sm"></label>
-                    <label><span>Faltas</span><input name="components[${componentIndex}][records][${next}][absences]" data-mask="digits" data-mask-max="3" inputmode="numeric" autocomplete="off" class="form-control form-control-sm"></label>
-                    <label><span>RF</span><input name="components[${componentIndex}][records][${next}][result]" class="form-control form-control-sm"></label>
                 </div>`;
             row.insertBefore(cell, row.querySelector('td:last-child'));
         });
