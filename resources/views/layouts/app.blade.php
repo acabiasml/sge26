@@ -785,6 +785,52 @@
             validationSummary.focus();
         }
 
+        const initializeSectionTabs = (root = document) => {
+            root.querySelectorAll?.('[data-section-tabs]').forEach((tabList) => {
+                if (tabList.dataset.sectionTabsReady === '1') {
+                    return;
+                }
+
+                tabList.dataset.sectionTabsReady = '1';
+                const tabs = [...tabList.querySelectorAll('[data-academic-tab]')];
+                const container = tabList.parentElement;
+                const panels = [...container.querySelectorAll('[data-academic-panel]')];
+                const names = tabs.map((tab) => tab.dataset.academicTab);
+                const defaultName = names.includes(tabList.dataset.defaultTab) ? tabList.dataset.defaultTab : names[0];
+                const nameFromHash = () => {
+                    const hash = window.location.hash.replace('#section-', '');
+                    return names.includes(hash) ? hash : defaultName;
+                };
+
+                const activate = (name, updateHash = false) => {
+                    const selected = names.includes(name) ? name : defaultName;
+
+                    tabs.forEach((tab) => {
+                        const active = tab.dataset.academicTab === selected;
+                        tab.classList.toggle('is-active', active);
+                        tab.setAttribute('aria-selected', active ? 'true' : 'false');
+                        tab.setAttribute('tabindex', active ? '0' : '-1');
+                    });
+                    panels.forEach((panel) => {
+                        panel.hidden = panel.dataset.academicPanel !== selected;
+                    });
+
+                    if (updateHash) {
+                        history.replaceState(null, '', '#section-' + selected);
+                    }
+                };
+
+                tabs.forEach((tab) => tab.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    activate(tab.dataset.academicTab, true);
+                }));
+                window.addEventListener('hashchange', () => activate(nameFromHash()));
+                activate(nameFromHash());
+            });
+        };
+
+        initializeSectionTabs();
+
         window.addEventListener('pageshow', () => resetSubmitLoading());
     </script>
     @stack('scripts')

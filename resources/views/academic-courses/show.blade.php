@@ -25,14 +25,20 @@
 
     <x-structure-validation :issues="$structureIssues" title="Validação da matriz" empty="Matriz sem inconsistências estruturais." />
 
+    <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="Áreas da matriz curricular" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? 'adicionar' : 'resumo' }}">
+        <a href="#section-resumo" class="sge-section-nav-item" data-academic-tab="resumo" role="tab"><i class="fas fa-clipboard-list"></i><span>Resumo</span><small>dados da matriz</small></a>
+        <a href="#section-adicionar" class="sge-section-nav-item" data-academic-tab="adicionar" role="tab"><i class="fas fa-plus-circle"></i><span>Adicionar</span><small>novo componente</small></a>
+        <a href="#section-componentes" class="sge-section-nav-item" data-academic-tab="componentes" role="tab"><i class="fas fa-book-open"></i><span>Componentes</span><small>{{ $course->components->count() }} cadastrados</small></a>
+    </nav>
+
     <div class="row">
-        <div class="col-lg-4 mb-4">
-            <div class="card shadow h-100">
+        <div id="section-resumo" class="col-12 mb-4 sge-anchor-section" data-academic-panel="resumo" role="tabpanel">
+            <div class="card shadow">
                 <div class="card-header py-3">
                     <h2 class="h6 m-0 font-weight-bold text-primary">Resumo da matriz</h2>
                 </div>
                 <div class="card-body">
-                    <dl class="mb-0">
+                    <dl class="mb-0 sge-academic-summary-details">
                         <dt>Escola</dt>
                         <dd>{{ $academicYear->school?->name }}</dd>
                         <dt>Ano letivo</dt>
@@ -50,8 +56,8 @@
             </div>
         </div>
 
-        <div class="col-lg-8 mb-4">
-            <div class="card shadow h-100">
+        <div id="section-adicionar" class="col-12 mb-4 sge-anchor-section" data-academic-panel="adicionar" role="tabpanel">
+            <div class="card shadow">
                 <div class="card-header py-3">
                     <h2 class="h6 m-0 font-weight-bold text-primary">Novo componente curricular</h2>
                 </div>
@@ -133,7 +139,7 @@
         </div>
     </div>
 
-    <div class="card shadow mb-4">
+    <div id="section-componentes" class="card shadow mb-4 sge-anchor-section" data-academic-panel="componentes" role="tabpanel">
         <div class="card-header py-3">
             <h2 class="h6 m-0 font-weight-bold text-primary">Componentes curriculares</h2>
         </div>

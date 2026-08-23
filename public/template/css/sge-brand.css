@@ -3971,6 +3971,39 @@ textarea:focus-visible {
     display: none !important;
 }
 
+.sge-calendar-tab {
+    display: flex;
+    flex-direction: column;
+}
+
+.sge-calendar-editor-row {
+    order: 1;
+}
+
+.sge-calendar-visual {
+    order: 2;
+}
+
+.sge-academic-summary-details {
+    display: grid;
+    grid-template-columns: minmax(9rem, .55fr) minmax(12rem, 1fr) minmax(9rem, .55fr) minmax(12rem, 1fr);
+    gap: .2rem 1rem;
+    align-items: start;
+}
+
+.sge-academic-summary-details dt,
+.sge-academic-summary-details dd {
+    margin: 0;
+    padding: .45rem 0;
+    border-bottom: 1px solid rgba(111, 57, 40, .1);
+}
+
+@media (max-width: 991.98px) {
+    .sge-academic-summary-details {
+        grid-template-columns: minmax(8rem, .6fr) minmax(0, 1.4fr);
+    }
+}
+
 .sge-recovery-options {
     margin: 1rem 0;
     padding: .85rem 1rem .2rem;

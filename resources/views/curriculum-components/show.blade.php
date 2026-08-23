@@ -23,14 +23,19 @@
 @endpush
 
 @section('content')
+    <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="Áreas do componente curricular" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? 'edicao' : 'resumo' }}">
+        <a href="#section-resumo" class="sge-section-nav-item" data-academic-tab="resumo" role="tab"><i class="fas fa-clipboard-list"></i><span>Resumo</span><small>dados do componente</small></a>
+        <a href="#section-edicao" class="sge-section-nav-item" data-academic-tab="edicao" role="tab"><i class="fas fa-pen"></i><span>Edição</span><small>configuração curricular</small></a>
+    </nav>
+
     <div class="row">
-        <div class="col-lg-4 mb-4">
-            <div class="card shadow h-100">
+        <div id="section-resumo" class="col-12 mb-4 sge-anchor-section" data-academic-panel="resumo" role="tabpanel">
+            <div class="card shadow">
                 <div class="card-header py-3">
                     <h2 class="h6 m-0 font-weight-bold text-primary">Resumo</h2>
                 </div>
                 <div class="card-body">
-                    <dl class="mb-0">
+                    <dl class="mb-0 sge-academic-summary-details">
                         <dt>Matriz</dt>
                         <dd>{{ $course->name }}</dd>
                         <dt>Área</dt>
@@ -46,8 +51,8 @@
             </div>
         </div>
 
-        <div class="col-lg-8 mb-4">
-            <div class="card shadow h-100">
+        <div id="section-edicao" class="col-12 mb-4 sge-anchor-section" data-academic-panel="edicao" role="tabpanel">
+            <div class="card shadow">
                 <div class="card-header py-3">
                     <h2 class="h6 m-0 font-weight-bold text-primary">Gerenciar componente</h2>
                 </div>

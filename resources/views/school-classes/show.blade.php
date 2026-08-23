@@ -32,9 +32,15 @@
 
     <x-structure-validation :issues="$structureIssues" title="Validação da turma" empty="Turma sem inconsistências estruturais." />
 
+    <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="Áreas da turma" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? 'docencias' : 'resumo' }}">
+        <a href="#section-resumo" class="sge-section-nav-item" data-academic-tab="resumo" role="tab"><i class="fas fa-clipboard-list"></i><span>Resumo</span><small>{{ $enrollmentCount }} matrículas</small></a>
+        <a href="#section-acoes" class="sge-section-nav-item" data-academic-tab="acoes" role="tab"><i class="fas fa-bolt"></i><span>Ações</span><small>matrículas e horários</small></a>
+        <a href="#section-docencias" class="sge-section-nav-item" data-academic-tab="docencias" role="tab"><i class="fas fa-chalkboard-teacher"></i><span>Docências</span><small>{{ $assignments->count() }} componentes</small></a>
+    </nav>
+
     <div class="row">
-        <div class="col-xl-8 mb-4">
-            <section class="card shadow h-100 sge-class-hero" aria-labelledby="class-summary-title">
+        <div id="section-resumo" class="col-12 mb-4 sge-anchor-section" data-academic-panel="resumo" role="tabpanel">
+            <section class="card shadow sge-class-hero" aria-labelledby="class-summary-title">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start flex-wrap mb-3">
                         <div class="mr-3">
@@ -61,8 +67,8 @@
             </section>
         </div>
 
-        <div class="col-xl-4 mb-4">
-            <section class="card shadow h-100" aria-labelledby="class-actions-title">
+        <div id="section-acoes" class="col-12 mb-4 sge-anchor-section" data-academic-panel="acoes" role="tabpanel">
+            <section class="card shadow" aria-labelledby="class-actions-title">
                 <div class="card-header py-3">
                     <h2 id="class-actions-title" class="h6 m-0 font-weight-bold text-primary">Ações rápidas</h2>
                 </div>
@@ -98,7 +104,7 @@
         </div>
     </div>
 
-    <div class="card shadow mb-4">
+    <div id="section-docencias" class="card shadow mb-4 sge-anchor-section" data-academic-panel="docencias" role="tabpanel">
         <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap">
             <div>
                 <h2 class="h6 m-0 font-weight-bold text-primary">Docências da turma</h2>

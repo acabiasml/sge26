@@ -63,11 +63,16 @@
 
     <x-structure-validation :issues="$structureIssues" title="Validação do ano letivo" empty="Ano letivo sem inconsistências estruturais." />
 
-    <nav class="sge-section-nav sge-academic-nav sge-academic-tabs mb-4" aria-label="Áreas do ano letivo" role="tablist">
+    <nav class="sge-section-nav sge-academic-nav sge-academic-tabs mb-4" aria-label="Áreas do ano letivo" role="tablist" data-section-tabs data-default-tab="{{ $errors->hasAny(['date', 'date_end', 'type', 'counts_as_school_day', 'title', 'description']) ? 'calendario' : 'resumo' }}">
         <a href="#section-resumo" class="sge-section-nav-item" data-academic-tab="resumo" role="tab" aria-controls="section-resumo">
             <i class="fas fa-clipboard-list"></i>
             <span>Resumo</span>
             <small>{{ $schoolDays }} dias letivos</small>
+        </a>
+        <a href="#section-gestao" class="sge-section-nav-item" data-academic-tab="gestao" role="tab" aria-controls="section-gestao">
+            <i class="fas fa-tasks"></i>
+            <span>Gestão</span>
+            <small>períodos e fechamento</small>
         </a>
         <a href="#section-calendario" class="sge-section-nav-item" data-academic-tab="calendario" role="tab" aria-controls="section-calendario">
             <i class="fas fa-calendar-alt"></i>
@@ -86,8 +91,8 @@
         </a>
     </nav>
 
-    <div class="row" data-academic-panel="resumo" role="tabpanel">
-        <div class="col-lg-4 mb-4">
+    <div class="row">
+        <div class="col-12 mb-4" data-academic-panel="resumo" role="tabpanel">
             <div id="section-resumo" class="card shadow sge-anchor-section">
                 <div class="card-header py-3">
                     <h2 class="h6 m-0 font-weight-bold text-primary">Resumo</h2>
@@ -102,7 +107,7 @@
                         <div><strong>{{ $academicYear->periods->count() }}</strong><span>períodos</span></div>
                         <div><strong>{{ $academicYear->classes->where('active', true)->count() }}</strong><span>turmas ativas</span></div>
                     </div>
-                    <dl class="mb-0">
+                    <dl class="mb-0 sge-academic-summary-details">
                         <dt>Ano principal</dt>
                         <dd>{{ $academicYear->reference_year }}</dd>
                         <dt>Período</dt>
@@ -201,7 +206,7 @@
             </div>
         </div>
 
-        <div class="col-lg-8 mb-4">
+        <div id="section-gestao" class="col-12 mb-4 sge-anchor-section" data-academic-panel="gestao" role="tabpanel">
             <div class="card shadow">
                 <div class="card-header py-3"><h2 class="h6 m-0 font-weight-bold text-primary">Gestão acadêmica</h2></div>
                 <div class="card-body sge-academic-actions">
@@ -213,7 +218,8 @@
         </div>
     </div>
 
-    <div id="section-calendario" class="card shadow mb-3 sge-anchor-section" data-academic-panel="calendario" role="tabpanel">
+    <div id="section-calendario" data-academic-panel="calendario" role="tabpanel" class="sge-calendar-tab sge-anchor-section">
+    <div class="card shadow mb-3 sge-calendar-visual">
         <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap">
             <h2 class="h6 m-0 font-weight-bold text-primary">Calendário visual</h2>
             <div class="sge-calendar-legend small">
@@ -230,7 +236,7 @@
         </div>
     </div>
 
-    <div class="row" data-academic-panel="calendario">
+    <div class="row sge-calendar-editor-row">
         <div class="col-12 mb-4">
             <div class="card shadow sge-calendar-editor">
                 <div class="card-header py-3">
@@ -284,6 +290,7 @@
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <div class="row">
@@ -398,46 +405,6 @@
 
     @push('scripts')
         <script>
-            (() => {
-                const tabs = [...document.querySelectorAll('[data-academic-tab]')];
-                const panels = [...document.querySelectorAll('[data-academic-panel]')];
-                const names = tabs.map((tab) => tab.dataset.academicTab);
-
-                const nameFromHash = () => {
-                    const hash = window.location.hash.replace('#section-', '');
-                    return names.includes(hash) ? hash : 'resumo';
-                };
-
-                const activate = (name, updateHash = false) => {
-                    const selected = names.includes(name) ? name : 'resumo';
-
-                    tabs.forEach((tab) => {
-                        const active = tab.dataset.academicTab === selected;
-                        tab.classList.toggle('is-active', active);
-                        tab.setAttribute('aria-selected', active ? 'true' : 'false');
-                        tab.setAttribute('tabindex', active ? '0' : '-1');
-                    });
-
-                    panels.forEach((panel) => {
-                        panel.hidden = panel.dataset.academicPanel !== selected;
-                    });
-
-                    if (updateHash) {
-                        history.replaceState(null, '', '#section-' + selected);
-                    }
-                };
-
-                tabs.forEach((tab) => {
-                    tab.addEventListener('click', (event) => {
-                        event.preventDefault();
-                        activate(tab.dataset.academicTab, true);
-                    });
-                });
-
-                window.addEventListener('hashchange', () => activate(nameFromHash()));
-                activate(nameFromHash());
-            })();
-
             document.querySelectorAll('[data-calendar-day]').forEach((button) => {
                 button.addEventListener('click', () => {
                     const dateInput = document.getElementById('date');
