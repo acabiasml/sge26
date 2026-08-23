@@ -1,5 +1,13 @@
 @php
+    $curriculumOnly = $curriculumOnly ?? false;
     $history->loadMissing(['years.records', 'components.records.year']);
+    $defaultYearCount = $history->education_stage === 'fundamental' ? 9 : 3;
+    $defaultYears = collect(range(1, $defaultYearCount))->map(fn ($number) => [
+        'label' => $number.'º Ano', 'year' => '', 'stage' => $history->stage ?: '', 'modality' => 'Regular',
+        'grade_phase' => $number.'º Ano', 'school_name' => '', 'city' => '', 'state' => '', 'country' => 'Brasil',
+        'transcript_mode' => 'detailed', 'final_result' => '', 'workload_hours' => '', 'school_days' => '',
+        'attendance_label' => '', 'minimum_attendance_percentage' => '', 'notes' => '',
+    ])->all();
     $yearsInput = collect(old('years', $history->exists && $history->years->isNotEmpty()
         ? $history->years->map(fn ($year) => [
             'label' => $year->label,
@@ -23,11 +31,7 @@
             'minimum_attendance_percentage' => $year->minimum_attendance_percentage,
             'notes' => $year->notes,
         ])->all()
-        : [
-            ['label' => '1º Ano', 'year' => '', 'stage' => '', 'modality' => 'Regular', 'grade_phase' => '', 'school_name' => '', 'city' => '', 'state' => '', 'country' => 'Brasil', 'transcript_mode' => 'detailed', 'final_result' => '', 'workload_hours' => '', 'school_days' => '', 'attendance_label' => '', 'minimum_attendance_percentage' => '', 'notes' => ''],
-            ['label' => '2º Ano', 'year' => '', 'stage' => '', 'modality' => 'Regular', 'grade_phase' => '', 'school_name' => '', 'city' => '', 'state' => '', 'country' => 'Brasil', 'transcript_mode' => 'detailed', 'final_result' => '', 'workload_hours' => '', 'school_days' => '', 'attendance_label' => '', 'minimum_attendance_percentage' => '', 'notes' => ''],
-            ['label' => '3º Ano', 'year' => '', 'stage' => '', 'modality' => 'Regular', 'grade_phase' => '', 'school_name' => '', 'city' => '', 'state' => '', 'country' => 'Brasil', 'transcript_mode' => 'detailed', 'final_result' => '', 'workload_hours' => '', 'school_days' => '', 'attendance_label' => '', 'minimum_attendance_percentage' => '', 'notes' => ''],
-        ]))->values();
+        : $defaultYears))->values();
 
     $componentsInput = collect(old('components', $history->exists && $history->components->isNotEmpty()
         ? $history->components->map(function ($component) use ($history) {
@@ -61,6 +65,17 @@
 
 <section class="sge-history-workspace mb-4" aria-label="Cadastro de histórico escolar">
     <input type="hidden" name="is_unified" value="{{ old('is_unified', $history->is_unified) ? 1 : 0 }}">
+    @if($curriculumOnly)
+        <input type="hidden" name="title" value="{{ $history->title }}">
+        <input type="hidden" name="stage" value="{{ $history->stage }}">
+        <input type="hidden" name="school_id" value="{{ $history->school_id }}">
+        <input type="hidden" name="legal_basis" value="{{ $history->legal_basis }}">
+        <input type="hidden" name="notes" value="{{ $history->notes }}">
+        <input type="hidden" name="issued_place" value="{{ $history->issued_place }}">
+        <input type="hidden" name="issued_date" value="{{ $history->issued_date?->toDateString() }}">
+        @if($history->active)<input type="hidden" name="active" value="1">@endif
+    @endif
+    @unless($curriculumOnly)
     <aside class="sge-history-sidebar">
         <div class="card shadow sge-panel-card mb-4">
             <div class="sge-panel-header">
@@ -128,8 +143,9 @@
             </div>
         </div>
     </aside>
+    @endunless
 
-    <div class="sge-history-main">
+    <div class="sge-history-main" @if($curriculumOnly) style="grid-column: 1 / -1;" @endif>
         <section class="card shadow sge-panel-card mb-4">
             <div class="sge-panel-header">
                 <div>

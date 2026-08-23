@@ -7,7 +7,7 @@
     <div>
         <div class="sge-page-kicker">Vida escolar</div>
         <h1 class="h3 mb-0 text-gray-800">Históricos escolares</h1>
-        <p class="mb-0 text-muted">Arquivo único dos nove anos do Ensino Fundamental e três anos do Ensino Médio.</p>
+        <p class="mb-0 text-muted">Históricos separados por Ensino Fundamental e Ensino Médio.</p>
     </div>
 </div>
 <div class="card shadow mb-4"><div class="card-body">
@@ -19,17 +19,12 @@
         <thead><tr><th>Estudante</th><th>Registros internos</th><th>Progresso</th><th class="text-right">Ações</th></tr></thead>
         <tbody>
         @forelse($students as $student)
-            @php($history = $student->academicHistories->first())
             <tr>
                 <td><strong>{{ $student->full_name }}</strong><br><span class="small text-muted">INEP {{ $student->student_inep ?: 'não informado' }}</span></td>
                 <td>{{ $student->student_enrollments_count }} matrícula(s)</td>
-                <td>{{ $history?->years()->count() ?? 0 }} de 12 anos cadastrados</td>
+                <td>{{ $student->academicHistories->sum(fn ($history) => $history->years()->count()) }} ano(s) cadastrados</td>
                 <td class="text-right text-nowrap">
-                    @if($history)
-                        <a class="btn btn-sm btn-outline-primary" href="{{ route('people.histories.edit', [$student, $history]) }}">Editar</a>
-                        <a class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" href="{{ route('people.histories.pdf', [$student, $history]) }}">PDF</a>
-                    @endif
-                    <form class="d-inline" method="post" action="{{ route('student-histories.unified', $student) }}">@csrf<button class="btn btn-sm btn-primary" type="submit">{{ $history ? 'Atualizar dados internos' : 'Criar histórico único' }}</button></form>
+                    <a class="btn btn-sm btn-primary" href="{{ route('student-histories.student', $student) }}">Gerenciar históricos</a>
                 </td>
             </tr>
         @empty

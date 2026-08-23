@@ -7,10 +7,13 @@
     <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.histories.pdf', [$person, $history]) }}" aria-label="Emitir histórico em PDF" title="Histórico em PDF">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.histories.edit', [$person, $history]) }}" aria-label="Editar histórico escolar" title="Editar histórico">
-        <i class="fas fa-pen" aria-hidden="true"></i>
+    <a class="btn btn-sm btn-outline-primary shadow-sm" href="{{ route('people.histories.details.edit', [$person, $history]) }}">
+        <i class="fas fa-file-alt mr-1" aria-hidden="true"></i>Dados gerais
     </a>
-    <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('people.student-map.show', $person) }}" aria-label="Voltar à vida escolar" title="Voltar à vida escolar">
+    <a class="btn btn-sm btn-outline-primary shadow-sm" href="{{ route('people.histories.edit', [$person, $history]) }}">
+        <i class="fas fa-table mr-1" aria-hidden="true"></i>Matriz curricular
+    </a>
+    <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('student-histories.student', $person) }}" aria-label="Voltar aos históricos" title="Voltar aos históricos">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
     </a>
 @endsection
@@ -87,26 +90,22 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($history->components as $component)
-                                <tr>
-                                    <td>{{ $component->formation ?: '-' }}</td>
-                                    <td>{{ $component->knowledge_area ?: '-' }}</td>
-                                    <td><strong>{{ $component->name }}</strong></td>
-                                    @foreach($history->years as $year)
-                                        @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
-                                        <td class="text-center">
-                                            @if($record)
-                                                <strong>{{ $record->score_label ?: '-' }}</strong>
-                                                <span class="d-block small text-muted">CH {{ $record->workload_hours !== null ? number_format((float) $record->workload_hours, 2, ',', '.') : '-' }}</span>
-                                                @if($record->frequency_label)<span class="d-block small text-muted">Freq. {{ $record->frequency_label }}</span>@endif
-                                                @if($record->absences !== null)<span class="d-block small text-muted">Faltas {{ $record->absences }}</span>@endif
-                                                @if($record->result)<span class="d-block small text-muted">{{ $record->result }}</span>@endif
-                                            @else
-                                                -
-                                            @endif
-                                        </td>
+                            @forelse($history->components->groupBy(fn ($component) => $component->formation ?: '-') as $formation => $formationComponents)
+                                @php($formationFirst = true)
+                                @foreach($formationComponents->groupBy(fn ($component) => $component->knowledge_area ?: '-') as $area => $areaComponents)
+                                    @php($areaFirst = true)
+                                    @foreach($areaComponents as $component)
+                                    <tr>
+                                        @if($formationFirst)<td rowspan="{{ $formationComponents->count() }}" class="align-middle"><strong>{{ $formation }}</strong></td>@php($formationFirst = false)@endif
+                                        @if($areaFirst)<td rowspan="{{ $areaComponents->count() }}" class="align-middle">{{ $area }}</td>@php($areaFirst = false)@endif
+                                        <td><strong>{{ $component->name }}</strong></td>
+                                        @foreach($history->years as $year)
+                                            @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
+                                            <td class="text-center">@if($record)<strong>{{ $record->score_label ?: '-' }}</strong><span class="d-block small text-muted">CH {{ $record->workload_hours !== null ? number_format((float) $record->workload_hours, 2, ',', '.') : '-' }}</span>@if($record->frequency_label)<span class="d-block small text-muted">Freq. {{ $record->frequency_label }}</span>@endif @if($record->absences !== null)<span class="d-block small text-muted">Faltas {{ $record->absences }}</span>@endif @else - @endif</td>
+                                        @endforeach
+                                    </tr>
                                     @endforeach
-                                </tr>
+                                @endforeach
                             @empty
                                 <tr>
                                     <td colspan="{{ 3 + $history->years->count() }}" class="text-center text-muted">Histórico cadastrado sem transcrição de componentes curriculares.</td>

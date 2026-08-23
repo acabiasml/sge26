@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AcademicCourse;
 use App\Models\IssuedDocument;
 use App\Models\Person;
-use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\StudentAcademicHistory;
 use App\Models\StudentEnrollment;
@@ -30,7 +30,7 @@ class StudentAcademicHistoryController extends Controller
             : $request->user()->manageableSchoolIds();
 
         $students = Person::query()
-            ->whereHas('schoolRoles', fn ($query) => $query->where('role', PersonSchoolRole::ROLE_STUDENT)->whereIn('school_id', $schoolIds))
+            ->whereHas('studentEnrollments.schoolClass.academicYear', fn ($query) => $query->whereIn('school_id', $schoolIds))
             ->when($request->filled('q'), fn ($query) => $query->where('full_name', 'like', '%'.trim((string) $request->input('q')).'%'))
             ->withCount('studentEnrollments')
             ->with(['academicHistories' => fn ($query) => $query->where('is_unified', true), 'studentEnrollments.schoolClass.academicYear.school'])
@@ -41,21 +41,61 @@ class StudentAcademicHistoryController extends Controller
         return view('student-histories.index', compact('students'));
     }
 
-    public function unified(Request $request, Person $person, UnifiedStudentHistorySynchronizer $synchronizer): RedirectResponse
+    public function student(Request $request, Person $person): View
     {
-        $this->authorizePerson($request, $person);
+        $this->authorizeEnrolledStudent($request, $person);
+
+        return view('student-histories.student', [
+            'person' => $person->load(['academicHistories' => fn ($query) => $query->where('is_unified', true)->withCount(['years', 'components'])]),
+        ]);
+    }
+
+    public function unified(Request $request, Person $person, string $stage, UnifiedStudentHistorySynchronizer $synchronizer): RedirectResponse
+    {
+        $this->authorizeEnrolledStudent($request, $person);
+        abort_unless(in_array($stage, [AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL], true), 404);
         $schoolId = $person->studentEnrollments()
             ->whereHas('schoolClass.academicYear', fn ($query) => $query->whereIn('school_id', $request->user()->isAdministrator() ? School::query()->pluck('id') : $request->user()->manageableSchoolIds()))
             ->with('schoolClass.academicYear')
             ->latest('enrolled_at')
             ->first()
-            ?->schoolClass->academicYear->school_id
-            ?? $person->schoolRoles()->where('role', PersonSchoolRole::ROLE_STUDENT)->whereIn('school_id', $request->user()->isAdministrator() ? School::query()->pluck('id') : $request->user()->manageableSchoolIds())->value('school_id');
-        abort_unless($schoolId, 422, 'O estudante precisa estar vinculado a uma escola para ter o histórico cadastrado.');
-        $history = $synchronizer->synchronize($person, $schoolId, $request->user()->person_id);
+            ?->schoolClass->academicYear->school_id;
+        $history = $synchronizer->synchronize($person, $schoolId, $request->user()->person_id, $stage);
 
-        return redirect()->route('people.histories.edit', [$person, $history])
+        return redirect()->route('people.histories.show', [$person, $history])
             ->with('status', 'Histórico unificado atualizado com os dados disponíveis no sistema. Os lançamentos manuais foram preservados.');
+    }
+
+    public function editDetails(Request $request, Person $person, StudentAcademicHistory $history): View
+    {
+        $this->authorizeHistory($request, $person, $history);
+
+        return view('student-histories.edit-details', [
+            'person' => $person,
+            'history' => $history,
+            'schools' => $this->schools($request),
+        ]);
+    }
+
+    public function updateDetails(Request $request, Person $person, StudentAcademicHistory $history): RedirectResponse
+    {
+        $this->authorizeHistory($request, $person, $history);
+        $data = $request->validate([
+            'school_id' => ['required', 'integer', Rule::exists('schools', 'id')],
+            'title' => ['required', 'string', 'max:255'],
+            'legal_basis' => ['required', 'string'],
+            'notes' => ['nullable', 'string'],
+            'issued_place' => ['required', 'string', 'max:255'],
+            'issued_date' => ['required', 'date'],
+            'active' => ['nullable', 'boolean'],
+        ]);
+        abort_unless($request->user()->canManageSchool((int) $data['school_id']), 403);
+        $history->update(array_merge($data, [
+            'active' => $request->boolean('active'),
+            'updated_by_person_id' => $request->user()->person_id,
+        ]));
+
+        return redirect()->route('people.histories.show', [$person, $history])->with('status', 'Dados gerais do histórico atualizados.');
     }
 
     public function create(Request $request, Person $person): View
@@ -189,6 +229,13 @@ class StudentAcademicHistoryController extends Controller
         if (! $request->user()->isAdministrator()) {
             abort_unless($person->schoolRoles()->whereIn('school_id', $request->user()->manageableSchoolIds())->exists(), 403);
         }
+    }
+
+    private function authorizeEnrolledStudent(Request $request, Person $person): void
+    {
+        $this->authorizePerson($request, $person);
+        $schoolIds = $request->user()->isAdministrator() ? School::query()->pluck('id')->all() : $request->user()->manageableSchoolIds();
+        abort_unless($person->studentEnrollments()->whereHas('schoolClass.academicYear', fn ($query) => $query->whereIn('school_id', $schoolIds))->exists(), 404);
     }
 
     private function authorizeHistory(Request $request, Person $person, StudentAcademicHistory $history): void
@@ -340,8 +387,36 @@ class StudentAcademicHistoryController extends Controller
                 'is_unified' => $routeHistory instanceof StudentAcademicHistory && $routeHistory->is_unified,
             ],
             'years' => $data['years'],
-            'components' => $data['components'] ?? [],
+            'components' => $this->mergeEquivalentComponents($data['components'] ?? []),
         ];
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $components
+     * @return array<int, array<string, mixed>>
+     */
+    private function mergeEquivalentComponents(array $components): array
+    {
+        return collect($components)
+            ->groupBy(fn (array $component): string => Str::lower(trim((string) ($component['knowledge_area'] ?? ''))).'|'.Str::lower(trim($component['name'])))
+            ->map(function ($equivalent): array {
+                $merged = $equivalent->first();
+                $merged['records'] = $equivalent
+                    ->pluck('records')
+                    ->reduce(function (array $records, array $candidate): array {
+                        foreach ($candidate as $yearIndex => $record) {
+                            if (! isset($records[$yearIndex]) || collect($records[$yearIndex])->filter(fn ($value) => filled($value))->isEmpty()) {
+                                $records[$yearIndex] = $record;
+                            }
+                        }
+
+                        return $records;
+                    }, []);
+
+                return $merged;
+            })
+            ->values()
+            ->all();
     }
 
     /**

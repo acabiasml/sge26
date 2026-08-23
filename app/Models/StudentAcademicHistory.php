@@ -26,6 +26,7 @@ class StudentAcademicHistory extends Model
         'issued_date',
         'active',
         'is_unified',
+        'education_stage',
     ];
 
     protected function casts(): array

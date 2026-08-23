@@ -12,17 +12,18 @@ class UnifiedStudentHistorySynchronizer
 {
     public function __construct(private readonly StudentReportCardBuilder $reportCardBuilder) {}
 
-    public function synchronize(Person $student, int $schoolId, int $personId): StudentAcademicHistory
+    public function synchronize(Person $student, int $schoolId, int $personId, string $stage): StudentAcademicHistory
     {
-        return DB::transaction(function () use ($student, $schoolId, $personId): StudentAcademicHistory {
+        return DB::transaction(function () use ($student, $schoolId, $personId, $stage): StudentAcademicHistory {
+            $stageLabel = AcademicCourse::STAGE_LABELS[$stage];
             $history = StudentAcademicHistory::query()->firstOrCreate(
-                ['person_id' => $student->id, 'is_unified' => true],
+                ['person_id' => $student->id, 'is_unified' => true, 'education_stage' => $stage],
                 [
                     'school_id' => $schoolId,
                     'created_by_person_id' => $personId,
                     'updated_by_person_id' => $personId,
-                    'title' => 'Histórico escolar unificado',
-                    'stage' => 'Ensino Fundamental e Ensino Médio',
+                    'title' => 'Histórico escolar - '.$stageLabel,
+                    'stage' => $stageLabel,
                     'legal_basis' => 'Lei Federal nº 9.394/1996 (LDB) e normas educacionais aplicáveis.',
                     'issued_place' => 'Poxoréu-MT',
                     'issued_date' => now()->toDateString(),
@@ -37,20 +38,29 @@ class UnifiedStudentHistorySynchronizer
                 ->sortBy(fn (StudentEnrollment $item) => $item->schoolClass?->academicYear?->reference_year ?? 0)
                 ->values();
 
-            foreach ($enrollments as $position => $enrollment) {
-                $this->synchronizeEnrollment($history, $enrollment, $position + 1);
+            $enrollments = $enrollments->filter(
+                fn (StudentEnrollment $enrollment): bool => $enrollment->courses->contains('stage', $stage)
+            )->values();
+            $enrollmentIds = $enrollments->pluck('id');
+            $obsoleteYears = $history->years()->where('source', 'system');
+            if ($enrollmentIds->isNotEmpty()) {
+                $obsoleteYears->whereNotIn('student_enrollment_id', $enrollmentIds);
             }
-
+            $obsoleteYears->delete();
+            foreach ($enrollments as $position => $enrollment) {
+                $this->synchronizeEnrollment($history, $enrollment, $position + 1, $stage);
+            }
             $history->update(['updated_by_person_id' => $personId]);
 
             return $history->fresh(['years.records', 'components.records.year']);
         });
     }
 
-    private function synchronizeEnrollment(StudentAcademicHistory $history, StudentEnrollment $enrollment, int $position): void
+    private function synchronizeEnrollment(StudentAcademicHistory $history, StudentEnrollment $enrollment, int $position, string $stage): void
     {
         $report = $this->reportCardBuilder->build($enrollment);
-        $course = $report['courses']->first();
+        $course = $report['courses']->firstWhere('stage', $stage);
+        $stageComponents = $report['annualComponents']->filter(fn (array $item): bool => $item['component']->course?->stage === $stage);
         $year = $report['academicYear'];
         $school = $year->school;
         $attendance = $report['annualAttendance'];
@@ -72,23 +82,30 @@ class UnifiedStudentHistorySynchronizer
                 'country' => 'Brasil',
                 'transcript_mode' => 'detailed',
                 'final_result' => $report['finalResult']['label'],
-                'workload_hours' => $report['annualComponents']->sum(fn (array $item) => $item['component']->calculatedWorkloadHours()),
+                'workload_hours' => $stageComponents->sum(fn (array $item) => $item['component']->calculatedWorkloadHours()),
                 'school_days' => $year->schoolDayCount(),
                 'attendance_label' => $percentage !== null ? number_format((float) $percentage, 2, ',', '.').'%' : null,
                 'minimum_attendance_percentage' => $year->minimum_attendance_percentage,
             ],
         );
 
-        foreach ($report['annualComponents'] as $componentReport) {
+        foreach ($stageComponents as $componentReport) {
             $component = $componentReport['component'];
-            $historyComponent = $history->components()->firstOrCreate(
-                ['name' => $component->name],
-                [
+            $formation = CurriculumCatalog::formationLabelForArea($component->course, $component->area);
+            if ($stage === AcademicCourse::STAGE_ELEMENTARY && $formation === CurriculumCatalog::FORMATION_COMPLEMENTARY) {
+                $formation = 'Parte Diversificada';
+            }
+            $historyComponent = $history->components()
+                ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($component->name), 'UTF-8')])
+                ->where('knowledge_area', $component->area?->name)
+                ->first();
+            $historyComponent ??= $history->components()->create([
                     'position' => $history->components()->count() + 1,
-                    'formation' => CurriculumCatalog::formationLabelForArea($component->course, $component->area),
+                    'formation' => $formation,
                     'knowledge_area' => $component->area?->name,
-                ],
-            );
+                    'name' => $component->name,
+                ]);
+            $historyComponent->update(['formation' => $formation]);
             $periodCount = max(1, (int) $componentReport['total_periods']);
             $score = $componentReport['complete_periods'] > 0 ? round((float) $componentReport['points'] / $periodCount, 2) : null;
             $componentAttendance = $componentReport['attendance'];

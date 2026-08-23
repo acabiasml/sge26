@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Editar histórico escolar')
-@section('page-title', 'Editar histórico escolar')
+@section('title', 'Matriz curricular do histórico')
+@section('page-title', 'Matriz curricular do histórico')
 
 @section('page-actions')
     <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.histories.pdf', [$person, $history]) }}" aria-label="Emitir histórico em PDF" title="Histórico em PDF">
@@ -16,6 +16,6 @@
     <form method="POST" action="{{ route('people.histories.update', [$person, $history]) }}">
         @csrf
         @method('PUT')
-        @include('student-histories._form')
+        @include('student-histories._form', ['curriculumOnly' => true])
     </form>
 @endsection

@@ -76,25 +76,22 @@
         </tr>
     </thead>
     <tbody>
-        @forelse($history->components as $component)
-            <tr>
-                <td>{{ $component->formation ?: '-' }}</td>
-                <td>{{ $component->knowledge_area ?: '-' }}</td>
-                <td>{{ $component->name }}</td>
-                @foreach($history->years as $year)
-                    @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
-                    <td class="center">
-                        @if($record)
-                            {{ $record->score_label ?: '-' }}
-                            <br><span class="muted">CH {{ $record->workload_hours !== null ? number_format((float) $record->workload_hours, 2, ',', '.') : '-' }}</span>
-                            @if($record->frequency_label)<br><span class="muted">F {{ $record->frequency_label }}</span>@endif
-                            @if($record->absences !== null)<br><span class="muted">Faltas {{ $record->absences }}</span>@endif
-                        @else
-                            -
-                        @endif
-                    </td>
+        @forelse($history->components->groupBy(fn ($component) => $component->formation ?: '-') as $formation => $formationComponents)
+            @php($formationFirst = true)
+            @foreach($formationComponents->groupBy(fn ($component) => $component->knowledge_area ?: '-') as $area => $areaComponents)
+                @php($areaFirst = true)
+                @foreach($areaComponents as $component)
+                <tr>
+                    @if($formationFirst)<td rowspan="{{ $formationComponents->count() }}"><strong>{{ $formation }}</strong></td>@php($formationFirst = false)@endif
+                    @if($areaFirst)<td rowspan="{{ $areaComponents->count() }}">{{ $area }}</td>@php($areaFirst = false)@endif
+                    <td>{{ $component->name }}</td>
+                    @foreach($history->years as $year)
+                        @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
+                        <td class="center">@if($record){{ $record->score_label ?: '-' }}<br><span class="muted">CH {{ $record->workload_hours !== null ? number_format((float) $record->workload_hours, 2, ',', '.') : '-' }}</span>@if($record->frequency_label)<br><span class="muted">F {{ $record->frequency_label }}</span>@endif @if($record->absences !== null)<br><span class="muted">Faltas {{ $record->absences }}</span>@endif @else - @endif</td>
+                    @endforeach
+                </tr>
                 @endforeach
-            </tr>
+            @endforeach
         @empty
             <tr>
                 <td colspan="{{ 3 + $history->years->count() }}" class="center">Histórico cadastrado sem transcrição de componentes curriculares.</td>
