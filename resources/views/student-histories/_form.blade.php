@@ -304,12 +304,10 @@
                         <tbody>
                             @foreach($componentsInput as $componentIndex => $component)
                                 <tr data-history-component>
-                                    @php
-                                        $selectedFormation = ($component['formation'] ?? '') === 'Formação Geral Básica' ? 'Formação Geral Básica' : $flexibleFormation;
-                                        $selectedArea = $component['knowledge_area'] ?? '';
-                                        $selectedComponent = $component['name'] ?? '';
-                                        $catalogComponents = collect($bnccComponentsByArea[$selectedArea] ?? []);
-                                    @endphp
+                                    @php($selectedFormation = ($component['formation'] ?? '') === 'Formação Geral Básica' ? 'Formação Geral Básica' : $flexibleFormation)
+                                    @php($selectedArea = $component['knowledge_area'] ?? '')
+                                    @php($selectedComponent = $component['name'] ?? '')
+                                    @php($catalogComponents = collect($bnccComponentsByArea[$selectedArea] ?? []))
                                     <td>
                                         <select name="components[{{ $componentIndex }}][formation]" class="form-control form-control-sm" data-history-formation required>
                                             @foreach($formationOptions as $formation)<option value="{{ $formation }}" @selected($selectedFormation === $formation)>{{ $formation }}</option>@endforeach
