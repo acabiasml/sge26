@@ -61,7 +61,7 @@
 
 @section('page-actions')
     @if ($canChooseScoreView)
-        <div class="btn-group btn-group-sm mr-2" role="group" aria-label="Forma de visualização das notas">
+        <div class="btn-group btn-group-sm" role="group" aria-label="Forma de visualização das notas">
             <a class="btn btn-{{ $scoreView === 'numeros' ? 'primary' : 'outline-primary' }}" href="{{ route('enrollments.report-card.show', ['enrollment' => $enrollment, 'notas' => 'numeros']) }}">Números</a>
             <a class="btn btn-{{ $scoreView === 'conceitos' ? 'primary' : 'outline-primary' }}" href="{{ route('enrollments.report-card.show', ['enrollment' => $enrollment, 'notas' => 'conceitos']) }}">Conceitos</a>
         </div>

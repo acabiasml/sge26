@@ -7,11 +7,11 @@
     <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action {{ ! $historyCompleteness['complete'] ? 'disabled' : '' }}" @if($historyCompleteness['complete']) href="{{ route('people.histories.pdf', [$person, $history]) }}" target="_blank" @else aria-disabled="true" @endif aria-label="Emitir histórico em PDF" title="{{ $historyCompleteness['complete'] ? 'Histórico em PDF' : $historyCompleteness['message'] }}">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm" href="{{ route('people.histories.details.edit', [$person, $history]) }}">
-        <i class="fas fa-file-alt mr-1" aria-hidden="true"></i>Dados gerais
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.histories.details.edit', [$person, $history]) }}" aria-label="Editar dados gerais do histórico" title="Dados gerais">
+        <i class="fas fa-file-alt" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm" href="{{ route('people.histories.edit', [$person, $history]) }}">
-        <i class="fas fa-table mr-1" aria-hidden="true"></i>{{ $history->is_unified ? 'Séries externas' : 'Matriz curricular' }}
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.histories.edit', [$person, $history]) }}" aria-label="{{ $history->is_unified ? 'Gerenciar séries externas do histórico' : 'Gerenciar matriz curricular do histórico' }}" title="{{ $history->is_unified ? 'Séries externas' : 'Matriz curricular' }}">
+        <i class="fas fa-table" aria-hidden="true"></i>
     </a>
     <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('student-histories.student', $person) }}" aria-label="Voltar aos históricos" title="Voltar aos históricos">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>

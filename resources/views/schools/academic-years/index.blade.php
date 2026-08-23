@@ -7,14 +7,14 @@
     <a class="btn btn-sm btn-primary shadow-sm sge-icon-action" href="{{ route('schools.academic-years.create', $school) }}" aria-label="Cadastrar novo ano letivo para {{ $school->name }}" title="Novo ano letivo">
         <i class="fas fa-plus" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm ml-2 sge-icon-action" href="{{ route('schools.concepts.index', $school) }}" aria-label="Gerenciar conceitos e critérios de {{ $school->name }}" title="Conceitos e critérios">
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('schools.concepts.index', $school) }}" aria-label="Gerenciar conceitos e critérios de {{ $school->name }}" title="Conceitos e critérios">
         <i class="fas fa-star-half-alt" aria-hidden="true"></i>
     </a>
     @if (auth()->user()?->canManageSchools())
-        <a class="btn btn-sm btn-outline-primary shadow-sm ml-2 sge-icon-action" href="{{ route('schools.edit', $school) }}" aria-label="Editar escola {{ $school->name }}" title="Editar escola">
+        <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('schools.edit', $school) }}" aria-label="Editar escola {{ $school->name }}" title="Editar escola">
             <i class="fas fa-pen" aria-hidden="true"></i>
         </a>
-        <a class="btn btn-sm btn-outline-secondary shadow-sm ml-2 sge-icon-action" href="{{ route('schools.index') }}" aria-label="Voltar para lista de escolas" title="Voltar">
+        <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('schools.index') }}" aria-label="Voltar para lista de escolas" title="Voltar">
             <i class="fas fa-arrow-left" aria-hidden="true"></i>
         </a>
     @endif

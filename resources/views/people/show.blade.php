@@ -17,7 +17,7 @@
 
 @section('page-actions')
     @if (auth()->user()->isAdministrator() && config('services.google_workspace.enabled'))
-        <form class="d-inline mr-2" method="POST" action="{{ route('people.google-workspace.store', $person) }}" onsubmit="return confirm('{{ $person->google_workspace_id ? 'Verificar e atualizar o vínculo desta conta com o Google Workspace?' : 'Criar uma conta real no Google Workspace para este e-mail institucional?' }}');">
+        <form class="d-inline" method="POST" action="{{ route('people.google-workspace.store', $person) }}" onsubmit="return confirm('{{ $person->google_workspace_id ? 'Verificar e atualizar o vínculo desta conta com o Google Workspace?' : 'Criar uma conta real no Google Workspace para este e-mail institucional?' }}');">
             @csrf
             <button class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" type="submit" aria-label="{{ $person->google_workspace_id ? 'Verificar conta no Google Workspace' : 'Criar conta no Google Workspace' }} de {{ $person->full_name }}" title="{{ $person->google_workspace_id ? 'Conta vinculada ao Google Workspace' : 'Criar conta no Google Workspace' }}">
                 <i class="fab fa-google" aria-hidden="true"></i>
@@ -32,11 +32,11 @@
     <a class="btn btn-sm btn-primary shadow-sm sge-icon-action" href="{{ route('people.edit', $person) }}" aria-label="Editar pessoa {{ $person->full_name }}" title="Editar pessoa">
         <i class="fas fa-pen" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm ml-2 sge-icon-action" href="{{ route('people.pdf', $person) }}" aria-label="Emitir ficha em PDF de {{ $person->full_name }}" title="Ficha em PDF">
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.pdf', $person) }}" aria-label="Emitir ficha em PDF de {{ $person->full_name }}" title="Ficha em PDF">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
     @if ($canDeletePerson)
-        <form class="d-inline ml-2" method="POST" action="{{ route('people.destroy', $person) }}" onsubmit="return confirm('Excluir definitivamente este cadastro de pessoa?');">
+        <form class="d-inline" method="POST" action="{{ route('people.destroy', $person) }}" onsubmit="return confirm('Excluir definitivamente este cadastro de pessoa?');">
             @csrf
             @method('DELETE')
             <button class="btn btn-sm btn-outline-danger shadow-sm sge-icon-action" type="submit" aria-label="Excluir cadastro de {{ $person->full_name }}" title="Excluir cadastro">

@@ -368,6 +368,11 @@ strong {
     justify-content: flex-end;
 }
 
+.sge-page-actions form {
+    display: inline-flex;
+    margin: 0;
+}
+
 #main-content:focus {
     outline: 0;
 }

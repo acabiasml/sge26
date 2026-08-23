@@ -4,8 +4,8 @@
 @section('page-title', $isManagement ? 'Diários das escolas' : 'Meus diários')
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-primary shadow-sm" href="{{ route('teacher-schedules.index') }}">
-        <i class="fas fa-calendar-alt mr-1" aria-hidden="true"></i> Meu horário
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('teacher-schedules.index') }}" aria-label="Abrir meu horário docente" title="Meu horário">
+        <i class="fas fa-calendar-alt" aria-hidden="true"></i>
     </a>
     <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('teacher-schedules.pdf') }}" aria-label="Imprimir meu horário docente" title="Imprimir meu horário">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>

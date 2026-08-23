@@ -4,7 +4,7 @@
 @section('page-title', 'Históricos escolares')
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-secondary shadow-sm" href="{{ route('student-histories.index') }}"><i class="fas fa-arrow-left mr-1"></i>Voltar</a>
+    <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('student-histories.index') }}" aria-label="Voltar aos históricos escolares" title="Voltar aos históricos"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
 @endsection
 
 @section('content')

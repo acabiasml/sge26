@@ -6,8 +6,8 @@
 @section('page-actions')
     <form method="POST" action="{{ route('classes.final-results.calculate', $class) }}" class="d-inline">
         @csrf
-        <button class="btn btn-sm btn-outline-primary shadow-sm" type="submit">
-            <i class="fas fa-check-double mr-1" aria-hidden="true"></i>Calcular resultados finais
+        <button class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" type="submit" aria-label="Calcular resultados finais da turma" title="Calcular resultados finais">
+            <i class="fas fa-check-double" aria-hidden="true"></i>
         </button>
     </form>
     <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('classes.final-results.pdf', $class) }}" aria-label="Emitir ata de resultados finais em PDF" title="Ata de resultados finais em PDF">

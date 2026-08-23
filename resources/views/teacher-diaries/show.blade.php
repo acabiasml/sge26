@@ -5,15 +5,15 @@
 
 @section('page-actions')
     @if($period)
-        <a class="btn btn-sm btn-outline-primary shadow-sm mr-1" href="{{ route('teacher-diaries.pdf', [$schoolClass, $component, 'period' => $period->id]) }}" aria-label="Imprimir diário do período" title="Imprimir período"><i class="fas fa-file-pdf mr-1" aria-hidden="true"></i>Período</a>
-        <a class="btn btn-sm btn-outline-primary shadow-sm mr-1" href="{{ route('teacher-diaries.pdf', [$schoolClass, $component, 'period' => $period->id, 'notas' => 'conceitos']) }}" aria-label="Imprimir diário do período em conceitos" title="Imprimir período em conceitos"><i class="fas fa-star-half-alt mr-1" aria-hidden="true"></i>Conceitos</a>
+        <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('teacher-diaries.pdf', [$schoolClass, $component, 'period' => $period->id]) }}" aria-label="Imprimir diário do período em PDF" title="Diário do período"><i class="fas fa-file-pdf" aria-hidden="true"></i></a>
+        <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('teacher-diaries.pdf', [$schoolClass, $component, 'period' => $period->id, 'notas' => 'conceitos']) }}" aria-label="Imprimir diário do período em conceitos" title="Período em conceitos"><i class="fas fa-star-half-alt" aria-hidden="true"></i></a>
     @endif
-    <a class="btn btn-sm btn-outline-primary shadow-sm mr-1" href="{{ route('teacher-diaries.pdf', [$schoolClass, $component]) }}" aria-label="Imprimir diário completo do ano" title="Imprimir ano"><i class="fas fa-file-pdf mr-1" aria-hidden="true"></i>Ano</a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm mr-1" href="{{ route('teacher-diaries.pdf', [$schoolClass, $component, 'notas' => 'conceitos']) }}" aria-label="Imprimir diário completo do ano em conceitos" title="Imprimir ano em conceitos"><i class="fas fa-star-half-alt mr-1" aria-hidden="true"></i>Ano em conceitos</a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action mr-1" href="{{ route('academic-years.classes.schedules.pdf', [$academicYear, $schoolClass]) }}" aria-label="Imprimir horário da turma" title="Imprimir horário da turma">
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('teacher-diaries.pdf', [$schoolClass, $component]) }}" aria-label="Imprimir diário completo do ano em PDF" title="Diário anual"><i class="fas fa-calendar-check" aria-hidden="true"></i></a>
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('teacher-diaries.pdf', [$schoolClass, $component, 'notas' => 'conceitos']) }}" aria-label="Imprimir diário completo do ano em conceitos" title="Ano em conceitos"><i class="fas fa-award" aria-hidden="true"></i></a>
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.classes.schedules.pdf', [$academicYear, $schoolClass]) }}" aria-label="Imprimir horário da turma" title="Imprimir horário da turma">
         <i class="fas fa-calendar-week" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action mr-1" href="{{ route('teacher-diaries.attendance-sheet.pdf', [$schoolClass, $component]) }}" aria-label="Imprimir lista de chamada mensal" title="Imprimir lista de chamada mensal">
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('teacher-diaries.attendance-sheet.pdf', [$schoolClass, $component]) }}" aria-label="Imprimir lista de chamada mensal" title="Imprimir lista de chamada mensal">
         <i class="fas fa-clipboard-list" aria-hidden="true"></i>
     </a>
     <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('teacher-diaries.index') }}" aria-label="Voltar aos diários" title="Voltar aos diários">

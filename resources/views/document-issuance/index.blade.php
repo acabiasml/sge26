@@ -4,9 +4,8 @@
 @section('page-title', 'Central de emissão')
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-primary shadow-sm" href="{{ route('official-documents.create') }}">
-        <i class="fas fa-pen-fancy mr-1" aria-hidden="true"></i>
-        <span>Redigir documento</span>
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('official-documents.create') }}" aria-label="Redigir novo documento oficial" title="Redigir documento">
+        <i class="fas fa-pen-fancy" aria-hidden="true"></i>
     </a>
 @endsection
 

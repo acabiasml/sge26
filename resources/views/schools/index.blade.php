@@ -9,10 +9,10 @@
             <i class="fas fa-plus" aria-hidden="true"></i>
         </a>
     @endif
-    <a class="btn btn-sm btn-outline-primary shadow-sm ml-2 js-current-query-export sge-icon-action" href="{{ route('reports.excel', ['type' => 'schools'] + request()->query()) }}" data-base-href="{{ route('reports.excel', 'schools') }}" aria-label="Exportar escolas filtradas para Excel" title="Exportar Excel">
+    <a class="btn btn-sm btn-outline-primary shadow-sm js-current-query-export sge-icon-action" href="{{ route('reports.excel', ['type' => 'schools'] + request()->query()) }}" data-base-href="{{ route('reports.excel', 'schools') }}" aria-label="Exportar escolas filtradas para Excel" title="Exportar Excel">
         <i class="fas fa-file-excel" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm ml-2 js-current-query-export sge-icon-action" href="{{ route('reports.pdf', ['type' => 'schools'] + request()->query()) }}" data-base-href="{{ route('reports.pdf', 'schools') }}" aria-label="Exportar escolas filtradas para PDF" title="Exportar PDF">
+    <a class="btn btn-sm btn-outline-primary shadow-sm js-current-query-export sge-icon-action" href="{{ route('reports.pdf', ['type' => 'schools'] + request()->query()) }}" data-base-href="{{ route('reports.pdf', 'schools') }}" aria-label="Exportar escolas filtradas para PDF" title="Exportar PDF">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
 @endsection
