@@ -9,6 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('student_academic_history_years', function (Blueprint $table): void {
+            $table->index('student_enrollment_id', 'history_year_enrollment_fk_index');
+        });
+
+        Schema::table('student_academic_history_years', function (Blueprint $table): void {
             $table->dropUnique(['student_enrollment_id']);
             $table->unique(
                 ['student_academic_history_id', 'student_enrollment_id'],
@@ -22,6 +26,10 @@ return new class extends Migration
         Schema::table('student_academic_history_years', function (Blueprint $table): void {
             $table->dropUnique('history_year_enrollment_unique');
             $table->unique('student_enrollment_id');
+        });
+
+        Schema::table('student_academic_history_years', function (Blueprint $table): void {
+            $table->dropIndex('history_year_enrollment_fk_index');
         });
     }
 };
