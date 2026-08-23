@@ -1,4 +1,4 @@
-<header class="letterhead">
+<header class="letterhead {{ ($repeatOnEveryPage ?? true) ? 'letterhead-repeat' : '' }}">
     <table class="letterhead-table">
         <tr>
             <td class="letterhead-logo">

@@ -120,6 +120,7 @@
 @include('reports.partials.letterhead', [
     'title' => 'Boletim escolar',
     'letterhead' => $letterhead,
+    'repeatOnEveryPage' => false,
     'issuedDocument' => $issuedDocument,
     'verificationUrl' => $verificationUrl,
 ])

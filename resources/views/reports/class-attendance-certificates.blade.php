@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { size: A4 portrait; margin: 20px 24px 72px; }
+        @page { size: A4 portrait; margin: 150px 24px 72px; }
         body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 11.2px; line-height: 1.42; }
         @include('reports.partials.letterhead-styles')
         .certificate-text { font-size: 12px; text-align: justify; margin: 18px 0; }

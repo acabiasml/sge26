@@ -3,10 +3,10 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { size: A4 portrait; margin: 135px 18px 72px; }
+        @page { size: A4 portrait; margin: 150px 18px 72px; }
         body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 11px; line-height: 1.12; }
         @include('reports.partials.letterhead-styles')
-        .letterhead { position: fixed; top: -121px; left: 0; right: 0; margin-bottom: 0; padding-bottom: 6px; }
+        .letterhead { padding-bottom: 6px; }
         .document-title { font-size: 14px; text-transform: uppercase; margin: 5px 0 2px; }
         .student-box, .history-table, .studies-table { border-collapse: collapse; width: 100%; }
         .student-box td { border: 0; padding: 2px 4px; }
