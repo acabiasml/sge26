@@ -241,7 +241,6 @@
 
 <table class="signatures">
     <tr>
-        <td><span class="signature-line">Direção escolar</span></td>
-        <td><span class="signature-line">Secretaria escolar</span></td>
+        @include('reports.partials.signature-staff', ['signatureType' => 'pedagogical', 'signatureDate' => $issuedDocument->issued_at ?? now()])
     </tr>
 </table>

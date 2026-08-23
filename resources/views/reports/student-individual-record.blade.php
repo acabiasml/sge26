@@ -29,8 +29,8 @@
         .document-closing { min-height: 138px; page-break-inside: avoid; }
         .issue-place-date { margin: 12px 0 0; text-align: center; }
         .signatures { border-collapse: collapse; margin-top: 72px; page-break-inside: avoid; width: 100%; }
-        .signatures td { border: 0; font-size: 11px; text-align: center; width: 33.333%; }
-        .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 205px; padding-top: 6px; }
+        .signatures td { border: 0; font-size: 11px; text-align: center; width: 50%; }
+        .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 285px; padding-top: 6px; }
         .signature-name { display: block; font-weight: 600; }
         .signature-role { display: block; margin-top: 2px; }
         .document-footer { position: fixed; bottom: -23px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 5px; text-align: center; font-size: 11px; color: #333; }
@@ -54,7 +54,6 @@
     $school = $academicYear->school;
     $issuePlace = collect([$school?->city, $school?->state])->filter()->join('-') ?: 'Poxoréu-MT';
     $issueDate = ($issuedDocument->issued_at ?? now('America/Cuiaba'))->timezone('America/Cuiaba')->format('d/m/Y');
-    $signatureStaff = \App\Support\SchoolSignatureStaff::forSchool($school, $issuedDocument->issued_at ?? now());
     $naturalidade = collect([
         $student->birth_city ?: ($student->legacy_metadata['naturalidade'] ?? null),
         $student->birth_state ?: ($student->legacy_metadata['naturalidade_uf'] ?? null),
@@ -374,9 +373,7 @@
     <p class="issue-place-date">{{ $issuePlace }}, {{ $issueDate }}.</p>
     <table class="signatures">
         <tr>
-            <td><span class="signature-line">@if($signatureStaff['diretor'])<span class="signature-name">{{ $signatureStaff['diretor']->full_name }}</span>@endif<span class="signature-role">Direção escolar</span></span></td>
-            <td><span class="signature-line">@if($signatureStaff['secretário'])<span class="signature-name">{{ $signatureStaff['secretário']->full_name }}</span>@endif<span class="signature-role">Secretaria escolar</span></span></td>
-            <td><span class="signature-line">@if($signatureStaff['coordenador'])<span class="signature-name">{{ $signatureStaff['coordenador']->full_name }}</span>@endif<span class="signature-role">Coordenação escolar</span></span></td>
+            @include('reports.partials.signature-staff', ['signatureType' => 'pedagogical', 'signatureDate' => $issuedDocument->issued_at ?? now()])
         </tr>
     </table>
 </section>
