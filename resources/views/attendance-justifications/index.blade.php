@@ -22,9 +22,13 @@
     </section>
 
     @if ($school)
+        <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="Áreas das justificativas" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? 'nova' : 'registradas' }}">
+            <a href="#section-nova" class="sge-section-nav-item" data-academic-tab="nova" role="tab"><i class="fas fa-notes-medical"></i><span>Nova justificativa</span><small>registrar período</small></a>
+            <a href="#section-registradas" class="sge-section-nav-item" data-academic-tab="registradas" role="tab"><i class="fas fa-list"></i><span>Registradas</span><small>{{ $justifications->count() }} justificativas</small></a>
+        </nav>
         <div class="row">
-            <div class="col-lg-5 mb-4">
-                <section class="card shadow h-100" aria-labelledby="new-justification-title">
+            <div id="section-nova" class="col-12 mb-4" data-academic-panel="nova" role="tabpanel">
+                <section class="card shadow" aria-labelledby="new-justification-title">
                     <div class="card-header py-3"><h2 id="new-justification-title" class="h6 m-0 font-weight-bold text-primary">Nova justificativa</h2></div>
                     <div class="card-body">
                         <p class="small text-muted">A justificativa é vinculada à matrícula e vale em todos os componentes curriculares do estudante nessa turma.</p>
@@ -50,8 +54,8 @@
                     </div>
                 </section>
             </div>
-            <div class="col-lg-7 mb-4">
-                <section class="card shadow h-100" aria-labelledby="justifications-list-title">
+            <div id="section-registradas" class="col-12 mb-4" data-academic-panel="registradas" role="tabpanel">
+                <section class="card shadow" aria-labelledby="justifications-list-title">
                     <div class="card-header py-3"><h2 id="justifications-list-title" class="h6 m-0 font-weight-bold text-primary">Justificativas registradas</h2></div>
                     <div class="card-body table-responsive">
                         <table class="table table-sm mb-0">

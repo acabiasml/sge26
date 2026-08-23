@@ -2992,6 +2992,11 @@ a.sge-stat-card:focus {
     transform: translateY(-1px);
 }
 
+.sge-section-nav-item:focus-visible {
+    outline: 3px solid rgba(54, 121, 145, .55);
+    outline-offset: 3px;
+}
+
 .sge-section-nav-item i {
     color: var(--sge-orange);
     font-size: 1rem;
@@ -3412,6 +3417,42 @@ textarea:focus-visible {
     .sidebar .sidebar-brand {
         justify-content: center !important;
         padding-inline: .35rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .sge-section-nav {
+        display: flex;
+        gap: .55rem;
+        margin-right: -.75rem;
+        overflow-x: auto;
+        padding: .2rem .75rem .65rem 0;
+        scroll-snap-type: x proximity;
+    }
+
+    .sge-section-nav-item {
+        flex: 0 0 min(11rem, 72vw);
+        min-height: 4.5rem;
+        padding: .7rem .8rem;
+        scroll-snap-align: start;
+    }
+
+    [data-academic-panel] > .card,
+    [data-academic-panel].card {
+        border-radius: .55rem;
+    }
+}
+
+@media (pointer: coarse) {
+    .btn,
+    .sge-icon-action,
+    .form-control,
+    .custom-control-label {
+        min-height: 44px;
+    }
+
+    .sge-icon-action {
+        min-width: 44px;
     }
 }
 

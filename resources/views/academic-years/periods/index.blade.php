@@ -10,9 +10,15 @@
 @section('content')
     @php($periods = $academicYear->periods->sortBy('position'))
 
+    <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="Áreas dos períodos avaliativos" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? 'novo' : 'periodos' }}">
+        <a href="#section-contexto" class="sge-section-nav-item" data-academic-tab="contexto" role="tab"><i class="fas fa-info-circle"></i><span>Contexto</span><small>{{ $periods->count() }} períodos</small></a>
+        <a href="#section-novo" class="sge-section-nav-item" data-academic-tab="novo" role="tab"><i class="fas fa-plus-circle"></i><span>Novo período</span><small>datas e dias letivos</small></a>
+        <a href="#section-periodos" class="sge-section-nav-item" data-academic-tab="periodos" role="tab"><i class="fas fa-layer-group"></i><span>Períodos</span><small>avaliações e fechamento</small></a>
+    </nav>
+
     <div class="row">
-        <div class="col-lg-4 mb-4">
-            <section class="card shadow h-100 sge-academic-context sge-period-context" aria-labelledby="period-context-title">
+        <div id="section-contexto" class="col-12 mb-4" data-academic-panel="contexto" role="tabpanel">
+            <section class="card shadow sge-academic-context sge-period-context" aria-labelledby="period-context-title">
                 <div class="card-header py-3"><h2 id="period-context-title" class="h6 m-0 font-weight-bold text-primary">Contexto</h2></div>
                 <div class="card-body">
                     <div class="sge-context-school-mark"><i class="fas fa-school" aria-hidden="true"></i></div>
@@ -26,8 +32,8 @@
                 </div>
             </section>
         </div>
-        <div class="col-lg-8 mb-4">
-            <section class="card shadow h-100 sge-new-period-panel" aria-labelledby="new-period-title">
+        <div id="section-novo" class="col-12 mb-4" data-academic-panel="novo" role="tabpanel">
+            <section class="card shadow sge-new-period-panel" aria-labelledby="new-period-title">
                 <div class="card-header py-3"><h2 id="new-period-title" class="h6 m-0 font-weight-bold text-primary">Novo período avaliativo</h2></div>
                 <div class="card-body">
                     @if ($canChangeCalendar)
@@ -56,7 +62,7 @@
         </div>
     </div>
 
-    <section class="card shadow sge-periods-panel" aria-labelledby="periods-title">
+    <section id="section-periodos" class="card shadow sge-periods-panel" aria-labelledby="periods-title" data-academic-panel="periodos" role="tabpanel">
         <div class="card-header py-3 d-flex align-items-center justify-content-between">
             <h2 id="periods-title" class="h6 m-0 font-weight-bold text-primary">Períodos cadastrados</h2>
             <span class="sge-periods-count">{{ $periods->count() }}</span>

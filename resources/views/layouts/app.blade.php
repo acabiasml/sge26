@@ -807,12 +807,22 @@
 
                     tabs.forEach((tab) => {
                         const active = tab.dataset.academicTab === selected;
+                        const panel = panels.find((item) => item.dataset.academicPanel === tab.dataset.academicTab);
+                        const tabId = tab.id || 'section-tab-' + tab.dataset.academicTab;
+                        tab.id = tabId;
+                        tab.setAttribute('aria-controls', panel?.id || 'section-' + tab.dataset.academicTab);
                         tab.classList.toggle('is-active', active);
                         tab.setAttribute('aria-selected', active ? 'true' : 'false');
                         tab.setAttribute('tabindex', active ? '0' : '-1');
                     });
                     panels.forEach((panel) => {
+                        panel.id = panel.id || 'section-' + panel.dataset.academicPanel;
                         panel.hidden = panel.dataset.academicPanel !== selected;
+                        const ownerTab = tabs.find((tab) => tab.dataset.academicTab === panel.dataset.academicPanel);
+                        if (ownerTab) {
+                            panel.setAttribute('aria-labelledby', ownerTab.id);
+                        }
+                        panel.setAttribute('tabindex', '0');
                     });
 
                     if (updateHash) {
@@ -824,6 +834,22 @@
                     event.preventDefault();
                     activate(tab.dataset.academicTab, true);
                 }));
+                tabs.forEach((tab, index) => tab.addEventListener('keydown', (event) => {
+                    const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+                    if (! keys.includes(event.key)) {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    const nextIndex = event.key === 'Home'
+                        ? 0
+                        : event.key === 'End'
+                            ? tabs.length - 1
+                            : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+                    tabs[nextIndex].focus();
+                    activate(tabs[nextIndex].dataset.academicTab, true);
+                }));
+                tabs.forEach((tab) => tab.querySelectorAll('i').forEach((icon) => icon.setAttribute('aria-hidden', 'true')));
                 window.addEventListener('hashchange', () => activate(nameFromHash()));
                 activate(nameFromHash());
             });

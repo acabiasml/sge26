@@ -22,12 +22,21 @@
 @endsection
 
 @section('content')
-    <div class="row">
-        <div class="col-lg-4 mb-4">
-            <section class="card shadow h-100" aria-labelledby="diary-summary-title">
+    <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="Áreas do diário" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() && $period ? 'notas' : 'resumo' }}">
+        <a href="#section-resumo" class="sge-section-nav-item" data-academic-tab="resumo" role="tab"><i class="fas fa-clipboard-list"></i><span>Resumo</span><small>turma e período</small></a>
+        @if($period)
+            <a href="#section-situacao" class="sge-section-nav-item" data-academic-tab="situacao" role="tab"><i class="fas fa-check-circle"></i><span>Situação</span><small>{{ $confirmation?->confirmed ? 'confirmado' : 'em lançamento' }}</small></a>
+            <a href="#section-frequencia" class="sge-section-nav-item" data-academic-tab="frequencia" role="tab"><i class="fas fa-clipboard-check"></i><span>Frequência</span><small>{{ $attendanceRecords->count() }} chamadas</small></a>
+            <a href="#section-notas" class="sge-section-nav-item" data-academic-tab="notas" role="tab"><i class="fas fa-star-half-alt"></i><span>Notas</span><small>{{ $assessmentRules->count() }} avaliações</small></a>
+        @endif
+    </nav>
+
+    <div class="row" id="section-resumo" data-academic-panel="resumo" role="tabpanel">
+        <div class="col-lg-5 mb-4">
+            <section class="card shadow" aria-labelledby="diary-summary-title">
                 <div class="card-header py-3"><h2 id="diary-summary-title" class="h6 m-0 font-weight-bold text-primary">Resumo</h2></div>
                 <div class="card-body">
-                    <dl class="mb-0">
+                    <dl class="mb-0 sge-academic-summary-details">
                         <dt>Escola</dt><dd>{{ $academicYear->school?->name }}</dd>
                         <dt>Ano letivo</dt><dd>{{ $academicYear->name }}</dd>
                         <dt>Turma</dt><dd>{{ $schoolClass->name }}</dd>
@@ -38,8 +47,8 @@
                 </div>
             </section>
         </div>
-        <div class="col-lg-8 mb-4">
-            <section class="card shadow h-100" aria-labelledby="period-title">
+        <div class="col-lg-7 mb-4">
+            <section class="card shadow" aria-labelledby="period-title">
                 <div class="card-header py-3"><h2 id="period-title" class="h6 m-0 font-weight-bold text-primary">Período avaliativo</h2></div>
                 <div class="card-body">
                     @if ($periods->isNotEmpty())
@@ -57,6 +66,7 @@
     </div>
 
     @if ($period)
+        <div id="section-situacao" data-academic-panel="situacao" role="tabpanel">
         @if(($alerts ?? collect())->isNotEmpty())
             <section class="card shadow mb-4 border-left-warning" aria-labelledby="diary-alerts-title">
                 <div class="card-header py-3">
@@ -106,7 +116,8 @@
                 @endif
             </div>
         </section>
-        <div class="card shadow mb-4">
+        </div>
+        <div id="section-frequencia" class="card shadow mb-4" data-academic-panel="frequencia" role="tabpanel">
             <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap">
                 <h2 class="h6 m-0 font-weight-bold text-primary">Frequência</h2>
                 <div class="btn-group mt-2 mt-md-0"><a class="btn btn-outline-primary btn-sm" href="{{ route('teacher-diaries.contents', [$schoolClass, $component, 'period' => $period->id]) }}"><i class="fas fa-book mr-1" aria-hidden="true"></i>Conteúdos</a><a class="btn btn-primary btn-sm" href="{{ route('teacher-diaries.attendance', [$schoolClass, $component, 'period' => $period->id]) }}"><i class="fas fa-clipboard-check mr-1" aria-hidden="true"></i>Lançar frequência</a></div>
@@ -117,7 +128,7 @@
             </div>
         </div>
 
-        <section class="card shadow mb-4" aria-labelledby="grades-title">
+        <section id="section-notas" class="card shadow mb-4" aria-labelledby="grades-title" data-academic-panel="notas" role="tabpanel">
             <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap">
                 <h2 id="grades-title" class="h6 m-0 font-weight-bold text-primary">Notas e média do período</h2>
                 @if ($assessmentRules->isNotEmpty())

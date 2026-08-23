@@ -127,9 +127,19 @@
         </article>
     </section>
 
+    <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="Áreas da vida escolar" role="tablist" data-section-tabs>
+        <a href="#section-percurso" class="sge-section-nav-item" data-academic-tab="percurso" role="tab"><i class="fas fa-route"></i><span>Percurso</span><small>{{ $enrollments->count() }} matrículas</small></a>
+        <a href="#section-historicos" class="sge-section-nav-item" data-academic-tab="historicos" role="tab"><i class="fas fa-folder-open"></i><span>Históricos</span><small>{{ $histories->count() }} recebidos</small></a>
+        <a href="#section-desempenho" class="sge-section-nav-item" data-academic-tab="desempenho" role="tab"><i class="fas fa-chart-line"></i><span>Desempenho</span><small>{{ $assessmentResults->count() }} resultados</small></a>
+        <a href="#section-frequencia" class="sge-section-nav-item" data-academic-tab="frequencia" role="tab"><i class="fas fa-calendar-check"></i><span>Frequência</span><small>{{ $absenceCount }} faltas</small></a>
+        <a href="#section-contatos" class="sge-section-nav-item" data-academic-tab="contatos" role="tab"><i class="fas fa-user-shield"></i><span>Contatos</span><small>{{ $person->contacts->count() }} registros</small></a>
+        <a href="#section-documentos" class="sge-section-nav-item" data-academic-tab="documentos" role="tab"><i class="fas fa-file-signature"></i><span>Documentos</span><small>{{ $documents->count() }} emitidos</small></a>
+        @if($canManagePerson)<a href="#section-auditoria" class="sge-section-nav-item" data-academic-tab="auditoria" role="tab"><i class="fas fa-history"></i><span>Auditoria</span><small>movimentações</small></a>@endif
+    </nav>
+
     <div class="row">
-        <div class="col-xl-8">
-            <section class="card shadow sge-panel-card mb-4" aria-labelledby="enrollments-title">
+        <div class="col-12">
+            <section id="section-percurso" class="card shadow sge-panel-card mb-4" aria-labelledby="enrollments-title" data-academic-panel="percurso" role="tabpanel">
                 <div class="sge-panel-header">
                     <div>
                         <h2 id="enrollments-title">Percurso na escola</h2>
@@ -193,7 +203,7 @@
                 </div>
             </section>
 
-            <section class="card shadow sge-panel-card mb-4" aria-labelledby="external-history-title">
+            <section id="section-historicos" class="card shadow sge-panel-card mb-4" aria-labelledby="external-history-title" data-academic-panel="historicos" role="tabpanel">
                 <div class="sge-panel-header">
                     <div>
                         <h2 id="external-history-title">Históricos recebidos</h2>
@@ -240,7 +250,7 @@
                 </div>
             </section>
 
-            <section class="card shadow sge-panel-card mb-4" aria-labelledby="results-title">
+            <section id="section-desempenho" class="card shadow sge-panel-card mb-4" aria-labelledby="results-title" data-academic-panel="desempenho" role="tabpanel">
                 <div class="sge-panel-header">
                     <div>
                         <h2 id="results-title">Desempenho</h2>
@@ -335,8 +345,8 @@
             </section>
         </div>
 
-        <div class="col-xl-4">
-            <section class="card shadow sge-panel-card mb-4" aria-labelledby="attendance-title">
+        <div class="col-12">
+            <section id="section-frequencia" class="card shadow sge-panel-card mb-4" aria-labelledby="attendance-title" data-academic-panel="frequencia" role="tabpanel">
                 <div class="sge-panel-header"><div><h2 id="attendance-title">Frequência</h2><p>Resumo por matrícula.</p></div></div>
                 <div class="card-body">
                     @forelse ($attendanceSummary as $summary)
@@ -366,7 +376,7 @@
                 </div>
             </section>
 
-            <section class="card shadow sge-panel-card mb-4" aria-labelledby="contacts-title">
+            <section id="section-contatos" class="card shadow sge-panel-card mb-4" aria-labelledby="contacts-title" data-academic-panel="contatos" role="tabpanel">
                 <div class="sge-panel-header"><div><h2 id="contacts-title">Responsáveis e contatos</h2><p>Referências familiares e contatos de emergência.</p></div></div>
                 <div class="card-body">
                     @forelse ($person->contacts as $contact)
@@ -384,7 +394,7 @@
                 </div>
             </section>
 
-            <section class="card shadow sge-panel-card mb-4" aria-labelledby="documents-title">
+            <section id="section-documentos" class="card shadow sge-panel-card mb-4" aria-labelledby="documents-title" data-academic-panel="documentos" role="tabpanel">
                 <div class="sge-panel-header"><div><h2 id="documents-title">Documentos emitidos</h2><p>Códigos verificáveis associados ao estudante.</p></div></div>
                 <div class="card-body">
                     @forelse ($documents as $document)
@@ -407,7 +417,7 @@
             </section>
 
             @if ($canManagePerson)
-                <section class="card shadow sge-panel-card mb-4" aria-labelledby="audit-title">
+                <section id="section-auditoria" class="card shadow sge-panel-card mb-4" aria-labelledby="audit-title" data-academic-panel="auditoria" role="tabpanel">
                     <div class="sge-panel-header"><div><h2 id="audit-title">Movimentações recentes</h2><p>Últimas alterações auditadas.</p></div></div>
                     <div class="card-body">
                         @forelse ($auditLogs as $auditLog)

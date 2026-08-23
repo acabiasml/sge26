@@ -19,9 +19,15 @@
 @endsection
 
 @section('content')
+    <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="Áreas das matrículas" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? 'nova' : 'matriculas' }}">
+        <a href="#section-contexto" class="sge-section-nav-item" data-academic-tab="contexto" role="tab"><i class="fas fa-info-circle"></i><span>Contexto</span><small>turma e matrizes</small></a>
+        <a href="#section-nova" class="sge-section-nav-item" data-academic-tab="nova" role="tab"><i class="fas fa-user-plus"></i><span>Nova matrícula</span><small>incluir estudante</small></a>
+        <a href="#section-matriculas" class="sge-section-nav-item" data-academic-tab="matriculas" role="tab"><i class="fas fa-user-graduate"></i><span>Matrículas</span><small>{{ $class->enrollments->count() }} estudantes</small></a>
+    </nav>
+
     <div class="row">
-        <div class="col-lg-4 mb-4">
-            <div class="card shadow h-100">
+        <div id="section-contexto" class="col-12 mb-4" data-academic-panel="contexto" role="tabpanel">
+            <div class="card shadow">
                 <div class="card-header py-3">
                     <h2 class="h6 m-0 font-weight-bold text-primary">Contexto</h2>
                 </div>
@@ -44,8 +50,8 @@
             </div>
         </div>
 
-        <div class="col-lg-8 mb-4">
-            <div class="card shadow h-100">
+        <div id="section-nova" class="col-12 mb-4" data-academic-panel="nova" role="tabpanel">
+            <div class="card shadow">
                 <div class="card-header py-3">
                     <h2 class="h6 m-0 font-weight-bold text-primary">Nova matrícula</h2>
                 </div>
@@ -108,7 +114,7 @@
         </div>
     </div>
 
-    <div class="card shadow mb-4">
+    <div id="section-matriculas" class="card shadow mb-4" data-academic-panel="matriculas" role="tabpanel">
         <div class="card-header py-3">
             <h2 class="h6 m-0 font-weight-bold text-primary">Matrículas</h2>
         </div>

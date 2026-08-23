@@ -26,9 +26,14 @@
         </div>
     </section>
 
+    <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="Áreas dos documentos da matrícula" role="tablist" data-section-tabs>
+        <a href="#section-conferencia" class="sge-section-nav-item" data-academic-tab="conferencia" role="tab"><i class="fas fa-clipboard-check"></i><span>Conferência</span><small>dados obrigatórios</small></a>
+        <a href="#section-documentos" class="sge-section-nav-item" data-academic-tab="documentos" role="tab"><i class="fas fa-file-alt"></i><span>Documentos</span><small>opções disponíveis</small></a>
+    </nav>
+
     <div class="row">
-        <div class="col-xl-5 mb-4">
-            <section class="card shadow h-100" aria-labelledby="checks-title">
+        <div id="section-conferencia" class="col-12 mb-4" data-academic-panel="conferencia" role="tabpanel">
+            <section class="card shadow" aria-labelledby="checks-title">
                 <div class="card-header py-3">
                     <h2 id="checks-title" class="h6 m-0 font-weight-bold text-primary">Conferência antes da emissão</h2>
                 </div>
@@ -48,8 +53,8 @@
             </section>
         </div>
 
-        <div class="col-xl-7 mb-4">
-            <section class="card shadow h-100" aria-labelledby="documents-list-title">
+        <div id="section-documentos" class="col-12 mb-4" data-academic-panel="documentos" role="tabpanel">
+            <section class="card shadow" aria-labelledby="documents-list-title">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center flex-wrap">
                     <h2 id="documents-list-title" class="h6 m-0 font-weight-bold text-primary">Documentos disponíveis</h2>
                     <span class="badge badge-light">{{ collect($documents)->where('enabled', true)->count() }} liberado(s)</span>

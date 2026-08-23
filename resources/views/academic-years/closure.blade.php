@@ -76,6 +76,13 @@
         </div>
     </div>
 
+    <nav class="sge-section-nav mb-4" aria-label="Seções da conferência de fechamento" data-section-tabs data-default-tab="conferencia">
+        <a class="sge-section-nav-item" href="#conferencia" data-academic-tab="conferencia"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>Conferência</span><small>pendências do fechamento</small></a>
+        <a class="sge-section-nav-item" href="#periodos" data-academic-tab="periodos"><i class="fas fa-calendar-alt" aria-hidden="true"></i><span>Períodos</span><small>consolidação avaliativa</small></a>
+        <a class="sge-section-nav-item" href="#turmas" data-academic-tab="turmas"><i class="fas fa-users" aria-hidden="true"></i><span>Turmas e resultados</span><small>situação final</small></a>
+    </nav>
+
+    <div data-academic-panel="conferencia">
     @if ($closureErrors->isNotEmpty() || $warnings->isNotEmpty())
         <section class="card shadow mb-4">
             <div class="card-header py-3">
@@ -105,10 +112,10 @@
             Nenhuma pendência impeditiva encontrada. O ano letivo pode ser fechado.
         </div>
     @endif
+    </div>
 
-    <div class="row">
-        <div class="col-lg-5 mb-4">
-            <section class="card shadow h-100">
+    <div data-academic-panel="periodos">
+            <section class="card shadow mb-4">
                 <div class="card-header py-3">
                     <h2 class="h6 m-0 font-weight-bold text-primary">Períodos avaliativos</h2>
                 </div>
@@ -138,10 +145,10 @@
                     @endforelse
                 </div>
             </section>
-        </div>
+    </div>
 
-        <div class="col-lg-7 mb-4">
-            <section class="card shadow h-100">
+    <div data-academic-panel="turmas">
+            <section class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h2 class="h6 m-0 font-weight-bold text-primary">Turmas e resultados finais</h2>
                     <a class="btn btn-sm btn-outline-primary" href="{{ route('academic-years.final-results.pdf', $academicYear) }}">
@@ -179,6 +186,5 @@
                     @endforelse
                 </div>
             </section>
-        </div>
     </div>
 @endsection

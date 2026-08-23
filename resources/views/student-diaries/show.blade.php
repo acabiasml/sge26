@@ -32,9 +32,15 @@
         </div>
     </section>
 
+    <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="Áreas do diário do estudante" role="tablist" data-section-tabs>
+        <a href="#section-conceitos" class="sge-section-nav-item" data-academic-tab="conceitos" role="tab"><i class="fas fa-star-half-alt"></i><span>Conceitos</span><small>notas e comportamento</small></a>
+        <a href="#section-frequencia" class="sge-section-nav-item" data-academic-tab="frequencia" role="tab"><i class="fas fa-clipboard-check"></i><span>Frequência</span><small>{{ $attendance->count() }} chamadas</small></a>
+        <a href="#section-conteudos" class="sge-section-nav-item" data-academic-tab="conteudos" role="tab"><i class="fas fa-book"></i><span>Conteúdos</span><small>{{ $contents->count() }} registros</small></a>
+    </nav>
+
     <div class="row">
-        <div class="col-lg-6 mb-4">
-            <section class="card shadow h-100">
+        <div id="section-conceitos" class="col-12 mb-4" data-academic-panel="conceitos" role="tabpanel">
+            <section class="card shadow">
                 <div class="card-header py-3">
                     <h2 class="h6 m-0 font-weight-bold text-primary">Conceitos lançados</h2>
                 </div>
@@ -64,8 +70,8 @@
             </section>
         </div>
 
-        <div class="col-lg-6 mb-4">
-            <section class="card shadow h-100">
+        <div id="section-frequencia" class="col-12 mb-4" data-academic-panel="frequencia" role="tabpanel">
+            <section class="card shadow">
                 <div class="card-header py-3">
                     <h2 class="h6 m-0 font-weight-bold text-primary">Frequência lançada</h2>
                 </div>
@@ -84,7 +90,7 @@
         </div>
     </div>
 
-    <section class="card shadow">
+    <section id="section-conteudos" class="card shadow" data-academic-panel="conteudos" role="tabpanel">
         <div class="card-header py-3">
             <h2 class="h6 m-0 font-weight-bold text-primary">Conteúdos lançados</h2>
         </div>

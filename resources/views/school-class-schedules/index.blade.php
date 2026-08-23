@@ -15,9 +15,16 @@
 @endsection
 
 @section('content')
+    <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="Áreas do horário da turma" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? ($schedule ? 'grade' : 'nova') : ($schedule ? 'grade' : 'contexto') }}">
+        <a href="#section-contexto" class="sge-section-nav-item" data-academic-tab="contexto" role="tab"><i class="fas fa-info-circle"></i><span>Contexto</span><small>turma e matrizes</small></a>
+        <a href="#section-nova" class="sge-section-nav-item" data-academic-tab="nova" role="tab"><i class="fas fa-plus-circle"></i><span>Nova versão</span><small>vigência do horário</small></a>
+        <a href="#section-versoes" class="sge-section-nav-item" data-academic-tab="versoes" role="tab"><i class="fas fa-history"></i><span>Versões</span><small>{{ $schedules->count() }} cadastradas</small></a>
+        @if($schedule)<a href="#section-grade" class="sge-section-nav-item" data-academic-tab="grade" role="tab"><i class="fas fa-calendar-week"></i><span>Grade semanal</span><small>{{ $schedule->name }}</small></a>@endif
+    </nav>
+
     <div class="row">
-        <div class="col-lg-4 mb-4">
-            <section class="card shadow h-100 sge-schedule-context" aria-labelledby="schedule-context-title">
+        <div id="section-contexto" class="col-12 mb-4" data-academic-panel="contexto" role="tabpanel">
+            <section class="card shadow sge-schedule-context" aria-labelledby="schedule-context-title">
                 <div class="card-header py-3"><h2 id="schedule-context-title" class="h6 m-0 font-weight-bold text-primary">Contexto</h2></div>
                 <div class="card-body">
                     <dl class="mb-0">
@@ -31,8 +38,8 @@
                 </div>
             </section>
         </div>
-        <div class="col-lg-8 mb-4">
-            <section class="card shadow h-100" aria-labelledby="new-schedule-title">
+        <div id="section-nova" class="col-12 mb-4" data-academic-panel="nova" role="tabpanel">
+            <section class="card shadow" aria-labelledby="new-schedule-title">
                 <div class="card-header py-3"><h2 id="new-schedule-title" class="h6 m-0 font-weight-bold text-primary">Nova versão de horário</h2></div>
                 <div class="card-body">
                     <form method="POST" action="{{ route('academic-years.classes.schedules.store', [$academicYear, $class]) }}">
@@ -51,7 +58,7 @@
     </div>
 
     @if($schedules->isNotEmpty())
-        <section class="card shadow mb-4" aria-labelledby="schedule-versions-title">
+        <section id="section-versoes" class="card shadow mb-4" aria-labelledby="schedule-versions-title" data-academic-panel="versoes" role="tabpanel">
             <div class="card-header py-3"><h2 id="schedule-versions-title" class="h6 m-0 font-weight-bold text-primary">Versões cadastradas</h2></div>
             <div class="card-body">
                 <div class="sge-schedule-version-list">
@@ -67,7 +74,7 @@
     @endif
 
     @if($schedule)
-        <div class="row">
+        <div id="section-grade" class="row" data-academic-panel="grade" role="tabpanel">
             <div class="col-xl-4 mb-4">
                 <section class="card shadow" aria-labelledby="new-slot-title">
                     <div class="card-header py-3 d-flex justify-content-between align-items-center">

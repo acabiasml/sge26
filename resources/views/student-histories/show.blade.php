@@ -71,8 +71,13 @@
         </article>
     </section>
 
+    <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="Áreas do histórico escolar" role="tablist" data-section-tabs>
+        <a href="#section-componentes" class="sge-section-nav-item" data-academic-tab="componentes" role="tab"><i class="fas fa-book-open"></i><span>Componentes</span><small>{{ $history->components->count() }} linhas</small></a>
+        <a href="#section-informacoes" class="sge-section-nav-item" data-academic-tab="informacoes" role="tab"><i class="fas fa-file-alt"></i><span>Informações</span><small>dados e estudos realizados</small></a>
+    </nav>
+
     <div class="row">
-        <div class="col-xl-8">
+        <div id="section-componentes" class="col-12" data-academic-panel="componentes" role="tabpanel">
             <section class="card shadow sge-panel-card mb-4">
                 <div class="sge-panel-header">
                     <div>
@@ -120,7 +125,7 @@
             </section>
         </div>
 
-        <div class="col-xl-4">
+        <div id="section-informacoes" class="col-12" data-academic-panel="informacoes" role="tabpanel">
             <section class="card shadow sge-panel-card mb-4">
                 <div class="sge-panel-header">
                     <div>
