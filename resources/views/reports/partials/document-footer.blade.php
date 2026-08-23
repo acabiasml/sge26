@@ -17,7 +17,7 @@
 <script type="text/php">
     if (isset($pdf, $fontMetrics)) {
         $font = $fontMetrics->getFont('DejaVu Sans', 'normal');
-        $label = @json('por '.$issuer.'. Página {PAGE_NUM} de {PAGE_COUNT}');
+        $label = {!! json_encode('por '.$issuer.'. Página {PAGE_NUM} de {PAGE_COUNT}', JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!};
         $size = 8.25;
         $width = $fontMetrics->getTextWidth($label, $font, $size);
         $pdf->page_text(($pdf->get_width() - $width) / 2, $pdf->get_height() - 13, $label, $font, $size, [0.37, 0.35, 0.33]);
