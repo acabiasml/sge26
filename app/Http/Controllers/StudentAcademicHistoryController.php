@@ -25,20 +25,24 @@ class StudentAcademicHistoryController extends Controller
     public function index(Request $request): View
     {
         abort_unless($request->user()->canManagePeople(), 403);
-        $schoolIds = $request->user()->isAdministrator()
-            ? School::query()->pluck('id')->all()
+        $isAdministrator = $request->user()->isAdministrator();
+        $schools = $isAdministrator ? School::query()->where('active', true)->orderBy('name')->get() : collect();
+        $selectedSchoolId = $isAdministrator && $request->filled('school') ? $request->integer('school') : null;
+        abort_if($selectedSchoolId && ! $schools->contains('id', $selectedSchoolId), 404);
+        $schoolIds = $isAdministrator
+            ? ($selectedSchoolId ? [$selectedSchoolId] : $schools->pluck('id')->all())
             : $request->user()->manageableSchoolIds();
 
         $students = Person::query()
             ->whereHas('studentEnrollments.schoolClass.academicYear', fn ($query) => $query->whereIn('school_id', $schoolIds))
             ->when($request->filled('q'), fn ($query) => $query->where('full_name', 'like', '%'.trim((string) $request->input('q')).'%'))
-            ->withCount('studentEnrollments')
-            ->with(['academicHistories' => fn ($query) => $query->where('is_unified', true), 'studentEnrollments.schoolClass.academicYear.school'])
+            ->withCount(['studentEnrollments' => fn ($query) => $query->whereHas('schoolClass.academicYear', fn ($academicYearQuery) => $academicYearQuery->whereIn('school_id', $schoolIds))])
+            ->with(['academicHistories' => fn ($query) => $query->where('is_unified', true)->withCount('years')])
             ->orderBy('full_name')
             ->paginate(25)
             ->withQueryString();
 
-        return view('student-histories.index', compact('students'));
+        return view('student-histories.index', compact('students', 'schools', 'selectedSchoolId', 'isAdministrator'));
     }
 
     public function student(Request $request, Person $person): View
