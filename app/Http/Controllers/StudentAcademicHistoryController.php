@@ -280,6 +280,13 @@ class StudentAcademicHistoryController extends Controller
             'letterhead' => PdfLetterhead::make($history->school),
         ])->setPaper('a4', 'portrait');
 
+        $pdf->render();
+        $pdf->addInfo([
+            'Title' => $history->title.' - '.$person->full_name.' - '.$issuedDocument->verification_code,
+            'Subject' => 'Histórico escolar emitido pelo Beabá',
+            'Author' => $issuedDocument->person?->full_name ?? 'Beabá',
+        ]);
+
         return $pdf->stream('beaba-historico-escolar-'.$person->id.'-'.$history->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
