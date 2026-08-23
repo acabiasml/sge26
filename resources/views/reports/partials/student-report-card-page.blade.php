@@ -6,6 +6,11 @@
     $academicYear = $report['academicYear'];
     $schoolClass = $report['schoolClass'];
     $periods = $report['periods'];
+    $periodShortLabel = fn ($period): string => preg_replace(
+        ['/\bBimestre\b/iu', '/\bTrimestre\b/iu', '/\bSemestre\b/iu'],
+        ['Bim.', 'Trim.', 'Sem.'],
+        $period->name,
+    );
     $courses = $report['courses'];
     $school = $academicYear->school;
     $naturalidade = collect([
@@ -145,7 +150,7 @@
         <tr>
             <th colspan="3" rowspan="2">Componentes curriculares</th>
             @foreach($periods as $period)
-                <th colspan="2">{{ $period->name }}</th>
+                <th colspan="2">{{ $periodShortLabel($period) }}</th>
             @endforeach
             <th rowspan="2">TF</th>
             <th rowspan="2">CHP (h)</th>

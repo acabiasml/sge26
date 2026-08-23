@@ -50,6 +50,10 @@ class UnifiedStudentHistorySynchronizer
             }
             $obsoleteYears->delete();
             foreach ($enrollments as $position => $enrollment) {
+                $existingYear = $history->years()->where('source', 'system')->where('student_enrollment_id', $enrollment->id)->first();
+                if ($enrollment->schoolClass?->academicYear?->isClosed() && $existingYear) {
+                    continue;
+                }
                 $this->synchronizeEnrollment($history, $enrollment, $position + 1, $stage, $position < $enrollments->count() - 1);
             }
             $history->components()->whereDoesntHave('records')->delete();
@@ -103,6 +107,7 @@ class UnifiedStudentHistorySynchronizer
             return;
         }
 
+        $synchronizedComponentIds = collect();
         foreach ($stageComponents as $componentReport) {
             $component = $componentReport['component'];
             $formation = CurriculumCatalog::formationLabelForArea($component->course, $component->area);
@@ -130,6 +135,7 @@ class UnifiedStudentHistorySynchronizer
                 'formation' => $formation,
                 'knowledge_area' => $component->area?->name,
             ]);
+            $synchronizedComponentIds->push($historyComponent->id);
             $periodCount = max(1, (int) $componentReport['total_periods']);
             $rawScore = $componentReport['complete_periods'] > 0 ? (float) $componentReport['points'] / $periodCount : null;
             $usesLegacyScale = filled($component->legacy_source) || filled($component->legacy_metadata);
@@ -150,6 +156,12 @@ class UnifiedStudentHistorySynchronizer
                 ],
             );
         }
+
+        $obsoleteRecords = $yearRow->records();
+        if ($synchronizedComponentIds->isNotEmpty()) {
+            $obsoleteRecords->whereNotIn('student_academic_history_component_id', $synchronizedComponentIds->unique());
+        }
+        $obsoleteRecords->delete();
     }
 
     private function historicalResult(StudentEnrollment $enrollment, bool $hasLaterEnrollment): string

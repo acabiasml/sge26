@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AcademicCourse;
 use App\Models\AcademicYear;
 use App\Models\CalendarDay;
 use App\Models\School;
 use App\Support\AcademicStructureStatus;
 use App\Support\AcademicStructureValidator;
 use App\Support\AcademicYearClosureStatus;
+use App\Support\UnifiedStudentHistorySynchronizer;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -126,7 +128,7 @@ class AcademicYearController extends Controller
             ->with('status', 'Calendário aprovado. Alterações posteriores devem ser tratadas com cautela.');
     }
 
-    public function close(Request $request, AcademicYear $academicYear, AcademicYearClosureStatus $closureStatus): RedirectResponse
+    public function close(Request $request, AcademicYear $academicYear, AcademicYearClosureStatus $closureStatus, UnifiedStudentHistorySynchronizer $historySynchronizer): RedirectResponse
     {
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
         $this->ensureYearIsOpen($academicYear);
@@ -145,6 +147,22 @@ class AcademicYearController extends Controller
                 'closed_at' => $errors->implode(' '),
             ]);
         }
+
+        $academicYear->classes()
+            ->with(['enrollments.student', 'enrollments.courses'])
+            ->get()
+            ->flatMap->enrollments
+            ->flatMap(fn ($enrollment) => $enrollment->courses
+                ->whereIn('stage', [AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL])
+                ->map(fn ($course): array => ['student' => $enrollment->student, 'stage' => $course->stage]))
+            ->filter(fn (array $item): bool => $item['student'] !== null)
+            ->unique(fn (array $item): string => $item['student']->id.'-'.$item['stage'])
+            ->each(fn (array $item) => $historySynchronizer->synchronize(
+                $item['student'],
+                $academicYear->school_id,
+                $request->user()->person_id,
+                $item['stage'],
+            ));
 
         $academicYear->update([
             'closed_at' => $data['closed_at'],
