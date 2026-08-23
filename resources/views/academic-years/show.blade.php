@@ -376,6 +376,7 @@
                                     <div class="small text-gray-600">
                                         {{ $class->shift ?: 'Turno não definido' }} ·
                                         {{ $class->courses->pluck('name')->join(' + ') ?: 'Sem matriz' }} ·
+                                        {{ $class->formattedPlannedWorkloadHours() }} horas previstas ·
                                         {{ $class->enrollments->count() }} matrículas
                                         <span class="badge badge-{{ $classStatus['tone'] }} ml-1">{{ $classStatus['label'] }}</span>
                                     </div>

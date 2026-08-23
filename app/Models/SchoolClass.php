@@ -85,6 +85,22 @@ class SchoolClass extends Model
         return $this->belongsToMany(AcademicCourse::class, 'academic_course_school_class')->withTimestamps();
     }
 
+    public function plannedWorkloadHours(): float
+    {
+        $courses = $this->relationLoaded('courses')
+            ? $this->courses
+            : $this->courses()->with('components')->get();
+
+        return round($courses->sum(
+            fn (AcademicCourse $course): float => $course->calculatedWorkloadHours()
+        ), 2);
+    }
+
+    public function formattedPlannedWorkloadHours(): string
+    {
+        return number_format($this->plannedWorkloadHours(), 2, ',', '.');
+    }
+
     public function enrollments(): HasMany
     {
         return $this->hasMany(StudentEnrollment::class);

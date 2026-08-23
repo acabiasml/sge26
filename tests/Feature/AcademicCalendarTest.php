@@ -721,6 +721,12 @@ class AcademicCalendarTest extends TestCase
         $class = $year->classes()->firstOrFail();
         $this->assertSame('2026-02-02', $class->starts_at->toDateString());
         $this->assertSame('2026-12-18', $class->ends_at->toDateString());
+        $this->assertEqualsWithDelta(166.67, $class->plannedWorkloadHours(), 0.001);
+
+        $this->actingAs($admin)
+            ->get(route('academic-years.show', $year))
+            ->assertOk()
+            ->assertSee('166,67 horas previstas');
 
         $this->actingAs($admin)
             ->get(route('academic-years.classes.edit', [$year, $class]))
