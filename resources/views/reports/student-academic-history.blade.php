@@ -4,26 +4,26 @@
     <meta charset="utf-8">
     <style>
         @page { size: A4 portrait; margin: 150px 18px 72px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 11px; line-height: 1.12; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 11px; line-height: 1.06; }
         @include('reports.partials.letterhead-styles')
         .letterhead { padding-bottom: 6px; }
         .document-title { font-size: 14px; text-transform: uppercase; margin: 5px 0 2px; }
         .student-box, .history-table, .studies-table { border-collapse: collapse; width: 100%; }
-        .student-box td { border: 0; padding: 2px 4px; }
+        .student-box td { border: 0; padding: 1px 4px; }
         .label { font-weight: 600; }
         .history-table { margin: 0 0 4px; table-layout: fixed; }
-        .history-table th, .history-table td, .studies-table th, .studies-table td { border: .55px solid #111; padding: 2px 3px; vertical-align: middle; }
+        .history-table th, .history-table td, .studies-table th, .studies-table td { border: .55px solid #111; padding: 1px 2px; vertical-align: middle; }
         .history-table th, .studies-table th { background: #f1ede9; font-size: 11px; text-transform: uppercase; }
         .history-table td, .studies-table td { font-size: 11px; }
         .center { text-align: center; }
         .muted { color: #666; }
-        .section-title { font-size: 11px; font-weight: 600; margin: 6px 0 3px; text-transform: uppercase; page-break-after: avoid; }
-        .formation-title { background: #e7dfd9; border: .55px solid #111; font-size: 11px; font-weight: 700; margin-top: 4px; padding: 3px 5px; text-transform: uppercase; page-break-after: avoid; }
+        .section-title { font-size: 11px; font-weight: 600; margin: 4px 0 2px; text-transform: uppercase; page-break-after: avoid; }
+        .formation-title { background: #e7dfd9; border: .55px solid #111; font-size: 11px; font-weight: 700; margin-top: 3px; padding: 2px 4px; text-transform: uppercase; page-break-after: avoid; }
         .area-group { page-break-inside: avoid; }
         .score-cell { white-space: nowrap; }
         .studies-table { page-break-inside: avoid; }
-        .notes { margin-top: 7px; }
-        .signatures { border-collapse: collapse; margin-top: 38px; page-break-inside: avoid; width: 100%; }
+        .notes { margin: 3px 0 0; }
+        .signatures { border-collapse: collapse; margin-top: 12px; page-break-inside: avoid; width: 100%; }
         .signatures td { border: 0; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 280px; padding-top: 6px; }
         .document-footer { position: fixed; bottom: -20px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 5px; text-align: center; font-size: 11px; color: #333; }
