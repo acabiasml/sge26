@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { size: A4 {{ $officialDocument->orientation }}; margin: 20px 24px 38px; }
+        @page { size: A4 {{ $officialDocument->orientation }}; margin: 150px 24px 72px; }
         body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 11.5px; line-height: {{ number_format((float) $officialDocument->line_spacing, 2, '.', '') }}; }
         @include('reports.partials.letterhead-styles')
         .official-content, .official-content * { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif !important; }

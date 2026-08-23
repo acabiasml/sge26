@@ -21,9 +21,9 @@
         .formation-title { background: #e7dfd9; border: .55px solid #111; font-size: 11px; font-weight: 700; margin-top: 4px; padding: 3px 5px; text-transform: uppercase; page-break-after: avoid; }
         .area-group { page-break-inside: avoid; }
         .score-cell { white-space: nowrap; }
-        .studies-section { page-break-inside: avoid; }
+        .studies-table { page-break-inside: avoid; }
         .notes { margin-top: 7px; }
-        .signatures { border-collapse: collapse; margin-top: 65px; width: 100%; }
+        .signatures { border-collapse: collapse; margin-top: 38px; page-break-inside: avoid; width: 100%; }
         .signatures td { border: 0; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 280px; padding-top: 6px; }
         .document-footer { position: fixed; bottom: -20px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 5px; text-align: center; font-size: 11px; color: #333; }
