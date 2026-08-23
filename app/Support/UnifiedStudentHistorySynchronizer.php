@@ -74,6 +74,7 @@ class UnifiedStudentHistorySynchronizer
         $percentage = $attendance['percentage'] ?? null;
         $withoutTranscription = in_array($enrollment->status, [StudentEnrollment::STATUS_RECLASSIFIED, StudentEnrollment::STATUS_TRANSFERRED], true);
         $finalResult = $this->historicalResult($enrollment, $hasLaterEnrollment);
+        $isInProgress = $finalResult === 'Cursando';
         $yearRow = $history->years()->updateOrCreate(
             ['student_enrollment_id' => $enrollment->id],
             [
@@ -139,7 +140,7 @@ class UnifiedStudentHistorySynchronizer
             $periodCount = max(1, (int) $componentReport['total_periods']);
             $rawScore = $componentReport['complete_periods'] > 0 ? (float) $componentReport['points'] / $periodCount : null;
             $usesLegacyScale = filled($component->legacy_source) || filled($component->legacy_metadata);
-            $score = $rawScore !== null ? round($rawScore, $usesLegacyScale ? 0 : 2, PHP_ROUND_HALF_UP) : null;
+            $score = ! $isInProgress && $rawScore !== null ? round($rawScore, $usesLegacyScale ? 0 : 2, PHP_ROUND_HALF_UP) : null;
             $componentAttendance = $componentReport['attendance'];
             $componentPercentage = $componentAttendance['percentage'] ?? null;
 
@@ -174,7 +175,7 @@ class UnifiedStudentHistorySynchronizer
             return 'Transferido';
         }
 
-        if (filled($enrollment->final_result_status)) {
+        if (filled($enrollment->final_result_status) && $enrollment->final_result_status !== StudentEnrollment::FINAL_PENDING) {
             return $enrollment->finalResultLabel();
         }
 
