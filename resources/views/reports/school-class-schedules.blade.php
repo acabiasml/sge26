@@ -64,7 +64,7 @@
                         @forelse ($timeRanges as $range)
                             @php([$startsAt, $endsAt] = explode('|', $range))
                             <tr>
-                                <td class="time-cell">{{ $startsAt }}<br>{{ $endsAt }}</td>
+                                <td class="time-cell">{{ $startsAt }}–{{ $endsAt }}</td>
                                 @foreach ($weekdays as $weekday => $weekdayLabel)
                                     @php($daySlots = $slots->where('weekday', $weekday)->filter(fn ($slot) => substr($slot->starts_at, 0, 5) === $startsAt && substr($slot->ends_at, 0, 5) === $endsAt))
                                     <td>
