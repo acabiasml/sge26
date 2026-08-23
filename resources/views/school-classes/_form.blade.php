@@ -71,18 +71,26 @@
                 </div>
             @endif
 
-            <div class="form-group">
-                <label for="course_ids">Matrizes vinculadas</label>
-                <select id="course_ids" name="course_ids[]" class="form-control @error('course_ids') is-invalid @enderror" multiple required>
+            <fieldset class="form-group">
+                <legend class="col-form-label pt-0 font-weight-bold">Matrizes vinculadas</legend>
+                <div class="row" role="group" aria-describedby="course_ids_help">
                     @foreach ($readyCourses as $course)
-                        <option value="{{ $course->id }}" @selected(in_array($course->id, $selectedCourseIds, true))>
-                            {{ $course->name }} · {{ $course->stageLabel() }} · {{ $course->modalityLabel() }}
-                        </option>
+                        <div class="col-lg-6 mb-2">
+                            <div class="border rounded px-3 py-2 h-100 @if(in_array($course->id, $selectedCourseIds, true)) border-primary bg-light @endif">
+                                <div class="custom-control custom-checkbox">
+                                    <input id="course_id_{{ $course->id }}" name="course_ids[]" type="checkbox" class="custom-control-input" value="{{ $course->id }}" @checked(in_array($course->id, $selectedCourseIds, true))>
+                                    <label class="custom-control-label d-block" for="course_id_{{ $course->id }}">
+                                        <strong>{{ $course->name }}</strong>
+                                        <span class="d-block text-muted small">{{ $course->stageLabel() }} · {{ $course->modalityLabel() }}</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                     @endforeach
-                </select>
-                <small class="form-text text-muted">Use Ctrl para selecionar mais de uma matriz, quando a mesma turma reunir formação geral e itinerário formativo.</small>
+                </div>
+                <small id="course_ids_help" class="form-text text-muted">Marque todas as matrizes que compõem esta turma.</small>
                 @error('course_ids') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
-            </div>
+            </fieldset>
 
             <div class="form-group mb-0">
                 <label for="notes">Observações</label>
