@@ -26,8 +26,8 @@ class UnifiedStudentHistoryTechnicalCalendarTest extends TestCase
         $enrollment = new StudentEnrollment;
         $enrollment->id = 628;
 
-        $moduleOne = $this->component(542, 48, 'Desenho Técnico I', '2025-02-03', '2025-09-15');
-        $moduleTwo = $this->component(548, 48, 'Desenho Técnico II', '2025-09-16', '2026-05-14');
+        $moduleOne = $this->makeCurriculumComponent(542, 48, 'Desenho Técnico I', '2025-02-03', '2025-09-15');
+        $moduleTwo = $this->makeCurriculumComponent(548, 48, 'Desenho Técnico II', '2025-09-16', '2026-05-14');
         $sources = collect([[
             'enrollment' => $enrollment,
             'course' => $course,
@@ -75,13 +75,13 @@ class UnifiedStudentHistoryTechnicalCalendarTest extends TestCase
             'report' => [
                 'academicYear' => $year,
                 'annualComponents' => collect([
-                    ['component' => $this->component($courseId, $courseId, $componentName, $startsAt, '2025-12-31')],
+                    ['component' => $this->makeCurriculumComponent($courseId, $courseId, $componentName, $startsAt, '2025-12-31')],
                 ]),
             ],
         ];
     }
 
-    private function component(int $id, int $courseId, string $name, string $startsAt, string $endsAt): CurriculumComponent
+    private function makeCurriculumComponent(int $id, int $courseId, string $name, string $startsAt, string $endsAt): CurriculumComponent
     {
         $component = new CurriculumComponent(['academic_course_id' => $courseId, 'name' => $name]);
         $component->id = $id;
