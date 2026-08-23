@@ -26,7 +26,9 @@
         .legend strong { display: block; }
         .concept-legend { margin-top: 4px; }
         .concept-legend span { display: inline-block; margin-right: 8px; white-space: nowrap; }
-        .signatures { border-collapse: collapse; margin-top: 88px; width: 100%; }
+        .document-closing { min-height: 138px; page-break-inside: avoid; }
+        .issue-place-date { margin: 12px 0 0; text-align: center; }
+        .signatures { border-collapse: collapse; margin-top: 72px; page-break-inside: avoid; width: 100%; }
         .signatures td { border: 0; font-size: 11px; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 285px; padding-top: 6px; }
         .document-footer { position: fixed; bottom: -23px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 5px; text-align: center; font-size: 11px; color: #333; }
@@ -48,6 +50,8 @@
     );
     $courses = $report['courses'];
     $school = $academicYear->school;
+    $issuePlace = collect([$school?->city, $school?->state])->filter()->join('-') ?: 'Poxoréu-MT';
+    $issueDate = ($issuedDocument->issued_at ?? now('America/Cuiaba'))->timezone('America/Cuiaba')->format('d/m/Y');
     $naturalidade = collect([
         $student->birth_city ?: ($student->legacy_metadata['naturalidade'] ?? null),
         $student->birth_state ?: ($student->legacy_metadata['naturalidade_uf'] ?? null),
@@ -363,12 +367,15 @@
     @endif
 </section>
 
-<table class="signatures">
-    <tr>
-        <td><span class="signature-line">Direção escolar</span></td>
-        <td><span class="signature-line">Secretaria escolar</span></td>
-    </tr>
-</table>
+<section class="document-closing">
+    <p class="issue-place-date">{{ $issuePlace }}, {{ $issueDate }}.</p>
+    <table class="signatures">
+        <tr>
+            <td><span class="signature-line">Direção escolar</span></td>
+            <td><span class="signature-line">Secretaria escolar</span></td>
+        </tr>
+    </table>
+</section>
 
 @include('reports.partials.document-footer', ['issuedDocument' => $issuedDocument])
 </body>
