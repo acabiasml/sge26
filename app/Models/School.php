@@ -141,6 +141,18 @@ class School extends Model
         return $this->logo_path ? asset($this->logo_path) : null;
     }
 
+    public function formattedCnpj(): string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $this->cnpj);
+
+        if (strlen($digits) !== 14) {
+            return $this->cnpj ?: '-';
+        }
+
+        return substr($digits, 0, 2).'.'.substr($digits, 2, 3).'.'.substr($digits, 5, 3)
+            .'/'.substr($digits, 8, 4).'-'.substr($digits, 12, 2);
+    }
+
     public function hasRequiredLetterheadForOfficialDocuments(): bool
     {
         return collect([

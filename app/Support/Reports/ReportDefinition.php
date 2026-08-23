@@ -53,7 +53,7 @@ class ReportDefinition
                     $query->where('name', 'like', "%{$search}%")
                         ->orWhere('city', 'like', "%{$search}%")
                         ->orWhere('state', 'like', "%{$search}%")
-                        ->orWhere('inep', 'like', "%{$search}%");
+                        ->orWhere('cnpj', 'like', "%{$search}%");
                 });
             })
             ->orderBy('name')
@@ -62,11 +62,10 @@ class ReportDefinition
                 $school->name,
                 $school->city,
                 $school->state,
-                $school->inep,
-                $school->active ? 'Ativa' : 'Inativa',
+                $school->formattedCnpj(),
             ]);
 
-        return new self('schools', 'Relatório de Escolas', ['Nome', 'Cidade', 'UF', 'INEP', 'Situação'], $rows, $filters, $search);
+        return new self('schools', 'Relatório de Escolas', ['Nome', 'Cidade', 'UF', 'CNPJ'], $rows, $filters, $search);
     }
 
     /**

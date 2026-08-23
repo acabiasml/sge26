@@ -33,10 +33,10 @@ class SchoolsTable extends DataTableComponent
             Column::make('Nome', 'name')->sortable()->searchable(),
             Column::make('Cidade', 'city')->sortable()->searchable(),
             Column::make('UF', 'state')->sortable(),
-            Column::make('INEP', 'inep')->sortable()->searchable(),
-            Column::make('Situação', 'active')
-                ->format(fn (bool $value): string => $value ? 'Ativa' : 'Inativa')
-                ->sortable(),
+            Column::make('CNPJ', 'cnpj')
+                ->format(fn ($value, School $row): string => $row->formattedCnpj())
+                ->sortable()
+                ->searchable(),
             Column::make('Ações')
                 ->label(fn (School $row): string => view('livewire.tables.school-actions', ['school' => $row])->render())
                 ->html(),
