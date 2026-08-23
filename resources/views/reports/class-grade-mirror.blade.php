@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { size: A4 landscape; margin: 13px 16px 30px; }
+        @page { size: A4 landscape; margin: 13px 16px 72px; }
         body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 11px; line-height: 1.1; }
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 6px; padding-bottom: 5px; }
@@ -168,7 +168,6 @@
                     @endforeach
                 </span>
             @endif
-            <span class="page-number">Página {{ $pageNumber }} de {{ $totalPages }}</span>
         </div>
 
         @if($pageNumber < $totalPages)
@@ -177,9 +176,6 @@
     @endforeach
 @endforeach
 
-<div class="document-footer">
-    Documento emitido pelo Beabá. Confirme a autenticidade usando o código {{ $issuedDocument->verification_code }}.
-    Emitido em {{ $issuedDocument->issued_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i:s') }} por {{ $issuedDocument->issuedBy?->person?->full_name ?? 'usuário identificado' }}.
-</div>
+@include('reports.partials.document-footer', ['issuedDocument' => $issuedDocument])
 </body>
 </html>

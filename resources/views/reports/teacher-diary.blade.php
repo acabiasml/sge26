@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { size: A4 landscape; margin: 18px 18px 32px; }
+        @page { size: A4 landscape; margin: 18px 18px 72px; }
         body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #1f1713; font-size: 11px; line-height: 1.18; }
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 8px; padding-bottom: 6px; }
@@ -231,8 +231,6 @@
     @endunless
 @endforeach
 
-<div class="document-footer">
-    Documento emitido pelo Beabá. Confirme a autenticidade usando o código {{ $issuedDocument->verification_code }}. Emitido em {{ $issuedDocument->issued_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i:s') }} por {{ $issuedDocument->person?->full_name ?? 'usuário identificado' }}.
-</div>
+@include('reports.partials.document-footer', ['issuedDocument' => $issuedDocument])
 </body>
 </html>

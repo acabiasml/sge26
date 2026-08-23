@@ -18,7 +18,8 @@ class PdfLetterhead
      *     school: School|null,
      *     maintainer_logo: string|null,
      *     school_logo: string|null,
-     *     lines: array<int, string>
+     *     lines: array<int, string>,
+     *     footer_lines: array<int, string>
      * }
      */
     public static function make(?School $school = null): array
@@ -28,6 +29,7 @@ class PdfLetterhead
             'maintainer_logo' => self::imageDataUri('brand/centro-tecnico-juvenil-de-jarudore.png'),
             'school_logo' => self::imageDataUri($school?->logo_path),
             'lines' => $school ? self::schoolLines($school) : self::maintainerLines(),
+            'footer_lines' => $school ? self::schoolFooterLines($school) : self::maintainerFooterLines(),
         ];
     }
 
@@ -39,8 +41,7 @@ class PdfLetterhead
         return [
             self::MAINTAINER_NAME,
             self::MAINTAINER_CERTIFICATION,
-            'CNPJ: '.self::MAINTAINER_CNPJ.' | Email: '.self::MAINTAINER_EMAIL.' | Site: '.self::MAINTAINER_SITE,
-            'Endereço de Correspondência: '.self::MAINTAINER_CORRESPONDENCE_ADDRESS,
+            'CNPJ: '.self::MAINTAINER_CNPJ,
         ];
     }
 
@@ -54,8 +55,6 @@ class PdfLetterhead
             self::MAINTAINER_CERTIFICATION,
             mb_strtoupper($school->name),
             self::schoolRegistryLine($school),
-            self::schoolContactLine($school),
-            self::schoolAddressLine($school),
             $school->letterhead_text,
         ])->filter(fn (?string $line): bool => filled($line))->values()->all();
     }
@@ -69,6 +68,24 @@ class PdfLetterhead
         ])->filter();
 
         return $parts->isEmpty() ? '' : $parts->implode(' | ');
+    }
+
+    /** @return array<int, string> */
+    private static function maintainerFooterLines(): array
+    {
+        return [
+            'E-mail: '.self::MAINTAINER_EMAIL.' | Site: '.self::MAINTAINER_SITE,
+            'Endereço de correspondência: '.self::MAINTAINER_CORRESPONDENCE_ADDRESS,
+        ];
+    }
+
+    /** @return array<int, string> */
+    private static function schoolFooterLines(School $school): array
+    {
+        return collect([
+            self::schoolContactLine($school),
+            self::schoolAddressLine($school),
+        ])->filter()->values()->all();
     }
 
     private static function schoolContactLine(School $school): string

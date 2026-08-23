@@ -6,6 +6,17 @@
 @endphp
 
 <footer class="document-footer">
-    Documento emitido pelo Beabá. Confirme a autenticidade usando o código {{ $issuedDocument->verification_code }}.
-    Emitido em {{ $issuedDocument->issued_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i:s') }} por {{ $issuer }}.
+    @foreach(($letterhead['footer_lines'] ?? []) as $line)
+        <div>{{ $line }}</div>
+    @endforeach
+    <div>
+        Documento emitido pelo Beabá. Autenticidade: {{ $issuedDocument->verification_code }}.
+        Emitido em {{ $issuedDocument->issued_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i:s') }} por {{ $issuer }}.
+    </div>
 </footer>
+<script type="text/php">
+    if (isset($pdf, $fontMetrics)) {
+        $font = $fontMetrics->getFont('DejaVu Sans', 'normal');
+        $pdf->page_text($pdf->get_width() - 105, $pdf->get_height() - 17, 'Página {PAGE_NUM} de {PAGE_COUNT}', $font, 11, [0.23, 0.20, 0.18]);
+    }
+</script>
