@@ -80,7 +80,7 @@ class UnifiedStudentHistorySynchronizer
                 'stage' => AcademicCourse::STAGE_LABELS[$course?->stage] ?? 'Etapa não informada',
                 'modality' => AcademicCourse::MODALITY_LABELS[$course?->modality] ?? 'Regular',
                 'grade_phase' => $course?->name ?: $report['schoolClass']->name,
-                'school_name' => $school->legal_name ?: $school->name,
+                'school_name' => $school->name,
                 'school_authorization' => $school->letterhead_text,
                 'city' => $school->city,
                 'state' => $school->state,
