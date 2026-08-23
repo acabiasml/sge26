@@ -198,6 +198,12 @@ class AcademicCourse extends Model
         return self::MODALITY_LABELS[$this->modality] ?? (string) $this->modality;
     }
 
+    public function isItineraryMatrix(): bool
+    {
+        return $this->stage === self::STAGE_TECHNICAL
+            || $this->modality === self::MODALITY_PROFESSIONAL_TECHNOLOGICAL;
+    }
+
     public function calculatedWorkloadHours(): float
     {
         $components = $this->relationLoaded('components')

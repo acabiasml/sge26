@@ -725,10 +725,19 @@ class AcademicCalendarTest extends TestCase
         $this->actingAs($admin)
             ->get(route('academic-years.classes.edit', [$year, $class]))
             ->assertOk()
+            ->assertSee('name="shift"', false)
+            ->assertSee('<option value="Vespertino" selected', false)
+            ->assertSee('Formação Geral Básica')
+            ->assertSee('Itinerário Formativo')
             ->assertDontSee('name="starts_at"', false)
             ->assertDontSee('name="ends_at"', false)
             ->assertSee('name="starts_period_id"', false)
             ->assertSee('name="ends_period_id"', false);
+        $this->assertFalse($course->isItineraryMatrix());
+        $this->assertTrue((new AcademicCourse([
+            'stage' => AcademicCourse::STAGE_TECHNICAL,
+            'modality' => AcademicCourse::MODALITY_PROFESSIONAL_TECHNOLOGICAL,
+        ]))->isItineraryMatrix());
         $this->assertDatabaseHas('academic_course_school_class', [
             'academic_course_id' => $course->id,
         ]);

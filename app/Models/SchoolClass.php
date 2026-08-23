@@ -15,6 +15,13 @@ class SchoolClass extends Model
 {
     use Auditable, HasFactory, HasTitleCaseAttributes;
 
+    public const SHIFT_LABELS = [
+        'Matutino' => 'Matutino',
+        'Vespertino' => 'Vespertino',
+        'Noturno' => 'Noturno',
+        'Integral' => 'Integral',
+    ];
+
     protected $fillable = [
         'academic_year_id',
         'starts_period_id',

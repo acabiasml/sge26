@@ -1,5 +1,8 @@
 @php($isEdit = $class->exists)
 @php($selectedCourseIds = collect(old('course_ids', $class->exists ? $class->courses->pluck('id')->all() : []))->map(fn ($id) => (int) $id)->all())
+@php($baseCourses = $readyCourses->reject(fn ($course) => $course->isItineraryMatrix())->values())
+@php($itineraryCourses = $readyCourses->filter(fn ($course) => $course->isItineraryMatrix())->values())
+@php($selectedShift = old('shift', $class->shift))
 
 <form method="POST" action="{{ $isEdit ? route('academic-years.classes.update', [$academicYear, $class]) : route('academic-years.classes.store', $academicYear) }}">
     @csrf
@@ -32,7 +35,15 @@
                 </div>
                 <div class="col-md-3 form-group">
                     <label for="shift">Turno</label>
-                    <input id="shift" name="shift" class="form-control @error('shift') is-invalid @enderror" value="{{ old('shift', $class->shift) }}" placeholder="Matutino, vespertino...">
+                    <select id="shift" name="shift" class="form-control @error('shift') is-invalid @enderror">
+                        <option value="">Não definido</option>
+                        @foreach(\App\Models\SchoolClass::SHIFT_LABELS as $value => $label)
+                            <option value="{{ $value }}" @selected($selectedShift === $value)>{{ $label }}</option>
+                        @endforeach
+                        @if($selectedShift && !array_key_exists($selectedShift, \App\Models\SchoolClass::SHIFT_LABELS))
+                            <option value="{{ $selectedShift }}" selected>{{ $selectedShift }} (cadastrado anteriormente)</option>
+                        @endif
+                    </select>
                     @error('shift') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-3 form-group">
@@ -71,10 +82,10 @@
                 </div>
             @endif
 
-            <fieldset class="form-group">
-                <legend class="col-form-label pt-0 font-weight-bold">Matrizes vinculadas</legend>
+            <fieldset class="form-group" aria-describedby="course_ids_help">
+                <legend class="col-form-label pt-0 font-weight-bold">Formação Geral Básica</legend>
                 <div class="row" role="group" aria-describedby="course_ids_help">
-                    @foreach ($readyCourses as $course)
+                    @forelse ($baseCourses as $course)
                         <div class="col-lg-6 mb-2">
                             <div class="border rounded px-3 py-2 h-100 @if(in_array($course->id, $selectedCourseIds, true)) border-primary bg-light @endif">
                                 <div class="custom-control custom-checkbox">
@@ -86,9 +97,32 @@
                                 </div>
                             </div>
                         </div>
-                    @endforeach
+                    @empty
+                        <div class="col-12"><p class="text-muted mb-2">Nenhuma matriz de Formação Geral Básica está pronta para vinculação.</p></div>
+                    @endforelse
                 </div>
-                <small id="course_ids_help" class="form-text text-muted">Marque todas as matrizes que compõem esta turma.</small>
+            </fieldset>
+
+            <fieldset class="form-group" aria-describedby="course_ids_help">
+                <legend class="col-form-label pt-0 font-weight-bold">Itinerário Formativo</legend>
+                <div class="row" role="group">
+                    @forelse ($itineraryCourses as $course)
+                        <div class="col-lg-6 mb-2">
+                            <div class="border rounded px-3 py-2 h-100 @if(in_array($course->id, $selectedCourseIds, true)) border-primary bg-light @endif">
+                                <div class="custom-control custom-checkbox">
+                                    <input id="course_id_{{ $course->id }}" name="course_ids[]" type="checkbox" class="custom-control-input" value="{{ $course->id }}" @checked(in_array($course->id, $selectedCourseIds, true))>
+                                    <label class="custom-control-label d-block" for="course_id_{{ $course->id }}">
+                                        <strong>{{ $course->name }}</strong>
+                                        <span class="d-block text-muted small">{{ $course->stageLabel() }} · {{ $course->modalityLabel() }}</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="col-12"><p class="text-muted mb-2">Nenhuma matriz de Itinerário Formativo está pronta para vinculação.</p></div>
+                    @endforelse
+                </div>
+                <small id="course_ids_help" class="form-text text-muted">Selecione a matriz da Formação Geral Básica e, quando houver, uma ou mais matrizes de Itinerário Formativo que compõem a turma.</small>
                 @error('course_ids') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
             </fieldset>
 
