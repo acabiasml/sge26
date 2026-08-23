@@ -145,6 +145,7 @@ class AuditLogPresenter
         'inep' => 'INEP',
         'institutional_email' => 'E-mail institucional',
         'issued_at' => 'Emitido em',
+        'issued_by_user_id' => 'Emitido pelo usuário',
         'issued_date' => 'Data de emissão',
         'issued_place' => 'Local de emissão',
         'is_recovery' => 'É recuperação',
@@ -168,10 +169,12 @@ class AuditLogPresenter
         'notes' => 'Observações',
         'number' => 'Número',
         'personal_email' => 'E-mail pessoal',
+        'person_id' => 'Pessoa',
         'phone' => 'Telefone',
         'passing_score' => 'Média mínima para aprovação',
         'passing_points' => 'Soma mínima de pontos para aprovação',
         'position' => 'Função',
+        'payload' => 'Dados complementares',
         'postal_code' => 'CEP',
         'reclassified_at' => 'Data de reclassificação',
         'reclassified_by_person_id' => 'Reclassificado por',
@@ -212,6 +215,8 @@ class AuditLogPresenter
         'transferred_by_person_id' => 'Transferido por',
         'type' => 'Tipo',
         'updated_by_person_id' => 'Última alteração por',
+        'uuid' => 'Identificador único',
+        'verification_code' => 'Código de verificação',
         'weekday' => 'Dia da semana',
         'website' => 'Site',
         'workload_hours' => 'Carga horária',
@@ -232,6 +237,14 @@ class AuditLogPresenter
     {
         $label = self::modelLabel($auditLog->auditable_type);
 
+        if ($auditLog->auditable_type === IssuedDocument::class) {
+            $type = $auditLog->new_values['type'] ?? $auditLog->old_values['type'] ?? null;
+
+            if (is_string($type) && $type !== '') {
+                $label .= ' — tipo: '.DocumentVerificationPresenter::typeLabel($type);
+            }
+        }
+
         if (blank($auditLog->auditable_id)) {
             return $label;
         }
@@ -245,7 +258,7 @@ class AuditLogPresenter
     }
 
     /**
-     * @return array<int, array{field: string, old: mixed, new: mixed}>
+     * @return array<int, array{key: string, field: string, old: mixed, new: mixed}>
      */
     public static function changes(AuditLog $auditLog): array
     {
@@ -257,13 +270,14 @@ class AuditLogPresenter
             ->values();
 
         return $keys->map(fn (string $key): array => [
+            'key' => $key,
             'field' => self::fieldLabel($key),
             'old' => $oldValues[$key] ?? null,
             'new' => $newValues[$key] ?? null,
         ])->all();
     }
 
-    public static function value(mixed $value): string
+    public static function value(mixed $value, ?string $field = null, ?string $model = null): string
     {
         if ($value === null || $value === '') {
             return '-';
@@ -275,6 +289,17 @@ class AuditLogPresenter
 
         if (is_array($value)) {
             return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '-';
+        }
+
+        if ($field === 'type' && is_string($value)) {
+            return match ($model) {
+                IssuedDocument::class => DocumentVerificationPresenter::typeLabel($value),
+                CalendarDay::class => CalendarDay::TYPE_LABELS[$value] ?? $value,
+                SchoolClassScheduleSlot::class => SchoolClassScheduleSlot::TYPE_LABELS[$value] ?? $value,
+                StudentEnrollment::class => StudentEnrollment::TYPE_LABELS[$value] ?? $value,
+                OfficialDocument::class => OfficialDocument::TYPE_LABELS[$value] ?? $value,
+                default => $value,
+            };
         }
 
         return (string) $value;

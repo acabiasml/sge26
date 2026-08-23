@@ -50,8 +50,8 @@
                     @forelse ($changes as $change)
                         <tr>
                             <td>{{ $change['field'] }}</td>
-                            <td>{{ \App\Support\AuditLogPresenter::value($change['old']) }}</td>
-                            <td>{{ \App\Support\AuditLogPresenter::value($change['new']) }}</td>
+                            <td>{{ \App\Support\AuditLogPresenter::value($change['old'], $change['key'], $auditLog->auditable_type) }}</td>
+                            <td>{{ \App\Support\AuditLogPresenter::value($change['new'], $change['key'], $auditLog->auditable_type) }}</td>
                         </tr>
                     @empty
                         <tr>

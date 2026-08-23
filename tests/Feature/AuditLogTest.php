@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AuditLog;
 use App\Models\DiaryAssessmentResult;
+use App\Models\IssuedDocument;
 use App\Livewire\AuditLogsTable;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
@@ -191,6 +192,32 @@ class AuditLogTest extends TestCase
             ->assertDontSee('DiaryAssessmentResult');
     }
 
+    public function test_issued_document_audit_translates_fields_and_document_type(): void
+    {
+        $audit = new AuditLog([
+            'auditable_type' => IssuedDocument::class,
+            'auditable_id' => 386,
+            'action' => 'created',
+            'old_values' => [],
+            'new_values' => [
+                'type' => 'teacher-diary',
+                'verification_code' => 'BEABA-TESTE',
+                'person_id' => 606,
+                'issued_by_user_id' => 18,
+                'payload' => ['title' => 'Diário de classe'],
+            ],
+        ]);
+
+        $changes = \App\Support\AuditLogPresenter::changes($audit);
+
+        $this->assertSame('Documento emitido — tipo: Diário de classe (registro 386)', \App\Support\AuditLogPresenter::recordLabel($audit));
+        $this->assertSame('Diário de classe', \App\Support\AuditLogPresenter::value('teacher-diary', 'type', IssuedDocument::class));
+        $this->assertSame(
+            ['Tipo', 'Código de verificação', 'Pessoa', 'Emitido pelo usuário', 'Dados complementares'],
+            collect($changes)->pluck('field')->all(),
+        );
+    }
+
     public function test_non_administrator_cannot_change_audit_timezone(): void
     {
         $school = School::query()->create(['name' => 'Escola A']);
@@ -238,4 +265,3 @@ class AuditLogTest extends TestCase
         ]);
     }
 }
-

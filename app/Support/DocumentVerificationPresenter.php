@@ -30,7 +30,7 @@ class DocumentVerificationPresenter
         ];
     }
 
-    private static function typeLabel(string $type): string
+    public static function typeLabel(string $type): string
     {
         return match (true) {
             $type === 'person-record' => 'Ficha de cadastro de pessoa',
