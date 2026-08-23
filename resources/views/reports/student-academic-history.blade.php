@@ -71,7 +71,10 @@
 @forelse($history->components->groupBy(fn ($component) => $component->formation ?: '-') as $formation => $formationComponents)
     <div class="formation-title">{{ $formation }}</div>
     <table class="history-table">
-        <thead><tr><th style="width: 22%;">Área</th><th style="width: 28%;">Componente curricular</th>@foreach($history->years as $year)<th class="center" style="width: {{ 50 / max(1, $history->years->count()) }}%;">{{ $year->label }}<br><span class="muted">N/CH</span></th>@endforeach</tr></thead>
+        <thead>
+            <tr><th rowspan="2" style="width: 22%;">Área</th><th rowspan="2" style="width: 28%;">Componente curricular</th>@foreach($history->years as $year)<th colspan="2" class="center" style="width: {{ 50 / max(1, $history->years->count()) }}%;">{{ $year->label }}</th>@endforeach</tr>
+            <tr>@foreach($history->years as $year)<th class="center" style="width: {{ 25 / max(1, $history->years->count()) }}%;">N</th><th class="center" style="width: {{ 25 / max(1, $history->years->count()) }}%;">CH</th>@endforeach</tr>
+        </thead>
         @foreach($formationComponents->groupBy(fn ($component) => $component->knowledge_area ?: '-') as $area => $areaComponents)
         <tbody class="area-group">
             @foreach($areaComponents as $component)
@@ -80,7 +83,8 @@
                 <td>{{ $component->name }}</td>
                 @foreach($history->years as $year)
                     @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
-                    <td class="center score-cell">@if($record){{ $record->score_label ?: '-' }}<br><span class="muted">{{ $record->workload_hours !== null ? number_format((float) $record->workload_hours, 0, ',', '.').'h' : '-' }}</span>@else - @endif</td>
+                    <td class="center score-cell">{{ $record?->score_label ?: '-' }}</td>
+                    <td class="center score-cell">{{ $record?->workload_hours !== null ? number_format((float) $record->workload_hours, 0, ',', '.').'h' : '-' }}</td>
                 @endforeach
             </tr>
             @endforeach
@@ -88,11 +92,11 @@
         @endforeach
     </table>
 @empty
-    <table class="history-table"><tr><td class="center">Histórico cadastrado sem transcrição de componentes curriculares.</td></tr></table>
+    <table class="history-table"><tr><td colspan="{{ 2 + (2 * $history->years->count()) }}" class="center">Histórico cadastrado sem transcrição de componentes curriculares.</td></tr></table>
 @endforelse
 
 <table class="history-table">
-    <tr><td style="width: 50%;" colspan="2"><strong>Carga horária total</strong></td>@foreach($history->years as $year)<td class="center" style="width: {{ 50 / max(1, $history->years->count()) }}%;"><strong>{{ $year->transcript_mode === 'no_transcription' ? '-' : ($year->workload_hours !== null ? number_format((float) $year->workload_hours, 0, ',', '.').'h' : '-') }}</strong></td>@endforeach</tr>
+    <tr><td style="width: 50%;" colspan="2"><strong>Carga horária total</strong></td>@foreach($history->years as $year)<td colspan="2" class="center" style="width: {{ 50 / max(1, $history->years->count()) }}%;"><strong>{{ $year->transcript_mode === 'no_transcription' ? '-' : ($year->workload_hours !== null ? number_format((float) $year->workload_hours, 0, ',', '.').'h' : '-') }}</strong></td>@endforeach</tr>
 </table>
 
 <div class="studies-section">
