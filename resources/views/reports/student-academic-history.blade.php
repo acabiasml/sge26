@@ -100,7 +100,7 @@
         <tr>
             <td colspan="3"><strong>Carga horária total</strong></td>
             @foreach($history->years as $year)
-                <td class="center"><strong>{{ $year->workload_hours !== null ? number_format((float) $year->workload_hours, 2, ',', '.') : '-' }}</strong></td>
+                <td class="center"><strong>{{ $year->transcript_mode === 'no_transcription' ? '-' : ($year->workload_hours !== null ? number_format((float) $year->workload_hours, 2, ',', '.') : '-') }}</strong></td>
             @endforeach
         </tr>
     </tbody>

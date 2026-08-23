@@ -177,9 +177,18 @@ class StudentAcademicHistoryController extends Controller
             ->with('status', 'Histórico escolar removido.');
     }
 
-    public function pdf(Request $request, Person $person, StudentAcademicHistory $history): Response|RedirectResponse
+    public function pdf(Request $request, Person $person, StudentAcademicHistory $history, UnifiedStudentHistorySynchronizer $synchronizer): Response|RedirectResponse
     {
         $this->authorizeHistory($request, $person, $history);
+
+        if ($history->is_unified && $history->education_stage) {
+            $history = $synchronizer->synchronize(
+                $person,
+                $history->school_id,
+                $request->user()->person_id,
+                $history->education_stage,
+            );
+        }
 
         $history->load(['school', 'student', 'years.records', 'components.records.year']);
 

@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\AcademicCourse;
+use App\Models\CurriculumComponent;
 use App\Models\Person;
 use App\Models\StudentAcademicHistory;
 use App\Models\StudentEnrollment;
@@ -48,15 +49,16 @@ class UnifiedStudentHistorySynchronizer
             }
             $obsoleteYears->delete();
             foreach ($enrollments as $position => $enrollment) {
-                $this->synchronizeEnrollment($history, $enrollment, $position + 1, $stage);
+                $this->synchronizeEnrollment($history, $enrollment, $position + 1, $stage, $position < $enrollments->count() - 1);
             }
+            $history->components()->whereDoesntHave('records')->delete();
             $history->update(['updated_by_person_id' => $personId]);
 
             return $history->fresh(['years.records', 'components.records.year']);
         });
     }
 
-    private function synchronizeEnrollment(StudentAcademicHistory $history, StudentEnrollment $enrollment, int $position, string $stage): void
+    private function synchronizeEnrollment(StudentAcademicHistory $history, StudentEnrollment $enrollment, int $position, string $stage, bool $hasLaterEnrollment): void
     {
         $report = $this->reportCardBuilder->build($enrollment);
         $course = $report['courses']->firstWhere('stage', $stage);
@@ -65,6 +67,8 @@ class UnifiedStudentHistorySynchronizer
         $school = $year->school;
         $attendance = $report['annualAttendance'];
         $percentage = $attendance['percentage'] ?? null;
+        $withoutTranscription = in_array($enrollment->status, [StudentEnrollment::STATUS_RECLASSIFIED, StudentEnrollment::STATUS_TRANSFERRED], true);
+        $finalResult = $this->historicalResult($enrollment, $hasLaterEnrollment);
         $yearRow = $history->years()->updateOrCreate(
             ['student_enrollment_id' => $enrollment->id],
             [
@@ -80,14 +84,23 @@ class UnifiedStudentHistorySynchronizer
                 'city' => $school->city,
                 'state' => $school->state,
                 'country' => 'Brasil',
-                'transcript_mode' => 'detailed',
-                'final_result' => $report['finalResult']['label'],
-                'workload_hours' => $stageComponents->sum(fn (array $item) => $item['component']->calculatedWorkloadHours()),
+                'transcript_mode' => $withoutTranscription ? 'no_transcription' : 'detailed',
+                'final_result' => $finalResult,
+                'workload_hours' => $withoutTranscription ? 0 : $stageComponents->sum(fn (array $item) => $this->historicalWorkloadHours($item['component'])),
                 'school_days' => $year->schoolDayCount(),
-                'attendance_label' => $percentage !== null ? number_format((float) $percentage, 2, ',', '.').'%' : null,
+                'attendance_label' => ! $withoutTranscription && $percentage !== null ? number_format((float) $percentage, 2, ',', '.').'%' : null,
                 'minimum_attendance_percentage' => $year->minimum_attendance_percentage,
+                'notes' => $enrollment->status === StudentEnrollment::STATUS_TRANSFERRED && $enrollment->transferred_at
+                    ? 'Transferido em '.$enrollment->transferred_at->format('d/m/Y').'.'
+                    : null,
             ],
         );
+
+        if ($withoutTranscription) {
+            $yearRow->records()->delete();
+
+            return;
+        }
 
         foreach ($stageComponents as $componentReport) {
             $component = $componentReport['component'];
@@ -107,22 +120,48 @@ class UnifiedStudentHistorySynchronizer
                 ]);
             $historyComponent->update(['formation' => $formation]);
             $periodCount = max(1, (int) $componentReport['total_periods']);
-            $score = $componentReport['complete_periods'] > 0 ? round((float) $componentReport['points'] / $periodCount, 2) : null;
+            $rawScore = $componentReport['complete_periods'] > 0 ? (float) $componentReport['points'] / $periodCount : null;
+            $usesLegacyScale = filled($component->legacy_source) || filled($component->legacy_metadata);
+            $score = $rawScore !== null ? round($rawScore, $usesLegacyScale ? 0 : 2, PHP_ROUND_HALF_UP) : null;
             $componentAttendance = $componentReport['attendance'];
             $componentPercentage = $componentAttendance['percentage'] ?? null;
 
             $historyComponent->records()->updateOrCreate(
                 ['student_academic_history_year_id' => $yearRow->id],
                 [
-                    'score_label' => $score !== null ? number_format($score, 2, ',', '.') : '-',
+                    'score_label' => $score !== null ? number_format($score, $usesLegacyScale ? 1 : 2, ',', '.') : '-',
                     'score_numeric' => $score,
-                    'workload_hours' => $component->calculatedWorkloadHours(),
+                    'workload_hours' => $this->historicalWorkloadHours($component),
                     'frequency_label' => $componentPercentage !== null ? number_format((float) $componentPercentage, 2, ',', '.').'%' : null,
                     'frequency_percentage' => $componentPercentage,
                     'absences' => $componentAttendance['absent'] ?? null,
-                    'result' => $report['finalResult']['label'],
+                    'result' => $finalResult,
                 ],
             );
         }
+    }
+
+    private function historicalResult(StudentEnrollment $enrollment, bool $hasLaterEnrollment): string
+    {
+        if ($enrollment->status === StudentEnrollment::STATUS_RECLASSIFIED) {
+            return 'Reclassificado';
+        }
+
+        if ($enrollment->status === StudentEnrollment::STATUS_TRANSFERRED) {
+            return 'Transferido';
+        }
+
+        if (filled($enrollment->final_result_status)) {
+            return $enrollment->finalResultLabel();
+        }
+
+        return $hasLaterEnrollment ? 'Aprovado' : 'Cursando';
+    }
+
+    private function historicalWorkloadHours(CurriculumComponent $component): float
+    {
+        $legacyHours = $component->legacy_metadata['horas'] ?? null;
+
+        return is_numeric($legacyHours) ? (float) $legacyHours : $component->calculatedWorkloadHours();
     }
 }
