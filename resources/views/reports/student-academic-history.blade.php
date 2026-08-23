@@ -3,23 +3,27 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { size: A4 landscape; margin: 18px 22px 34px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 11px; line-height: 1.2; }
+        @page { size: A4 portrait; margin: 14px 18px 30px; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 11px; line-height: 1.12; }
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 8px; padding-bottom: 6px; }
         .document-title { font-size: 14px; text-transform: uppercase; margin: 5px 0 2px; }
         .student-box, .history-table, .studies-table { border-collapse: collapse; width: 100%; }
         .student-box td { border: 0; padding: 2px 4px; }
         .label { font-weight: 600; }
-        .history-table { margin-top: 8px; }
-        .history-table th, .history-table td, .studies-table th, .studies-table td { border: .55px solid #111; padding: 3px 4px; vertical-align: middle; }
+        .history-table { margin: 0 0 4px; table-layout: fixed; }
+        .history-table th, .history-table td, .studies-table th, .studies-table td { border: .55px solid #111; padding: 2px 3px; vertical-align: middle; }
         .history-table th, .studies-table th { background: #f1ede9; font-size: 11px; text-transform: uppercase; }
         .history-table td, .studies-table td { font-size: 11px; }
         .center { text-align: center; }
         .muted { color: #666; }
-        .section-title { font-size: 11px; font-weight: 600; margin: 10px 0 4px; text-transform: uppercase; }
+        .section-title { font-size: 11px; font-weight: 600; margin: 6px 0 3px; text-transform: uppercase; page-break-after: avoid; }
+        .formation-title { background: #e7dfd9; border: .55px solid #111; font-size: 11px; font-weight: 700; margin-top: 4px; padding: 3px 5px; text-transform: uppercase; page-break-after: avoid; }
+        .area-group { page-break-inside: avoid; }
+        .score-cell { white-space: nowrap; }
+        .studies-section { page-break-inside: avoid; }
         .notes { margin-top: 7px; }
-        .signatures { border-collapse: collapse; margin-top: 42px; width: 100%; }
+        .signatures { border-collapse: collapse; margin-top: 24px; width: 100%; }
         .signatures td { border: 0; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 280px; padding-top: 6px; }
         .document-footer { position: fixed; bottom: -20px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 5px; text-align: center; font-size: 11px; color: #333; }
@@ -64,79 +68,51 @@
 </table>
 
 <div class="section-title">Componentes curriculares</div>
-<table class="history-table">
-    <thead>
-        <tr>
-            <th style="width: 13%;">Formação</th>
-            <th style="width: 16%;">Área</th>
-            <th>Componente curricular</th>
-            @foreach($history->years as $year)
-                <th class="center" style="width: {{ max(8, 40 / max(1, $history->years->count())) }}%;">{{ $year->label }}<br><span class="muted">N/CH/F</span></th>
-            @endforeach
-        </tr>
-    </thead>
-    <tbody>
-        @forelse($history->components->groupBy(fn ($component) => $component->formation ?: '-') as $formation => $formationComponents)
-            @php($formationFirst = true)
-            @foreach($formationComponents->groupBy(fn ($component) => $component->knowledge_area ?: '-') as $area => $areaComponents)
-                @php($areaFirst = true)
-                @foreach($areaComponents as $component)
-                <tr>
-                    @if($formationFirst)<td rowspan="{{ $formationComponents->count() }}"><strong>{{ $formation }}</strong></td>@php($formationFirst = false)@endif
-                    @if($areaFirst)<td rowspan="{{ $areaComponents->count() }}">{{ $area }}</td>@php($areaFirst = false)@endif
-                    <td>{{ $component->name }}</td>
-                    @foreach($history->years as $year)
-                        @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
-                        <td class="center">@if($record){{ $record->score_label ?: '-' }}<br><span class="muted">CH {{ $record->workload_hours !== null ? number_format((float) $record->workload_hours, 2, ',', '.') : '-' }}</span>@if($record->frequency_label)<br><span class="muted">F {{ $record->frequency_label }}</span>@endif @if($record->absences !== null)<br><span class="muted">Faltas {{ $record->absences }}</span>@endif @else - @endif</td>
-                    @endforeach
-                </tr>
-                @endforeach
-            @endforeach
-        @empty
+@forelse($history->components->groupBy(fn ($component) => $component->formation ?: '-') as $formation => $formationComponents)
+    <div class="formation-title">{{ $formation }}</div>
+    <table class="history-table">
+        <thead><tr><th style="width: 22%;">Área</th><th style="width: 28%;">Componente curricular</th>@foreach($history->years as $year)<th class="center" style="width: {{ 50 / max(1, $history->years->count()) }}%;">{{ $year->label }}<br><span class="muted">N/CH</span></th>@endforeach</tr></thead>
+        @foreach($formationComponents->groupBy(fn ($component) => $component->knowledge_area ?: '-') as $area => $areaComponents)
+        <tbody class="area-group">
+            @foreach($areaComponents as $component)
             <tr>
-                <td colspan="{{ 3 + $history->years->count() }}" class="center">Histórico cadastrado sem transcrição de componentes curriculares.</td>
+                @if($loop->first)<td rowspan="{{ $areaComponents->count() }}">{{ $area }}</td>@endif
+                <td>{{ $component->name }}</td>
+                @foreach($history->years as $year)
+                    @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
+                    <td class="center score-cell">@if($record){{ $record->score_label ?: '-' }}<br><span class="muted">{{ $record->workload_hours !== null ? number_format((float) $record->workload_hours, 0, ',', '.').'h' : '-' }}</span>@else - @endif</td>
+                @endforeach
             </tr>
-        @endforelse
-        <tr>
-            <td colspan="3"><strong>Carga horária total</strong></td>
-            @foreach($history->years as $year)
-                <td class="center"><strong>{{ $year->transcript_mode === 'no_transcription' ? '-' : ($year->workload_hours !== null ? number_format((float) $year->workload_hours, 2, ',', '.') : '-') }}</strong></td>
             @endforeach
-        </tr>
-    </tbody>
+        </tbody>
+        @endforeach
+    </table>
+@empty
+    <table class="history-table"><tr><td class="center">Histórico cadastrado sem transcrição de componentes curriculares.</td></tr></table>
+@endforelse
+
+<table class="history-table">
+    <tr><td style="width: 50%;" colspan="2"><strong>Carga horária total</strong></td>@foreach($history->years as $year)<td class="center" style="width: {{ 50 / max(1, $history->years->count()) }}%;"><strong>{{ $year->transcript_mode === 'no_transcription' ? '-' : ($year->workload_hours !== null ? number_format((float) $year->workload_hours, 0, ',', '.').'h' : '-') }}</strong></td>@endforeach</tr>
 </table>
 
+<div class="studies-section">
 <div class="section-title">Estudos realizados</div>
 <table class="studies-table">
     <thead>
         <tr>
-            <th>Etapa</th>
-            <th>Ano</th>
-            <th>Modalidade</th>
-            <th>Série/Ano/Fase</th>
-            <th>Estabelecimento de ensino</th>
-            <th>Ato autorizativo</th>
-            <th>Município</th>
-            <th>UF</th>
-            <th>País</th>
-            <th>Tipo</th>
-            <th>Dias/Frequência</th>
-            <th>RF</th>
+            <th style="width: 13%;">Ano / Série</th>
+            <th style="width: 43%;">Estabelecimento / Local / Ato</th>
+            <th style="width: 13%;">Modalidade</th>
+            <th style="width: 17%;">Dias / Frequência</th>
+            <th style="width: 14%;">Resultado</th>
         </tr>
     </thead>
     <tbody>
         @foreach($history->years as $year)
             <tr>
-                <td>{{ $year->stage ?: $history->stage ?: '-' }}</td>
-                <td>{{ $year->year ?: '-' }}</td>
+                <td>{{ $year->year ?: '-' }}<br>{{ $year->grade_phase ?: $year->label }}</td>
+                <td><strong>{{ $year->school_name ?: '-' }}</strong><br>{{ collect([$year->city, $year->state, $year->country])->filter()->join(' / ') }}@if($year->school_authorization)<br><span class="muted">{{ $year->school_authorization }}</span>@endif @if($year->source_document)<br><span class="muted">{{ $year->source_document }}</span>@endif</td>
                 <td>{{ $year->modality ?: '-' }}</td>
-                <td>{{ $year->grade_phase ?: $year->label }}</td>
-                <td>{{ $year->school_name ?: '-' }}</td>
-                <td>{{ $year->school_authorization ?: '-' }}@if($year->source_document)<br><span class="muted">{{ $year->source_document }}</span>@endif</td>
-                <td>{{ $year->city ?: '-' }}</td>
-                <td>{{ $year->state ?: '-' }}</td>
-                <td>{{ $year->country ?: 'Brasil' }}</td>
-                <td>{{ $transcriptModeLabels[$year->transcript_mode] ?? 'Detalhada' }}</td>
                 <td>
                     {{ collect([
                         $year->school_days ? $year->school_days.' dias' : null,
@@ -164,7 +140,7 @@
 @endif
 
 <p class="notes">
-    Legenda: N - nota ou conceito; CH - carga horária; F - frequência; RF - resultado final; AP - aproveitamento/progressão global conforme documento de origem.
+    Legenda: N - nota ou conceito; CH - carga horária; RF - resultado final; AP - aproveitamento/progressão global conforme documento de origem.
 </p>
 
 <p class="center">
@@ -178,6 +154,7 @@
         <td><span class="signature-line">Secretaria escolar</span></td>
     </tr>
 </table>
+</div>
 
 <div class="document-footer">
     Documento emitido pelo Beabá. Confirme a autenticidade usando o código {{ $issuedDocument->verification_code }}.

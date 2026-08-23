@@ -8,6 +8,7 @@ use App\Models\Person;
 use App\Models\StudentAcademicHistory;
 use App\Models\StudentEnrollment;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class UnifiedStudentHistorySynchronizer
 {
@@ -105,6 +106,9 @@ class UnifiedStudentHistorySynchronizer
         foreach ($stageComponents as $componentReport) {
             $component = $componentReport['component'];
             $formation = CurriculumCatalog::formationLabelForArea($component->course, $component->area);
+            if ($stage === AcademicCourse::STAGE_ELEMENTARY && Str::lower(trim($component->name)) === 'ensino religioso') {
+                $formation = CurriculumCatalog::FORMATION_FGB;
+            }
             if ($stage === AcademicCourse::STAGE_ELEMENTARY && $formation === CurriculumCatalog::FORMATION_COMPLEMENTARY) {
                 $formation = 'Parte Diversificada';
             }

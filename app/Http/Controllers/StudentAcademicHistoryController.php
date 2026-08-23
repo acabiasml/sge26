@@ -230,7 +230,7 @@ class StudentAcademicHistoryController extends Controller
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
             'letterhead' => PdfLetterhead::make($history->school),
-        ])->setPaper('a4', 'landscape');
+        ])->setPaper('a4', 'portrait');
 
         return $pdf->stream('beaba-historico-escolar-'.$person->id.'-'.$history->id.'-'.now()->format('Ymd-His').'.pdf');
     }
