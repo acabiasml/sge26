@@ -3,22 +3,23 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { size: A4 landscape; margin: 150px 18px 72px; }
+        @page { size: A4 landscape; margin: 126px 18px 68px; }
         body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 11px; line-height: 1.18; }
         @include('reports.partials.letterhead-styles')
-        .document-title { font-size: 15px; margin-top: 7px; text-transform: uppercase; }
-        .schedule-title { margin: 8px 0 4px; color: #6B3D2E; font-size: 12px; text-transform: uppercase; }
-        .schedule-subtitle { margin: 0 0 6px; color: #5f5a55; font-size: 11px; }
-        .schedule-table { width: 100%; border-collapse: collapse; page-break-inside: avoid; margin-bottom: 12px; }
-        .schedule-table th { background: #6B3D2E; color: #fff; border: .55px solid #6B3D2E; padding: 3.5px 3px; text-align: center; }
-        .schedule-table td { border: .5px solid #b99686; padding: 3px; vertical-align: top; min-height: 28px; }
-        .time-cell { width: 68px; background: #fffaf1; color: #6B3D2E; font-weight: 600; text-align: center; }
-        .slot { border-left: 4px solid #9a8f86; background: #f4f1ed; padding: 3px 4px; min-height: 24px; }
-        .slot + .slot { margin-top: 3px; }
+        .letterhead-repeat { top: -114px; padding-bottom: 4px; }
+        .letterhead-logo img { max-height: 45px; }
+        .document-title { font-size: 15px; margin: 4px 0 1px; text-transform: uppercase; }
+        .schedule-title { margin: 4px 0 2px; color: #6B3D2E; font-size: 12px; text-transform: uppercase; }
+        .schedule-subtitle { margin: 0 0 3px; color: #5f5a55; font-size: 11px; }
+        .schedule-table { width: 100%; border-collapse: collapse; page-break-inside: avoid; margin-bottom: 4px; table-layout: fixed; }
+        .schedule-table th { background: #6B3D2E; color: #fff; border: .55px solid #6B3D2E; padding: 2px; text-align: center; }
+        .schedule-table td { border: .5px solid #b99686; padding: 1.5px; vertical-align: middle; }
+        .time-cell { width: 58px; background: #fffaf1; color: #6B3D2E; font-weight: 600; text-align: center; white-space: nowrap; }
+        .slot { border-left: 3px solid #9a8f86; background: #f4f1ed; padding: 1.5px 3px; }
+        .slot + .slot { margin-top: 1.5px; }
         .slot strong, .slot span, .slot small { display: block; }
         .slot strong { font-size: 11px; color: #2f241f; }
-        .slot span { margin-top: 2px; color: #4f4650; }
-        .slot small { margin-top: 2px; color: #6f625b; font-size: 11px; }
+        .slot span { margin-top: 1px; color: #4f4650; }
         .slot-break { border-left-color: #DB6B30; background: #fff0e7; }
         .empty { color: #9b8c84; text-align: center; }
         .page-break { page-break-after: always; }
@@ -74,7 +75,6 @@
                                                 <strong>{{ $slot->type === \App\Models\SchoolClassScheduleSlot::TYPE_CLASS ? $slot->componentAssignment?->component?->name : $slot->label }}</strong>
                                                 @if ($slot->type === \App\Models\SchoolClassScheduleSlot::TYPE_CLASS)
                                                     <span>{{ $teacher?->full_name ?? 'Docência não definida' }}</span>
-                                                    <small>{{ $slot->componentAssignment?->component?->course?->name }}</small>
                                                 @else
                                                     <span>Intervalo</span>
                                                 @endif

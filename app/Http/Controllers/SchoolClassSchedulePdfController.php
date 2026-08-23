@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AcademicYear;
 use App\Models\IssuedDocument;
 use App\Models\SchoolClass;
+use App\Models\SchoolClassSchedule;
 use App\Models\SchoolClassScheduleSlot;
 use App\Models\StudentEnrollment;
 use App\Support\AcademicContextLabel;
@@ -31,8 +32,11 @@ class SchoolClassSchedulePdfController extends Controller
         if ($request->filled('schedule')) {
             $selectedSchedule = $class->schedules->firstWhere('id', $request->integer('schedule'));
             abort_unless($selectedSchedule, 404);
-            $class->setRelation('schedules', collect([$selectedSchedule]));
+        } else {
+            $selectedSchedule = $this->scheduleForDocument($class);
         }
+
+        $class->setRelation('schedules', collect([$selectedSchedule])->filter());
 
         $issuedDocument = $this->issuedDocument($request, $academicYear, 'class-schedule', 'Horário da turma', [
             'school_class_id' => $class->id,
@@ -97,6 +101,9 @@ class SchoolClassSchedulePdfController extends Controller
 
         $classes = $academicYear->classes
             ->filter(fn (SchoolClass $class): bool => $class->schedules->isNotEmpty())
+            ->each(function (SchoolClass $class): void {
+                $class->setRelation('schedules', collect([$this->scheduleForDocument($class)])->filter());
+            })
             ->sortBy('name')
             ->values();
 
@@ -131,6 +138,16 @@ class SchoolClassSchedulePdfController extends Controller
         }
 
         return $weekdays;
+    }
+
+    private function scheduleForDocument(SchoolClass $class): ?SchoolClassSchedule
+    {
+        $today = now()->toDateString();
+
+        return $class->schedules
+            ->first(fn (SchoolClassSchedule $schedule): bool => ($schedule->starts_at === null || $schedule->starts_at->toDateString() <= $today)
+                && ($schedule->ends_at === null || $schedule->ends_at->toDateString() >= $today))
+            ?? $class->schedules->sortByDesc('starts_at')->first();
     }
 
     private function issuedDocument(Request $request, AcademicYear $academicYear, string $type, string $title, array $payload = []): IssuedDocument
