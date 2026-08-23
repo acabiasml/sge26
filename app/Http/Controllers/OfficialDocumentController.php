@@ -84,7 +84,7 @@ class OfficialDocumentController extends Controller
             'letterhead' => PdfLetterhead::make($school),
         ])->setPaper('a4', $data['orientation']);
 
-        return $pdf->stream($this->filename($officialDocument));
+        return \App\Support\PdfMetadata::stream($pdf, $this->filename($officialDocument), $officialDocument->title.' - Beabá');
     }
 
     private function issuedDocument(Request $request, OfficialDocument $officialDocument): IssuedDocument

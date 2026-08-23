@@ -42,7 +42,7 @@ class TeacherScheduleController extends Controller
             'letterhead' => PdfLetterhead::make($school),
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->stream('beaba-meu-horario-'.now()->format('Ymd-His').'.pdf');
+        return \App\Support\PdfMetadata::stream($pdf, 'beaba-meu-horario-'.now()->format('Ymd-His').'.pdf');
     }
 
     private function slotsForTeacher(?int $personId): Collection

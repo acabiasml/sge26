@@ -72,15 +72,16 @@ class ClassAcademicDocumentsController extends Controller
             'issued_at' => now(),
         ]);
 
-        return Pdf::loadView('reports.class-attendance-certificates', [
+        $pdf = Pdf::loadView('reports.class-attendance-certificates', [
             'academicYear' => $academicYear,
             'class' => $class,
             'certificates' => $certificates,
             'scope' => $scope,
             'issuedDocument' => $issuedDocument,
             'letterhead' => PdfLetterhead::make($academicYear->school),
-        ])->setPaper('a4', 'portrait')
-            ->stream('beaba-atestados-frequencia-turma-'.$class->id.'-'.$scope['filename'].'-'.now()->format('Ymd-His').'.pdf');
+        ])->setPaper('a4', 'portrait');
+
+        return \App\Support\PdfMetadata::stream($pdf, 'beaba-atestados-frequencia-turma-'.$class->id.'-'.$scope['filename'].'-'.now()->format('Ymd-His').'.pdf');
     }
 
     public function reportCards(
@@ -129,7 +130,7 @@ class ClassAcademicDocumentsController extends Controller
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'portrait');
 
-        return $pdf->stream('beaba-boletins-turma-'.$class->id.'-'.now()->format('Ymd-His').'.pdf');
+        return \App\Support\PdfMetadata::stream($pdf, 'beaba-boletins-turma-'.$class->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     public function gradeMirror(
@@ -188,7 +189,7 @@ class ClassAcademicDocumentsController extends Controller
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->stream('beaba-espelho-notas-turma-'.$class->id.'-'.now()->format('Ymd-His').'.pdf');
+        return \App\Support\PdfMetadata::stream($pdf, 'beaba-espelho-notas-turma-'.$class->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     /**

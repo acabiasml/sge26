@@ -90,7 +90,7 @@ class StudentDiaryController extends Controller
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->stream('beaba-horario-estudante-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
+        return \App\Support\PdfMetadata::stream($pdf, 'beaba-horario-estudante-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     private function authorizeEnrollment(Request $request, StudentEnrollment $enrollment): void

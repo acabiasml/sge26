@@ -136,7 +136,7 @@ class StudentEnrollmentCertificateController extends Controller
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'portrait');
 
-        return $pdf->stream('beaba-atestado-frequencia-'.$scope['filename'].'-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
+        return \App\Support\PdfMetadata::stream($pdf, 'beaba-atestado-frequencia-'.$scope['filename'].'-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     public function transfer(Request $request, StudentEnrollment $enrollment): Response|RedirectResponse
@@ -164,7 +164,7 @@ class StudentEnrollmentCertificateController extends Controller
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'portrait');
 
-        return $pdf->stream('beaba-atestado-transferencia-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
+        return \App\Support\PdfMetadata::stream($pdf, 'beaba-atestado-transferencia-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     private function declarationPdf(
@@ -194,7 +194,7 @@ class StudentEnrollmentCertificateController extends Controller
             'statement' => $statement,
         ])->setPaper('a4', 'portrait');
 
-        return $pdf->stream('beaba-'.Str::slug($title).'-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
+        return \App\Support\PdfMetadata::stream($pdf, 'beaba-'.Str::slug($title).'-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf', $title.' - '.$enrollment->student->full_name.' - Beabá');
     }
 
     /**

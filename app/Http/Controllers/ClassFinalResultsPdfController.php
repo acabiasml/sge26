@@ -66,7 +66,7 @@ class ClassFinalResultsPdfController extends Controller
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->stream('beaba-resultados-finais-turma-'.$class->id.'-'.now()->format('Ymd-His').'.pdf');
+        return \App\Support\PdfMetadata::stream($pdf, 'beaba-resultados-finais-turma-'.$class->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     private function verificationCode(): string

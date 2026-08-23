@@ -41,7 +41,7 @@ class ReportController extends Controller
             'letterhead' => PdfLetterhead::make($school),
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->stream($this->filename($report->type, 'pdf'));
+        return \App\Support\PdfMetadata::stream($pdf, $this->filename($report->type, 'pdf'), $report->title.' - Beabá');
     }
 
     public function verify(string $code): Response

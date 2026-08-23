@@ -508,7 +508,7 @@ class TeacherDiaryController extends Controller
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'landscape');
 
-        return $pdf->stream('beaba-lista-chamada-'.$schoolClass->id.'-'.$component->id.'-'.$month->format('Ym').'.pdf');
+        return \App\Support\PdfMetadata::stream($pdf, 'beaba-lista-chamada-'.$schoolClass->id.'-'.$component->id.'-'.$month->format('Ym').'.pdf');
     }
 
     public function attendance(Request $request, SchoolClass $schoolClass, CurriculumComponent $component): View

@@ -48,7 +48,7 @@ class StudentReportCardController extends Controller
             'letterhead' => PdfLetterhead::make($report['academicYear']->school),
         ])->setPaper('a4', 'portrait');
 
-        return $pdf->stream('beaba-boletim-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
+        return \App\Support\PdfMetadata::stream($pdf, 'beaba-boletim-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     public function individualRecordPdf(Request $request, StudentEnrollment $enrollment, StudentReportCardBuilder $builder): Response|RedirectResponse
@@ -72,7 +72,7 @@ class StudentReportCardController extends Controller
             'letterhead' => PdfLetterhead::make($report['academicYear']->school),
         ])->setPaper('a4', 'portrait');
 
-        return $pdf->stream('beaba-ficha-individual-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
+        return \App\Support\PdfMetadata::stream($pdf, 'beaba-ficha-individual-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     private function authorizeReportCard(Request $request, StudentEnrollment $enrollment): void
