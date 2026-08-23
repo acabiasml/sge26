@@ -113,7 +113,21 @@
 @endforelse
 
 <table class="history-table">
-    <tr><td style="width: 50%;" colspan="2"><strong>Carga horária total geral</strong></td>@foreach($history->years as $year)@php($generalWorkload = $history->components->sum(fn ($component) => (float) ($component->records->firstWhere('student_academic_history_year_id', $year->id)?->workload_hours ?? 0)))<td colspan="2" class="center" style="width: {{ 50 / max(1, $history->years->count()) }}%;"><strong>{{ $year->transcript_mode === 'no_transcription' ? '-' : number_format($generalWorkload, 0, ',', '.').'h' }}</strong></td>@endforeach</tr>
+    <colgroup>
+        <col style="width: 22%;">
+        <col style="width: 28%;">
+        @foreach($history->years as $year)
+            <col style="width: {{ 25 / max(1, $history->years->count()) }}%;">
+            <col style="width: {{ 25 / max(1, $history->years->count()) }}%;">
+        @endforeach
+    </colgroup>
+    <tr>
+        <td colspan="2"><strong>Carga horária total geral</strong></td>
+        @foreach($history->years as $year)
+            @php($generalWorkload = $history->components->sum(fn ($component) => (float) ($component->records->firstWhere('student_academic_history_year_id', $year->id)?->workload_hours ?? 0)))
+            <td colspan="2" class="center"><strong>{{ $year->transcript_mode === 'no_transcription' ? '-' : number_format($generalWorkload, 0, ',', '.').'h' }}</strong></td>
+        @endforeach
+    </tr>
 </table>
 
 <div class="studies-section">
