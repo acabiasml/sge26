@@ -43,6 +43,7 @@
             <div><strong>{{ $stats['pending'] }}</strong><span>com pendência</span></div>
             <div><strong>{{ $stats['waiting'] }}</strong><span>aguardando</span></div>
             <div><strong>{{ $stats['confirmed'] }}</strong><span>confirmados</span></div>
+            <div><strong>{{ $stats['reopened'] }}</strong><span>reabertos</span></div>
         </div>
     </section>
 

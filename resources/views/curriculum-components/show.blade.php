@@ -36,16 +36,28 @@
                 </div>
                 <div class="card-body">
                     <dl class="mb-0 sge-academic-summary-details">
+                        <dt>Componente</dt>
+                        <dd>{{ $component->name }}</dd>
+                        <dt>Escola</dt>
+                        <dd>{{ $academicYear->school?->name }}</dd>
+                        <dt>Ano letivo</dt>
+                        <dd>{{ $academicYear->name }} · {{ $academicYear->referenceYearsLabel() }}</dd>
                         <dt>Matriz</dt>
-                        <dd>{{ $course->name }}</dd>
+                        <dd>{{ $course->name }} · {{ $course->stageLabel() }} · {{ $course->modalityLabel() }}</dd>
+                        <dt>Formação</dt>
+                        <dd>{{ \App\Support\CurriculumCatalog::formationLabelForArea($course, $component->area) }}</dd>
                         <dt>Área</dt>
                         <dd>{{ $component->area?->name ?? 'Não definida' }}</dd>
+                        <dt>Situação</dt>
+                        <dd><span class="badge badge-{{ $component->active ? 'success' : 'secondary' }}">{{ $component->active ? 'Ativo' : 'Inativo' }}</span></dd>
                         <dt>Duração</dt>
                         <dd>{{ $component->startsPeriod?->name ?? 'início da turma' }} até {{ $component->endsPeriod?->name ?? 'fim da turma' }}</dd>
                         <dt>Carga horária</dt>
                         <dd>{{ $component->formattedCalculatedWorkloadHours($course) }} horas</dd>
                         <dt>Forma de definição</dt>
-                        <dd>{{ $component->weekly_lessons !== null ? $component->weekly_lessons.' aulas por semana' : 'Total de horas informado' }}</dd>
+                        <dd>{{ $component->weekly_lessons !== null ? $component->weekly_lessons.' aulas por semana de '.$course->class_hour_minutes.' minutos' : number_format((float) $component->workload_hours, 2, ',', '.').' horas totais informadas' }}</dd>
+                        <dt>Observações</dt>
+                        <dd>{{ $component->notes ?: 'Nenhuma observação cadastrada' }}</dd>
                     </dl>
                 </div>
             </div>

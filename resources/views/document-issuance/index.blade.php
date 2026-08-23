@@ -27,7 +27,7 @@
         <div class="sge-document-hub-summary" aria-label="Resumo da central">
             <strong>{{ $typeCount }}</strong>
             <span>tipos disponíveis</span>
-            <small>{{ $schools->count() }} {{ $schools->count() === 1 ? 'escola acessível' : 'escolas acessíveis' }}</small>
+            <small>{{ $schools->count() }} escola(s) · {{ $academicYears->count() }} ano(s) letivo(s) · {{ $classes->count() }} turma(s) acessíveis</small>
         </div>
     </section>
 

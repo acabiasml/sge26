@@ -32,7 +32,7 @@
     </nav>
 
     <div class="row" id="section-resumo" data-academic-panel="resumo" role="tabpanel">
-        <div class="col-lg-5 mb-4">
+        <div class="col-lg-7 mb-4">
             <section class="card shadow" aria-labelledby="diary-summary-title">
                 <div class="card-header py-3"><h2 id="diary-summary-title" class="h6 m-0 font-weight-bold text-primary">Resumo</h2></div>
                 <div class="card-body">
@@ -40,14 +40,25 @@
                         <dt>Escola</dt><dd>{{ $academicYear->school?->name }}</dd>
                         <dt>Ano letivo</dt><dd>{{ $academicYear->name }}</dd>
                         <dt>Turma</dt><dd>{{ $schoolClass->name }}</dd>
+                        <dt>Turno</dt><dd>{{ $schoolClass->shift ?: 'Não definido' }}</dd>
                         <dt>Matriz</dt><dd>{{ $course->name }}</dd>
                         <dt>Área</dt><dd>{{ $component->area?->name ?? 'Não definida' }}</dd>
                         <dt>Docência titular</dt><dd>{{ $assignment->teacher?->full_name ?? 'Não definida' }}</dd>
+                        <dt>Vigência do componente</dt><dd>{{ $component->startsPeriod?->name ?? 'início da turma' }} até {{ $component->endsPeriod?->name ?? 'fim da turma' }}</dd>
+                        <dt>Carga horária prevista</dt><dd>{{ $component->formattedCalculatedWorkloadHours($course) }} horas</dd>
+                        <dt>Período atual</dt><dd>{{ $period ? $period->name.' · '.$period->starts_at->format('d/m/Y').' a '.$period->ends_at->format('d/m/Y') : 'Não selecionado' }}</dd>
+                        <dt>Situação do período</dt><dd>{{ $period ? ($confirmation?->confirmed ? 'Confirmado' : 'Em lançamento') : 'Sem período' }}</dd>
                     </dl>
+                    <div class="sge-academic-metrics mt-3 mb-0" aria-label="Indicadores do diário no período selecionado">
+                        <div><strong>{{ $enrollments->filter->isActive()->count() }}</strong><span>estudantes ativos</span></div>
+                        <div><strong>{{ $attendanceRecords->count() }}</strong><span>chamadas</span></div>
+                        <div><strong>{{ $contents->count() }}</strong><span>conteúdos</span></div>
+                        <div><strong>{{ $assessments->count() }}</strong><span>avaliações</span></div>
+                    </div>
                 </div>
             </section>
         </div>
-        <div class="col-lg-7 mb-4">
+        <div class="col-lg-5 mb-4">
             <section class="card shadow" aria-labelledby="period-title">
                 <div class="card-header py-3"><h2 id="period-title" class="h6 m-0 font-weight-bold text-primary">Período avaliativo</h2></div>
                 <div class="card-body">

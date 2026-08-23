@@ -125,6 +125,18 @@
             <strong>{{ $histories->count() }}</strong>
             <span class="sge-metric-note">documento(s) recebido(s)</span>
         </article>
+        <article class="sge-metric-card sge-metric-blue">
+            <div class="sge-metric-icon"><i class="fas fa-file-signature" aria-hidden="true"></i></div>
+            <span class="sge-metric-label">Documentos emitidos</span>
+            <strong>{{ $documents->count() }}</strong>
+            <span class="sge-metric-note">até os 12 mais recentes</span>
+        </article>
+        <article class="sge-metric-card sge-metric-green">
+            <div class="sge-metric-icon"><i class="fas fa-user-shield" aria-hidden="true"></i></div>
+            <span class="sge-metric-label">Contatos</span>
+            <strong>{{ $person->contacts->count() }}</strong>
+            <span class="sge-metric-note">responsáveis e contatos cadastrados</span>
+        </article>
     </section>
 
     <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="Áreas da vida escolar" role="tablist" data-section-tabs>

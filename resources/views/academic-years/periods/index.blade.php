@@ -27,6 +27,8 @@
                     <div class="sge-period-context-metrics" aria-label="Resumo dos períodos cadastrados">
                         <div><strong>{{ $periods->count() }}</strong><span>períodos</span></div>
                         <div><strong>{{ $periods->sum(fn ($period) => $period->schoolDayCount()) }}</strong><span>dias nos períodos</span></div>
+                        <div><strong>{{ $periods->sum(fn ($period) => $period->assessmentRules->count()) }}</strong><span>regras de avaliação</span></div>
+                        <div><strong>{{ $periods->filter(fn ($period) => $period->diaryConsolidation?->consolidated)->count() }}/{{ $periods->count() }}</strong><span>períodos consolidados</span></div>
                     </div>
                     <p class="small mb-0">Cada período reúne as datas letivas, as regras de avaliação e o fechamento dos diários.</p>
                 </div>

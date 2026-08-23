@@ -6,6 +6,9 @@
 @php($assignments = $class->componentAssignments->sortBy(fn ($assignment) => ($assignment->component?->area?->name ?? '').' '.$assignment->component?->name)->values())
 @php($assignmentGroups = $assignments->groupBy(fn ($assignment) => $assignment->component?->area?->name ?? 'Área não definida'))
 @php($activeAssignments = $assignments->where('active', true)->count())
+@php($activeEnrollmentCount = $class->enrollments->filter->isActive()->count())
+@php($definedTeacherCount = $assignments->whereNotNull('teacher_person_id')->count())
+@php($classStages = $class->courses->reject(fn ($course) => $course->isItineraryMatrix())->map(fn ($course) => $course->stageLabel())->filter()->unique()->join(' / '))
 
 @section('title', 'Turma - '.$class->name)
 @section('page-title', 'Turma: '.$class->name)
@@ -52,16 +55,23 @@
                     </div>
 
                     <div class="sge-class-metrics" aria-label="Resumo da turma">
-                        <div><strong>{{ $enrollmentCount }}</strong><span>matrículas</span></div>
+                        <div><strong>{{ $activeEnrollmentCount }}</strong><span>matrículas ativas</span></div>
+                        <div><strong>{{ $enrollmentCount }}</strong><span>matrículas no total</span></div>
                         <div><strong>{{ $class->courses->count() }}</strong><span>matrizes</span></div>
                         <div><strong>{{ $assignments->count() }}</strong><span>componentes</span></div>
-                        <div><strong>{{ $activeAssignments }}</strong><span>docências ativas</span></div>
+                        <div><strong>{{ $definedTeacherCount }}/{{ $activeAssignments }}</strong><span>docências definidas</span></div>
+                        <div><strong>{{ $class->formattedPlannedWorkloadHours() }}h</strong><span>carga prevista</span></div>
                     </div>
 
                     <dl class="sge-inline-definition-list mb-0">
+                        <div><dt>Situação</dt><dd>{{ $class->active ? 'Turma ativa' : 'Turma inativa' }}</dd></div>
+                        <div><dt>Etapa</dt><dd>{{ $classStages ?: 'Não identificada' }}</dd></div>
                         <div><dt>Turno</dt><dd>{{ $class->shift ?: '-' }}</dd></div>
                         <div><dt>Vigência acadêmica</dt><dd>{{ $class->startsPeriod?->name ?? 'Período inicial não definido' }} até {{ $class->endsPeriod?->name ?? 'período final não definido' }}</dd></div>
                         <div><dt>Critérios</dt><dd>{{ number_format((float) $academicYear->passing_points, 1, ',', '.') }} pontos · {{ $academicYear->minimum_attendance_percentage }}% frequência</dd></div>
+                        <div><dt>Matrizes</dt><dd>{{ $class->courses->sortBy('name')->pluck('name')->join(' + ') ?: 'Nenhuma matriz vinculada' }}</dd></div>
+                        <div><dt>Horários</dt><dd>{{ $class->schedules->count() }} versão(ões) cadastrada(s)</dd></div>
+                        <div><dt>Observações</dt><dd>{{ $class->notes ?: 'Nenhuma observação cadastrada' }}</dd></div>
                     </dl>
                 </div>
             </section>

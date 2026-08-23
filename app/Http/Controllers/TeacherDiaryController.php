@@ -320,7 +320,7 @@ class TeacherDiaryController extends Controller
             'academicYear' => $academicYear,
             'course' => $course,
             'schoolClass' => $schoolClass->load('courses'),
-            'component' => $component->load('area'),
+            'component' => $component->load('area', 'startsPeriod', 'endsPeriod'),
             'assignment' => $assignment,
             'periods' => $periods,
             'period' => $period,

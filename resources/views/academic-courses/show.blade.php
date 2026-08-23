@@ -2,6 +2,8 @@
 
 @php($canChangeAcademicStructure = ! $academicYear->approved_at || auth()->user()->isAdministrator())
 @php($curriculumSuggestionsByComponent = collect($curriculumSuggestions)->keyBy('component'))
+@php($activeComponents = $course->components->where('active', true))
+@php($linkedEnrollmentCount = $course->classes->sum(fn ($class) => $class->enrollments->count()))
 
 @section('title', 'Matriz - '.$course->name)
 @section('page-title', 'Matriz: '.$course->name)
@@ -38,15 +40,27 @@
                     <h2 class="h6 m-0 font-weight-bold text-primary">Resumo da matriz</h2>
                 </div>
                 <div class="card-body">
+                    <div class="sge-academic-metrics">
+                        <div><strong>{{ $activeComponents->count() }}</strong><span>componentes ativos</span></div>
+                        <div><strong>{{ $course->classes->count() }}</strong><span>turmas vinculadas</span></div>
+                        <div><strong>{{ $linkedEnrollmentCount }}</strong><span>matrículas vinculadas</span></div>
+                        <div><strong>{{ $course->formattedCalculatedWorkloadHours() }}h</strong><span>carga prevista</span></div>
+                    </div>
                     <dl class="mb-0 sge-academic-summary-details">
+                        <dt>Matriz</dt>
+                        <dd>{{ $course->name }}</dd>
                         <dt>Escola</dt>
                         <dd>{{ $academicYear->school?->name }}</dd>
                         <dt>Ano letivo</dt>
-                        <dd>{{ $academicYear->name }}</dd>
+                        <dd>{{ $academicYear->name }} · {{ $academicYear->referenceYearsLabel() }}</dd>
+                        <dt>Situação</dt>
+                        <dd><span class="badge badge-{{ $course->active ? 'success' : 'secondary' }}">{{ $course->active ? 'Ativa' : 'Inativa' }}</span></dd>
                         <dt>Etapa</dt>
                         <dd>{{ $course->stageLabel() }}</dd>
                         <dt>Modalidade</dt>
                         <dd>{{ $course->modalityLabel() ?: '-' }}</dd>
+                        <dt>Formação</dt>
+                        <dd>{{ $course->isItineraryMatrix() ? 'Itinerário Formativo' : 'Formação Geral Básica' }}</dd>
                         @if(in_array($course->stage, [\App\Models\AcademicCourse::STAGE_HIGH_SCHOOL, \App\Models\AcademicCourse::STAGE_TECHNICAL], true))
                             <dt>Itinerário formativo</dt>
                             <dd>{{ $course->stage === \App\Models\AcademicCourse::STAGE_TECHNICAL ? $course->name : ($course->itinerary_name ?: 'Aprofundamento de Estudos') }}</dd>
@@ -55,6 +69,12 @@
                         <dd>{{ $course->class_hour_minutes }} minutos</dd>
                         <dt>Carga horária calculada</dt>
                         <dd>{{ $course->formattedCalculatedWorkloadHours() }} horas</dd>
+                        <dt>Formas de carga horária</dt>
+                        <dd>{{ $activeComponents->whereNotNull('weekly_lessons')->count() }} por aulas semanais · {{ $activeComponents->whereNotNull('workload_hours')->count() }} por carga total</dd>
+                        <dt>Turmas</dt>
+                        <dd>{{ $course->classes->sortBy('name')->pluck('name')->join(', ') ?: 'Nenhuma turma vinculada' }}</dd>
+                        <dt>Observações</dt>
+                        <dd>{{ $course->notes ?: 'Nenhuma observação cadastrada' }}</dd>
                     </dl>
                 </div>
             </div>

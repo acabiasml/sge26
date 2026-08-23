@@ -64,10 +64,16 @@
             <span class="sge-metric-note">hora(s) informadas</span>
         </article>
         <article class="sge-metric-card sge-metric-brown">
-            <div class="sge-metric-icon"><i class="fas fa-file-pdf" aria-hidden="true"></i></div>
-            <span class="sge-metric-label">PDF</span>
-            <strong>A4</strong>
-            <span class="sge-metric-note">com autenticidade</span>
+            <div class="sge-metric-icon"><i class="fas fa-{{ $historyCompleteness['complete'] ? 'check-circle' : 'exclamation-circle' }}" aria-hidden="true"></i></div>
+            <span class="sge-metric-label">Emissão</span>
+            <strong>{{ $historyCompleteness['complete'] ? 'Liberada' : 'Bloqueada' }}</strong>
+            <span class="sge-metric-note">{{ $historyCompleteness['complete'] ? 'histórico completo para PDF' : $historyCompleteness['message'] }}</span>
+        </article>
+        <article class="sge-metric-card sge-metric-blue">
+            <div class="sge-metric-icon"><i class="fas fa-sync-alt" aria-hidden="true"></i></div>
+            <span class="sge-metric-label">Origem dos dados</span>
+            <strong>{{ $history->is_unified ? 'Unificada' : 'Manual' }}</strong>
+            <span class="sge-metric-note">{{ $history->is_unified ? 'sistema atual e séries externas' : 'documento recebido' }}</span>
         </article>
     </section>
 

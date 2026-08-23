@@ -129,6 +129,18 @@
             <strong>{{ $scoreView === 'conceitos' ? 'Conceitos' : 'Notas' }}</strong>
             <span class="sge-metric-note">{{ $scoreView === 'conceitos' ? 'sem números para estudante' : 'uso interno' }}</span>
         </article>
+        <article class="sge-metric-card sge-metric-blue">
+            <div class="sge-metric-icon"><i class="fas fa-user-graduate" aria-hidden="true"></i></div>
+            <span class="sge-metric-label">Matrícula</span>
+            <strong>{{ $enrollment->statusLabel() }}</strong>
+            <span class="sge-metric-note">desde {{ $enrollment->enrolled_at?->format('d/m/Y') ?? 'data não informada' }}</span>
+        </article>
+        <article class="sge-metric-card sge-metric-green">
+            <div class="sge-metric-icon"><i class="fas fa-award" aria-hidden="true"></i></div>
+            <span class="sge-metric-label">Resultado final</span>
+            <strong>{{ $enrollment->finalResultLabel() }}</strong>
+            <span class="sge-metric-note">situação anual registrada</span>
+        </article>
     </section>
 
     @if($conceptLegend->isNotEmpty())
