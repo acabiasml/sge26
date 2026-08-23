@@ -22,8 +22,9 @@
         .area-group { page-break-inside: avoid; }
         .score-cell { white-space: nowrap; }
         .studies-table { page-break-inside: avoid; }
+        .studies-nowrap { white-space: nowrap; }
         .notes { margin: 3px 0 0; }
-        .signatures { border-collapse: collapse; margin-top: 12px; page-break-inside: avoid; width: 100%; }
+        .signatures { border-collapse: collapse; margin-top: 45px; page-break-inside: avoid; width: 100%; }
         .signatures td { border: 0; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 280px; padding-top: 6px; }
         .document-footer { position: fixed; bottom: -20px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 5px; text-align: center; font-size: 11px; color: #333; }
@@ -114,17 +115,17 @@
 <table class="studies-table">
     <thead>
         <tr>
-            <th style="width: 16%;">Ano / Série</th>
-            <th style="width: 48%;">Estabelecimento / Local</th>
-            <th style="width: 18%;">Modalidade</th>
-            <th style="width: 18%;">Resultado</th>
+            <th style="width: 18%;">Ano / Série</th>
+            <th style="width: 54%;">Estabelecimento / Local</th>
+            <th style="width: 14%;">Modalidade</th>
+            <th style="width: 14%;">Resultado</th>
         </tr>
     </thead>
     <tbody>
         @foreach($history->years as $year)
             <tr>
-                <td>{{ $year->year ?: '-' }}<br>{{ $year->grade_phase ?: $year->label }}</td>
-                <td><strong>{{ $year->school_name ?: '-' }}</strong><br>{{ collect([$year->city, $year->state, $year->country])->filter()->join(' / ') }}@if($year->source_document)<br><span class="muted">{{ $year->source_document }}</span>@endif</td>
+                <td class="studies-nowrap">{{ collect([$year->year ?: null, $year->grade_phase ?: $year->label])->filter()->join(' — ') ?: '-' }}</td>
+                <td class="studies-nowrap"><strong>{{ $year->school_name ?: '-' }}</strong>@if($location = collect([$year->city, $year->state, $year->country])->filter()->join(' / ')) — {{ $location }}@endif</td>
                 <td>{{ $year->modality ?: '-' }}</td>
                 <td>{{ $year->final_result ?: '-' }}</td>
             </tr>
