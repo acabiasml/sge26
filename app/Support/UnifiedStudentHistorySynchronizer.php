@@ -171,8 +171,6 @@ class UnifiedStudentHistorySynchronizer
 
     private function historicalWorkloadHours(CurriculumComponent $component): float
     {
-        $legacyHours = $component->legacy_metadata['horas'] ?? null;
-
-        return is_numeric($legacyHours) ? (float) $legacyHours : $component->calculatedWorkloadHours();
+        return $component->calculatedWorkloadHours();
     }
 }
