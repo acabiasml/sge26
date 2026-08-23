@@ -14,7 +14,10 @@ use Illuminate\Support\Str;
 
 class UnifiedStudentHistorySynchronizer
 {
-    public function __construct(private readonly StudentReportCardBuilder $reportCardBuilder) {}
+    public function __construct(
+        private readonly StudentReportCardBuilder $reportCardBuilder,
+        private readonly StudentAcademicHistoryCompleteness $completeness,
+    ) {}
 
     public function synchronize(Person $student, int $schoolId, int $personId, string $stage): StudentAcademicHistory
     {
@@ -70,6 +73,7 @@ class UnifiedStudentHistorySynchronizer
                     $technicalSources,
                 );
             }
+            $this->reorderYears($history, $stage);
             $history->components()->whereDoesntHave('records')->delete();
             $history->update(['updated_by_person_id' => $personId]);
 
@@ -273,6 +277,20 @@ class UnifiedStudentHistorySynchronizer
         $normalized = (string) preg_replace('/^curso\s+/', '', $normalized);
 
         return (string) preg_replace('/\s+/', ' ', $normalized);
+    }
+
+    private function reorderYears(StudentAcademicHistory $history, string $stage): void
+    {
+        $history->years()
+            ->get()
+            ->sortBy(fn ($year): string => sprintf(
+                '%02d-%010s-%010d',
+                $this->completeness->gradeNumber((string) ($year->grade_phase ?: $year->label), $stage) ?? 99,
+                $year->year ?: '9999',
+                $year->id,
+            ))
+            ->values()
+            ->each(fn ($year, int $position) => $year->update(['position' => $position + 1]));
     }
 
     private function historicalResult(StudentEnrollment $enrollment, bool $hasLaterEnrollment): string
