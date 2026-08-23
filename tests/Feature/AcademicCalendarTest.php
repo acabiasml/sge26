@@ -691,6 +691,7 @@ class AcademicCalendarTest extends TestCase
         $this->actingAs($admin)
             ->post(route('academic-years.classes.store', $year), [
                 'name' => '3º Ano A',
+                'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
                 'shift' => 'Vespertino',
                 'starts_period_id' => $firstPeriod->id,
                 'ends_period_id' => $lastPeriod->id,
@@ -732,6 +733,8 @@ class AcademicCalendarTest extends TestCase
             ->get(route('academic-years.classes.edit', [$year, $class]))
             ->assertOk()
             ->assertSee('name="shift"', false)
+            ->assertSee('name="stage"', false)
+            ->assertSee('<option value="medio" selected', false)
             ->assertSee('<option value="Vespertino" selected', false)
             ->assertSee('Formação Geral Básica')
             ->assertSee('Itinerário Formativo')
@@ -1206,6 +1209,7 @@ class AcademicCalendarTest extends TestCase
         $this->actingAs($admin)
             ->post(route('academic-years.classes.store', $year), [
                 'name' => '3º Ano A',
+                'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
                 'course_ids' => [$course->id],
                 'starts_period_id' => $period->id,
                 'ends_period_id' => $period->id,
@@ -1217,6 +1221,56 @@ class AcademicCalendarTest extends TestCase
             'academic_year_id' => $year->id,
             'name' => '3º Ano A',
         ]);
+    }
+
+    public function test_elementary_class_cannot_receive_high_school_itinerary_matrix(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear();
+        $period = $year->periods()->create([
+            'name' => 'I Bimestre',
+            'starts_at' => '2026-02-02',
+            'ends_at' => '2026-04-10',
+            'position' => 1,
+        ]);
+        $elementary = $year->courses()->create([
+            'name' => '9º Ano',
+            'stage' => AcademicCourse::STAGE_ELEMENTARY,
+            'modality' => AcademicCourse::MODALITY_REGULAR,
+            'status' => 'curricular',
+            'class_hour_minutes' => 50,
+            'active' => true,
+        ]);
+        $elementary->components()->create(['name' => 'Matemática', 'weekly_lessons' => 5, 'active' => true]);
+        $itinerary = $year->courses()->create([
+            'name' => 'Técnico em Móveis',
+            'stage' => AcademicCourse::STAGE_TECHNICAL,
+            'modality' => AcademicCourse::MODALITY_PROFESSIONAL_TECHNOLOGICAL,
+            'status' => 'curricular',
+            'class_hour_minutes' => 50,
+            'active' => true,
+        ]);
+        $itinerary->components()->create(['name' => 'Desenho Técnico', 'workload_hours' => 80, 'active' => true]);
+
+        $this->actingAs($admin)
+            ->get(route('academic-years.classes.create', $year))
+            ->assertOk()
+            ->assertSee('Etapa de ensino')
+            ->assertSee('data-course-stage="fundamental"', false)
+            ->assertSee('data-matrix-group="itinerary"', false);
+
+        $this->actingAs($admin)
+            ->post(route('academic-years.classes.store', $year), [
+                'name' => '9º Ano A',
+                'stage' => AcademicCourse::STAGE_ELEMENTARY,
+                'course_ids' => [$elementary->id, $itinerary->id],
+                'starts_period_id' => $period->id,
+                'ends_period_id' => $period->id,
+                'active' => '1',
+            ])
+            ->assertSessionHasErrors('course_ids');
+
+        $this->assertDatabaseMissing('school_classes', ['name' => '9º Ano A']);
     }
 
     public function test_class_component_can_receive_temporary_substitute_teacher(): void

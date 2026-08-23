@@ -3,6 +3,8 @@
 @php($baseCourses = $readyCourses->reject(fn ($course) => $course->isItineraryMatrix())->values())
 @php($itineraryCourses = $readyCourses->filter(fn ($course) => $course->isItineraryMatrix())->values())
 @php($selectedShift = old('shift', $class->shift))
+@php($selectedBaseCourse = $baseCourses->first(fn ($course) => in_array($course->id, $selectedCourseIds, true)))
+@php($selectedStage = old('stage', $selectedBaseCourse?->stage))
 
 <form method="POST" action="{{ $isEdit ? route('academic-years.classes.update', [$academicYear, $class]) : route('academic-years.classes.store', $academicYear) }}">
     @csrf
@@ -28,7 +30,7 @@
             @endif
 
             <div class="row">
-                <div class="col-md-6 form-group">
+                <div class="col-md-4 form-group">
                     <label for="name">Nome da turma</label>
                     <input id="name" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $class->name) }}" placeholder="3º Ano A" required>
                     @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -47,6 +49,15 @@
                     @error('shift') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-3 form-group">
+                    <label for="stage">Etapa de ensino</label>
+                    <select id="stage" name="stage" class="form-control @error('stage') is-invalid @enderror" data-class-stage required>
+                        <option value="">Selecione a etapa</option>
+                        <option value="{{ \App\Models\AcademicCourse::STAGE_ELEMENTARY }}" @selected($selectedStage === \App\Models\AcademicCourse::STAGE_ELEMENTARY)>Ensino Fundamental</option>
+                        <option value="{{ \App\Models\AcademicCourse::STAGE_HIGH_SCHOOL }}" @selected($selectedStage === \App\Models\AcademicCourse::STAGE_HIGH_SCHOOL)>Ensino Médio</option>
+                    </select>
+                    @error('stage') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                </div>
+                <div class="col-md-2 form-group">
                     <div class="font-weight-bold text-gray-900">Situação</div>
                     <div class="custom-control custom-checkbox mt-2">
                         <input class="custom-control-input" id="active" name="active" type="checkbox" value="1" @checked(old('active', $class->active ?? true))>
@@ -82,14 +93,15 @@
                 </div>
             @endif
 
-            <fieldset class="form-group" aria-describedby="course_ids_help">
+            <fieldset class="form-group" aria-describedby="course_ids_help" data-matrix-group="base">
                 <legend class="col-form-label pt-0 font-weight-bold">Formação Geral Básica</legend>
                 <div class="row" role="group" aria-describedby="course_ids_help">
                     @forelse ($baseCourses as $course)
-                        <div class="col-lg-6 mb-2">
+                        @php($courseMatchesSelectedStage = filled($selectedStage) && $course->stage === $selectedStage)
+                        <div class="col-lg-6 mb-2" data-matrix-option data-course-stage="{{ $course->stage }}" @if(!$courseMatchesSelectedStage) hidden @endif>
                             <div class="border rounded px-3 py-2 h-100 @if(in_array($course->id, $selectedCourseIds, true)) border-primary bg-light @endif">
                                 <div class="custom-control custom-checkbox">
-                                    <input id="course_id_{{ $course->id }}" name="course_ids[]" type="checkbox" class="custom-control-input" value="{{ $course->id }}" @checked(in_array($course->id, $selectedCourseIds, true))>
+                                    <input id="course_id_{{ $course->id }}" name="course_ids[]" type="checkbox" class="custom-control-input" value="{{ $course->id }}" @checked(in_array($course->id, $selectedCourseIds, true)) @disabled(!$courseMatchesSelectedStage)>
                                     <label class="custom-control-label d-block" for="course_id_{{ $course->id }}">
                                         <strong>{{ $course->name }}</strong>
                                         <span class="d-block text-muted small">{{ $course->stageLabel() }} · {{ $course->modalityLabel() }}</span>
@@ -100,17 +112,18 @@
                     @empty
                         <div class="col-12"><p class="text-muted mb-2">Nenhuma matriz de Formação Geral Básica está pronta para vinculação.</p></div>
                     @endforelse
+                    <div class="col-12" data-no-compatible-matrix hidden><p class="text-muted mb-2">Nenhuma matriz pronta está disponível para a etapa selecionada.</p></div>
                 </div>
             </fieldset>
 
-            <fieldset class="form-group" aria-describedby="course_ids_help">
+            <fieldset class="form-group" aria-describedby="course_ids_help" data-matrix-group="itinerary" @if($selectedStage !== \App\Models\AcademicCourse::STAGE_HIGH_SCHOOL) hidden @endif>
                 <legend class="col-form-label pt-0 font-weight-bold">Itinerário Formativo</legend>
                 <div class="row" role="group">
                     @forelse ($itineraryCourses as $course)
                         <div class="col-lg-6 mb-2">
                             <div class="border rounded px-3 py-2 h-100 @if(in_array($course->id, $selectedCourseIds, true)) border-primary bg-light @endif">
                                 <div class="custom-control custom-checkbox">
-                                    <input id="course_id_{{ $course->id }}" name="course_ids[]" type="checkbox" class="custom-control-input" value="{{ $course->id }}" @checked(in_array($course->id, $selectedCourseIds, true))>
+                                    <input id="course_id_{{ $course->id }}" name="course_ids[]" type="checkbox" class="custom-control-input" value="{{ $course->id }}" @checked(in_array($course->id, $selectedCourseIds, true)) @disabled($selectedStage !== \App\Models\AcademicCourse::STAGE_HIGH_SCHOOL)>
                                     <label class="custom-control-label d-block" for="course_id_{{ $course->id }}">
                                         <strong>{{ $course->name }}</strong>
                                         <span class="d-block text-muted small">{{ $course->stageLabel() }} · {{ $course->modalityLabel() }}</span>
@@ -122,9 +135,9 @@
                         <div class="col-12"><p class="text-muted mb-2">Nenhuma matriz de Itinerário Formativo está pronta para vinculação.</p></div>
                     @endforelse
                 </div>
-                <small id="course_ids_help" class="form-text text-muted">Selecione a matriz da Formação Geral Básica e, quando houver, uma ou mais matrizes de Itinerário Formativo que compõem a turma.</small>
-                @error('course_ids') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
             </fieldset>
+            <small id="course_ids_help" class="form-text text-muted mb-3">Selecione a matriz da Formação Geral Básica. Para o Ensino Médio, selecione também os itinerários que compõem a turma, quando houver.</small>
+            @error('course_ids') <div class="invalid-feedback d-block mb-3">{{ $message }}</div> @enderror
 
             <div class="form-group mb-0">
                 <label for="notes">Observações</label>
@@ -139,3 +152,44 @@
         <button class="btn btn-primary" type="submit" @disabled($readyCourses->isEmpty() || $academicYear->periods->isEmpty())>{{ $isEdit ? 'Salvar turma' : 'Cadastrar turma' }}</button>
     </div>
 </form>
+
+@push('scripts')
+    <script>
+        (() => {
+            const stageSelect = document.querySelector('[data-class-stage]');
+            const baseGroup = document.querySelector('[data-matrix-group="base"]');
+            const itineraryGroup = document.querySelector('[data-matrix-group="itinerary"]');
+
+            const setOptionAvailability = (option, available) => {
+                option.hidden = !available;
+                const checkbox = option.querySelector('input[type="checkbox"]');
+                if (!checkbox) return;
+                checkbox.disabled = !available;
+                if (!available) checkbox.checked = false;
+            };
+
+            const syncMatricesToStage = () => {
+                const stage = stageSelect?.value || '';
+                baseGroup?.querySelectorAll('[data-matrix-option]').forEach((option) => {
+                    setOptionAvailability(option, stage !== '' && option.dataset.courseStage === stage);
+                });
+                const hasCompatibleMatrix = Array.from(baseGroup?.querySelectorAll('[data-matrix-option]') || [])
+                    .some((option) => !option.hidden);
+                const emptyMessage = baseGroup?.querySelector('[data-no-compatible-matrix]');
+                if (emptyMessage) emptyMessage.hidden = stage === '' || hasCompatibleMatrix;
+
+                const showItinerary = stage === '{{ \App\Models\AcademicCourse::STAGE_HIGH_SCHOOL }}';
+                if (itineraryGroup) {
+                    itineraryGroup.hidden = !showItinerary;
+                    itineraryGroup.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
+                        checkbox.disabled = !showItinerary;
+                        if (!showItinerary) checkbox.checked = false;
+                    });
+                }
+            };
+
+            stageSelect?.addEventListener('change', syncMatricesToStage);
+            syncMatricesToStage();
+        })();
+    </script>
+@endpush

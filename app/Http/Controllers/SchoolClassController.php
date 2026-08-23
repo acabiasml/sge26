@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
+use App\Models\AcademicCourse;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\SchoolClass;
@@ -197,6 +198,10 @@ class SchoolClassController extends Controller
                     ->ignore($class?->id),
             ],
             'shift' => ['nullable', 'string', 'max:255'],
+            'stage' => ['required', Rule::in([
+                AcademicCourse::STAGE_ELEMENTARY,
+                AcademicCourse::STAGE_HIGH_SCHOOL,
+            ])],
             'starts_period_id' => ['required', Rule::in($periodIds)],
             'ends_period_id' => ['required', Rule::in($periodIds)],
             'course_ids' => ['required', 'array', 'min:1'],
@@ -207,8 +212,38 @@ class SchoolClassController extends Controller
 
         $data['active'] = $request->boolean('active', true);
         $this->ensureValidPeriodSpan($academicYear, $data['starts_period_id'], $data['ends_period_id']);
+        $this->ensureCoursesMatchStage($academicYear, $data['course_ids'], $data['stage']);
+        unset($data['stage']);
 
         return $data;
+    }
+
+    /**
+     * @param list<int|string> $courseIds
+     */
+    private function ensureCoursesMatchStage(AcademicYear $academicYear, array $courseIds, string $stage): void
+    {
+        $courses = $academicYear->courses()->whereIn('id', $courseIds)->get();
+        $baseCourses = $courses->reject(fn (AcademicCourse $course): bool => $course->isItineraryMatrix());
+
+        if ($baseCourses->isEmpty()) {
+            throw ValidationException::withMessages([
+                'course_ids' => 'Selecione uma matriz de Formação Geral Básica compatível com a etapa da turma.',
+            ]);
+        }
+
+        if ($baseCourses->contains(fn (AcademicCourse $course): bool => $course->stage !== $stage)) {
+            throw ValidationException::withMessages([
+                'course_ids' => 'As matrizes de Formação Geral Básica devem pertencer à etapa selecionada para a turma.',
+            ]);
+        }
+
+        if ($stage === AcademicCourse::STAGE_ELEMENTARY
+            && $courses->contains(fn (AcademicCourse $course): bool => $course->isItineraryMatrix())) {
+            throw ValidationException::withMessages([
+                'course_ids' => 'Turmas do Ensino Fundamental não podem receber matrizes de Itinerário Formativo.',
+            ]);
+        }
     }
 
     private function readyCourses(AcademicYear $academicYear)
