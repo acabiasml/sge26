@@ -1085,6 +1085,35 @@ class AcademicCalendarTest extends TestCase
         );
         $this->assertSame(1, $groups->first()['rowspan']);
         $this->assertSame(1, $groups->last()['rowspan']);
+        $this->assertSame('Aprofundamento de Estudos', $groups->last()['areas']->first()['area']);
+
+        $course->update(['itinerary_name' => 'Cultura Digital e Projeto de Vida']);
+        $namedGroups = $course->fresh()->load('components.area')->componentsGroupedByFormationAndArea();
+        $this->assertSame('Cultura Digital e Projeto de Vida', $namedGroups->last()['areas']->first()['area']);
+    }
+
+    public function test_technical_course_name_identifies_its_itinerary_area(): void
+    {
+        $year = $this->academicYear();
+        $technicalArea = KnowledgeArea::query()->where('name', 'like', 'Educação Profissional%')->firstOrFail();
+        $course = $year->courses()->create([
+            'name' => 'Técnico em Móveis',
+            'stage' => AcademicCourse::STAGE_TECHNICAL,
+            'status' => 'curricular',
+            'class_hour_minutes' => 50,
+            'active' => true,
+        ]);
+        $course->components()->create([
+            'name' => 'Desenho Técnico I',
+            'knowledge_area_id' => $technicalArea->id,
+            'workload_hours' => 80,
+            'active' => true,
+        ]);
+
+        $groups = $course->fresh()->load('components.area')->componentsGroupedByFormationAndArea();
+
+        $this->assertSame(CurriculumCatalog::FORMATION_ITINERARY, $groups->first()['formation']);
+        $this->assertSame('Técnico em Móveis', $groups->first()['areas']->first()['area']);
     }
 
     public function test_class_cannot_be_created_for_matrix_without_components(): void

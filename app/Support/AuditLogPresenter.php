@@ -149,6 +149,7 @@ class AuditLogPresenter
         'issued_date' => 'Data de emissão',
         'issued_place' => 'Local de emissão',
         'is_recovery' => 'É recuperação',
+        'itinerary_name' => 'Nome do itinerário formativo',
         'knowledge_area' => 'Área do conhecimento',
         'label' => 'Rótulo',
         'lesson_count' => 'Quantidade de aulas',

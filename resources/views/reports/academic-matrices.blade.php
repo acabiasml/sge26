@@ -10,7 +10,6 @@
         .document-title { font-size: 11.6px; margin-top: 4px; text-transform: uppercase; }
         .matrix-title {
             border: .8px solid #2f241f;
-            border-bottom: 0;
             text-align: center;
             font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif;
             font-size: 11px;
@@ -92,27 +91,25 @@
 
             <table class="matrix-table">
                 <thead>
-                    @if ($matrixGroup['courses']->count() === 1)
-                        <tr>
-                            <th style="width: 22px;"></th>
-                            <th>Área</th>
-                            <th>Componente curricular</th>
-                            <th>Aulas semanais</th>
-                            <th>Carga horária calculada</th>
-                        </tr>
-                    @else
-                        <tr>
-                            <th style="width: 22px;" rowspan="2"></th>
-                            <th rowspan="2">Área</th>
-                            <th rowspan="2">Componente curricular</th>
-                            <th colspan="{{ $matrixGroup['courses']->count() }}">Aulas semanais por matriz</th>
-                        </tr>
-                        <tr>
-                            @foreach ($matrixGroup['courses'] as $course)
-                                <th>{{ $course->name }}</th>
-                            @endforeach
-                        </tr>
-                    @endif
+                    <tr>
+                        <th style="width: 22px;" rowspan="2"></th>
+                        <th rowspan="2">Área</th>
+                        <th rowspan="2">Componente curricular</th>
+                        <th colspan="{{ $matrixGroup['courses']->count() }}">
+                            @if($matrixGroup['value_mode'] === 'hours')
+                                Carga horária total por matriz
+                            @elseif($matrixGroup['value_mode'] === 'weekly')
+                                Aulas semanais por matriz
+                            @else
+                                Oferta cadastrada por matriz
+                            @endif
+                        </th>
+                    </tr>
+                    <tr>
+                        @foreach ($matrixGroup['courses'] as $course)
+                            <th>{{ $course->name }}</th>
+                        @endforeach
+                    </tr>
                 </thead>
                 <tbody>
                     @foreach ($matrixGroup['rows'] as $formationGroup)
@@ -132,35 +129,33 @@
                                         @php($areaPrinted = true)
                                     @endif
                                     <td class="component-cell">{{ $component['component'] }}</td>
-                                    @if ($matrixGroup['courses']->count() === 1)
-                                        @php($course = $matrixGroup['courses']->first())
-                                        @php($weeklyLessons = $component['weekly_lessons'][$course->id] ?? null)
-                                        <td class="center-cell">{{ $weeklyLessons !== null ? (int) $weeklyLessons : '-' }}</td>
+                                    @foreach ($matrixGroup['courses'] as $course)
+                                        @php($usesHours = $component['uses_total_workload'][$course->id] ?? false)
                                         <td class="center-cell">
-                                            {{ isset($component['workload_hours'][$course->id]) ? number_format((float) $component['workload_hours'][$course->id], 2, ',', '.') : '-' }} h
+                                            @if(!array_key_exists($course->id, $component['uses_total_workload']))
+                                                -
+                                            @elseif($usesHours)
+                                                {{ number_format((float) $component['workload_hours'][$course->id], 2, ',', '.') }} h
+                                            @else
+                                                {{ (int) $component['weekly_lessons'][$course->id] }} aula(s)/sem.
+                                            @endif
                                         </td>
-                                    @else
-                                        @foreach ($matrixGroup['courses'] as $course)
-                                            <td class="center-cell">
-                                                {{ isset($component['weekly_lessons'][$course->id]) && $component['weekly_lessons'][$course->id] !== null ? (int) $component['weekly_lessons'][$course->id] : '-' }}
-                                            </td>
-                                        @endforeach
-                                    @endif
+                                    @endforeach
                                 </tr>
                             @endforeach
                         @endforeach
                     @endforeach
                     <tr class="total-row">
                         <td colspan="3">Total</td>
-                        @if ($matrixGroup['courses']->count() === 1)
-                            @php($course = $matrixGroup['courses']->first())
-                            <td class="center-cell">{{ $matrixGroup['total_weekly_lessons'][$course->id] ?? 0 }}</td>
-                            <td class="center-cell">{{ $matrixGroup['total_hours'][$course->id] ?? $course->formattedCalculatedWorkloadHours() }} h</td>
-                        @else
-                            @foreach ($matrixGroup['courses'] as $course)
-                                <td class="center-cell">{{ $matrixGroup['total_weekly_lessons'][$course->id] ?? 0 }}</td>
-                            @endforeach
-                        @endif
+                        @foreach ($matrixGroup['courses'] as $course)
+                            <td class="center-cell">
+                                @if($matrixGroup['value_mode'] === 'weekly')
+                                    {{ $matrixGroup['total_weekly_lessons'][$course->id] ?? 0 }} aula(s)/sem.
+                                @else
+                                    {{ $matrixGroup['total_hours'][$course->id] ?? $course->formattedCalculatedWorkloadHours() }} h
+                                @endif
+                            </td>
+                        @endforeach
                     </tr>
                 </tbody>
             </table>

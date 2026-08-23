@@ -37,6 +37,13 @@
                 </div>
             </div>
 
+            <div class="form-group">
+                <label for="itinerary_name">Nome do itinerário formativo <span class="text-muted">(opcional)</span></label>
+                <input id="itinerary_name" name="itinerary_name" class="form-control @error('itinerary_name') is-invalid @enderror" value="{{ old('itinerary_name', $course->itinerary_name) }}" placeholder="Ex.: Ciências da Natureza e Projeto de Vida">
+                <small class="form-text text-muted">No Ensino Médio, quando ficar vazio, será apresentado como “Aprofundamento de Estudos”. Em curso técnico, o próprio nome da matriz identifica o itinerário.</small>
+                @error('itinerary_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
             <div class="row">
                 <div class="col-md-3 form-group">
                     <label for="class_hour_minutes">Minutos da hora-aula</label>

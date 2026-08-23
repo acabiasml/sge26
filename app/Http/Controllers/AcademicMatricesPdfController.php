@@ -79,10 +79,12 @@ class AcademicMatricesPdfController extends Controller
                                     'component' => $component->name,
                                     'weekly_lessons' => [],
                                     'workload_hours' => [],
+                                    'uses_total_workload' => [],
                                 ]);
 
                                 $row['weekly_lessons'][$course->id] = $component->weekly_lessons;
                                 $row['workload_hours'][$course->id] = $component->calculatedWorkloadHours($course);
+                                $row['uses_total_workload'][$course->id] = $component->workload_hours !== null;
                                 $rows->put($key, $row);
                             }
                         }
@@ -106,11 +108,19 @@ class AcademicMatricesPdfController extends Controller
                     })
                     ->values();
 
+                $workloadChoices = $rows
+                    ->flatMap(fn (array $row): array => array_values($row['uses_total_workload']))
+                    ->filter(fn ($value): bool => $value !== null);
+                $valueMode = $workloadChoices->every(fn (bool $value): bool => $value)
+                    ? 'hours'
+                    : ($workloadChoices->contains(true) ? 'mixed' : 'weekly');
+
                 return [
                     'stage' => $firstCourse?->stage,
                     'title' => $this->matrixTitle($stageCourses),
                     'courses' => $stageCourses,
                     'rows' => $this->groupRowsForPrinting($rows),
+                    'value_mode' => $valueMode,
                     'total_weekly_lessons' => $stageCourses->mapWithKeys(
                         fn (AcademicCourse $course): array => [$course->id => (int) $course->components->sum('weekly_lessons')]
                     ),

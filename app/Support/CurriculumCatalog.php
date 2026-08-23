@@ -78,6 +78,21 @@ class CurriculumCatalog
         return self::FORMATION_COMPLEMENTARY;
     }
 
+    public static function areaLabelForComponent(AcademicCourse $course, ?KnowledgeArea $area): string
+    {
+        if (self::formationLabelForArea($course, $area) !== self::FORMATION_ITINERARY) {
+            return $area?->name ?? 'Área não definida';
+        }
+
+        if ($course->stage === AcademicCourse::STAGE_TECHNICAL) {
+            return $course->name;
+        }
+
+        return filled($course->itinerary_name)
+            ? $course->itinerary_name
+            : 'Aprofundamento de Estudos';
+    }
+
     public static function formationOrder(string $formation): int
     {
         return match ($formation) {

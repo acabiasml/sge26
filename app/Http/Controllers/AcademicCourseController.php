@@ -111,6 +111,7 @@ class AcademicCourseController extends Controller
         $duplicatedCourse = DB::transaction(function () use ($academicYear, $course): AcademicCourse {
             $duplicatedCourse = $academicYear->courses()->create([
                 'name' => $this->nextDuplicateName($academicYear, $course->name),
+                'itinerary_name' => $course->itinerary_name,
                 'stage' => $course->stage,
                 'modality' => $course->modality,
                 'status' => 'curricular',
@@ -161,6 +162,7 @@ class AcademicCourseController extends Controller
                     ->ignore($course?->id),
             ],
             'stage' => ['required', Rule::in(array_keys(AcademicCourse::STAGE_LABELS))],
+            'itinerary_name' => ['nullable', 'string', 'max:255'],
             'modality' => ['required', Rule::in(array_keys(AcademicCourse::MODALITY_LABELS))],
             'class_hour_minutes' => ['required', 'integer', 'min:1', 'max:240'],
             'notes' => ['nullable', 'string', 'max:5000'],

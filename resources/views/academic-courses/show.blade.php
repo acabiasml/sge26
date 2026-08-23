@@ -47,6 +47,10 @@
                         <dd>{{ $course->stageLabel() }}</dd>
                         <dt>Modalidade</dt>
                         <dd>{{ $course->modalityLabel() ?: '-' }}</dd>
+                        @if(in_array($course->stage, [\App\Models\AcademicCourse::STAGE_HIGH_SCHOOL, \App\Models\AcademicCourse::STAGE_TECHNICAL], true))
+                            <dt>Itinerário formativo</dt>
+                            <dd>{{ $course->stage === \App\Models\AcademicCourse::STAGE_TECHNICAL ? $course->name : ($course->itinerary_name ?: 'Aprofundamento de Estudos') }}</dd>
+                        @endif
                         <dt>Hora-aula</dt>
                         <dd>{{ $course->class_hour_minutes }} minutos</dd>
                         <dt>Carga horária calculada</dt>

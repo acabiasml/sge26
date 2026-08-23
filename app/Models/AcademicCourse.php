@@ -55,6 +55,7 @@ class AcademicCourse extends Model
         'starts_period_id',
         'ends_period_id',
         'name',
+        'itinerary_name',
         'stage',
         'modality',
         'status',
@@ -111,8 +112,8 @@ class AcademicCourse extends Model
         return $components
             ->sort(function (CurriculumComponent $first, CurriculumComponent $second): int {
                 $areaComparison = strnatcasecmp(
-                    $first->area?->name ?? 'Área não definida',
-                    $second->area?->name ?? 'Área não definida',
+                    CurriculumCatalog::areaLabelForComponent($this, $first->area),
+                    CurriculumCatalog::areaLabelForComponent($this, $second->area),
                 );
 
                 if ($areaComparison !== 0) {
@@ -122,7 +123,7 @@ class AcademicCourse extends Model
                 return strnatcasecmp($first->name, $second->name);
             })
             ->values()
-            ->groupBy(fn (CurriculumComponent $component): string => $component->area?->name ?? 'Área não definida')
+            ->groupBy(fn (CurriculumComponent $component): string => CurriculumCatalog::areaLabelForComponent($this, $component->area))
             ->map(fn (Collection $components, string $area): array => [
                 'area' => $area,
                 'components' => $components->values(),
@@ -148,8 +149,8 @@ class AcademicCourse extends Model
                 }
 
                 $areaComparison = strnatcasecmp(
-                    $first->area?->name ?? 'Área não definida',
-                    $second->area?->name ?? 'Área não definida',
+                    CurriculumCatalog::areaLabelForComponent($this, $first->area),
+                    CurriculumCatalog::areaLabelForComponent($this, $second->area),
                 );
 
                 if ($areaComparison !== 0) {
@@ -165,7 +166,7 @@ class AcademicCourse extends Model
                     'formation' => $formation,
                     'rowspan' => $formationComponents->count(),
                     'areas' => $formationComponents
-                        ->groupBy(fn (CurriculumComponent $component): string => $component->area?->name ?? 'Área não definida')
+                        ->groupBy(fn (CurriculumComponent $component): string => CurriculumCatalog::areaLabelForComponent($this, $component->area))
                         ->map(fn (Collection $areaComponents, string $area): array => [
                             'area' => $area,
                             'rowspan' => $areaComponents->count(),
