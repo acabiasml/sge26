@@ -20,6 +20,6 @@
         $label = 'Página {PAGE_NUM} de {PAGE_COUNT}';
         $size = 8.25;
         $width = $fontMetrics->getTextWidth($label, $font, $size);
-        $pdf->page_text($pdf->get_width() - $width - 18, $pdf->get_height() - 31, $label, $font, $size, [0.37, 0.35, 0.33]);
+        $pdf->page_text(($pdf->get_width() - $width) / 2, $pdf->get_height() - 13, $label, $font, $size, [0.37, 0.35, 0.33]);
     }
 </script>
