@@ -502,13 +502,34 @@ class AcademicCalendarTest extends TestCase
                 'counts_as_school_day' => '0',
                 'title' => 'Feriado',
             ])
-            ->assertRedirect(route('academic-years.show', $year));
+            ->assertRedirect(route('academic-years.show', $year).'#section-calendario');
 
         $this->assertDatabaseHas('calendar_days', [
             'academic_year_id' => $year->id,
             'date' => '2026-03-10 00:00:00',
             'type' => CalendarDay::TYPE_HOLIDAY,
         ]);
+    }
+
+    public function test_calendar_day_settings_can_be_applied_to_a_date_range(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear();
+
+        $this->actingAs($admin)
+            ->post(route('academic-years.days.store', $year), [
+                'date' => '2026-08-01',
+                'date_end' => '2026-08-08',
+                'type' => CalendarDay::TYPE_RECESS,
+                'title' => 'Recesso escolar',
+            ])
+            ->assertRedirect(route('academic-years.show', $year).'#section-calendario');
+
+        $this->assertSame(8, $year->days()
+            ->whereBetween('date', ['2026-08-01', '2026-08-08'])
+            ->where('type', CalendarDay::TYPE_RECESS)
+            ->where('counts_as_school_day', false)
+            ->count());
     }
 
     public function test_dashboard_shows_announcements_and_calendar_days(): void
@@ -561,7 +582,7 @@ class AcademicCalendarTest extends TestCase
                 'title' => 'Conselho de Classe',
                 'description' => 'Fechamento do bimestre.',
             ])
-            ->assertRedirect(route('academic-years.show', $year));
+            ->assertRedirect(route('academic-years.show', $year).'#section-calendario');
 
         $this->assertDatabaseHas('calendar_days', [
             'academic_year_id' => $year->id,

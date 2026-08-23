@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
 use App\Models\CalendarDay;
+use Carbon\CarbonPeriod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -18,25 +19,37 @@ class CalendarDayController extends Controller
 
         $data = $request->validate([
             'date' => ['required', 'date', 'after_or_equal:'.$academicYear->starts_at->toDateString(), 'before_or_equal:'.$academicYear->ends_at->toDateString()],
+            'date_end' => ['nullable', 'date', 'after_or_equal:date', 'before_or_equal:'.$academicYear->ends_at->toDateString()],
             'type' => ['required', Rule::in(array_keys(CalendarDay::TYPE_LABELS))],
             'counts_as_school_day' => ['nullable', 'boolean'],
             'title' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $academicYear->days()->updateOrCreate(
-            ['date' => $data['date']],
-            [
-                'date' => $data['date'],
-                'type' => $data['type'],
-                'counts_as_school_day' => $request->boolean('counts_as_school_day'),
-                'title' => $data['title'] ?? null,
-                'description' => $data['description'] ?? null,
-            ]
-        );
+        $endDate = $data['date_end'] ?? $data['date'];
+        $dates = CarbonPeriod::create($data['date'], $endDate);
 
-        return redirect()->route('academic-years.show', $academicYear)
-            ->with('status', 'Dia do calendário salvo com sucesso.');
+        foreach ($dates as $date) {
+            $dateString = $date->toDateString();
+
+            $academicYear->days()->updateOrCreate(
+                ['date' => $dateString],
+                [
+                    'date' => $dateString,
+                    'type' => $data['type'],
+                    'counts_as_school_day' => $request->boolean('counts_as_school_day'),
+                    'title' => $data['title'] ?? null,
+                    'description' => $data['description'] ?? null,
+                ]
+            );
+        }
+
+        $total = $dates->count();
+
+        return redirect()->to(route('academic-years.show', $academicYear).'#section-calendario')
+            ->with('status', $total === 1
+                ? 'Dia do calendário salvo com sucesso.'
+                : $total.' dias do calendário foram salvos com sucesso.');
     }
 
     public function destroy(Request $request, AcademicYear $academicYear, CalendarDay $day): RedirectResponse
@@ -47,7 +60,7 @@ class CalendarDayController extends Controller
 
         $day->delete();
 
-        return redirect()->route('academic-years.show', $academicYear)
+        return redirect()->to(route('academic-years.show', $academicYear).'#section-calendario')
             ->with('status', 'Dia do calendário removido com sucesso.');
     }
 

@@ -3941,6 +3941,20 @@ textarea:focus-visible {
     font-size: .9rem;
 }
 
+.sge-calendar-editor {
+    border-top: 3px solid var(--info, #36b9cc);
+}
+
+.sge-academic-list-item {
+    background: #fff;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.sge-academic-list-item:hover {
+    background: #fbfaf8;
+    border-color: rgba(111, 57, 40, 0.32) !important;
+}
+
 .sge-recovery-options {
     margin: 1rem 0;
     padding: .85rem 1rem .2rem;

@@ -88,7 +88,7 @@
 
     <div class="row">
         <div class="col-lg-4 mb-4">
-            <div id="section-resumo" class="card shadow h-100 sge-anchor-section">
+            <div id="section-resumo" class="card shadow sge-anchor-section">
                 <div class="card-header py-3">
                     <h2 class="h6 m-0 font-weight-bold text-primary">Resumo</h2>
                 </div>
@@ -213,23 +213,45 @@
         </div>
     </div>
 
+    <div id="section-calendario" class="card shadow mb-3 sge-anchor-section">
+        <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap">
+            <h2 class="h6 m-0 font-weight-bold text-primary">Calendário visual</h2>
+            <div class="sge-calendar-legend small">
+                @foreach (\App\Models\CalendarDay::printLegend() as $code => $label)
+                    <span><strong>{{ $code ?: 'S/D' }}</strong> {{ $label }}</span>
+                @endforeach
+            </div>
+        </div>
+        <div class="card-body">
+            @include('academic-years._calendar-grid', [
+                'months' => $calendarMonths,
+                'interactive' => $canChangeCalendar,
+            ])
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-12 mb-4">
-            <div class="card shadow">
+            <div class="card shadow sge-calendar-editor">
                 <div class="card-header py-3">
-                    <h2 id="section-calendario" class="h6 m-0 font-weight-bold text-primary sge-anchor-section">Editar dia do calendário</h2>
+                    <h2 class="h6 m-0 font-weight-bold text-primary">Editar dia ou faixa do calendário</h2>
                 </div>
                 <div class="card-body">
                     @if ($canChangeCalendar)
                         <form method="POST" action="{{ route('academic-years.days.store', $academicYear) }}">
                             @csrf
                             <div class="row">
-                                <div class="col-md-4 form-group">
-                                    <label for="date">Data</label>
-                                    <input id="date" name="date" type="date" class="form-control @error('date') is-invalid @enderror" required>
+                                <div class="col-md-3 form-group">
+                                    <label for="date">Data inicial</label>
+                                    <input id="date" name="date" type="date" class="form-control @error('date') is-invalid @enderror" value="{{ old('date') }}" required>
                                     @error('date') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                 </div>
-                                <div class="col-md-4 form-group">
+                                <div class="col-md-3 form-group">
+                                    <label for="date_end">Data final <span class="text-muted font-weight-normal">(opcional)</span></label>
+                                    <input id="date_end" name="date_end" type="date" class="form-control @error('date_end') is-invalid @enderror" value="{{ old('date_end') }}">
+                                    @error('date_end') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                                <div class="col-md-3 form-group">
                                     <label for="type">Tipo</label>
                                     <select id="type" name="type" class="form-control @error('type') is-invalid @enderror" required>
                                         @foreach (\App\Models\CalendarDay::TYPE_LABELS as $value => $label)
@@ -238,7 +260,7 @@
                                     </select>
                                     @error('type') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                 </div>
-                                <div class="col-md-4 form-group d-flex align-items-end">
+                                <div class="col-md-3 form-group d-flex align-items-end">
                                     <div class="custom-control custom-checkbox mb-2">
                                         <input class="custom-control-input" id="counts_as_school_day" name="counts_as_school_day" type="checkbox" value="1">
                                         <label class="custom-control-label" for="counts_as_school_day">Conta como letivo</label>
@@ -253,7 +275,8 @@
                                 <label for="description">Observações</label>
                                 <textarea id="description" name="description" class="form-control" rows="2"></textarea>
                             </div>
-                            <button class="btn btn-primary" type="submit">Salvar dia</button>
+                            <p class="small text-muted mb-3">Deixe a data final vazia para alterar somente um dia. Em uma faixa, a mesma configuração será aplicada a todas as datas.</p>
+                            <button class="btn btn-primary" type="submit">Salvar no calendário</button>
                         </form>
                     @else
                         <p class="mb-0 text-gray-600">Calendário aprovado. Dias do calendário estão bloqueados para edição.</p>
@@ -265,7 +288,7 @@
 
     <div class="row">
         <div class="col-md-6 mb-4">
-            <div class="card shadow h-100">
+            <div class="card shadow">
                 <div class="card-header py-3 d-flex align-items-center justify-content-between">
                     <h2 id="section-matrizes" class="h6 m-0 font-weight-bold text-primary sge-anchor-section">Matrizes</h2>
                     @if ($canChangeCalendar)
@@ -275,7 +298,7 @@
                 <div class="card-body">
                     @forelse ($academicYear->courses->sortBy('name') as $course)
                         @php($courseStatus = \App\Support\AcademicStructureStatus::course($course))
-                        <div class="border rounded p-3 mb-3">
+                        <div class="border rounded px-3 py-2 mb-2 sge-academic-list-item">
                             <div class="d-flex justify-content-between flex-wrap">
                                 <div>
                                     <h3 class="h6 mb-1">{{ $course->name }}</h3>
@@ -321,7 +344,7 @@
         </div>
 
         <div class="col-md-6 mb-4">
-            <div class="card shadow h-100">
+            <div class="card shadow">
                 <div class="card-header py-3 d-flex align-items-center justify-content-between">
                     <h2 id="section-turmas" class="h6 m-0 font-weight-bold text-primary sge-anchor-section">Turmas</h2>
                     @if ($canChangeCalendar)
@@ -339,7 +362,7 @@
 
                     @forelse ($academicYear->classes->sortBy('name') as $class)
                         @php($classStatus = \App\Support\AcademicStructureStatus::schoolClass($class))
-                        <div class="border rounded p-3 mb-3">
+                        <div class="border rounded px-3 py-2 mb-2 sge-academic-list-item">
                             <div class="d-flex justify-content-between flex-wrap">
                                 <div>
                                     <h3 class="h6 mb-1">{{ $class->name }}</h3>
@@ -373,28 +396,12 @@
         </div>
     </div>
 
-    <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex align-items-center justify-content-between">
-            <h2 class="h6 m-0 font-weight-bold text-primary">Calendário visual</h2>
-            <div class="sge-calendar-legend small">
-                @foreach (\App\Models\CalendarDay::printLegend() as $code => $label)
-                    <span><strong>{{ $code ?: 'S/D' }}</strong> {{ $label }}</span>
-                @endforeach
-            </div>
-        </div>
-        <div class="card-body">
-            @include('academic-years._calendar-grid', [
-                'months' => $calendarMonths,
-                'interactive' => $canChangeCalendar,
-            ])
-        </div>
-    </div>
-
     @push('scripts')
         <script>
             document.querySelectorAll('[data-calendar-day]').forEach((button) => {
                 button.addEventListener('click', () => {
                     const dateInput = document.getElementById('date');
+                    const dateEndInput = document.getElementById('date_end');
                     const typeInput = document.getElementById('type');
                     const countsInput = document.getElementById('counts_as_school_day');
                     const titleInput = document.getElementById('title');
@@ -402,6 +409,10 @@
 
                     if (dateInput) {
                         dateInput.value = button.dataset.calendarDay;
+                    }
+
+                    if (dateEndInput) {
+                        dateEndInput.value = button.dataset.calendarDay;
                     }
 
                     if (typeInput && button.dataset.calendarType) {
