@@ -112,8 +112,8 @@ class AcademicCourse extends Model
         return $components
             ->sort(function (CurriculumComponent $first, CurriculumComponent $second): int {
                 $areaComparison = strnatcasecmp(
-                    CurriculumCatalog::areaLabelForComponent($this, $first->area),
-                    CurriculumCatalog::areaLabelForComponent($this, $second->area),
+                    $first->area?->name ?? 'Área não definida',
+                    $second->area?->name ?? 'Área não definida',
                 );
 
                 if ($areaComparison !== 0) {
@@ -123,7 +123,7 @@ class AcademicCourse extends Model
                 return strnatcasecmp($first->name, $second->name);
             })
             ->values()
-            ->groupBy(fn (CurriculumComponent $component): string => CurriculumCatalog::areaLabelForComponent($this, $component->area))
+            ->groupBy(fn (CurriculumComponent $component): string => $component->area?->name ?? 'Área não definida')
             ->map(fn (Collection $components, string $area): array => [
                 'area' => $area,
                 'components' => $components->values(),

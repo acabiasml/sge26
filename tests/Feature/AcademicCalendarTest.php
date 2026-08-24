@@ -526,7 +526,8 @@ class AcademicCalendarTest extends TestCase
             ->assertRedirect(route('academic-years.show', $year).'#section-calendario');
 
         $this->assertSame(8, $year->days()
-            ->whereBetween('date', ['2026-08-01', '2026-08-08'])
+            ->whereDate('date', '>=', '2026-08-01')
+            ->whereDate('date', '<=', '2026-08-08')
             ->where('type', CalendarDay::TYPE_RECESS)
             ->where('counts_as_school_day', false)
             ->count());

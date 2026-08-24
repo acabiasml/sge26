@@ -27,7 +27,10 @@ class PdfResponseModeTest extends TestCase
 
             $pdfControllers++;
             $this->assertStringNotContainsString('->download(', $contents, $file->getFilename().' força download do PDF.');
-            $this->assertStringContainsString('->stream(', $contents, $file->getFilename().' não abre o PDF no navegador.');
+            $opensInline = str_contains($contents, '->stream(')
+                || str_contains($contents, 'PdfMetadata::stream(');
+
+            $this->assertTrue($opensInline, $file->getFilename().' não abre o PDF no navegador.');
         }
 
         $this->assertGreaterThan(0, $pdfControllers);
