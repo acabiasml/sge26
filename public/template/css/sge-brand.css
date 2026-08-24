@@ -3016,6 +3016,10 @@ a.sge-stat-card:focus {
     line-height: 1.2;
 }
 
+.sge-tabs-scroll-hint {
+    display: none;
+}
+
 .sge-anchor-section {
     scroll-margin-top: 1rem;
 }
@@ -3426,6 +3430,21 @@ textarea:focus-visible {
 }
 
 @media (max-width: 575.98px) {
+    .sge-tabs-scroll-hint {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: .4rem;
+        margin: -.2rem 0 .25rem;
+        color: var(--sge-brown);
+        font-size: .82rem;
+        font-weight: 700;
+    }
+
+    .sge-tabs-scroll-hint[hidden] {
+        display: none;
+    }
+
     .sge-section-nav {
         display: flex;
         gap: .55rem;
@@ -3433,6 +3452,7 @@ textarea:focus-visible {
         overflow-x: auto;
         padding: .2rem .75rem .65rem 0;
         scroll-snap-type: x proximity;
+        scrollbar-width: thin;
     }
 
     .sge-section-nav-item {

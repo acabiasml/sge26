@@ -13,10 +13,14 @@
 </section>
 
 <div class="row">
-@foreach(['fundamental' => ['Ensino Fundamental', '9 anos', 'Formação Geral Básica e Parte Diversificada'], 'medio' => ['Ensino Médio', '3 anos', 'Formação Geral Básica e Itinerário Formativo']] as $stage => $definition)
+@foreach([
+    'fundamental' => ['Ensino Fundamental', '9 anos', 'Formação Geral Básica e Parte Diversificada'],
+    'medio' => ['Ensino Médio', '3 anos', 'Formação Geral Básica e Itinerário Formativo'],
+    'tecnico' => ['Ensino Técnico Profissionalizante', 'Curso subsequente', 'Formação técnica independente do Ensino Médio'],
+] as $stage => $definition)
     @php($history = $person->academicHistories->firstWhere('education_stage', $stage))
     @php($completeness = $history ? ($historyCompleteness[$history->id] ?? null) : null)
-    <div class="col-lg-6"><section class="card shadow sge-panel-card mb-4 h-100">
+    <div class="col-lg-4"><section class="card shadow sge-panel-card mb-4 h-100">
         <div class="sge-panel-header"><div><h2>{{ $definition[0] }}</h2><p>{{ $definition[1] }} · {{ $definition[2] }}</p></div></div>
         <div class="card-body">
             @if($history)

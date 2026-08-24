@@ -62,7 +62,11 @@ class StudentAcademicHistoryController extends Controller
     public function unified(Request $request, Person $person, string $stage, UnifiedStudentHistorySynchronizer $synchronizer): RedirectResponse
     {
         $this->authorizeEnrolledStudent($request, $person);
-        abort_unless(in_array($stage, [AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL], true), 404);
+        abort_unless(in_array($stage, [
+            AcademicCourse::STAGE_ELEMENTARY,
+            AcademicCourse::STAGE_HIGH_SCHOOL,
+            AcademicCourse::STAGE_TECHNICAL,
+        ], true), 404);
         $schoolId = $person->studentEnrollments()
             ->whereHas('schoolClass.academicYear', fn ($query) => $query->whereIn('school_id', $request->user()->isAdministrator() ? School::query()->pluck('id') : $request->user()->manageableSchoolIds()))
             ->with('schoolClass.academicYear')
@@ -445,11 +449,21 @@ class StudentAcademicHistoryController extends Controller
             $stage = $routeHistory->education_stage ?: AcademicCourse::STAGE_ELEMENTARY;
             $areas = collect(config("curriculum.stages.{$stage}.formations.formacao_geral_basica.areas", []));
             $componentsByArea = $areas->mapWithKeys(fn (array $area): array => [$area['name'] => $area['components'] ?? []]);
-            $flexibleFormation = $stage === AcademicCourse::STAGE_HIGH_SCHOOL ? 'Itinerário Formativo' : 'Parte Diversificada';
+            $flexibleFormation = match ($stage) {
+                AcademicCourse::STAGE_HIGH_SCHOOL => 'Itinerário Formativo',
+                AcademicCourse::STAGE_TECHNICAL => 'Formação Técnica Profissional',
+                default => 'Parte Diversificada',
+            };
 
             foreach ($data['components'] ?? [] as $index => $component) {
-                if (! in_array($component['formation'] ?? null, ['Formação Geral Básica', $flexibleFormation], true)) {
+                $validFormations = $stage === AcademicCourse::STAGE_TECHNICAL
+                    ? [$flexibleFormation]
+                    : ['Formação Geral Básica', $flexibleFormation];
+                if (! in_array($component['formation'] ?? null, $validFormations, true)) {
                     throw ValidationException::withMessages(["components.{$index}.formation" => 'Selecione uma formação válida para esta etapa.']);
+                }
+                if ($stage === AcademicCourse::STAGE_TECHNICAL) {
+                    continue;
                 }
                 if (! $areas->pluck('name')->contains($component['knowledge_area'] ?? null)) {
                     throw ValidationException::withMessages(["components.{$index}.knowledge_area" => 'Selecione uma área de conhecimento da BNCC.']);

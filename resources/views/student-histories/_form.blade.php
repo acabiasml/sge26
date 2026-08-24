@@ -6,9 +6,17 @@
     $catalogStage = $history->education_stage ?: 'fundamental';
     $bnccAreas = collect(config("curriculum.stages.{$catalogStage}.formations.formacao_geral_basica.areas", []));
     $bnccComponentsByArea = $bnccAreas->mapWithKeys(fn ($area) => [$area['name'] => $area['components'] ?? []]);
-    $flexibleFormation = $catalogStage === 'medio' ? 'Itinerário Formativo' : 'Parte Diversificada';
-    $formationOptions = ['Formação Geral Básica', $flexibleFormation];
-    $defaultYearCount = $history->education_stage === 'fundamental' ? 9 : 3;
+    $flexibleFormation = match ($catalogStage) {
+        'medio' => 'Itinerário Formativo',
+        'tecnico' => 'Formação Técnica Profissional',
+        default => 'Parte Diversificada',
+    };
+    $formationOptions = $catalogStage === 'tecnico' ? [$flexibleFormation] : ['Formação Geral Básica', $flexibleFormation];
+    $defaultYearCount = match ($history->education_stage) {
+        'fundamental' => 9,
+        'medio' => 3,
+        default => 1,
+    };
     $defaultYears = collect(range(1, $defaultYearCount))->map(fn ($number) => [
         'label' => $number.'º Ano', 'year' => '', 'stage' => $history->stage ?: '', 'modality' => 'Regular',
         'grade_phase' => $number.'º Ano', 'school_name' => '', 'city' => '', 'state' => '', 'country' => 'Brasil',
@@ -317,6 +325,7 @@
                                         <select name="components[{{ $componentIndex }}][knowledge_area]" class="form-control form-control-sm" data-history-area required>
                                             <option value="">Selecione</option>
                                             @foreach($bnccAreas as $area)<option value="{{ $area['name'] }}" @selected($selectedArea === $area['name'])>{{ $area['name'] }}</option>@endforeach
+                                            @if($selectedArea && ! $bnccAreas->pluck('name')->contains($selectedArea))<option value="{{ $selectedArea }}" selected>{{ $selectedArea }}</option>@endif
                                         </select>
                                     </td>
                                     <td>

@@ -126,9 +126,11 @@ class AcademicCalendarGrid
         return [
             'label' => ucfirst($monthStart->translatedFormat('F/Y')),
             'weeks' => $weeks,
-            'school_days_count' => $academicYears->sum(fn (AcademicYear $academicYear): int => $academicYear->days
-                ->where('counts_as_school_day', true)
-                ->count()),
+            'school_days_count' => $academicYears
+                ->flatMap(fn (AcademicYear $academicYear): Collection => $academicYear->days->where('counts_as_school_day', true))
+                ->map(fn (CalendarDay $day): string => $day->date->toDateString())
+                ->unique()
+                ->count(),
             'birthdays_count' => $birthdays->count(),
         ];
     }

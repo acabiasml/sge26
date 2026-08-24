@@ -7,7 +7,7 @@
     <div>
         <div class="sge-page-kicker">Vida escolar</div>
         <h1 class="h3 mb-0 text-gray-800">Históricos escolares</h1>
-        <p class="mb-0 text-muted">Históricos separados por Ensino Fundamental e Ensino Médio.</p>
+        <p class="mb-0 text-muted">Históricos separados por Ensino Fundamental, Ensino Médio e Ensino Técnico Profissionalizante.</p>
     </div>
 </div>
 <div class="card shadow mb-4"><div class="card-body">

@@ -22,7 +22,9 @@ class UnifiedStudentHistorySynchronizer
     public function synchronize(Person $student, int $schoolId, int $personId, string $stage): StudentAcademicHistory
     {
         return DB::transaction(function () use ($student, $schoolId, $personId, $stage): StudentAcademicHistory {
-            $stageLabel = AcademicCourse::STAGE_LABELS[$stage];
+            $stageLabel = $stage === AcademicCourse::STAGE_TECHNICAL
+                ? 'Ensino Técnico Profissionalizante'
+                : AcademicCourse::STAGE_LABELS[$stage];
             $history = StudentAcademicHistory::query()->firstOrCreate(
                 ['person_id' => $student->id, 'is_unified' => true, 'education_stage' => $stage],
                 [
@@ -137,6 +139,9 @@ class UnifiedStudentHistorySynchronizer
             $component = $componentReport['component'];
             $formation = CurriculumCatalog::formationLabelForArea($component->course, $component->area);
             $knowledgeArea = CurriculumCatalog::areaLabelForComponent($component->course, $component->area);
+            if ($stage === AcademicCourse::STAGE_TECHNICAL) {
+                $formation = 'Formação Técnica Profissional';
+            }
             if ($stage === AcademicCourse::STAGE_ELEMENTARY && Str::lower(trim($component->name)) === 'ensino religioso') {
                 $formation = CurriculumCatalog::FORMATION_FGB;
             }

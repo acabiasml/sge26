@@ -88,9 +88,11 @@
                 <a class="btn btn-sm btn-primary" href="{{ route('enrollments.report-card.show', $activeEnrollments->first()) }}">
                     <i class="fas fa-chart-line mr-1" aria-hidden="true"></i>Boletim atual
                 </a>
-                <a class="btn btn-sm btn-outline-primary" href="{{ route('enrollments.individual-record.pdf', $activeEnrollments->first()) }}">
-                    <i class="fas fa-file-alt mr-1" aria-hidden="true"></i>Ficha individual
-                </a>
+                @if ($canManagePerson)
+                    <a class="btn btn-sm btn-outline-primary" href="{{ route('enrollments.individual-record.pdf', $activeEnrollments->first()) }}">
+                        <i class="fas fa-file-alt mr-1" aria-hidden="true"></i>Ficha individual
+                    </a>
+                @endif
             @endif
             @if ($canManagePerson)
                 <a class="btn btn-sm btn-outline-primary" href="{{ route('people.histories.create', $person) }}">
@@ -196,15 +198,17 @@
                                         <a class="btn btn-sm btn-outline-success" href="{{ route('enrollments.report-card.show', $enrollment) }}">
                                             <i class="fas fa-chart-line mr-1" aria-hidden="true"></i>Boletim
                                         </a>
-                                        <a class="btn btn-sm btn-primary" href="{{ route('enrollments.documents', $enrollment) }}">
-                                            <i class="fas fa-folder-open mr-1" aria-hidden="true"></i>Documentos
-                                        </a>
-                                        <a class="btn btn-sm btn-outline-primary" href="{{ route('enrollments.individual-record.pdf', $enrollment) }}">
-                                            <i class="fas fa-file-alt mr-1" aria-hidden="true"></i>Ficha individual
-                                        </a>
-                                        <a class="btn btn-sm btn-outline-primary" href="{{ route('enrollments.pdf', $enrollment) }}">
-                                            <i class="fas fa-file-signature mr-1" aria-hidden="true"></i>Matrícula
-                                        </a>
+                                        @if ($canManagePerson)
+                                            <a class="btn btn-sm btn-primary" href="{{ route('enrollments.documents', $enrollment) }}">
+                                                <i class="fas fa-folder-open mr-1" aria-hidden="true"></i>Documentos
+                                            </a>
+                                            <a class="btn btn-sm btn-outline-primary" href="{{ route('enrollments.individual-record.pdf', $enrollment) }}">
+                                                <i class="fas fa-file-alt mr-1" aria-hidden="true"></i>Ficha individual
+                                            </a>
+                                            <a class="btn btn-sm btn-outline-primary" href="{{ route('enrollments.pdf', $enrollment) }}">
+                                                <i class="fas fa-file-signature mr-1" aria-hidden="true"></i>Matrícula
+                                            </a>
+                                        @endif
                                     </div>
                                 </div>
                             </article>
@@ -241,19 +245,19 @@
                                     <span><strong>{{ $history->components->count() }}</strong> componente(s)</span>
                                     <span class="badge badge-{{ $history->active ? 'success' : 'secondary' }}">{{ $history->active ? 'Ativo' : 'Inativo' }}</span>
                                 </div>
-                                <div class="sge-action-row">
-                                    <a class="btn btn-sm btn-outline-primary" href="{{ route('people.histories.show', [$person, $history]) }}">
-                                        <i class="fas fa-eye mr-1" aria-hidden="true"></i>Abrir
-                                    </a>
-                                    <a class="btn btn-sm btn-outline-primary" href="{{ route('people.histories.pdf', [$person, $history]) }}">
-                                        <i class="fas fa-file-pdf mr-1" aria-hidden="true"></i>PDF
-                                    </a>
-                                    @if ($canManagePerson)
+                                @if ($canManagePerson)
+                                    <div class="sge-action-row">
+                                        <a class="btn btn-sm btn-outline-primary" href="{{ route('people.histories.show', [$person, $history]) }}">
+                                            <i class="fas fa-eye mr-1" aria-hidden="true"></i>Abrir
+                                        </a>
+                                        <a class="btn btn-sm btn-outline-primary" href="{{ route('people.histories.pdf', [$person, $history]) }}">
+                                            <i class="fas fa-file-pdf mr-1" aria-hidden="true"></i>PDF
+                                        </a>
                                         <a class="btn btn-sm btn-outline-primary" href="{{ route('people.histories.edit', [$person, $history]) }}">
                                             <i class="fas fa-pen mr-1" aria-hidden="true"></i>Editar
                                         </a>
-                                    @endif
-                                </div>
+                                    </div>
+                                @endif
                             </article>
                         @empty
                             <div class="sge-empty-state"><i class="fas fa-folder-open" aria-hidden="true"></i><p>Nenhum histórico externo cadastrado.</p></div>

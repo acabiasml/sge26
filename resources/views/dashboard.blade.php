@@ -208,6 +208,15 @@
                         </h2>
                         <p>{{ $monthSchoolDayCount }} dia(s) letivo(s), {{ $birthdays->count() }} aniversário(s) e {{ $monthAcademicCalendars->count() }} calendário(s) visível(is).</p>
                     </div>
+                    <nav class="d-flex align-items-center" aria-label="Navegação entre os meses do calendário">
+                        @if($calendarPreviousMonth)
+                            <a class="btn btn-sm btn-outline-primary sge-icon-action mr-2" href="{{ route('dashboard', array_merge(request()->except('calendar_month'), ['calendar_month' => $calendarPreviousMonth->format('Y-m')])) }}#calendar-heading" aria-label="Ver {{ ucfirst($calendarPreviousMonth->translatedFormat('F \d\e Y')) }}" title="Mês anterior"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>
+                        @endif
+                        <strong class="text-nowrap">{{ ucfirst($calendarMonth->translatedFormat('F/Y')) }}</strong>
+                        @if($calendarNextMonth)
+                            <a class="btn btn-sm btn-outline-primary sge-icon-action ml-2" href="{{ route('dashboard', array_merge(request()->except('calendar_month'), ['calendar_month' => $calendarNextMonth->format('Y-m')])) }}#calendar-heading" aria-label="Ver {{ ucfirst($calendarNextMonth->translatedFormat('F \d\e Y')) }}" title="Próximo mês"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
+                        @endif
+                    </nav>
                     <div class="sge-calendar-legend" aria-label="Legenda do calendário">
                         <span><strong>L</strong> Letivo</span>
                         <span><strong class="sge-dot sge-dot-orange"></strong> Aniversário</span>

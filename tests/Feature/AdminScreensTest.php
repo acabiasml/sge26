@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
 use App\Models\CalendarDay;
 use App\Models\IssuedDocument;
@@ -12,6 +13,8 @@ use App\Models\PersonContact;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\SchoolClass;
+use App\Models\StudentAcademicHistory;
+use App\Models\StudentEnrollment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -763,6 +766,100 @@ class AdminScreensTest extends TestCase
             ->assertSee('Ensino Médio 2026')
             ->assertSee('Escola Laura Vicuña')
             ->assertSee('Conselho de Classe');
+    }
+
+    public function test_dashboard_can_navigate_months_and_does_not_double_count_the_same_school_date(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $firstSchool = School::query()->create(['name' => 'Escola Um', 'active' => true]);
+        $secondSchool = School::query()->create(['name' => 'Escola Dois', 'active' => true]);
+        $firstYear = $this->activeAcademicYear($firstSchool, 'Calendário Um');
+        $secondYear = $this->activeAcademicYear($secondSchool, 'Calendário Dois');
+        $selectedMonth = now()->copy()->subMonth()->startOfMonth();
+
+        foreach ([$firstYear, $secondYear] as $year) {
+            CalendarDay::query()->create([
+                'academic_year_id' => $year->id,
+                'date' => $selectedMonth->toDateString(),
+                'type' => CalendarDay::TYPE_SCHOOL_DAY,
+                'counts_as_school_day' => true,
+                'title' => 'Dia compartilhado',
+            ]);
+        }
+
+        $this->actingAs($admin)
+            ->get(route('dashboard', ['calendar_month' => $selectedMonth->format('Y-m')]))
+            ->assertOk()
+            ->assertSee(ucfirst($selectedMonth->translatedFormat('F/Y')))
+            ->assertSee('1 dia(s) letivo(s)')
+            ->assertSee('Dia compartilhado');
+    }
+
+    public function test_technical_enrollment_can_create_an_independent_unified_history(): void
+    {
+        $school = School::query()->create(['name' => 'Escola Técnica', 'active' => true]);
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $school->id)->person;
+        $year = $this->activeAcademicYear($school, 'Educação Profissional 2025-2026');
+        $course = AcademicCourse::query()->create([
+            'academic_year_id' => $year->id,
+            'name' => 'Técnico em Móveis',
+            'stage' => AcademicCourse::STAGE_TECHNICAL,
+            'modality' => AcademicCourse::MODALITY_PROFESSIONAL_TECHNOLOGICAL,
+            'class_hour_minutes' => 60,
+            'workload_hours' => 0,
+            'active' => true,
+        ]);
+        $class = SchoolClass::query()->create(['academic_year_id' => $year->id, 'name' => '2025-2026', 'active' => true]);
+        $class->courses()->attach($course);
+        $enrollment = StudentEnrollment::query()->create([
+            'school_class_id' => $class->id,
+            'person_id' => $student->id,
+            'enrolled_at' => now()->startOfYear(),
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $enrollment->courses()->attach($course);
+
+        $this->actingAs($admin)
+            ->get(route('student-histories.student', $student))
+            ->assertOk()
+            ->assertSee('Ensino Técnico Profissionalizante');
+
+        $this->actingAs($admin)
+            ->post(route('student-histories.unified', [$student, AcademicCourse::STAGE_TECHNICAL]))
+            ->assertRedirect();
+
+        $history = StudentAcademicHistory::query()
+            ->where('person_id', $student->id)
+            ->where('education_stage', AcademicCourse::STAGE_TECHNICAL)
+            ->firstOrFail();
+        $this->assertSame('Histórico Escolar - Ensino Técnico Profissionalizante', $history->title);
+        $this->assertDatabaseHas('student_academic_history_years', [
+            'student_academic_history_id' => $history->id,
+            'student_enrollment_id' => $enrollment->id,
+        ]);
+    }
+
+    public function test_student_life_view_hides_secretarial_actions_from_the_student(): void
+    {
+        $school = School::query()->create(['name' => 'Escola do Estudante', 'active' => true]);
+        $studentUser = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $school->id);
+        $year = $this->activeAcademicYear($school, 'Educação Básica');
+        $class = SchoolClass::query()->create(['academic_year_id' => $year->id, 'name' => '9º Ano', 'active' => true]);
+        StudentEnrollment::query()->create([
+            'school_class_id' => $class->id,
+            'person_id' => $studentUser->person_id,
+            'enrolled_at' => now()->startOfYear(),
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+
+        $this->actingAs($studentUser)
+            ->get(route('people.student-map.show', $studentUser->person_id))
+            ->assertOk()
+            ->assertSee('Boletim')
+            ->assertDontSee('Ficha individual');
     }
 
     public function test_dashboard_lists_all_birthdays_from_the_current_week(): void

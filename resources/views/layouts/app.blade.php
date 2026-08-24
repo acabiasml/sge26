@@ -795,6 +795,19 @@
                 const tabs = [...tabList.querySelectorAll('[data-academic-tab]')];
                 const container = tabList.parentElement;
                 const panels = [...container.querySelectorAll('[data-academic-panel]')];
+                const scrollHint = document.createElement('div');
+                scrollHint.className = 'sge-tabs-scroll-hint';
+                scrollHint.setAttribute('role', 'status');
+                scrollHint.innerHTML = '<span>Deslize as guias para ver mais opções</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
+                tabList.before(scrollHint);
+                const updateScrollHint = () => {
+                    const overflows = tabList.scrollWidth > tabList.clientWidth + 2;
+                    const atEnd = tabList.scrollLeft + tabList.clientWidth >= tabList.scrollWidth - 4;
+                    scrollHint.hidden = !overflows || atEnd;
+                };
+                tabList.addEventListener('scroll', updateScrollHint, { passive: true });
+                window.addEventListener('resize', updateScrollHint);
+                requestAnimationFrame(updateScrollHint);
                 const names = tabs.map((tab) => tab.dataset.academicTab);
                 const defaultName = names.includes(tabList.dataset.defaultTab) ? tabList.dataset.defaultTab : names[0];
                 const nameFromHash = () => {

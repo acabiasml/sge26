@@ -10,6 +10,7 @@ use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\StudentEnrollment;
 use App\Support\AcademicCalendarGrid;
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -43,13 +44,19 @@ class DashboardController extends Controller
             ])
             ->all();
 
-        $birthdays = $this->birthdays($calendarSchoolIds, $today->month);
+        [$calendarMonth, $calendarMinimumMonth, $calendarMaximumMonth] = $this->calendarMonth($request, $calendarSchoolIds, $today);
+        $birthdays = $this->birthdays($calendarSchoolIds, $calendarMonth->month);
         $weekBirthdays = $this->birthdaysBetween(
             $calendarSchoolIds,
             $birthdayWeekStartsAt,
             $birthdayWeekEndsAt,
         );
-        $monthAcademicCalendars = $this->monthAcademicCalendars($calendarSchoolIds);
+        $monthAcademicCalendars = $this->monthAcademicCalendars($calendarSchoolIds, $calendarMonth);
+        $monthSchoolDayCount = $monthAcademicCalendars
+            ->flatMap(fn (AcademicYear $academicYear) => $academicYear->days->where('counts_as_school_day', true))
+            ->map(fn (CalendarDay $day): string => $day->date->toDateString())
+            ->unique()
+            ->count();
 
         return view('dashboard', [
             'schoolCount' => $canManagePeople ? $this->schoolCount($manageableSchoolIds) : 0,
@@ -57,7 +64,7 @@ class DashboardController extends Controller
             'activeEnrollmentCount' => $canManagePeople ? $this->activeEnrollmentCount($manageableSchoolIds) : 0,
             'activeAcademicYearCount' => $canManagePeople ? $this->activeAcademicYearCount($calendarSchoolIds) : 0,
             'registrationPendingCount' => $canManagePeople ? $this->registrationPendingCount($manageableSchoolIds) : 0,
-            'monthSchoolDayCount' => $monthAcademicCalendars->sum(fn (AcademicYear $academicYear): int => $academicYear->days->where('counts_as_school_day', true)->count()),
+            'monthSchoolDayCount' => $monthSchoolDayCount,
             'roleCounts' => $roleCounts,
             'roleChart' => $this->roleChart($roleCounts),
             'studentsBySchoolChart' => $canManagePeople ? $this->studentsBySchoolChart($manageableSchoolIds) : ['labels' => [], 'values' => []],
@@ -68,7 +75,10 @@ class DashboardController extends Controller
             'birthdayWeekEndsAt' => $birthdayWeekEndsAt,
             'announcements' => $this->announcements($visibleSchoolIds),
             'monthAcademicCalendars' => $monthAcademicCalendars,
-            'combinedCalendarMonth' => AcademicCalendarGrid::combinedMonth($monthAcademicCalendars, $birthdays, $today),
+            'combinedCalendarMonth' => AcademicCalendarGrid::combinedMonth($monthAcademicCalendars, $birthdays, $calendarMonth),
+            'calendarMonth' => $calendarMonth,
+            'calendarPreviousMonth' => $calendarMonth->copy()->subMonth()->gte($calendarMinimumMonth) ? $calendarMonth->copy()->subMonth() : null,
+            'calendarNextMonth' => $calendarMonth->copy()->addMonth()->lte($calendarMaximumMonth) ? $calendarMonth->copy()->addMonth() : null,
         ]);
     }
 
@@ -309,10 +319,10 @@ class DashboardController extends Controller
      * @param  list<int>|null  $schoolIds
      * @return Collection<int, AcademicYear>
      */
-    private function monthAcademicCalendars(?array $schoolIds): Collection
+    private function monthAcademicCalendars(?array $schoolIds, Carbon $month): Collection
     {
-        $monthStart = now()->startOfMonth()->toDateString();
-        $monthEnd = now()->endOfMonth()->toDateString();
+        $monthStart = $month->copy()->startOfMonth()->toDateString();
+        $monthEnd = $month->copy()->endOfMonth()->toDateString();
 
         return AcademicYear::query()
             ->with([
@@ -332,5 +342,27 @@ class DashboardController extends Controller
             ->orderBy('academic_years.name')
             ->select('academic_years.*')
             ->get();
+    }
+
+    /** @return array{Carbon, Carbon, Carbon} */
+    private function calendarMonth(Request $request, ?array $schoolIds, Carbon $fallback): array
+    {
+        $years = AcademicYear::query()
+            ->where('active', true)
+            ->when($schoolIds !== null, fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
+            ->get(['starts_at', 'ends_at']);
+        $minimum = ($years->min('starts_at') ?? $fallback)->copy()->startOfMonth();
+        $maximum = ($years->max('ends_at') ?? $fallback)->copy()->startOfMonth();
+        $selected = preg_match('/^\d{4}-\d{2}$/', (string) $request->query('calendar_month')) === 1
+            ? Carbon::parse($request->query('calendar_month').'-01')->startOfMonth()
+            : $fallback->copy()->startOfMonth();
+
+        if ($selected->lt($minimum)) {
+            $selected = $minimum->copy();
+        } elseif ($selected->gt($maximum)) {
+            $selected = $maximum->copy();
+        }
+
+        return [$selected, $minimum, $maximum];
     }
 }
