@@ -10,6 +10,8 @@
         .document-title { font-size: 14px; text-transform: uppercase; margin: 5px 0 2px; }
         .student-box, .history-table, .studies-table { border-collapse: collapse; width: 100%; }
         .student-box td { border: 0; padding: 1px 4px; }
+        .student-parents { border-collapse: collapse; width: 100%; }
+        .student-parents td { padding: 0; width: 50%; }
         .label { font-weight: 600; }
         .history-table { margin: 0 0 4px; table-layout: fixed; }
         .history-table th, .history-table td, .studies-table th, .studies-table td { border: .55px solid #111; padding: 1px 2px; vertical-align: middle; }
@@ -82,12 +84,14 @@
         </td>
     </tr>
     @endif
-    @if($person->mother_name)
-    <tr><td colspan="3"><span class="label">Mãe:</span> {{ $person->mother_name }}</td></tr>
-    @endif
-    @if($person->father_name)
+    @if($person->mother_name || $person->father_name)
     <tr>
-        <td colspan="3"><span class="label">Pai:</span> {{ $person->father_name }}</td>
+        <td colspan="3">
+            <table class="student-parents"><tr>
+                <td>@if($person->mother_name)<span class="label">Mãe:</span> {{ $person->mother_name }}@endif</td>
+                <td>@if($person->father_name)<span class="label">Pai:</span> {{ $person->father_name }}@endif</td>
+            </tr></table>
+        </td>
     </tr>
     @endif
 </table>
