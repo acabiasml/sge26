@@ -314,6 +314,30 @@ class TeacherDiaryTest extends TestCase
         $this->assertSame($manager->person_id, $report['finalResult']['calculated_by']->id);
     }
 
+    public function test_individual_record_orders_periods_chronologically_when_positions_are_inconsistent(): void
+    {
+        [, $year, , , $period, $enrollment] = $this->diaryScenario();
+        $period->update([
+            'name' => 'II Bimestre',
+            'starts_at' => '2026-04-20',
+            'ends_at' => '2026-07-03',
+            'position' => 4,
+        ]);
+        $year->periods()->create([
+            'name' => 'III Bimestre',
+            'starts_at' => '2026-07-20',
+            'ends_at' => '2026-10-02',
+            'position' => 2,
+        ]);
+
+        $report = app(StudentReportCardBuilder::class)->build($enrollment->fresh());
+
+        $this->assertSame(
+            ['II Bimestre', 'III Bimestre'],
+            $report['periodReports']->pluck('period.name')->all(),
+        );
+    }
+
     public function test_management_can_emit_attendance_certificate_pdf(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();

@@ -38,7 +38,10 @@ class StudentReportCardBuilder
 
         $schoolClass = $enrollment->schoolClass;
         $academicYear = $schoolClass->academicYear;
-        $periods = $academicYear->periods()->orderBy('position')->get();
+        $periods = $academicYear->periods()
+            ->orderBy('starts_at')
+            ->orderBy('position')
+            ->get();
         $courses = $enrollment->courses->sortBy('name')->values();
         $components = $courses
             ->flatMap(fn ($course) => $course->components->where('active', true))
