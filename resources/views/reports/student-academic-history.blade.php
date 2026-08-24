@@ -152,12 +152,10 @@
     </tr>
 </table>
 
-@php
-    $basicFormationComponents = $history->components->where('formation', 'Formação Geral Básica');
-    $itineraryComponents = $history->components->where('formation', 'Itinerário Formativo');
-    $basicFormationHours = $basicFormationComponents->sum(fn ($component) => (float) $component->records->sum('workload_hours'));
-    $itineraryHours = $itineraryComponents->sum(fn ($component) => (float) $component->records->sum('workload_hours'));
-@endphp
+@php($basicFormationComponents = $history->components->where('formation', 'Formação Geral Básica'))
+@php($itineraryComponents = $history->components->where('formation', 'Itinerário Formativo'))
+@php($basicFormationHours = $basicFormationComponents->sum(fn ($component) => (float) $component->records->sum('workload_hours')))
+@php($itineraryHours = $itineraryComponents->sum(fn ($component) => (float) $component->records->sum('workload_hours')))
 @if($basicFormationComponents->isNotEmpty() && $itineraryComponents->isNotEmpty())
     <table class="history-table" style="margin-top:3px;">
         <tr>
