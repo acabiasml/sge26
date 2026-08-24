@@ -38,6 +38,13 @@ class StudentAcademicHistoryComponent extends Model
         ];
     }
 
+    protected function titleCaseAttributesPreservingRomanNumerals(): array
+    {
+        return [
+            'name',
+        ];
+    }
+
     public function history(): BelongsTo
     {
         return $this->belongsTo(StudentAcademicHistory::class, 'student_academic_history_id');

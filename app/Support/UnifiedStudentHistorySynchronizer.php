@@ -179,6 +179,7 @@ class UnifiedStudentHistorySynchronizer
                     'name' => $component->name,
                 ]);
             $historyComponent->update([
+                'name' => $component->name,
                 'formation' => $formation,
                 'module_label' => $moduleLabel,
                 'regulatory_reference' => $technicalCourse?->conciseRegulatoryReference(),

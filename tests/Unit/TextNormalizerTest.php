@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
 use App\Models\CurriculumComponent;
+use App\Models\StudentAcademicHistoryComponent;
 use App\Support\TextNormalizer;
 use PHPUnit\Framework\TestCase;
 
@@ -23,13 +24,16 @@ class TextNormalizerTest extends TestCase
         $period = new AcademicPeriod(['name' => 'II BIMESTRE']);
         $component = new CurriculumComponent(['name' => 'DESENHO TÉCNICO II']);
         $course = new AcademicCourse(['name' => 'CURSO TÉCNICO II']);
+        $historyComponent = new StudentAcademicHistoryComponent(['name' => 'DESENHO TÉCNICO II']);
 
         $period->applyTitleCaseAttributes();
         $component->applyTitleCaseAttributes();
         $course->applyTitleCaseAttributes();
+        $historyComponent->applyTitleCaseAttributes();
 
         $this->assertSame('II Bimestre', $period->name);
         $this->assertSame('Desenho Técnico II', $component->name);
         $this->assertSame('Curso Técnico Ii', $course->name);
+        $this->assertSame('Desenho Técnico II', $historyComponent->name);
     }
 }
