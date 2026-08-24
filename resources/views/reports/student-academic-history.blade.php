@@ -98,8 +98,8 @@
     @if($moduleLabel)<div class="module-title">{{ $moduleLabel }}</div>@endif
     <table class="history-table">
         <thead>
-            <tr><th rowspan="2" style="width: 22%;">Área</th><th rowspan="2" style="width: 28%;">Componente curricular</th>@foreach($history->years as $year)<th colspan="2" class="center" style="width: {{ 50 / max(1, $history->years->count()) }}%;">{{ $year->label }}</th>@endforeach</tr>
-            <tr>@foreach($history->years as $year)<th class="center" style="width: {{ 25 / max(1, $history->years->count()) }}%;">N</th><th class="center" style="width: {{ 25 / max(1, $history->years->count()) }}%;">CH</th>@endforeach</tr>
+            <tr><th rowspan="2" style="width: 22%;">Área</th><th rowspan="2" style="width: 28%;">Componente curricular</th>@foreach($history->years as $year)<th colspan="3" class="center" style="width: {{ 50 / max(1, $history->years->count()) }}%;">{{ $year->label }}</th>@endforeach</tr>
+            <tr>@foreach($history->years as $year)<th class="center">N</th><th class="center">CH</th><th class="center">Freq.</th>@endforeach</tr>
         </thead>
         @foreach($moduleComponents->groupBy(fn ($component) => $component->knowledge_area ?: '-') as $area => $areaComponents)
         <tbody class="area-group">
@@ -111,6 +111,7 @@
                     @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
                     <td class="center score-cell">{{ $record?->score_label ?: '-' }}</td>
                     <td class="center score-cell">{{ $record?->workload_hours !== null ? number_format((float) $record->workload_hours, 0, ',', '.').'h' : '-' }}</td>
+                    <td class="center score-cell">{{ $record?->frequency_percentage !== null ? number_format((float) $record->frequency_percentage, 1, ',', '.').'%' : '-' }}</td>
                 @endforeach
             </tr>
             @endforeach
@@ -123,13 +124,14 @@
                     @php($formationWorkload = $moduleComponents->sum(fn ($component) => (float) ($component->records->firstWhere('student_academic_history_year_id', $year->id)?->workload_hours ?? 0)))
                     <td class="center">-</td>
                     <td class="center"><strong>{{ $year->transcript_mode === 'no_transcription' ? '-' : number_format($formationWorkload, 0, ',', '.').'h' }}</strong></td>
+                    <td class="center">-</td>
                 @endforeach
             </tr>
         </tfoot>
     </table>
     @endforeach
 @empty
-    <table class="history-table"><tr><td colspan="{{ 2 + (2 * $history->years->count()) }}" class="center">Histórico cadastrado sem transcrição de componentes curriculares.</td></tr></table>
+    <table class="history-table"><tr><td colspan="{{ 2 + (3 * $history->years->count()) }}" class="center">Histórico cadastrado sem transcrição de componentes curriculares.</td></tr></table>
 @endforelse
 
 <table class="history-table">
@@ -137,8 +139,9 @@
         <col style="width: 22%;">
         <col style="width: 28%;">
         @foreach($history->years as $year)
-            <col style="width: {{ 25 / max(1, $history->years->count()) }}%;">
-            <col style="width: {{ 25 / max(1, $history->years->count()) }}%;">
+            <col style="width: {{ (50 / 3) / max(1, $history->years->count()) }}%;">
+            <col style="width: {{ (50 / 3) / max(1, $history->years->count()) }}%;">
+            <col style="width: {{ (50 / 3) / max(1, $history->years->count()) }}%;">
         @endforeach
     </colgroup>
     <tr>
@@ -146,8 +149,9 @@
         <td class="general-total-label-space" style="width: 28%;"></td>
         @foreach($history->years as $year)
             @php($generalWorkload = $history->components->sum(fn ($component) => (float) ($component->records->firstWhere('student_academic_history_year_id', $year->id)?->workload_hours ?? 0)))
-            <td class="center" style="width: {{ 25 / max(1, $history->years->count()) }}%;">-</td>
-            <td class="center" style="width: {{ 25 / max(1, $history->years->count()) }}%;"><strong>{{ $year->transcript_mode === 'no_transcription' ? '-' : number_format($generalWorkload, 0, ',', '.').'h' }}</strong></td>
+            <td class="center">-</td>
+            <td class="center"><strong>{{ $year->transcript_mode === 'no_transcription' ? '-' : number_format($generalWorkload, 0, ',', '.').'h' }}</strong></td>
+            <td class="center">-</td>
         @endforeach
     </tr>
 </table>

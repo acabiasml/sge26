@@ -154,6 +154,7 @@ class StudentAcademicHistoryController extends Controller
             'person' => $person,
             'history' => $history,
             'historyCompleteness' => $completeness->evaluate($history),
+            'technicalPeriodDurations' => $this->technicalPeriodDurations($history),
         ]);
     }
 
@@ -282,6 +283,7 @@ class StudentAcademicHistoryController extends Controller
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
             'letterhead' => PdfLetterhead::make($history->school),
+            'technicalPeriodDurations' => $this->technicalPeriodDurations($history),
         ])->setPaper('a4', 'portrait');
 
         $pdf->render();
@@ -292,6 +294,32 @@ class StudentAcademicHistoryController extends Controller
         ]);
 
         return $pdf->stream('beaba-historico-escolar-'.$person->id.'-'.$history->id.'-'.now()->format('Ymd-His').'.pdf');
+    }
+
+    private function technicalPeriodDurations(StudentAcademicHistory $history)
+    {
+        if ($history->education_stage !== AcademicCourse::STAGE_TECHNICAL) {
+            return collect();
+        }
+
+        return $history->student->studentEnrollments()
+            ->whereHas('schoolClass.academicYear', fn ($query) => $query->where('school_id', $history->school_id))
+            ->with(['courses.startsPeriod', 'courses.endsPeriod', 'schoolClass.academicYear.periods'])
+            ->get()
+            ->flatMap(function (StudentEnrollment $enrollment) {
+                $technicalCourses = $enrollment->courses->where('stage', AcademicCourse::STAGE_TECHNICAL);
+                $periods = $enrollment->schoolClass?->academicYear?->periods ?? collect();
+
+                return $technicalCourses->flatMap(function (AcademicCourse $course) use ($periods) {
+                    $firstPosition = $course->startsPeriod?->position ?? $periods->min('position');
+                    $lastPosition = $course->endsPeriod?->position ?? $periods->max('position');
+
+                    return $periods->whereBetween('position', [$firstPosition, $lastPosition]);
+                });
+            })
+            ->unique('id')
+            ->sortBy([['starts_at', 'asc'], ['position', 'asc']])
+            ->values();
     }
 
     private function authorizePerson(Request $request, Person $person): void

@@ -19,6 +19,7 @@
                             @if($component->module_label === $module)
                                 <strong>{{ $record?->score_label ?: '-' }}</strong>
                                 <span class="d-block small text-muted">CH {{ $record?->workload_hours !== null ? number_format((float) $record->workload_hours, 2, ',', '.') : '-' }}</span>
+                                <span class="d-block small text-muted">Freq. {{ $record?->frequency_percentage !== null ? number_format((float) $record->frequency_percentage, 1, ',', '.').'%' : '-' }}</span>
                             @else - @endif
                         </td>
                     @endforeach
@@ -29,3 +30,9 @@
         </tbody>
     </table>
 </div>
+@if(($technicalPeriodDurations ?? collect())->isNotEmpty())
+    <div class="px-3 py-2 small text-muted border-top">
+        <strong>Duração dos módulos:</strong>
+        {{ $technicalPeriodDurations->map(fn ($period) => $period->name.': '.$period->starts_at?->format('d/m/Y').' a '.$period->ends_at?->format('d/m/Y'))->join(' · ') }}
+    </div>
+@endif
