@@ -203,13 +203,24 @@
 <table class="studies-table">
     <thead>
         <tr>
-            <th style="width: 18%;">Ano / Série</th>
+            <th style="width: 18%;">{{ $history->education_stage === 'tecnico' ? 'Módulo' : 'Ano / Série' }}</th>
             <th style="width: 54%;">Estabelecimento / Local</th>
             <th style="width: 14%;">Modalidade</th>
             <th style="width: 14%;">Resultado</th>
         </tr>
     </thead>
     <tbody>
+        @if($history->education_stage === 'tecnico' && ($technicalPeriodDurations ?? collect())->isNotEmpty())
+        @foreach($technicalPeriodDurations as $period)
+            @php($moduleResult = $period->ends_at?->copy()->endOfDay()->isPast() ? 'Concluído' : ($period->starts_at?->isFuture() ? 'A cursar' : 'Cursando'))
+            <tr>
+                <td class="studies-nowrap">{{ $period->name }}</td>
+                <td class="studies-nowrap"><strong>{{ $history->school?->name ?: '-' }}</strong>@if($location = collect([$history->school?->city, $history->school?->state, 'Brasil'])->filter()->join(' / ')) — {{ $location }}@endif</td>
+                <td>EPT</td>
+                <td>{{ $moduleResult }}</td>
+            </tr>
+        @endforeach
+        @else
         @foreach($history->years as $year)
             <tr>
                 <td class="studies-nowrap">{{ collect([$year->year ?: null, $year->grade_phase ?: $year->label])->filter()->join(' — ') ?: '-' }}</td>
@@ -218,6 +229,7 @@
                 <td>{{ $year->final_result ?: '-' }}</td>
             </tr>
         @endforeach
+        @endif
     </tbody>
 </table>
 

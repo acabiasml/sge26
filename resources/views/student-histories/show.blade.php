@@ -179,6 +179,19 @@
                 </div>
                 <div class="card-body">
                     <div class="sge-history-study-list">
+                        @if($history->education_stage === \App\Models\AcademicCourse::STAGE_TECHNICAL && ($technicalPeriodDurations ?? collect())->isNotEmpty())
+                        @foreach($technicalPeriodDurations as $period)
+                            @php($moduleResult = $period->ends_at?->copy()->endOfDay()->isPast() ? 'Concluído' : ($period->starts_at?->isFuture() ? 'A cursar' : 'Cursando'))
+                            <article>
+                                <strong>{{ $period->name }}</strong>
+                                <span>{{ $period->starts_at?->format('d/m/Y') }} a {{ $period->ends_at?->format('d/m/Y') }}</span>
+                                <span class="badge badge-light mt-1">EPT</span>
+                                <small>{{ $history->school?->name ?: 'Escola não informada' }}</small>
+                                <small>{{ collect([$history->school?->city, $history->school?->state, 'Brasil'])->filter()->join(' / ') }}</small>
+                                <span class="badge badge-light mt-2">{{ $moduleResult }}</span>
+                            </article>
+                        @endforeach
+                        @else
                         @foreach($history->years as $year)
                             <article>
                                 <strong>{{ $year->label }}</strong>
@@ -203,6 +216,7 @@
                                 @endif
                             </article>
                         @endforeach
+                        @endif
                     </div>
                 </div>
             </section>
