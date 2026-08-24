@@ -217,10 +217,10 @@
                             </span>
                         </label>
                         <label class="sge-choice-tile">
-                            <input type="radio" name="attendance_scope" value="months">
+                            <input type="radio" name="attendance_scope" value="month">
                             <span>
-                                <strong>Intervalo de meses</strong>
-                                <small>Escolha o primeiro e o último mês, mesmo fora dos períodos avaliativos.</small>
+                                <strong>Mensal</strong>
+                                <small>Considera somente o mês escolhido.</small>
                             </span>
                         </label>
 
@@ -236,15 +236,9 @@
                             </select>
                         </div>
 
-                        <div id="attendance-months-option" class="form-grid mt-3" hidden>
-                            <div class="form-group mb-0">
-                                <label for="attendance-start-month">Mês inicial</label>
-                                <input id="attendance-start-month" name="attendance_start_month" type="month" class="form-control" disabled>
-                            </div>
-                            <div class="form-group mb-0">
-                                <label for="attendance-end-month">Mês final</label>
-                                <input id="attendance-end-month" name="attendance_end_month" type="month" class="form-control" disabled>
-                            </div>
+                        <div id="attendance-month-option" class="form-group mb-0 mt-3" hidden>
+                            <label for="attendance-month">Mês</label>
+                            <input id="attendance-month" name="attendance_month" type="month" class="form-control" disabled>
                         </div>
 
                         <label id="federal-aid-only-option" class="sge-choice-tile mt-3" hidden>
@@ -330,9 +324,8 @@
             const attendanceScopeOptions = document.getElementById('attendance-scope-options');
             const attendancePeriodOption = document.getElementById('attendance-period-option');
             const attendancePeriodSelect = document.getElementById('attendance-period');
-            const attendanceMonthsOption = document.getElementById('attendance-months-option');
-            const attendanceStartMonthInput = document.getElementById('attendance-start-month');
-            const attendanceEndMonthInput = document.getElementById('attendance-end-month');
+            const attendanceMonthOption = document.getElementById('attendance-month-option');
+            const attendanceMonthInput = document.getElementById('attendance-month');
             const federalAidOnlyOption = document.getElementById('federal-aid-only-option');
             const federalAidOnlyInput = federalAidOnlyOption.querySelector('input');
             const targetsUrl = @json(route('document-issuance.targets'));
@@ -390,12 +383,10 @@
                 attendancePeriodSelect.disabled = !periodEnabled;
                 attendancePeriodSelect.required = periodEnabled;
 
-                const monthsEnabled = enabled && scope === 'months';
-                attendanceMonthsOption.hidden = !monthsEnabled;
-                attendanceStartMonthInput.disabled = !monthsEnabled;
-                attendanceStartMonthInput.required = monthsEnabled;
-                attendanceEndMonthInput.disabled = !monthsEnabled;
-                attendanceEndMonthInput.required = monthsEnabled;
+                const monthEnabled = enabled && scope === 'month';
+                attendanceMonthOption.hidden = !monthEnabled;
+                attendanceMonthInput.disabled = !monthEnabled;
+                attendanceMonthInput.required = monthEnabled;
 
                 const aidFilterEnabled = selectedOption()?.value === 'attendance-report';
                 federalAidOnlyOption.hidden = !aidFilterEnabled;
@@ -405,16 +396,13 @@
                 const yearOption = Array.from(yearSelect.options).find((option) => option.value === String(academicYearId));
                 const minimum = yearOption?.dataset.startsAt?.slice(0, 7) || '';
                 const maximum = yearOption?.dataset.endsAt?.slice(0, 7) || '';
-                attendanceStartMonthInput.min = minimum;
-                attendanceStartMonthInput.max = maximum;
-                attendanceEndMonthInput.min = attendanceStartMonthInput.value || minimum;
-                attendanceEndMonthInput.max = maximum;
-                if (monthsEnabled && !attendanceStartMonthInput.value) {
+                attendanceMonthInput.min = minimum;
+                attendanceMonthInput.max = maximum;
+                if (monthEnabled && !attendanceMonthInput.value) {
                     const currentMonth = @json(now()->format('Y-m'));
-                    attendanceStartMonthInput.value = minimum && currentMonth < minimum
+                    attendanceMonthInput.value = minimum && currentMonth < minimum
                         ? minimum
                         : (maximum && currentMonth > maximum ? maximum : currentMonth);
-                    attendanceEndMonthInput.value = attendanceStartMonthInput.value;
                 }
             };
 
@@ -600,12 +588,6 @@
             classSelect.addEventListener('change', () => resetTarget());
             attendanceScopeOptions.querySelectorAll('input[name="attendance_scope"]').forEach((input) => {
                 input.addEventListener('change', syncAttendanceOptions);
-            });
-            attendanceStartMonthInput.addEventListener('change', () => {
-                attendanceEndMonthInput.min = attendanceStartMonthInput.value || attendanceStartMonthInput.min;
-                if (!attendanceEndMonthInput.value || attendanceEndMonthInput.value < attendanceStartMonthInput.value) {
-                    attendanceEndMonthInput.value = attendanceStartMonthInput.value;
-                }
             });
             searchButton.addEventListener('click', searchTargets);
             queryInput.addEventListener('keydown', (event) => {

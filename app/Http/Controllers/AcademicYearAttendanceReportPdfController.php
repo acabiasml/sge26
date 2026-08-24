@@ -25,11 +25,9 @@ class AcademicYearAttendanceReportPdfController extends Controller
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
 
         $data = $request->validate([
-            'attendance_scope' => ['nullable', Rule::in(['annual', 'period', 'month', 'months'])],
+            'attendance_scope' => ['nullable', Rule::in(['annual', 'period', 'month'])],
             'academic_period_id' => ['nullable', 'required_if:attendance_scope,period', 'integer'],
             'attendance_month' => ['nullable', 'required_if:attendance_scope,month', 'date_format:Y-m'],
-            'attendance_start_month' => ['nullable', 'required_if:attendance_scope,months', 'date_format:Y-m'],
-            'attendance_end_month' => ['nullable', 'required_if:attendance_scope,months', 'date_format:Y-m', 'after_or_equal:attendance_start_month'],
             'federal_aid_only' => ['nullable', 'boolean'],
         ]);
 
@@ -159,26 +157,6 @@ class AcademicYearAttendanceReportPdfController extends Controller
             $end = $month->endOfMonth()->min($yearEnd);
 
             return [$start->toDateString(), $end->toDateString(), ucfirst($month->translatedFormat('F \d\e Y'))];
-        }
-
-        if ($scope === 'months') {
-            $firstMonth = CarbonImmutable::createFromFormat('Y-m-d', $data['attendance_start_month'].'-01');
-            $lastMonth = CarbonImmutable::createFromFormat('Y-m-d', $data['attendance_end_month'].'-01');
-
-            if ($lastMonth->endOfMonth()->isBefore($yearStart) || $firstMonth->startOfMonth()->isAfter($yearEnd)) {
-                throw ValidationException::withMessages([
-                    'attendance_start_month' => 'O intervalo de meses selecionado está fora deste ano letivo.',
-                ]);
-            }
-
-            $start = $firstMonth->startOfMonth()->max($yearStart);
-            $end = $lastMonth->endOfMonth()->min($yearEnd);
-
-            return [
-                $start->toDateString(),
-                $end->toDateString(),
-                ucfirst($firstMonth->translatedFormat('F \d\e Y')).' a '.ucfirst($lastMonth->translatedFormat('F \d\e Y')),
-            ];
         }
 
         return [$yearStart->toDateString(), $yearEnd->toDateString(), 'Anual'];

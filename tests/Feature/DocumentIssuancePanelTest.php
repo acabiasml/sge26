@@ -37,8 +37,7 @@ class DocumentIssuancePanelTest extends TestCase
             ->assertSee('value="class-report-cards"', false)
             ->assertSee('value="class-grade-mirror"', false)
             ->assertSee('name="attendance_scope"', false)
-            ->assertSee('name="attendance_start_month"', false)
-            ->assertSee('name="attendance_end_month"', false)
+            ->assertSee('name="attendance_month"', false)
             ->assertSee('name="federal_aid_only"', false)
             ->assertSee('target="_blank"', false)
             ->assertSee('data-download-form="true"', false)
@@ -95,7 +94,7 @@ class DocumentIssuancePanelTest extends TestCase
             ]));
     }
 
-    public function test_attendance_report_selection_preserves_month_range_and_aid_filter(): void
+    public function test_attendance_report_selection_preserves_month_and_aid_filter(): void
     {
         $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
         $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
@@ -112,18 +111,15 @@ class DocumentIssuancePanelTest extends TestCase
             ->get(route('document-issuance.issue', [
                 'type' => 'attendance-report',
                 'target_id' => $year->id,
-                'attendance_scope' => 'months',
-                'attendance_start_month' => '2026-06',
-                'attendance_end_month' => '2026-07',
+                'attendance_scope' => 'month',
+                'attendance_month' => '2026-06',
                 'federal_aid_only' => 1,
             ]))
             ->assertRedirect(route('academic-years.attendance-report.pdf', [
                 'academicYear' => $year,
-                'attendance_scope' => 'months',
+                'attendance_scope' => 'month',
                 'academic_period_id' => null,
-                'attendance_month' => null,
-                'attendance_start_month' => '2026-06',
-                'attendance_end_month' => '2026-07',
+                'attendance_month' => '2026-06',
                 'federal_aid_only' => 1,
             ]));
     }
