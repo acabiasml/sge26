@@ -75,7 +75,11 @@
     <tr>
         <td>@if($person->social_name)<span class="label">Nome social:</span> {{ $person->social_name }}@endif</td>
         <td>@if($person->student_inep)<span class="label">INEP:</span> {{ $person->student_inep }}@endif</td>
-        <td>@if($person->receives_federal_aid)<span class="label">Auxílio federal:</span> Sim@endif</td>
+        <td>
+            @if($person->receives_federal_aid)
+                <span class="label">Auxílio federal:</span> Sim
+            @endif
+        </td>
     </tr>
     @endif
     @if($person->mother_name)
