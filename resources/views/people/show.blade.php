@@ -75,6 +75,12 @@
                         <dt>INEP do estudante</dt>
                         <dd>{{ $person->student_inep ?: '-' }}</dd>
 
+                        <dt>NIS do estudante</dt>
+                        <dd>{{ $person->nis ?: '-' }}</dd>
+
+                        <dt>Auxílio do Governo Federal</dt>
+                        <dd>{{ $person->receives_federal_aid ? 'Sim' : 'Não' }}</dd>
+
                         <dt>Data de nascimento</dt>
                         <dd>{{ $person->birth_date?->format('d/m/Y') ?? '-' }}</dd>
 
@@ -375,10 +381,15 @@
                                 @error('relationship_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
 
-                            <div class="form-group col-md-4">
+                            <div class="form-group col-md-2">
                                 <label for="contact_cpf">CPF</label>
                                 <input id="contact_cpf" name="cpf" data-mask="cpf" inputmode="numeric" autocomplete="off" class="form-control @error('cpf') is-invalid @enderror" value="{{ old('cpf') }}">
                                 @error('cpf') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="form-group col-md-2">
+                                <label for="contact_nis">NIS</label>
+                                <input id="contact_nis" name="nis" data-mask="digits" data-mask-max="11" inputmode="numeric" autocomplete="off" class="form-control @error('nis') is-invalid @enderror" value="{{ old('nis') }}">
+                                @error('nis') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                         </div>
 
@@ -451,6 +462,9 @@
                                     </td>
                                     <td>
                                         {{ $contact->phone ?: '-' }}
+                                        @if ($contact->nis)
+                                            <span class="d-block text-muted small">NIS {{ $contact->nis }}</span>
+                                        @endif
                                         @if ($contact->secondary_phone)
                                             <span class="d-block text-muted small">{{ $contact->secondary_phone }}</span>
                                         @endif
@@ -506,9 +520,13 @@
                                                             </select>
                                                         </div>
 
-                                                        <div class="form-group col-lg-4 col-md-6">
+                                                        <div class="form-group col-lg-2 col-md-6">
                                                             <label for="contact_cpf_{{ $contact->id }}">CPF</label>
                                                             <input id="contact_cpf_{{ $contact->id }}" name="cpf" data-mask="cpf" inputmode="numeric" autocomplete="off" class="form-control" value="{{ $useOldContact ? old('cpf', $contact->cpf) : $contact->cpf }}">
+                                                        </div>
+                                                        <div class="form-group col-lg-2 col-md-6">
+                                                            <label for="contact_nis_{{ $contact->id }}">NIS</label>
+                                                            <input id="contact_nis_{{ $contact->id }}" name="nis" data-mask="digits" data-mask-max="11" inputmode="numeric" autocomplete="off" class="form-control" value="{{ $useOldContact ? old('nis', $contact->nis) : $contact->nis }}">
                                                         </div>
                                                     </div>
 

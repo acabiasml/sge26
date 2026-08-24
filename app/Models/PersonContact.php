@@ -34,6 +34,7 @@ class PersonContact extends Model
         'name',
         'relationship_type',
         'cpf',
+        'nis',
         'phone',
         'secondary_phone',
         'email',

@@ -101,6 +101,19 @@
         <small class="form-text text-muted">Use quando a pessoa tiver identificação de estudante no Educacenso/INEP.</small>
         @error('student_inep') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
+    <div class="form-group col-md-4">
+        <label for="nis">NIS do estudante</label>
+        <input id="nis" name="nis" data-mask="digits" data-mask-max="11" inputmode="numeric" autocomplete="off" class="form-control @error('nis') is-invalid @enderror" value="{{ old('nis', $person->nis ?? '') }}">
+        <small class="form-text text-muted">Informe os 11 dígitos do Número de Identificação Social.</small>
+        @error('nis') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+    <div class="form-group col-md-4 d-flex align-items-center">
+        <div class="form-check mt-3">
+            <input type="hidden" name="receives_federal_aid" value="0">
+            <input id="receives_federal_aid" name="receives_federal_aid" value="1" type="checkbox" class="form-check-input" @checked(old('receives_federal_aid', $person->receives_federal_aid ?? false))>
+            <label for="receives_federal_aid" class="form-check-label">Recebe auxílio do Governo Federal</label>
+        </div>
+    </div>
 </div>
 
 <div class="form-row">

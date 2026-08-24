@@ -192,6 +192,14 @@ class DocumentIssuanceController extends Controller
             'target' => 'academic_year',
             'icon' => 'fa-clipboard-check',
         ],
+        'attendance-report' => [
+            'group' => 'Ano letivo',
+            'label' => 'Relatório de Frequência',
+            'description' => 'Lista, por escola e em ordem alfabética, a frequência e as faltas dos estudantes no período selecionado.',
+            'target' => 'academic_year',
+            'icon' => 'fa-user-check',
+            'attendance_scope' => true,
+        ],
         'person-record' => [
             'group' => 'Cadastros',
             'label' => 'Ficha cadastral da pessoa',
@@ -926,10 +934,17 @@ class DocumentIssuanceController extends Controller
             'academic-matrices' => 'academic-years.matrices-pdf',
             'academic-year-schedules' => 'academic-years.schedules-pdf',
             'academic-year-final-results' => 'academic-years.final-results.pdf',
+            'attendance-report' => 'academic-years.attendance-report.pdf',
             default => abort(404),
         };
+        $parameters = ['academicYear' => $year];
+        if ($data['type'] === 'attendance-report') {
+            $parameters['attendance_scope'] = $data['attendance_scope'] ?? 'annual';
+            $parameters['academic_period_id'] = $data['academic_period_id'] ?? null;
+            $parameters['attendance_month'] = $data['attendance_month'] ?? null;
+        }
 
-        return redirect()->route($route, $year);
+        return redirect()->route($route, $parameters);
     }
 
     /** @param array<string, mixed> $data */

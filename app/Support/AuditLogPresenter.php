@@ -165,6 +165,8 @@ class AuditLogPresenter
         'minimum_score' => 'Nota mínima',
         'minimum_school_days' => 'Referência de dias letivos',
         'minimum_attendance_percentage' => 'Frequência mínima para aprovação',
+        'nis' => 'NIS',
+        'receives_federal_aid' => 'Recebe auxílio do Governo Federal',
         'modality' => 'Modalidade',
         'name' => 'Nome',
         'notes' => 'Observações',

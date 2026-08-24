@@ -33,6 +33,7 @@ class DocumentIssuancePanelTest extends TestCase
             ->assertSee('Central de emissão')
             ->assertSee('value="enrollment-declaration"', false)
             ->assertSee('value="academic-calendar"', false)
+            ->assertSee('value="attendance-report"', false)
             ->assertSee('value="class-report-cards"', false)
             ->assertSee('value="class-grade-mirror"', false)
             ->assertSee('name="attendance_scope"', false)
@@ -55,6 +56,40 @@ class DocumentIssuancePanelTest extends TestCase
         $this->actingAs($teacher)
             ->get(route('document-issuance.index'))
             ->assertForbidden();
+    }
+
+    public function test_attendance_report_selection_preserves_period_scope(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Educação Básica',
+            'reference_year' => 2026,
+            'starts_at' => '2026-01-01',
+            'ends_at' => '2026-12-31',
+            'active' => true,
+        ]);
+        $period = $year->periods()->create([
+            'name' => 'I Bimestre',
+            'starts_at' => '2026-02-01',
+            'ends_at' => '2026-04-15',
+            'position' => 1,
+        ]);
+
+        $this->actingAs($administrator)
+            ->get(route('document-issuance.issue', [
+                'type' => 'attendance-report',
+                'target_id' => $year->id,
+                'attendance_scope' => 'period',
+                'academic_period_id' => $period->id,
+            ]))
+            ->assertRedirect(route('academic-years.attendance-report.pdf', [
+                'academicYear' => $year,
+                'attendance_scope' => 'period',
+                'academic_period_id' => $period->id,
+                'attendance_month' => null,
+            ]));
     }
 
     public function test_manager_search_only_returns_people_from_managed_school(): void

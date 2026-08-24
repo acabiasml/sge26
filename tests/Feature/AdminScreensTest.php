@@ -355,6 +355,7 @@ class AdminScreensTest extends TestCase
                 'name' => 'Responsavel Sem Acesso',
                 'relationship_type' => PersonContact::TYPE_LEGAL_GUARDIAN,
                 'cpf' => '123.456.789-10',
+                'nis' => '12345678901',
                 'phone' => '(65) 99999-0000',
             'address' => 'Rua de Teste',
             'city' => 'Poxoreu',
@@ -369,6 +370,7 @@ class AdminScreensTest extends TestCase
             'person_id' => $student->id,
             'name' => 'Responsavel Sem Acesso',
             'relationship_type' => PersonContact::TYPE_LEGAL_GUARDIAN,
+            'nis' => '12345678901',
             'legal_guardian' => true,
             'emergency_contact' => true,
         ]);

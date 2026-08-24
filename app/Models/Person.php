@@ -31,6 +31,8 @@ class Person extends Model
         'legacy_source',
         'legacy_code',
         'student_inep',
+        'nis',
+        'receives_federal_aid',
         'legacy_metadata',
         'full_name',
         'social_name',
@@ -61,6 +63,7 @@ class Person extends Model
     {
         return [
             'birth_date' => 'date',
+            'receives_federal_aid' => 'boolean',
             'active' => 'boolean',
             'profile_completed_at' => 'datetime',
             'legacy_metadata' => 'array',

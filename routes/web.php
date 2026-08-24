@@ -7,6 +7,7 @@ use App\Http\Controllers\AcademicPeriodController;
 use App\Http\Controllers\AcademicYearClosureController;
 use App\Http\Controllers\AcademicYearController;
 use App\Http\Controllers\AcademicYearFinalResultsPdfController;
+use App\Http\Controllers\AcademicYearAttendanceReportPdfController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AttendanceJustificationController;
 use App\Http\Controllers\AuditLogController;
@@ -151,6 +152,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('anos-letivos/{academicYear}/matrizes-pdf', AcademicMatricesPdfController::class)->name('academic-years.matrices-pdf');
     Route::get('anos-letivos/{academicYear}/horarios-pdf', [SchoolClassSchedulePdfController::class, 'academicYear'])->name('academic-years.schedules-pdf');
     Route::get('anos-letivos/{academicYear}/resultados-finais-pdf', AcademicYearFinalResultsPdfController::class)->name('academic-years.final-results.pdf');
+    Route::get('anos-letivos/{academicYear}/relatorio-frequencia-pdf', AcademicYearAttendanceReportPdfController::class)->name('academic-years.attendance-report.pdf');
     Route::get('anos-letivos/{academicYear}/periodos', [AcademicPeriodController::class, 'index'])->name('academic-years.periods.index');
     Route::post('anos-letivos/{academicYear}/periodos', [AcademicPeriodController::class, 'store'])->name('academic-years.periods.store');
     Route::put('anos-letivos/{academicYear}/periodos/{period}', [AcademicPeriodController::class, 'update'])->name('academic-years.periods.update');

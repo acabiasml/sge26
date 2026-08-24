@@ -64,6 +64,7 @@ class PersonContactController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'relationship_type' => ['required', Rule::in(array_keys(PersonContact::TYPE_LABELS))],
             'cpf' => ['nullable', 'string', 'max:20'],
+            'nis' => ['nullable', 'string', 'max:20', 'regex:/^\d{11}$/'],
             'phone' => ['nullable', 'string', 'max:255'],
             'secondary_phone' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],

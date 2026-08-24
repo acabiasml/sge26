@@ -13,6 +13,27 @@ class IdentityRulesTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_administrator_can_store_student_social_program_data(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin.social@ctjj.org');
+
+        $this->actingAs($admin)
+            ->post(route('people.store'), $this->personPayload([
+                'full_name' => 'Estudante com NIS',
+                'institutional_email' => 'estudante.nis@ctjj.org',
+                'cpf' => '98765432100',
+                'nis' => '12345678901',
+                'receives_federal_aid' => '1',
+            ]))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('people', [
+            'full_name' => 'Estudante com NIS',
+            'nis' => '12345678901',
+            'receives_federal_aid' => true,
+        ]);
+    }
+
     public function test_only_active_administrator_cannot_change_their_own_institutional_email(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin@ctjj.org');

@@ -242,6 +242,8 @@ class PersonController extends Controller
             'birth_state' => [$requiresBrazilianBirthPlace ? 'required' : 'nullable', 'string', 'size:2', Rule::in(BrazilianStates::codes())],
             'nationality' => [$requiresCompleteActiveData ? 'required' : 'nullable', 'string', 'max:255'],
             'student_inep' => ['nullable', 'string', 'max:255'],
+            'nis' => ['nullable', 'string', 'max:20', 'regex:/^\d{11}$/'],
+            'receives_federal_aid' => ['nullable', 'boolean'],
             'mother_name' => [$requiresCompleteActiveData ? 'required' : 'nullable', 'string', 'max:255'],
             'father_name' => ['nullable', 'string', 'max:255'],
             'personal_email' => ['nullable', 'email', 'max:255'],
@@ -260,6 +262,7 @@ class PersonController extends Controller
         }
 
         $data = $request->validate($rules);
+        $data['receives_federal_aid'] = $request->boolean('receives_federal_aid');
 
         if ($lockOwnIdentity) {
             foreach (['full_name', 'cpf', 'birth_date', 'mother_name'] as $field) {
