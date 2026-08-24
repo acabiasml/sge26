@@ -6,7 +6,7 @@
 @endphp
 
 <div class="formation-title">Formação Técnica Profissional</div>
-<div class="muted" style="margin:2px 0 3px;">A conclusão de cada módulo assegura sua certificação intermediária; a conclusão de todos os módulos e demais requisitos assegura o diploma técnico.</div>
+<div class="muted" style="margin:2px 0 3px;">A conclusão de cada período avaliativo assegura sua certificação intermediária; a conclusão de todos os períodos e demais requisitos assegura o diploma técnico.</div>
 <table class="history-table">
     <thead>
         <tr>
@@ -40,7 +40,7 @@
     </tbody>
     <tfoot>
         <tr>
-            <td colspan="2"><strong>Carga horária cursada por módulo</strong></td>
+            <td colspan="2"><strong>Carga horária por período avaliativo</strong></td>
             @foreach($modules as $module)
                 @php($moduleHours = $technicalComponents->where('module_label', $module)->sum(fn ($component) => (float) ($component->records->firstWhere('student_academic_history_year_id', $historyYear?->id)?->workload_hours ?? 0)))
                 <td class="center">-</td><td class="center"><strong>{{ $moduleHours > 0 ? number_format($moduleHours, 0, ',', '.').'h' : '-' }}</strong></td><td class="center">-</td>
@@ -55,7 +55,7 @@
 </table>
 @if(($technicalPeriodDurations ?? collect())->isNotEmpty())
     <div class="muted" style="margin:3px 2px 5px;line-height:1.2;">
-        <strong>Duração dos módulos:</strong>
+        <strong>Duração dos períodos avaliativos:</strong>
         {{ $technicalPeriodDurations->map(fn ($period) => $period->name.': '.$period->starts_at?->format('d/m/Y').' a '.$period->ends_at?->format('d/m/Y'))->join(' · ') }}
     </div>
 @endif

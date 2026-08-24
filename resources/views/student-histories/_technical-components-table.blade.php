@@ -4,7 +4,7 @@
     $technicalArea = $technicalComponents->pluck('knowledge_area')->filter()->first() ?: 'Curso técnico';
     $historyYear = $history->years->first();
 @endphp
-<div class="px-3 pt-3 small text-muted">Cada módulo concluído gera sua certificação intermediária. A conclusão de todos os módulos e demais requisitos gera o diploma técnico.</div>
+<div class="px-3 pt-3 small text-muted">Cada período avaliativo concluído gera sua certificação intermediária. A conclusão de todos os períodos e demais requisitos gera o diploma técnico.</div>
 <div class="table-responsive">
     <table class="table table-sm table-bordered mb-0 sge-history-read-table">
         <thead><tr><th>Área</th><th>Componente</th>@foreach($modules as $module)<th class="text-center">{{ \Illuminate\Support\Str::before($module, ' —') }}</th>@endforeach</tr></thead>
@@ -32,7 +32,7 @@
 </div>
 @if(($technicalPeriodDurations ?? collect())->isNotEmpty())
     <div class="px-3 py-2 small text-muted border-top">
-        <strong>Duração dos módulos:</strong>
+        <strong>Duração dos períodos avaliativos:</strong>
         {{ $technicalPeriodDurations->map(fn ($period) => $period->name.': '.$period->starts_at?->format('d/m/Y').' a '.$period->ends_at?->format('d/m/Y'))->join(' · ') }}
     </div>
 @endif

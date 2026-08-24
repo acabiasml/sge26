@@ -113,7 +113,7 @@
         @endif
     </div>
     @if($formationComponents->pluck('module_label')->filter()->isNotEmpty())
-        <div class="muted" style="margin:2px 0 3px;">A conclusão de cada módulo assegura sua certificação intermediária; a conclusão de todos os módulos e demais requisitos do curso assegura o diploma técnico.</div>
+        <div class="muted" style="margin:2px 0 3px;">A conclusão de cada período avaliativo assegura sua certificação intermediária; a conclusão de todos os períodos e demais requisitos do curso assegura o diploma técnico.</div>
     @endif
     @foreach($formationComponents->sortBy(fn ($component) => $component->module_label ?: '')->groupBy(fn ($component) => $component->module_label ?: '') as $moduleLabel => $moduleComponents)
     @if($moduleLabel)<div class="module-title">{{ $moduleLabel }}</div>@endif
@@ -203,7 +203,7 @@
 <table class="studies-table">
     <thead>
         <tr>
-            <th style="width: 18%;">{{ $history->education_stage === 'tecnico' ? 'Módulo' : 'Ano / Série' }}</th>
+            <th style="width: 18%;">{{ $history->education_stage === 'tecnico' ? 'Período avaliativo' : 'Ano / Série' }}</th>
             <th style="width: 54%;">Estabelecimento / Local</th>
             <th style="width: 14%;">Modalidade</th>
             <th style="width: 14%;">Resultado</th>

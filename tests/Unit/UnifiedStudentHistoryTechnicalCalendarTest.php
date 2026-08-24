@@ -78,7 +78,7 @@ class UnifiedStudentHistoryTechnicalCalendarTest extends TestCase
         $method = new ReflectionMethod($synchronizer, 'technicalModuleLabel');
 
         $this->assertSame(
-            'Módulo II — Desenhista de móveis (II Módulo)',
+            'II Módulo — Desenhista de móveis',
             $method->invoke($synchronizer, $component, $course),
         );
     }
@@ -127,7 +127,7 @@ class UnifiedStudentHistoryTechnicalCalendarTest extends TestCase
         $synchronizer = $this->getMockBuilder(UnifiedStudentHistorySynchronizer::class)->disableOriginalConstructor()->getMock();
         $method = new ReflectionMethod($synchronizer, 'technicalModuleLabel');
 
-        $this->assertSame('Módulo I — Certificação intermediária (Módulo I)', $method->invoke($synchronizer, $component, $course));
+        $this->assertSame('Módulo I — Certificação intermediária', $method->invoke($synchronizer, $component, $course));
     }
 
     private function source(int $enrollmentId, int $courseId, string $courseName, string $startsAt, string $endsAt, string $componentName): array

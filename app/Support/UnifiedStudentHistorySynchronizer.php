@@ -230,9 +230,9 @@ class UnifiedStudentHistorySynchronizer
         };
         $certificate = $course->moduleCertificationForPeriod($position) ?: 'Certificação intermediária';
 
-        return 'Módulo '.$roman
-            .($certificate ? ' — '.$certificate : '')
-            .($period?->name ? ' ('.$period->name.')' : '');
+        $periodLabel = $period?->name ?: 'Período avaliativo '.$roman;
+
+        return $periodLabel.($certificate ? ' — '.$certificate : '');
     }
 
     /**
@@ -263,7 +263,7 @@ class UnifiedStudentHistorySynchronizer
     /**
      * A matrícula técnica pode usar um calendário plurianual diferente do calendário
      * da formação geral. Cada componente é lançado na série regular do ano em que o
-     * módulo termina, evitando repetir a mesma carga horária em dois anos.
+     * período avaliativo termina, evitando repetir a mesma carga horária em dois anos.
      *
      * @param  Collection<int, array{enrollment: StudentEnrollment, course: AcademicCourse, report: array<string, mixed>}>  $sources
      * @return Collection<int, array<string, mixed>>

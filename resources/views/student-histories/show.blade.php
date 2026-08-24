@@ -102,7 +102,7 @@
                         <thead>
                             <tr>
                                 <th>Formação</th>
-                                <th>Módulo / certificação</th>
+                                <th>Período / certificação</th>
                                 <th>Área</th>
                                 <th>Componente</th>
                                 @foreach($history->years as $year)
