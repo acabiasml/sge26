@@ -238,6 +238,19 @@ class AcademicCourse extends Model
         ])->filter()->join(' ');
     }
 
+    public function conciseRegulatoryReference(): ?string
+    {
+        if ($this->stage !== self::STAGE_TECHNICAL) {
+            return null;
+        }
+
+        return collect([
+            'Lei Federal nº 9.394/1996, arts. 36-B a 42',
+            'Resolução CNE/CP nº 1/2021',
+            filled($this->authorization_act) ? $this->authorization_act : null,
+        ])->filter()->join('; ').'.';
+    }
+
     public function moduleCertificationForPeriod(?int $position): ?string
     {
         if (! $position) {

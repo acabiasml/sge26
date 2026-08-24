@@ -34,7 +34,7 @@
 @foreach($documentTechnicalCourses as $documentTechnicalCourse)
     <div style="margin:3px 0 5px;padding:3px 5px;border:.5px solid #d8c8bf;background:#faf8f6;font-size:11px;page-break-inside:avoid;">
         <strong>{{ $documentTechnicalCourse->name }} — regulamentação:</strong>
-        {{ $documentTechnicalCourse->regulatoryReference() }}
+        {{ $documentTechnicalCourse->conciseRegulatoryReference() }}
         @if($documentTechnicalCourse->technological_axis) Eixo tecnológico: {{ $documentTechnicalCourse->technological_axis }}. @endif
         @if($documentTechnicalCourse->offer_forms) Forma de oferta: {{ $documentTechnicalCourse->offer_forms }}. @endif
         @if($documentTechnicalCourse->authorization_starts_at || $documentTechnicalCourse->authorization_ends_at)

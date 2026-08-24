@@ -100,6 +100,23 @@ class UnifiedStudentHistoryTechnicalCalendarTest extends TestCase
         $this->assertStringContainsString('DOE-MT nº 28.918', $reference);
     }
 
+    public function test_concise_technical_reference_keeps_only_essential_rules_and_authorization(): void
+    {
+        $course = new AcademicCourse([
+            'stage' => AcademicCourse::STAGE_TECHNICAL,
+            'authorization_act' => 'Ato 056/2025-CEE/MT',
+            'regulatory_process' => '7/2023/SIPE/CEE-MT',
+            'official_gazette_reference' => 'DOE-MT nº 28.918, p. 27, 28/01/2025',
+        ]);
+
+        $reference = $course->conciseRegulatoryReference();
+
+        $this->assertSame(
+            'Lei Federal nº 9.394/1996, arts. 36-B a 42; Resolução CNE/CP nº 1/2021; Ato 056/2025-CEE/MT.',
+            $reference,
+        );
+    }
+
     public function test_technical_module_without_named_exit_is_still_identified_as_certifiable(): void
     {
         $course = new AcademicCourse(['stage' => AcademicCourse::STAGE_TECHNICAL]);

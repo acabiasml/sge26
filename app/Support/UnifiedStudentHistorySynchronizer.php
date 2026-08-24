@@ -174,14 +174,14 @@ class UnifiedStudentHistorySynchronizer
                     'position' => $history->components()->count() + 1,
                     'formation' => $formation,
                     'module_label' => $moduleLabel,
-                    'regulatory_reference' => $technicalCourse?->regulatoryReference(),
+                    'regulatory_reference' => $technicalCourse?->conciseRegulatoryReference(),
                     'knowledge_area' => $knowledgeArea,
                     'name' => $component->name,
                 ]);
             $historyComponent->update([
                 'formation' => $formation,
                 'module_label' => $moduleLabel,
-                'regulatory_reference' => $technicalCourse?->regulatoryReference(),
+                'regulatory_reference' => $technicalCourse?->conciseRegulatoryReference(),
                 'knowledge_area' => $knowledgeArea,
             ]);
             $synchronizedComponentIds->push($historyComponent->id);
