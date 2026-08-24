@@ -50,6 +50,15 @@
         <td class="label">Período selecionado</td><td>{{ $scopeLabel }}</td>
         <td class="label">Intervalo</td><td>{{ $startsAt->format('d/m/Y') }} a {{ $endsAt->format('d/m/Y') }}{{ $federalAidOnly ? ' · Somente beneficiários de auxílio federal' : '' }}</td>
     </tr>
+    <tr>
+        <td class="label">Calendário do intervalo</td>
+        <td colspan="3">
+            <strong>{{ $calendarSummary['school_days'] }}</strong> dias letivos ·
+            <strong>{{ $calendarSummary['non_school_days'] }}</strong> dias não letivos ·
+            <strong>{{ $calendarSummary['saturdays'] }}</strong> sábados ·
+            <strong>{{ $calendarSummary['sundays'] }}</strong> domingos
+        </td>
+    </tr>
 </table>
 
 <table class="attendance">

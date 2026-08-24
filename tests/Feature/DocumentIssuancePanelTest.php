@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
 use App\Models\AcademicYear;
+use App\Models\CalendarDay;
+use App\Models\IssuedDocument;
 use App\Models\Person;
 use App\Models\PersonContact;
 use App\Models\PersonSchoolRole;
@@ -122,6 +124,37 @@ class DocumentIssuancePanelTest extends TestCase
                 'attendance_month' => '2026-06',
                 'federal_aid_only' => 1,
             ]));
+
+        CalendarDay::query()->create([
+            'academic_year_id' => $year->id,
+            'date' => '2026-06-01',
+            'type' => CalendarDay::TYPE_SCHOOL_DAY,
+            'counts_as_school_day' => true,
+        ]);
+        CalendarDay::query()->create([
+            'academic_year_id' => $year->id,
+            'date' => '2026-06-02',
+            'type' => CalendarDay::TYPE_SCHOOL_DAY,
+            'counts_as_school_day' => true,
+        ]);
+
+        $this->actingAs($administrator)
+            ->get(route('academic-years.attendance-report.pdf', [
+                'academicYear' => $year,
+                'attendance_scope' => 'month',
+                'attendance_month' => '2026-06',
+                'federal_aid_only' => 1,
+            ]))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        $this->assertSame([
+            'calendar_days' => 30,
+            'school_days' => 2,
+            'non_school_days' => 28,
+            'saturdays' => 4,
+            'sundays' => 4,
+        ], IssuedDocument::query()->latest('id')->firstOrFail()->payload['calendar']);
     }
 
     public function test_manager_search_only_returns_people_from_managed_school(): void

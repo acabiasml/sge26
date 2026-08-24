@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicPeriod;
 use App\Models\AcademicYear;
+use App\Models\CalendarDay;
 use App\Models\DiaryAttendanceJustification;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\IssuedDocument;
@@ -12,6 +13,7 @@ use App\Support\AttendanceSummaryCalculator;
 use App\Support\PdfLetterhead;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -33,6 +35,7 @@ class AcademicYearAttendanceReportPdfController extends Controller
 
         [$startsAt, $endsAt, $scopeLabel] = $this->scope($academicYear, $data);
         $academicYear->load('school');
+        $calendarSummary = $this->calendarSummary($academicYear, $startsAt, $endsAt);
 
         $enrollments = StudentEnrollment::query()
             ->whereHas('schoolClass', fn ($query) => $query->where('academic_year_id', $academicYear->id))
@@ -108,6 +111,7 @@ class AcademicYearAttendanceReportPdfController extends Controller
                 'ends_at' => $endsAt,
                 'students_count' => $rows->count(),
                 'federal_aid_only' => ! empty($data['federal_aid_only']),
+                'calendar' => $calendarSummary,
             ],
             'issued_at' => now(),
         ]);
@@ -121,6 +125,7 @@ class AcademicYearAttendanceReportPdfController extends Controller
             'endsAt' => CarbonImmutable::parse($endsAt),
             'scopeLabel' => $scopeLabel,
             'federalAidOnly' => ! empty($data['federal_aid_only']),
+            'calendarSummary' => $calendarSummary,
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
             'letterhead' => PdfLetterhead::make($academicYear->school),
@@ -169,5 +174,25 @@ class AcademicYearAttendanceReportPdfController extends Controller
         } while (IssuedDocument::query()->where('verification_code', $code)->exists());
 
         return $code;
+    }
+
+    /** @return array{calendar_days: int, school_days: int, non_school_days: int, saturdays: int, sundays: int} */
+    private function calendarSummary(AcademicYear $academicYear, string $startsAt, string $endsAt): array
+    {
+        $dates = collect(CarbonPeriod::create($startsAt, $endsAt));
+        $schoolDays = CalendarDay::query()
+            ->where('academic_year_id', $academicYear->id)
+            ->whereDate('date', '>=', $startsAt)
+            ->whereDate('date', '<=', $endsAt)
+            ->where('counts_as_school_day', true)
+            ->count();
+
+        return [
+            'calendar_days' => $dates->count(),
+            'school_days' => $schoolDays,
+            'non_school_days' => max(0, $dates->count() - $schoolDays),
+            'saturdays' => $dates->filter(fn ($date): bool => $date->isSaturday())->count(),
+            'sundays' => $dates->filter(fn ($date): bool => $date->isSunday())->count(),
+        ];
     }
 }
