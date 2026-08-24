@@ -28,7 +28,7 @@ class IdentityRulesTest extends TestCase
             ->assertRedirect();
 
         $this->assertDatabaseHas('people', [
-            'full_name' => 'Estudante com NIS',
+            'full_name' => 'Estudante Com Nis',
             'nis' => '12345678901',
             'receives_federal_aid' => true,
         ]);
