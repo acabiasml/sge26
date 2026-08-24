@@ -134,6 +134,18 @@
                     </table>
                 </div>
                 @endif
+                @php
+                    $basicFormationComponents = $history->components->where('formation', 'Formação Geral Básica');
+                    $itineraryComponents = $history->components->where('formation', 'Itinerário Formativo');
+                    $basicFormationHours = $basicFormationComponents->sum(fn ($component) => (float) $component->records->sum('workload_hours'));
+                    $itineraryHours = $itineraryComponents->sum(fn ($component) => (float) $component->records->sum('workload_hours'));
+                @endphp
+                @if($basicFormationComponents->isNotEmpty() && $itineraryComponents->isNotEmpty())
+                    <div class="row g-3 p-3 border-top">
+                        <div class="col-md-6"><strong>Formação Geral Básica:</strong> {{ number_format($basicFormationHours, 0, ',', '.') }}h</div>
+                        <div class="col-md-6"><strong>Itinerário Formativo:</strong> {{ number_format($itineraryHours, 0, ',', '.') }}h</div>
+                    </div>
+                @endif
             </section>
         </div>
 

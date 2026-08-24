@@ -151,6 +151,23 @@
         @endforeach
     </tr>
 </table>
+
+@php
+    $basicFormationComponents = $history->components->where('formation', 'Formação Geral Básica');
+    $itineraryComponents = $history->components->where('formation', 'Itinerário Formativo');
+    $basicFormationHours = $basicFormationComponents->sum(fn ($component) => (float) $component->records->sum('workload_hours'));
+    $itineraryHours = $itineraryComponents->sum(fn ($component) => (float) $component->records->sum('workload_hours'));
+@endphp
+@if($basicFormationComponents->isNotEmpty() && $itineraryComponents->isNotEmpty())
+    <table class="history-table" style="margin-top:3px;">
+        <tr>
+            <td><strong>Total de Formação Geral Básica</strong></td>
+            <td class="center"><strong>{{ number_format($basicFormationHours, 0, ',', '.').'h' }}</strong></td>
+            <td><strong>Total de Itinerário Formativo</strong></td>
+            <td class="center"><strong>{{ number_format($itineraryHours, 0, ',', '.').'h' }}</strong></td>
+        </tr>
+    </table>
+@endif
 @endif
 
 @php($technicalRegulation = $history->components->pluck('regulatory_reference')->filter()->unique()->join(' '))
