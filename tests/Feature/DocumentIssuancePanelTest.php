@@ -37,6 +37,9 @@ class DocumentIssuancePanelTest extends TestCase
             ->assertSee('value="class-report-cards"', false)
             ->assertSee('value="class-grade-mirror"', false)
             ->assertSee('name="attendance_scope"', false)
+            ->assertSee('name="attendance_start_month"', false)
+            ->assertSee('name="attendance_end_month"', false)
+            ->assertSee('name="federal_aid_only"', false)
             ->assertSee('target="_blank"', false)
             ->assertSee('data-download-form="true"', false)
             ->assertSee('Ficha cadastral da escola');
@@ -89,6 +92,39 @@ class DocumentIssuancePanelTest extends TestCase
                 'attendance_scope' => 'period',
                 'academic_period_id' => $period->id,
                 'attendance_month' => null,
+            ]));
+    }
+
+    public function test_attendance_report_selection_preserves_month_range_and_aid_filter(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Educação Básica',
+            'reference_year' => 2026,
+            'starts_at' => '2026-01-01',
+            'ends_at' => '2026-12-31',
+            'active' => true,
+        ]);
+
+        $this->actingAs($administrator)
+            ->get(route('document-issuance.issue', [
+                'type' => 'attendance-report',
+                'target_id' => $year->id,
+                'attendance_scope' => 'months',
+                'attendance_start_month' => '2026-06',
+                'attendance_end_month' => '2026-07',
+                'federal_aid_only' => 1,
+            ]))
+            ->assertRedirect(route('academic-years.attendance-report.pdf', [
+                'academicYear' => $year,
+                'attendance_scope' => 'months',
+                'academic_period_id' => null,
+                'attendance_month' => null,
+                'attendance_start_month' => '2026-06',
+                'attendance_end_month' => '2026-07',
+                'federal_aid_only' => 1,
             ]));
     }
 

@@ -281,9 +281,12 @@ class DocumentIssuanceController extends Controller
             'target_id' => ['required', 'integer'],
             'score_view' => ['nullable', Rule::in(['numeros', 'conceitos'])],
             'month' => ['nullable', 'date_format:Y-m'],
-            'attendance_scope' => ['nullable', Rule::in(['annual', 'period', 'month'])],
+            'attendance_scope' => ['nullable', Rule::in(['annual', 'period', 'month', 'months'])],
             'academic_period_id' => ['nullable', 'required_if:attendance_scope,period', 'integer'],
             'attendance_month' => ['nullable', 'required_if:attendance_scope,month', 'date_format:Y-m'],
+            'attendance_start_month' => ['nullable', 'required_if:attendance_scope,months', 'date_format:Y-m'],
+            'attendance_end_month' => ['nullable', 'required_if:attendance_scope,months', 'date_format:Y-m', 'after_or_equal:attendance_start_month'],
+            'federal_aid_only' => ['nullable', 'boolean'],
             'confirm_missing_student_cpf' => ['nullable', 'boolean'],
         ]);
         $schoolIds = $this->accessibleSchoolIds($request->user());
@@ -942,6 +945,13 @@ class DocumentIssuanceController extends Controller
             $parameters['attendance_scope'] = $data['attendance_scope'] ?? 'annual';
             $parameters['academic_period_id'] = $data['academic_period_id'] ?? null;
             $parameters['attendance_month'] = $data['attendance_month'] ?? null;
+            if ($parameters['attendance_scope'] === 'months') {
+                $parameters['attendance_start_month'] = $data['attendance_start_month'] ?? null;
+                $parameters['attendance_end_month'] = $data['attendance_end_month'] ?? null;
+            }
+            if (! empty($data['federal_aid_only'])) {
+                $parameters['federal_aid_only'] = 1;
+            }
         }
 
         return redirect()->route($route, $parameters);

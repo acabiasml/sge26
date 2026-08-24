@@ -25,9 +25,12 @@ class AcademicYearAttendanceReportPdfController extends Controller
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
 
         $data = $request->validate([
-            'attendance_scope' => ['nullable', Rule::in(['annual', 'period', 'month'])],
+            'attendance_scope' => ['nullable', Rule::in(['annual', 'period', 'month', 'months'])],
             'academic_period_id' => ['nullable', 'required_if:attendance_scope,period', 'integer'],
             'attendance_month' => ['nullable', 'required_if:attendance_scope,month', 'date_format:Y-m'],
+            'attendance_start_month' => ['nullable', 'required_if:attendance_scope,months', 'date_format:Y-m'],
+            'attendance_end_month' => ['nullable', 'required_if:attendance_scope,months', 'date_format:Y-m', 'after_or_equal:attendance_start_month'],
+            'federal_aid_only' => ['nullable', 'boolean'],
         ]);
 
         [$startsAt, $endsAt, $scopeLabel] = $this->scope($academicYear, $data);
@@ -35,6 +38,10 @@ class AcademicYearAttendanceReportPdfController extends Controller
 
         $enrollments = StudentEnrollment::query()
             ->whereHas('schoolClass', fn ($query) => $query->where('academic_year_id', $academicYear->id))
+            ->when(! empty($data['federal_aid_only']), fn ($query) => $query->whereHas(
+                'student',
+                fn ($students) => $students->where('receives_federal_aid', true),
+            ))
             ->with(['student:id,full_name,cpf,student_inep,nis,receives_federal_aid', 'schoolClass:id,academic_year_id,name,shift'])
             ->get()
             ->sortBy(fn (StudentEnrollment $enrollment): string => mb_strtolower($enrollment->student?->full_name ?? ''))
@@ -102,6 +109,7 @@ class AcademicYearAttendanceReportPdfController extends Controller
                 'starts_at' => $startsAt,
                 'ends_at' => $endsAt,
                 'students_count' => $rows->count(),
+                'federal_aid_only' => ! empty($data['federal_aid_only']),
             ],
             'issued_at' => now(),
         ]);
@@ -114,6 +122,7 @@ class AcademicYearAttendanceReportPdfController extends Controller
             'startsAt' => CarbonImmutable::parse($startsAt),
             'endsAt' => CarbonImmutable::parse($endsAt),
             'scopeLabel' => $scopeLabel,
+            'federalAidOnly' => ! empty($data['federal_aid_only']),
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
             'letterhead' => PdfLetterhead::make($academicYear->school),
@@ -150,6 +159,26 @@ class AcademicYearAttendanceReportPdfController extends Controller
             $end = $month->endOfMonth()->min($yearEnd);
 
             return [$start->toDateString(), $end->toDateString(), ucfirst($month->translatedFormat('F \d\e Y'))];
+        }
+
+        if ($scope === 'months') {
+            $firstMonth = CarbonImmutable::createFromFormat('Y-m-d', $data['attendance_start_month'].'-01');
+            $lastMonth = CarbonImmutable::createFromFormat('Y-m-d', $data['attendance_end_month'].'-01');
+
+            if ($lastMonth->endOfMonth()->isBefore($yearStart) || $firstMonth->startOfMonth()->isAfter($yearEnd)) {
+                throw ValidationException::withMessages([
+                    'attendance_start_month' => 'O intervalo de meses selecionado está fora deste ano letivo.',
+                ]);
+            }
+
+            $start = $firstMonth->startOfMonth()->max($yearStart);
+            $end = $lastMonth->endOfMonth()->min($yearEnd);
+
+            return [
+                $start->toDateString(),
+                $end->toDateString(),
+                ucfirst($firstMonth->translatedFormat('F \d\e Y')).' a '.ucfirst($lastMonth->translatedFormat('F \d\e Y')),
+            ];
         }
 
         return [$yearStart->toDateString(), $yearEnd->toDateString(), 'Anual'];

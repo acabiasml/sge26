@@ -48,7 +48,7 @@
     </tr>
     <tr>
         <td class="label">Período selecionado</td><td>{{ $scopeLabel }}</td>
-        <td class="label">Intervalo</td><td>{{ $startsAt->format('d/m/Y') }} a {{ $endsAt->format('d/m/Y') }}</td>
+        <td class="label">Intervalo</td><td>{{ $startsAt->format('d/m/Y') }} a {{ $endsAt->format('d/m/Y') }}{{ $federalAidOnly ? ' · Somente beneficiários de auxílio federal' : '' }}</td>
     </tr>
 </table>
 
@@ -56,16 +56,18 @@
     <thead>
         <tr>
             <th style="width: 3%">Nº</th>
-            <th style="width: 19%">Nome completo</th>
-            <th style="width: 9%">Turma</th>
-            <th style="width: 10%">Situação</th>
-            <th style="width: 9%">NIS</th>
-            <th style="width: 8%">Turno</th>
-            <th style="width: 10%">CPF</th>
-            <th style="width: 10%">INEP</th>
-            <th style="width: 7%">Frequência</th>
+            <th style="width: 17%">Nome completo</th>
+            <th style="width: 7%">Turma</th>
+            <th style="width: 9%">Situação</th>
+            <th style="width: 8%">NIS</th>
+            <th style="width: 6%">Turno</th>
+            <th style="width: 9%">CPF</th>
+            <th style="width: 9%">INEP</th>
+            <th style="width: 7%">Aulas registradas</th>
+            <th style="width: 7%">Presenças</th>
             <th style="width: 6%">Faltas</th>
-            <th style="width: 9%">Auxílio federal</th>
+            <th style="width: 7%">Frequência</th>
+            <th style="width: 5%">Auxílio</th>
         </tr>
     </thead>
     <tbody>
@@ -86,12 +88,14 @@
                 <td class="center">{{ $enrollment->schoolClass?->shift ?: '-' }}</td>
                 <td class="center nowrap">{{ $enrollment->student?->cpf ?: '-' }}</td>
                 <td class="center nowrap">{{ $enrollment->student?->student_inep ?: '-' }}</td>
-                <td class="center nowrap">{{ $summary['percentage'] !== null ? number_format($summary['percentage'], 1, ',', '.').'%' : '-' }}</td>
+                <td class="center">{{ $summary['lessons'] }}</td>
+                <td class="center">{{ $summary['effective_attended'] }}</td>
                 <td class="center">{{ $summary['absent'] }}</td>
+                <td class="center nowrap">{{ $summary['percentage'] !== null ? number_format($summary['percentage'], 1, ',', '.').'%' : '-' }}</td>
                 <td class="center">{{ $enrollment->student?->receives_federal_aid ? 'Sim' : 'Não' }}</td>
             </tr>
         @empty
-            <tr><td colspan="11" class="center">Nenhuma matrícula encontrada neste ano letivo.</td></tr>
+            <tr><td colspan="13" class="center">Nenhuma matrícula encontrada para os filtros selecionados.</td></tr>
         @endforelse
     </tbody>
 </table>
