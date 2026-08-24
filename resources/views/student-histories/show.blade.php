@@ -32,6 +32,9 @@
                 <h2 id="history-title">{{ $person->social_name ?: $person->full_name }}</h2>
                 <div class="sge-student-meta">
                     @if($person->student_inep)<span><i class="fas fa-id-card" aria-hidden="true"></i>INEP {{ $person->student_inep }}</span>@endif
+                    @if($person->nis)<span><i class="fas fa-address-card" aria-hidden="true"></i>NIS {{ $person->nis }}</span>@endif
+                    @if($person->cpf)<span><i class="fas fa-fingerprint" aria-hidden="true"></i>CPF {{ $person->cpf }}</span>@endif
+                    @if($person->birth_date)<span><i class="fas fa-birthday-cake" aria-hidden="true"></i>{{ $person->birth_date->format('d/m/Y') }}</span>@endif
                     <span><i class="fas fa-school" aria-hidden="true"></i>{{ $history->school?->name ?? 'Escola não vinculada' }}</span>
                     <span><i class="fas fa-map-marker-alt" aria-hidden="true"></i>{{ collect([$history->issued_place, $history->issued_date?->format('d/m/Y')])->filter()->join(', ') ?: 'Sem local/data de emissão' }}</span>
                 </div>

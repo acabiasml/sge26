@@ -62,17 +62,30 @@
 <table class="student-box">
     <tr>
         <td><span class="label">Estudante:</span> {{ $person->full_name }}</td>
-        <td><span class="label">CPF:</span> {{ $formatCpf($person->cpf) }}</td>
-        <td><span class="label">Data de nascimento:</span> {{ $person->birth_date?->format('d/m/Y') ?? '-' }}</td>
+        <td>@if($person->cpf)<span class="label">CPF:</span> {{ $formatCpf($person->cpf) }}@endif</td>
+        <td>@if($person->birth_date)<span class="label">Nascimento:</span> {{ $person->birth_date->format('d/m/Y') }}@endif</td>
     </tr>
     <tr>
-        <td><span class="label">Naturalidade:</span> {{ collect([$person->birth_city ?: ($person->legacy_metadata['naturalidade'] ?? null), $person->birth_state ?: ($person->legacy_metadata['naturalidade_uf'] ?? null)])->filter()->join(' / ') ?: '-' }}</td>
-        <td><span class="label">INEP:</span> {{ $person->student_inep ?: '-' }}</td>
-        <td><span class="label">Mãe:</span> {{ $person->mother_name ?: '-' }}</td>
+        @php($birthPlace = collect([$person->birth_city ?: ($person->legacy_metadata['naturalidade'] ?? null), $person->birth_state ?: ($person->legacy_metadata['naturalidade_uf'] ?? null)])->filter()->join(' / '))
+        <td>@if($birthPlace)<span class="label">Naturalidade:</span> {{ $birthPlace }}@endif</td>
+        <td>@if($person->nationality)<span class="label">Nacionalidade:</span> {{ $person->nationality }}@endif</td>
+        <td>@if($person->nis)<span class="label">NIS:</span> {{ $person->nis }}@endif</td>
     </tr>
+    @if($person->social_name || $person->student_inep || $person->receives_federal_aid)
     <tr>
-        <td colspan="3"><span class="label">Pai:</span> {{ $person->father_name ?: '-' }}</td>
+        <td>@if($person->social_name)<span class="label">Nome social:</span> {{ $person->social_name }}@endif</td>
+        <td>@if($person->student_inep)<span class="label">INEP:</span> {{ $person->student_inep }}@endif</td>
+        <td>@if($person->receives_federal_aid)<span class="label">Auxílio federal:</span> Sim@endif</td>
     </tr>
+    @endif
+    @if($person->mother_name)
+    <tr><td colspan="3"><span class="label">Mãe:</span> {{ $person->mother_name }}</td></tr>
+    @endif
+    @if($person->father_name)
+    <tr>
+        <td colspan="3"><span class="label">Pai:</span> {{ $person->father_name }}</td>
+    </tr>
+    @endif
 </table>
 
 <div class="section-title">
