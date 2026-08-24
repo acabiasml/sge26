@@ -87,7 +87,7 @@ class UnifiedStudentHistoryTechnicalCalendarTest extends TestCase
     {
         $course = new AcademicCourse([
             'stage' => AcademicCourse::STAGE_TECHNICAL,
-            'authorization_act' => 'Ato 056/2025-CEE/MT',
+            'authorization_act' => 'Ato 056/2025-CEE/MT — autorização do curso presencial por quatro anos',
             'regulatory_process' => '7/2023/SIPE/CEE-MT',
             'regulatory_opinion' => 'CEPS 8/2025',
             'official_gazette_reference' => 'DOE-MT nº 28.918, p. 27, 28/01/2025',

@@ -244,10 +244,14 @@ class AcademicCourse extends Model
             return null;
         }
 
+        $authorizationAct = filled($this->authorization_act)
+            ? trim((string) preg_split('/\s+[—–]\s+/u', $this->authorization_act, 2)[0])
+            : null;
+
         return collect([
             'Lei Federal nº 9.394/1996, arts. 36-B a 42',
             'Resolução CNE/CP nº 1/2021',
-            filled($this->authorization_act) ? $this->authorization_act : null,
+            $authorizationAct,
         ])->filter()->join('; ').'.';
     }
 
