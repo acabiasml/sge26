@@ -77,17 +77,18 @@
 
 <div class="section-title">
     Componentes curriculares
-    <span class="section-title-reference">Fundamento legal: {{ $history->legal_basis }}</span>
+    @if($history->education_stage !== 'tecnico')
+        <span class="section-title-reference">Fundamento legal: {{ $history->legal_basis }}</span>
+    @endif
 </div>
+@if($history->education_stage === 'tecnico')
+    @include('reports.partials.technical-history-matrix', ['history' => $history])
+@else
 @forelse($history->components->groupBy(fn ($component) => $component->formation ?: '-') as $formation => $formationComponents)
     <div class="formation-title">
         {{ $formation }}
         @if($formation === 'Formação Geral Básica')
             <span class="formation-title-reference">{{ $basicFormationReference }}</span>
-        @endif
-        @php($formationRegulation = $formationComponents->pluck('regulatory_reference')->filter()->unique()->join(' '))
-        @if($formationRegulation)
-            <span class="formation-title-reference">{{ $formationRegulation }}</span>
         @endif
     </div>
     @if($formationComponents->pluck('module_label')->filter()->isNotEmpty())
@@ -150,6 +151,12 @@
         @endforeach
     </tr>
 </table>
+@endif
+
+@php($technicalRegulation = $history->components->pluck('regulatory_reference')->filter()->unique()->join(' '))
+@if($technicalRegulation)
+    <div class="muted" style="font-size:11px;line-height:1.15;margin:2px 2px 5px;"><strong>Nota legal da formação técnica:</strong> {{ $technicalRegulation }}</div>
+@endif
 
 <div class="studies-section">
 <div class="section-title">Estudos realizados</div>

@@ -146,7 +146,9 @@ class UnifiedStudentHistorySynchronizer
         foreach ($historyComponents as $componentReport) {
             $component = $componentReport['component'];
             $technicalCourse = $component->course?->stage === AcademicCourse::STAGE_TECHNICAL ? $component->course : null;
-            $moduleLabel = $technicalCourse ? $this->technicalModuleLabel($component, $technicalCourse) : null;
+            $moduleLabel = $technicalCourse && $stage === AcademicCourse::STAGE_TECHNICAL
+                ? $this->technicalModuleLabel($component, $technicalCourse)
+                : null;
             $formation = CurriculumCatalog::formationLabelForArea($component->course, $component->area);
             $knowledgeArea = CurriculumCatalog::areaLabelForComponent($component->course, $component->area);
             if ($stage === AcademicCourse::STAGE_TECHNICAL) {
@@ -161,12 +163,12 @@ class UnifiedStudentHistorySynchronizer
             $historyComponent = $history->components()
                 ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($component->name), 'UTF-8')])
                 ->where('knowledge_area', $knowledgeArea)
-                ->when($technicalCourse, fn ($query) => $query->where('module_label', $moduleLabel))
+                ->when($moduleLabel !== null, fn ($query) => $query->where('module_label', $moduleLabel))
                 ->first();
             $historyComponent ??= $history->components()
                 ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($component->name), 'UTF-8')])
                 ->whereIn('knowledge_area', ['Itinerário Formativo', 'Educação Profissional e Tecnológica', 'Parte Complementar', 'Área não definida'])
-                ->when($technicalCourse, fn ($query) => $query->where('module_label', $moduleLabel))
+                ->when($moduleLabel !== null, fn ($query) => $query->where('module_label', $moduleLabel))
                 ->first();
             $historyComponent ??= $history->components()->create([
                     'position' => $history->components()->count() + 1,
@@ -186,7 +188,12 @@ class UnifiedStudentHistorySynchronizer
             $periodCount = max(1, (int) $componentReport['total_periods']);
             $rawScore = $componentReport['complete_periods'] > 0 ? (float) $componentReport['points'] / $periodCount : null;
             $usesLegacyScale = filled($component->legacy_source) || filled($component->legacy_metadata);
-            $score = ! $isInProgress && $rawScore !== null ? round($rawScore, $usesLegacyScale ? 0 : 2, PHP_ROUND_HALF_UP) : null;
+            $modulePeriod = $component->endsPeriod ?: $component->startsPeriod;
+            $moduleConcluded = $stage === AcademicCourse::STAGE_TECHNICAL
+                && $modulePeriod?->ends_at?->copy()->endOfDay()->isPast();
+            $score = (! $isInProgress || $moduleConcluded) && $rawScore !== null
+                ? round($rawScore, $usesLegacyScale ? 0 : 2, PHP_ROUND_HALF_UP)
+                : null;
             $componentAttendance = $componentReport['attendance'];
             $componentPercentage = $componentAttendance['percentage'] ?? null;
 
@@ -195,7 +202,9 @@ class UnifiedStudentHistorySynchronizer
                 [
                     'score_label' => $score !== null ? number_format($score, $usesLegacyScale ? 1 : 2, ',', '.') : '-',
                     'score_numeric' => $score,
-                    'workload_hours' => $this->historicalWorkloadHours($component),
+                    'workload_hours' => $stage === AcademicCourse::STAGE_TECHNICAL && $isInProgress && ! $moduleConcluded
+                        ? null
+                        : $this->historicalWorkloadHours($component),
                     'frequency_label' => $componentPercentage !== null ? number_format((float) $componentPercentage, 2, ',', '.').'%' : null,
                     'frequency_percentage' => $componentPercentage,
                     'absences' => $componentAttendance['absent'] ?? null,

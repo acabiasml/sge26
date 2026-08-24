@@ -91,6 +91,9 @@
                         <p>Resultado preservado conforme o documento recebido da escola de origem.</p>
                     </div>
                 </div>
+                @if($history->education_stage === \App\Models\AcademicCourse::STAGE_TECHNICAL)
+                    @include('student-histories._technical-components-table', ['history' => $history])
+                @else
                 <div class="table-responsive">
                     <table class="table table-sm table-bordered mb-0 sge-history-read-table">
                         <thead>
@@ -130,6 +133,7 @@
                         </tbody>
                     </table>
                 </div>
+                @endif
             </section>
         </div>
 
