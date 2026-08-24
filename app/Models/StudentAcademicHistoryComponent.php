@@ -16,6 +16,8 @@ class StudentAcademicHistoryComponent extends Model
         'student_academic_history_id',
         'position',
         'formation',
+        'module_label',
+        'regulatory_reference',
         'knowledge_area',
         'name',
     ];

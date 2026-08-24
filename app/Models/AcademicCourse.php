@@ -56,6 +56,17 @@ class AcademicCourse extends Model
         'ends_period_id',
         'name',
         'itinerary_name',
+        'technical_legal_basis',
+        'accreditation_act',
+        'authorization_act',
+        'regulatory_process',
+        'regulatory_opinion',
+        'technological_axis',
+        'offer_forms',
+        'official_gazette_reference',
+        'authorization_starts_at',
+        'authorization_ends_at',
+        'module_certifications',
         'stage',
         'modality',
         'status',
@@ -73,6 +84,8 @@ class AcademicCourse extends Model
         return [
             'legacy_metadata' => 'array',
             'active' => 'boolean',
+            'authorization_starts_at' => 'date',
+            'authorization_ends_at' => 'date',
         ];
     }
 
@@ -202,6 +215,40 @@ class AcademicCourse extends Model
     {
         return $this->stage === self::STAGE_TECHNICAL
             || $this->modality === self::MODALITY_PROFESSIONAL_TECHNOLOGICAL;
+    }
+
+    public function technicalLegalBasis(): string
+    {
+        return $this->technical_legal_basis ?: 'Lei Federal nº 9.394/1996 (LDB), arts. 36-B a 42; Lei Federal nº 11.741/2008; Resolução CNE/CP nº 1/2021; Resolução CNE/CEB nº 2/2020 (CNCT).';
+    }
+
+    public function regulatoryReference(): ?string
+    {
+        if ($this->stage !== self::STAGE_TECHNICAL) {
+            return null;
+        }
+
+        return collect([
+            $this->technicalLegalBasis(),
+            filled($this->accreditation_act) ? 'Credenciamento: '.$this->accreditation_act : null,
+            filled($this->authorization_act) ? 'Autorização: '.$this->authorization_act : null,
+            filled($this->regulatory_process) ? 'Processo: '.$this->regulatory_process : null,
+            filled($this->regulatory_opinion) ? 'Parecer: '.$this->regulatory_opinion : null,
+            filled($this->official_gazette_reference) ? 'Publicação: '.$this->official_gazette_reference : null,
+        ])->filter()->join(' ');
+    }
+
+    public function moduleCertificationForPeriod(?int $position): ?string
+    {
+        if (! $position) {
+            return null;
+        }
+
+        return collect(preg_split('/\R/u', (string) $this->module_certifications))
+            ->map(fn (string $item): string => trim($item))
+            ->filter()
+            ->values()
+            ->get($position - 1);
     }
 
     public function calculatedWorkloadHours(): float

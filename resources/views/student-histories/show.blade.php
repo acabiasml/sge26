@@ -96,6 +96,7 @@
                         <thead>
                             <tr>
                                 <th>Formação</th>
+                                <th>Módulo / certificação</th>
                                 <th>Área</th>
                                 <th>Componente</th>
                                 @foreach($history->years as $year)
@@ -111,6 +112,7 @@
                                     @foreach($areaComponents as $component)
                                     <tr>
                                         @if($formationFirst)<td rowspan="{{ $formationComponents->count() }}" class="align-middle"><strong>{{ $formation }}</strong></td>@php($formationFirst = false)@endif
+                                        <td>{{ $component->module_label ?: '-' }}</td>
                                         @if($areaFirst)<td rowspan="{{ $areaComponents->count() }}" class="align-middle">{{ $area }}</td>@php($areaFirst = false)@endif
                                         <td><strong>{{ $component->name }}</strong></td>
                                         @foreach($history->years as $year)
@@ -122,7 +124,7 @@
                                 @endforeach
                             @empty
                                 <tr>
-                                    <td colspan="{{ 3 + $history->years->count() }}" class="text-center text-muted">Histórico cadastrado sem transcrição de componentes curriculares.</td>
+                                    <td colspan="{{ 4 + $history->years->count() }}" class="text-center text-muted">Histórico cadastrado sem transcrição de componentes curriculares.</td>
                                 </tr>
                             @endforelse
                         </tbody>

@@ -108,6 +108,17 @@ class AcademicCourseController extends Controller
             $duplicatedCourse = $academicYear->courses()->create([
                 'name' => $this->nextDuplicateName($academicYear, $course->name),
                 'itinerary_name' => $course->itinerary_name,
+                'technical_legal_basis' => $course->technical_legal_basis,
+                'accreditation_act' => $course->accreditation_act,
+                'authorization_act' => $course->authorization_act,
+                'regulatory_process' => $course->regulatory_process,
+                'regulatory_opinion' => $course->regulatory_opinion,
+                'technological_axis' => $course->technological_axis,
+                'offer_forms' => $course->offer_forms,
+                'official_gazette_reference' => $course->official_gazette_reference,
+                'authorization_starts_at' => $course->authorization_starts_at,
+                'authorization_ends_at' => $course->authorization_ends_at,
+                'module_certifications' => $course->module_certifications,
                 'stage' => $course->stage,
                 'modality' => $course->modality,
                 'status' => 'curricular',
@@ -159,6 +170,17 @@ class AcademicCourseController extends Controller
             ],
             'stage' => ['required', Rule::in(array_keys(AcademicCourse::STAGE_LABELS))],
             'itinerary_name' => ['nullable', 'string', 'max:255'],
+            'technical_legal_basis' => ['required_if:stage,'.AcademicCourse::STAGE_TECHNICAL, 'nullable', 'string', 'max:5000'],
+            'accreditation_act' => ['required_if:stage,'.AcademicCourse::STAGE_TECHNICAL, 'nullable', 'string', 'max:5000'],
+            'authorization_act' => ['required_if:stage,'.AcademicCourse::STAGE_TECHNICAL, 'nullable', 'string', 'max:5000'],
+            'regulatory_process' => ['nullable', 'string', 'max:255'],
+            'regulatory_opinion' => ['nullable', 'string', 'max:255'],
+            'technological_axis' => ['nullable', 'string', 'max:255'],
+            'offer_forms' => ['nullable', 'string', 'max:255'],
+            'official_gazette_reference' => ['required_if:stage,'.AcademicCourse::STAGE_TECHNICAL, 'nullable', 'string', 'max:500'],
+            'authorization_starts_at' => ['nullable', 'date'],
+            'authorization_ends_at' => ['nullable', 'date', 'after_or_equal:authorization_starts_at'],
+            'module_certifications' => ['nullable', 'string', 'max:5000'],
             'modality' => ['required', Rule::in(array_keys(AcademicCourse::MODALITY_LABELS))],
             'class_hour_minutes' => ['required', 'integer', 'min:1', 'max:240'],
             'notes' => ['nullable', 'string', 'max:5000'],
@@ -167,6 +189,12 @@ class AcademicCourseController extends Controller
         $data['status'] = 'curricular';
         $data['active'] = true;
         $data['workload_hours'] = $course?->calculatedWorkloadHours() ?? 0;
+
+        if ($data['stage'] !== AcademicCourse::STAGE_TECHNICAL) {
+            foreach (['technical_legal_basis', 'accreditation_act', 'authorization_act', 'regulatory_process', 'regulatory_opinion', 'technological_axis', 'offer_forms', 'official_gazette_reference', 'authorization_starts_at', 'authorization_ends_at', 'module_certifications'] as $field) {
+                $data[$field] = null;
+            }
+        }
 
         return $data;
     }

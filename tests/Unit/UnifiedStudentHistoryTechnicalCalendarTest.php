@@ -61,6 +61,58 @@ class UnifiedStudentHistoryTechnicalCalendarTest extends TestCase
         );
     }
 
+    public function test_technical_module_label_uses_period_and_intermediate_certification(): void
+    {
+        $course = new AcademicCourse([
+            'name' => 'Técnico em Móveis',
+            'stage' => AcademicCourse::STAGE_TECHNICAL,
+            'module_certifications' => "Auxiliar de fabricação\nDesenhista de móveis\nTécnico em Móveis",
+        ]);
+        $period = new AcademicPeriod(['name' => 'II Módulo', 'position' => 2]);
+        $component = new CurriculumComponent(['name' => 'Desenho Técnico']);
+        $component->setRelation('startsPeriod', $period);
+        $component->setRelation('endsPeriod', $period);
+        $synchronizer = $this->getMockBuilder(UnifiedStudentHistorySynchronizer::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $method = new ReflectionMethod($synchronizer, 'technicalModuleLabel');
+
+        $this->assertSame(
+            'Módulo II — Desenhista de móveis (II Módulo)',
+            $method->invoke($synchronizer, $component, $course),
+        );
+    }
+
+    public function test_technical_regulatory_reference_is_specific_to_the_course_offer(): void
+    {
+        $course = new AcademicCourse([
+            'stage' => AcademicCourse::STAGE_TECHNICAL,
+            'authorization_act' => 'Ato 056/2025-CEE/MT',
+            'regulatory_process' => '7/2023/SIPE/CEE-MT',
+            'regulatory_opinion' => 'CEPS 8/2025',
+            'official_gazette_reference' => 'DOE-MT nº 28.918, p. 27, 28/01/2025',
+        ]);
+
+        $reference = $course->regulatoryReference();
+
+        $this->assertStringContainsString('Resolução CNE/CP nº 1/2021', $reference);
+        $this->assertStringContainsString('Ato 056/2025-CEE/MT', $reference);
+        $this->assertStringContainsString('DOE-MT nº 28.918', $reference);
+    }
+
+    public function test_technical_module_without_named_exit_is_still_identified_as_certifiable(): void
+    {
+        $course = new AcademicCourse(['stage' => AcademicCourse::STAGE_TECHNICAL]);
+        $period = new AcademicPeriod(['name' => 'Módulo I', 'position' => 1]);
+        $component = new CurriculumComponent(['name' => 'Desenho Técnico']);
+        $component->setRelation('startsPeriod', $period);
+        $component->setRelation('endsPeriod', $period);
+        $synchronizer = $this->getMockBuilder(UnifiedStudentHistorySynchronizer::class)->disableOriginalConstructor()->getMock();
+        $method = new ReflectionMethod($synchronizer, 'technicalModuleLabel');
+
+        $this->assertSame('Módulo I — Certificação intermediária (Módulo I)', $method->invoke($synchronizer, $component, $course));
+    }
+
     private function source(int $enrollmentId, int $courseId, string $courseName, string $startsAt, string $endsAt, string $componentName): array
     {
         $year = new AcademicYear(['reference_year' => 2025, 'starts_at' => $startsAt, 'ends_at' => $endsAt]);

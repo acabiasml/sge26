@@ -65,6 +65,11 @@
                             <dt>Itinerário formativo</dt>
                             <dd>{{ $course->stage === \App\Models\AcademicCourse::STAGE_TECHNICAL ? $course->name : ($course->itinerary_name ?: 'Aprofundamento de Estudos') }}</dd>
                         @endif
+                        @if($course->stage === \App\Models\AcademicCourse::STAGE_TECHNICAL)
+                            <dt class="col-sm-4">Fundamento legal e atos</dt><dd class="col-sm-8">{{ $course->regulatoryReference() }}</dd>
+                            <dt class="col-sm-4">Eixo / oferta</dt><dd class="col-sm-8">{{ collect([$course->technological_axis, $course->offer_forms])->filter()->join(' · ') ?: '-' }}</dd>
+                            <dt class="col-sm-4">Vigência da autorização</dt><dd class="col-sm-8">{{ $course->authorization_starts_at?->format('d/m/Y') ?: '-' }} a {{ $course->authorization_ends_at?->format('d/m/Y') ?: '-' }}</dd>
+                        @endif
                         <dt>Hora-aula</dt>
                         <dd>{{ $course->class_hour_minutes }} minutos</dd>
                         <dt>Carga horária calculada</dt>

@@ -59,6 +59,9 @@ class UnifiedStudentHistorySynchronizer
             $technicalSources = $stage === AcademicCourse::STAGE_HIGH_SCHOOL
                 ? $this->technicalSources($allEnrollments)
                 : collect();
+            $technicalCourses = $allEnrollments->flatMap->courses
+                ->where('stage', AcademicCourse::STAGE_TECHNICAL)
+                ->unique('id');
             $enrollmentIds = $enrollments->pluck('id');
             $obsoleteYears = $history->years()->where('source', 'system');
             if ($enrollmentIds->isNotEmpty()) {
@@ -77,7 +80,12 @@ class UnifiedStudentHistorySynchronizer
             }
             $this->reorderYears($history, $stage);
             $history->components()->whereDoesntHave('records')->delete();
-            $history->update(['updated_by_person_id' => $personId]);
+            $history->update([
+                'updated_by_person_id' => $personId,
+                'legal_basis' => $stage === AcademicCourse::STAGE_TECHNICAL
+                    ? $technicalCourses->map->regulatoryReference()->filter()->unique()->join(' ')
+                    : $history->legal_basis,
+            ]);
 
             return $history->fresh(['years.records', 'components.records.year']);
         });
@@ -137,6 +145,8 @@ class UnifiedStudentHistorySynchronizer
         $synchronizedComponentIds = collect();
         foreach ($historyComponents as $componentReport) {
             $component = $componentReport['component'];
+            $technicalCourse = $component->course?->stage === AcademicCourse::STAGE_TECHNICAL ? $component->course : null;
+            $moduleLabel = $technicalCourse ? $this->technicalModuleLabel($component, $technicalCourse) : null;
             $formation = CurriculumCatalog::formationLabelForArea($component->course, $component->area);
             $knowledgeArea = CurriculumCatalog::areaLabelForComponent($component->course, $component->area);
             if ($stage === AcademicCourse::STAGE_TECHNICAL) {
@@ -151,19 +161,25 @@ class UnifiedStudentHistorySynchronizer
             $historyComponent = $history->components()
                 ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($component->name), 'UTF-8')])
                 ->where('knowledge_area', $knowledgeArea)
+                ->when($technicalCourse, fn ($query) => $query->where('module_label', $moduleLabel))
                 ->first();
             $historyComponent ??= $history->components()
                 ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($component->name), 'UTF-8')])
                 ->whereIn('knowledge_area', ['Itinerário Formativo', 'Educação Profissional e Tecnológica', 'Parte Complementar', 'Área não definida'])
+                ->when($technicalCourse, fn ($query) => $query->where('module_label', $moduleLabel))
                 ->first();
             $historyComponent ??= $history->components()->create([
                     'position' => $history->components()->count() + 1,
                     'formation' => $formation,
+                    'module_label' => $moduleLabel,
+                    'regulatory_reference' => $technicalCourse?->regulatoryReference(),
                     'knowledge_area' => $knowledgeArea,
                     'name' => $component->name,
                 ]);
             $historyComponent->update([
                 'formation' => $formation,
+                'module_label' => $moduleLabel,
+                'regulatory_reference' => $technicalCourse?->regulatoryReference(),
                 'knowledge_area' => $knowledgeArea,
             ]);
             $synchronizedComponentIds->push($historyComponent->id);
@@ -193,6 +209,20 @@ class UnifiedStudentHistorySynchronizer
             $obsoleteRecords->whereNotIn('student_academic_history_component_id', $synchronizedComponentIds->unique());
         }
         $obsoleteRecords->delete();
+    }
+
+    private function technicalModuleLabel(CurriculumComponent $component, AcademicCourse $course): string
+    {
+        $period = $component->endsPeriod ?: $component->startsPeriod;
+        $position = (int) ($period?->position ?: 1);
+        $roman = match ($position) {
+            1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', default => (string) $position,
+        };
+        $certificate = $course->moduleCertificationForPeriod($position) ?: 'Certificação intermediária';
+
+        return 'Módulo '.$roman
+            .($certificate ? ' — '.$certificate : '')
+            .($period?->name ? ' ('.$period->name.')' : '');
     }
 
     /**

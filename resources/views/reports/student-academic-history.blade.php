@@ -21,6 +21,7 @@
         .section-title-reference { font-weight: 400; margin-left: 6px; text-transform: none; }
         .formation-title { background: #e7dfd9; border: .55px solid #111; font-size: 11px; font-weight: 700; margin-top: 3px; padding: 2px 4px; text-transform: uppercase; page-break-after: avoid; }
         .formation-title-reference { font-weight: 400; margin-left: 6px; text-transform: none; }
+        .module-title { border: .55px solid #111; border-bottom: 0; background: #f5f2ef; font-weight: 600; padding: 2px 4px; page-break-after: avoid; }
         .area-group { page-break-inside: avoid; }
         .score-cell { white-space: nowrap; }
         .general-total-label { border-right: 0 !important; white-space: nowrap; }
@@ -76,7 +77,7 @@
 
 <div class="section-title">
     Componentes curriculares
-    <span class="section-title-reference">Fundamento Legal: Lei Federal 9.394/96; Resoluções CNE/CEB nº 03/1998.</span>
+    <span class="section-title-reference">Fundamento legal: {{ $history->legal_basis }}</span>
 </div>
 @forelse($history->components->groupBy(fn ($component) => $component->formation ?: '-') as $formation => $formationComponents)
     <div class="formation-title">
@@ -84,13 +85,22 @@
         @if($formation === 'Formação Geral Básica')
             <span class="formation-title-reference">{{ $basicFormationReference }}</span>
         @endif
+        @php($formationRegulation = $formationComponents->pluck('regulatory_reference')->filter()->unique()->join(' '))
+        @if($formationRegulation)
+            <span class="formation-title-reference">{{ $formationRegulation }}</span>
+        @endif
     </div>
+    @if($formationComponents->pluck('module_label')->filter()->isNotEmpty())
+        <div class="muted" style="margin:2px 0 3px;">A conclusão de cada módulo assegura sua certificação intermediária; a conclusão de todos os módulos e demais requisitos do curso assegura o diploma técnico.</div>
+    @endif
+    @foreach($formationComponents->groupBy(fn ($component) => $component->module_label ?: '') as $moduleLabel => $moduleComponents)
+    @if($moduleLabel)<div class="module-title">{{ $moduleLabel }}</div>@endif
     <table class="history-table">
         <thead>
             <tr><th rowspan="2" style="width: 22%;">Área</th><th rowspan="2" style="width: 28%;">Componente curricular</th>@foreach($history->years as $year)<th colspan="2" class="center" style="width: {{ 50 / max(1, $history->years->count()) }}%;">{{ $year->label }}</th>@endforeach</tr>
             <tr>@foreach($history->years as $year)<th class="center" style="width: {{ 25 / max(1, $history->years->count()) }}%;">N</th><th class="center" style="width: {{ 25 / max(1, $history->years->count()) }}%;">CH</th>@endforeach</tr>
         </thead>
-        @foreach($formationComponents->groupBy(fn ($component) => $component->knowledge_area ?: '-') as $area => $areaComponents)
+        @foreach($moduleComponents->groupBy(fn ($component) => $component->knowledge_area ?: '-') as $area => $areaComponents)
         <tbody class="area-group">
             @foreach($areaComponents as $component)
             <tr>
@@ -107,15 +117,16 @@
         @endforeach
         <tfoot>
             <tr>
-                <td colspan="2"><strong>Subtotal de carga horária — {{ $formation }}</strong></td>
+                <td colspan="2"><strong>Subtotal de carga horária — {{ $moduleLabel ?: $formation }}</strong></td>
                 @foreach($history->years as $year)
-                    @php($formationWorkload = $formationComponents->sum(fn ($component) => (float) ($component->records->firstWhere('student_academic_history_year_id', $year->id)?->workload_hours ?? 0)))
+                    @php($formationWorkload = $moduleComponents->sum(fn ($component) => (float) ($component->records->firstWhere('student_academic_history_year_id', $year->id)?->workload_hours ?? 0)))
                     <td class="center">-</td>
                     <td class="center"><strong>{{ $year->transcript_mode === 'no_transcription' ? '-' : number_format($formationWorkload, 0, ',', '.').'h' }}</strong></td>
                 @endforeach
             </tr>
         </tfoot>
     </table>
+    @endforeach
 @empty
     <table class="history-table"><tr><td colspan="{{ 2 + (2 * $history->years->count()) }}" class="center">Histórico cadastrado sem transcrição de componentes curriculares.</td></tr></table>
 @endforelse
