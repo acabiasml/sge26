@@ -107,7 +107,7 @@
                         <tbody>
                             @forelse($history->components->groupBy(fn ($component) => $component->formation ?: '-') as $formation => $formationComponents)
                                 @php($formationFirst = true)
-                                @foreach($formationComponents->groupBy(fn ($component) => $component->knowledge_area ?: '-') as $area => $areaComponents)
+                                @foreach($formationComponents->sortBy(fn ($component) => collect([$component->module_label, $component->knowledge_area, $component->position])->filter(fn ($value) => $value !== null)->join('|'))->groupBy(fn ($component) => $component->knowledge_area ?: '-') as $area => $areaComponents)
                                     @php($areaFirst = true)
                                     @foreach($areaComponents as $component)
                                     <tr>

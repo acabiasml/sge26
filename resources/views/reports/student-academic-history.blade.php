@@ -93,7 +93,7 @@
     @if($formationComponents->pluck('module_label')->filter()->isNotEmpty())
         <div class="muted" style="margin:2px 0 3px;">A conclusão de cada módulo assegura sua certificação intermediária; a conclusão de todos os módulos e demais requisitos do curso assegura o diploma técnico.</div>
     @endif
-    @foreach($formationComponents->groupBy(fn ($component) => $component->module_label ?: '') as $moduleLabel => $moduleComponents)
+    @foreach($formationComponents->sortBy(fn ($component) => $component->module_label ?: '')->groupBy(fn ($component) => $component->module_label ?: '') as $moduleLabel => $moduleComponents)
     @if($moduleLabel)<div class="module-title">{{ $moduleLabel }}</div>@endif
     <table class="history-table">
         <thead>
