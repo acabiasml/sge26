@@ -840,7 +840,7 @@ class AdminScreensTest extends TestCase
             ->where('education_stage', AcademicCourse::STAGE_TECHNICAL)
             ->firstOrFail();
         $this->assertSame('Histórico Escolar - Ensino Técnico Profissionalizante', $history->title);
-        $this->assertSame('General Carneiro-MT', $history->issued_place);
+        $this->assertSame('General Carneiro-Mt', $history->issued_place);
         $this->assertDatabaseHas('student_academic_history_years', [
             'student_academic_history_id' => $history->id,
             'student_enrollment_id' => $enrollment->id,
