@@ -6,6 +6,7 @@ use App\Models\AcademicCourse;
 use App\Models\AcademicYear;
 use App\Models\CurriculumComponent;
 use App\Models\Person;
+use App\Models\School;
 use App\Models\StudentAcademicHistory;
 use App\Models\StudentEnrollment;
 use Illuminate\Support\Collection;
@@ -22,19 +23,20 @@ class UnifiedStudentHistorySynchronizer
     public function synchronize(Person $student, int $schoolId, int $personId, string $stage): StudentAcademicHistory
     {
         return DB::transaction(function () use ($student, $schoolId, $personId, $stage): StudentAcademicHistory {
+            $school = School::query()->findOrFail($schoolId);
             $stageLabel = $stage === AcademicCourse::STAGE_TECHNICAL
                 ? 'Ensino Técnico Profissionalizante'
                 : AcademicCourse::STAGE_LABELS[$stage];
             $history = StudentAcademicHistory::query()->firstOrCreate(
                 ['person_id' => $student->id, 'is_unified' => true, 'education_stage' => $stage],
                 [
-                    'school_id' => $schoolId,
+                    'school_id' => $school->id,
                     'created_by_person_id' => $personId,
                     'updated_by_person_id' => $personId,
                     'title' => 'Histórico escolar - '.$stageLabel,
                     'stage' => $stageLabel,
                     'legal_basis' => 'Lei Federal nº 9.394/1996 (LDB) e normas educacionais aplicáveis.',
-                    'issued_place' => 'Poxoréu-MT',
+                    'issued_place' => $this->issuedPlace($school),
                     'issued_date' => now()->toDateString(),
                     'active' => true,
                 ],
@@ -82,6 +84,7 @@ class UnifiedStudentHistorySynchronizer
             $history->components()->whereDoesntHave('records')->delete();
             $history->update([
                 'updated_by_person_id' => $personId,
+                'issued_place' => $this->issuedPlace($school),
                 'legal_basis' => $stage === AcademicCourse::STAGE_TECHNICAL
                     ? $technicalCourses->map->regulatoryReference()->filter()->unique()->join(' ')
                     : $history->legal_basis,
@@ -89,6 +92,14 @@ class UnifiedStudentHistorySynchronizer
 
             return $history->fresh(['years.records', 'components.records.year']);
         });
+    }
+
+    private function issuedPlace(School $school): string
+    {
+        return collect([$school->city, $school->state])
+            ->filter(fn (?string $value): bool => filled($value))
+            ->map(fn (string $value): string => trim($value))
+            ->join('-');
     }
 
     /** @param Collection<int, array{enrollment: StudentEnrollment, course: AcademicCourse, report: array<string, mixed>}> $technicalSources */

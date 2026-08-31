@@ -797,7 +797,12 @@ class AdminScreensTest extends TestCase
 
     public function test_technical_enrollment_can_create_an_independent_unified_history(): void
     {
-        $school = School::query()->create(['name' => 'Escola Técnica', 'active' => true]);
+        $school = School::query()->create([
+            'name' => 'Escola Técnica',
+            'city' => 'General Carneiro',
+            'state' => 'MT',
+            'active' => true,
+        ]);
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
         $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $school->id)->person;
         $year = $this->activeAcademicYear($school, 'Educação Profissional 2025-2026');
@@ -835,6 +840,7 @@ class AdminScreensTest extends TestCase
             ->where('education_stage', AcademicCourse::STAGE_TECHNICAL)
             ->firstOrFail();
         $this->assertSame('Histórico Escolar - Ensino Técnico Profissionalizante', $history->title);
+        $this->assertSame('General Carneiro-MT', $history->issued_place);
         $this->assertDatabaseHas('student_academic_history_years', [
             'student_academic_history_id' => $history->id,
             'student_enrollment_id' => $enrollment->id,
