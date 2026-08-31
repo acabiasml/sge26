@@ -456,7 +456,9 @@ class StudentAcademicHistoryController extends Controller
             'components.*.records' => ['nullable', 'array'],
             'components.*.records.*.score_label' => ['nullable', 'string', 'max:255'],
             'components.*.records.*.score_numeric' => ['nullable', 'numeric', 'min:0', 'max:10'],
-            'components.*.records.*.workload_hours' => ['nullable', 'required_with:components.*.records.*.score_label,components.*.records.*.frequency_label,components.*.records.*.result', 'numeric', 'min:0'],
+            // A carga horária pertence ao ano/série, não ao lançamento de cada componente.
+            // Históricos unificados permitem registrar somente a nota/conceito externo.
+            'components.*.records.*.workload_hours' => ['nullable', 'numeric', 'min:0'],
             'components.*.records.*.frequency_label' => ['nullable', 'string', 'max:255'],
             'components.*.records.*.frequency_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'components.*.records.*.absences' => ['nullable', 'integer', 'min:0', 'max:999'],

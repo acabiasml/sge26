@@ -839,6 +839,45 @@ class AdminScreensTest extends TestCase
             'student_academic_history_id' => $history->id,
             'student_enrollment_id' => $enrollment->id,
         ]);
+
+        $this->actingAs($admin)
+            ->put(route('people.histories.update', [$student, $history]), [
+                'school_id' => $school->id,
+                'title' => $history->title,
+                'stage' => $history->stage,
+                'legal_basis' => $history->legal_basis,
+                'issued_place' => $history->issued_place,
+                'issued_date' => $history->issued_date->toDateString(),
+                'active' => 1,
+                'years' => [[
+                    'label' => '1º Módulo',
+                    'source' => 'manual',
+                    'year' => '2025',
+                    'stage' => 'Ensino Técnico Profissionalizante',
+                    'modality' => 'Educação Profissional',
+                    'grade_phase' => '1º Módulo',
+                    'school_name' => 'Escola Externa',
+                    'city' => 'Poxoréu',
+                    'state' => 'MT',
+                    'country' => 'Brasil',
+                    'transcript_mode' => 'detailed',
+                    'final_result' => 'Aprovado',
+                    'workload_hours' => '400',
+                ]],
+                'components' => [[
+                    'formation' => 'Formação Técnica Profissional',
+                    'knowledge_area' => 'Móveis',
+                    'name' => 'Desenho Técnico',
+                    'records' => [[
+                        'score_label' => '8,0',
+                    ]],
+                ]],
+            ])
+            ->assertRedirect(route('people.histories.show', [$student, $history]));
+
+        $this->assertDatabaseHas('student_academic_history_records', [
+            'score_label' => '8,0',
+        ]);
     }
 
     public function test_student_life_view_hides_secretarial_actions_from_the_student(): void
