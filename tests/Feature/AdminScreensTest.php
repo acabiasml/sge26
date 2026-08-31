@@ -850,7 +850,6 @@ class AdminScreensTest extends TestCase
                 'issued_date' => $history->issued_date->toDateString(),
                 'active' => 1,
                 'years' => [[
-                    'label' => '1º Módulo',
                     'source' => 'manual',
                     'year' => '2025',
                     'stage' => 'Ensino Técnico Profissionalizante',
@@ -877,6 +876,12 @@ class AdminScreensTest extends TestCase
 
         $this->assertDatabaseHas('student_academic_history_records', [
             'score_label' => '8,0',
+        ]);
+        $this->assertDatabaseHas('student_academic_history_years', [
+            'student_academic_history_id' => $history->id,
+            'source' => 'manual',
+            'label' => '1º Módulo',
+            'grade_phase' => '1º Módulo',
         ]);
     }
 

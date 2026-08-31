@@ -12,6 +12,7 @@
         default => 'Parte Diversificada',
     };
     $formationOptions = $catalogStage === 'tecnico' ? [$flexibleFormation] : ['Formação Geral Básica', $flexibleFormation];
+    $modalityOptions = \App\Models\AcademicCourse::MODALITY_LABELS;
     $defaultYearCount = match ($history->education_stage) {
         'fundamental' => 9,
         'medio' => 3,
@@ -173,7 +174,7 @@
                     <p>{{ $manualOnly ? 'Cadastre somente anos realizados em outras instituições.' : 'Cada cartão abaixo vira uma coluna na tabela do histórico.' }}</p>
                 </div>
                 <button class="btn btn-sm btn-outline-primary" type="button" data-add-history-year>
-                    <i class="fas fa-plus mr-1" aria-hidden="true"></i>Adicionar coluna
+                    <i class="fas fa-plus mr-1" aria-hidden="true"></i>Adicionar série/fase
                 </button>
             </div>
             <div class="card-body">
@@ -183,21 +184,17 @@
                             <input type="hidden" name="years[{{ $yearIndex }}][source]" value="{{ $year['source'] ?? 'manual' }}">
                             <input type="hidden" name="years[{{ $yearIndex }}][student_enrollment_id]" value="{{ $year['student_enrollment_id'] ?? '' }}">
                             <header>
-                                <strong>Coluna {{ $loop->iteration }}</strong>
+                                <strong>{{ filled($year['grade_phase'] ?? null) ? $year['grade_phase'] : 'Série/Fase '.$loop->iteration }}</strong>
                                 <button class="btn btn-sm btn-outline-danger sge-icon-action" type="button" data-remove-history-year aria-label="Remover esta coluna do histórico" title="Remover coluna">
                                     <i class="fas fa-trash" aria-hidden="true"></i>
                                 </button>
                             </header>
                             <div class="form-row">
-                                <div class="form-group col-md-5">
-                                    <label>Rótulo</label>
-                                    <input name="years[{{ $yearIndex }}][label]" class="form-control" value="{{ $year['label'] ?? '' }}" required>
-                                </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-4">
                                     <label>Ano</label>
                                     <input name="years[{{ $yearIndex }}][year]" data-mask="year" inputmode="numeric" autocomplete="off" class="form-control" value="{{ $year['year'] ?? '' }}" required>
                                 </div>
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-8">
                                     <label>Série/Fase</label>
                                     <input name="years[{{ $yearIndex }}][grade_phase]" class="form-control" value="{{ $year['grade_phase'] ?? '' }}" required>
                                 </div>
@@ -210,13 +207,22 @@
                                         <option value="no_transcription" @selected($transcriptMode === 'no_transcription')>Etapa sem transcrição no documento recebido</option>
                                     </select>
                                 </div>
+                                @if($manualOnly)
+                                    <input type="hidden" name="years[{{ $yearIndex }}][stage]" value="{{ \App\Models\AcademicCourse::STAGE_LABELS[$history->education_stage] ?? $history->stage }}">
+                                @else
                                 <div class="form-group col-md-6">
                                     <label>Etapa</label>
                                     <input name="years[{{ $yearIndex }}][stage]" class="form-control" value="{{ $year['stage'] ?? '' }}" required>
                                 </div>
-                                <div class="form-group col-md-6">
+                                @endif
+                                <div class="form-group {{ $manualOnly ? 'col-md-12' : 'col-md-6' }}">
                                     <label>Modalidade</label>
-                                    <input name="years[{{ $yearIndex }}][modality]" class="form-control" value="{{ $year['modality'] ?? '' }}" required>
+                                    @php($selectedModality = $year['modality'] ?? '')
+                                    <select name="years[{{ $yearIndex }}][modality]" class="form-control" required>
+                                        <option value="">Selecione</option>
+                                        @foreach($modalityOptions as $modality)<option value="{{ $modality }}" @selected($selectedModality === $modality)>{{ $modality }}</option>@endforeach
+                                        @if($selectedModality && ! in_array($selectedModality, $modalityOptions, true))<option value="{{ $selectedModality }}" selected>{{ $selectedModality }}</option>@endif
+                                    </select>
                                 </div>
                                 <div class="form-group col-md-12">
                                     <label>Escola onde cursou</label>
@@ -304,7 +310,7 @@
                                 <th style="min-width: 150px;">Área</th>
                                 <th style="min-width: 180px;">Componente</th>
                                 @foreach($yearsInput as $year)
-                                    <th style="min-width: 230px;">{{ $year['label'] ?? 'Período' }}</th>
+                                    <th style="min-width: 230px;">{{ filled($year['grade_phase'] ?? null) ? $year['grade_phase'] : 'Série/Fase '.$loop->iteration }}</th>
                                 @endforeach
                                 <th class="text-right">Ações</th>
                             </tr>
@@ -416,7 +422,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!yearWrapper || !table) return;
 
         yearWrapper.querySelectorAll('[data-history-year]').forEach(function (card, yearIndex) {
-            card.querySelector('header strong').textContent = 'Coluna ' + (yearIndex + 1);
             card.querySelectorAll('[name^="years["]').forEach(function (field) {
                 field.name = field.name.replace(/years\[[0-9]+\]/, 'years[' + yearIndex + ']');
             });
@@ -432,6 +437,20 @@ document.addEventListener('DOMContentLoaded', function () {
                     field.name = field.name.replace(/records\[[0-9]+\]/, 'records[' + recordIndex + ']');
                 }
             });
+        });
+
+        refreshYearLabels();
+    }
+
+    function refreshYearLabels() {
+        if (!yearWrapper || !table) return;
+
+        yearWrapper.querySelectorAll('[data-history-year]').forEach(function (card, yearIndex) {
+            const seriesField = card.querySelector('[name$="[grade_phase]"]');
+            const label = seriesField?.value.trim() || 'Série/Fase ' + (yearIndex + 1);
+            card.querySelector('header strong').textContent = label;
+            const tableHeader = table.querySelector('thead tr')?.children[yearIndex + 3];
+            if (tableHeader) tableHeader.textContent = label;
         });
     }
 
@@ -471,6 +490,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     bindRemove(document);
+    yearWrapper?.addEventListener('input', function (event) {
+        if (event.target.matches('[name$="[grade_phase]"]')) refreshYearLabels();
+    });
 
     document.querySelector('[data-add-history-component]')?.addEventListener('click', function () {
         const tbody = table?.querySelector('tbody');
@@ -504,12 +526,14 @@ document.addEventListener('DOMContentLoaded', function () {
         if (country) country.value = 'Brasil';
         const mode = clone.querySelector('[name$="[transcript_mode]"]');
         if (mode) mode.value = 'detailed';
+        const modality = clone.querySelector('[name$="[modality]"]');
+        if (modality) modality.value = 'Regular';
         yearWrapper.appendChild(clone);
         bindRemove(clone);
 
         const header = document.createElement('th');
         header.style.minWidth = '230px';
-        header.textContent = 'Nova coluna';
+        header.textContent = 'Série/Fase ' + (next + 1);
         table.querySelector('thead tr').insertBefore(header, table.querySelector('thead tr th:last-child'));
 
         table.querySelectorAll('tbody tr').forEach(function (row, componentIndex) {

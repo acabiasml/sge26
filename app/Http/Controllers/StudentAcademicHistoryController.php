@@ -371,8 +371,20 @@ class StudentAcademicHistoryController extends Controller
      */
     private function validatedData(Request $request): array
     {
+        $routeHistory = $request->route('history');
+        $fixedYearStage = $routeHistory instanceof StudentAcademicHistory && $routeHistory->is_unified
+            ? AcademicCourse::STAGE_LABELS[$routeHistory->education_stage] ?? $routeHistory->stage
+            : null;
+
         $request->merge([
-            'years' => collect($request->input('years', []))->map(function (array $year): array {
+            'years' => collect($request->input('years', []))->map(function (array $year) use ($fixedYearStage): array {
+                // Série/fase é a identificação apresentada para a coluna e no histórico.
+                $year['label'] = $year['grade_phase'] ?? '';
+
+                if ($fixedYearStage) {
+                    $year['stage'] = $fixedYearStage;
+                }
+
                 foreach (['workload_hours', 'minimum_attendance_percentage'] as $field) {
                     if (! isset($year[$field])) {
                         continue;
@@ -474,7 +486,6 @@ class StudentAcademicHistoryController extends Controller
             422,
             'Uma das matrículas informadas não pertence ao estudante deste histórico.',
         );
-        $routeHistory = $request->route('history');
         if ($routeHistory instanceof StudentAcademicHistory && $routeHistory->is_unified) {
             $stage = $routeHistory->education_stage ?: AcademicCourse::STAGE_ELEMENTARY;
             $areas = collect(config("curriculum.stages.{$stage}.formations.formacao_geral_basica.areas", []));
