@@ -885,6 +885,51 @@ class AdminScreensTest extends TestCase
         ]);
     }
 
+    public function test_student_cannot_start_history_for_a_stage_without_an_enrollment(): void
+    {
+        $school = School::query()->create(['name' => 'Escola Fundamental', 'active' => true]);
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $school->id)->person;
+        $year = $this->activeAcademicYear($school, 'Ensino Fundamental '.now()->year);
+        $course = AcademicCourse::query()->create([
+            'academic_year_id' => $year->id,
+            'name' => '6º Ano',
+            'stage' => AcademicCourse::STAGE_ELEMENTARY,
+            'modality' => AcademicCourse::MODALITY_REGULAR,
+            'class_hour_minutes' => 60,
+            'workload_hours' => 0,
+            'active' => true,
+        ]);
+        $class = SchoolClass::query()->create(['academic_year_id' => $year->id, 'name' => '6º Ano A', 'active' => true]);
+        $class->courses()->attach($course);
+        $enrollment = StudentEnrollment::query()->create([
+            'school_class_id' => $class->id,
+            'person_id' => $student->id,
+            'enrolled_at' => now()->startOfYear(),
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $enrollment->courses()->attach($course);
+
+        $this->actingAs($admin)
+            ->get(route('student-histories.student', $student))
+            ->assertOk()
+            ->assertSee('Esta etapa será liberada quando houver matrícula do estudante nela.');
+
+        $this->actingAs($admin)
+            ->post(route('student-histories.unified', [$student, AcademicCourse::STAGE_HIGH_SCHOOL]))
+            ->assertSessionHasErrors('stage');
+
+        $this->assertDatabaseMissing('student_academic_histories', [
+            'person_id' => $student->id,
+            'education_stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('student-histories.unified', [$student, AcademicCourse::STAGE_ELEMENTARY]))
+            ->assertRedirect();
+    }
+
     public function test_student_life_view_hides_secretarial_actions_from_the_student(): void
     {
         $school = School::query()->create(['name' => 'Escola do Estudante', 'active' => true]);

@@ -56,6 +56,7 @@ class StudentAcademicHistoryController extends Controller
         return view('student-histories.student', [
             'person' => $person,
             'historyCompleteness' => $person->academicHistories->mapWithKeys(fn ($history) => [$history->id => $completeness->evaluate($history)]),
+            'availableHistoryStages' => $this->availableHistoryStages($request, $person),
         ]);
     }
 
@@ -67,8 +68,18 @@ class StudentAcademicHistoryController extends Controller
             AcademicCourse::STAGE_HIGH_SCHOOL,
             AcademicCourse::STAGE_TECHNICAL,
         ], true), 404);
+        if (! in_array($stage, $this->availableHistoryStages($request, $person), true)) {
+            throw ValidationException::withMessages([
+                'stage' => 'O histórico só pode ser iniciado para uma etapa em que o estudante possua matrícula registrada.',
+            ]);
+        }
         $schoolId = $person->studentEnrollments()
-            ->whereHas('schoolClass.academicYear', fn ($query) => $query->whereIn('school_id', $request->user()->isAdministrator() ? School::query()->pluck('id') : $request->user()->manageableSchoolIds()))
+            ->where('status', StudentEnrollment::STATUS_ENROLLED)
+            ->whereHas('courses', fn ($query) => $query->where('stage', $stage))
+            ->whereHas('schoolClass.academicYear', fn ($query) => $query
+                ->whereIn('school_id', $request->user()->isAdministrator() ? School::query()->pluck('id') : $request->user()->manageableSchoolIds())
+                ->where('active', true)
+                ->whereNull('closed_at'))
             ->with('schoolClass.academicYear')
             ->latest('enrolled_at')
             ->first()
@@ -336,6 +347,35 @@ class StudentAcademicHistoryController extends Controller
         $this->authorizePerson($request, $person);
         $schoolIds = $request->user()->isAdministrator() ? School::query()->pluck('id')->all() : $request->user()->manageableSchoolIds();
         abort_unless($person->studentEnrollments()->whereHas('schoolClass.academicYear', fn ($query) => $query->whereIn('school_id', $schoolIds))->exists(), 404);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function availableHistoryStages(Request $request, Person $person): array
+    {
+        $schoolIds = $request->user()->isAdministrator()
+            ? School::query()->pluck('id')->all()
+            : $request->user()->manageableSchoolIds();
+
+        return $person->studentEnrollments()
+            ->where('status', StudentEnrollment::STATUS_ENROLLED)
+            ->whereHas('schoolClass.academicYear', fn ($query) => $query
+                ->whereIn('school_id', $schoolIds)
+                ->where('active', true)
+                ->whereNull('closed_at'))
+            ->with('courses:id,stage')
+            ->get()
+            ->flatMap->courses
+            ->pluck('stage')
+            ->filter(fn (string $stage): bool => in_array($stage, [
+                AcademicCourse::STAGE_ELEMENTARY,
+                AcademicCourse::STAGE_HIGH_SCHOOL,
+                AcademicCourse::STAGE_TECHNICAL,
+            ], true))
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function authorizeHistory(Request $request, Person $person, StudentAcademicHistory $history): void

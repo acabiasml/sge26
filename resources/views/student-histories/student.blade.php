@@ -20,6 +20,7 @@
 ] as $stage => $definition)
     @php($history = $person->academicHistories->firstWhere('education_stage', $stage))
     @php($completeness = $history ? ($historyCompleteness[$history->id] ?? null) : null)
+    @php($stageIsAvailable = in_array($stage, $availableHistoryStages, true))
     <div class="col-lg-4"><section class="card shadow sge-panel-card mb-4 h-100">
         <div class="sge-panel-header"><div><h2>{{ $definition[0] }}</h2><p>{{ $definition[1] }} · {{ $definition[2] }}</p></div></div>
         <div class="card-body">
@@ -32,7 +33,11 @@
             @else
                 <p class="text-muted">O arquivo desta etapa ainda não foi iniciado.</p>
             @endif
-            <form method="post" action="{{ route('student-histories.unified', [$person, $stage]) }}" class="mt-3">@csrf<button class="btn btn-primary" type="submit">{{ $history ? 'Atualizar dados das matrículas' : 'Iniciar arquivo desta etapa' }}</button></form>
+            @if($history || $stageIsAvailable)
+                <form method="post" action="{{ route('student-histories.unified', [$person, $stage]) }}" class="mt-3">@csrf<button class="btn btn-primary" type="submit">{{ $history ? 'Atualizar dados das matrículas' : 'Iniciar arquivo desta etapa' }}</button></form>
+            @else
+                <p class="text-muted mt-3 mb-0"><i class="fas fa-lock mr-1" aria-hidden="true"></i>Esta etapa será liberada quando houver matrícula do estudante nela.</p>
+            @endif
         </div>
     </section></div>
 @endforeach
