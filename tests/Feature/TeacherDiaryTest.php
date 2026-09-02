@@ -314,6 +314,62 @@ class TeacherDiaryTest extends TestCase
         $this->assertSame($manager->person_id, $report['finalResult']['calculated_by']->id);
     }
 
+    public function test_report_card_and_individual_record_include_parallel_technical_itinerary_for_the_regular_year(): void
+    {
+        [, $regularYear, , , , $regularEnrollment] = $this->diaryScenario();
+        $technicalYear = AcademicYear::query()->create([
+            'school_id' => $regularYear->school_id,
+            'name' => 'Itinerário Técnico 2025-2027',
+            'reference_year' => 2025,
+            'starts_at' => '2025-01-20',
+            'ends_at' => '2027-12-18',
+            'approved_at' => '2024-12-10',
+            'class_hour_minutes' => 50,
+            'minimum_school_days' => 200,
+            'active' => true,
+        ]);
+        $technicalPeriod = $technicalYear->periods()->create([
+            'name' => 'Módulo II',
+            'starts_at' => '2026-02-01',
+            'ends_at' => '2026-11-30',
+            'position' => 2,
+        ]);
+        $technicalCourse = $technicalYear->courses()->create([
+            'name' => 'Técnico em Móveis',
+            'stage' => AcademicCourse::STAGE_TECHNICAL,
+            'status' => 'iniciado',
+            'class_hour_minutes' => 50,
+            'active' => true,
+        ]);
+        $technicalComponent = $technicalCourse->components()->create([
+            'name' => 'Desenho Técnico de Móveis',
+            'starts_period_id' => $technicalPeriod->id,
+            'ends_period_id' => $technicalPeriod->id,
+            'workload_hours' => 80,
+            'active' => true,
+        ]);
+        $technicalClass = $technicalYear->classes()->create([
+            'name' => 'Técnico em Móveis',
+            'starts_period_id' => $technicalPeriod->id,
+            'ends_period_id' => $technicalPeriod->id,
+            'active' => true,
+        ]);
+        $technicalClass->courses()->attach($technicalCourse);
+        $technicalEnrollment = $technicalClass->enrollments()->create([
+            'person_id' => $regularEnrollment->person_id,
+            'enrolled_at' => '2025-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $technicalEnrollment->courses()->attach($technicalCourse);
+
+        $report = app(StudentReportCardBuilder::class)->build($regularEnrollment->fresh());
+
+        $this->assertContains($technicalCourse->id, $report['courses']->pluck('id')->all());
+        $this->assertContains($technicalComponent->id, $report['annualComponents']->pluck('component.id')->all());
+        $this->assertContains($technicalPeriod->id, $report['periods']->pluck('id')->all());
+    }
+
     public function test_individual_record_orders_periods_chronologically_when_positions_are_inconsistent(): void
     {
         [, $year, , , $period, $enrollment] = $this->diaryScenario();

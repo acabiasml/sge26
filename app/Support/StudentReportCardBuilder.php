@@ -3,6 +3,8 @@
 namespace App\Support;
 
 use App\Models\AcademicPeriod;
+use App\Models\AcademicCourse;
+use App\Models\AcademicYear;
 use App\Models\CurriculumComponent;
 use App\Models\DiaryAssessment;
 use App\Models\DiaryAttendanceJustification;
@@ -12,6 +14,7 @@ use App\Models\StudentBehaviorGrade;
 use App\Models\StudentEnrollment;
 use App\Models\StudentPeriodConvalidation;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class StudentReportCardBuilder
 {
@@ -24,6 +27,50 @@ class StudentReportCardBuilder
      * @return array<string, mixed>
      */
     public function build(StudentEnrollment $enrollment): array
+    {
+        $report = $this->buildEnrollment($enrollment);
+
+        if (! $report['courses']->contains('stage', AcademicCourse::STAGE_HIGH_SCHOOL)) {
+            return $report;
+        }
+
+        $referenceYear = (int) ($report['academicYear']->reference_year
+            ?: $report['academicYear']->starts_at?->year);
+        $supplements = $this->technicalSupplements($enrollment, $referenceYear);
+
+        if ($supplements->isEmpty()) {
+            return $report;
+        }
+
+        $report['courses'] = $report['courses']
+            ->concat($supplements->pluck('course'))
+            ->unique('id')
+            ->values();
+        $report['annualComponents'] = $report['annualComponents']
+            ->concat($supplements->flatMap(fn (array $supplement): Collection => $supplement['components']))
+            ->unique(fn (array $summary): int => $summary['component']->id)
+            ->values();
+        $report['periodReports'] = $report['periodReports']
+            ->concat($supplements->flatMap(fn (array $supplement): Collection => $supplement['periodReports']))
+            ->unique(fn (array $periodReport): int => $periodReport['period']->id)
+            ->sortBy(fn (array $periodReport): string => sprintf(
+                '%s-%010d',
+                $periodReport['period']->starts_at?->format('Y-m-d') ?? '9999-12-31',
+                $periodReport['period']->position,
+            ))
+            ->values();
+        $report['periods'] = $report['periodReports']->pluck('period')->values();
+        $report['annualAttendance'] = $this->attendanceCalculator->aggregate(
+            $report['annualComponents']->pluck('attendance')
+        );
+
+        return $report;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildEnrollment(StudentEnrollment $enrollment): array
     {
         $enrollment->load([
             'student',
@@ -175,6 +222,114 @@ class StudentReportCardBuilder
                 'calculated_by' => $enrollment->finalResultCalculatedBy,
             ],
         ];
+    }
+
+    /**
+     * Localiza a matrícula técnica paralela que alimenta o itinerário do Ensino Médio.
+     * Componentes plurianuais entram no boletim do ano em que seu período termina,
+     * seguindo a mesma regra usada pelo histórico escolar unificado.
+     *
+     * @return Collection<int, array{course: AcademicCourse, components: Collection, periodReports: Collection}>
+     */
+    private function technicalSupplements(StudentEnrollment $enrollment, int $referenceYear): Collection
+    {
+        return StudentEnrollment::query()
+            ->where('person_id', $enrollment->person_id)
+            ->where('id', '!=', $enrollment->id)
+            ->whereHas('courses', fn ($query) => $query->where('stage', AcademicCourse::STAGE_TECHNICAL))
+            ->with([
+                'courses.components.area',
+                'courses.components.course',
+                'courses.components.startsPeriod',
+                'courses.components.endsPeriod',
+                'schoolClass.academicYear',
+            ])
+            ->get()
+            ->filter(fn (StudentEnrollment $source): bool => $this->academicYearIncludes(
+                $source->schoolClass->academicYear,
+                $referenceYear,
+            ))
+            ->flatMap(function (StudentEnrollment $source): Collection {
+                $sourceReport = $this->buildEnrollment($source);
+
+                return $source->courses
+                    ->where('stage', AcademicCourse::STAGE_TECHNICAL)
+                    ->map(fn (AcademicCourse $course): array => [
+                        'enrollment' => $source,
+                        'course' => $course,
+                        'report' => $sourceReport,
+                    ]);
+            })
+            ->groupBy(fn (array $source): string => $this->technicalProgramKey($source['course']->name))
+            ->map(function (Collection $programSources) use ($referenceYear): ?array {
+                $source = $programSources
+                    ->sortByDesc(fn (array $item): string => sprintf(
+                        '%010d-%010d',
+                        $item['report']['academicYear']->starts_at?->diffInDays($item['report']['academicYear']->ends_at) ?? 0,
+                        $item['enrollment']->id,
+                    ))
+                    ->first();
+
+                if (! $source) {
+                    return null;
+                }
+
+                $components = $source['report']['annualComponents']
+                    ->filter(fn (array $summary): bool => $summary['component']->academic_course_id === $source['course']->id)
+                    ->filter(fn (array $summary): bool => $this->componentCompletionYear(
+                        $summary['component'],
+                        $source['report']['academicYear'],
+                    ) === $referenceYear)
+                    ->values();
+                $componentIds = $components->pluck('component.id');
+
+                if ($componentIds->isEmpty()) {
+                    return null;
+                }
+
+                return [
+                    'course' => $source['course'],
+                    'components' => $components,
+                    'periodReports' => $source['report']['periodReports']
+                        ->map(function (array $periodReport) use ($componentIds): array {
+                            $periodReport['components'] = $periodReport['components']
+                                ->whereIn('component.id', $componentIds)
+                                ->values();
+
+                            return $periodReport;
+                        })
+                        ->filter(fn (array $periodReport): bool => $periodReport['components']->isNotEmpty())
+                        ->values(),
+                ];
+            })
+            ->filter()
+            ->values();
+    }
+
+    private function academicYearIncludes(AcademicYear $academicYear, int $year): bool
+    {
+        $startsIn = (int) ($academicYear->starts_at?->year ?? $academicYear->reference_year);
+        $endsIn = (int) ($academicYear->ends_at?->year ?? $startsIn);
+
+        return $year >= $startsIn && $year <= $endsIn;
+    }
+
+    private function componentCompletionYear(CurriculumComponent $component, AcademicYear $academicYear): int
+    {
+        return (int) (
+            $component->endsPeriod?->ends_at?->year
+            ?? $component->startsPeriod?->ends_at?->year
+            ?? $academicYear->ends_at?->year
+            ?? $academicYear->reference_year
+        );
+    }
+
+    private function technicalProgramKey(string $name): string
+    {
+        $normalized = Str::lower(Str::ascii(trim($name)));
+        $normalized = (string) preg_replace('/^curso\s+/', '', $normalized);
+
+        return (string) preg_replace('/\s+/', ' ', $normalized);
     }
 
     /**
