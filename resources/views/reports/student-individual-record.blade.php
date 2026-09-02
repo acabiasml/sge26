@@ -24,9 +24,9 @@
         .formation-area-label { display: block; font-size: 11px; font-weight: 600; margin-top: 3px; }
         .component-cell { width: 20%; word-wrap: break-word; }
         .center { text-align: center; }
-        .legend { font-size: 11px; margin-top: 7px; }
-        .legend strong { display: block; }
-        .concept-legend { margin-top: 4px; }
+        .legend { border: .45px solid #d8ccc4; background: #faf8f6; font-size: 11px; line-height: 1.22; margin-top: 5px; padding: 4px 6px; page-break-inside: avoid; }
+        .legend strong { font-weight: 600; }
+        .concept-legend { border-top: .45px solid #d8ccc4; margin-top: 3px; padding-top: 3px; }
         .concept-legend span { display: inline-block; margin-right: 8px; white-space: nowrap; }
         .document-closing { min-height: 96px; page-break-inside: avoid; }
         .issue-place-date { margin: 9px 0 0; text-align: center; }
@@ -55,11 +55,11 @@
     $courses = $report['courses'];
     $technicalCourses = $courses->where('stage', \App\Models\AcademicCourse::STAGE_TECHNICAL)->unique('id')->values();
     $school = $academicYear->school;
-    $issuePlace = collect([$school?->city, $school?->state])->filter()->join('-') ?: 'Poxoréu-MT';
+    $issuePlace = collect([$school?->city, $school?->state ? mb_strtoupper($school->state, 'UTF-8') : null])->filter()->join('-') ?: 'Poxoréu-MT';
     $issueDate = ($issuedDocument->issued_at ?? now('America/Cuiaba'))->timezone('America/Cuiaba')->format('d/m/Y');
     $naturalidade = collect([
         $student->birth_city ?: ($student->legacy_metadata['naturalidade'] ?? null),
-        $student->birth_state ?: ($student->legacy_metadata['naturalidade_uf'] ?? null),
+        mb_strtoupper((string) ($student->birth_state ?: ($student->legacy_metadata['naturalidade_uf'] ?? null)), 'UTF-8') ?: null,
     ])->filter()->join(', ');
     $nacionalidade = $student->nationality ?: ($student->legacy_metadata['nacionalidade'] ?? null);
     $address = collect([
@@ -67,7 +67,7 @@
         $student->number,
         $student->address_complement,
         $student->district,
-        collect([$student->city, $student->state])->filter()->join(' - '),
+        collect([$student->city, $student->state ? mb_strtoupper($student->state, 'UTF-8') : null])->filter()->join(' - '),
         $student->postal_code ? 'CEP '.$student->postal_code : null,
     ])->filter()->join(', ');
     $formatCpf = function (?string $cpf): string {
@@ -407,8 +407,7 @@
 </table>
 
 <section class="legend">
-    <strong>Legenda:</strong>
-    N (nota); F (falta); PT (pontos totais); TF (total de faltas); Freq. (frequência efetiva); CHP (carga horária prevista); CHC (carga horária cursada).
+    <div><strong>Legenda:</strong> N (nota) · F (falta) · PT (pontos totais) · TF (total de faltas) · Freq. (frequência efetiva) · CHP (carga horária prevista) · CHC (carga horária cursada).</div>
     @if($conceptLegend->isNotEmpty())
         <div class="concept-legend">
             <strong>Conceitos:</strong>

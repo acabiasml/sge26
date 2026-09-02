@@ -31,6 +31,7 @@
         .studies-table { page-break-inside: avoid; }
         .studies-nowrap { white-space: nowrap; }
         .notes { margin: 3px 0 0; }
+        .legend { border: .45px solid #d8ccc4; background: #faf8f6; font-size: 11px; line-height: 1.22; margin-top: 5px; padding: 4px 6px; page-break-inside: avoid; }
         .signatures { border-collapse: collapse; margin-top: 62px; page-break-inside: avoid; width: 100%; }
         .signatures td { border: 0; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 280px; padding-top: 6px; }
@@ -57,7 +58,7 @@
         $person->number,
         $person->address_complement,
         $person->district,
-        collect([$person->city, $person->state])->filter()->join(' - '),
+        collect([$person->city, $person->state ? mb_strtoupper($person->state, 'UTF-8') : null])->filter()->join(' - '),
         $person->postal_code ? 'CEP '.$person->postal_code : null,
     ])->filter()->join(', ');
 @endphp
@@ -76,7 +77,7 @@
         <td>@if($person->birth_date)<span class="label">Nascimento:</span> {{ $person->birth_date->format('d/m/Y') }}@endif</td>
     </tr>
     <tr>
-        @php($birthPlace = collect([$person->birth_city ?: ($person->legacy_metadata['naturalidade'] ?? null), $person->birth_state ?: ($person->legacy_metadata['naturalidade_uf'] ?? null)])->filter()->join(' / '))
+        @php($birthPlace = collect([$person->birth_city ?: ($person->legacy_metadata['naturalidade'] ?? null), mb_strtoupper((string) ($person->birth_state ?: ($person->legacy_metadata['naturalidade_uf'] ?? null)), 'UTF-8') ?: null])->filter()->join(' / '))
         <td>@if($birthPlace)<span class="label">Naturalidade:</span> {{ $birthPlace }}@endif</td>
         <td>@if($person->nationality)<span class="label">Nacionalidade:</span> {{ $person->nationality }}@endif</td>
         <td>@if($person->nis)<span class="label">NIS:</span> {{ $person->nis }}@endif</td>
@@ -239,7 +240,7 @@
             @php($moduleResult = $period->ends_at?->copy()->endOfDay()->isPast() ? 'Concluído' : ($period->starts_at?->isFuture() ? 'A cursar' : 'Cursando'))
             <tr>
                 <td class="studies-nowrap">{{ $period->name }}</td>
-                <td class="studies-nowrap"><strong>{{ $history->school?->name ?: '-' }}</strong>@if($location = collect([$history->school?->city, $history->school?->state, 'Brasil'])->filter()->join(' / ')) — {{ $location }}@endif</td>
+                <td class="studies-nowrap"><strong>{{ $history->school?->name ?: '-' }}</strong>@if($location = collect([$history->school?->city, $history->school?->state ? mb_strtoupper($history->school->state, 'UTF-8') : null, 'Brasil'])->filter()->join(' / ')) — {{ $location }}@endif</td>
                 <td>EPT</td>
                 <td>{{ $moduleResult }}</td>
             </tr>
@@ -248,7 +249,7 @@
         @foreach($history->years as $year)
             <tr>
                 <td class="studies-nowrap">{{ collect([$year->year ?: null, $year->grade_phase ?: $year->label])->filter()->join(' — ') ?: '-' }}</td>
-                <td class="studies-nowrap"><strong>{{ $year->school_name ?: '-' }}</strong>@if($location = collect([$year->city, $year->state, $year->country])->filter()->join(' / ')) — {{ $location }}@endif</td>
+                <td class="studies-nowrap"><strong>{{ $year->school_name ?: '-' }}</strong>@if($location = collect([$year->city, $year->state ? mb_strtoupper($year->state, 'UTF-8') : null, $year->country])->filter()->join(' / ')) — {{ $location }}@endif</td>
                 <td>{{ $year->modality ?: '-' }}</td>
                 <td>{{ $year->final_result ?: '-' }}</td>
             </tr>
@@ -270,12 +271,12 @@
     </p>
 @endif
 
-<p class="notes">
-    Legenda: N - nota ou conceito; CH - carga horária; RF - resultado final; AP - aproveitamento/progressão global conforme documento de origem.
-</p>
+<div class="legend">
+    <span class="label">Legenda:</span> N (nota ou conceito) · CH (carga horária) · RF (resultado final) · AP (aproveitamento/progressão global conforme documento de origem).
+</div>
 
 <p class="center">
-    {{ $history->issued_place ?: 'Jarudore / Poxoréu-MT' }},
+    {{ preg_replace_callback('/-([a-z]{2})$/iu', fn ($match) => '-'.mb_strtoupper($match[1], 'UTF-8'), $history->issued_place ?: 'Jarudore / Poxoréu-MT') }},
     {{ $history->issued_date?->format('d/m/Y') ?? now('America/Sao_Paulo')->format('d/m/Y') }}.
 </p>
 

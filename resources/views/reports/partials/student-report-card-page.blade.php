@@ -15,7 +15,7 @@
     $school = $academicYear->school;
     $naturalidade = collect([
         $student->birth_city ?: ($student->legacy_metadata['naturalidade'] ?? null),
-        $student->birth_state ?: ($student->legacy_metadata['naturalidade_uf'] ?? null),
+        mb_strtoupper((string) ($student->birth_state ?: ($student->legacy_metadata['naturalidade_uf'] ?? null)), 'UTF-8') ?: null,
     ])->filter()->join(', ');
     $nacionalidade = $student->nationality ?: ($student->legacy_metadata['nacionalidade'] ?? null);
     $address = collect([
@@ -23,7 +23,7 @@
         $student->number,
         $student->address_complement,
         $student->district,
-        collect([$student->city, $student->state])->filter()->join(' - '),
+        collect([$student->city, $student->state ? mb_strtoupper($student->state, 'UTF-8') : null])->filter()->join(' - '),
         $student->postal_code ? 'CEP '.$student->postal_code : null,
     ])->filter()->join(', ');
     $formatCpf = function (?string $cpf): string {
