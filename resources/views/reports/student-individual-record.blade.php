@@ -27,14 +27,15 @@
         .legend strong { display: block; }
         .concept-legend { margin-top: 4px; }
         .concept-legend span { display: inline-block; margin-right: 8px; white-space: nowrap; }
-        .document-closing { min-height: 138px; page-break-inside: avoid; }
-        .issue-place-date { margin: 12px 0 0; text-align: center; }
-        .signatures { border-collapse: collapse; margin-top: 72px; page-break-inside: avoid; width: 100%; }
+        .document-closing { min-height: 96px; page-break-inside: avoid; }
+        .issue-place-date { margin: 9px 0 0; text-align: center; }
+        .signatures { border-collapse: collapse; margin-top: 38px; page-break-inside: avoid; width: 100%; }
         .signatures td { border: 0; font-size: 11px; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 285px; padding-top: 6px; }
         .signature-name { display: block; font-weight: 600; }
         .signature-role { display: block; margin-top: 2px; }
         .document-footer { position: fixed; bottom: -23px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 5px; text-align: center; font-size: 11px; color: #333; }
+        .document-footer-contact { line-height: 1.08; white-space: normal; overflow-wrap: break-word; }
     </style>
 </head>
 <body>
