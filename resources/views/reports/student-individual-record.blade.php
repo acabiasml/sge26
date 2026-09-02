@@ -15,6 +15,7 @@
         .summary-table { page-break-inside: avoid; }
         .meta-table td, .summary-table td { border: .45px solid #d8ccc4; padding: 2.2px 3.5px; vertical-align: top; }
         .meta-table .label, .summary-table .label { background: #f3eee9; font-weight: 600; width: 18%; }
+        .student-identification td { line-height: 1.06; padding: 1.5px 3px; }
         .report-table { margin: 6px 0 7px; }
         .report-table th, .report-table td { border: .55px solid #111; padding: 1.7px 2.2px; vertical-align: middle; }
         .report-table th { background: #f1ede9; font-size: 11px; font-weight: 600; text-align: center; }
