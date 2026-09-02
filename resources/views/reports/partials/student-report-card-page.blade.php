@@ -13,26 +13,6 @@
     $courses = $report['courses'];
     $technicalCourses = $courses->where('stage', \App\Models\AcademicCourse::STAGE_TECHNICAL)->unique('id')->values();
     $school = $academicYear->school;
-    $naturalidade = collect([
-        $student->birth_city ?: ($student->legacy_metadata['naturalidade'] ?? null),
-        mb_strtoupper((string) ($student->birth_state ?: ($student->legacy_metadata['naturalidade_uf'] ?? null)), 'UTF-8') ?: null,
-    ])->filter()->join(', ');
-    $nacionalidade = $student->nationality ?: ($student->legacy_metadata['nacionalidade'] ?? null);
-    $address = collect([
-        $student->address,
-        $student->number,
-        $student->address_complement,
-        $student->district,
-        collect([$student->city, $student->state ? mb_strtoupper($student->state, 'UTF-8') : null])->filter()->join(' - '),
-        $student->postal_code ? 'CEP '.$student->postal_code : null,
-    ])->filter()->join(', ');
-    $formatCpf = function (?string $cpf): string {
-        $digits = preg_replace('/\D/', '', (string) $cpf);
-
-        return strlen($digits) === 11
-            ? substr($digits, 0, 3).'.'.substr($digits, 3, 3).'.'.substr($digits, 6, 3).'-'.substr($digits, 9, 2)
-            : ($cpf ?: '-');
-    };
     $formatHours = fn (float|int|null $value): string => $value === null ? '-' : rtrim(rtrim(number_format((float) $value, 2, ',', '.'), '0'), ',');
     $formatHoursWithUnit = fn (float|int|null $value): string => $value === null ? '-' : $formatHours($value).' h';
     $sortText = fn (?string $value): string => mb_strtolower(\Illuminate\Support\Str::ascii((string) $value), 'UTF-8');
@@ -157,36 +137,7 @@
     {{ $classLine }}
 </div>
 
-<section class="student-meta">
-    <p><strong>Estudante:</strong> {{ $student->full_name }}</p>
-    @if($student->social_name)
-        <p><strong>Nome social:</strong> {{ $student->social_name }}</p>
-    @endif
-    <p>
-        <strong>CPF:</strong> {{ $formatCpf($student->cpf) }}
-        @if($student->student_inep) | <strong>INEP:</strong> {{ $student->student_inep }} @endif
-        @if($student->nis) | <strong>NIS:</strong> {{ $student->nis }} @endif
-        @if($student->legacy_code) | <strong>Código da pasta:</strong> {{ $student->legacy_code }} @endif
-    </p>
-    <p>
-        <strong>Naturalidade:</strong> {{ $naturalidade ?: '-' }}.
-        <strong>Nacionalidade:</strong> {{ $nacionalidade ?: '-' }}.
-        <strong>Data de nascimento:</strong> {{ $student->birth_date?->format('d/m/Y') ?? '-' }}.
-    </p>
-    <p><strong>Mãe:</strong> {{ $student->mother_name ?: '-' }}. <strong>Pai:</strong> {{ $student->father_name ?: '-' }}.</p>
-    @if($student->phone || $student->personal_email || $student->institutional_email)
-        <p>
-            @if($student->phone)<strong>Telefone:</strong> {{ $student->phone }}@endif
-            @if($student->phone && ($student->personal_email || $student->institutional_email)) | @endif
-            @if($student->personal_email)<strong>E-mail:</strong> {{ $student->personal_email }}@endif
-            @if($student->personal_email && $student->institutional_email) | @endif
-            @if($student->institutional_email)<strong>E-mail institucional:</strong> {{ $student->institutional_email }}@endif
-        </p>
-    @endif
-    @if($address)
-        <p><strong>Endereço:</strong> {{ $address }}</p>
-    @endif
-</section>
+@include('reports.partials.student-identification', ['student' => $student])
 
 @forelse($groupedComponents as $formationGroup)
     @php
@@ -302,17 +253,22 @@
     </tr>
 </table>
 
-<section class="legend">
-    <div><strong>Legenda:</strong> N (nota) · F (falta) · TF (total de faltas) · CHP (carga horária prevista) · CHC (carga horária cursada).</div>
+<table class="legend-table">
+    <tr>
+        <th>Legenda</th>
+        <td>N (nota) · F (falta) · TF (total de faltas) · CHP (carga horária prevista) · CHC (carga horária cursada).</td>
+    </tr>
     @if($conceptLegend->isNotEmpty())
-        <div class="concept-legend">
-            <strong>Conceitos:</strong>
+        <tr>
+            <th>Conceitos</th>
+            <td>
             @foreach($conceptLegend as $concept)
                 <span>{{ $concept->shortLabel() }} = {{ $concept->name }} ({{ $friendlyConceptRange($concept) }})</span>
             @endforeach
-        </div>
+            </td>
+        </tr>
     @endif
-</section>
+</table>
 
 <table class="signatures">
     <tr>

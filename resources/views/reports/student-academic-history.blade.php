@@ -8,10 +8,10 @@
         @include('reports.partials.letterhead-styles')
         .letterhead { padding-bottom: 6px; }
         .document-title { font-size: 14px; text-transform: uppercase; margin: 5px 0 2px; }
-        .student-box, .history-table, .studies-table { border-collapse: collapse; width: 100%; }
-        .student-box td { border: 0; padding: 1px 4px; }
-        .student-parents { border-collapse: collapse; width: 100%; }
-        .student-parents td { padding: 0; width: 50%; }
+        .meta-table, .history-table, .studies-table { border-collapse: collapse; width: 100%; }
+        .meta-table { margin-bottom: 4px; }
+        .meta-table td { border: .45px solid #d8ccc4; padding: 1.5px 3px; vertical-align: top; }
+        .meta-table .label { background: #f3eee9; font-weight: 600; width: 18%; }
         .label { font-weight: 600; }
         .history-table { margin: 0 0 4px; table-layout: fixed; }
         .history-table th, .history-table td, .studies-table th, .studies-table td { border: .55px solid #111; padding: 1px 2px; vertical-align: middle; }
@@ -31,9 +31,12 @@
         .studies-table { page-break-inside: avoid; }
         .studies-nowrap { white-space: nowrap; }
         .notes { margin: 3px 0 0; }
-        .legend { border: .45px solid #d8ccc4; background: #faf8f6; font-size: 11px; line-height: 1.22; margin-top: 5px; padding: 4px 6px; page-break-inside: avoid; }
-        .signatures { border-collapse: collapse; margin-top: 62px; page-break-inside: avoid; width: 100%; }
-        .signatures td { border: 0; text-align: center; width: 50%; }
+        .legend-table { border-collapse: collapse; font-size: 11px; line-height: 1.22; margin-top: 5px; width: 100%; }
+        .legend-table th, .legend-table td { border: .45px solid #d8ccc4; padding: 3px 5px; text-align: left; vertical-align: top; }
+        .legend-table th { background: #f3eee9; font-weight: 600; width: 10%; }
+        .legend-table td { background: #faf8f6; }
+        .signatures { border-collapse: collapse; margin-top: 6px; page-break-inside: avoid; width: 100%; }
+        .signatures td { border: 0; padding-top: 54px; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 280px; padding-top: 6px; }
         .signature-name { display: block; font-weight: 600; }
         .signature-role { display: block; margin-top: 2px; }
@@ -42,25 +45,10 @@
 </head>
 <body>
 @php
-    $formatCpf = function (?string $cpf): string {
-        $digits = preg_replace('/\D/', '', (string) $cpf);
-
-        return strlen($digits) === 11
-            ? substr($digits, 0, 3).'.'.substr($digits, 3, 3).'.'.substr($digits, 6, 3).'-'.substr($digits, 9, 2)
-            : ($cpf ?: '-');
-    };
     $transcriptModeLabels = ['detailed' => 'Detalhada', 'summary' => 'Global/AP', 'no_transcription' => 'Sem transcrição'];
     $basicFormationReference = $history->education_stage === 'medio'
         ? 'BNCC-EM — Resolução CNE/CP nº 4/2018'
         : 'BNCC — Resolução CNE/CP nº 2/2017';
-    $studentAddress = collect([
-        $person->address,
-        $person->number,
-        $person->address_complement,
-        $person->district,
-        collect([$person->city, $person->state ? mb_strtoupper($person->state, 'UTF-8') : null])->filter()->join(' - '),
-        $person->postal_code ? 'CEP '.$person->postal_code : null,
-    ])->filter()->join(', ');
 @endphp
 
 @include('reports.partials.letterhead', [
@@ -70,56 +58,7 @@
     'verificationUrl' => $verificationUrl,
 ])
 
-<table class="student-box">
-    <tr>
-        <td><span class="label">Estudante:</span> {{ $person->full_name }}</td>
-        <td>@if($person->cpf)<span class="label">CPF:</span> {{ $formatCpf($person->cpf) }}@endif</td>
-        <td>@if($person->birth_date)<span class="label">Nascimento:</span> {{ $person->birth_date->format('d/m/Y') }}@endif</td>
-    </tr>
-    <tr>
-        @php($birthPlace = collect([$person->birth_city ?: ($person->legacy_metadata['naturalidade'] ?? null), mb_strtoupper((string) ($person->birth_state ?: ($person->legacy_metadata['naturalidade_uf'] ?? null)), 'UTF-8') ?: null])->filter()->join(' / '))
-        <td>@if($birthPlace)<span class="label">Naturalidade:</span> {{ $birthPlace }}@endif</td>
-        <td>@if($person->nationality)<span class="label">Nacionalidade:</span> {{ $person->nationality }}@endif</td>
-        <td>@if($person->nis)<span class="label">NIS:</span> {{ $person->nis }}@endif</td>
-    </tr>
-    @if($person->social_name || $person->student_inep || $person->legacy_code || $person->receives_federal_aid)
-    <tr>
-        <td>@if($person->social_name)<span class="label">Nome social:</span> {{ $person->social_name }}@endif</td>
-        <td>@if($person->student_inep)<span class="label">INEP:</span> {{ $person->student_inep }}@endif</td>
-        <td>
-            @if($person->legacy_code)
-                <span class="label">Código da pasta:</span> {{ $person->legacy_code }}
-            @endif
-            @if($person->receives_federal_aid)
-                @if($person->legacy_code) · @endif
-                <span class="label">Auxílio federal:</span> Sim
-            @endif
-        </td>
-    </tr>
-    @endif
-    @if($person->mother_name || $person->father_name)
-    <tr>
-        <td colspan="3">
-            <table class="student-parents"><tr>
-                <td>@if($person->mother_name)<span class="label">Mãe:</span> {{ $person->mother_name }}@endif</td>
-                <td>@if($person->father_name)<span class="label">Pai:</span> {{ $person->father_name }}@endif</td>
-            </tr></table>
-        </td>
-    </tr>
-    @endif
-    @if($person->phone || $person->personal_email || $person->institutional_email)
-    <tr>
-        <td>@if($person->phone)<span class="label">Telefone:</span> {{ $person->phone }}@endif</td>
-        <td>@if($person->personal_email)<span class="label">E-mail:</span> {{ $person->personal_email }}@endif</td>
-        <td>@if($person->institutional_email)<span class="label">E-mail institucional:</span> {{ $person->institutional_email }}@endif</td>
-    </tr>
-    @endif
-    @if($studentAddress)
-    <tr>
-        <td colspan="3"><span class="label">Endereço:</span> {{ $studentAddress }}</td>
-    </tr>
-    @endif
-</table>
+@include('reports.partials.student-identification', ['student' => $person])
 
 <div class="section-title">
     Componentes curriculares
@@ -271,9 +210,12 @@
     </p>
 @endif
 
-<div class="legend">
-    <span class="label">Legenda:</span> N (nota ou conceito) · CH (carga horária) · RF (resultado final) · AP (aproveitamento/progressão global conforme documento de origem).
-</div>
+<table class="legend-table">
+    <tr>
+        <th>Legenda</th>
+        <td>N (nota ou conceito) · CH (carga horária) · RF (resultado final) · AP (aproveitamento/progressão global conforme documento de origem).</td>
+    </tr>
+</table>
 
 <p class="center">
     {{ preg_replace_callback('/-([a-z]{2})$/iu', fn ($match) => '-'.mb_strtoupper($match[1], 'UTF-8'), $history->issued_place ?: 'Jarudore / Poxoréu-MT') }},

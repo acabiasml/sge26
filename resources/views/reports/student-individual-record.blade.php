@@ -24,14 +24,15 @@
         .formation-area-label { display: block; font-size: 11px; font-weight: 600; margin-top: 3px; }
         .component-cell { width: 20%; word-wrap: break-word; }
         .center { text-align: center; }
-        .legend { border: .45px solid #d8ccc4; background: #faf8f6; font-size: 11px; line-height: 1.22; margin-top: 5px; padding: 4px 6px; page-break-inside: avoid; }
-        .legend strong { font-weight: 600; }
-        .concept-legend { border-top: .45px solid #d8ccc4; margin-top: 3px; padding-top: 3px; }
-        .concept-legend span { display: inline-block; margin-right: 8px; white-space: nowrap; }
+        .legend-table { border-collapse: collapse; font-size: 11px; line-height: 1.22; margin-top: 5px; width: 100%; }
+        .legend-table th, .legend-table td { border: .45px solid #d8ccc4; padding: 3px 5px; text-align: left; vertical-align: top; }
+        .legend-table th { background: #f3eee9; font-weight: 600; width: 10%; }
+        .legend-table td { background: #faf8f6; }
+        .legend-table span { display: inline-block; margin-right: 8px; white-space: nowrap; }
         .document-closing { min-height: 96px; page-break-inside: avoid; }
         .issue-place-date { margin: 9px 0 0; text-align: center; }
-        .signatures { border-collapse: collapse; margin-top: 38px; page-break-inside: avoid; width: 100%; }
-        .signatures td { border: 0; font-size: 11px; text-align: center; width: 50%; }
+        .signatures { border-collapse: collapse; margin-top: 6px; page-break-inside: avoid; width: 100%; }
+        .signatures td { border: 0; font-size: 11px; padding-top: 54px; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 285px; padding-top: 6px; }
         .signature-name { display: block; font-weight: 600; }
         .signature-role { display: block; margin-top: 2px; }
@@ -57,26 +58,6 @@
     $school = $academicYear->school;
     $issuePlace = collect([$school?->city, $school?->state ? mb_strtoupper($school->state, 'UTF-8') : null])->filter()->join('-') ?: 'Poxoréu-MT';
     $issueDate = ($issuedDocument->issued_at ?? now('America/Cuiaba'))->timezone('America/Cuiaba')->format('d/m/Y');
-    $naturalidade = collect([
-        $student->birth_city ?: ($student->legacy_metadata['naturalidade'] ?? null),
-        mb_strtoupper((string) ($student->birth_state ?: ($student->legacy_metadata['naturalidade_uf'] ?? null)), 'UTF-8') ?: null,
-    ])->filter()->join(', ');
-    $nacionalidade = $student->nationality ?: ($student->legacy_metadata['nacionalidade'] ?? null);
-    $address = collect([
-        $student->address,
-        $student->number,
-        $student->address_complement,
-        $student->district,
-        collect([$student->city, $student->state ? mb_strtoupper($student->state, 'UTF-8') : null])->filter()->join(' - '),
-        $student->postal_code ? 'CEP '.$student->postal_code : null,
-    ])->filter()->join(', ');
-    $formatCpf = function (?string $cpf): string {
-        $digits = preg_replace('/\D/', '', (string) $cpf);
-
-        return strlen($digits) === 11
-            ? substr($digits, 0, 3).'.'.substr($digits, 3, 3).'.'.substr($digits, 6, 3).'-'.substr($digits, 9, 2)
-            : ($cpf ?: '-');
-    };
     $formatHours = fn (float|int|null $value): string => $value === null ? '-' : rtrim(rtrim(number_format((float) $value, 2, ',', '.'), '0'), ',');
     $formatHoursWithUnit = fn (float|int|null $value): string => $value === null ? '-' : $formatHours($value).' h';
     $sortText = fn (?string $value): string => mb_strtolower(\Illuminate\Support\Str::ascii((string) $value), 'UTF-8');
@@ -192,63 +173,7 @@
 
 <div class="class-line">{{ $classLine }}</div>
 
-<div class="section-title">Identificação do estudante</div>
-<table class="meta-table">
-    <tr>
-        <td class="label">Estudante</td>
-        <td colspan="3">{{ $student->full_name }}</td>
-    </tr>
-    <tr>
-        <td class="label">Nome social</td>
-        <td>{{ $student->social_name ?: '-' }}</td>
-        <td class="label">Código da pasta</td>
-        <td>{{ $student->legacy_code ?: '-' }}</td>
-    </tr>
-    <tr>
-        <td class="label">CPF</td>
-        <td>{{ $formatCpf($student->cpf) }}</td>
-        <td class="label">INEP</td>
-        <td>{{ $student->student_inep ?: '-' }}</td>
-    </tr>
-    @if($student->nis || $student->receives_federal_aid)
-        <tr>
-            <td class="label">NIS</td>
-            <td>{{ $student->nis ?: '-' }}</td>
-            <td class="label">Auxílio federal</td>
-            <td>{{ $student->receives_federal_aid ? 'Sim' : 'Não' }}</td>
-        </tr>
-    @endif
-    <tr>
-        <td class="label">Nascimento</td>
-        <td>{{ $student->birth_date?->format('d/m/Y') ?? '-' }}</td>
-        <td class="label">Naturalidade</td>
-        <td>{{ $naturalidade ?: '-' }}</td>
-    </tr>
-    <tr>
-        <td class="label">Nacionalidade</td>
-        <td>{{ $nacionalidade ?: '-' }}</td>
-        <td class="label">Telefone</td>
-        <td>{{ $student->phone ?: '-' }}</td>
-    </tr>
-    @if($student->personal_email || $student->institutional_email)
-        <tr>
-            <td class="label">E-mail</td>
-            <td>{{ $student->personal_email ?: '-' }}</td>
-            <td class="label">E-mail institucional</td>
-            <td>{{ $student->institutional_email ?: '-' }}</td>
-        </tr>
-    @endif
-    <tr>
-        <td class="label">Mãe</td>
-        <td>{{ $student->mother_name ?: '-' }}</td>
-        <td class="label">Pai</td>
-        <td>{{ $student->father_name ?: '-' }}</td>
-    </tr>
-    <tr>
-        <td class="label">Endereço</td>
-        <td colspan="3">{{ $address ?: '-' }}</td>
-    </tr>
-</table>
+@include('reports.partials.student-identification', ['student' => $student])
 
 <div class="section-title">Dados da matrícula</div>
 <table class="meta-table">
@@ -406,17 +331,22 @@
     @endif
 </table>
 
-<section class="legend">
-    <div><strong>Legenda:</strong> N (nota) · F (falta) · PT (pontos totais) · TF (total de faltas) · Freq. (frequência efetiva) · CHP (carga horária prevista) · CHC (carga horária cursada).</div>
+<table class="legend-table">
+    <tr>
+        <th>Legenda</th>
+        <td>N (nota) · F (falta) · PT (pontos totais) · TF (total de faltas) · Freq. (frequência efetiva) · CHP (carga horária prevista) · CHC (carga horária cursada).</td>
+    </tr>
     @if($conceptLegend->isNotEmpty())
-        <div class="concept-legend">
-            <strong>Conceitos:</strong>
+        <tr>
+            <th>Conceitos</th>
+            <td>
             @foreach($conceptLegend as $concept)
                 <span>{{ $concept->shortLabel() }} = {{ $concept->name }} ({{ $friendlyConceptRange($concept) }})</span>
             @endforeach
-        </div>
+            </td>
+        </tr>
     @endif
-</section>
+</table>
 
 <section class="document-closing">
     <p class="issue-place-date">{{ $issuePlace }}, {{ $issueDate }}.</p>
