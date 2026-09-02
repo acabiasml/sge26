@@ -44,7 +44,6 @@
     $student = $report['student'];
     $academicYear = $report['academicYear'];
     $schoolClass = $report['schoolClass'];
-    $periods = $report['periods'];
     $periodShortLabel = fn ($period): string => preg_replace(
         ['/\bBimestre\b/iu', '/\bTrimestre\b/iu', '/\bSemestre\b/iu'],
         ['Bim.', 'Trim.', 'Sem.'],
@@ -144,6 +143,11 @@
         ->map(fn ($formationItems, string $formation): array => [
             'formation' => $formation,
             'rowspan' => $formationItems->count(),
+            'periods' => $formationItems
+                ->flatMap(fn (array $summary) => $summary['periods']->pluck('period'))
+                ->unique('id')
+                ->sortBy(fn ($period): string => sprintf('%s-%010d', $period->starts_at?->format('Y-m-d') ?? '9999-12-31', $period->position))
+                ->values(),
             'areas' => $formationItems
                 ->groupBy(fn (array $summary): string => $summary['component']->area?->name ?? 'Área não definida')
                 ->map(fn ($areaItems, string $area): array => [
@@ -245,28 +249,29 @@
 </table>
 
 <div class="section-title">Rendimento, frequência e carga horária</div>
-<table class="report-table">
-    <thead>
-        <tr>
-            <th colspan="3" rowspan="2">Componentes curriculares</th>
-            @foreach($periods as $period)
-                <th colspan="2">{{ $periodShortLabel($period) }}</th>
-            @endforeach
-            <th rowspan="2">PT</th>
-            <th rowspan="2">TF</th>
-            <th rowspan="2">Freq.</th>
-            <th rowspan="2">CHP (h)</th>
-            <th rowspan="2">CHC (h)</th>
-        </tr>
-        <tr>
-            @foreach($periods as $period)
-                <th>N</th>
-                <th>F</th>
-            @endforeach
-        </tr>
-    </thead>
-    <tbody>
-        @forelse($groupedComponents as $formationGroup)
+@forelse($groupedComponents as $formationGroup)
+    @php($formationPeriods = $formationGroup['periods'])
+    <table class="report-table">
+        <thead>
+            <tr>
+                <th colspan="3" rowspan="2">{{ mb_strtoupper($formationGroup['formation'], 'UTF-8') }}</th>
+                @foreach($formationPeriods as $period)
+                    <th colspan="2">{{ $periodShortLabel($period) }}</th>
+                @endforeach
+                <th rowspan="2">PT</th>
+                <th rowspan="2">TF</th>
+                <th rowspan="2">Freq.</th>
+                <th rowspan="2">CHP (h)</th>
+                <th rowspan="2">CHC (h)</th>
+            </tr>
+            <tr>
+                @foreach($formationPeriods as $period)
+                    <th>N</th>
+                    <th>F</th>
+                @endforeach
+            </tr>
+        </thead>
+        <tbody>
             @foreach($formationGroup['areas'] as $areaGroup)
                 @foreach($areaGroup['items'] as $summary)
                     @php
@@ -276,14 +281,11 @@
                         $completedHours = round(((int) ($summary['attendance']['lessons'] ?? 0) * (int) ($course?->class_hour_minutes ?? 0)) / 60, 2);
                     @endphp
                     <tr>
-                        @if($loop->parent->first && $loop->first)
-                            <td class="formation-cell" rowspan="{{ $formationGroup['rowspan'] }}">{{ mb_strtoupper($formationGroup['formation'], 'UTF-8') }}</td>
-                        @endif
                         @if($loop->first)
-                            <td class="area-cell" rowspan="{{ $areaGroup['rowspan'] }}">{{ $areaGroup['area'] }}</td>
+                            <td class="area-cell" colspan="2" rowspan="{{ $areaGroup['rowspan'] }}">{{ $areaGroup['area'] }}</td>
                         @endif
                         <td class="component-cell">{{ $component->name }}</td>
-                        @foreach($periods as $period)
+                        @foreach($formationPeriods as $period)
                             @php
                                 $periodComponent = $summary['periods']->first(fn (array $item): bool => $item['component']->id === $component->id && $period->is($item['period'] ?? $period));
                                 $periodDate = $period->ends_at ?? $period->starts_at;
@@ -299,25 +301,27 @@
                     </tr>
                 @endforeach
             @endforeach
-        @empty
-            <tr>
-                <td colspan="{{ 9 + ($periods->count() * 2) }}" class="center">Nenhum componente cadastrado.</td>
-            </tr>
-        @endforelse
-        <tr>
-            <td colspan="3"><strong>Comportamento</strong></td>
-            @foreach($periods as $period)
-                @php
-                    $periodReport = $report['periodReports']->first(fn (array $item): bool => $period->is($item['period']));
-                    $periodDate = $period->ends_at ?? $period->starts_at;
-                @endphp
-                <td class="center">{{ $scoreLabel($periodReport['behavior']?->score ?? null, $periodDate) }}</td>
-                <td class="center">-</td>
-            @endforeach
-            <td colspan="5" class="center">Registro por período avaliativo</td>
-        </tr>
-    </tbody>
-</table>
+            @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_FGB)
+                <tr>
+                    <td colspan="3"><strong>Comportamento</strong></td>
+                    @foreach($formationPeriods as $period)
+                        @php
+                            $periodReport = $report['periodReports']->first(fn (array $item): bool => $period->is($item['period']));
+                            $periodDate = $period->ends_at ?? $period->starts_at;
+                        @endphp
+                        <td class="center">{{ $scoreLabel($periodReport['behavior']?->score ?? null, $periodDate) }}</td>
+                        <td class="center">-</td>
+                    @endforeach
+                    <td colspan="5" class="center">Registro por período avaliativo</td>
+                </tr>
+            @endif
+        </tbody>
+    </table>
+@empty
+    <table class="report-table">
+        <tr><td class="center">Nenhum componente cadastrado.</td></tr>
+    </table>
+@endforelse
 
 <table class="summary-table">
     <tr>

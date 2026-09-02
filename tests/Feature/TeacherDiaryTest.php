@@ -317,6 +317,7 @@ class TeacherDiaryTest extends TestCase
     public function test_report_card_and_individual_record_include_parallel_technical_itinerary_for_the_regular_year(): void
     {
         [, $regularYear, , , , $regularEnrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $regularYear->school_id, 'gestao-itinerario-documentos@ctjj.org');
         $technicalYear = AcademicYear::query()->create([
             'school_id' => $regularYear->school_id,
             'name' => 'Itinerário Técnico 2025-2027',
@@ -368,6 +369,16 @@ class TeacherDiaryTest extends TestCase
         $this->assertContains($technicalCourse->id, $report['courses']->pluck('id')->all());
         $this->assertContains($technicalComponent->id, $report['annualComponents']->pluck('component.id')->all());
         $this->assertContains($technicalPeriod->id, $report['periods']->pluck('id')->all());
+
+        $this->actingAs($manager)
+            ->get(route('enrollments.report-card.pdf', $regularEnrollment))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        $this->actingAs($manager)
+            ->get(route('enrollments.individual-record.pdf', $regularEnrollment))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
     }
 
     public function test_individual_record_orders_periods_chronologically_when_positions_are_inconsistent(): void
