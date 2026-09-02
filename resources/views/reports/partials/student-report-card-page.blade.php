@@ -150,7 +150,9 @@
 </section>
 
 @forelse($groupedComponents as $formationGroup)
-    @php($formationPeriods = $formationGroup['periods'])
+    @php
+        $formationPeriods = $formationGroup['periods'];
+    @endphp
     <table class="report-table">
         <thead>
             <tr>
