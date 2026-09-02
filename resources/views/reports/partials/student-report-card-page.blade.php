@@ -234,18 +234,32 @@
     </table>
 @endforelse
 
-<section class="summary">
-    <p><strong>Dias letivos:</strong> {{ $academicYear->schoolDayCount() }}</p>
-    <p><strong>Critérios de aprovação:</strong> mínimo de {{ $formatHours($report['passingPoints']) }} pontos por componente curricular e frequência mínima de {{ $report['minimumAttendance'] }}%.</p>
-    <p><strong>Frequência anual efetiva:</strong> {{ $report['annualAttendance']['percentage'] !== null ? number_format((float) $report['annualAttendance']['percentage'], 1, ',', '.').'%' : '-' }}</p>
-    <p><strong>Carga horária total prevista:</strong> {{ $formatHoursWithUnit($plannedHoursTotal) }} | <strong>Carga horária total cumprida:</strong> {{ $formatHoursWithUnit($completedHoursTotal) }}</p>
-    <p><strong>Data da matrícula:</strong> {{ $enrollment->enrolled_at?->format('d/m/Y') ?? '-' }}</p>
-</section>
+<table class="report-summary-table">
+    <tr>
+        <td class="summary-label">Dias letivos</td>
+        <td>{{ $academicYear->schoolDayCount() }}</td>
+        <td class="summary-label">Frequência anual efetiva</td>
+        <td>{{ $report['annualAttendance']['percentage'] !== null ? number_format((float) $report['annualAttendance']['percentage'], 1, ',', '.').'%' : '-' }}</td>
+    </tr>
+    <tr>
+        <td class="summary-label">Critérios de aprovação</td>
+        <td colspan="3">Mínimo de {{ $formatHours($report['passingPoints']) }} pontos por componente curricular e frequência mínima de {{ $report['minimumAttendance'] }}%.</td>
+    </tr>
+    <tr>
+        <td class="summary-label">Carga horária prevista</td>
+        <td>{{ $formatHoursWithUnit($plannedHoursTotal) }}</td>
+        <td class="summary-label">Carga horária cumprida</td>
+        <td>{{ $formatHoursWithUnit($completedHoursTotal) }}</td>
+    </tr>
+    <tr>
+        <td class="summary-label">Data da matrícula</td>
+        <td colspan="3">{{ $enrollment->enrolled_at?->format('d/m/Y') ?? '-' }}</td>
+    </tr>
+</table>
 
 <section class="legend">
-    <strong>Legenda:</strong>
-    N (nota); F (falta); TF (total de faltas); CHP (carga horária prevista); CHC (carga horária cursada).
-    Faltas justificadas permanecem registradas, mas contam na frequência efetiva para aprovação.
+    <div><strong>Legenda:</strong> N (nota) · F (falta) · TF (total de faltas) · CHP (carga horária prevista) · CHC (carga horária cursada).</div>
+    <div class="legend-note">Faltas justificadas permanecem registradas, mas contam na frequência efetiva para aprovação.</div>
     @if($conceptLegend->isNotEmpty())
         <div class="concept-legend">
             <strong>Conceitos:</strong>

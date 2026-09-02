@@ -22,11 +22,13 @@
         .component-cell { width: 20%; word-wrap: break-word; }
         .center { text-align: center; }
         .right { text-align: right; }
-        .summary { font-size: 11px; margin-top: 8px; }
-        .summary p { margin: 0 0 4px; }
-        .legend { font-size: 11px; margin-top: 7px; }
-        .legend strong { display: block; }
-        .concept-legend { margin-top: 4px; }
+        .report-summary-table { border-collapse: collapse; font-size: 11px; margin: 7px 0; page-break-inside: avoid; width: 100%; }
+        .report-summary-table td { border: .45px solid #d8ccc4; padding: 2.5px 4px; vertical-align: middle; }
+        .report-summary-table .summary-label { background: #f3eee9; font-weight: 600; width: 18%; }
+        .legend { border: .45px solid #d8ccc4; background: #faf8f6; font-size: 11px; line-height: 1.3; margin-top: 7px; padding: 5px 6px; page-break-inside: avoid; }
+        .legend strong { font-weight: 600; }
+        .legend-note { margin-top: 2px; }
+        .concept-legend { border-top: .45px solid #d8ccc4; margin-top: 4px; padding-top: 4px; }
         .concept-legend span { display: inline-block; margin-right: 9px; white-space: nowrap; }
         .signatures { border-collapse: collapse; margin-top: 88px; width: 100%; }
         .signatures td { border: 0; font-size: 11px; text-align: center; width: 50%; }
