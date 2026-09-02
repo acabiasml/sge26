@@ -12,6 +12,7 @@
         .class-line { font-size: 11px; margin: 1px 0 7px; text-align: center; text-transform: uppercase; white-space: nowrap; }
         .section-title { color: #6f3a29; font-size: 11px; font-weight: 600; margin: 6px 0 3px; text-transform: uppercase; }
         .meta-table, .report-table, .summary-table { border-collapse: collapse; width: 100%; }
+        .summary-table { page-break-inside: avoid; }
         .meta-table td, .summary-table td { border: .45px solid #d8ccc4; padding: 2.2px 3.5px; vertical-align: top; }
         .meta-table .label, .summary-table .label { background: #f3eee9; font-weight: 600; width: 18%; }
         .report-table { margin: 6px 0 7px; }
