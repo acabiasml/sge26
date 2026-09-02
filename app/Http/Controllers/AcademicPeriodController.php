@@ -269,13 +269,11 @@ class AcademicPeriodController extends Controller
             'ends_at' => ['required', 'date', 'after_or_equal:starts_at', 'before_or_equal:'.$academicYear->ends_at->toDateString()],
             'ignore_saturdays' => ['nullable', 'boolean'],
             'ignore_sundays' => ['nullable', 'boolean'],
-            'allow_diary_entries_outside_period' => ['nullable', 'boolean'],
             'position' => ['required', 'integer', 'min:1', 'max:99'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
         $data['ignore_saturdays'] = $request->boolean('ignore_saturdays');
         $data['ignore_sundays'] = $request->boolean('ignore_sundays');
-        $data['allow_diary_entries_outside_period'] = $request->boolean('allow_diary_entries_outside_period');
 
         $overlaps = $academicYear->periods()
             ->whereKeyNot($period->id)
@@ -303,6 +301,24 @@ class AcademicPeriodController extends Controller
 
         return redirect()->route('academic-years.periods.index', $academicYear)
             ->with('status', 'Período atualizado com sucesso.');
+    }
+
+    public function updateDiarySettings(Request $request, AcademicYear $academicYear, AcademicPeriod $period): RedirectResponse
+    {
+        abort_unless($period->academic_year_id === $academicYear->id, 404);
+        abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
+        $this->ensureYearIsOpen($academicYear);
+
+        $request->validate([
+            'allow_diary_entries_outside_period' => ['nullable', 'boolean'],
+        ]);
+
+        $period->update([
+            'allow_diary_entries_outside_period' => $request->boolean('allow_diary_entries_outside_period'),
+        ]);
+
+        return redirect()->route('academic-years.periods.index', $academicYear)
+            ->with('status', 'Configuração de lançamentos do período atualizada.');
     }
 
     public function updateAssessmentRules(Request $request, AcademicYear $academicYear, AcademicPeriod $period): RedirectResponse

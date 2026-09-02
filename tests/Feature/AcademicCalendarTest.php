@@ -148,6 +148,26 @@ class AcademicCalendarTest extends TestCase
         ]);
     }
 
+    public function test_management_can_change_diary_date_limits_after_calendar_approval(): void
+    {
+        $year = $this->academicYear(['approved_at' => '2025-12-10 08:00:00']);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-limites@ctjj.org');
+        $period = $year->periods()->create([
+            'name' => '1º Bimestre',
+            'starts_at' => '2026-02-01',
+            'ends_at' => '2026-04-10',
+            'position' => 1,
+        ]);
+
+        $this->actingAs($manager)
+            ->put(route('academic-years.periods.diary-settings.update', [$year, $period]), [
+                'allow_diary_entries_outside_period' => '1',
+            ])
+            ->assertRedirect(route('academic-years.periods.index', $year));
+
+        $this->assertTrue($period->fresh()->allow_diary_entries_outside_period);
+    }
+
     public function test_academic_period_creation_can_ignore_only_sundays(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);

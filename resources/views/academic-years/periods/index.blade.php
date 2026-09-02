@@ -163,16 +163,26 @@
                                         <input type="checkbox" class="sge-weekday-input" id="edit_period_ignore_sundays_{{ $period->id }}" name="ignore_sundays" value="1" @checked($useOldForPeriodEdit ? old('ignore_sundays', $period->ignore_sundays) : $period->ignore_sundays)>
                                         <label class="sge-weekday-option" for="edit_period_ignore_sundays_{{ $period->id }}"><span class="sge-weekday-icon"><i class="fas fa-calendar-check" aria-hidden="true"></i></span><span><strong>Domingos</strong><small>Manter como fim de semana.</small></span></label>
                                     </div>
-                                    <div class="custom-control custom-switch mb-3">
-                                        <input type="checkbox" class="custom-control-input" id="edit_period_allow_diary_entries_outside_period_{{ $period->id }}" name="allow_diary_entries_outside_period" value="1" @checked($useOldForPeriodEdit ? old('allow_diary_entries_outside_period', $period->allow_diary_entries_outside_period) : $period->allow_diary_entries_outside_period)>
-                                        <label class="custom-control-label" for="edit_period_allow_diary_entries_outside_period_{{ $period->id }}">Permitir que professores lancem frequência e conteúdo fora das datas deste período</label>
-                                        <small class="form-text text-muted">Os lançamentos continuam limitados aos dias letivos deste ano letivo.</small>
-                                    </div>
                                     <button class="btn btn-primary" type="submit"><i class="fas fa-save mr-1" aria-hidden="true"></i>Salvar período</button>
                                 </form>
                             </div>
                         </details>
                     @endif
+
+                    <section class="sge-period-assessments mb-3" aria-labelledby="diary-settings-{{ $period->id }}">
+                        <div class="p-3">
+                            <h3 id="diary-settings-{{ $period->id }}" class="h6 font-weight-bold text-primary mb-2"><i class="fas fa-calendar-plus mr-1" aria-hidden="true"></i>Limites dos lançamentos</h3>
+                            <form method="POST" action="{{ route('academic-years.periods.diary-settings.update', [$academicYear, $period]) }}">
+                                @csrf @method('PUT')
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" class="custom-control-input" id="allow_diary_entries_outside_period_{{ $period->id }}" name="allow_diary_entries_outside_period" value="1" @checked($period->allow_diary_entries_outside_period)>
+                                    <label class="custom-control-label" for="allow_diary_entries_outside_period_{{ $period->id }}">Permitir que professores lancem frequência e conteúdo fora das datas deste período</label>
+                                </div>
+                                <p class="small text-muted mt-2 mb-3">Mesmo com a permissão ativa, os lançamentos ficam limitados aos dias letivos deste ano letivo.</p>
+                                <button class="btn btn-sm btn-primary" type="submit"><i class="fas fa-save mr-1" aria-hidden="true"></i>Salvar limites dos lançamentos</button>
+                            </form>
+                        </div>
+                    </section>
 
                     <section class="sge-period-assessments mb-3" aria-labelledby="diary-closing-{{ $period->id }}">
                         <div class="p-3">
