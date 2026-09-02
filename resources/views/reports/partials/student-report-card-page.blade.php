@@ -156,7 +156,7 @@
     <table class="report-table">
         <thead>
             <tr>
-                <th colspan="3" rowspan="2">{{ mb_strtoupper($formationGroup['formation'], 'UTF-8') }}</th>
+                <th colspan="2" rowspan="2">{{ mb_strtoupper($formationGroup['formation'], 'UTF-8') }}</th>
                 @foreach($formationPeriods as $period)
                     <th colspan="2">{{ $periodShortLabel($period) }}</th>
                 @endforeach
@@ -182,7 +182,7 @@
                     @endphp
                     <tr>
                         @if($loop->first)
-                            <td class="area-cell" colspan="2" rowspan="{{ $areaGroup['rowspan'] }}">{{ $areaGroup['area'] }}</td>
+                            <td class="area-cell" rowspan="{{ $areaGroup['rowspan'] }}">{{ $areaGroup['area'] }}</td>
                         @endif
                         <td class="component-cell">{{ $component->name }}</td>
                         @foreach($formationPeriods as $period)
@@ -201,7 +201,7 @@
             @endforeach
             @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_FGB)
                 <tr>
-                    <td colspan="3"><strong>Comportamento</strong></td>
+                    <td colspan="2"><strong>Comportamento</strong></td>
                     @foreach($formationPeriods as $period)
                         @php
                             $periodReport = $report['periodReports']->first(fn (array $item): bool => $period->is($item['period']));

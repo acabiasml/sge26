@@ -16,9 +16,8 @@
         .report-table th, .report-table td { border: .55px solid #111; padding: 1.8px 2.2px; vertical-align: middle; }
         .report-table th { background: #f1ede9; font-size: 11px; font-weight: 600; text-align: center; }
         .report-table td { font-size: 11px; }
-        .formation-cell { font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; width: 10%; }
-        .area-cell { font-size: 11px; text-align: center; text-transform: uppercase; width: 15%; }
-        .component-cell { width: 22%; }
+        .area-cell { font-size: 11px; text-align: center; text-transform: uppercase; width: 22%; word-wrap: break-word; }
+        .component-cell { width: 20%; word-wrap: break-word; }
         .center { text-align: center; }
         .right { text-align: right; }
         .summary { font-size: 11px; margin-top: 8px; }

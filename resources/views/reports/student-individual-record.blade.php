@@ -18,9 +18,8 @@
         .report-table th, .report-table td { border: .55px solid #111; padding: 1.7px 2.2px; vertical-align: middle; }
         .report-table th { background: #f1ede9; font-size: 11px; font-weight: 600; text-align: center; }
         .report-table td { font-size: 11px; }
-        .formation-cell { font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; width: 10%; }
-        .area-cell { font-size: 11px; text-align: center; text-transform: uppercase; width: 15%; }
-        .component-cell { width: 21%; }
+        .area-cell { font-size: 11px; text-align: center; text-transform: uppercase; width: 22%; word-wrap: break-word; }
+        .component-cell { width: 20%; word-wrap: break-word; }
         .center { text-align: center; }
         .legend { font-size: 11px; margin-top: 7px; }
         .legend strong { display: block; }
@@ -256,7 +255,7 @@
     <table class="report-table">
         <thead>
             <tr>
-                <th colspan="3" rowspan="2">{{ mb_strtoupper($formationGroup['formation'], 'UTF-8') }}</th>
+                <th colspan="2" rowspan="2">{{ mb_strtoupper($formationGroup['formation'], 'UTF-8') }}</th>
                 @foreach($formationPeriods as $period)
                     <th colspan="2">{{ $periodShortLabel($period) }}</th>
                 @endforeach
@@ -284,7 +283,7 @@
                     @endphp
                     <tr>
                         @if($loop->first)
-                            <td class="area-cell" colspan="2" rowspan="{{ $areaGroup['rowspan'] }}">{{ $areaGroup['area'] }}</td>
+                            <td class="area-cell" rowspan="{{ $areaGroup['rowspan'] }}">{{ $areaGroup['area'] }}</td>
                         @endif
                         <td class="component-cell">{{ $component->name }}</td>
                         @foreach($formationPeriods as $period)
@@ -305,7 +304,7 @@
             @endforeach
             @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_FGB)
                 <tr>
-                    <td colspan="3"><strong>Comportamento</strong></td>
+                    <td colspan="2"><strong>Comportamento</strong></td>
                     @foreach($formationPeriods as $period)
                         @php
                             $periodReport = $report['periodReports']->first(fn (array $item): bool => $period->is($item['period']));
