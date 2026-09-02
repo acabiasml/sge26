@@ -3,13 +3,17 @@
         ?? $issuedDocument->issuedBy?->name
         ?? $issuedDocument->issuedBy?->email
         ?? 'Sistema';
+    $footerLines = collect($letterhead['footer_lines'] ?? [])->filter()->values();
+    $siteLine = $footerLines->first(fn ($line): bool => str_starts_with(mb_strtolower(trim($line), 'UTF-8'), 'site:'));
+    $contactLine = $footerLines->reject(fn ($line): bool => $line === $siteLine)->implode(' | ');
 @endphp
 
 <footer class="document-footer">
-    @if($contactLine = collect($letterhead['footer_lines'] ?? [])->filter()->implode(' | '))
+    @if($contactLine)
         <div class="document-footer-contact">{{ $contactLine }}</div>
     @endif
     <div class="document-footer-authentication">
+        @if($siteLine){{ $siteLine }} | @endif
         Documento emitido pelo Beabá. Autenticidade: {{ $issuedDocument->verification_code }}.
         Emitido em {{ $issuedDocument->issued_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i:s') }}.
     </div>

@@ -169,6 +169,15 @@
         return round(((int) ($summary['attendance']['lessons'] ?? 0) * (int) ($course?->class_hour_minutes ?? 0)) / 60, 2);
     });
     $conceptLegend = $school?->conceptsForDate($academicYear->ends_at ?? now()) ?? collect();
+    $issuedAt = ($issuedDocument->issued_at ?? now('America/Cuiaba'))->timezone('America/Cuiaba');
+    $issuedDate = $issuedAt->toDateString();
+    $currentAcademicPeriod = $report['periods']->first(fn ($period): bool =>
+        $period->academic_year_id === $academicYear->id
+        && $period->starts_at
+        && $period->ends_at
+        && $issuedDate >= $period->starts_at->toDateString()
+        && $issuedDate <= $period->ends_at->toDateString()
+    );
     $finalResult = $report['finalResult'] ?? [];
     $finalResultDetails = $finalResult['details'] ?? [];
 @endphp
@@ -257,7 +266,15 @@
 @forelse($groupedComponents as $formationGroup)
     @php
         $formationPeriods = $formationGroup['periods'];
-        $formationAreas = $formationGroup['areas']->pluck('area')->filter()->unique()->join(' / ');
+        $itineraryNames = $formationGroup['areas']
+            ->flatMap(fn (array $areaGroup) => $areaGroup['items'])
+            ->map(fn (array $summary): string => CurriculumCatalog::areaLabelForComponent(
+                $summary['component']->course ?? $courses->first(),
+                $summary['component']->area,
+            ))
+            ->filter()
+            ->unique()
+            ->join(' / ');
     @endphp
     @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY && $technicalCourses->isNotEmpty())
         @include('reports.partials.technical-course-regulations', ['technicalCourses' => $technicalCourses])
@@ -267,8 +284,8 @@
             <tr>
                 <th colspan="2" rowspan="2">
                     {{ mb_strtoupper($formationGroup['formation'], 'UTF-8') }}
-                    @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY && $formationAreas)
-                        <span class="formation-area-label">{{ mb_strtoupper($formationAreas, 'UTF-8') }}</span>
+                    @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY && $itineraryNames)
+                        <span class="formation-area-label">{{ mb_strtoupper($itineraryNames, 'UTF-8') }}</span>
                     @endif
                 </th>
                 @foreach($formationPeriods as $period)
@@ -341,10 +358,10 @@
 
 <table class="summary-table">
     <tr>
-        <td class="label">Critério de pontos</td>
-        <td>Mínimo de {{ $formatHours($report['passingPoints']) }} pontos por componente curricular.</td>
-        <td class="label">Frequência mínima</td>
-        <td>{{ $report['minimumAttendance'] }}%</td>
+        <td class="label">Total de faltas justificadas (Atestados Médicos)</td>
+        <td>{{ (int) ($report['annualAttendance']['justified'] ?? 0) }}</td>
+        <td class="label">Período letivo</td>
+        <td>{{ $currentAcademicPeriod ? 'Em andamento: '.$currentAcademicPeriod->name : 'Nenhum período em andamento' }}</td>
     </tr>
     <tr>
         <td class="label">Frequência anual efetiva</td>
@@ -378,7 +395,6 @@
 <section class="legend">
     <strong>Legenda:</strong>
     N (nota); F (falta); PT (pontos totais); TF (total de faltas); Freq. (frequência efetiva); CHP (carga horária prevista); CHC (carga horária cursada).
-    Faltas justificadas permanecem registradas, mas contam na frequência efetiva para aprovação.
     @if($conceptLegend->isNotEmpty())
         <div class="concept-legend">
             <strong>Conceitos:</strong>

@@ -30,7 +30,7 @@
         .legend-note { margin-top: 2px; }
         .concept-legend { border-top: .45px solid #d8ccc4; margin-top: 3px; padding-top: 3px; }
         .concept-legend span { display: inline-block; margin-right: 9px; white-space: nowrap; }
-        .signatures { border-collapse: collapse; margin-top: 3px; page-break-inside: avoid; width: 100%; }
+        .signatures { border-collapse: collapse; margin-top: 24px; page-break-inside: avoid; width: 100%; }
         .signatures td { border: 0; font-size: 11px; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 285px; padding-top: 3px; }
         .signature-name { display: block; font-weight: 600; }
