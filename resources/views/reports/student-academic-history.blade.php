@@ -52,6 +52,14 @@
     $basicFormationReference = $history->education_stage === 'medio'
         ? 'BNCC-EM — Resolução CNE/CP nº 4/2018'
         : 'BNCC — Resolução CNE/CP nº 2/2017';
+    $studentAddress = collect([
+        $person->address,
+        $person->number,
+        $person->address_complement,
+        $person->district,
+        collect([$person->city, $person->state])->filter()->join(' - '),
+        $person->postal_code ? 'CEP '.$person->postal_code : null,
+    ])->filter()->join(', ');
 @endphp
 
 @include('reports.partials.letterhead', [
@@ -73,12 +81,16 @@
         <td>@if($person->nationality)<span class="label">Nacionalidade:</span> {{ $person->nationality }}@endif</td>
         <td>@if($person->nis)<span class="label">NIS:</span> {{ $person->nis }}@endif</td>
     </tr>
-    @if($person->social_name || $person->student_inep || $person->receives_federal_aid)
+    @if($person->social_name || $person->student_inep || $person->legacy_code || $person->receives_federal_aid)
     <tr>
         <td>@if($person->social_name)<span class="label">Nome social:</span> {{ $person->social_name }}@endif</td>
         <td>@if($person->student_inep)<span class="label">INEP:</span> {{ $person->student_inep }}@endif</td>
         <td>
+            @if($person->legacy_code)
+                <span class="label">Código da pasta:</span> {{ $person->legacy_code }}
+            @endif
             @if($person->receives_federal_aid)
+                @if($person->legacy_code) · @endif
                 <span class="label">Auxílio federal:</span> Sim
             @endif
         </td>
@@ -92,6 +104,18 @@
                 <td>@if($person->father_name)<span class="label">Pai:</span> {{ $person->father_name }}@endif</td>
             </tr></table>
         </td>
+    </tr>
+    @endif
+    @if($person->phone || $person->personal_email || $person->institutional_email)
+    <tr>
+        <td>@if($person->phone)<span class="label">Telefone:</span> {{ $person->phone }}@endif</td>
+        <td>@if($person->personal_email)<span class="label">E-mail:</span> {{ $person->personal_email }}@endif</td>
+        <td>@if($person->institutional_email)<span class="label">E-mail institucional:</span> {{ $person->institutional_email }}@endif</td>
+    </tr>
+    @endif
+    @if($studentAddress)
+    <tr>
+        <td colspan="3"><span class="label">Endereço:</span> {{ $studentAddress }}</td>
     </tr>
     @endif
 </table>

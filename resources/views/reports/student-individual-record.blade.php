@@ -210,6 +210,14 @@
         <td class="label">INEP</td>
         <td>{{ $student->student_inep ?: '-' }}</td>
     </tr>
+    @if($student->nis || $student->receives_federal_aid)
+        <tr>
+            <td class="label">NIS</td>
+            <td>{{ $student->nis ?: '-' }}</td>
+            <td class="label">Auxílio federal</td>
+            <td>{{ $student->receives_federal_aid ? 'Sim' : 'Não' }}</td>
+        </tr>
+    @endif
     <tr>
         <td class="label">Nascimento</td>
         <td>{{ $student->birth_date?->format('d/m/Y') ?? '-' }}</td>
@@ -222,6 +230,14 @@
         <td class="label">Telefone</td>
         <td>{{ $student->phone ?: '-' }}</td>
     </tr>
+    @if($student->personal_email || $student->institutional_email)
+        <tr>
+            <td class="label">E-mail</td>
+            <td>{{ $student->personal_email ?: '-' }}</td>
+            <td class="label">E-mail institucional</td>
+            <td>{{ $student->institutional_email ?: '-' }}</td>
+        </tr>
+    @endif
     <tr>
         <td class="label">Mãe</td>
         <td>{{ $student->mother_name ?: '-' }}</td>
