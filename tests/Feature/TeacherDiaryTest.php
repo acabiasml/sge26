@@ -914,6 +914,8 @@ class TeacherDiaryTest extends TestCase
             ->get(route('teacher-diaries.show', [$class, $component, 'period' => $period->id]));
 
         $this->assertSame(8.5, $response->viewData('averages')[$enrollment->id]['value']);
+        $this->assertFalse($response->viewData('assessments')->first()->is_recovery);
+        $this->assertTrue($response->viewData('assessments')->last()->is_recovery);
     }
 
     public function test_recovery_can_keep_the_greater_between_period_average_and_recovery_score(): void

@@ -267,6 +267,7 @@ class TeacherDiaryController extends Controller
                 $query->whereNotNull('school_assessment_rule_id')
                     ->orWhere('is_recovery', true);
             })
+            ->orderBy('is_recovery')
             ->orderBy('assessment_date')
             ->orderBy('title')
             ->get();
