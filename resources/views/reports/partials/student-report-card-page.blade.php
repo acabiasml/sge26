@@ -154,7 +154,7 @@
 @forelse($groupedComponents as $formationGroup)
     @php
         $formationPeriods = $formationGroup['periods'];
-        $formationColumnCount = 5 + ($formationPeriods->count() * 2);
+        $formationAreas = $formationGroup['areas']->pluck('area')->filter()->unique()->join(' / ');
     @endphp
     @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY && $technicalCourses->isNotEmpty())
         @include('reports.partials.technical-course-regulations', ['technicalCourses' => $technicalCourses])
@@ -162,7 +162,12 @@
     <table class="report-table">
         <thead>
             <tr>
-                <th colspan="2" rowspan="2">{{ mb_strtoupper($formationGroup['formation'], 'UTF-8') }}</th>
+                <th colspan="2" rowspan="2">
+                    {{ mb_strtoupper($formationGroup['formation'], 'UTF-8') }}
+                    @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY && $formationAreas)
+                        <span class="formation-area-label">{{ mb_strtoupper($formationAreas, 'UTF-8') }}</span>
+                    @endif
+                </th>
                 @foreach($formationPeriods as $period)
                     <th colspan="2">{{ $periodShortLabel($period) }}</th>
                 @endforeach
@@ -179,11 +184,6 @@
         </thead>
         <tbody>
             @foreach($formationGroup['areas'] as $areaGroup)
-                @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY)
-                    <tr>
-                        <td class="area-group-cell" colspan="{{ $formationColumnCount }}">{{ $areaGroup['area'] }}</td>
-                    </tr>
-                @endif
                 @foreach($areaGroup['items'] as $summary)
                     @php
                         $component = $summary['component'];

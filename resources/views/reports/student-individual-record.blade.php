@@ -20,7 +20,7 @@
         .report-table td { font-size: 11px; }
         .technical-regulation { margin: 5px 0; padding: 3px 5px; border: .5px solid #d8c8bf; background: #faf8f6; font-size: 11px; line-height: 1.16; page-break-inside: avoid; }
         .area-cell { font-size: 11px; text-align: center; text-transform: uppercase; width: 22%; word-wrap: break-word; }
-        .area-group-cell { background: #faf8f6; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; }
+        .formation-area-label { display: block; font-size: 11px; font-weight: 600; margin-top: 3px; }
         .component-cell { width: 20%; word-wrap: break-word; }
         .center { text-align: center; }
         .legend { font-size: 11px; margin-top: 7px; }
@@ -255,7 +255,7 @@
 @forelse($groupedComponents as $formationGroup)
     @php
         $formationPeriods = $formationGroup['periods'];
-        $formationColumnCount = 7 + ($formationPeriods->count() * 2);
+        $formationAreas = $formationGroup['areas']->pluck('area')->filter()->unique()->join(' / ');
     @endphp
     @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY && $technicalCourses->isNotEmpty())
         @include('reports.partials.technical-course-regulations', ['technicalCourses' => $technicalCourses])
@@ -263,7 +263,12 @@
     <table class="report-table">
         <thead>
             <tr>
-                <th colspan="2" rowspan="2">{{ mb_strtoupper($formationGroup['formation'], 'UTF-8') }}</th>
+                <th colspan="2" rowspan="2">
+                    {{ mb_strtoupper($formationGroup['formation'], 'UTF-8') }}
+                    @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY && $formationAreas)
+                        <span class="formation-area-label">{{ mb_strtoupper($formationAreas, 'UTF-8') }}</span>
+                    @endif
+                </th>
                 @foreach($formationPeriods as $period)
                     <th colspan="2">{{ $periodShortLabel($period) }}</th>
                 @endforeach
@@ -282,11 +287,6 @@
         </thead>
         <tbody>
             @foreach($formationGroup['areas'] as $areaGroup)
-                @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY)
-                    <tr>
-                        <td class="area-group-cell" colspan="{{ $formationColumnCount }}">{{ $areaGroup['area'] }}</td>
-                    </tr>
-                @endif
                 @foreach($areaGroup['items'] as $summary)
                     @php
                         $component = $summary['component'];
