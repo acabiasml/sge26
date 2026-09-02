@@ -6,6 +6,7 @@
         @page { size: A4 portrait; margin: 150px 18px 72px; }
         body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 11px; line-height: 1.06; }
         @include('reports.partials.letterhead-styles')
+        .letterhead-line, .document-title, .document-meta, .document-footer { line-height: 1.06; }
         .letterhead { padding-bottom: 6px; }
         .document-title { font-size: 14px; text-transform: uppercase; margin: 5px 0 2px; }
         .meta-table, .history-table, .studies-table { border-collapse: collapse; width: 100%; }
@@ -31,7 +32,7 @@
         .studies-table { page-break-inside: avoid; }
         .studies-nowrap { white-space: nowrap; }
         .notes { margin: 3px 0 0; }
-        .legend-table { border-collapse: collapse; font-size: 11px; line-height: 1.22; margin-top: 5px; width: 100%; }
+        .legend-table { border-collapse: collapse; font-size: 11px; line-height: 1.06; margin-top: 5px; width: 100%; }
         .legend-table th, .legend-table td { border: .45px solid #d8ccc4; padding: 3px 5px; text-align: left; vertical-align: top; }
         .legend-table th { background: #f3eee9; font-weight: 600; width: 10%; }
         .legend-table td { background: #faf8f6; }
@@ -159,7 +160,7 @@
 
 @php($technicalRegulation = $history->components->pluck('regulatory_reference')->filter()->unique()->join(' '))
 @if($technicalRegulation)
-    <div class="muted" style="font-size:11px;line-height:1.15;margin:2px 2px 5px;"><strong>Nota legal da formação técnica:</strong> {{ $technicalRegulation }}</div>
+    <div class="muted" style="font-size:11px;line-height:1.06;margin:2px 2px 5px;"><strong>Nota legal da formação técnica:</strong> {{ $technicalRegulation }}</div>
 @endif
 
 <div class="studies-section">

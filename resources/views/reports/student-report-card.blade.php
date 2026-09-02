@@ -4,8 +4,9 @@
     <meta charset="utf-8">
     <style>
         @page { size: A4 portrait; margin: 19px 24px 72px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 11px; line-height: 1.17; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 11px; line-height: 1.06; }
         @include('reports.partials.letterhead-styles')
+        .letterhead-line, .document-title, .document-meta, .document-footer { line-height: 1.06; }
         .letterhead { margin-bottom: 7px; padding-bottom: 5px; }
         .letterhead-logo img { max-width: 66px; max-height: 50px; }
         .document-title { font-size: 14px; margin: 5px 0 2px; text-transform: uppercase; }
@@ -19,7 +20,7 @@
         .report-table th, .report-table td { border: .55px solid #111; padding: 1.8px 2.2px; vertical-align: middle; }
         .report-table th { background: #f1ede9; font-size: 11px; font-weight: 600; text-align: center; }
         .report-table td { font-size: 11px; }
-        .technical-regulation { margin: 5px 0; padding: 3px 5px; border: .5px solid #d8c8bf; background: #faf8f6; font-size: 11px; line-height: 1.17; page-break-inside: avoid; }
+        .technical-regulation { margin: 5px 0; padding: 3px 5px; border: .5px solid #d8c8bf; background: #faf8f6; font-size: 11px; line-height: 1.06; page-break-inside: avoid; }
         .area-cell { font-size: 11px; text-align: center; text-transform: uppercase; width: 22%; word-wrap: break-word; }
         .formation-area-label { display: block; font-size: 11px; font-weight: 600; margin-top: 3px; }
         .component-cell { width: 20%; word-wrap: break-word; }
@@ -28,7 +29,7 @@
         .report-summary-table { border-collapse: collapse; font-size: 11px; margin: 5px 0; page-break-inside: avoid; width: 100%; }
         .report-summary-table td { border: .45px solid #d8ccc4; padding: 2px 4px; vertical-align: middle; }
         .report-summary-table .summary-label { background: #f3eee9; font-weight: 600; width: 18%; }
-        .legend-table { border-collapse: collapse; font-size: 11px; line-height: 1.22; margin-top: 5px; width: 100%; }
+        .legend-table { border-collapse: collapse; font-size: 11px; line-height: 1.06; margin-top: 5px; width: 100%; }
         .legend-table th, .legend-table td { border: .45px solid #d8ccc4; padding: 3px 5px; text-align: left; vertical-align: top; }
         .legend-table th { background: #f3eee9; font-weight: 600; width: 10%; }
         .legend-table td { background: #faf8f6; }
@@ -39,7 +40,7 @@
         .signature-name { display: block; font-weight: 600; }
         .signature-role { display: block; margin-top: 2px; }
         .document-footer { position: fixed; bottom: -23px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 5px; text-align: center; font-size: 11px; color: #333; }
-        .document-footer-contact { line-height: 1.08; white-space: normal; overflow-wrap: break-word; }
+        .document-footer-contact { line-height: 1.06; white-space: normal; overflow-wrap: break-word; }
     </style>
 </head>
 <body>
