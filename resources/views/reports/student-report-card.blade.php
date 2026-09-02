@@ -16,6 +16,8 @@
         .report-table th, .report-table td { border: .55px solid #111; padding: 1.8px 2.2px; vertical-align: middle; }
         .report-table th { background: #f1ede9; font-size: 11px; font-weight: 600; text-align: center; }
         .report-table td { font-size: 11px; }
+        .formation-section { page-break-inside: avoid; }
+        .technical-regulation { margin: 5px 0; padding: 3px 5px; border: .5px solid #d8c8bf; background: #faf8f6; font-size: 11px; line-height: 1.17; page-break-inside: avoid; }
         .area-cell { font-size: 11px; text-align: center; text-transform: uppercase; width: 22%; word-wrap: break-word; }
         .component-cell { width: 20%; word-wrap: break-word; }
         .center { text-align: center; }

@@ -11,6 +11,7 @@
         $period->name,
     );
     $courses = $report['courses'];
+    $technicalCourses = $courses->where('stage', \App\Models\AcademicCourse::STAGE_TECHNICAL)->unique('id')->values();
     $school = $academicYear->school;
     $naturalidade = collect([
         $student->birth_city ?: ($student->legacy_metadata['naturalidade'] ?? null),
@@ -132,6 +133,7 @@
     'repeatOnEveryPage' => false,
     'issuedDocument' => $issuedDocument,
     'verificationUrl' => $verificationUrl,
+    'showTechnicalRegulation' => false,
 ])
 
 <div class="class-line">
@@ -153,6 +155,10 @@
     @php
         $formationPeriods = $formationGroup['periods'];
     @endphp
+    <div class="formation-section">
+    @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY && $technicalCourses->isNotEmpty())
+        @include('reports.partials.technical-course-regulations', ['technicalCourses' => $technicalCourses])
+    @endif
     <table class="report-table">
         <thead>
             <tr>
@@ -217,6 +223,7 @@
             @endif
         </tbody>
     </table>
+    </div>
 @empty
     <table class="report-table">
         <tr><td class="center">Nenhum componente no boletim.</td></tr>

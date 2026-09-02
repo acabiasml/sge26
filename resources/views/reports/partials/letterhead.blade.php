@@ -31,14 +31,6 @@
     if (isset($matrixGroup['courses'])) $documentCourses = $documentCourses->concat($matrixGroup['courses']);
     $documentTechnicalCourses = $documentCourses->where('stage', \App\Models\AcademicCourse::STAGE_TECHNICAL)->unique('id');
 @endphp
-@foreach($documentTechnicalCourses as $documentTechnicalCourse)
-    <div style="margin:3px 0 5px;padding:3px 5px;border:.5px solid #d8c8bf;background:#faf8f6;font-size:11px;page-break-inside:avoid;">
-        <strong>{{ $documentTechnicalCourse->name }} — regulamentação:</strong>
-        {{ $documentTechnicalCourse->conciseRegulatoryReference() }}
-        @if($documentTechnicalCourse->technological_axis) Eixo tecnológico: {{ $documentTechnicalCourse->technological_axis }}. @endif
-        @if($documentTechnicalCourse->offer_forms) Forma de oferta: {{ $documentTechnicalCourse->offer_forms }}. @endif
-        @if($documentTechnicalCourse->authorization_starts_at || $documentTechnicalCourse->authorization_ends_at)
-            Vigência: {{ $documentTechnicalCourse->authorization_starts_at?->format('d/m/Y') ?: '-' }} a {{ $documentTechnicalCourse->authorization_ends_at?->format('d/m/Y') ?: '-' }}.
-        @endif
-    </div>
-@endforeach
+@if($showTechnicalRegulation ?? true)
+    @include('reports.partials.technical-course-regulations', ['technicalCourses' => $documentTechnicalCourses])
+@endif

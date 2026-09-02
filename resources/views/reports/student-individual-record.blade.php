@@ -18,6 +18,8 @@
         .report-table th, .report-table td { border: .55px solid #111; padding: 1.7px 2.2px; vertical-align: middle; }
         .report-table th { background: #f1ede9; font-size: 11px; font-weight: 600; text-align: center; }
         .report-table td { font-size: 11px; }
+        .formation-section { page-break-inside: avoid; }
+        .technical-regulation { margin: 5px 0; padding: 3px 5px; border: .5px solid #d8c8bf; background: #faf8f6; font-size: 11px; line-height: 1.16; page-break-inside: avoid; }
         .area-cell { font-size: 11px; text-align: center; text-transform: uppercase; width: 22%; word-wrap: break-word; }
         .component-cell { width: 20%; word-wrap: break-word; }
         .center { text-align: center; }
@@ -49,6 +51,7 @@
         $period->name,
     );
     $courses = $report['courses'];
+    $technicalCourses = $courses->where('stage', \App\Models\AcademicCourse::STAGE_TECHNICAL)->unique('id')->values();
     $school = $academicYear->school;
     $issuePlace = collect([$school?->city, $school?->state])->filter()->join('-') ?: 'Poxoréu-MT';
     $issueDate = ($issuedDocument->issued_at ?? now('America/Cuiaba'))->timezone('America/Cuiaba')->format('d/m/Y');
@@ -173,6 +176,7 @@
     'letterhead' => $letterhead,
     'issuedDocument' => $issuedDocument,
     'verificationUrl' => $verificationUrl,
+    'showTechnicalRegulation' => false,
 ])
 
 <div class="class-line">{{ $classLine }}</div>
@@ -252,6 +256,10 @@
     @php
         $formationPeriods = $formationGroup['periods'];
     @endphp
+    <div class="formation-section">
+    @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY && $technicalCourses->isNotEmpty())
+        @include('reports.partials.technical-course-regulations', ['technicalCourses' => $technicalCourses])
+    @endif
     <table class="report-table">
         <thead>
             <tr>
@@ -318,6 +326,7 @@
             @endif
         </tbody>
     </table>
+    </div>
 @empty
     <table class="report-table">
         <tr><td class="center">Nenhum componente cadastrado.</td></tr>
