@@ -20,6 +20,7 @@
         .report-table td { font-size: 11px; }
         .technical-regulation { margin: 5px 0; padding: 3px 5px; border: .5px solid #d8c8bf; background: #faf8f6; font-size: 11px; line-height: 1.16; page-break-inside: avoid; }
         .area-cell { font-size: 11px; text-align: center; text-transform: uppercase; width: 22%; word-wrap: break-word; }
+        .area-group-cell { background: #faf8f6; font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; }
         .component-cell { width: 20%; word-wrap: break-word; }
         .center { text-align: center; }
         .legend { font-size: 11px; margin-top: 7px; }
@@ -254,6 +255,7 @@
 @forelse($groupedComponents as $formationGroup)
     @php
         $formationPeriods = $formationGroup['periods'];
+        $formationColumnCount = 7 + ($formationPeriods->count() * 2);
     @endphp
     @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY && $technicalCourses->isNotEmpty())
         @include('reports.partials.technical-course-regulations', ['technicalCourses' => $technicalCourses])
@@ -280,6 +282,11 @@
         </thead>
         <tbody>
             @foreach($formationGroup['areas'] as $areaGroup)
+                @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY)
+                    <tr>
+                        <td class="area-group-cell" colspan="{{ $formationColumnCount }}">{{ $areaGroup['area'] }}</td>
+                    </tr>
+                @endif
                 @foreach($areaGroup['items'] as $summary)
                     @php
                         $component = $summary['component'];
@@ -288,12 +295,10 @@
                         $completedHours = round(((int) ($summary['attendance']['lessons'] ?? 0) * (int) ($course?->class_hour_minutes ?? 0)) / 60, 2);
                     @endphp
                     <tr>
-                        @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY)
-                            <td class="area-cell">{{ $loop->first ? $areaGroup['area'] : '' }}</td>
-                        @elseif($loop->first)
+                        @if($formationGroup['formation'] !== CurriculumCatalog::FORMATION_ITINERARY && $loop->first)
                             <td class="area-cell" rowspan="{{ $areaGroup['rowspan'] }}">{{ $areaGroup['area'] }}</td>
                         @endif
-                        <td class="component-cell">{{ $component->name }}</td>
+                        <td class="component-cell" @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY) colspan="2" @endif>{{ $component->name }}</td>
                         @foreach($formationPeriods as $period)
                             @php
                                 $periodComponent = $summary['periods']->first(fn (array $item): bool => $item['component']->id === $component->id && $period->is($item['period'] ?? $period));

@@ -154,6 +154,7 @@
 @forelse($groupedComponents as $formationGroup)
     @php
         $formationPeriods = $formationGroup['periods'];
+        $formationColumnCount = 5 + ($formationPeriods->count() * 2);
     @endphp
     @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY && $technicalCourses->isNotEmpty())
         @include('reports.partials.technical-course-regulations', ['technicalCourses' => $technicalCourses])
@@ -178,6 +179,11 @@
         </thead>
         <tbody>
             @foreach($formationGroup['areas'] as $areaGroup)
+                @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY)
+                    <tr>
+                        <td class="area-group-cell" colspan="{{ $formationColumnCount }}">{{ $areaGroup['area'] }}</td>
+                    </tr>
+                @endif
                 @foreach($areaGroup['items'] as $summary)
                     @php
                         $component = $summary['component'];
@@ -186,12 +192,10 @@
                         $completedHours = round(((int) ($summary['attendance']['lessons'] ?? 0) * (int) ($course?->class_hour_minutes ?? 0)) / 60, 2);
                     @endphp
                     <tr>
-                        @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY)
-                            <td class="area-cell">{{ $loop->first ? $areaGroup['area'] : '' }}</td>
-                        @elseif($loop->first)
+                        @if($formationGroup['formation'] !== CurriculumCatalog::FORMATION_ITINERARY && $loop->first)
                             <td class="area-cell" rowspan="{{ $areaGroup['rowspan'] }}">{{ $areaGroup['area'] }}</td>
                         @endif
-                        <td class="component-cell">{{ $component->name }}</td>
+                        <td class="component-cell" @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY) colspan="2" @endif>{{ $component->name }}</td>
                         @foreach($formationPeriods as $period)
                             @php
                                 $periodComponent = $summary['periods']->first(fn (array $item): bool => $item['component']->id === $component->id && $period->is($item['period'] ?? $period));
