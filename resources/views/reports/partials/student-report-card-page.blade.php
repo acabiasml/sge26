@@ -259,10 +259,8 @@
         <td>{{ $report['annualAttendance']['percentage'] !== null ? number_format((float) $report['annualAttendance']['percentage'], 1, ',', '.').'%' : '-' }}</td>
     </tr>
     <tr>
-        <td class="summary-label">Total de faltas justificadas (Atestados Médicos)</td>
-        <td>{{ (int) ($report['annualAttendance']['justified'] ?? 0) }}</td>
-        <td class="summary-label">Período letivo</td>
-        <td>{{ $currentAcademicPeriod ? 'Em andamento: '.$currentAcademicPeriod->name : 'Nenhum período em andamento' }}</td>
+        <td colspan="2"><strong>Total de faltas justificadas (Atestados Médicos):</strong> {{ (int) ($report['annualAttendance']['justified'] ?? 0) }}</td>
+        <td colspan="2"><strong>Período letivo:</strong> {{ $currentAcademicPeriod ? 'Em andamento: '.$currentAcademicPeriod->name : 'Nenhum período em andamento' }}</td>
     </tr>
     <tr>
         <td class="summary-label">Carga horária prevista</td>

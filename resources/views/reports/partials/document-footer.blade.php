@@ -3,9 +3,14 @@
         ?? $issuedDocument->issuedBy?->name
         ?? $issuedDocument->issuedBy?->email
         ?? 'Sistema';
-    $footerLines = collect($letterhead['footer_lines'] ?? [])->filter()->values();
-    $siteLine = $footerLines->first(fn ($line): bool => str_starts_with(mb_strtolower(trim($line), 'UTF-8'), 'site:'));
-    $contactLine = $footerLines->reject(fn ($line): bool => $line === $siteLine)->implode(' | ');
+    $footerSegments = collect($letterhead['footer_lines'] ?? [])
+        ->filter()
+        ->flatMap(fn ($line) => explode('|', $line))
+        ->map(fn ($line) => trim($line))
+        ->filter()
+        ->values();
+    $siteLine = $footerSegments->first(fn ($line): bool => str_starts_with(mb_strtolower($line, 'UTF-8'), 'site:'));
+    $contactLine = $footerSegments->reject(fn ($line): bool => $line === $siteLine)->implode(' | ');
 @endphp
 
 <footer class="document-footer">
