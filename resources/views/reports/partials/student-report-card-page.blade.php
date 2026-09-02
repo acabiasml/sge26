@@ -122,6 +122,7 @@
         && $issuedDate >= $period->starts_at->toDateString()
         && $issuedDate <= $period->ends_at->toDateString()
     );
+    $finalResult = $report['finalResult'] ?? [];
 @endphp
 
 @include('reports.partials.letterhead', [
@@ -137,7 +138,7 @@
     {{ $classLine }}
 </div>
 
-@include('reports.partials.student-identification', ['student' => $student])
+@include('reports.partials.student-identification', ['student' => $student, 'mode' => 'bulletin'])
 
 @forelse($groupedComponents as $formationGroup)
     @php
@@ -248,8 +249,10 @@
         <td>{{ $formatHoursWithUnit($completedHoursTotal) }}</td>
     </tr>
     <tr>
-        <td class="summary-label">Data da matrícula</td>
-        <td colspan="3">{{ $enrollment->enrolled_at?->format('d/m/Y') ?? '-' }}</td>
+        <td class="summary-label">Situação da matrícula</td>
+        <td>{{ $enrollment->statusLabel() }}</td>
+        <td class="summary-label">Resultado final</td>
+        <td>{{ ($finalResult['calculated_at'] ?? null) ? ($finalResult['label'] ?? '-') : 'Ainda não calculado' }}</td>
     </tr>
 </table>
 

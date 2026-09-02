@@ -30,6 +30,24 @@
         <td class="label">Estudante</td>
         <td colspan="3">{{ $identityStudent->full_name }}</td>
     </tr>
+    @if(($mode ?? 'full') === 'bulletin')
+        @if($identityStudent->social_name)
+            <tr>
+                <td class="label">Nome social</td>
+                <td colspan="3">{{ $identityStudent->social_name }}</td>
+            </tr>
+        @endif
+        <tr>
+            <td class="label">Código da pasta</td>
+            <td>{{ $identityStudent->legacy_code ?: '-' }}</td>
+            <td class="label">INEP</td>
+            <td>{{ $identityStudent->student_inep ?: '-' }}</td>
+        </tr>
+        <tr>
+            <td class="label">Nascimento</td>
+            <td colspan="3">{{ $identityStudent->birth_date?->format('d/m/Y') ?? '-' }}</td>
+        </tr>
+    @else
     @if($identityStudent->social_name || $identityStudent->legacy_code)
         <tr>
             <td class="label">Nome social</td>
@@ -83,5 +101,6 @@
             <td class="label">Endereço</td>
             <td colspan="3">{{ $identityAddress }}</td>
         </tr>
+    @endif
     @endif
 </table>
