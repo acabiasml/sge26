@@ -168,6 +168,27 @@ class AcademicCalendarTest extends TestCase
         $this->assertTrue($period->fresh()->allow_diary_entries_outside_period);
     }
 
+    public function test_period_page_uses_a_compact_selector_and_displays_one_period_panel_at_a_time(): void
+    {
+        $year = $this->academicYear();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-seletor@ctjj.org');
+        $firstPeriod = $year->periods()->create([
+            'name' => '1º Bimestre', 'starts_at' => '2026-02-01', 'ends_at' => '2026-04-10', 'position' => 1,
+        ]);
+        $secondPeriod = $year->periods()->create([
+            'name' => '2º Bimestre', 'starts_at' => '2026-04-13', 'ends_at' => '2026-07-08', 'position' => 2,
+        ]);
+
+        $this->actingAs($manager)
+            ->get(route('academic-years.periods.index', $year))
+            ->assertOk()
+            ->assertSee('data-period-selector', false)
+            ->assertSee('data-period-target="'.$firstPeriod->id.'"', false)
+            ->assertSee('data-period-target="'.$secondPeriod->id.'"', false)
+            ->assertSee('data-period-panel="'.$firstPeriod->id.'"', false)
+            ->assertSee('data-period-panel="'.$secondPeriod->id.'"', false);
+    }
+
     public function test_academic_period_creation_can_ignore_only_sundays(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);

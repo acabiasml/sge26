@@ -3823,6 +3823,67 @@ textarea:focus-visible {
     transition: border-color .18s ease, box-shadow .18s ease;
 }
 
+.sge-period-card[hidden] {
+    display: none;
+}
+
+.sge-period-selector {
+    display: grid;
+    gap: .75rem;
+    grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+    margin-bottom: 1rem;
+}
+
+.sge-period-selector-item {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #dccfc7;
+    border-radius: .65rem;
+    color: #49382f;
+    cursor: pointer;
+    display: grid;
+    gap: .65rem;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding: .7rem .8rem;
+    text-align: left;
+    transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.sge-period-selector-item:hover,
+.sge-period-selector-item:focus {
+    border-color: #9d684f;
+    box-shadow: 0 .2rem .65rem rgba(91, 54, 39, .12);
+    outline: 0;
+}
+
+.sge-period-selector-item.is-active {
+    background: #fbf6f2;
+    border-color: #7c4936;
+    box-shadow: inset 0 0 0 1px #7c4936;
+}
+
+.sge-period-selector-item strong,
+.sge-period-selector-item small {
+    display: block;
+}
+
+.sge-period-selector-item small {
+    color: #756860;
+    margin-top: .1rem;
+}
+
+.sge-period-selector-order {
+    align-items: center;
+    background: #7c4936;
+    border-radius: 50%;
+    color: #fff;
+    display: inline-flex;
+    font-weight: 700;
+    height: 2rem;
+    justify-content: center;
+    width: 2rem;
+}
+
 .sge-period-card:last-child {
     margin-bottom: 0;
 }

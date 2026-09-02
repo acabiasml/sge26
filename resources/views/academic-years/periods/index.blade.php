@@ -9,6 +9,10 @@
 
 @section('content')
     @php($periods = $academicYear->periods->sortBy('position'))
+    @php($errorPeriodId = (int) (old('period_edit_form_id') ?: old('period_form_id')))
+    @php($warningPeriodId = (int) data_get(session('assessment_change_warning'), 'period_id', 0))
+    @php($currentPeriod = $periods->first(fn ($period) => now()->betweenIncluded($period->starts_at, $period->ends_at)))
+    @php($activePeriodId = $errorPeriodId ?: $warningPeriodId ?: ($currentPeriod?->id ?? $periods->first()?->id))
 
     <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="Áreas dos períodos avaliativos" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? 'novo' : 'periodos' }}">
         <a href="#section-contexto" class="sge-section-nav-item" data-academic-tab="contexto" role="tab"><i class="fas fa-info-circle"></i><span>Contexto</span><small>{{ $periods->count() }} períodos</small></a>
@@ -75,6 +79,17 @@
             <span class="sge-periods-count">{{ $periods->count() }}</span>
         </div>
         <div class="card-body">
+            @if($periods->isNotEmpty())
+                <div class="sge-period-selector" role="tablist" aria-label="Selecionar período avaliativo" data-period-selector data-storage-key="academic-year-{{ $academicYear->id }}-period">
+                    @foreach($periods as $selectorPeriod)
+                        <button type="button" class="sge-period-selector-item {{ $selectorPeriod->id === $activePeriodId ? 'is-active' : '' }}" role="tab" aria-selected="{{ $selectorPeriod->id === $activePeriodId ? 'true' : 'false' }}" aria-controls="period-panel-{{ $selectorPeriod->id }}" data-period-target="{{ $selectorPeriod->id }}">
+                            <span class="sge-period-selector-order">{{ $selectorPeriod->position }}</span>
+                            <span><strong>{{ $selectorPeriod->name }}</strong><small>{{ $selectorPeriod->starts_at?->format('d/m') }} a {{ $selectorPeriod->ends_at?->format('d/m/Y') }}</small></span>
+                            <span class="badge badge-{{ $selectorPeriod->diaryConsolidation?->consolidated ? 'success' : 'secondary' }}">{{ $selectorPeriod->diaryConsolidation?->consolidated ? 'Consolidado' : 'Aberto' }}</span>
+                        </button>
+                    @endforeach
+                </div>
+            @endif
             @forelse ($periods as $period)
                 @php($periodSchoolDays = $period->schoolDayCount())
                 @php($diarySummaries = $periodDiaryStatus->get($period->id, collect()))
@@ -92,7 +107,7 @@
                 @php($periodHasAssessmentWarning = (int) ($assessmentChangeWarning['period_id'] ?? 0) === $period->id)
                 @php($periodHasEditErrors = $useOldForPeriodEdit && collect(['name', 'position', 'starts_at', 'ends_at', 'notes', 'approved_at', 'closed_at'])->contains(fn ($key) => $errors->has($key)))
 
-                <article class="sge-period-card">
+                <article id="period-panel-{{ $period->id }}" class="sge-period-card" role="tabpanel" data-period-panel="{{ $period->id }}" @if($period->id !== $activePeriodId) hidden @endif>
                     <div class="sge-period-card-header">
                         <div class="sge-period-card-title">
                             <span class="sge-period-position" aria-label="Ordem {{ $period->position }}">
@@ -394,6 +409,26 @@
 
 @push('scripts')
 <script>
+document.querySelectorAll('[data-period-selector]').forEach((selector) => {
+    const buttons = Array.from(selector.querySelectorAll('[data-period-target]'));
+    const panels = Array.from(document.querySelectorAll('[data-period-panel]'));
+    const storageKey = selector.dataset.storageKey;
+    const showPeriod = (periodId, remember = true) => {
+        if (!panels.some((panel) => panel.dataset.periodPanel === periodId)) return;
+        buttons.forEach((button) => {
+            const active = button.dataset.periodTarget === periodId;
+            button.classList.toggle('is-active', active);
+            button.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        panels.forEach((panel) => { panel.hidden = panel.dataset.periodPanel !== periodId; });
+        if (remember) sessionStorage.setItem(storageKey, periodId);
+    };
+    buttons.forEach((button) => button.addEventListener('click', () => showPeriod(button.dataset.periodTarget)));
+    const forcedPanel = panels.find((panel) => panel.querySelector('.alert-danger, [data-assessment-rules-form][open]'));
+    const savedPeriod = sessionStorage.getItem(storageKey);
+    showPeriod(forcedPanel?.dataset.periodPanel || savedPeriod || buttons[0]?.dataset.periodTarget, false);
+});
+
 document.querySelectorAll('[data-assessment-rules-form]').forEach((container) => {
     const count = container.querySelector('[data-assessment-count]');
     const sync = () => {
