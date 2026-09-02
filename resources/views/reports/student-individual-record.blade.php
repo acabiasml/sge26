@@ -18,7 +18,6 @@
         .report-table th, .report-table td { border: .55px solid #111; padding: 1.7px 2.2px; vertical-align: middle; }
         .report-table th { background: #f1ede9; font-size: 11px; font-weight: 600; text-align: center; }
         .report-table td { font-size: 11px; }
-        .formation-section { page-break-inside: avoid; }
         .technical-regulation { margin: 5px 0; padding: 3px 5px; border: .5px solid #d8c8bf; background: #faf8f6; font-size: 11px; line-height: 1.16; page-break-inside: avoid; }
         .area-cell { font-size: 11px; text-align: center; text-transform: uppercase; width: 22%; word-wrap: break-word; }
         .component-cell { width: 20%; word-wrap: break-word; }
@@ -256,7 +255,6 @@
     @php
         $formationPeriods = $formationGroup['periods'];
     @endphp
-    <div class="formation-section">
     @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY && $technicalCourses->isNotEmpty())
         @include('reports.partials.technical-course-regulations', ['technicalCourses' => $technicalCourses])
     @endif
@@ -290,7 +288,9 @@
                         $completedHours = round(((int) ($summary['attendance']['lessons'] ?? 0) * (int) ($course?->class_hour_minutes ?? 0)) / 60, 2);
                     @endphp
                     <tr>
-                        @if($loop->first)
+                        @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY)
+                            <td class="area-cell">{{ $loop->first ? $areaGroup['area'] : '' }}</td>
+                        @elseif($loop->first)
                             <td class="area-cell" rowspan="{{ $areaGroup['rowspan'] }}">{{ $areaGroup['area'] }}</td>
                         @endif
                         <td class="component-cell">{{ $component->name }}</td>
@@ -326,7 +326,6 @@
             @endif
         </tbody>
     </table>
-    </div>
 @empty
     <table class="report-table">
         <tr><td class="center">Nenhum componente cadastrado.</td></tr>

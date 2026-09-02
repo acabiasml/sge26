@@ -155,7 +155,6 @@
     @php
         $formationPeriods = $formationGroup['periods'];
     @endphp
-    <div class="formation-section">
     @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY && $technicalCourses->isNotEmpty())
         @include('reports.partials.technical-course-regulations', ['technicalCourses' => $technicalCourses])
     @endif
@@ -187,7 +186,9 @@
                         $completedHours = round(((int) ($summary['attendance']['lessons'] ?? 0) * (int) ($course?->class_hour_minutes ?? 0)) / 60, 2);
                     @endphp
                     <tr>
-                        @if($loop->first)
+                        @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY)
+                            <td class="area-cell">{{ $loop->first ? $areaGroup['area'] : '' }}</td>
+                        @elseif($loop->first)
                             <td class="area-cell" rowspan="{{ $areaGroup['rowspan'] }}">{{ $areaGroup['area'] }}</td>
                         @endif
                         <td class="component-cell">{{ $component->name }}</td>
@@ -223,7 +224,6 @@
             @endif
         </tbody>
     </table>
-    </div>
 @empty
     <table class="report-table">
         <tr><td class="center">Nenhum componente no boletim.</td></tr>
