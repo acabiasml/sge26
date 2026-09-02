@@ -132,6 +132,7 @@ class AuditLogPresenter
         'email' => 'E-mail',
         'ended_at' => 'Fim',
         'ends_at' => 'Fim',
+        'allow_diary_entries_outside_period' => 'Lançamentos de diário fora do período',
         'ends_period_id' => 'Período final',
         'enrolled_at' => 'Data de matrícula',
         'final_result' => 'Resultado final',

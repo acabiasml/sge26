@@ -38,6 +38,7 @@ class AcademicPeriod extends Model
         'ends_at',
         'ignore_saturdays',
         'ignore_sundays',
+        'allow_diary_entries_outside_period',
         'position',
         'notes',
         'recovery_mode',
@@ -55,6 +56,7 @@ class AcademicPeriod extends Model
             'ends_at' => 'date',
             'ignore_saturdays' => 'boolean',
             'ignore_sundays' => 'boolean',
+            'allow_diary_entries_outside_period' => 'boolean',
             'recovery_weight' => 'integer',
             'legacy_metadata' => 'array',
         ];

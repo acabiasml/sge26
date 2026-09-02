@@ -204,11 +204,13 @@ class AcademicPeriodController extends Controller
             'ends_at' => ['required', 'date', 'after_or_equal:starts_at', 'before_or_equal:'.$academicYear->ends_at->toDateString()],
             'ignore_saturdays' => ['nullable', 'boolean'],
             'ignore_sundays' => ['nullable', 'boolean'],
+            'allow_diary_entries_outside_period' => ['nullable', 'boolean'],
             'position' => ['required', 'integer', 'min:1', 'max:99'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
         $data['ignore_saturdays'] = $request->boolean('ignore_saturdays');
         $data['ignore_sundays'] = $request->boolean('ignore_sundays');
+        $data['allow_diary_entries_outside_period'] = $request->boolean('allow_diary_entries_outside_period');
 
         $overlaps = $academicYear->periods()
             ->where(function (Builder $query) use ($data): void {
@@ -267,11 +269,13 @@ class AcademicPeriodController extends Controller
             'ends_at' => ['required', 'date', 'after_or_equal:starts_at', 'before_or_equal:'.$academicYear->ends_at->toDateString()],
             'ignore_saturdays' => ['nullable', 'boolean'],
             'ignore_sundays' => ['nullable', 'boolean'],
+            'allow_diary_entries_outside_period' => ['nullable', 'boolean'],
             'position' => ['required', 'integer', 'min:1', 'max:99'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
         $data['ignore_saturdays'] = $request->boolean('ignore_saturdays');
         $data['ignore_sundays'] = $request->boolean('ignore_sundays');
+        $data['allow_diary_entries_outside_period'] = $request->boolean('allow_diary_entries_outside_period');
 
         $overlaps = $academicYear->periods()
             ->whereKeyNot($period->id)

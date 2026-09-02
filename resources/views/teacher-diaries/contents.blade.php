@@ -8,6 +8,8 @@
 @endsection
 
 @section('content')
+    @php($diaryStartsAt = $period->allow_diary_entries_outside_period ? $academicYear->starts_at : $period->starts_at)
+    @php($diaryEndsAt = $period->allow_diary_entries_outside_period ? $academicYear->ends_at : $period->ends_at)
     <section class="card shadow mb-4" aria-labelledby="content-context-title">
         <div class="card-header py-3"><h2 id="content-context-title" class="h6 m-0 font-weight-bold text-primary">{{ $schoolClass->name }} · {{ $period->name }}</h2></div>
         <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
@@ -22,7 +24,8 @@
             @if($usesScheduledDiary)
                 <p class="mb-0 small text-muted">Os dias abaixo são gerados automaticamente a partir do horário da turma e do calendário letivo. Registre um único conteúdo para cada data em que este componente está previsto.</p>
             @else
-                <form method="GET" action="{{ route('teacher-diaries.contents', [$schoolClass, $component]) }}" class="row align-items-end"><input type="hidden" name="period" value="{{ $period->id }}"><input type="hidden" name="dates" value="{{ implode(',', $selectedDates) }}"><div class="col-md-5 form-group mb-md-0"><label for="content_add_date">Dia letivo</label><input id="content_add_date" name="add_date" type="date" min="{{ $period->starts_at->toDateString() }}" max="{{ $period->ends_at->toDateString() }}" class="form-control"></div><div class="col-md-7 form-group mb-0"><button class="btn btn-outline-primary" type="submit"><i class="fas fa-plus mr-1" aria-hidden="true"></i>Adicionar dia à lista</button></div></form><p class="small text-muted mb-0 mt-3">Esta turma não possui horário para este componente. Adicione apenas os dias letivos que deseja registrar.</p>
+                <form method="GET" action="{{ route('teacher-diaries.contents', [$schoolClass, $component]) }}" class="row align-items-end"><input type="hidden" name="period" value="{{ $period->id }}"><input type="hidden" name="dates" value="{{ implode(',', $selectedDates) }}"><div class="col-md-5 form-group mb-md-0"><label for="content_add_date">Dia letivo</label><input id="content_add_date" name="add_date" type="date" min="{{ $diaryStartsAt->toDateString() }}" max="{{ $diaryEndsAt->toDateString() }}" class="form-control"></div><div class="col-md-7 form-group mb-0"><button class="btn btn-outline-primary" type="submit"><i class="fas fa-plus mr-1" aria-hidden="true"></i>Adicionar dia à lista</button></div></form><p class="small text-muted mb-0 mt-3">Esta turma não possui horário para este componente. Adicione apenas os dias letivos que deseja registrar.</p>
+                @if($period->allow_diary_entries_outside_period)<p class="small text-info mb-0 mt-2"><i class="fas fa-info-circle mr-1" aria-hidden="true"></i>A gestão autorizou lançamentos em dias letivos fora das datas deste período.</p>@endif
             @endif
         </div>
     </section>

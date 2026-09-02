@@ -8,6 +8,8 @@
 @endsection
 
 @section('content')
+    @php($diaryStartsAt = $period->allow_diary_entries_outside_period ? $academicYear->starts_at : $period->starts_at)
+    @php($diaryEndsAt = $period->allow_diary_entries_outside_period ? $academicYear->ends_at : $period->ends_at)
     <section class="card shadow mb-4" aria-labelledby="attendance-range-title">
         <div class="card-header py-3 d-flex justify-content-between align-items-center flex-wrap"><h2 id="attendance-range-title" class="h6 m-0 font-weight-bold text-primary">{{ $usesScheduledDiary ? 'Dias previstos pelo horário' : 'Período de lançamento' }}</h2><a class="btn btn-sm btn-outline-primary mt-2 mt-md-0" href="{{ route('teacher-diaries.contents', [$schoolClass, $component, 'period' => $period->id, 'page' => $page]) }}"><i class="fas fa-book mr-1" aria-hidden="true"></i>Conteúdos</a></div>
         <div class="card-body">
@@ -15,7 +17,8 @@
                 <p class="mb-0 small text-muted">{{ $academicYear->school?->name }} · {{ $schoolClass->name }} · {{ $component->name }} · {{ $period->name }}. As datas são definidas automaticamente pelo horário semanal da turma e pelos dias letivos do calendário.</p>
             @else
                 <p class="small text-muted">Esta turma não possui horário cadastrado para este componente. Escolha até 15 dias letivos para a folha de frequência.</p>
-                <form method="GET" action="{{ route('teacher-diaries.attendance', [$schoolClass, $component]) }}" class="row align-items-end"><input type="hidden" name="period" value="{{ $period->id }}"><div class="col-md-4 form-group mb-md-0"><label for="attendance_starts_at">Início</label><input id="attendance_starts_at" name="starts_at" type="date" min="{{ $period->starts_at->format('Y-m-d') }}" max="{{ $period->ends_at->format('Y-m-d') }}" value="{{ $startsAt?->format('Y-m-d') }}" class="form-control" required></div><div class="col-md-4 form-group mb-md-0"><label for="attendance_ends_at">Fim</label><input id="attendance_ends_at" name="ends_at" type="date" min="{{ $period->starts_at->format('Y-m-d') }}" max="{{ $period->ends_at->format('Y-m-d') }}" value="{{ $endsAt?->format('Y-m-d') }}" class="form-control" required></div><div class="col-md-4"><button class="btn btn-outline-primary" type="submit"><i class="fas fa-calendar-alt mr-1" aria-hidden="true"></i>Atualizar folha</button></div></form>
+                <form method="GET" action="{{ route('teacher-diaries.attendance', [$schoolClass, $component]) }}" class="row align-items-end"><input type="hidden" name="period" value="{{ $period->id }}"><div class="col-md-4 form-group mb-md-0"><label for="attendance_starts_at">Início</label><input id="attendance_starts_at" name="starts_at" type="date" min="{{ $diaryStartsAt->format('Y-m-d') }}" max="{{ $diaryEndsAt->format('Y-m-d') }}" value="{{ $startsAt?->format('Y-m-d') }}" class="form-control" required></div><div class="col-md-4 form-group mb-md-0"><label for="attendance_ends_at">Fim</label><input id="attendance_ends_at" name="ends_at" type="date" min="{{ $diaryStartsAt->format('Y-m-d') }}" max="{{ $diaryEndsAt->format('Y-m-d') }}" value="{{ $endsAt?->format('Y-m-d') }}" class="form-control" required></div><div class="col-md-4"><button class="btn btn-outline-primary" type="submit"><i class="fas fa-calendar-alt mr-1" aria-hidden="true"></i>Atualizar folha</button></div></form>
+                @if($period->allow_diary_entries_outside_period)<p class="small text-info mb-0 mt-2"><i class="fas fa-info-circle mr-1" aria-hidden="true"></i>A gestão autorizou lançamentos em dias letivos fora das datas deste período.</p>@endif
             @endif
         </div>
     </section>

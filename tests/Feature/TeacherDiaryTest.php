@@ -1584,6 +1584,47 @@ class TeacherDiaryTest extends TestCase
             ->assertSessionHasErrors('academic_period_id');
     }
 
+    public function test_teacher_can_launch_attendance_and_content_outside_period_when_management_allows_it(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $outsideDate = '2026-05-13';
+        $year->days()->create([
+            'date' => $outsideDate,
+            'type' => CalendarDay::TYPE_SCHOOL_DAY,
+            'counts_as_school_day' => true,
+        ]);
+        $period->update(['allow_diary_entries_outside_period' => true]);
+
+        $this->actingAs($teacher)
+            ->put(route('teacher-diaries.attendance.batch-update', [$class, $component]), [
+                'academic_period_id' => $period->id,
+                'scheduled_dates' => [$outsideDate],
+                'page' => 1,
+                'lesson_counts' => [$outsideDate => 1],
+                'attendance' => [$outsideDate => [$enrollment->id => [1 => '1']]],
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->actingAs($teacher)
+            ->put(route('teacher-diaries.contents.update', [$class, $component]), [
+                'academic_period_id' => $period->id,
+                'selected_dates' => [$outsideDate],
+                'page' => 1,
+                'contents' => [$outsideDate => 'Revisão do conteúdo do período.'],
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('diary_attendance_records', [
+            'academic_period_id' => $period->id,
+            'class_date' => $outsideDate.' 00:00:00',
+        ]);
+        $this->assertDatabaseHas('diary_contents', [
+            'academic_period_id' => $period->id,
+            'class_date' => $outsideDate.' 00:00:00',
+            'content' => 'Revisão do conteúdo do período.',
+        ]);
+    }
+
     /**
      * @return array{0: User, 1: AcademicYear, 2: SchoolClass, 3: CurriculumComponent, 4: AcademicPeriod, 5: StudentEnrollment}
      */

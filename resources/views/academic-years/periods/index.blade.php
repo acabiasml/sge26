@@ -54,6 +54,11 @@
                                 <input type="checkbox" class="sge-weekday-input" id="period_ignore_sundays" name="ignore_sundays" value="1" checked>
                                 <label class="sge-weekday-option" for="period_ignore_sundays"><span class="sge-weekday-icon"><i class="fas fa-calendar-check" aria-hidden="true"></i></span><span><strong>Domingos</strong><small>Manter como fim de semana.</small></span></label>
                             </div>
+                            <div class="custom-control custom-switch mb-3">
+                                <input type="checkbox" class="custom-control-input" id="period_allow_diary_entries_outside_period" name="allow_diary_entries_outside_period" value="1" @checked(old('allow_diary_entries_outside_period'))>
+                                <label class="custom-control-label" for="period_allow_diary_entries_outside_period">Permitir que professores lancem frequência e conteúdo fora das datas deste período</label>
+                                <small class="form-text text-muted">Os lançamentos continuam limitados aos dias letivos deste ano letivo.</small>
+                            </div>
                             <button class="btn btn-primary" type="submit"><i class="fas fa-plus mr-1" aria-hidden="true"></i>Criar período</button>
                         </form>
                     @else
@@ -157,6 +162,11 @@
                                         <label class="sge-weekday-option" for="edit_period_ignore_saturdays_{{ $period->id }}"><span class="sge-weekday-icon"><i class="fas fa-calendar-day" aria-hidden="true"></i></span><span><strong>Sábados</strong><small>Manter como fim de semana.</small></span></label>
                                         <input type="checkbox" class="sge-weekday-input" id="edit_period_ignore_sundays_{{ $period->id }}" name="ignore_sundays" value="1" @checked($useOldForPeriodEdit ? old('ignore_sundays', $period->ignore_sundays) : $period->ignore_sundays)>
                                         <label class="sge-weekday-option" for="edit_period_ignore_sundays_{{ $period->id }}"><span class="sge-weekday-icon"><i class="fas fa-calendar-check" aria-hidden="true"></i></span><span><strong>Domingos</strong><small>Manter como fim de semana.</small></span></label>
+                                    </div>
+                                    <div class="custom-control custom-switch mb-3">
+                                        <input type="checkbox" class="custom-control-input" id="edit_period_allow_diary_entries_outside_period_{{ $period->id }}" name="allow_diary_entries_outside_period" value="1" @checked($useOldForPeriodEdit ? old('allow_diary_entries_outside_period', $period->allow_diary_entries_outside_period) : $period->allow_diary_entries_outside_period)>
+                                        <label class="custom-control-label" for="edit_period_allow_diary_entries_outside_period_{{ $period->id }}">Permitir que professores lancem frequência e conteúdo fora das datas deste período</label>
+                                        <small class="form-text text-muted">Os lançamentos continuam limitados aos dias letivos deste ano letivo.</small>
                                     </div>
                                     <button class="btn btn-primary" type="submit"><i class="fas fa-save mr-1" aria-hidden="true"></i>Salvar período</button>
                                 </form>

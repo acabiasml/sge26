@@ -530,7 +530,7 @@ class TeacherDiaryController extends Controller
             $startsAt = $days->first()?->date;
             $endsAt = $days->last()?->date;
         } else {
-            [$startsAt, $endsAt] = $this->attendanceRange($request, $period);
+            [$startsAt, $endsAt] = $this->attendanceRange($request, $academicYear, $period);
             $days = CalendarDay::query()->where('academic_year_id', $academicYear->id)->whereDate('date', '>=', $startsAt->toDateString())->whereDate('date', '<=', $endsAt->toDateString())->where('counts_as_school_day', true)->orderBy('date')->get();
             $page = 1;
             $totalPages = 1;
@@ -629,8 +629,9 @@ class TeacherDiaryController extends Controller
             }
             $startsAt = Carbon::parse($data['starts_at'])->startOfDay();
             $endsAt = Carbon::parse($data['ends_at'])->startOfDay();
-            if ($startsAt->lt($period->starts_at) || $endsAt->gt($period->ends_at) || $startsAt->diffInDays($endsAt) > 14) {
-                throw ValidationException::withMessages(['starts_at' => 'Selecione datas dentro do período avaliativo, em um intervalo máximo de 15 dias.']);
+            [$allowedStartsAt, $allowedEndsAt] = $this->diaryDateBounds($academicYear, $period);
+            if ($startsAt->lt($allowedStartsAt) || $endsAt->gt($allowedEndsAt) || $startsAt->diffInDays($endsAt) > 14) {
+                throw ValidationException::withMessages(['starts_at' => 'Selecione dias letivos dentro do intervalo permitido, em um período máximo de 15 dias.']);
             }
             $days = CalendarDay::query()->where('academic_year_id', $academicYear->id)->whereDate('date', '>=', $startsAt->toDateString())->whereDate('date', '<=', $endsAt->toDateString())->where('counts_as_school_day', true)->orderBy('date')->get();
         }
@@ -726,7 +727,7 @@ class TeacherDiaryController extends Controller
             [$days, $page, $totalPages] = $this->diaryDaysPage($request, $scheduledDays);
             $selectedDates = $days->pluck('date')->map(fn ($date): string => $date->toDateString())->all();
         } else {
-            $selectedDates = collect($this->selectedContentDates($request, $academicYear->id, $period))
+            $selectedDates = collect($this->selectedContentDates($request, $academicYear, $period))
                 ->merge($attendanceDates)
                 ->unique()
                 ->sort()
@@ -776,7 +777,19 @@ class TeacherDiaryController extends Controller
             ? $this->scheduledDiaryDays($course->academicYear, $schoolClass, $assignment, $period)
                 ->filter(fn (CalendarDay $day): bool => in_array($day->date->toDateString(), $data['selected_dates'], true))
                 ->pluck('date')->map(fn ($date): string => $date->toDateString())->all()
-            : CalendarDay::query()->where('academic_year_id', $course->academicYear->id)->whereIn('date', $data['selected_dates'])->where('counts_as_school_day', true)->pluck('date')->map(fn ($date): string => Carbon::parse($date)->toDateString())->all();
+            : (function () use ($course, $period, $data): array {
+                [$allowedStartsAt, $allowedEndsAt] = $this->diaryDateBounds($course->academicYear, $period);
+
+                return CalendarDay::query()
+                    ->where('academic_year_id', $course->academicYear->id)
+                    ->whereIn('date', $data['selected_dates'])
+                    ->whereDate('date', '>=', $allowedStartsAt->toDateString())
+                    ->whereDate('date', '<=', $allowedEndsAt->toDateString())
+                    ->where('counts_as_school_day', true)
+                    ->pluck('date')
+                    ->map(fn ($date): string => Carbon::parse($date)->toDateString())
+                    ->all();
+            })();
 
         DB::transaction(function () use ($data, $validDates, $schoolClass, $component, $period, $request): void {
             foreach (($data['contents'] ?? []) as $date => $content) {
@@ -1249,21 +1262,36 @@ class TeacherDiaryController extends Controller
             ->exists();
     }
 
+    /** @return array{0: Carbon, 1: Carbon} */
+    private function diaryDateBounds(AcademicYear $academicYear, AcademicPeriod $period): array
+    {
+        if ($period->allow_diary_entries_outside_period) {
+            return [
+                $academicYear->starts_at->copy()->startOfDay(),
+                $academicYear->ends_at->copy()->startOfDay(),
+            ];
+        }
+
+        return [
+            $period->starts_at->copy()->startOfDay(),
+            $period->ends_at->copy()->startOfDay(),
+        ];
+    }
+
     /**
      * @return array{0: Carbon, 1: Carbon}
      */
-    private function attendanceRange(Request $request, AcademicPeriod $period): array
+    private function attendanceRange(Request $request, AcademicYear $academicYear, AcademicPeriod $period): array
     {
-        $periodStartsAt = $period->starts_at->copy()->startOfDay();
-        $periodEndsAt = $period->ends_at->copy()->startOfDay();
-        $defaultStart = now()->betweenIncluded($periodStartsAt, $periodEndsAt)
+        [$allowedStartsAt, $allowedEndsAt] = $this->diaryDateBounds($academicYear, $period);
+        $defaultStart = now()->betweenIncluded($allowedStartsAt, $allowedEndsAt)
             ? now()->startOfDay()
-            : $periodStartsAt;
+            : $allowedStartsAt;
         $startsAt = $request->filled('starts_at')
             ? Carbon::parse($request->input('starts_at'))->startOfDay()
             : $defaultStart;
-        $startsAt = $startsAt->lt($periodStartsAt) ? $periodStartsAt : $startsAt;
-        $startsAt = $startsAt->gt($periodEndsAt) ? $periodEndsAt : $startsAt;
+        $startsAt = $startsAt->lt($allowedStartsAt) ? $allowedStartsAt : $startsAt;
+        $startsAt = $startsAt->gt($allowedEndsAt) ? $allowedEndsAt : $startsAt;
         $latestEnd = $startsAt->copy()->addDays(14);
         $requestedEnd = $request->filled('ends_at')
             ? Carbon::parse($request->input('ends_at'))->startOfDay()
@@ -1271,7 +1299,7 @@ class TeacherDiaryController extends Controller
         $endsAt = $requestedEnd->lt($startsAt) ? $startsAt : $requestedEnd;
         $endsAt = $endsAt->gt($latestEnd) ? $latestEnd : $endsAt;
 
-        return [$startsAt, $endsAt->gt($periodEndsAt) ? $periodEndsAt : $endsAt];
+        return [$startsAt, $endsAt->gt($allowedEndsAt) ? $allowedEndsAt : $endsAt];
     }
 
     /**
@@ -1289,7 +1317,7 @@ class TeacherDiaryController extends Controller
     }
 
     /** @return list<string> */
-    private function selectedContentDates(Request $request, int $academicYearId, AcademicPeriod $period): array
+    private function selectedContentDates(Request $request, AcademicYear $academicYear, AcademicPeriod $period): array
     {
         $dates = collect(explode(',', (string) $request->input('dates', '')))
             ->filter()
@@ -1301,12 +1329,13 @@ class TeacherDiaryController extends Controller
             return [];
         }
 
-        $availableDates = CalendarDay::query()->where('academic_year_id', $academicYearId)->whereIn('date', $dates)
-            ->whereDate('date', '>=', $period->starts_at->toDateString())->whereDate('date', '<=', $period->ends_at->toDateString())
+        [$allowedStartsAt, $allowedEndsAt] = $this->diaryDateBounds($academicYear, $period);
+        $availableDates = CalendarDay::query()->where('academic_year_id', $academicYear->id)->whereIn('date', $dates)
+            ->whereDate('date', '>=', $allowedStartsAt->toDateString())->whereDate('date', '<=', $allowedEndsAt->toDateString())
             ->where('counts_as_school_day', true)->orderBy('date')->pluck('date')
             ->map(fn ($date): string => Carbon::parse($date)->toDateString())->all();
         if ($request->filled('add_date') && ! in_array($request->input('add_date'), $availableDates, true)) {
-            throw ValidationException::withMessages(['add_date' => 'Selecione um dia letivo dentro deste período avaliativo.']);
+            throw ValidationException::withMessages(['add_date' => 'Selecione um dia letivo dentro do intervalo permitido.']);
         }
 
         return $availableDates;
@@ -1315,11 +1344,12 @@ class TeacherDiaryController extends Controller
     /** @return Collection<int, CalendarDay> */
     private function scheduledDiaryDays(AcademicYear $academicYear, SchoolClass $schoolClass, SchoolClassComponent $assignment, AcademicPeriod $period): Collection
     {
-        $schedules = $schoolClass->schedules()->with('slots')->whereDate('starts_at', '<=', $period->ends_at->toDateString())
-            ->where(fn (Builder $query) => $query->whereNull('ends_at')->orWhereDate('ends_at', '>=', $period->starts_at->toDateString()))
+        [$allowedStartsAt, $allowedEndsAt] = $this->diaryDateBounds($academicYear, $period);
+        $schedules = $schoolClass->schedules()->with('slots')->whereDate('starts_at', '<=', $allowedEndsAt->toDateString())
+            ->where(fn (Builder $query) => $query->whereNull('ends_at')->orWhereDate('ends_at', '>=', $allowedStartsAt->toDateString()))
             ->get();
         $calendarDays = CalendarDay::query()->where('academic_year_id', $academicYear->id)
-            ->whereDate('date', '>=', $period->starts_at->toDateString())->whereDate('date', '<=', $period->ends_at->toDateString())
+            ->whereDate('date', '>=', $allowedStartsAt->toDateString())->whereDate('date', '<=', $allowedEndsAt->toDateString())
             ->where('counts_as_school_day', true)->orderBy('date')->get();
 
         return $calendarDays->filter(function (CalendarDay $day) use ($schedules, $assignment): bool {
