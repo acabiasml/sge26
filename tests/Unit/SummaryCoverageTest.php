@@ -20,7 +20,7 @@ class SummaryCoverageTest extends TestCase
             'academic-years/periods/index.blade.php' => ['regras de avaliação', 'períodos consolidados'],
             'document-issuance/index.blade.php' => ['ano(s) letivo(s)', 'turma(s) acessíveis'],
             'teacher-diaries/management-index.blade.php' => ['reabertos'],
-            'data-quality/index.blade.php' => ['Total em análise'],
+            'data-quality/index.blade.php' => ["__('screens.total_under_review')"],
             'schools/concepts/index.blade.php' => ['conceitos vigentes', 'dependência permitida', 'registros históricos'],
         ];
 
