@@ -137,7 +137,11 @@ class PersonSchoolRole extends Model
 
     public function label(): string
     {
-        $label = self::ROLE_LABELS[$this->role] ?? $this->role;
+        $label = __('roles.roles.'.$this->role);
+
+        if ($label === 'roles.roles.'.$this->role) {
+            $label = self::ROLE_LABELS[$this->role] ?? $this->role;
+        }
 
         if ($this->role === self::ROLE_MANAGER && $this->position) {
             return $label.' - '.$this->positionLabel();
@@ -148,6 +152,14 @@ class PersonSchoolRole extends Model
 
     public function positionLabel(): string
     {
-        return self::POSITION_LABELS[$this->position] ?? $this->position ?? '';
+        if (! $this->position) {
+            return '';
+        }
+
+        $label = __('roles.positions.'.$this->position);
+
+        return $label === 'roles.positions.'.$this->position
+            ? (self::POSITION_LABELS[$this->position] ?? $this->position)
+            : $label;
     }
 }

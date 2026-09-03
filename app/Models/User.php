@@ -239,15 +239,16 @@ class User extends Authenticatable
         $role = $this->person?->loadMissing('schoolRoles.school')->primaryActiveRole();
 
         if (! $role) {
-            return 'Sem vínculo ativo';
+            return __('roles.no_active_role');
         }
 
-        $period = ($role->started_at?->format('d/m/Y') ?? 'sem início')
-            .' até '
-            .($role->ended_at?->format('d/m/Y') ?? 'indeterminado');
+        $period = __('roles.period', [
+            'start' => $role->started_at?->format('d/m/Y') ?? __('roles.no_start'),
+            'end' => $role->ended_at?->format('d/m/Y') ?? __('roles.indefinite'),
+        ]);
 
         return $role->label()
-            .($role->school ? ' / '.$role->school->name : ' / Global')
+            .($role->school ? ' / '.$role->school->name : ' / '.__('roles.global'))
             .' ('.$period.')';
     }
 }

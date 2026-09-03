@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Início')
-@section('page-title', 'Início')
+@section('title', __('navigation.home'))
+@section('page-title', __('navigation.home'))
 
 @php
     $dashboardUser = auth()->user();
@@ -12,110 +12,110 @@
     if ($canManageDashboard) {
         $dashboardShortcuts = [
             [
-                'label' => 'Gestão dos diários',
-                'description' => 'Acompanhar lançamentos e pendências',
+                'label' => __('dashboard.diary_management'),
+                'description' => __('dashboard.diary_management_description'),
                 'icon' => 'fa-book-open',
                 'url' => route('teacher-diaries.index'),
             ],
             [
-                'label' => 'Matrículas',
-                'description' => 'Consultar e movimentar estudantes',
+                'label' => __('dashboard.enrollments'),
+                'description' => __('dashboard.enrollments_description'),
                 'icon' => 'fa-id-card',
                 'url' => route('enrollments.index'),
             ],
             [
-                'label' => 'Conformidade',
-                'description' => 'Resolver bloqueios e avisos',
+                'label' => __('dashboard.compliance'),
+                'description' => __('dashboard.compliance_description'),
                 'icon' => 'fa-clipboard-check',
                 'url' => route('data-quality.index'),
             ],
             $dashboardUser->can('manage-schools')
                 ? [
-                    'label' => 'Escolas e anos letivos',
-                    'description' => 'Abrir a estrutura acadêmica',
+                    'label' => __('dashboard.schools_years'),
+                    'description' => __('dashboard.schools_years_description'),
                     'icon' => 'fa-school',
                     'url' => route('schools.index'),
                 ]
                 : [
-                    'label' => 'Pessoas',
-                    'description' => 'Consultar cadastros da escola',
+                    'label' => __('dashboard.people'),
+                    'description' => __('dashboard.people_description'),
                     'icon' => 'fa-users',
                     'url' => route('people.index'),
                 ],
         ];
-        $dashboardIntroduction = 'Acompanhe a rotina escolar e abra diretamente o que precisa da sua atenção.';
+        $dashboardIntroduction = __('dashboard.manager_intro');
     } elseif ($dashboardUser->hasActiveRole(\App\Models\PersonSchoolRole::ROLE_TEACHER) || $dashboardUser->hasTeachingDiaries()) {
         $dashboardShortcuts = [
             [
-                'label' => 'Meus diários',
-                'description' => 'Frequência, conteúdo e resultados',
+                'label' => __('dashboard.my_diaries'),
+                'description' => __('dashboard.my_diaries_description'),
                 'icon' => 'fa-book-open',
                 'url' => route('teacher-diaries.index'),
             ],
             [
-                'label' => 'Meus horários',
-                'description' => 'Consultar e imprimir horários',
+                'label' => __('dashboard.my_schedules'),
+                'description' => __('dashboard.my_schedules_description'),
                 'icon' => 'fa-clock',
                 'url' => route('teacher-schedules.index'),
             ],
             [
-                'label' => 'Meu cadastro',
-                'description' => 'Conferir meus dados pessoais',
+                'label' => __('dashboard.my_profile'),
+                'description' => __('dashboard.my_profile_description'),
                 'icon' => 'fa-address-card',
                 'url' => route('profile.edit'),
             ],
             [
-                'label' => 'Calendário escolar',
-                'description' => 'Ver o calendário deste mês',
+                'label' => __('dashboard.school_calendar'),
+                'description' => __('dashboard.school_calendar_description'),
                 'icon' => 'fa-calendar-alt',
                 'url' => route('dashboard').'#calendar-heading',
             ],
         ];
-        $dashboardIntroduction = 'Seus diários, horários, recados e calendário estão reunidos aqui.';
+        $dashboardIntroduction = __('dashboard.teacher_intro');
     } elseif ($dashboardUser->hasStudentMap()) {
         $dashboardShortcuts = [
             [
-                'label' => 'Meu diário',
-                'description' => 'Ver conceitos e frequência',
+                'label' => __('dashboard.my_diary'),
+                'description' => __('dashboard.my_diary_description'),
                 'icon' => 'fa-book-reader',
                 'url' => route('student-diaries.index'),
             ],
             [
-                'label' => 'Minha vida escolar',
-                'description' => 'Matrículas e documentos acadêmicos',
+                'label' => __('dashboard.my_school_life'),
+                'description' => __('dashboard.my_school_life_description'),
                 'icon' => 'fa-graduation-cap',
                 'url' => route('people.student-map.show', $dashboardUser->person_id),
             ],
             [
-                'label' => 'Meu cadastro',
-                'description' => 'Conferir meus dados pessoais',
+                'label' => __('dashboard.my_profile'),
+                'description' => __('dashboard.my_profile_description'),
                 'icon' => 'fa-address-card',
                 'url' => route('profile.edit'),
             ],
             [
-                'label' => 'Calendário escolar',
-                'description' => 'Ver o calendário deste mês',
+                'label' => __('dashboard.school_calendar'),
+                'description' => __('dashboard.school_calendar_description'),
                 'icon' => 'fa-calendar-alt',
                 'url' => route('dashboard').'#calendar-heading',
             ],
         ];
-        $dashboardIntroduction = 'Acompanhe sua vida escolar, seus recados e o calendário da escola.';
+        $dashboardIntroduction = __('dashboard.student_intro');
     } else {
         $dashboardShortcuts = [
             [
-                'label' => 'Meu cadastro',
-                'description' => 'Conferir meus dados pessoais',
+                'label' => __('dashboard.my_profile'),
+                'description' => __('dashboard.my_profile_description'),
                 'icon' => 'fa-address-card',
                 'url' => route('profile.edit'),
             ],
             [
-                'label' => 'Calendário escolar',
-                'description' => 'Ver o calendário deste mês',
+                'label' => __('dashboard.school_calendar'),
+                'description' => __('dashboard.school_calendar_description'),
                 'icon' => 'fa-calendar-alt',
                 'url' => route('dashboard').'#calendar-heading',
             ],
         ];
-        $dashboardIntroduction = 'Acompanhe os recados e o calendário da escola.';
+        $dashboardIntroduction = __('dashboard.other_intro');
     }
 
     $studentCount = $roleCounts[\App\Models\PersonSchoolRole::ROLE_STUDENT] ?? 0;
@@ -131,17 +131,17 @@
 @section('content')
     <section class="sge-dashboard-hero mb-4" aria-labelledby="dashboard-title">
         <div class="sge-dashboard-hero-content">
-            <div class="sge-page-kicker">Painel de acompanhamento</div>
-            <h2 id="dashboard-title">Olá, {{ $dashboardFirstName }}</h2>
+            <div class="sge-page-kicker">{{ __('dashboard.tracking_panel') }}</div>
+            <h2 id="dashboard-title">{{ __('dashboard.hello', ['name' => $dashboardFirstName]) }}</h2>
             <p>{{ $dashboardIntroduction }}</p>
         </div>
-        <div class="sge-dashboard-date" aria-label="Data atual em Brasília">
+        <div class="sge-dashboard-date" aria-label="{{ __('dashboard.date_brasilia') }}">
             <span>{{ now('America/Sao_Paulo')->translatedFormat('d \d\e F') }}</span>
-            <small>{{ now('America/Sao_Paulo')->format('Y') }} · Horário de Brasília</small>
+            <small>{{ now('America/Sao_Paulo')->format('Y') }} · {{ __('dashboard.brasilia_time') }}</small>
         </div>
     </section>
 
-    <nav class="sge-dashboard-shortcuts mb-4" aria-label="Acessos rápidos">
+    <nav class="sge-dashboard-shortcuts mb-4" aria-label="{{ __('dashboard.quick_access') }}">
         @foreach ($dashboardShortcuts as $shortcut)
             <a class="sge-dashboard-shortcut" href="{{ $shortcut['url'] }}">
                 <span class="sge-dashboard-shortcut-icon" aria-hidden="true">
@@ -157,42 +157,42 @@
     </nav>
 
     @can('manage-people')
-        <section class="sge-dashboard-metrics mb-4" aria-label="Indicadores principais">
+        <section class="sge-dashboard-metrics mb-4" aria-label="{{ __('dashboard.main_metrics') }}">
             @can('manage-schools')
                 <a class="sge-metric-card sge-metric-brown" href="{{ route('schools.index') }}">
                     <span class="sge-metric-icon" aria-hidden="true"><i class="fas fa-school"></i></span>
-                    <span class="sge-metric-label">Escolas ativas</span>
+                    <span class="sge-metric-label">{{ __('dashboard.active_schools') }}</span>
                     <strong>{{ number_format($schoolCount, 0, ',', '.') }}</strong>
-                    <span class="sge-metric-note">Unidades em operação</span>
+                    <span class="sge-metric-note">{{ __('dashboard.operating_units') }}</span>
                 </a>
             @endcan
 
             <a class="sge-metric-card sge-metric-green" href="{{ route('people.index') }}">
                 <span class="sge-metric-icon" aria-hidden="true"><i class="fas fa-users"></i></span>
-                <span class="sge-metric-label">Pessoas ativas</span>
+                <span class="sge-metric-label">{{ __('dashboard.active_people') }}</span>
                 <strong>{{ number_format($personCount, 0, ',', '.') }}</strong>
-                <span class="sge-metric-note">Cadastros com vínculo ativo</span>
+                <span class="sge-metric-note">{{ __('dashboard.active_records') }}</span>
             </a>
 
             <a class="sge-metric-card sge-metric-blue" href="{{ route('enrollments.index') }}">
                 <span class="sge-metric-icon" aria-hidden="true"><i class="fas fa-user-graduate"></i></span>
-                <span class="sge-metric-label">Matrículas</span>
+                <span class="sge-metric-label">{{ __('dashboard.enrollments') }}</span>
                 <strong>{{ number_format($activeEnrollmentCount, 0, ',', '.') }}</strong>
-                <span class="sge-metric-note">Estudantes matriculados</span>
+                <span class="sge-metric-note">{{ __('dashboard.enrolled_students') }}</span>
             </a>
 
             <a class="sge-metric-card sge-metric-gold" href="{{ route('data-quality.index') }}">
                 <span class="sge-metric-icon" aria-hidden="true"><i class="fas fa-clipboard-check"></i></span>
-                <span class="sge-metric-label">Conformidade</span>
+                <span class="sge-metric-label">{{ __('dashboard.compliance') }}</span>
                 <strong>{{ number_format($registrationPendingCount, 0, ',', '.') }}</strong>
-                <span class="sge-metric-note">Bloqueios e avisos a revisar</span>
+                <span class="sge-metric-note">{{ __('dashboard.review_notices') }}</span>
             </a>
 
             <div class="sge-metric-card sge-metric-orange">
                 <span class="sge-metric-icon" aria-hidden="true"><i class="fas fa-calendar-check"></i></span>
-                <span class="sge-metric-label">Anos letivos</span>
+                <span class="sge-metric-label">{{ __('dashboard.school_years') }}</span>
                 <strong>{{ number_format($activeAcademicYearCount, 0, ',', '.') }}</strong>
-                <span class="sge-metric-note">Ativos neste período</span>
+                <span class="sge-metric-note">{{ __('dashboard.active_in_period') }}</span>
             </div>
         </section>
     @endcan
@@ -203,23 +203,23 @@
                 <div class="card-header sge-panel-header">
                     <div>
                         <h2 id="calendar-heading">
-                            Calendário do mês
-                            <span class="sr-only">Calendários letivos do mês</span>
+                            {{ __('dashboard.month_calendar') }}
+                            <span class="sr-only">{{ __('dashboard.month_school_calendars') }}</span>
                         </h2>
-                        <p>{{ $monthSchoolDayCount }} dia(s) letivo(s), {{ $birthdays->count() }} aniversário(s) e {{ $monthAcademicCalendars->count() }} calendário(s) visível(is).</p>
+                        <p>{{ __('dashboard.month_summary', ['days' => $monthSchoolDayCount, 'birthdays' => $birthdays->count(), 'calendars' => $monthAcademicCalendars->count()]) }}</p>
                     </div>
-                    <nav class="d-flex align-items-center" aria-label="Navegação entre os meses do calendário">
+                    <nav class="d-flex align-items-center" aria-label="{{ __('dashboard.calendar_navigation') }}">
                         @if($calendarPreviousMonth)
-                            <a class="btn btn-sm btn-outline-primary sge-icon-action mr-2" href="{{ route('dashboard', array_merge(request()->except('calendar_month'), ['calendar_month' => $calendarPreviousMonth->format('Y-m')])) }}#calendar-heading" aria-label="Ver {{ ucfirst($calendarPreviousMonth->translatedFormat('F \d\e Y')) }}" title="Mês anterior"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>
+                            <a class="btn btn-sm btn-outline-primary sge-icon-action mr-2" href="{{ route('dashboard', array_merge(request()->except('calendar_month'), ['calendar_month' => $calendarPreviousMonth->format('Y-m')])) }}#calendar-heading" aria-label="{{ __('dashboard.view_month', ['month' => ucfirst($calendarPreviousMonth->translatedFormat('F Y'))]) }}" title="{{ __('dashboard.previous_month') }}"><i class="fas fa-chevron-left" aria-hidden="true"></i></a>
                         @endif
                         <strong class="text-nowrap">{{ ucfirst($calendarMonth->translatedFormat('F/Y')) }}</strong>
                         @if($calendarNextMonth)
-                            <a class="btn btn-sm btn-outline-primary sge-icon-action ml-2" href="{{ route('dashboard', array_merge(request()->except('calendar_month'), ['calendar_month' => $calendarNextMonth->format('Y-m')])) }}#calendar-heading" aria-label="Ver {{ ucfirst($calendarNextMonth->translatedFormat('F \d\e Y')) }}" title="Próximo mês"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
+                            <a class="btn btn-sm btn-outline-primary sge-icon-action ml-2" href="{{ route('dashboard', array_merge(request()->except('calendar_month'), ['calendar_month' => $calendarNextMonth->format('Y-m')])) }}#calendar-heading" aria-label="{{ __('dashboard.view_month', ['month' => ucfirst($calendarNextMonth->translatedFormat('F Y'))]) }}" title="{{ __('dashboard.next_month') }}"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
                         @endif
                     </nav>
-                    <div class="sge-calendar-legend" aria-label="Legenda do calendário">
-                        <span><strong>L</strong> Letivo</span>
-                        <span><strong class="sge-dot sge-dot-orange"></strong> Aniversário</span>
+                    <div class="sge-calendar-legend" aria-label="{{ __('dashboard.calendar_legend') }}">
+                        <span><strong>L</strong> {{ __('dashboard.school_day') }}</span>
+                        <span><strong class="sge-dot sge-dot-orange"></strong> {{ __('dashboard.birthday') }}</span>
                     </div>
                 </div>
                 <div class="card-body">
@@ -228,7 +228,7 @@
 
                         <div class="sge-dashboard-subgrid mt-3">
                             <section aria-labelledby="visible-calendars-heading">
-                                <h3 id="visible-calendars-heading">Calendários visíveis</h3>
+                                <h3 id="visible-calendars-heading">{{ __('dashboard.visible_calendars') }}</h3>
                                 <div class="sge-chip-list">
                                     @forelse ($monthAcademicCalendars as $academicYear)
                                         <span class="sge-info-chip">
@@ -236,30 +236,30 @@
                                             {{ $academicYear->name }}
                                         </span>
                                     @empty
-                                        <span class="text-muted">Nenhum calendário letivo ativo para este mês.</span>
+                                        <span class="text-muted">{{ __('dashboard.no_active_calendar') }}</span>
                                     @endforelse
                                 </div>
                             </section>
 
                             <section aria-labelledby="birthdays-heading">
                                 <div class="sge-subsection-heading">
-                                    <h3 id="birthdays-heading">Aniversariantes desta semana</h3>
+                                    <h3 id="birthdays-heading">{{ __('dashboard.week_birthdays') }}</h3>
                                     <span>{{ $birthdayWeekStartsAt->format('d/m') }} a {{ $birthdayWeekEndsAt->format('d/m') }}</span>
                                 </div>
-                                <div class="sge-birthday-list" role="list" aria-label="Aniversariantes de {{ $birthdayWeekStartsAt->format('d/m') }} a {{ $birthdayWeekEndsAt->format('d/m') }}">
+                                <div class="sge-birthday-list" role="list" aria-label="{{ __('dashboard.birthdays_between', ['start' => $birthdayWeekStartsAt->format('d/m'), 'end' => $birthdayWeekEndsAt->format('d/m')]) }}">
                                 @forelse ($weekBirthdays as $person)
                                     <div class="sge-mini-row" role="listitem">
                                         <span>{{ $person->birth_date?->format('d/m') }}</span>
                                         <strong>{{ $person->social_name ?: $person->full_name }}</strong>
                                     </div>
                                 @empty
-                                    <p class="text-muted mb-0">Nenhum aniversário nesta semana.</p>
+                                    <p class="text-muted mb-0">{{ __('dashboard.no_week_birthday') }}</p>
                                 @endforelse
                                 </div>
                             </section>
                         </div>
                     @else
-                        <p class="text-muted mb-0">Nenhum calendário ou aniversário ativo para este mês.</p>
+                        <p class="text-muted mb-0">{{ __('dashboard.no_calendar_or_birthday') }}</p>
                     @endif
                 </div>
             </section>
@@ -269,11 +269,11 @@
             <section class="card sge-panel-card h-100" aria-labelledby="announcements-heading">
                 <div class="card-header sge-panel-header">
                     <div>
-                        <h2 id="announcements-heading">Recados ativos</h2>
-                        <p>{{ $announcements->count() }} recado(s) em exibição.</p>
+                        <h2 id="announcements-heading">{{ __('dashboard.active_announcements') }}</h2>
+                        <p>{{ __('dashboard.announcement_count', ['count' => $announcements->count()]) }}</p>
                     </div>
                     @can('manage-people')
-                        <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('announcements.index') }}" aria-label="Gerenciar recados" title="Gerenciar recados">
+                        <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('announcements.index') }}" aria-label="{{ __('dashboard.manage_announcements') }}" title="{{ __('dashboard.manage_announcements') }}">
                             <i class="fas fa-pen" aria-hidden="true"></i>
                         </a>
                     @endcan
@@ -282,16 +282,16 @@
                     @forelse ($announcements as $announcement)
                         <article class="sge-announcement-item">
                             <div class="sge-announcement-meta">
-                                <span>{{ $announcement->school?->name ?? 'Global' }}</span>
+                                <span>{{ $announcement->school?->name ?? __('dashboard.global') }}</span>
                                 @if ($announcement->highlight)
-                                    <span class="badge badge-warning">Destaque</span>
+                                    <span class="badge badge-warning">{{ __('dashboard.highlight') }}</span>
                                 @endif
                             </div>
                             <h3>{{ $announcement->title }}</h3>
                             <p>{{ $announcement->body }}</p>
                         </article>
                     @empty
-                        <p class="text-muted mb-0">Nenhum recado ativo.</p>
+                        <p class="text-muted mb-0">{{ __('dashboard.no_active_announcement') }}</p>
                     @endforelse
                 </div>
             </section>
@@ -304,8 +304,8 @@
                 <section class="card sge-panel-card h-100" aria-labelledby="roles-chart-heading">
                     <div class="card-header sge-panel-header">
                         <div>
-                            <h2 id="roles-chart-heading">Pessoas por papel</h2>
-                            <p>Total de {{ number_format($roleTotal, 0, ',', '.') }} vínculo(s) ativo(s).</p>
+                            <h2 id="roles-chart-heading">{{ __('dashboard.people_by_role') }}</h2>
+                            <p>{{ __('dashboard.active_roles_total', ['count' => number_format($roleTotal, 0, ',', '.')]) }}</p>
                         </div>
                     </div>
                     <div class="card-body">
@@ -327,7 +327,7 @@
                                 @endforeach
                             </div>
                         @else
-                            <p class="text-muted mb-0">Ainda não há vínculos ativos suficientes para montar o gráfico.</p>
+                            <p class="text-muted mb-0">{{ __('dashboard.no_role_chart') }}</p>
                         @endif
                     </div>
                 </section>
@@ -337,16 +337,16 @@
                 <section class="card sge-panel-card h-100" aria-labelledby="roles-summary-heading">
                     <div class="card-header sge-panel-header">
                         <div>
-                            <h2 id="roles-summary-heading">Composição da comunidade</h2>
-                            <p>Leitura rápida dos principais grupos.</p>
+                            <h2 id="roles-summary-heading">{{ __('dashboard.community_composition') }}</h2>
+                            <p>{{ __('dashboard.main_groups') }}</p>
                         </div>
                     </div>
                     <div class="card-body">
                         @foreach ([
-                            ['label' => 'Estudantes', 'value' => $studentCount, 'icon' => 'fa-user-graduate'],
-                            ['label' => 'Docência', 'value' => $teacherCount, 'icon' => 'fa-chalkboard-teacher'],
-                            ['label' => 'Gestão', 'value' => $managerCount, 'icon' => 'fa-user-tie'],
-                            ['label' => 'Equipe escolar', 'value' => $employeeCount, 'icon' => 'fa-hands-helping'],
+                            ['label' => __('dashboard.students'), 'value' => $studentCount, 'icon' => 'fa-user-graduate'],
+                            ['label' => __('dashboard.teachers'), 'value' => $teacherCount, 'icon' => 'fa-chalkboard-teacher'],
+                            ['label' => __('dashboard.management'), 'value' => $managerCount, 'icon' => 'fa-user-tie'],
+                            ['label' => __('dashboard.school_staff'), 'value' => $employeeCount, 'icon' => 'fa-hands-helping'],
                         ] as $item)
                             @php
                                 $percent = $roleTotal > 0 ? round(($item['value'] / $roleTotal) * 100) : 0;
@@ -370,8 +370,8 @@
                 <section class="card sge-panel-card h-100" aria-labelledby="calendar-chart-heading">
                     <div class="card-header sge-panel-header">
                         <div>
-                            <h2 id="calendar-chart-heading">Dias do mês</h2>
-                            <p>Distribuição dos tipos de dia nos calendários visíveis.</p>
+                            <h2 id="calendar-chart-heading">{{ __('dashboard.month_days') }}</h2>
+                            <p>{{ __('dashboard.day_type_distribution') }}</p>
                         </div>
                     </div>
                     <div class="card-body">
@@ -388,7 +388,7 @@
                                 @endforeach
                             </div>
                         @else
-                            <p class="text-muted mb-0">Ainda não há dias do calendário neste mês.</p>
+                            <p class="text-muted mb-0">{{ __('dashboard.no_calendar_days') }}</p>
                         @endif
                     </div>
                 </section>
@@ -398,8 +398,8 @@
         <section class="card sge-panel-card mb-4" aria-labelledby="students-school-heading">
             <div class="card-header sge-panel-header">
                 <div>
-                    <h2 id="students-school-heading">Estudantes por escola</h2>
-                    <p>Ajuda a enxergar rapidamente a distribuição das matrículas e vínculos de estudantes.</p>
+                    <h2 id="students-school-heading">{{ __('dashboard.students_by_school') }}</h2>
+                    <p>{{ __('dashboard.students_by_school_help') }}</p>
                 </div>
             </div>
             <div class="card-body">
@@ -409,11 +409,11 @@
                     </div>
                     <div class="table-responsive mt-3">
                         <table class="table table-sm sge-accessible-chart-table mb-0">
-                            <caption class="sr-only">Dados do gráfico de estudantes por escola</caption>
+                            <caption class="sr-only">{{ __('dashboard.students_chart_data') }}</caption>
                             <thead>
                                 <tr>
-                                    <th>Escola</th>
-                                    <th class="text-right">Estudantes</th>
+                                    <th>{{ __('dashboard.school') }}</th>
+                                    <th class="text-right">{{ __('dashboard.students') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -427,7 +427,7 @@
                         </table>
                     </div>
                 @else
-                    <p class="text-muted mb-0">Ainda não há estudantes vinculados a escolas.</p>
+                    <p class="text-muted mb-0">{{ __('dashboard.no_students_by_school') }}</p>
                 @endif
             </div>
         </section>
@@ -493,7 +493,7 @@
                     data: {
                         labels: @json($studentsBySchoolChart['labels']),
                         datasets: [{
-                            label: 'Estudantes',
+                            label: @json(__('dashboard.students')),
                             data: studentsBySchoolValues,
                             backgroundColor: '#44693D',
                             borderColor: '#355330',

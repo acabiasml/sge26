@@ -3,11 +3,11 @@
 @endphp
 
 @if ($month)
-    <section class="sge-calendar-month sge-calendar-month-combined" aria-label="Calendário combinado de {{ $month['label'] }}">
+    <section class="sge-calendar-month sge-calendar-month-combined" aria-label="{{ __('dashboard.combined_calendar', ['month' => $month['label']]) }}">
         <header class="sge-calendar-month-header d-flex align-items-center justify-content-between">
             <span>{{ $month['label'] }}</span>
             <span class="small font-weight-normal">
-                {{ $month['school_days_count'] }} letivos · {{ $month['birthdays_count'] }} aniversários
+                {{ __('dashboard.calendar_counts', ['days' => $month['school_days_count'], 'birthdays' => $month['birthdays_count']]) }}
             </span>
         </header>
         <div class="sge-calendar-weekdays" aria-hidden="true">
@@ -37,10 +37,10 @@
                         </span>
 
                         @if ($entry['counts_as_school_day'])
-                            <span class="sge-calendar-mini-mark sge-calendar-mini-mark-school" aria-label="Dia letivo">L</span>
+                            <span class="sge-calendar-mini-mark sge-calendar-mini-mark-school" aria-label="{{ __('dashboard.school_day') }}">L</span>
                         @endif
                         @if ($entry['has_birthdays'])
-                            <span class="sge-calendar-birthday-dot" aria-label="{{ $entry['birthdays']->count() }} aniversariante(s)"></span>
+                            <span class="sge-calendar-birthday-dot" aria-label="{{ __('dashboard.birthday_count', ['count' => $entry['birthdays']->count()]) }}"></span>
                         @endif
 
                         <span class="sr-only">{{ $entry['label'] }}</span>
