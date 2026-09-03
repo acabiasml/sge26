@@ -16,6 +16,21 @@
     <link href="{{ asset('vendor/rappasoft/livewire-tables/css/laravel-livewire-tables.min.css') }}" rel="stylesheet">
     <link href="{{ asset('vendor/rappasoft/livewire-tables/css/laravel-livewire-tables-thirdparty.min.css') }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-brand.css') }}?v={{ filemtime(public_path('template/css/sge-brand.css')) }}" rel="stylesheet">
+    <style>
+        .sge-language-switcher { align-items: center; display: flex; gap: .15rem; padding: 0 .35rem; }
+        .sge-language-switcher form { display: flex; margin: 0; }
+        .sge-language-button {
+            align-items: center; background: transparent; border: 1px solid transparent; border-radius: .45rem;
+            cursor: pointer; display: inline-flex; font-size: 1.35rem; height: 2.4rem; justify-content: center;
+            line-height: 1; opacity: .58; padding: .25rem .35rem;
+            transition: background-color .15s ease, border-color .15s ease, opacity .15s ease;
+        }
+        .sge-language-button:hover, .sge-language-button:focus {
+            background: var(--sge-cream); border-color: var(--sge-border); opacity: 1; outline: none;
+        }
+        .sge-language-button:focus-visible { box-shadow: 0 0 0 .2rem rgba(35, 104, 124, .22); }
+        .sge-language-button.is-active { background: #fff7ec; border-color: var(--sge-orange); opacity: 1; }
+    </style>
     @livewireStyles
 </head>
 
