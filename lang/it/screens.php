@@ -36,6 +36,7 @@ return [
     'notes' => 'Osservazioni', 'internal_notes' => 'Note interne', 'initial_calendar' => 'Generazione iniziale del calendario',
     'initial_calendar_help' => 'Al salvataggio, i giorni dal lunedì al venerdì saranno creati come vacanze (FF). Sabato e domenica restano fine settimana, senza FF. Registrando un periodo di valutazione, le relative date diventano automaticamente giorni di scuola.',
     'schools' => 'Scuole', 'people' => 'Persone', 'audit' => 'Audit', 'enrollments' => 'Iscrizioni',
+    'issued_document_for_person' => ':document :name', 'audit_record_with_id' => ':record (registrazione :id)',
     'school_histories' => 'Carriere scolastiche', 'new_school' => 'Nuova scuola', 'register_school' => 'Registra nuova scuola',
     'new_person' => 'Nuova persona', 'register_person' => 'Registra nuova persona', 'export_excel' => 'Esporta Excel', 'export_pdf' => 'Esporta PDF',
     'export_filtered_schools_excel' => 'Esporta le scuole filtrate in Excel', 'export_filtered_schools_pdf' => 'Esporta le scuole filtrate in PDF',

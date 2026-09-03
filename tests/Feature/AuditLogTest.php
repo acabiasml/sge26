@@ -210,12 +210,22 @@ class AuditLogTest extends TestCase
 
         $changes = \App\Support\AuditLogPresenter::changes($audit);
 
-        $this->assertSame('Documento emitido — tipo: Diário de classe (registro 386)', \App\Support\AuditLogPresenter::recordLabel($audit));
+        $this->assertSame('Diário de classe', \App\Support\AuditLogPresenter::recordLabel($audit));
         $this->assertSame('Diário de classe', \App\Support\AuditLogPresenter::value('teacher-diary', 'type', IssuedDocument::class));
         $this->assertSame(
             ['Tipo', 'Código de verificação', 'Pessoa', 'Emitido pelo usuário', 'Dados complementares'],
             collect($changes)->pluck('field')->all(),
         );
+
+        $student = Person::query()->create(['full_name' => 'Maria da Silva']);
+        $audit->new_values = ['type' => 'student-academic-history', 'person_id' => $student->id];
+
+        $this->assertSame('Histórico escolar do estudante Maria da Silva', \App\Support\AuditLogPresenter::recordLabel($audit));
+
+        app()->setLocale('it');
+
+        $this->assertSame('Registrazione creata', \App\Support\AuditLogPresenter::actionLabel('created'));
+        $this->assertSame('Carriera scolastica dello studente Maria da Silva', \App\Support\AuditLogPresenter::recordLabel($audit));
     }
 
     public function test_non_administrator_cannot_change_audit_timezone(): void

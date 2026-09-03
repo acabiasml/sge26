@@ -229,12 +229,12 @@ class AuditLogPresenter
 
     public static function actionLabel(?string $action): string
     {
-        return self::ACTION_LABELS[$action ?? ''] ?? ($action ?: '-');
+        return __(self::ACTION_LABELS[$action ?? ''] ?? ($action ?: '-'));
     }
 
     public static function modelLabel(?string $model): string
     {
-        return self::MODEL_LABELS[$model ?? ''] ?? class_basename($model ?? '');
+        return __(self::MODEL_LABELS[$model ?? ''] ?? class_basename($model ?? ''));
     }
 
     public static function recordLabel(AuditLog $auditLog): string
@@ -245,7 +245,13 @@ class AuditLogPresenter
             $type = $auditLog->new_values['type'] ?? $auditLog->old_values['type'] ?? null;
 
             if (is_string($type) && $type !== '') {
-                $label .= ' — tipo: '.DocumentVerificationPresenter::typeLabel($type);
+                $documentLabel = __(DocumentVerificationPresenter::typeLabel($type));
+                $personId = $auditLog->new_values['person_id'] ?? $auditLog->old_values['person_id'] ?? null;
+                $personName = is_numeric($personId) ? Person::query()->find($personId)?->full_name : null;
+
+                return $personName
+                    ? __('screens.issued_document_for_person', ['document' => $documentLabel, 'name' => $personName])
+                    : $documentLabel;
             }
         }
 
@@ -253,12 +259,12 @@ class AuditLogPresenter
             return $label;
         }
 
-        return $label.' (registro '.$auditLog->auditable_id.')';
+        return __('screens.audit_record_with_id', ['record' => $label, 'id' => $auditLog->auditable_id]);
     }
 
     public static function fieldLabel(string $field): string
     {
-        return self::FIELD_LABELS[$field] ?? str($field)->replace('_', ' ')->title()->value();
+        return __(self::FIELD_LABELS[$field] ?? str($field)->replace('_', ' ')->title()->value());
     }
 
     /**
@@ -297,7 +303,7 @@ class AuditLogPresenter
 
         if ($field === 'type' && is_string($value)) {
             return match ($model) {
-                IssuedDocument::class => DocumentVerificationPresenter::typeLabel($value),
+                IssuedDocument::class => __(DocumentVerificationPresenter::typeLabel($value)),
                 CalendarDay::class => CalendarDay::TYPE_LABELS[$value] ?? $value,
                 SchoolClassScheduleSlot::class => SchoolClassScheduleSlot::TYPE_LABELS[$value] ?? $value,
                 StudentEnrollment::class => StudentEnrollment::TYPE_LABELS[$value] ?? $value,
