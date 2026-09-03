@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Editar Pessoa')
-@section('page-title', 'Editar Pessoa')
+@section('title', __('screens.edit_person'))
+@section('page-title', __('screens.edit_person'))
 
 @section('content')
     <div class="card shadow mb-4">
@@ -15,8 +15,8 @@
                     'lockInstitutionalEmail' => $lockInstitutionalEmail ?? false,
                 ])
 
-                <button class="btn btn-primary" type="submit">Salvar alterações</button>
-                <a class="btn btn-secondary" href="{{ route('people.show', $person) }}">Voltar</a>
+                <button class="btn btn-primary" type="submit">{{ __('screens.save_changes') }}</button>
+                <a class="btn btn-secondary" href="{{ route('people.show', $person) }}">{{ __('screens.back') }}</a>
             </form>
         </div>
     </div>

@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
-@section('title', 'Meu Cadastro')
-@section('page-title', 'Meu Cadastro')
+@section('title', __('screens.my_profile'))
+@section('page-title', __('screens.my_profile'))
 
 @section('content')
     <div class="card shadow mb-4">
         <div class="card-body">
-            <p class="text-gray-700">Antes de continuar, confirme seus dados pessoais.</p>
+            <p class="text-gray-700">{{ __('screens.confirm_personal_data') }}</p>
 
             <form method="POST" action="{{ route('profile.update') }}">
                 @csrf
@@ -19,7 +19,7 @@
                     'showActiveControl' => false,
                 ])
 
-                <button class="btn btn-primary" type="submit">Salvar e continuar</button>
+                <button class="btn btn-primary" type="submit">{{ __('screens.save_continue') }}</button>
             </form>
         </div>
     </div>
