@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Novo ano letivo')
-@section('page-title', 'Novo ano letivo - '.$school->name)
+@section('title', __('screens.new_school_year'))
+@section('page-title', __('screens.new_school_year_of', ['school' => $school->name]))
 
 @section('content')
     <div class="card shadow mb-4">
