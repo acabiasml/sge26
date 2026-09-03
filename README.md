@@ -4,363 +4,311 @@
 
 # Beabá
 
-Sistema de Gestão Escolar em Laravel para as escolas mantidas pelo Centro Técnico Juvenil de Jarudore.
+Sistema de gestão escolar das unidades mantidas pelo Centro Técnico Juvenil de Jarudore. O projeto reúne cadastro institucional, organização acadêmica, diários, vida escolar, documentos oficiais, comunicação e auditoria em uma aplicação Laravel multi-escola.
 
-O Beabá está sendo construído para substituir gradualmente sistemas e bases legadas, preservando a possibilidade de migração dos dados antigos, mas com uma modelagem nova: auditável, organizada por escola e mais próxima da rotina real de secretaria, gestão, docência e estudantes.
+O Beabá substitui gradualmente bases legadas sem reproduzir sua estrutura: os dados importados preservam a origem e os identificadores antigos, mas passam a integrar um modelo relacional, auditável e organizado por escola.
 
-O acesso institucional usa Google Workspace do domínio `ctjj.org`.
+## Estado atual
 
-## Contexto
+O sistema está em uso e contempla o ciclo escolar completo:
 
-O sistema atende inicialmente:
+1. cadastro de escolas, pessoas e vínculos;
+2. configuração do ano letivo, calendário, períodos e critérios;
+3. criação de matrizes, componentes, turmas e horários;
+4. matrícula e movimentação dos estudantes;
+5. atribuição de docentes e operação dos diários;
+6. consolidação de períodos e cálculo do resultado anual;
+7. emissão e verificação de documentos oficiais;
+8. fechamento e auditoria do ano letivo.
 
-- **Liceu Pedagógico São Francisco de Assis**, em Jarudore, distrito de Poxoréu-MT. Atende do 9º ano do Ensino Fundamental ao 3º ano do Ensino Médio e mantém itinerário formativo técnico em Móveis.
-- **Lar São Domingos Sávio**, em Naboreiro, Rondonópolis-MT. Atende do 6º ano do Ensino Fundamental ao 3º ano do Ensino Médio e mantém internato feminino.
-- **Escola Laura Vicuña**, em General Carneiro-MT, com salas anexas em Barra do Garças-MT. Atende do 6º ano do Ensino Fundamental ao 3º ano do Ensino Médio.
+Unidades atendidas inicialmente:
 
-O Centro Técnico Juvenil de Jarudore é a mantenedora oficial. A Operação Mato Grosso aparece como parceira institucional.
+- **Liceu Pedagógico São Francisco de Assis**, em Jarudore, Poxoréu-MT;
+- **Lar São Domingos Sávio**, em Naboreiro, Rondonópolis-MT;
+- **Escola Laura Vicuña**, em General Carneiro-MT, com salas anexas em Barra do Garças-MT.
+
+O Centro Técnico Juvenil de Jarudore é a mantenedora, e a Operação Mato Grosso participa como parceira institucional.
 
 ## Stack
 
-- PHP 8.4
-- Laravel 12
-- SQLite no ambiente local
-- Laravel Socialite para login com Google
-- Livewire 3
-- Rappasoft Laravel Livewire Tables
-- Laravel Excel
-- Dompdf
-- Vite
+- PHP 8.4;
+- Laravel 12;
+- Livewire 3 e Rappasoft Laravel Livewire Tables;
+- Laravel Socialite para autenticação Google;
+- integração REST com o Google Workspace Admin SDK para provisionamento opcional de contas;
+- Laravel Excel para exportações;
+- Dompdf para documentos oficiais;
+- Tailwind CSS 4 e Vite 7;
+- SQLite como padrão local e banco configurável por ambiente;
+- PHPUnit 11.
 
-## Conceitos Principais
+## Modelo de domínio
 
-O sistema separa três coisas que antes ficavam misturadas:
+O núcleo separa conceitos que não devem ser confundidos:
 
-- **Pessoa**: cadastro civil e institucional.
-- **Usuário**: credencial de acesso via Google Workspace.
-- **Vínculo**: papel exercido por uma pessoa em uma escola e em um período.
+- **Pessoa**: identidade civil, contatos e dados institucionais;
+- **Usuário**: credencial autenticada pelo Google;
+- **Vínculo**: papel que uma pessoa exerce, globalmente ou em uma escola, com vigência;
+- **Ano letivo**: calendário e regras acadêmicas de uma escola;
+- **Matriz/curso**: organização curricular, etapa e carga horária;
+- **Turma**: oferta concreta de uma ou mais matrizes;
+- **Matrícula**: vínculo do estudante com a turma e suas matrizes;
+- **Período avaliativo**: intervalo, avaliações, recuperação e fechamento;
+- **Diário**: frequência, conteúdo e notas de um componente da turma;
+- **Histórico escolar**: trajetória consolidada do estudante por etapa de ensino.
 
-Papéis atuais:
+Uma pessoa pode exercer vários papéis e participar de escolas diferentes. Uma matrícula pode reunir matrizes paralelas e até componentes provenientes de anos letivos distintos, como ocorre na formação geral básica combinada com itinerário técnico.
 
-- **Administração**: acesso global.
-- **Gestão**: direção, coordenação ou secretaria em uma escola.
-- **Docência**: acesso aos diários e horários dos componentes atribuídos.
-- **Estudante**: acesso ao próprio diário, horários e documentos.
-- **Equipe escolar**: colaboradores sem função de gestão.
+## Perfis e acesso
 
-Uma pessoa pode ter vários vínculos, inclusive em escolas diferentes.
+Papéis disponíveis:
 
-## Regras de Acesso
+- **Administração**: acesso global e manutenção estrutural;
+- **Gestão**: direção, coordenação ou secretaria no escopo de suas escolas;
+- **Docência**: horários e diários dos componentes atribuídos;
+- **Equipe escolar**: colaboradores sem atribuições de gestão;
+- **Estudante**: consulta dos próprios horários, diários e documentos.
 
-- Não há autocadastro livre.
-- O login institucional é feito exclusivamente pelo Google Workspace, limitado ao domínio configurado em `GOOGLE_ALLOWED_DOMAIN`, hoje `ctjj.org`.
-- Se não houver Administração ativa, o primeiro login `@ctjj.org` cria a primeira pessoa administradora, autentica o usuário e exige a conclusão do cadastro em **Meu cadastro** antes de liberar o sistema.
-- Depois disso, só acessa quem já foi cadastrado por Administração ou Gestão como pessoa ativa, com e-mail institucional do domínio permitido e pelo menos um vínculo ativo.
-- O registro local em `users` pode ser criado automaticamente no primeiro login Google de uma pessoa já autorizada; a autorização real continua sendo o cadastro da pessoa e seus vínculos.
-- Cadastros incompletos entram apenas na tela de conclusão cadastral e não acessam as telas internas enquanto faltarem dados obrigatórios.
-- CPF e e-mail institucional são únicos.
-- A própria pessoa não pode alterar o próprio e-mail institucional.
-- Gestores, docentes, estudantes e equipe não podem alterar seus próprios dados sensíveis: nome completo, CPF, data de nascimento, e-mail institucional e nome da mãe.
-- A última Administração ativa não pode se desativar, remover seu vínculo ou deixar o sistema sem Administração.
-- Pessoas inativas não aparecem como pendência apenas por falta de dados, mas não podem receber novos vínculos, matrículas ou documentos quando não possuem CPF e e-mail institucional.
+Regras principais:
 
-## Conformidade Documental
+- não existe autocadastro público;
+- o login usa Google Workspace e restringe o domínio por `GOOGLE_ALLOWED_DOMAIN`;
+- depois da implantação inicial, somente pessoas previamente autorizadas, ativas e com vínculo vigente acessam o sistema;
+- o primeiro acesso pode criar o registro local de usuário, mas não cria permissão escolar;
+- cadastros incompletos são direcionados para **Meu cadastro**;
+- CPF e e-mail institucional são únicos;
+- dados sensíveis possuem restrições de autoedição;
+- a última Administração ativa não pode ser removida ou desativada;
+- ações de Gestão são limitadas às escolas vinculadas.
 
-O sistema trata dados essenciais de escrituração escolar como obrigatórios para cadastros ativos e para emissão de documentos oficiais.
+O provisionamento de contas Google Workspace é opcional e depende de `GOOGLE_WORKSPACE_ENABLED` e das credenciais administrativas configuradas no ambiente.
 
-Para pessoas ativas e documentos escolares, são exigidos: nome completo, CPF, data de nascimento, naturalidade, UF de naturalidade, nacionalidade, nome da mãe, e-mail institucional, telefone, endereço, cidade, UF e CEP.
+## Cadastro e conformidade
 
-Para escolas e papel timbrado oficial, são exigidos: nome da escola, razão social, CNPJ, código INEP, data de fundação, telefone, e-mail, endereço, cidade, UF, CEP e texto institucional/autorizativo.
+O cadastro de pessoa mantém, conforme disponibilidade:
 
-Boletim, ficha individual, histórico escolar, ficha de matrícula e documentos oficiais são bloqueados quando faltam dados essenciais da pessoa ou da escola relacionada. A regra protege a validade documental e evita emissão de PDFs incompletos.
+- nome completo e nome social;
+- CPF, INEP, NIS e código legado da pasta;
+- data e local de nascimento, nacionalidade e filiação;
+- telefone, e-mails e endereço;
+- participação em auxílio federal;
+- contatos e responsáveis;
+- vínculos escolares e suas vigências.
 
-A tela **Conformidade** funciona como central única de pendências documentais e acadêmicas. Ela reúne bloqueios, avisos e atenções de pessoas, vínculos, responsáveis, escolas, matrículas e anos letivos, com filtro por escola e gravidade. A própria tela emite um PDF de conferência com código de autenticidade.
-## Módulos Atuais
+Escolas possuem dados institucionais, CNPJ, INEP, atos autorizativos, contatos, endereço, logomarca e responsáveis por assinatura.
 
-### Cadastro e Gestão
+A central de **Conformidade** reúne bloqueios, avisos e atenções relativos a pessoas, responsáveis, vínculos, escolas, matrículas, estruturas acadêmicas e anos letivos. Documentos oficiais não são emitidos quando faltam dados indispensáveis da pessoa ou da escola, salvo fluxos que prevejam confirmação explícita para determinada pendência.
 
-- Escolas, dados institucionais, INEP, CNPJ, endereço, contatos e logo.
-- Pessoas, dados pessoais, endereço, contatos e responsáveis.
-- Vínculos por papel, escola, data de início e fim.
-- Pendências de cadastro filtradas por escola e apenas para pessoas ativas.
-- Auditoria de alterações com ator, papel, escola, registro, valores antigos e novos.
+Todas as alterações relevantes usam trilha de auditoria com ator, papel, escola, ação, registro e valores anteriores e posteriores.
 
-### Estrutura Acadêmica
+## Organização acadêmica
 
-- Ano letivo por escola, com calendário, aprovação, frequência mínima e soma de pontos para aprovação.
-- Períodos avaliativos com regras de avaliação e recuperação.
-- Matrizes/cursos dentro do ano letivo.
-- Componentes curriculares agrupados por formação e área do conhecimento.
-- Turmas vinculadas a matrizes ativas.
-- Validação visual do ano letivo, matriz, turma, horários e diários antes da operação acadêmica.
+### Anos letivos e calendário
 
-### Calendário Escolar
+Cada escola mantém seus próprios anos letivos, que podem atravessar mais de um ano civil. O ano concentra:
 
-Cada escola possui seus próprios anos letivos. Um ano letivo pode atravessar mais de um ano civil.
+- datas de início e término;
+- quantidade mínima de dias letivos;
+- frequência mínima e pontuação para aprovação;
+- períodos avaliativos;
+- calendário diário;
+- matrizes, turmas e horários;
+- aprovação, fechamento e reabertura controlada.
 
-No calendário:
+O calendário diferencia dias letivos, sábados, domingos, feriados, férias finais, recessos, estudos pedagógicos, conselhos de classe, marcos de períodos e outras ocorrências. Há validação da contagem de dias e emissão em PDF paisagem.
 
-- segundas a sextas iniciam como férias finais (`FF`);
-- sábados e domingos iniciam sem marcação;
-- períodos avaliativos transformam datas em dias letivos;
-- dias não letivos entre períodos são normalizados como recesso (`RE`);
-- tipos de dia incluem letivo, sábado, domingo, feriado, férias finais, recesso escolar, estudos pedagógicos, início/término de período, conselho de classe e outro.
+### Períodos, avaliações e recuperação
 
-O calendário pode ser impresso em PDF oficial, em página paisagem, com legenda, períodos, assinatura e papel timbrado.
+Em cada período avaliativo, a Gestão configura:
 
-### Matrizes e Turmas
-
-- Matrizes podem ser duplicadas para reaproveitar componentes.
-- Componentes têm área, formação, aulas semanais e duração por períodos avaliativos.
-- A carga horária é calculada por:
-
-```text
-aulas semanais × minutos da hora-aula da matriz × 40 ÷ 60
-```
-
-- A impressão de matrizes agrupa componentes por formação, área e matriz, aproximando o formato das matrizes curriculares oficiais.
-- A associação de docentes titulares e substitutos fica na turma, não na matriz, porque turmas com a mesma matriz podem ter professores diferentes.
-
-### Horários
-
-Cada turma pode ter versões de horário com validade por período.
-
-O horário é visual, em matriz semanal, respeitando:
-
-- dias letivos previstos no calendário;
-- quantidade de aulas semanais do componente;
-- duração da hora-aula da matriz;
-- intervalos;
-- cores consistentes por docente.
-
-Há impressão do horário da turma, dos horários do ano letivo, dos horários do professor e dos horários do estudante.
-
-### Matrículas
-
-Matrículas ficam em módulo próprio, fora do ano letivo, porque um estudante pode cursar matrizes diferentes, inclusive em anos letivos com durações distintas.
-
-Administração pode matricular em qualquer escola. Gestão pode matricular apenas nas escolas em que possui vínculo ativo.
-
-O estudante só pode ser matriculado se:
-
-- estiver ativo;
-- possuir CPF;
-- possuir e-mail institucional;
-- tiver vínculo de estudante na escola;
-- a matriz estiver ativa.
-
-O módulo preserva transferência, reclassificação, cancelamento e emissão de ficha de matrícula em PDF.
-
-### Vida Escolar e Históricos
-
-A tela de **Vida escolar** concentra o percurso do estudante: matrículas, boletins, fichas individuais, frequência, desempenho, históricos recebidos, convalidações, responsáveis, documentos emitidos e movimentações auditadas.
-
-A secretaria pode registrar históricos recebidos de outras escolas antes ou durante a matrícula do estudante. O cadastro é flexível porque documentos externos podem vir com nomes de componentes, cargas horárias, frequências, resultados e observações em formatos diferentes.
-
-O histórico permite:
-
-- registrar anos, séries, fases ou etapas cursadas;
-- informar escola, município, UF, dias letivos, carga horária e resultado por coluna;
-- cadastrar componentes curriculares livres, com formação, área, nota/conceito, frequência, carga horária cursada e resultado final;
-- preservar observações como reclassificação, continuidade curricular, estudos realizados e situações excepcionais;
-- emitir PDF oficial em A4 com papel timbrado e código de autenticidade.
-
-Quando o estudante chega após o início de um período avaliativo, a gestão pode convalidar os resultados parciais trazidos da escola anterior. Essa convalidação entra no boletim e nos cálculos do período enquanto não houver lançamento completo do diário no Beabá.
-
-### Diários
-
-Diários são gerados por turma e componente curricular.
-
-Docência pode:
-
-- lançar frequência;
-- lançar conteúdo por dia;
-- lançar notas configuradas pela gestão;
-- visualizar diário por período ou ano;
-- confirmar lançamentos ao final do período avaliativo;
-- imprimir diário e lista de chamada.
-
-Gestão e Administração podem:
-
-- acompanhar diários por filtros, cartões e indicadores;
-- enviar alertas ao professor;
-- corrigir lançamentos quando necessário;
-- reabrir diário individual;
-- consolidar período apenas quando os diários estiverem confirmados e sem pendências;
-- reabrir período consolidado com justificativa;
-- imprimir diários para assinatura.
-
-Quando a turma tem horário cadastrado, as datas do diário seguem o horário. Quando não tem horário, o diário mantém seleção manual de datas, útil para cursos técnicos e ofertas especiais.
-
-Conteúdo e frequência são vinculados por data: frequência sem conteúdo, ou conteúdo sem frequência, gera pendência.
-
-### Avaliação e Recuperação
-
-A gestão configura as avaliações por período avaliativo:
-
-- quantidade de avaliações;
-- nome;
-- peso;
-- regra de recuperação.
+- nome, posição e intervalo de datas;
+- quantidade, nomes e pesos das avaliações;
+- forma de recuperação;
+- permissão excepcional para docentes lançarem frequência e conteúdo fora dos limites do período.
 
 A recuperação pode:
 
-- compor a média como nota separada com peso;
-- substituir uma avaliação específica;
-- substituir a menor nota do período.
+- compor a média como avaliação ponderada;
+- substituir uma avaliação escolhida;
+- substituir a menor nota;
+- substituir a média do período quando produzir resultado maior.
 
-A média do período é arredondada para o múltiplo de `0,5` mais próximo.
+Quando habilitada, a recuperação aparece como a última coluna de lançamento. Alterações de regra após o início dos lançamentos exigem confirmação e preservam as proteções contra perda acidental de resultados.
 
-A aprovação anual considera soma de pontos definida no ano letivo, além da frequência mínima.
+A média é arredondada para o múltiplo de `0,5` mais próximo. Conceitos, faixas de nota e critérios podem ter vigência, permitindo que mudanças futuras não alterem documentos de períodos anteriores.
 
-Resultados parciais convalidados pela gestão ficam vinculados à matrícula, ao período avaliativo e ao componente curricular. O registro guarda nota, data, escola de origem e observações, mantendo rastreabilidade para estudantes transferidos ou recebidos com o período já iniciado.
+### Matrizes e componentes
 
-### Fechamento Anual
+Matrizes representam cursos ou etapas e podem ser duplicadas. Componentes possuem área de conhecimento, formação, carga horária, aulas semanais e período de oferta.
 
-O fechamento do ano letivo possui uma tela própria de conferência. Antes de fechar, o sistema verifica:
+No Ensino Médio, o sistema separa:
 
-- aprovação do calendário;
-- consolidação dos períodos avaliativos;
-- existência de resultados finais calculados para as matrículas;
-- contagem dos dias letivos registrados no calendário;
-- existência de turmas e matrículas.
+- **Formação Geral Básica**;
+- **Itinerário Formativo**, inclusive Educação Profissional e Tecnológica.
 
-Quando o ano letivo é fechado, alterações acadêmicas sensíveis ficam bloqueadas. Administração e Gestão podem consultar a conferência e emitir o documento consolidado de resultados finais do ano letivo, além das atas por turma.
+O nome do itinerário e a regulamentação do curso técnico são mantidos na matriz e refletidos nos documentos acadêmicos. A carga horária calculada usa:
 
-### Documentos
+```text
+aulas semanais × minutos da hora-aula × 40 ÷ 60
+```
 
-O sistema emite:
+### Turmas, docentes e horários
+
+Turmas podem reunir mais de uma matriz ativa. A atribuição de docentes titulares e substitutos pertence à turma/componente, permitindo equipes diferentes para turmas que usam a mesma matriz.
+
+Os horários possuem versões com vigência, matriz semanal, intervalos e cores consistentes por docente. Podem ser impressos por turma, ano letivo, professor ou estudante.
+
+### Matrículas e movimentações
+
+O módulo de matrículas é independente da tela do ano letivo. Ele suporta:
+
+- matrícula em uma ou mais matrizes da turma;
+- transferência e reversão de transferência;
+- cancelamento e reversão de cancelamento;
+- reclassificação;
+- rematrícula após transferência;
+- convalidação de notas e frequência trazidas de outra escola;
+- ficha de matrícula e central de documentos.
+
+Para nova matrícula, o estudante deve estar ativo, possuir os dados obrigatórios, ter vínculo de estudante na escola e selecionar matriz ativa.
+
+## Diários e frequência
+
+Os diários são gerados por turma e componente. Docentes podem:
+
+- lançar frequência por aula e por data;
+- registrar o conteúdo ministrado;
+- lançar notas nas avaliações configuradas;
+- consultar o período ou o ano;
+- confirmar o diário ao concluir o período;
+- imprimir diário e lista de chamada.
+
+Gestão e Administração podem acompanhar pendências, enviar alertas, corrigir registros, reabrir diários e consolidar períodos. Frequência sem conteúdo, ou conteúdo sem frequência, é sinalizada como inconsistência.
+
+Quando existe horário, as datas seguem os dias e aulas previstos. Sem horário, permanece disponível a seleção manual, necessária em ofertas técnicas e especiais. O lançamento fora do intervalo do período é bloqueado por padrão e só é liberado quando a Gestão habilita essa opção no próprio período.
+
+Justificativas de ausência, inclusive atestados médicos, são registradas separadamente. As faltas permanecem no registro bruto, enquanto o cálculo de frequência efetiva considera as justificativas conforme a regra acadêmica adotada.
+
+## Consolidação e fechamento
+
+Um período somente pode ser consolidado quando os diários obrigatórios estão confirmados e sem pendências. Reaberturas são controladas e exigem justificativa.
+
+O resultado anual considera pontos acumulados, frequência mínima, recuperações aplicadas, situação da matrícula e regras vigentes da escola.
+
+Antes do fechamento do ano, a conferência verifica calendário aprovado, períodos consolidados, resultados finais, dias letivos, turmas e matrículas. O fechamento bloqueia alterações acadêmicas sensíveis, mas pode ser revertido por usuários autorizados.
+
+## Vida escolar e históricos
+
+A tela **Vida escolar** reúne matrículas, responsáveis, boletins, fichas individuais, frequência, desempenho, históricos, convalidações, documentos e movimentações.
+
+Históricos recebidos de outras instituições aceitam estruturas flexíveis: anos, séries, fases, escolas, localidades, componentes livres, formações, áreas, notas ou conceitos, frequência, carga horária, resultados e observações.
+
+O histórico unificado é separado por etapa — Fundamental, Médio ou Técnico — e combina, quando pertinente:
+
+- registros cadastrados manualmente;
+- dados consolidados das matrículas no Beabá;
+- Formação Geral Básica;
+- Itinerários Formativos cursados em matriz ou ano letivo paralelo;
+- módulos e cargas horárias de cursos técnicos;
+- atos legais e regularizações da vida escolar.
+
+## Documentos
+
+### Diferença entre os documentos do estudante
+
+- **Boletim escolar**: documento de acompanhamento. Mostra identificação essencial, turma, período em andamento, notas, faltas, frequência, carga horária, situação da matrícula e resultado final quando já calculado.
+- **Ficha individual**: registro anual completo. Reúne cadastro detalhado, dados da matrícula, todos os períodos, pontos, frequência, carga horária, justificativas, consolidação e resultado final.
+- **Histórico escolar**: documento da trajetória. Consolida anos, etapas, instituições, currículos, resultados e cargas horárias para comprovação de estudos.
+
+Os três mantêm Formação Geral Básica e Itinerário Formativo em blocos próprios, com apenas os períodos correspondentes a cada formação.
+
+### Emissões disponíveis
+
+O sistema emite, entre outros:
 
 - fichas de pessoa e escola;
-- calendários escolares;
-- matrizes curriculares;
+- calendário e matrizes curriculares;
 - ficha de matrícula;
-- histórico escolar externo;
-- boletim escolar;
+- boletim escolar e boletins da turma;
 - ficha individual;
-- diários de classe;
-- listas de chamada;
-- horários;
+- histórico escolar por etapa;
+- diários, listas de chamada e espelho de notas;
+- horários de turma, docente e estudante;
+- atestados de frequência, inclusive mensais e por período;
+- atestado de transferência;
+- declarações de matrícula, escolaridade e conclusão;
 - atas de resultados finais por turma;
-- resultados finais consolidados do ano letivo;
-- atestados de frequência mensais, por período avaliativo ou anuais, reunindo todas as matrizes da matrícula selecionada;
-- atestados de transferência;
-- declarações de matrícula;
-- declarações de escolaridade;
-- declarações de conclusão;
-- relatório de conformidade documental e acadêmica;
-- relatórios em PDF e Excel;
-- documentos oficiais criados em editor próprio.
+- consolidação de resultados do ano letivo;
+- relatório anual de frequência;
+- relatórios de escolas, pessoas, vínculos e auditoria em PDF e Excel;
+- documentos oficiais livres, produzidos em editor próprio;
+- relatório de conformidade documental e acadêmica.
 
-As matrículas possuem uma central de documentos que mostra, antes da emissão, se o cadastro do estudante, a matrícula, a escola e a matriz estão prontos para gerar documentos oficiais.
+Os PDFs acadêmicos usam a fonte local **Atkinson Hyperlegible Next**, tamanho mínimo de 11px, papel timbrado, espaço para assinaturas e rodapé de autenticação.
 
-Todos os PDFs recebem código único:
+Cada emissão oficial recebe código no formato:
 
 ```text
 BEABA-XXXX-XXXX-XXXX
 ```
 
-A verificação pública fica em:
+A consulta pública está disponível em `/documentos/verificar`. O código, a data, a pessoa emissora e os metadados necessários ficam registrados em `issued_documents`.
 
-```text
-/documentos/verificar
-```
+Detalhes da revisão documental estão em [docs/auditoria-documental-pdfs.md](docs/auditoria-documental-pdfs.md).
 
-O rodapé informa código, data/hora de emissão em Brasília e pessoa emissora.
+## Dashboard, comunicação e relatórios
 
-Nos documentos acadêmicos, a identificação da turma é sempre acompanhada da etapa correspondente. Quando uma matrícula reúne mais de uma matriz, o atestado de frequência apresenta o total consolidado e o detalhamento de cada matriz e etapa no mesmo PDF.
+O dashboard combina indicadores conforme o perfil, recados, aniversariantes e calendário mensal. O menu é organizado em Meu espaço, Gestão escolar, Rotina acadêmica, Documentos, Comunicação e Administração.
 
-O papel timbrado usa:
+Recados podem ter público e vigência. Relatórios administrativos aceitam busca e filtros respeitando o escopo escolar do usuário.
 
-- logo e dados do Centro Técnico Juvenil de Jarudore à esquerda;
-- logo e dados da escola à direita, quando houver escola associada ao documento.
+## Acessibilidade e interface
 
-A auditoria documental dos PDFs fica registrada em [`docs/auditoria-documental-pdfs.md`](docs/auditoria-documental-pdfs.md).
-
-### Dashboard e Menu
-
-O dashboard apresenta métricas, recados, aniversariantes e calendário mensal integrado.
-
-O menu lateral é organizado por uso real:
-
-- **Meu espaço**: cadastro, calendário, horários e diários pessoais.
-- **Gestão escolar**: escolas, anos letivos, pessoas e pendências.
-- **Rotina acadêmica**: matrículas, justificativas e diários.
-- **Documentos**: editor oficial e verificação de autenticidade.
-- **Comunicação**: recados.
-- **Administração**: auditoria.
-
-## Acessibilidade
-
-O Beabá prioriza:
-
-- português do Brasil com acentuação correta;
-- tipografia local **Atkinson Hyperlegible Next**, licenciada sob a SIL Open Font License e escolhida para favorecer a distinção entre caracteres;
-- escala tipográfica confortável, entrelinhas amplas e pesos moderados, sem textos comprimidos em negrito;
-- foco visível;
-- link para pular ao conteúdo;
-- botões com ícones acompanhados de `aria-label` e `title`;
-- navegação lateral agrupada;
-- textos legíveis;
+- interface em português do Brasil;
+- fonte local Atkinson Hyperlegible Next, sem dependência de Google Fonts;
+- foco visível e link para pular ao conteúdo;
+- navegação agrupada por contexto;
+- ícones com nomes acessíveis;
 - tabelas responsivas;
-- compatibilidade com leitores de tela.
+- cores, pesos e tamanhos voltados à legibilidade;
+- suporte à navegação por teclado e leitores de tela.
 
-Os arquivos da fonte e sua licença estão em
-`public/template/fonts/atkinson-hyperlegible-next`. A interface não depende de
-Google Fonts ou de outro serviço externo para renderizar a tipografia.
+Os arquivos e a licença da fonte ficam em `public/template/fonts/atkinson-hyperlegible-next`.
 
-## Base Legada
+## Instalação local
 
-Arquivos legados ficam em:
+Pré-requisitos:
 
-```text
-database/legacy
-```
+- PHP 8.4 com extensões exigidas pelo Laravel e pelos drivers escolhidos;
+- Composer;
+- Node.js e npm;
+- SQLite ou outro banco compatível configurado no ambiente.
 
-Bases atuais:
-
-- `database/legacy/u810745753_beaba.sql`
-- `database/legacy/u810745753_lar.sql`
-- `database/legacy/u810745753_laura.sql`
-
-Importação local:
+Prepare o arquivo de ambiente e o banco SQLite antes da instalação automatizada:
 
 ```bash
-php artisan legacy:import --fresh
+cp .env.example .env
+touch database/database.sqlite
+composer run setup
 ```
 
-O importador preserva `legacy_source`, `legacy_id` e metadados relevantes. E-mails fora de `ctjj.org` são tratados como e-mail pessoal e aguardam e-mail institucional.
+O script instala dependências, gera a chave, executa migrations, instala pacotes JavaScript e compila os assets. Se outro banco for usado, configure as variáveis `DB_*` antes de executá-lo.
 
-## Configuração Local
-
-Instale as dependências:
+Para preparar manualmente:
 
 ```bash
 composer install
-npm install
-```
-
-Prepare o ambiente:
-
-```bash
-copy .env.example .env
+cp .env.example .env
 php artisan key:generate
+touch database/database.sqlite
 php artisan migrate
+npm install
+npm run build
 ```
 
-No ambiente local atual, o banco usa SQLite:
+No Windows, substitua `cp` e `touch` pelos comandos equivalentes ou crie os arquivos manualmente.
 
-```env
-DB_CONNECTION=sqlite
-```
-
-Garanta que o arquivo exista:
-
-```bash
-type nul > database/database.sqlite
-```
-
-Configure o Google no `.env`:
+Configuração mínima do Google:
 
 ```env
 GOOGLE_CLIENT_ID=
@@ -369,45 +317,101 @@ GOOGLE_REDIRECT_URI=http://127.0.0.1:8000/auth/google/callback
 GOOGLE_ALLOWED_DOMAIN=ctjj.org
 ```
 
-No Google Cloud Console, a URI autorizada de redirecionamento precisa ser exatamente igual a `GOOGLE_REDIRECT_URI`.
+A URI cadastrada no Google Cloud precisa ser idêntica a `GOOGLE_REDIRECT_URI`.
 
-## Execução
+Para provisionamento opcional do Workspace:
 
-Servidor Laravel:
+```env
+GOOGLE_WORKSPACE_ENABLED=false
+GOOGLE_WORKSPACE_CREDENTIALS_PATH=
+GOOGLE_WORKSPACE_ADMIN_EMAIL=
+GOOGLE_WORKSPACE_ORG_UNIT=/
+GOOGLE_WORKSPACE_TEMPORARY_PASSWORD=
+```
+
+Nunca versione `.env`, credenciais JSON, senhas, tokens ou chaves privadas.
+
+## Execução e qualidade
+
+Ambiente completo de desenvolvimento:
+
+```bash
+composer run dev
+```
+
+Ou processos separados:
 
 ```bash
 php artisan serve --host=127.0.0.1 --port=8000
-```
-
-Assets em desenvolvimento:
-
-```bash
 npm run dev
 ```
 
-Build dos assets:
+Build de produção:
 
 ```bash
 npm run build
 ```
 
-## Testes
-
-Rode a suíte:
-
-```bash
-php artisan test
-```
-
-Ou:
+Testes:
 
 ```bash
 composer test
 ```
 
-## Observações de Desenvolvimento
+Formatação PHP:
 
-- Mudanças estruturais devem preservar o caminho de migração das bases antigas.
-- Alterações em dados acadêmicos aprovados devem respeitar os bloqueios de segurança.
-- Documentos oficiais devem manter código de autenticidade.
-- Telas novas devem respeitar acessibilidade, responsividade e a identidade visual do Beabá.
+```bash
+./vendor/bin/pint
+```
+
+## Importação e manutenção de dados legados
+
+As bases de origem usadas pelo importador ficam no armazenamento privado `storage/app/private` e não devem ser versionadas. `database/legacy` mantém apenas referências de estrutura e análise. O importador conserva `legacy_source`, `legacy_id`, `legacy_code` e metadados necessários para rastreabilidade.
+
+Importação geral em uma base local descartável:
+
+```bash
+php artisan legacy:import --fresh
+```
+
+Comandos especializados existentes:
+
+```bash
+php artisan legacy:import-2026-diaries
+php artisan legacy:import-2026-grades
+php artisan legacy:import-diary-pdfs
+php artisan data:normalize-title-case
+```
+
+Consulte `php artisan help <comando>` antes de executar opções de importação. Não use `--fresh` em uma base que deva ser preservada.
+
+## Publicação
+
+A branch principal é publicada no GitHub e aciona o deploy automático na Hostinger. Uma entrega só é considerada concluída depois de:
+
+1. validar a alteração localmente;
+2. sincronizar com o remoto sem descartar trabalho existente;
+3. criar commit e enviar a branch;
+4. aguardar o deploy automático;
+5. confirmar em produção o commit ativo e a resposta da aplicação;
+6. verificar o status das migrations;
+7. executar migrations pendentes somente quando a alteração exigir e o deploy não as tiver aplicado.
+
+O código da aplicação não deve ser editado diretamente no servidor de produção.
+
+## Diretrizes de contribuição
+
+- preservar o caminho de migração das bases antigas;
+- nunca reescrever migrations já executadas em produção;
+- respeitar o escopo por escola e as regras de autorização;
+- manter alterações acadêmicas e documentos auditáveis;
+- não enfraquecer bloqueios de anos ou períodos consolidados;
+- garantir código de autenticidade nos documentos oficiais;
+- manter textos em português correto e UFs em maiúsculas;
+- preservar acessibilidade, responsividade e identidade visual;
+- adicionar ou atualizar testes para regras de negócio alteradas;
+- nunca incluir segredos no repositório.
+
+## Licença
+
+Este repositório usa a licença MIT. Consulte [LICENSE](LICENSE).
