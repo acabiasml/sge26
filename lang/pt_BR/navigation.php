@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'home' => 'Início', 'skip' => 'Ir para o conteúdo', 'main_menu' => 'Menu principal',
+    'my_space' => 'Meu espaço', 'my_area' => 'Minha área', 'my_profile' => 'Meu cadastro',
+    'school_calendar' => 'Calendário escolar', 'my_schedules' => 'Meus horários', 'my_diary' => 'Meu diário',
+    'my_school_life' => 'Minha vida escolar', 'school_management' => 'Gestão escolar',
+    'basic_records' => 'Cadastros básicos', 'schools_years' => 'Escolas e anos letivos', 'people' => 'Pessoas',
+    'compliance' => 'Conformidade', 'diaries' => 'Diários', 'academic_routine' => 'Rotina acadêmica',
+    'enrollments' => 'Matrículas', 'school_life' => 'Vida escolar',
+    'absence_justifications' => 'Justificativas de ausência', 'school_histories' => 'Históricos escolares',
+    'diary_management' => 'Gestão dos diários', 'documents' => 'Documentos',
+    'issuance_center' => 'Central de emissão', 'document_editor' => 'Editor de documentos',
+    'verify_authenticity' => 'Verificar autenticidade', 'communication' => 'Comunicação',
+    'announcements' => 'Recados', 'administration' => 'Administração', 'audit' => 'Auditoria',
+    'close_sidebar' => 'Fechar menu lateral', 'topbar' => 'Barra superior',
+    'toggle_sidebar' => 'Abrir ou recolher menu lateral', 'language' => 'Idioma da interface',
+    'portuguese' => 'Português do Brasil', 'italian' => 'Italiano',
+    'change_to_portuguese' => 'Usar a interface em português do Brasil',
+    'change_to_italian' => 'Usar a interface em italiano', 'open_alerts' => 'Abrir alertas',
+    'alerts' => 'Alertas', 'global' => 'Global', 'highlight' => 'Destaque',
+    'management_alert' => 'Alerta da gestão em :component', 'no_active_announcement' => 'Nenhum recado ativo.',
+    'open_user_menu' => 'Abrir menu do usuário', 'user_menu' => 'Menu do usuário', 'logout' => 'Sair',
+    'temporary_password' => 'Senha temporária:',
+    'temporary_password_help' => 'Informe-a à pessoa por um canal seguro. Ela deverá trocá-la no primeiro acesso.',
+    'validation_failed' => 'Não foi possível concluir esta ação.', 'check_fields' => 'Confira os campos indicados:',
+];

@@ -34,6 +34,7 @@ class User extends Authenticatable
         'name',
         'email',
         'audit_timezone',
+        'locale',
         'google_id',
         'avatar',
         'email_verified_at',

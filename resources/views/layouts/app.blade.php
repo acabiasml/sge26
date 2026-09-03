@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="{{ app()->getLocale() === 'it' ? 'it' : 'pt-BR' }}">
 
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    <title>{{ config('app.name', 'Beabá') }} - @yield('title', 'Início')</title>
+    <title>{{ config('app.name', 'Beabá') }} - @yield('title', __('navigation.home'))</title>
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
 
@@ -20,9 +20,9 @@
 </head>
 
 <body id="page-top">
-    <a class="sge-skip-link" href="#main-content">Ir para o conteúdo</a>
+    <a class="sge-skip-link" href="#main-content">{{ __('navigation.skip') }}</a>
     <div id="wrapper">
-        <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar" aria-label="Menu principal">
+        <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar" aria-label="{{ __('navigation.main_menu') }}">
             <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ route('dashboard') }}">
                 <div class="sidebar-brand-icon sge-sidebar-brand-mark">
                     <img class="sge-brand-logo-sm" src="{{ asset('brand/logo.png') }}" alt="{{ config('app.name', 'Beabá') }}">
@@ -59,42 +59,42 @@
             <li class="nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                 <a class="nav-link" href="{{ route('dashboard') }}">
                     <i class="fas fa-fw fa-home" aria-hidden="true"></i>
-                    <span>Início</span>
+                    <span>{{ __('navigation.home') }}</span>
                 </a>
             </li>
 
-            <div class="sidebar-heading">Meu espaço</div>
+            <div class="sidebar-heading">{{ __('navigation.my_space') }}</div>
 
             <li class="nav-item {{ $personalMenuActive ? 'active' : '' }}">
                 <a class="nav-link {{ $personalMenuActive ? '' : 'collapsed' }}" href="#" data-toggle="collapse" data-target="#collapsePersonal"
                     aria-expanded="{{ $personalMenuActive ? 'true' : 'false' }}" aria-controls="collapsePersonal">
                     <i class="fas fa-fw fa-user-circle" aria-hidden="true"></i>
-                    <span>Minha área</span>
+                    <span>{{ __('navigation.my_area') }}</span>
                 </a>
                 <div id="collapsePersonal" class="collapse {{ $personalMenuActive ? 'show' : '' }}" aria-labelledby="headingPersonal" data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <a class="collapse-item {{ request()->routeIs('profile.*') ? 'active' : '' }}" href="{{ route('profile.edit') }}">
                             <i class="fas fa-id-card" aria-hidden="true"></i>
-                            <span>Meu cadastro</span>
+                            <span>{{ __('navigation.my_profile') }}</span>
                         </a>
                         <a class="collapse-item" href="{{ route('dashboard') }}#calendar-heading">
                             <i class="fas fa-calendar-alt" aria-hidden="true"></i>
-                            <span>Calendário escolar</span>
+                            <span>{{ __('navigation.school_calendar') }}</span>
                         </a>
                         @if ($hasTeachingArea)
                             <a class="collapse-item {{ request()->routeIs('teacher-schedules.*') ? 'active' : '' }}" href="{{ route('teacher-schedules.index') }}">
                                 <i class="fas fa-clock" aria-hidden="true"></i>
-                                <span>Meus horários</span>
+                                <span>{{ __('navigation.my_schedules') }}</span>
                             </a>
                         @endif
                         @if ($hasStudentArea)
                             <a class="collapse-item {{ request()->routeIs('student-diaries.*') ? 'active' : '' }}" href="{{ route('student-diaries.index') }}">
                                 <i class="fas fa-book-reader" aria-hidden="true"></i>
-                                <span>Meu diário</span>
+                                <span>{{ __('navigation.my_diary') }}</span>
                             </a>
                             <a class="collapse-item {{ $ownStudentLifeActive ? 'active' : '' }}" href="{{ route('people.student-map.show', $currentUser->person_id) }}">
                                 <i class="fas fa-map-marked-alt" aria-hidden="true"></i>
-                                <span>Minha vida escolar</span>
+                                <span>{{ __('navigation.my_school_life') }}</span>
                             </a>
                         @endif
                     </div>
@@ -102,30 +102,30 @@
             </li>
 
             @if ($canManageSchools || $canManagePeople)
-                <div class="sidebar-heading">Gestão escolar</div>
+                <div class="sidebar-heading">{{ __('navigation.school_management') }}</div>
 
                 <li class="nav-item {{ $schoolManagementActive ? 'active' : '' }}">
                     <a class="nav-link {{ $schoolManagementActive ? '' : 'collapsed' }}" href="#" data-toggle="collapse" data-target="#collapseSchoolManagement"
                         aria-expanded="{{ $schoolManagementActive ? 'true' : 'false' }}" aria-controls="collapseSchoolManagement">
                         <i class="fas fa-fw fa-school" aria-hidden="true"></i>
-                        <span>Cadastros básicos</span>
+                        <span>{{ __('navigation.basic_records') }}</span>
                     </a>
                     <div id="collapseSchoolManagement" class="collapse {{ $schoolManagementActive ? 'show' : '' }}" aria-labelledby="headingSchoolManagement" data-parent="#accordionSidebar">
                         <div class="bg-white py-2 collapse-inner rounded">
                             @if ($canManageSchools || $canManagePeople)
                                 <a class="collapse-item {{ request()->routeIs('schools.*') || request()->routeIs('academic-years.*') ? 'active' : '' }}" href="{{ route('schools.index') }}">
                                     <i class="fas fa-building" aria-hidden="true"></i>
-                                    <span>Escolas e anos letivos</span>
+                                    <span>{{ __('navigation.schools_years') }}</span>
                                 </a>
                             @endif
                             @if ($canManagePeople)
                                 <a class="collapse-item {{ $peopleRegistryActive ? 'active' : '' }}" href="{{ route('people.index') }}">
                                     <i class="fas fa-users" aria-hidden="true"></i>
-                                    <span>Pessoas</span>
+                                    <span>{{ __('navigation.people') }}</span>
                                 </a>
                                 <a class="collapse-item {{ request()->routeIs('data-quality.*') ? 'active' : '' }}" href="{{ route('data-quality.index') }}">
                                     <i class="fas fa-clipboard-check" aria-hidden="true"></i>
-                                    <span>Conformidade</span>
+                                    <span>{{ __('navigation.compliance') }}</span>
                                 </a>
                             @endif
                         </div>
@@ -137,97 +137,97 @@
                 <li class="nav-item {{ request()->routeIs('teacher-diaries.*') ? 'active' : '' }}">
                     <a class="nav-link" href="{{ route('teacher-diaries.index') }}">
                         <i class="fas fa-fw fa-book" aria-hidden="true"></i>
-                        <span>Diários</span>
+                        <span>{{ __('navigation.diaries') }}</span>
                     </a>
                 </li>
             @endif
 
             @if ($canManagePeople)
-                <div class="sidebar-heading">Rotina acadêmica</div>
+                <div class="sidebar-heading">{{ __('navigation.academic_routine') }}</div>
 
                 <li class="nav-item {{ $academicRoutineActive ? 'active' : '' }}">
                     <a class="nav-link {{ $academicRoutineActive ? '' : 'collapsed' }}" href="#" data-toggle="collapse" data-target="#collapseAcademicRoutine"
                         aria-expanded="{{ $academicRoutineActive ? 'true' : 'false' }}" aria-controls="collapseAcademicRoutine">
                         <i class="fas fa-fw fa-book-open" aria-hidden="true"></i>
-                        <span>Rotina acadêmica</span>
+                        <span>{{ __('navigation.academic_routine') }}</span>
                     </a>
                     <div id="collapseAcademicRoutine" class="collapse {{ $academicRoutineActive ? 'show' : '' }}" aria-labelledby="headingAcademicRoutine" data-parent="#accordionSidebar">
                         <div class="bg-white py-2 collapse-inner rounded">
                             @if ($canManagePeople)
                                 <a class="collapse-item {{ request()->routeIs('enrollments.*') || request()->routeIs('classes.enrollments.*') ? 'active' : '' }}" href="{{ route('enrollments.index') }}">
                                     <i class="fas fa-user-graduate" aria-hidden="true"></i>
-                                    <span>Matrículas</span>
+                                    <span>{{ __('navigation.enrollments') }}</span>
                                 </a>
                                 @if ($studentLifeActive && ! $ownStudentLifeActive && request()->route('person'))
                                     <a class="collapse-item active" href="{{ route('people.student-map.show', request()->route('person')) }}">
                                         <i class="fas fa-map-marked-alt" aria-hidden="true"></i>
-                                        <span>Vida escolar</span>
+                                        <span>{{ __('navigation.school_life') }}</span>
                                     </a>
                                 @endif
                                 <a class="collapse-item {{ request()->routeIs('attendance-justifications.*') ? 'active' : '' }}" href="{{ route('attendance-justifications.index') }}">
                                     <i class="fas fa-notes-medical" aria-hidden="true"></i>
-                                    <span>Justificativas de ausência</span>
+                                    <span>{{ __('navigation.absence_justifications') }}</span>
                                 </a>
                             @endif
                             <a class="collapse-item {{ request()->routeIs('student-histories.*') ? 'active' : '' }}" href="{{ route('student-histories.index') }}">
                                 <i class="fas fa-history" aria-hidden="true"></i>
-                                <span>Históricos escolares</span>
+                                <span>{{ __('navigation.school_histories') }}</span>
                             </a>
                             <a class="collapse-item {{ request()->routeIs('teacher-diaries.*') ? 'active' : '' }}" href="{{ route('teacher-diaries.index') }}">
                                 <i class="fas fa-book" aria-hidden="true"></i>
-                                <span>Gestão dos diários</span>
+                                <span>{{ __('navigation.diary_management') }}</span>
                             </a>
                         </div>
                     </div>
                 </li>
             @endif
 
-            <div class="sidebar-heading">Documentos</div>
+            <div class="sidebar-heading">{{ __('navigation.documents') }}</div>
 
             <li class="nav-item {{ $documentsMenuActive ? 'active' : '' }}">
                 <a class="nav-link {{ $documentsMenuActive ? '' : 'collapsed' }}" href="#" data-toggle="collapse" data-target="#collapseDocuments"
                     aria-expanded="{{ $documentsMenuActive ? 'true' : 'false' }}" aria-controls="collapseDocuments">
                     <i class="fas fa-fw fa-file-alt" aria-hidden="true"></i>
-                    <span>Documentos</span>
+                    <span>{{ __('navigation.documents') }}</span>
                 </a>
                 <div id="collapseDocuments" class="collapse {{ $documentsMenuActive ? 'show' : '' }}" aria-labelledby="headingDocuments" data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         @if ($canManagePeople)
                             <a class="collapse-item {{ request()->routeIs('document-issuance.*') ? 'active' : '' }}" href="{{ route('document-issuance.index') }}">
                                 <i class="fas fa-print" aria-hidden="true"></i>
-                                <span>Central de emissão</span>
+                                <span>{{ __('navigation.issuance_center') }}</span>
                             </a>
                             <a class="collapse-item {{ request()->routeIs('official-documents.*') ? 'active' : '' }}" href="{{ route('official-documents.create') }}">
                                 <i class="fas fa-file-signature" aria-hidden="true"></i>
-                                <span>Editor de documentos</span>
+                                <span>{{ __('navigation.document_editor') }}</span>
                             </a>
                         @endif
                         <a class="collapse-item {{ request()->routeIs('documents.verify.*') ? 'active' : '' }}" href="{{ route('documents.verify.form') }}">
                             <i class="fas fa-certificate" aria-hidden="true"></i>
-                            <span>Verificar autenticidade</span>
+                            <span>{{ __('navigation.verify_authenticity') }}</span>
                         </a>
                     </div>
                 </div>
             </li>
 
             @if ($canManagePeople)
-                <div class="sidebar-heading">Comunicação</div>
+                <div class="sidebar-heading">{{ __('navigation.communication') }}</div>
 
                 <li class="nav-item {{ request()->routeIs('announcements.*') ? 'active' : '' }}">
                     <a class="nav-link" href="{{ route('announcements.index') }}">
                         <i class="fas fa-fw fa-bullhorn" aria-hidden="true"></i>
-                        <span>Recados</span>
+                        <span>{{ __('navigation.announcements') }}</span>
                     </a>
                 </li>
             @endif
 
             @if ($currentUser->isAdministrator())
-                <div class="sidebar-heading">Administração</div>
+                <div class="sidebar-heading">{{ __('navigation.administration') }}</div>
 
                 <li class="nav-item {{ request()->routeIs('audit-logs.*') ? 'active' : '' }}">
                     <a class="nav-link" href="{{ route('audit-logs.index') }}">
                         <i class="fas fa-fw fa-history" aria-hidden="true"></i>
-                        <span>Auditoria</span>
+                        <span>{{ __('navigation.audit') }}</span>
                     </a>
                 </li>
             @endif
@@ -235,19 +235,37 @@
             <hr class="sidebar-divider d-none d-md-block">
         </ul>
 
-        <button class="sge-sidebar-backdrop d-lg-none" type="button" aria-label="Fechar menu lateral" hidden></button>
+        <button class="sge-sidebar-backdrop d-lg-none" type="button" aria-label="{{ __('navigation.close_sidebar') }}" hidden></button>
 
         <div id="content-wrapper" class="d-flex flex-column">
             <div id="content">
-                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top" aria-label="Barra superior">
-                    <button id="sidebarToggleTop" class="btn btn-link d-lg-none rounded-circle mr-3 sge-sidebar-toggle" type="button" aria-label="Abrir ou recolher menu lateral">
+                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top" aria-label="{{ __('navigation.topbar') }}">
+                    <button id="sidebarToggleTop" class="btn btn-link d-lg-none rounded-circle mr-3 sge-sidebar-toggle" type="button" aria-label="{{ __('navigation.toggle_sidebar') }}">
                         <i class="fa fa-bars" aria-hidden="true"></i>
                     </button>
 
                     <ul class="navbar-nav ml-auto">
+                        <li class="nav-item sge-language-switcher" aria-label="{{ __('navigation.language') }}">
+                            @foreach ([
+                                'pt_BR' => ['flag' => '🇧🇷', 'label' => __('navigation.portuguese'), 'title' => __('navigation.change_to_portuguese')],
+                                'it' => ['flag' => '🇮🇹', 'label' => __('navigation.italian'), 'title' => __('navigation.change_to_italian')],
+                            ] as $locale => $language)
+                                <form method="POST" action="{{ route('locale.update') }}">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="locale" value="{{ $locale }}">
+                                    <button type="submit" class="sge-language-button {{ app()->getLocale() === $locale ? 'is-active' : '' }}"
+                                        lang="{{ $locale === 'pt_BR' ? 'pt-BR' : 'it' }}" title="{{ $language['title'] }}"
+                                        aria-label="{{ $language['title'] }}" aria-pressed="{{ app()->getLocale() === $locale ? 'true' : 'false' }}">
+                                        <span aria-hidden="true">{{ $language['flag'] }}</span>
+                                        <span class="sr-only">{{ $language['label'] }}</span>
+                                    </button>
+                                </form>
+                            @endforeach
+                        </li>
                         <li class="nav-item dropdown no-arrow mx-1">
                             <a class="nav-link dropdown-toggle sge-topbar-icon-button" href="#" id="alertsDropdown" role="button"
-                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Abrir alertas" title="Alertas">
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="{{ __('navigation.open_alerts') }}" title="{{ __('navigation.alerts') }}">
                                 <i class="fas fa-bell fa-fw" aria-hidden="true"></i>
                                 @if ($topbarAlertCount > 0)
                                     <span class="badge badge-danger badge-counter">{{ $topbarAlertCount }}</span>
@@ -255,7 +273,7 @@
                             </a>
                             <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in sge-alert-dropdown"
                                 aria-labelledby="alertsDropdown">
-                                <h2 class="dropdown-header">Alertas</h2>
+                                <h2 class="dropdown-header">{{ __('navigation.alerts') }}</h2>
 
                                 @foreach ($topbarAnnouncements as $announcement)
                                     <a class="dropdown-item d-flex align-items-start" href="{{ route('dashboard') }}">
@@ -265,10 +283,10 @@
                                             </div>
                                         </div>
                                         <div>
-                                            <div class="small text-gray-600">{{ $announcement->school?->name ?? 'Global' }}</div>
+                                            <div class="small text-gray-600">{{ $announcement->school?->name ?? __('navigation.global') }}</div>
                                             <span class="font-weight-bold">{{ $announcement->title }}</span>
                                             @if ($announcement->highlight)
-                                                <span class="badge badge-warning ml-1">Destaque</span>
+                                                <span class="badge badge-warning ml-1">{{ __('navigation.highlight') }}</span>
                                             @endif
                                         </div>
                                     </a>
@@ -285,14 +303,14 @@
                                             <div class="small text-gray-600">
                                                 {{ $alert->schoolClass?->name }} · {{ $alert->period?->name }}
                                             </div>
-                                            <span class="font-weight-bold">Alerta da gestão em {{ $alert->component?->name }}</span>
+                                            <span class="font-weight-bold">{{ __('navigation.management_alert', ['component' => $alert->component?->name]) }}</span>
                                             <div class="small text-gray-700">{{ \Illuminate\Support\Str::limit($alert->message, 90) }}</div>
                                         </div>
                                     </a>
                                 @endforeach
 
                                 @if ($topbarAnnouncements->isEmpty() && $topbarDiaryAlerts->isEmpty())
-                                    <div class="dropdown-item text-center small text-gray-600">Nenhum recado ativo.</div>
+                                    <div class="dropdown-item text-center small text-gray-600">{{ __('navigation.no_active_announcement') }}</div>
                                 @endif
                             </div>
                         </li>
@@ -301,7 +319,7 @@
 
                         <li class="nav-item dropdown no-arrow">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
-                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="Abrir menu do usuário" title="Menu do usuário">
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="{{ __('navigation.open_user_menu') }}" title="{{ __('navigation.user_menu') }}">
                                 @if (auth()->user()->avatar)
                                     <img class="img-profile rounded-circle mr-2" src="{{ auth()->user()->avatar }}" alt="">
                                 @else
@@ -315,14 +333,14 @@
                             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">
                                 <a class="dropdown-item" href="{{ route('profile.edit') }}">
                                     <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-500" aria-hidden="true"></i>
-                                    Meu cadastro
+                                    {{ __('navigation.my_profile') }}
                                 </a>
                                 <div class="dropdown-divider"></div>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
                                     <button class="dropdown-item" type="submit">
                                         <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-500" aria-hidden="true"></i>
-                                        Sair
+                                        {{ __('navigation.logout') }}
                                     </button>
                                 </form>
                             </div>
@@ -334,7 +352,7 @@
                     <div class="sge-page-header d-sm-flex align-items-center justify-content-between mb-4">
                         <div>
                             <div class="sge-page-kicker">Beabá</div>
-                            <h1 class="h3 mb-0 text-gray-800">@yield('page-title', 'Início')</h1>
+                            <h1 class="h3 mb-0 text-gray-800">@yield('page-title', __('navigation.home'))</h1>
                         </div>
                         <div class="d-flex align-items-center sge-page-actions">
                             @yield('page-actions')
@@ -351,16 +369,16 @@
                     @endif
                     @if (session('workspace_temporary_password'))
                         <div class="alert alert-warning" role="alert" aria-live="assertive">
-                            <strong>Senha temporária:</strong>
+                            <strong>{{ __('navigation.temporary_password') }}</strong>
                             <code class="ml-2">{{ session('workspace_temporary_password') }}</code>
-                            <span class="d-block mt-1">Informe-a à pessoa por um canal seguro. Ela deverá trocá-la no primeiro acesso.</span>
+                            <span class="d-block mt-1">{{ __('navigation.temporary_password_help') }}</span>
                         </div>
                     @endif
 
                     @if ($errors->any())
                         <div class="alert alert-danger sge-validation-summary" role="alert" tabindex="-1" data-validation-summary>
-                            <strong>Não foi possível concluir esta ação.</strong>
-                            <span>Confira os campos indicados:</span>
+                            <strong>{{ __('navigation.validation_failed') }}</strong>
+                            <span>{{ __('navigation.check_fields') }}</span>
                             <ul class="mb-0 mt-2 pl-4">
                                 @foreach ($errors->all() as $error)
                                     <li>{{ $error }}</li>

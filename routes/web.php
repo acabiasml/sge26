@@ -24,6 +24,7 @@ use App\Http\Controllers\OfficialDocumentController;
 use App\Http\Controllers\PersonContactController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\GoogleWorkspaceController;
+use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PersonRoleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RecordPdfController;
@@ -64,6 +65,7 @@ Route::get('/dashboard', DashboardController::class)->middleware(['auth', 'profi
 
 Route::get('/meu-cadastro', [ProfileController::class, 'edit'])->middleware('auth')->name('profile.edit');
 Route::put('/meu-cadastro', [ProfileController::class, 'update'])->middleware('auth')->name('profile.update');
+Route::patch('/idioma', [LocaleController::class, 'update'])->middleware('auth')->name('locale.update');
 
 Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::resource('escolas', SchoolController::class)
