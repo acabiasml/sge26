@@ -41,15 +41,15 @@ class PeopleTable extends DataTableComponent
     public function columns(): array
     {
         return [
-            Column::make('Nome', 'full_name')->sortable()->searchable(),
-            Column::make('E-mail institucional', 'institutional_email')->sortable()->searchable(),
+            Column::make(__('screens.name'), 'full_name')->sortable()->searchable(),
+            Column::make(__('screens.institutional_email'), 'institutional_email')->sortable()->searchable(),
             Column::make('CPF', 'cpf')->searchable(),
-            Column::make('Vínculos')
+            Column::make(__('screens.relationships'))
                 ->label(fn (Person $row): string => view('livewire.tables.person-roles', ['person' => $row])->render())
                 ->html(),
-            Column::make('Situação', 'active')
-                ->label(fn (Person $row): string => $row->hasActiveRoleForDate() ? 'Ativa' : 'Inativa'),
-            Column::make('Ações')
+            Column::make(__('screens.status'), 'active')
+                ->label(fn (Person $row): string => $row->hasActiveRoleForDate() ? __('screens.active_f_singular') : __('screens.inactive_f_singular')),
+            Column::make(__('screens.actions'))
                 ->label(fn (Person $row): string => view('livewire.tables.person-actions', ['person' => $row])->render())
                 ->html(),
         ];
@@ -66,27 +66,27 @@ class PeopleTable extends DataTableComponent
             ->all();
 
         return [
-            SelectFilter::make('Situação')
+            SelectFilter::make(__('screens.status'))
                 ->options([
-                    '' => 'Todas',
-                    '1' => 'Ativas',
-                    '0' => 'Inativas',
+                    '' => __('screens.all_f'),
+                    '1' => __('screens.active_f'),
+                    '0' => __('screens.inactive_f'),
                 ])
                 ->filter(fn (Builder $builder, string $value) => $value === '1'
                     ? $builder->whereActiveByRoles()
                     : $builder->whereInactiveByRoles()),
-            SelectFilter::make('Papel')
-                ->options(['' => 'Todos'] + PersonSchoolRole::ROLE_LABELS)
+            SelectFilter::make(__('screens.role'))
+                ->options(['' => __('screens.all_m')] + collect(array_keys(PersonSchoolRole::ROLE_LABELS))->mapWithKeys(fn (string $role): array => [$role => __('roles.roles.'.$role)])->all())
                 ->filter(fn (Builder $builder, string $value) => $builder),
-            SelectFilter::make('Escola')
-                ->options(['' => 'Todas'] + $schools)
+            SelectFilter::make(__('screens.school'))
+                ->options(['' => __('screens.all_f')] + $schools)
                 ->filter(fn (Builder $builder, string $value) => $builder),
-            SelectFilter::make('Vínculo')
+            SelectFilter::make(__('screens.relationship'))
                 ->options([
-                    '' => 'Todos',
-                    'ativos' => 'Ativos hoje',
-                    'inativos' => 'Inativos ou encerrados',
-                    'sem' => 'Sem vínculo cadastrado',
+                    '' => __('screens.all_m'),
+                    'ativos' => __('screens.active_today'),
+                    'inativos' => __('screens.inactive_or_closed'),
+                    'sem' => __('screens.without_relationship'),
                 ])
                 ->filter(fn (Builder $builder, string $value) => $builder),
         ];

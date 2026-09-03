@@ -41,24 +41,24 @@ class AuditLogsTable extends DataTableComponent
     public function columns(): array
     {
         return [
-            Column::make('Quando', 'created_at')
+            Column::make(__('screens.when'), 'created_at')
                 ->format(fn ($value): string => $value
                     ? $value->timezone($this->auditTimezone)->format('d/m/Y H:i').'<span class="d-block text-muted small">'.$this->auditTimezone.'</span>'
                     : '-')
                 ->html()
                 ->sortable(),
-            Column::make('Quem')
-                ->label(fn (AuditLog $row): string => e($row->actorPerson?->full_name ?? $row->actorUser?->name ?? 'Sistema'))
+            Column::make(__('screens.who'))
+                ->label(fn (AuditLog $row): string => e($row->actorPerson?->full_name ?? $row->actorUser?->name ?? __('screens.system')))
                 ->html(),
-            Column::make('Ação', 'action')
+            Column::make(__('screens.action'), 'action')
                 ->format(fn (?string $value): string => AuditLogPresenter::actionLabel($value))
                 ->sortable()
                 ->searchable(),
-            Column::make('Registro')
+            Column::make(__('screens.record'))
                 ->label(fn (AuditLog $row): string => e(AuditLogPresenter::recordLabel($row)))
                 ->html(),
-            Column::make('Escola', 'school.name')->sortable()->searchable(),
-            Column::make('Detalhes')
+            Column::make(__('screens.school'), 'school.name')->sortable()->searchable(),
+            Column::make(__('screens.details'))
                 ->label(fn (AuditLog $row): string => view('livewire.tables.audit-log-actions', ['auditLog' => $row])->render())
                 ->html(),
         ];
@@ -75,16 +75,16 @@ class AuditLogsTable extends DataTableComponent
             ->all();
 
         return [
-            SelectFilter::make('Ação')
+            SelectFilter::make(__('screens.action'))
                 ->options([
-                    '' => 'Todas',
-                    'created' => 'Cadastro criado',
-                    'updated' => 'Cadastro alterado',
-                    'deleted' => 'Cadastro removido',
+                    '' => __('screens.all_f'),
+                    'created' => __('screens.created'),
+                    'updated' => __('screens.updated'),
+                    'deleted' => __('screens.deleted'),
                 ])
                 ->filter(fn (Builder $builder, string $value) => $builder->where('action', $value)),
-            SelectFilter::make('Escola')
-                ->options(['' => 'Todas', 'global' => 'Global'] + $schools)
+            SelectFilter::make(__('screens.school'))
+                ->options(['' => __('screens.all_f'), 'global' => __('screens.global')] + $schools)
                 ->filter(fn (Builder $builder, string $value) => $value === 'global'
                     ? $builder->whereNull('school_id')
                     : $builder->where('school_id', (int) $value)),

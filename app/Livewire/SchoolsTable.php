@@ -30,14 +30,14 @@ class SchoolsTable extends DataTableComponent
     public function columns(): array
     {
         return [
-            Column::make('Nome', 'name')->sortable()->searchable(),
-            Column::make('Cidade', 'city')->sortable()->searchable(),
+            Column::make(__('screens.name'), 'name')->sortable()->searchable(),
+            Column::make(__('screens.city'), 'city')->sortable()->searchable(),
             Column::make('UF', 'state')->sortable(),
             Column::make('CNPJ', 'cnpj')
                 ->format(fn ($value, School $row): string => $row->formattedCnpj())
                 ->sortable()
                 ->searchable(),
-            Column::make('Ações')
+            Column::make(__('screens.actions'))
                 ->label(fn (School $row): string => view('livewire.tables.school-actions', ['school' => $row])->render())
                 ->html(),
         ];
@@ -46,15 +46,15 @@ class SchoolsTable extends DataTableComponent
     public function filters(): array
     {
         return [
-            SelectFilter::make('Situação')
+            SelectFilter::make(__('screens.status'))
                 ->options([
-                    '' => 'Todas',
-                    '1' => 'Ativas',
-                    '0' => 'Inativas',
+                    '' => __('screens.all_f'),
+                    '1' => __('screens.active_f'),
+                    '0' => __('screens.inactive_f'),
                 ])
                 ->filter(fn (Builder $builder, string $value) => $builder->where('active', $value === '1')),
             SelectFilter::make('UF')
-                ->options(['' => 'Todas'] + array_combine(BrazilianStates::codes(), BrazilianStates::codes()))
+                ->options(['' => __('screens.all_f')] + array_combine(BrazilianStates::codes(), BrazilianStates::codes()))
                 ->filter(fn (Builder $builder, string $value) => $builder->where('state', $value)),
         ];
     }
