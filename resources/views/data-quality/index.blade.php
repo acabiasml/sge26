@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
-@section('title', 'Conformidade')
-@section('page-title', 'Conformidade documental e acadêmica')
+@section('title', __('screens.compliance'))
+@section('page-title', __('screens.document_academic_compliance'))
 
 @section('content')
     @php
         $severityMeta = [
-            'danger' => ['label' => 'Bloqueios', 'class' => 'danger', 'icon' => 'fa-lock', 'hint' => 'impedem emissão, matrícula, acesso ou fechamento'],
-            'warning' => ['label' => 'Avisos', 'class' => 'warning', 'icon' => 'fa-triangle-exclamation', 'hint' => 'pedem conferência antes da rotina avançar'],
-            'info' => ['label' => 'Atenções', 'class' => 'info', 'icon' => 'fa-circle-info', 'hint' => 'não bloqueiam, mas melhoram a qualidade dos dados'],
+            'danger' => ['label' => __('screens.blocks'), 'class' => 'danger', 'icon' => 'fa-lock', 'hint' => __('screens.blocks_hint')],
+            'warning' => ['label' => __('screens.warnings'), 'class' => 'warning', 'icon' => 'fa-triangle-exclamation', 'hint' => __('screens.warnings_hint')],
+            'info' => ['label' => __('screens.attention'), 'class' => 'info', 'icon' => 'fa-circle-info', 'hint' => __('screens.attention_hint')],
         ];
 
         $itemUrl = function ($check, $item) {
@@ -32,31 +32,31 @@
         $itemTitle = function ($check, $item) {
             return match ($check['type']) {
                 'people' => $item->full_name,
-                'roles' => $item->person?->full_name ?? 'Pessoa não localizada',
+                'roles' => $item->person?->full_name ?? __('screens.person_not_found'),
                 'contacts' => $item->name,
                 'schools' => $item->name,
                 'years' => $item->name,
-                'enrollments' => $item->student?->full_name ?? 'Estudante não localizado',
-                'history_enrollments' => $item->student?->full_name ?? 'Estudante não localizado',
+                'enrollments' => $item->student?->full_name ?? __('screens.student_not_found'),
+                'history_enrollments' => $item->student?->full_name ?? __('screens.student_not_found'),
                 'periods' => $item->name,
                 'classes' => $item->name,
-                'assignments' => $item->component?->name ?? 'Componente não localizado',
-                default => 'Registro',
+                'assignments' => $item->component?->name ?? __('screens.component_not_found'),
+                default => __('screens.record_generic'),
             };
         };
 
         $itemSubtitle = function ($check, $item) {
             return match ($check['type']) {
-                'people' => $item->institutional_email ?: 'Sem e-mail institucional',
-                'roles' => ($item->label().' / '.($item->school?->name ?? 'Global')),
-                'contacts' => $item->person ? 'Responsável de '.$item->person->full_name : 'Pessoa não localizada',
-                'schools' => trim(($item->city ?? '').' / '.($item->state ?? ''), ' /') ?: 'Sem cidade/UF',
-                'years' => ($item->school?->name ?? 'Escola não localizada').' · '.optional($item->starts_at)->format('d/m/Y').' a '.optional($item->ends_at)->format('d/m/Y'),
-                'enrollments' => ($item->schoolClass?->name ?? 'Turma não localizada').' · '.($item->schoolClass?->academicYear?->school?->name ?? 'Escola não localizada'),
+                'people' => $item->institutional_email ?: __('screens.no_institutional_email'),
+                'roles' => ($item->label().' / '.($item->school?->name ?? __('screens.global'))),
+                'contacts' => $item->person ? __('screens.responsible_for', ['name' => $item->person->full_name]) : __('screens.person_not_found'),
+                'schools' => trim(($item->city ?? '').' / '.($item->state ?? ''), ' /') ?: __('screens.city_state_missing'),
+                'years' => ($item->school?->name ?? __('screens.school_not_found')).' · '.optional($item->starts_at)->format('d/m/Y').' a '.optional($item->ends_at)->format('d/m/Y'),
+                'enrollments' => ($item->schoolClass?->name ?? __('screens.class_not_found')).' · '.($item->schoolClass?->academicYear?->school?->name ?? __('screens.school_not_found')),
                 'history_enrollments' => $item->history_missing_message,
-                'periods' => ($item->academicYear?->school?->name ?? 'Escola não localizada').' · '.($item->academicYear?->referenceYearsLabel() ?? 'Ano não informado'),
-                'classes' => ($item->academicYear?->school?->name ?? 'Escola não localizada').' · '.($item->academicYear?->referenceYearsLabel() ?? 'Ano não informado'),
-                'assignments' => ($item->schoolClass?->name ?? 'Turma não localizada').' · '.($item->schoolClass?->academicYear?->school?->name ?? 'Escola não localizada'),
+                'periods' => ($item->academicYear?->school?->name ?? __('screens.school_not_found')).' · '.($item->academicYear?->referenceYearsLabel() ?? __('screens.year_not_informed')),
+                'classes' => ($item->academicYear?->school?->name ?? __('screens.school_not_found')).' · '.($item->academicYear?->referenceYearsLabel() ?? __('screens.year_not_informed')),
+                'assignments' => ($item->schoolClass?->name ?? __('screens.class_not_found')).' · '.($item->schoolClass?->academicYear?->school?->name ?? __('screens.school_not_found')),
                 default => '',
             };
         };
@@ -70,29 +70,26 @@
     <section class="sge-quality-hero mb-4" aria-labelledby="quality-title">
         <div>
             <span class="sge-eyebrow">Beabá</span>
-            <h2 id="quality-title">Central única de conformidade</h2>
-            <p>
-                Uma leitura operacional dos dados que realmente sustentam acesso, matrículas, documentos, diários e fechamentos.
-                Comece pelos bloqueios; avisos podem ser tratados conforme a rotina da escola.
-            </p>
+            <h2 id="quality-title">{{ __('screens.compliance_center') }}</h2>
+            <p>{{ __('screens.compliance_intro') }}</p>
         </div>
         <div class="sge-quality-actions">
             <a class="btn btn-outline-primary" href="{{ route('data-quality.pdf', $filterQuery) }}">
                 <i class="fas fa-file-pdf" aria-hidden="true"></i>
-                <span>PDF da conferência</span>
+                <span>{{ __('screens.compliance_pdf') }}</span>
             </a>
             <a class="btn btn-primary" href="{{ route('data-quality.index', ['severity' => 'danger'] + array_filter(['school_id' => $selectedSchoolId])) }}">
                 <i class="fas fa-lock" aria-hidden="true"></i>
-                <span>Ver bloqueios</span>
+                <span>{{ __('screens.view_blocks') }}</span>
             </a>
         </div>
     </section>
 
-    <div class="sge-quality-summary mb-4" aria-label="Resumo de conformidade">
+    <div class="sge-quality-summary mb-4" aria-label="{{ __('screens.compliance_summary') }}">
         <article>
-            <span>Total em análise</span>
+            <span>{{ __('screens.total_under_review') }}</span>
             <strong>{{ number_format($summary['total'], 0, ',', '.') }}</strong>
-            <small>ocorrências encontradas nas regras atuais</small>
+            <small>{{ __('screens.current_rule_occurrences') }}</small>
         </article>
         @foreach ($severityMeta as $severity => $meta)
             <a href="{{ route('data-quality.index', array_filter(['severity' => $severity, 'school_id' => $selectedSchoolId])) }}"
@@ -107,26 +104,24 @@
     <div class="card shadow mb-4">
         <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
             <div class="mb-3 mb-lg-0">
-                <h2 class="h5 font-weight-bold text-gray-900 mb-1">Filtros da conferência</h2>
-                <p class="text-gray-700 mb-0">
-                    Administração visualiza todas as escolas. Gestão confere somente as unidades em que possui vínculo atual.
-                </p>
+                <h2 class="h5 font-weight-bold text-gray-900 mb-1">{{ __('screens.review_filters') }}</h2>
+                <p class="text-gray-700 mb-0">{{ __('screens.review_scope_help') }}</p>
             </div>
 
-            <form method="GET" action="{{ route('data-quality.index') }}" class="form-inline" aria-label="Filtros da conformidade">
-                <label for="school_id" class="sr-only">Filtrar por escola</label>
+            <form method="GET" action="{{ route('data-quality.index') }}" class="form-inline" aria-label="{{ __('screens.compliance_filters') }}">
+                <label for="school_id" class="sr-only">{{ __('screens.filter_school') }}</label>
                 <select id="school_id" name="school_id" class="form-control mr-2 mb-2">
                     @if (auth()->user()->isAdministrator())
-                        <option value="">Todas as escolas</option>
+                        <option value="">{{ __('screens.all_schools') }}</option>
                     @endif
                     @foreach ($schools as $school)
                         <option value="{{ $school->id }}" @selected($selectedSchoolId === $school->id)>{{ $school->name }}</option>
                     @endforeach
                 </select>
 
-                <label for="severity" class="sr-only">Filtrar por gravidade</label>
+                <label for="severity" class="sr-only">{{ __('screens.filter_severity') }}</label>
                 <select id="severity" name="severity" class="form-control mr-2 mb-2">
-                    <option value="">Todas as gravidades</option>
+                    <option value="">{{ __('screens.all_severities') }}</option>
                     @foreach ($severityMeta as $severity => $meta)
                         <option value="{{ $severity }}" @selected($selectedSeverity === $severity)>{{ $meta['label'] }}</option>
                     @endforeach
@@ -134,10 +129,10 @@
 
                 <button class="btn btn-primary mb-2" type="submit">
                     <i class="fas fa-filter" aria-hidden="true"></i>
-                    <span>Aplicar</span>
+                    <span>{{ __('screens.apply') }}</span>
                 </button>
                 @if ($selectedSchoolId || $selectedSeverity)
-                    <a class="btn btn-outline-secondary mb-2 ml-2" href="{{ route('data-quality.index') }}">Limpar</a>
+                    <a class="btn btn-outline-secondary mb-2 ml-2" href="{{ route('data-quality.index') }}">{{ __('screens.clear') }}</a>
                 @endif
             </form>
         </div>
@@ -147,8 +142,8 @@
         <section class="sge-quality-ok mb-4" aria-labelledby="quality-ok-title">
             <span class="sge-quality-ok-icon"><i class="fas fa-check" aria-hidden="true"></i></span>
             <div>
-                <h2 id="quality-ok-title">Sem ocorrências nestas áreas</h2>
-                <p>{{ $compliantGroups->join(', ', ' e ') }}.</p>
+                <h2 id="quality-ok-title">{{ __('screens.no_occurrences_areas') }}</h2>
+                <p>{{ $compliantGroups->map(fn ($title) => __($title))->join(', ', ' '.__('screens.and').' ') }}.</p>
             </div>
         </section>
     @endif
@@ -156,8 +151,8 @@
     <section class="mb-4" aria-labelledby="workflow-title">
         <div class="d-flex justify-content-between align-items-end flex-wrap mb-3">
             <div>
-                <h2 id="workflow-title" class="h5 font-weight-bold text-gray-900 mb-1">Fluxos acompanhados</h2>
-                <p class="text-gray-700 mb-0">Atalhos para resolver o que normalmente trava o trabalho da secretaria e da gestão.</p>
+                <h2 id="workflow-title" class="h5 font-weight-bold text-gray-900 mb-1">{{ __('screens.tracked_workflows') }}</h2>
+                <p class="text-gray-700 mb-0">{{ __('screens.workflow_help') }}</p>
             </div>
         </div>
         <div class="sge-workflow-grid">
@@ -165,8 +160,8 @@
                 <a class="sge-workflow-card" href="{{ $workflow['route'] }}">
                     <span class="sge-workflow-icon"><i class="fas {{ $workflow['icon'] }}" aria-hidden="true"></i></span>
                     <span>
-                        <strong>{{ $workflow['title'] }}</strong>
-                        <small>{{ $workflow['description'] }}</small>
+                        <strong>{{ __($workflow['title']) }}</strong>
+                        <small>{{ __($workflow['description']) }}</small>
                     </span>
                     <em>{{ number_format($workflow['count'], 0, ',', '.') }}</em>
                 </a>
@@ -180,12 +175,12 @@
                 <div class="d-flex align-items-center">
                     <span class="sge-quality-group-icon mr-3"><i class="fas {{ $group['icon'] }}" aria-hidden="true"></i></span>
                     <div>
-                        <h2 id="group-{{ $loop->index }}" class="h5 m-0 font-weight-bold text-primary">{{ $group['title'] }}</h2>
-                        <p class="small text-gray-600 mb-0">{{ $group['description'] }}</p>
+                        <h2 id="group-{{ $loop->index }}" class="h5 m-0 font-weight-bold text-primary">{{ __($group['title']) }}</h2>
+                        <p class="small text-gray-600 mb-0">{{ __($group['description']) }}</p>
                     </div>
                 </div>
                 <span class="badge badge-primary mt-2 mt-md-0">
-                    {{ number_format($group['checks']->sum('count'), 0, ',', '.') }} ocorrência(s)
+                    {{ __('screens.occurrence_count', ['count' => number_format($group['checks']->sum('count'), 0, ',', '.')]) }}
                 </span>
             </div>
             <div class="card-body">
@@ -196,8 +191,8 @@
                             <summary>
                                 <span>
                                     <i class="fas {{ $meta['icon'] }} text-{{ $meta['class'] }}" aria-hidden="true"></i>
-                                    <strong>{{ $check['title'] }}</strong>
-                                    <small>{{ $check['description'] }}</small>
+                                    <strong>{{ __($check['title']) }}</strong>
+                                    <small>{{ __($check['description']) }}</small>
                                 </span>
                                 <span class="badge badge-{{ $meta['class'] }}">{{ number_format($check['count'], 0, ',', '.') }}</span>
                             </summary>
@@ -216,7 +211,7 @@
                                                 <small>{{ $itemSubtitle($check, $item) }}</small>
                                             </span>
                                             @if ($url)
-                                                <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ $url }}" aria-label="Resolver {{ $itemTitle($check, $item) }}" title="Resolver">
+                                                <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ $url }}" aria-label="{{ __('screens.resolve_item', ['item' => $itemTitle($check, $item)]) }}" title="{{ __('screens.resolve') }}">
                                                     <i class="fas fa-arrow-right" aria-hidden="true"></i>
                                                 </a>
                                             @endif
@@ -226,13 +221,13 @@
 
                                 @if ($check['count'] > $check['items']->count())
                                     <p class="small text-gray-600 mt-3 mb-0">
-                                        Mostrando {{ $check['items']->count() }} de {{ number_format($check['count'], 0, ',', '.') }} registro(s). Use os filtros para reduzir a lista.
+                                        {{ __('screens.showing_records', ['shown' => $check['items']->count(), 'total' => number_format($check['count'], 0, ',', '.')]) }}
                                     </p>
                                 @endif
                             @else
                                 <p class="text-gray-600 mb-0 mt-3">
                                     <i class="fas fa-check-circle text-success" aria-hidden="true"></i>
-                                    Nenhuma ocorrência encontrada.
+                                    {{ __('screens.no_occurrence') }}
                                 </p>
                             @endif
                         </details>
@@ -245,10 +240,10 @@
             <div class="card-body text-center py-5">
                 <i class="fas fa-check-circle fa-3x text-success mb-3" aria-hidden="true"></i>
                 <h2 class="h5 font-weight-bold text-gray-900">
-                    {{ $summary['total'] === 0 ? 'Conferência em dia' : 'Nada encontrado com estes filtros' }}
+                    {{ $summary['total'] === 0 ? __('screens.review_up_to_date') : __('screens.nothing_filters') }}
                 </h2>
                 <p class="text-gray-700 mb-0">
-                    {{ $summary['total'] === 0 ? 'Nenhum bloqueio, aviso ou ponto de atenção foi encontrado para este escopo.' : 'Troque a escola ou a gravidade para conferir outras ocorrências.' }}
+                    {{ $summary['total'] === 0 ? __('screens.no_scope_issue') : __('screens.change_filters') }}
                 </p>
             </div>
         </div>
