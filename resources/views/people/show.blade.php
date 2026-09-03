@@ -12,7 +12,7 @@
         && ! $person->user;
 @endphp
 
-@section('title', 'Pessoa')
+@section('title', __('screens.person'))
 @section('page-title', $person->full_name)
 
 @section('page-actions')
@@ -25,21 +25,21 @@
         </form>
     @endif
     @if ($person->studentEnrollments->isNotEmpty() || $person->schoolRoles->contains('role', \App\Models\PersonSchoolRole::ROLE_STUDENT))
-        <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.student-map.show', $person) }}" aria-label="Abrir vida escolar de {{ $person->full_name }}" title="Vida escolar">
+        <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.student-map.show', $person) }}" aria-label="{{ __('screens.open_school_life', ['name' => $person->full_name]) }}" title="{{ __('screens.school_life') }}">
             <i class="fas fa-map-marked-alt" aria-hidden="true"></i>
         </a>
     @endif
-    <a class="btn btn-sm btn-primary shadow-sm sge-icon-action" href="{{ route('people.edit', $person) }}" aria-label="Editar pessoa {{ $person->full_name }}" title="Editar pessoa">
+    <a class="btn btn-sm btn-primary shadow-sm sge-icon-action" href="{{ route('people.edit', $person) }}" aria-label="{{ __('screens.edit_person_named', ['name' => $person->full_name]) }}" title="{{ __('screens.edit_person') }}">
         <i class="fas fa-pen" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.pdf', $person) }}" aria-label="Emitir ficha em PDF de {{ $person->full_name }}" title="Ficha em PDF">
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.pdf', $person) }}" aria-label="{{ __('screens.issue_person_pdf', ['name' => $person->full_name]) }}" title="{{ __('screens.pdf_record') }}">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
     @if ($canDeletePerson)
-        <form class="d-inline" method="POST" action="{{ route('people.destroy', $person) }}" onsubmit="return confirm('Excluir definitivamente este cadastro de pessoa?');">
+        <form class="d-inline" method="POST" action="{{ route('people.destroy', $person) }}" onsubmit="return confirm(@js(__('screens.delete_person_confirm')));">
             @csrf
             @method('DELETE')
-            <button class="btn btn-sm btn-outline-danger shadow-sm sge-icon-action" type="submit" aria-label="Excluir cadastro de {{ $person->full_name }}" title="Excluir cadastro">
+            <button class="btn btn-sm btn-outline-danger shadow-sm sge-icon-action" type="submit" aria-label="{{ __('screens.delete_person', ['name' => $person->full_name]) }}" title="{{ __('screens.delete_record') }}">
                 <i class="fas fa-trash-alt" aria-hidden="true"></i>
             </button>
         </form>
@@ -54,46 +54,46 @@
                     <div class="sge-person-summary">
                         <div class="sge-avatar-lg">{{ mb_substr($person->social_name ?: $person->full_name, 0, 1) }}</div>
                         <div>
-                            <div class="sge-page-kicker">{{ $person->hasActiveRoleForDate() ? 'Com vínculo ativo' : 'Sem vínculo ativo' }}</div>
+                            <div class="sge-page-kicker">{{ $person->hasActiveRoleForDate() ? __('screens.active_relationship') : __('screens.no_active_relationship') }}</div>
                             <h2 class="h5 mb-1">{{ $person->social_name ?: $person->full_name }}</h2>
-                            <p class="mb-0 text-gray-600">{{ $person->institutional_email ?: 'Sem e-mail institucional' }}</p>
+                            <p class="mb-0 text-gray-600">{{ $person->institutional_email ?: __('screens.no_institutional_email') }}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="card shadow mb-4">
-                <div class="card-header font-weight-bold">Dados pessoais</div>
+                <div class="card-header font-weight-bold">{{ __('screens.personal_data') }}</div>
                 <div class="card-body">
                     <dl class="sge-definition-list mb-0">
-                        <dt>Nome completo</dt>
+                        <dt>{{ __('screens.full_name') }}</dt>
                         <dd>{{ $person->full_name }}</dd>
 
                         <dt>CPF</dt>
                         <dd>{{ $person->cpf ?: '-' }}</dd>
 
-                        <dt>INEP do estudante</dt>
+                        <dt>{{ __('screens.student_inep') }}</dt>
                         <dd>{{ $person->student_inep ?: '-' }}</dd>
 
-                        <dt>NIS do estudante</dt>
+                        <dt>{{ __('screens.student_nis') }}</dt>
                         <dd>{{ $person->nis ?: '-' }}</dd>
 
-                        <dt>Auxílio do Governo Federal</dt>
-                        <dd>{{ $person->receives_federal_aid ? 'Sim' : 'Não' }}</dd>
+                        <dt>{{ __('screens.federal_aid_short') }}</dt>
+                        <dd>{{ $person->receives_federal_aid ? __('screens.yes') : __('screens.no') }}</dd>
 
-                        <dt>Data de nascimento</dt>
+                        <dt>{{ __('screens.birth_date') }}</dt>
                         <dd>{{ $person->birth_date?->format('d/m/Y') ?? '-' }}</dd>
 
-                        <dt>Nome da mãe</dt>
+                        <dt>{{ __('screens.mother_name') }}</dt>
                         <dd>{{ $person->mother_name ?: '-' }}</dd>
 
-                        <dt>Nome do pai</dt>
+                        <dt>{{ __('screens.father_name') }}</dt>
                         <dd>{{ $person->father_name ?: '-' }}</dd>
 
-                        <dt>Telefone</dt>
+                        <dt>{{ __('screens.phone') }}</dt>
                         <dd>{{ $person->phone ?: '-' }}</dd>
 
-                        <dt>Endereço</dt>
+                        <dt>{{ __('screens.address') }}</dt>
                         <dd>
                             @if ($person->address || $person->city || $person->state)
                                 {{ $person->address }}
@@ -111,20 +111,20 @@
                             @endif
                         </dd>
 
-                        <dt>Papel atual</dt>
+                        <dt>{{ __('screens.current_role') }}</dt>
                         <dd>
                             @if ($primaryRole)
                                 {{ $primaryRole->label() }}
                                 @if ($primaryRole->school)
-                                    em {{ $primaryRole->school->name }}
+                                    {{ __('screens.at_school', ['school' => $primaryRole->school->name]) }}
                                 @endif
                                 <span class="d-block text-muted small">
-                                    {{ $primaryRole->started_at?->format('d/m/Y') ?? 'Início indeterminado' }}
-                                    até
-                                    {{ $primaryRole->ended_at?->format('d/m/Y') ?? 'fim indeterminado' }}
+                                    {{ $primaryRole->started_at?->format('d/m/Y') ?? __('screens.undetermined_start') }}
+                                    {{ __('screens.until') }}
+                                    {{ $primaryRole->ended_at?->format('d/m/Y') ?? __('screens.undetermined_end') }}
                                 </span>
                             @else
-                                Sem vínculo ativo
+                                {{ __('screens.no_active_relationship') }}
                             @endif
                         </dd>
                     </dl>
@@ -132,15 +132,15 @@
             </div>
 
             <div class="card shadow mb-4">
-                <div class="card-header font-weight-bold">Matrículas acadêmicas</div>
+                <div class="card-header font-weight-bold">{{ __('screens.academic_enrollments') }}</div>
                 <div class="table-responsive">
                     <table class="table mb-0">
                         <thead>
                             <tr>
-                                <th>Ano letivo</th>
-                                <th>Turma</th>
-                                <th>Situação</th>
-                                <th class="text-right">Ações</th>
+                                <th>{{ __('screens.school_year') }}</th>
+                                <th>{{ __('screens.class') }}</th>
+                                <th>{{ __('screens.status') }}</th>
+                                <th class="text-right">{{ __('screens.actions') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -158,24 +158,24 @@
                                     <td>
                                         {{ $enrollment->statusLabel() }}
                                         <span class="d-block text-muted small">
-                                            {{ $enrollment->enrolled_at?->format('d/m/Y') ?? 'sem data' }}
+                                            {{ $enrollment->enrolled_at?->format('d/m/Y') ?? __('screens.no_date') }}
                                             @if ($enrollment->transferred_at)
-                                                até {{ $enrollment->transferred_at->format('d/m/Y') }}
+                                                {{ __('screens.until') }} {{ $enrollment->transferred_at->format('d/m/Y') }}
                                             @endif
                                         </span>
                                     </td>
                                     <td class="text-right">
-                                        <a class="btn btn-sm btn-outline-success sge-icon-action" href="{{ route('enrollments.report-card.show', $enrollment) }}" aria-label="Abrir boletim de {{ $person->full_name }}" title="Boletim">
+                                        <a class="btn btn-sm btn-outline-success sge-icon-action" href="{{ route('enrollments.report-card.show', $enrollment) }}" aria-label="{{ __('screens.open_report_card', ['name' => $person->full_name]) }}" title="{{ __('screens.report_card') }}">
                                             <i class="fas fa-chart-line" aria-hidden="true"></i>
                                         </a>
-                                        <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.individual-record.pdf', $enrollment) }}" aria-label="Emitir ficha individual de {{ $person->full_name }}" title="Ficha individual">
+                                        <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.individual-record.pdf', $enrollment) }}" aria-label="{{ __('screens.issue_individual_record', ['name' => $person->full_name]) }}" title="{{ __('screens.individual_record') }}">
                                             <i class="fas fa-file-alt" aria-hidden="true"></i>
                                         </a>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="text-center text-gray-600">Nenhuma matrícula acadêmica cadastrada.</td>
+                                    <td colspan="4" class="text-center text-gray-600">{{ __('screens.no_academic_enrollment') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -185,8 +185,8 @@
 
             <div class="card shadow mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span class="font-weight-bold">Históricos escolares</span>
-                    <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.histories.create', $person) }}" aria-label="Cadastrar histórico escolar de {{ $person->full_name }}" title="Novo histórico escolar">
+                    <span class="font-weight-bold">{{ __('screens.school_histories') }}</span>
+                    <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.histories.create', $person) }}" aria-label="{{ __('screens.register_history', ['name' => $person->full_name]) }}" title="{{ __('screens.new_history') }}">
                         <i class="fas fa-plus" aria-hidden="true"></i>
                     </a>
                 </div>
@@ -194,9 +194,9 @@
                     <table class="table mb-0">
                         <thead>
                             <tr>
-                                <th>Documento</th>
-                                <th>Etapa</th>
-                                <th class="text-right">Ações</th>
+                                <th>{{ __('screens.document') }}</th>
+                                <th>{{ __('screens.stage') }}</th>
+                                <th class="text-right">{{ __('screens.actions') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -204,21 +204,21 @@
                                 <tr>
                                     <td>
                                         {{ $history->title }}
-                                        <span class="d-block text-muted small">{{ $history->school?->name ?? 'Sem escola emissora vinculada' }}</span>
+                                        <span class="d-block text-muted small">{{ $history->school?->name ?? __('screens.no_issuing_school') }}</span>
                                     </td>
                                     <td>{{ $history->stage ?: '-' }}</td>
                                     <td class="text-right">
-                                        <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.histories.show', [$person, $history]) }}" aria-label="Abrir histórico escolar {{ $history->title }}" title="Abrir histórico">
+                                        <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.histories.show', [$person, $history]) }}" aria-label="{{ __('screens.open_history', ['title' => $history->title]) }}" title="{{ __('screens.open_history_title') }}">
                                             <i class="fas fa-folder-open" aria-hidden="true"></i>
                                         </a>
-                                        <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.histories.pdf', [$person, $history]) }}" aria-label="Emitir histórico escolar em PDF" title="Histórico em PDF">
+                                        <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.histories.pdf', [$person, $history]) }}" aria-label="{{ __('screens.issue_history_pdf') }}" title="{{ __('screens.history_pdf') }}">
                                             <i class="fas fa-file-pdf" aria-hidden="true"></i>
                                         </a>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="3" class="text-center text-gray-600">Nenhum histórico escolar cadastrado.</td>
+                                    <td colspan="3" class="text-center text-gray-600">{{ __('screens.no_history') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -229,7 +229,7 @@
 
         <div class="col-xl-8 col-lg-7">
             <div class="card shadow mb-4">
-                <div class="card-header font-weight-bold">Novo vínculo</div>
+                <div class="card-header font-weight-bold">{{ __('screens.new_relationship') }}</div>
                 <div class="card-body">
                     <form method="POST" action="{{ route('people.roles.store', $person) }}">
                         @csrf
@@ -240,22 +240,22 @@
                             'schools' => $schools,
                             'fieldPrefix' => 'new_role_',
                         ])
-                        <button class="btn btn-primary" type="submit">Adicionar vínculo</button>
+                        <button class="btn btn-primary" type="submit">{{ __('screens.add_relationship') }}</button>
                     </form>
                 </div>
             </div>
 
             <div class="card shadow mb-4">
-                <div class="card-header font-weight-bold">Vínculos e papéis</div>
+                <div class="card-header font-weight-bold">{{ __('screens.roles_relationships') }}</div>
                 <div class="table-responsive">
                     <table class="table mb-0">
                         <thead>
                             <tr>
-                                <th>Papel</th>
-                                <th>Escola</th>
-                                <th>Período</th>
-                                <th>Situação</th>
-                                <th class="text-right">Ações</th>
+                                <th>{{ __('screens.role') }}</th>
+                                <th>{{ __('screens.school') }}</th>
+                                <th>{{ __('screens.period') }}</th>
+                                <th>{{ __('screens.status') }}</th>
+                                <th class="text-right">{{ __('screens.actions') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -263,16 +263,16 @@
                                 @php($isLastAdministration = $roleModel->isLastActiveAdministrator())
                                 <tr>
                                     <td>{{ $roleModel->label() }}</td>
-                                    <td>{{ $roleModel->school?->name ?? 'Global' }}</td>
+                                    <td>{{ $roleModel->school?->name ?? __('screens.global') }}</td>
                                     <td>
-                                        {{ $roleModel->started_at?->format('d/m/Y') ?? 'Indeterminado' }}
-                                        até
-                                        {{ $roleModel->ended_at?->format('d/m/Y') ?? 'indeterminado' }}
+                                        {{ $roleModel->started_at?->format('d/m/Y') ?? __('roles.indefinite') }}
+                                        {{ __('screens.until') }}
+                                        {{ $roleModel->ended_at?->format('d/m/Y') ?? __('roles.indefinite') }}
                                     </td>
                                     <td>
-                                        {{ $roleModel->isActiveForDate() ? 'Ativo' : 'Inativo' }}
+                                        {{ $roleModel->isActiveForDate() ? __('screens.active_m') : __('screens.inactive_m') }}
                                         @if ($isLastAdministration)
-                                            <span class="d-block text-muted small">Última Administração ativa</span>
+                                            <span class="d-block text-muted small">{{ __('screens.last_administration') }}</span>
                                         @endif
                                     </td>
                                     <td class="text-right">
@@ -282,7 +282,7 @@
                                                     <form method="POST" action="{{ route('people.roles.deactivate', [$person, $roleModel]) }}">
                                                         @csrf
                                                         @method('PATCH')
-                                                        <button class="btn btn-sm btn-outline-warning sge-icon-action" type="submit" aria-label="Desativar vínculo {{ $roles[$roleModel->role] ?? $roleModel->role }}" title="Desativar vínculo">
+                                                        <button class="btn btn-sm btn-outline-warning sge-icon-action" type="submit" aria-label="{{ __('screens.deactivate_relationship') }}: {{ $roleModel->label() }}" title="{{ __('screens.deactivate_relationship') }}">
                                                             <i class="fas fa-pause" aria-hidden="true"></i>
                                                         </button>
                                                     </form>
@@ -291,13 +291,13 @@
                                                 <form method="POST" action="{{ route('people.roles.activate', [$person, $roleModel]) }}">
                                                     @csrf
                                                     @method('PATCH')
-                                                    <button class="btn btn-sm btn-outline-success sge-icon-action" type="submit" aria-label="Ativar vínculo {{ $roles[$roleModel->role] ?? $roleModel->role }}" title="Ativar vínculo">
+                                                    <button class="btn btn-sm btn-outline-success sge-icon-action" type="submit" aria-label="{{ __('screens.activate_relationship') }}: {{ $roleModel->label() }}" title="{{ __('screens.activate_relationship') }}">
                                                         <i class="fas fa-play" aria-hidden="true"></i>
                                                     </button>
                                                 </form>
                                             @endif
 
-                                            <button class="btn btn-sm btn-outline-primary sge-icon-action" type="button" data-toggle="modal" data-target="#editRoleModal{{ $roleModel->id }}" aria-label="Editar vínculo {{ $roles[$roleModel->role] ?? $roleModel->role }}" title="Editar vínculo">
+                                            <button class="btn btn-sm btn-outline-primary sge-icon-action" type="button" data-toggle="modal" data-target="#editRoleModal{{ $roleModel->id }}" aria-label="{{ __('screens.edit_relationship') }}: {{ $roleModel->label() }}" title="{{ __('screens.edit_relationship') }}">
                                                 <i class="fas fa-pen" aria-hidden="true"></i>
                                             </button>
 
@@ -305,7 +305,7 @@
                                                 <form method="POST" action="{{ route('people.roles.destroy', [$person, $roleModel]) }}">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="Remover vínculo {{ $roles[$roleModel->role] ?? $roleModel->role }}" title="Remover vínculo">
+                                                    <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="{{ __('screens.remove_relationship') }}: {{ $roleModel->label() }}" title="{{ __('screens.remove_relationship') }}">
                                                         <i class="fas fa-trash-alt" aria-hidden="true"></i>
                                                     </button>
                                                 </form>
@@ -315,7 +315,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center text-gray-600">Nenhum vínculo cadastrado.</td>
+                                    <td colspan="5" class="text-center text-gray-600">{{ __('screens.no_registered_relationship') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -331,8 +331,8 @@
                                 @csrf
                                 @method('PUT')
                                 <div class="modal-header">
-                                    <h2 class="modal-title h5" id="editRoleModal{{ $roleModel->id }}Label">Editar vínculo</h2>
-                                    <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+                                    <h2 class="modal-title h5" id="editRoleModal{{ $roleModel->id }}Label">{{ __('screens.edit_relationship') }}</h2>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="{{ __('screens.close') }}">
                                         <span aria-hidden="true">&times;</span>
                                     </button>
                                 </div>
@@ -346,9 +346,9 @@
                                     ])
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ __('screens.cancel') }}</button>
                                     <button class="btn btn-primary" type="submit">
-                                        <i class="fas fa-save" aria-hidden="true"></i> Salvar vínculo
+                                        <i class="fas fa-save" aria-hidden="true"></i> {{ __('screens.save_relationship') }}
                                     </button>
                                 </div>
                             </form>
@@ -358,24 +358,24 @@
             @endforeach
 
             <div class="card shadow mb-4">
-                <div class="card-header font-weight-bold">Responsáveis e contatos</div>
+                <div class="card-header font-weight-bold">{{ __('screens.guardians_contacts') }}</div>
                 <div class="card-body">
                     <form method="POST" action="{{ route('people.contacts.store', $person) }}" class="mb-4">
                         @csrf
 
                         <div class="form-row">
                             <div class="form-group col-md-5">
-                                <label for="contact_name">Nome</label>
+                                <label for="contact_name">{{ __('screens.name') }}</label>
                                 <input id="contact_name" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" required>
                                 @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
 
                             <div class="form-group col-md-3">
-                                <label for="contact_relationship_type">Relação</label>
+                                <label for="contact_relationship_type">{{ __('screens.relation') }}</label>
                                 <select id="contact_relationship_type" name="relationship_type" class="form-control @error('relationship_type') is-invalid @enderror" required>
-                                    <option value="">Selecione</option>
+                                    <option value="">{{ __('screens.select') }}</option>
                                     @foreach (\App\Models\PersonContact::TYPE_LABELS as $value => $label)
-                                        <option value="{{ $value }}" @selected(old('relationship_type') === $value)>{{ $label }}</option>
+                                        <option value="{{ $value }}" @selected(old('relationship_type') === $value)>{{ __('roles.contacts.'.$value) }}</option>
                                     @endforeach
                                 </select>
                                 @error('relationship_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -395,19 +395,19 @@
 
                         <div class="form-row">
                             <div class="form-group col-md-4">
-                                <label for="contact_phone">Telefone</label>
+                                <label for="contact_phone">{{ __('screens.phone') }}</label>
                                 <input id="contact_phone" name="phone" data-mask="phone" inputmode="tel" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone') }}">
                                 @error('phone') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
 
                             <div class="form-group col-md-4">
-                                <label for="contact_secondary_phone">Telefone alternativo</label>
+                                <label for="contact_secondary_phone">{{ __('screens.secondary_phone') }}</label>
                                 <input id="contact_secondary_phone" name="secondary_phone" data-mask="phone" inputmode="tel" class="form-control @error('secondary_phone') is-invalid @enderror" value="{{ old('secondary_phone') }}">
                                 @error('secondary_phone') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
 
                             <div class="form-group col-md-4">
-                                <label for="contact_email">E-mail pessoal</label>
+                                <label for="contact_email">{{ __('screens.personal_email') }}</label>
                                 <input id="contact_email" name="email" type="email" inputmode="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email') }}">
                                 @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
@@ -417,22 +417,22 @@
                             <div class="form-group col-md-4">
                                 <div class="form-check">
                                     <input id="contact_legal_guardian" name="legal_guardian" value="1" type="checkbox" class="form-check-input" @checked(old('legal_guardian'))>
-                                    <label for="contact_legal_guardian" class="form-check-label">Responsável legal</label>
+                                    <label for="contact_legal_guardian" class="form-check-label">{{ __('screens.legal_guardian') }}</label>
                                 </div>
                                 <div class="form-check">
                                     <input id="contact_emergency_contact" name="emergency_contact" value="1" type="checkbox" class="form-check-input" @checked(old('emergency_contact'))>
-                                    <label for="contact_emergency_contact" class="form-check-label">Contato de emergência</label>
+                                    <label for="contact_emergency_contact" class="form-check-label">{{ __('screens.emergency_contact') }}</label>
                                 </div>
                             </div>
 
                             <div class="form-group col-md-8">
-                                <label for="contact_notes">Observações</label>
+                                <label for="contact_notes">{{ __('screens.notes') }}</label>
                                 <textarea id="contact_notes" name="notes" rows="2" class="form-control @error('notes') is-invalid @enderror">{{ old('notes') }}</textarea>
                                 @error('notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                         </div>
 
-                        <button class="btn btn-primary" type="submit">Adicionar contato</button>
+                        <button class="btn btn-primary" type="submit">{{ __('screens.add_contact') }}</button>
                     </form>
                 </div>
 
@@ -440,10 +440,10 @@
                     <table id="contacts-table" class="table mb-0">
                         <thead>
                             <tr>
-                                <th>Nome</th>
-                                <th>Relação</th>
-                                <th>Contato</th>
-                                <th class="text-right">Ações</th>
+                                <th>{{ __('screens.name') }}</th>
+                                <th>{{ __('screens.relation') }}</th>
+                                <th>{{ __('screens.contact') }}</th>
+                                <th class="text-right">{{ __('screens.actions') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -454,10 +454,10 @@
                                     <td>
                                         {{ $contact->label() }}
                                         @if ($contact->legal_guardian)
-                                            <span class="d-block text-muted small">Responsável legal</span>
+                                            <span class="d-block text-muted small">{{ __('screens.legal_guardian') }}</span>
                                         @endif
                                         @if ($contact->emergency_contact)
-                                            <span class="d-block text-muted small">Contato de emergência</span>
+                                            <span class="d-block text-muted small">{{ __('screens.emergency_contact') }}</span>
                                         @endif
                                     </td>
                                     <td>
@@ -473,14 +473,14 @@
                                         @endif
                                     </td>
                                     <td class="text-right sge-actions-cell">
-                                        <div class="sge-row-actions" role="group" aria-label="Ações para contato {{ $contact->name }}">
-                                            <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.show', ['person' => $person, 'edit_contact' => $contact->id]) }}#contact-editor-{{ $contact->id }}" aria-label="Editar contato {{ $contact->name }}" title="Editar contato">
+                                        <div class="sge-row-actions" role="group" aria-label="{{ __('screens.contact_actions', ['name' => $contact->name]) }}">
+                                            <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.show', ['person' => $person, 'edit_contact' => $contact->id]) }}#contact-editor-{{ $contact->id }}" aria-label="{{ __('screens.edit_contact', ['name' => $contact->name]) }}" title="{{ __('screens.edit_contact_title') }}">
                                                 <i class="fas fa-pen" aria-hidden="true"></i>
                                             </a>
                                             <form method="POST" action="{{ route('people.contacts.destroy', [$person, $contact]) }}">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="Remover contato {{ $contact->name }}" title="Remover contato">
+                                                <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="{{ __('screens.remove_contact', ['name' => $contact->name]) }}" title="{{ __('screens.remove_contact_title') }}">
                                                     <i class="fas fa-trash-alt" aria-hidden="true"></i>
                                                 </button>
                                             </form>
@@ -493,10 +493,10 @@
                                             <div class="sge-contact-editor-panel">
                                                 <div class="sge-contact-editor-heading">
                                                     <div>
-                                                        <span>Editando contato</span>
+                                                        <span>{{ __('screens.editing_contact') }}</span>
                                                         <strong>{{ $contact->name }}</strong>
                                                     </div>
-                                                    <a class="btn btn-sm btn-outline-secondary" href="{{ route('people.show', $person) }}#contacts-table">Cancelar</a>
+                                                    <a class="btn btn-sm btn-outline-secondary" href="{{ route('people.show', $person) }}#contacts-table">{{ __('screens.cancel') }}</a>
                                                 </div>
 
                                                 <form method="POST" action="{{ route('people.contacts.update', [$person, $contact]) }}">
@@ -507,15 +507,15 @@
 
                                                     <div class="form-row">
                                                         <div class="form-group col-lg-5 col-md-6">
-                                                            <label for="contact_name_{{ $contact->id }}">Nome</label>
+                                                            <label for="contact_name_{{ $contact->id }}">{{ __('screens.name') }}</label>
                                                             <input id="contact_name_{{ $contact->id }}" name="name" class="form-control" value="{{ $useOldContact ? old('name', $contact->name) : $contact->name }}" required>
                                                         </div>
 
                                                         <div class="form-group col-lg-3 col-md-6">
-                                                            <label for="contact_relationship_type_{{ $contact->id }}">Relação</label>
+                                                            <label for="contact_relationship_type_{{ $contact->id }}">{{ __('screens.relation') }}</label>
                                                             <select id="contact_relationship_type_{{ $contact->id }}" name="relationship_type" class="form-control" required>
                                                                 @foreach (\App\Models\PersonContact::TYPE_LABELS as $value => $label)
-                                                                    <option value="{{ $value }}" @selected(($useOldContact ? old('relationship_type', $contact->relationship_type) : $contact->relationship_type) === $value)>{{ $label }}</option>
+                                                                    <option value="{{ $value }}" @selected(($useOldContact ? old('relationship_type', $contact->relationship_type) : $contact->relationship_type) === $value)>{{ __('roles.contacts.'.$value) }}</option>
                                                                 @endforeach
                                                             </select>
                                                         </div>
@@ -532,17 +532,17 @@
 
                                                     <div class="form-row">
                                                         <div class="form-group col-lg-4 col-md-6">
-                                                            <label for="contact_phone_{{ $contact->id }}">Telefone</label>
+                                                            <label for="contact_phone_{{ $contact->id }}">{{ __('screens.phone') }}</label>
                                                             <input id="contact_phone_{{ $contact->id }}" name="phone" data-mask="phone" inputmode="tel" class="form-control" value="{{ $useOldContact ? old('phone', $contact->phone) : $contact->phone }}">
                                                         </div>
 
                                                         <div class="form-group col-lg-4 col-md-6">
-                                                            <label for="contact_secondary_phone_{{ $contact->id }}">Telefone alternativo</label>
+                                                            <label for="contact_secondary_phone_{{ $contact->id }}">{{ __('screens.secondary_phone') }}</label>
                                                             <input id="contact_secondary_phone_{{ $contact->id }}" name="secondary_phone" data-mask="phone" inputmode="tel" class="form-control" value="{{ $useOldContact ? old('secondary_phone', $contact->secondary_phone) : $contact->secondary_phone }}">
                                                         </div>
 
                                                         <div class="form-group col-lg-4 col-md-12">
-                                                            <label for="contact_email_{{ $contact->id }}">E-mail pessoal</label>
+                                                            <label for="contact_email_{{ $contact->id }}">{{ __('screens.personal_email') }}</label>
                                                             <input id="contact_email_{{ $contact->id }}" name="email" type="email" inputmode="email" class="form-control" value="{{ $useOldContact ? old('email', $contact->email) : $contact->email }}">
                                                         </div>
                                                     </div>
@@ -553,25 +553,25 @@
                                                                 <div class="form-check">
                                                                     <input name="legal_guardian" value="0" type="hidden">
                                                                     <input id="contact_legal_guardian_{{ $contact->id }}" name="legal_guardian" value="1" type="checkbox" class="form-check-input" @checked($useOldContact ? old('legal_guardian', $contact->legal_guardian) : $contact->legal_guardian)>
-                                                                    <label for="contact_legal_guardian_{{ $contact->id }}" class="form-check-label">Responsável legal</label>
+                                                                    <label for="contact_legal_guardian_{{ $contact->id }}" class="form-check-label">{{ __('screens.legal_guardian') }}</label>
                                                                 </div>
                                                                 <div class="form-check">
                                                                     <input name="emergency_contact" value="0" type="hidden">
                                                                     <input id="contact_emergency_contact_{{ $contact->id }}" name="emergency_contact" value="1" type="checkbox" class="form-check-input" @checked($useOldContact ? old('emergency_contact', $contact->emergency_contact) : $contact->emergency_contact)>
-                                                                    <label for="contact_emergency_contact_{{ $contact->id }}" class="form-check-label">Contato de emergência</label>
+                                                                    <label for="contact_emergency_contact_{{ $contact->id }}" class="form-check-label">{{ __('screens.emergency_contact') }}</label>
                                                                 </div>
                                                             </div>
                                                         </div>
 
                                                         <div class="form-group col-lg-8">
-                                                            <label for="contact_notes_{{ $contact->id }}">Observações</label>
+                                                            <label for="contact_notes_{{ $contact->id }}">{{ __('screens.notes') }}</label>
                                                             <textarea id="contact_notes_{{ $contact->id }}" name="notes" rows="2" class="form-control">{{ $useOldContact ? old('notes', $contact->notes) : $contact->notes }}</textarea>
                                                         </div>
                                                     </div>
 
                                                     <div class="sge-contact-editor-actions">
                                                         <button class="btn btn-primary" type="submit">
-                                                            <i class="fas fa-save" aria-hidden="true"></i> Salvar contato
+                                                            <i class="fas fa-save" aria-hidden="true"></i> {{ __('screens.save_contact') }}
                                                         </button>
                                                     </div>
                                                 </form>
@@ -581,7 +581,7 @@
                                 @endif
                             @empty
                                 <tr>
-                                    <td colspan="4" class="text-center text-gray-600">Nenhum contato cadastrado.</td>
+                                    <td colspan="4" class="text-center text-gray-600">{{ __('screens.no_contact') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>

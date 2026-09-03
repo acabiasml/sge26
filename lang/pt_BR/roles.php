@@ -5,4 +5,5 @@ return [
     'positions' => ['diretor' => 'Direção', 'coordenador' => 'Coordenação', 'secretário' => 'Secretaria'],
     'no_active_role' => 'Sem vínculo ativo', 'no_start' => 'sem início', 'indefinite' => 'indeterminado',
     'period' => ':start até :end', 'global' => 'Global',
+    'contacts' => ['mae' => 'Mãe', 'pai' => 'Pai', 'responsavel_legal' => 'Responsável legal', 'avo' => 'Avó', 'avo_masculino' => 'Avô', 'irmao' => 'Irmã(o)', 'outro' => 'Outro vínculo'],
 ];

@@ -68,6 +68,10 @@ class PersonContact extends Model
 
     public function label(): string
     {
-        return self::TYPE_LABELS[$this->relationship_type] ?? $this->relationship_type;
+        $label = __('roles.contacts.'.$this->relationship_type);
+
+        return $label === 'roles.contacts.'.$this->relationship_type
+            ? (self::TYPE_LABELS[$this->relationship_type] ?? $this->relationship_type)
+            : $label;
     }
 }
