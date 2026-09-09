@@ -122,7 +122,7 @@ class TeacherDiaryTest extends TestCase
         ]);
 
         $this->actingAs($teacher)->get(route('profile.edit'))->assertOk()
-            ->assertSee('data-target="#diary-alert-', false)
+            ->assertSee('id="diary-alert-', false)
             ->assertSee('Abrir diário')
             ->assertSee($manager->person->full_name)
             ->assertSee('Confira os lançamentos de frequência desta semana.');

@@ -30,7 +30,7 @@ class AlertDetailsTest extends TestCase
         ]);
 
         $this->actingAs($user)->get(route('profile.edit'))->assertOk()
-            ->assertSee('data-target="#announcement-alert-'.$announcement->id.'"', false)
+            ->assertSee('href="#alertsCenter"', false)
             ->assertSee('id="announcement-alert-'.$announcement->id.'"', false)
             ->assertSee($body)->assertDontSee('<script>alert(1)</script>', false)
             ->assertDontSee('Conteúdo restrito')->assertDontSee('Conteúdo vencido');

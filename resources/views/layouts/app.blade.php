@@ -312,48 +312,12 @@
                                 </form>
                             @endforeach
                         </li>
-                        <li class="nav-item dropdown no-arrow mx-1">
-                            <a class="nav-link dropdown-toggle sge-topbar-icon-button" href="#" id="alertsDropdown" role="button"
-                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="{{ __('navigation.open_alerts') }}" title="{{ __('navigation.alerts') }}">
+                        <li class="nav-item mx-1">
+                            <a class="nav-link sge-topbar-icon-button" href="#alertsCenter" id="alertsDropdown" role="button"
+                                data-toggle="modal" aria-haspopup="dialog" aria-controls="alertsCenter" aria-label="{{ __('navigation.open_alerts') }}" title="{{ __('navigation.alerts') }}">
                                 <i class="fas fa-bell fa-fw" aria-hidden="true"></i>
-                                @if ($topbarAlertCount > 0)
-                                    <span class="badge badge-danger badge-counter">{{ $topbarAlertCount }}</span>
-                                @endif
+                                @if ($topbarAlertCount > 0)<span class="badge badge-danger badge-counter">{{ $topbarAlertCount }}</span>@endif
                             </a>
-                            <div class="dropdown-menu dropdown-menu-right sge-alert-dropdown" aria-labelledby="alertsDropdown">
-                                <div class="sge-alert-panel-heading">
-                                    <div><h2>{{ __('navigation.alerts') }}</h2><p>{{ __('alerts.preview_hint') }}</p></div>
-                                    <span class="sge-alert-panel-count">{{ $topbarAlertCount }}</span>
-                                </div>
-                                <div class="sge-alert-panel-list">
-                                    @foreach ($topbarAnnouncements as $announcement)
-                                        <button type="button" class="dropdown-item sge-alert-preview" data-toggle="modal" data-target="#announcement-alert-{{ $announcement->id }}" aria-haspopup="dialog">
-                                            <span class="sge-alert-preview-icon"><i class="fas fa-bullhorn" aria-hidden="true"></i></span>
-                                            <span class="sge-alert-preview-copy">
-                                                <span class="sge-alert-preview-context">{{ $announcement->school?->name ?? __('navigation.global') }}</span>
-                                                <strong>{{ $announcement->title }}</strong>
-                                                <span class="sge-alert-preview-message">{{ \Illuminate\Support\Str::limit($announcement->body, 160) }}</span>
-                                                @if ($announcement->highlight)<span class="sge-alert-highlight">{{ __('navigation.highlight') }}</span>@endif
-                                            </span>
-                                            <i class="fas fa-chevron-right sge-alert-preview-arrow" aria-hidden="true"></i>
-                                        </button>
-                                    @endforeach
-                                    @foreach ($topbarDiaryAlerts as $alert)
-                                        <button type="button" class="dropdown-item sge-alert-preview" data-toggle="modal" data-target="#diary-alert-{{ $alert->id }}" aria-haspopup="dialog">
-                                            <span class="sge-alert-preview-icon"><i class="fas fa-book-open" aria-hidden="true"></i></span>
-                                            <span class="sge-alert-preview-copy">
-                                                <span class="sge-alert-preview-context">{{ $alert->schoolClass?->name }} · {{ $alert->period?->name }}</span>
-                                                <strong>{{ __('navigation.management_alert', ['component' => $alert->component?->name]) }}</strong>
-                                                <span class="sge-alert-preview-message">{{ \Illuminate\Support\Str::limit($alert->message, 160) }}</span>
-                                            </span>
-                                            <i class="fas fa-chevron-right sge-alert-preview-arrow" aria-hidden="true"></i>
-                                        </button>
-                                    @endforeach
-                                    @if ($topbarAlertCount === 0)
-                                        <div class="sge-alert-panel-empty"><i class="far fa-bell" aria-hidden="true"></i><p>{{ __('navigation.no_active_announcement') }}</p></div>
-                                    @endif
-                                </div>
-                            </div>
                         </li>
 
                         <li class="topbar-divider d-none d-sm-block" aria-hidden="true"></li>
