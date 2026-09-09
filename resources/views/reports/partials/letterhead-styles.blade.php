@@ -23,6 +23,8 @@ html { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; }
 body { -webkit-font-smoothing: antialiased; }
 strong, b, th { font-weight: 600; }
 table { border-collapse: collapse; }
+th, td { word-wrap: break-word; }
+thead { display: table-header-group; }
 .letterhead { border-bottom: 1.4px solid #6B3D2E; margin-bottom: 12px; padding-bottom: 7px; }
 .letterhead-repeat { position: fixed; top: -136px; left: 0; right: 0; margin-bottom: 0; }
 .letterhead-table { width: 100%; border-collapse: collapse; }
@@ -35,6 +37,6 @@ table { border-collapse: collapse; }
 .document-title { font-size: 16px; line-height: 1.12; margin: 8px 0 3px; color: #6B3D2E; font-weight: 600; text-align: center; }
 .document-meta { color: #5f5a55; font-size: 11px; line-height: 1.3; }
 .document-footer { position: fixed; bottom: -49px !important; left: 0; right: 0; border-top: .6px solid #d9c9c0; padding-top: 3px; font-size: 11px; line-height: 1.12; color: #5f5a55; text-align: center; }
-.document-footer-contact { white-space: nowrap; letter-spacing: -.08px; }
-.document-footer-authentication { white-space: nowrap; }
+.document-footer-contact { white-space: normal; letter-spacing: -.08px; }
+.document-footer-authentication { white-space: normal; }
 .document-footer-issuer { padding-right: 75px; }

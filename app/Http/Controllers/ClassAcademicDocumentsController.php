@@ -158,7 +158,11 @@ class ClassAcademicDocumentsController extends Controller
             ->map(fn (StudentEnrollment $enrollment): array => $builder->build($enrollment))
             ->values();
         $components = $this->mirrorComponents($reports);
-        $periods = $academicYear->periods()->orderBy('position')->get();
+        $periods = $reports
+            ->flatMap(fn (array $report): Collection => $report['periods'])
+            ->unique('id')
+            ->sortBy(fn (AcademicPeriod $period): string => $period->starts_at->format('Y-m-d').sprintf('-%010d', $period->id))
+            ->values();
 
         if ($components->isEmpty()) {
             return $this->blocked(__('Não foi possível emitir o espelho: a turma não possui componentes curriculares vinculados às matrículas ativas.'));

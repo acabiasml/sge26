@@ -10,6 +10,8 @@ use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
 use App\Support\AcademicStructureStatus;
 use App\Support\AcademicStructureValidator;
+use App\Support\SchoolClassEnrollmentCourses;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -155,9 +157,12 @@ class SchoolClassController extends Controller
                 ]);
             }
 
-            $class->update($data);
-            $class->courses()->sync($courseIds);
-            $this->syncComponentAssignments($class);
+            DB::transaction(function () use ($class, $data, $courseIds): void {
+                $class->update($data);
+                $class->courses()->sync($courseIds);
+                $this->syncComponentAssignments($class);
+                SchoolClassEnrollmentCourses::synchronize($class);
+            });
 
             return redirect()->route('academic-years.classes.show', [$academicYear, $class])
                 ->with('status', __('Turma atualizada com sucesso.'));

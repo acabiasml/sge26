@@ -303,6 +303,39 @@ class TeacherDiaryTest extends TestCase
         ]);
     }
 
+    public function test_associated_matrix_repairs_current_enrollments_without_changing_history(): void
+    {
+        [, $year, $class, $component, , $enrollment] = $this->diaryScenario();
+        $course = $year->courses()->create([
+            'name' => 'Técnico em Móveis', 'stage' => AcademicCourse::STAGE_TECHNICAL,
+            'status' => 'iniciado', 'class_hour_minutes' => 50, 'active' => true,
+        ]);
+        $technical = $course->components()->create([
+            'name' => 'Equipamentos e Tecnologia da Madeira', 'workload_hours' => 80, 'active' => true,
+        ]);
+        $class->courses()->attach($course);
+        $enrollment->update(['status' => StudentEnrollment::STATUS_TRANSFERRED]);
+        $migration = require database_path('migrations/2026_09_09_000002_link_current_enrollments_to_class_courses.php');
+        $migration->up();
+        \App\Support\SchoolClassEnrollmentCourses::synchronize($class);
+        $this->assertFalse($enrollment->courses()->whereKey($course->id)->exists());
+        $enrollment->update(['status' => StudentEnrollment::STATUS_ENROLLED]);
+        $migration->up();
+        $migration->up();
+        $this->assertSame(2, $enrollment->courses()->count());
+        $report = app(StudentReportCardBuilder::class)->build($enrollment->fresh());
+        $this->assertContains($technical->id, $report['annualComponents']->pluck('component.id')->all());
+        $this->assertContains($component->id, $report['annualComponents']->pluck('component.id')->all());
+        $enrollment->courses()->detach($course);
+        \App\Support\SchoolClassEnrollmentCourses::synchronize($class);
+        $this->assertSame(2, $enrollment->courses()->count());
+        $enrollment->courses()->detach($course);
+        $year->update(['closed_at' => now()]);
+        $migration->up();
+        \App\Support\SchoolClassEnrollmentCourses::synchronize($class->fresh());
+        $this->assertSame(1, $enrollment->courses()->count());
+    }
+
     public function test_individual_record_report_includes_calculated_final_result(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
@@ -377,6 +410,16 @@ class TeacherDiaryTest extends TestCase
         $this->assertContains($technicalCourse->id, $report['courses']->pluck('id')->all());
         $this->assertContains($technicalComponent->id, $report['annualComponents']->pluck('component.id')->all());
         $this->assertContains($technicalPeriod->id, $report['periods']->pluck('id')->all());
+        $mirrorData = null;
+        \Illuminate\Support\Facades\View::composer('reports.class-grade-mirror', function ($view) use (&$mirrorData): void {
+            $mirrorData = $view->getData();
+        });
+        $this->actingAs($manager)
+            ->get(route('classes.grade-mirror.pdf', ['class' => $regularEnrollment->school_class_id, 'notas' => 'numeros']))
+            ->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertContains($technicalPeriod->id, $mirrorData['periods']->pluck('id')->all());
+        $this->assertContains($technicalComponent->id, $mirrorData['components']->pluck('id')->all());
+
 
         $this->actingAs($manager)
             ->get(route('enrollments.report-card.pdf', $regularEnrollment))

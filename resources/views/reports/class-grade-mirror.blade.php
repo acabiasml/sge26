@@ -24,9 +24,10 @@
         .mirror-table .score-cell { text-align: center; }
         .formation-heading { background: #ded7d2 !important; text-transform: uppercase; }
         .area-heading { background: #e9e4df !important; }
-        .component-heading { height: 76px; padding: 1px; vertical-align: bottom; width: 3.2%; }
-        .component-heading span { display: inline-block; line-height: 1; transform: rotate(-90deg); transform-origin: center; white-space: nowrap; width: 74px; }
-        .behavior-heading { background: #f5e7ce !important; }
+        .component-heading { height: 170px; padding: 0 !important; }
+        .vertical-label { position: relative; height: 170px; }
+        .vertical-label span { position: absolute; left: 50%; top: 50%; margin-left: -74px; margin-top: -18px; width: 148px; height: 36px; line-height: 12px; text-align: center; transform: rotate(-90deg); word-wrap: break-word; }
+        .behavior-heading { width: 4%; background: #f5e7ce !important; }
         .mirror-notes { color: #4f4945; font-size: 11px; margin-top: 5px; }
         .mirror-notes strong { color: #222; }
         .concept-legend span { display: inline-block; margin-right: 8px; white-space: nowrap; }
@@ -37,8 +38,13 @@
 </head>
 <body>
 @php
-    $componentChunks = $components->chunk(24)->values();
-    $totalPages = max(1, $periods->count() * $componentChunks->count());
+    $chunksByPeriod = $periods->mapWithKeys(function ($period) use ($reports, $components) {
+        $ids = $reports->flatMap(fn ($report) => $report['periodReports']
+            ->filter(fn ($item) => (int) $item['period']->id === (int) $period->id)
+            ->flatMap(fn ($item) => $item['components']->pluck('component.id')))->unique();
+        return [$period->id => $components->whereIn('id', $ids)->chunk(16)->values()];
+    });
+    $totalPages = $chunksByPeriod->sum(fn ($chunks) => $chunks->count());
     $pageNumber = 0;
     $scoreLabel = function ($score, $date = null) use ($academicYear, $scoreView): string {
         if ($score === null || $score === '') {
@@ -55,6 +61,7 @@
 
 @foreach($periods as $period)
     @php
+        $componentChunks = $chunksByPeriod[$period->id];
         $conceptLegend = $academicYear->school?->conceptsForDate($period->ends_at ?? $period->starts_at) ?? collect();
     @endphp
     @foreach($componentChunks as $componentChunk)
@@ -91,7 +98,7 @@
                 Ano letivo {{ $academicYear->referenceYearsLabel() }}
                 · apresentação em {{ $scoreView === 'conceitos' ? 'conceitos' : 'notas numéricas' }}
                 @if($componentChunks->count() > 1)
-                    · componentes {{ (($loop->iteration - 1) * 24) + 1 }} a {{ (($loop->iteration - 1) * 24) + $componentChunk->count() }}
+                    · componentes {{ (($loop->iteration - 1) * 16) + 1 }} a {{ (($loop->iteration - 1) * 16) + $componentChunk->count() }}
                 @endif
             </span>
         </div>
@@ -105,7 +112,7 @@
                         <th class="formation-heading" colspan="{{ $formationGroup['colspan'] }}">{{ $formationGroup['formation'] }}</th>
                     @endforeach
                     @if($showBehavior)
-                        <th class="behavior-heading" rowspan="3">Comportamento</th>
+                        <th class="behavior-heading" rowspan="3"><div class="vertical-label"><span>Comportamento</span></div></th>
                     @endif
                 </tr>
                 <tr>
@@ -119,7 +126,7 @@
                     @foreach($formationGroups as $formationGroup)
                         @foreach($formationGroup['areas'] as $areaGroup)
                             @foreach($areaGroup['items'] as $componentItem)
-                                <th class="component-heading"><span>{{ $componentItem['name'] }}</span></th>
+                                <th class="component-heading"><div class="vertical-label"><span>{{ mb_strlen($componentItem['name']) > 45 ? 'Componente '.$componentItem['id'] : $componentItem['name'] }}</span></div></th>
                             @endforeach
                         @endforeach
                     @endforeach
@@ -158,6 +165,9 @@
         </table>
 
         <div class="mirror-notes">
+            @foreach($componentChunk->filter(fn ($item) => mb_strlen($item['name']) > 45) as $longComponent)
+                <div><strong>Componente {{ $longComponent['id'] }}:</strong> {{ $longComponent['name'] }}</div>
+            @endforeach
             <strong>Período:</strong> {{ $period->starts_at?->format('d/m/Y') ?? '-' }} a {{ $period->ends_at?->format('d/m/Y') ?? '-' }}.
             <strong>Matrículas:</strong> {{ $reports->count() }}.
             @if($scoreView === 'conceitos' && $conceptLegend->isNotEmpty())

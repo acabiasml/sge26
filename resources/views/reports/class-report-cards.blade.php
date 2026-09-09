@@ -9,7 +9,7 @@
         .letterhead { margin-bottom: 7px; padding-bottom: 5px; }
         .letterhead-logo img { max-width: 66px; max-height: 50px; }
         .document-title { font-size: 14px; margin: 5px 0 2px; text-transform: uppercase; }
-        .class-line { font-size: 11px; margin: 1px 0 8px; text-align: center; text-transform: uppercase; white-space: nowrap; }
+        .class-line { font-size: 11px; margin: 1px 0 8px; text-align: center; text-transform: uppercase; white-space: normal; }
         .student-meta { margin: 0 0 7px; }
         .student-meta p { margin: 0 0 2px; }
         .report-table { border-collapse: collapse; margin: 7px 0; width: 100%; }
@@ -26,7 +26,7 @@
         .legend { font-size: 11px; margin-top: 7px; }
         .legend strong { display: block; }
         .concept-legend { margin-top: 4px; }
-        .concept-legend span { display: inline-block; margin-right: 9px; white-space: nowrap; }
+        .concept-legend span { display: inline-block; margin-right: 9px; white-space: normal; }
         .signatures { border-collapse: collapse; margin-top: 88px; width: 100%; }
         .signatures td { border: 0; font-size: 11px; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 285px; padding-top: 6px; }

@@ -26,7 +26,8 @@
         .attendance-page-break { page-break-before: always; height: 0; }
         .scores-table { margin-top: 10px; }
         .scores-table .student-column { width: auto; }
-        .score-column { width: 1%; min-width: 32px; white-space: nowrap; }
+        th.score-column { white-space: normal; }
+        .score-column { width: 1%; min-width: 32px; }
         .scores-section { page-break-inside: avoid; }
         .scores-table thead { display: table-header-group; page-break-after: avoid; }
         .scores-table thead tr { page-break-after: avoid; }

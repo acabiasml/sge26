@@ -10,7 +10,7 @@
         .letterhead { margin-bottom: 7px; padding-bottom: 5px; }
         .letterhead-logo img { max-width: 66px; max-height: 50px; }
         .document-title { font-size: 14px; margin: 5px 0 2px; text-transform: uppercase; }
-        .class-line { font-size: 11px; margin: 1px 0 8px; text-align: center; text-transform: uppercase; white-space: nowrap; }
+        .class-line { font-size: 11px; margin: 1px 0 8px; text-align: center; text-transform: uppercase; white-space: normal; }
         .section-title { color: #6f3a29; font-size: 11px; font-weight: 600; margin: 4px 0 2px; text-transform: uppercase; }
         .meta-table { border-collapse: collapse; margin-bottom: 5px; width: 100%; }
         .meta-table td { border: .45px solid #d8ccc4; padding: 1.5px 3px; vertical-align: top; }
@@ -33,7 +33,7 @@
         .legend-table th, .legend-table td { border: .45px solid #d8ccc4; padding: 3px 5px; text-align: left; vertical-align: top; }
         .legend-table th { background: #f3eee9; font-weight: 600; width: 10%; }
         .legend-table td { background: #faf8f6; }
-        .legend-table span { display: inline-block; margin-right: 9px; white-space: nowrap; }
+        .legend-table span { display: inline-block; margin-right: 9px; white-space: normal; }
         .signatures { border-collapse: collapse; margin-top: 6px; page-break-inside: avoid; width: 100%; }
         .signatures td { border: 0; font-size: 11px; padding-top: 54px; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 285px; padding-top: 3px; }

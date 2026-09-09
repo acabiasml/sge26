@@ -31,28 +31,7 @@
             font-weight: 600;
         }
         .matrix-table td { border: .5px solid #2f241f; padding: 2.6px 3.2px; vertical-align: middle; }
-        .formation-cell {
-            width: 22px;
-            min-height: 92px;
-            height: 92px;
-            background: #e3dfdc;
-            padding: 0;
-            text-align: center;
-            vertical-align: middle;
-            overflow: hidden;
-        }
-        .formation-text {
-            display: block;
-            width: 104px;
-            margin-left: -41px;
-            font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif;
-            font-size: 11px;
-            font-weight: 600;
-            line-height: 1;
-            text-transform: uppercase;
-            transform: rotate(-90deg);
-            white-space: nowrap;
-        }
+        .formation-heading td { background: #e3dfdc; font-weight: 600; text-transform: uppercase; }
         .area-cell { width: 25%; text-align: center; background: #f5f2ef; font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; font-size: 11px; }
         .component-cell { width: 32%; font-size: 11px; }
         .center-cell { text-align: center; width: auto; }
@@ -92,7 +71,6 @@
             <table class="matrix-table">
                 <thead>
                     <tr>
-                        <th style="width: 22px;" rowspan="2"></th>
                         <th rowspan="2">Área</th>
                         <th rowspan="2">Componente curricular</th>
                         <th colspan="{{ $matrixGroup['courses']->count() }}">
@@ -113,17 +91,11 @@
                 </thead>
                 <tbody>
                     @foreach ($matrixGroup['rows'] as $formationGroup)
-                        @php($formationPrinted = false)
+                        <tr class="formation-heading"><td colspan="{{ 2 + $matrixGroup['courses']->count() }}">{{ $formationGroup['formation'] }}</td></tr>
                         @foreach ($formationGroup['areas'] as $areaGroup)
                             @php($areaPrinted = false)
                             @foreach ($areaGroup['components'] as $component)
                                 <tr>
-                                    @if (! $formationPrinted)
-                                        <td class="formation-cell" rowspan="{{ $formationGroup['rowspan'] }}">
-                                            <span class="formation-text">{{ $formationGroup['formation'] }}</span>
-                                        </td>
-                                        @php($formationPrinted = true)
-                                    @endif
                                     @if (! $areaPrinted)
                                         <td class="area-cell" rowspan="{{ $areaGroup['rowspan'] }}">{{ $areaGroup['area'] }}</td>
                                         @php($areaPrinted = true)
@@ -146,7 +118,7 @@
                         @endforeach
                     @endforeach
                     <tr class="total-row">
-                        <td colspan="3">Total</td>
+                        <td colspan="2">Total</td>
                         @foreach ($matrixGroup['courses'] as $course)
                             <td class="center-cell">
                                 @if($matrixGroup['value_mode'] === 'weekly')

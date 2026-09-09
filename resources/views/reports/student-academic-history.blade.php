@@ -26,11 +26,11 @@
         .formation-title-reference { font-weight: 400; margin-left: 6px; text-transform: none; }
         .module-title { border: .55px solid #111; border-bottom: 0; background: #f5f2ef; font-weight: 600; padding: 2px 4px; page-break-after: avoid; }
         .area-group { page-break-inside: avoid; }
-        .score-cell { white-space: nowrap; }
-        .general-total-label { border-right: 0 !important; white-space: nowrap; }
+        .score-cell { white-space: normal; }
+        .general-total-label { border-right: 0 !important; white-space: normal; }
         .general-total-label-space { border-left: 0 !important; }
         .studies-table { page-break-inside: avoid; }
-        .studies-nowrap { white-space: nowrap; }
+        .studies-nowrap { white-space: normal; }
         .notes { margin: 3px 0 0; }
         .legend-table { border-collapse: collapse; font-size: 11px; line-height: 1.06; margin-top: 5px; width: 100%; }
         .legend-table th, .legend-table td { border: .45px solid #d8ccc4; padding: 3px 5px; text-align: left; vertical-align: top; }
