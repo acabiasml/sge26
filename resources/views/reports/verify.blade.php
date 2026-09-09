@@ -1,18 +1,11 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Verificação de Documento - Beabá</title>
-    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
-    <link href="{{ asset('template/vendor/fontawesome-free/css/all.min.css') }}" rel="stylesheet" type="text/css">
-    <link href="{{ asset('template/css/sb-admin-2.min.css') }}" rel="stylesheet">
-    <link href="{{ asset('template/css/sge-brand.css') }}" rel="stylesheet">
-</head>
-<body class="bg-gradient-primary">
-    <main class="container py-5">
+@extends(auth()->check() ? 'layouts.app' : 'layouts.verification')
+
+@section('title', 'Resultado da verificação')
+@section('page-title', 'Verificar autenticidade')
+
+@section('content')
         <div class="card shadow mx-auto sge-narrow-card-lg">
-            <div class="card-body p-5">
+            <div class="card-body p-3 p-sm-5">
                 <div class="text-center mb-4">
                     <img class="sge-verification-logo-lg" src="{{ asset('brand/logo.png') }}" alt="Beabá">
                     <h1 class="h4 text-gray-900 mt-3">Documento verificado</h1>
@@ -74,12 +67,7 @@
                     Esta consulta confirma a emissão e a situação do documento. Por segurança, dados pessoais e conteúdo completo do documento não são exibidos nesta página pública.
                 </p>
 
-                <div class="text-center mt-4">
-                    <a class="btn btn-outline-primary" href="https://ctjj.org/#verificar-documento">Verificar outro documento</a>
-                    <a class="btn btn-primary" href="https://ctjj.org/">Voltar ao site do CTJJ</a>
-                </div>
+                @include('reports.partials.verification-navigation', ['showNewLookup' => true])
             </div>
         </div>
-    </main>
-</body>
-</html>
+@endsection

@@ -76,7 +76,7 @@
                 $personalMenuActive = request()->routeIs('profile.*') || request()->routeIs('student-diaries.*') || $ownStudentLifeActive || request()->routeIs('teacher-schedules.*');
                 $schoolManagementActive = request()->routeIs('schools.*') || request()->routeIs('academic-years.*') || $peopleRegistryActive || request()->routeIs('data-quality.*');
                 $academicRoutineActive = request()->routeIs('enrollments.*') || request()->routeIs('classes.enrollments.*') || request()->routeIs('attendance-justifications.*') || request()->routeIs('teacher-diaries.*') || request()->routeIs('student-histories.*') || ($studentLifeActive && ! $ownStudentLifeActive);
-                $documentsMenuActive = request()->routeIs('document-issuance.*') || request()->routeIs('official-documents.*') || request()->routeIs('documents.verify.*');
+                $documentsMenuActive = request()->routeIs('document-issuance.*') || request()->routeIs('official-documents.*') || request()->routeIs('documents.verify', 'documents.verify.*');
             @endphp
 
             <li class="nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
@@ -225,7 +225,7 @@
                                 <span>{{ __('navigation.document_editor') }}</span>
                             </a>
                         @endif
-                        <a class="collapse-item {{ request()->routeIs('documents.verify.*') ? 'active' : '' }}" href="{{ route('documents.verify.form') }}">
+                        <a class="collapse-item {{ request()->routeIs('documents.verify', 'documents.verify.*') ? 'active' : '' }}" href="{{ route('documents.verify.form') }}">
                             <i class="fas fa-certificate" aria-hidden="true"></i>
                             <span>{{ __('navigation.verify_authenticity') }}</span>
                         </a>
