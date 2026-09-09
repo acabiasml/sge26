@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-theme="{{ auth()->user()->theme === 'govbr' ? 'govbr' : 'beaba' }}" lang="{{ app()->getLocale() === 'it' ? 'it' : 'pt-BR' }}">
+<html data-theme="{{ auth()->user()->interfaceTheme() }}" lang="{{ app()->getLocale() === 'it' ? 'it' : 'pt-BR' }}">
 
 <head>
     <meta charset="utf-8">
@@ -17,6 +17,7 @@
     <link href="{{ asset('vendor/rappasoft/livewire-tables/css/laravel-livewire-tables-thirdparty.min.css') }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-brand.css') }}?v={{ filemtime(public_path('template/css/sge-brand.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-govbr.css') }}?v={{ filemtime(public_path('template/css/sge-govbr.css')) }}" rel="stylesheet">
+    <link href="{{ asset('template/css/sge-aurora.css') }}?v={{ filemtime(public_path('template/css/sge-aurora.css')) }}" rel="stylesheet">
     <style>
         .sge-theme-switcher { display: flex; align-items: center; }
         .topbar .sge-theme-switcher .nav-link {
@@ -275,15 +276,15 @@
                             </button>
                             <div class="dropdown-menu dropdown-menu-right shadow" aria-labelledby="themeDropdown">
                                 <h2 class="dropdown-header">{{ __('theme.label') }}</h2>
-                                @foreach (['beaba' => 'beathema', 'govbr' => 'gov.br'] as $theme => $themeLabel)
+                                @foreach (\App\Models\User::INTERFACE_THEMES as $theme => $themeLabel)
                                     <form method="POST" action="{{ route('theme.update') }}">
                                         @csrf
                                         @method('PATCH')
                                         <input type="hidden" name="theme" value="{{ $theme }}">
                                         <button type="submit" class="dropdown-item d-flex align-items-center justify-content-between"
-                                            aria-pressed="{{ (auth()->user()->theme ?? 'beaba') === $theme ? 'true' : 'false' }}">
-                                            <span>{{ $themeLabel }}</span>
-                                            @if ((auth()->user()->theme ?? 'beaba') === $theme)
+                                            aria-pressed="{{ auth()->user()->interfaceTheme() === $theme ? 'true' : 'false' }}">
+                                            <span class="sge-theme-option"><span class="sge-theme-swatch" data-theme-swatch="{{ $theme }}" aria-hidden="true"></span>{{ __($themeLabel) }}</span>
+                                            @if (auth()->user()->interfaceTheme() === $theme)
                                                 <i class="fas fa-check ml-3" aria-hidden="true"></i>
                                             @endif
                                         </button>

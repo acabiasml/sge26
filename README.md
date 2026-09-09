@@ -265,7 +265,7 @@ Recados podem ter público e vigência. Relatórios administrativos aceitam busc
 ## Acessibilidade e interface
 
 - interface em português do Brasil;
-- tema beathema ou gov.br selecionável no ícone de paleta ao lado dos idiomas no menu superior, com preferência salva por usuário;
+- temas beathema, gov.br e Aurora (clara e escura) selecionáveis no ícone de paleta ao lado dos idiomas no menu superior, com preferência salva por usuário;
 - tema gov.br inspirado no Design System de Governo, com fonte Rawline local, navegação clara e foco visível;
 - fonte local Atkinson Hyperlegible Next, sem dependência de Google Fonts;
 - foco visível e link para pular ao conteúdo;

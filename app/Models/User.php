@@ -16,6 +16,13 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use Auditable, HasFactory, HasTitleCaseAttributes, Notifiable;
 
+    public const INTERFACE_THEMES = [
+        'beaba' => 'theme.beathema',
+        'govbr' => 'theme.govbr',
+        'aurora-light' => 'theme.aurora_light',
+        'aurora-dark' => 'theme.aurora_dark',
+    ];
+
     public const DEFAULT_AUDIT_TIMEZONE = 'America/Sao_Paulo';
 
     public const AUDIT_TIMEZONES = [
@@ -226,6 +233,11 @@ class User extends Authenticatable
 
         return $this->hasActiveRole(PersonSchoolRole::ROLE_STUDENT)
             || $this->person?->studentEnrollments()->exists() === true;
+    }
+
+    public function interfaceTheme(): string
+    {
+        return array_key_exists($this->theme ?? '', self::INTERFACE_THEMES) ? $this->theme : 'beaba';
     }
 
     public function auditTimezone(): string

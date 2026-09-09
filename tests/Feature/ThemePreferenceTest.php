@@ -17,7 +17,7 @@ class ThemePreferenceTest extends TestCase
 
         $this->assertSame('beaba', $user->fresh()->theme);
 
-        foreach (['govbr', 'beaba'] as $theme) {
+        foreach (['govbr', 'aurora-light', 'aurora-dark', 'beaba'] as $theme) {
             $this->actingAs($user)->from('/meu-cadastro')
                 ->patch(route('theme.update'), ['theme' => $theme, 'id' => $otherUser->id])
                 ->assertRedirect('/meu-cadastro');
