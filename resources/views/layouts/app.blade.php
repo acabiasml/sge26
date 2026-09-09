@@ -18,6 +18,7 @@
     <link href="{{ asset('template/css/sge-brand.css') }}?v={{ filemtime(public_path('template/css/sge-brand.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-govbr.css') }}?v={{ filemtime(public_path('template/css/sge-govbr.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-aurora.css') }}?v={{ filemtime(public_path('template/css/sge-aurora.css')) }}" rel="stylesheet">
+    <link href="{{ asset('template/css/sge-beathema.css') }}?v={{ filemtime(public_path('template/css/sge-beathema.css')) }}" rel="stylesheet">
     <style>
         .sge-theme-switcher { display: flex; align-items: center; }
         .topbar .sge-theme-switcher .nav-link {
