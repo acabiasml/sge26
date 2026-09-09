@@ -275,7 +275,7 @@
                             </button>
                             <div class="dropdown-menu dropdown-menu-right shadow" aria-labelledby="themeDropdown">
                                 <h2 class="dropdown-header">{{ __('theme.label') }}</h2>
-                                @foreach (['beaba' => 'Beabá', 'govbr' => 'gov.br'] as $theme => $themeLabel)
+                                @foreach (['beaba' => 'beathema', 'govbr' => 'gov.br'] as $theme => $themeLabel)
                                     <form method="POST" action="{{ route('theme.update') }}">
                                         @csrf
                                         @method('PATCH')
