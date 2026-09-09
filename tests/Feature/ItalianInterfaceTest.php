@@ -44,7 +44,6 @@ class ItalianInterfaceTest extends TestCase
 
         foreach ($pages as [$url, $text]) {
             $response = $this->actingAs($user)->get($url);
-            file_put_contents('/tmp/italian-last.html', $response->getContent());
             $response->assertOk()->assertSee($text);
         }
 
@@ -59,9 +58,9 @@ class ItalianInterfaceTest extends TestCase
             ->assertSee('value="Regular"', false)
             ->assertSeeText('Regolare');
 
-        $this->get(route('enrollments.report-card.show', $enrollment))
-            ->assertSee('notas=numeros', false)
-            ->assertDontSee('voti=numeros', false);
+        $this->get(route('teacher-diaries.show', [$class, $component, 'period' => $period->id]))
+            ->assertSee('notas=conceitos', false)
+            ->assertDontSee('voti=conceitos', false);
 
         $this->assertSame('Turma de Teste', $class->fresh()->name);
         $this->assertSame('Matemática', $component->fresh()->name);

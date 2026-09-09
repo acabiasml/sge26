@@ -2334,5 +2334,14 @@
     "Não calculado": "Non calcolato",
     ". Abra o cadastro da escola e revise os dados do papel timbrado.": ". Apri l’anagrafica della scuola e verifica i dati della carta intestata.",
     ". Abra a ficha da pessoa e revise os dados civis e de endereço.": ". Apri la scheda della persona e verifica i dati anagrafici e l’indirizzo.",
-    " desde ": " dal "
+    " desde ": " dal ",
+    ":component ainda não possui área do conhecimento.": ":component non ha ancora un’area di conoscenza.",
+    ":component precisa de aulas semanais ou carga horária total.": ":component richiede lezioni settimanali o un monte ore totale.",
+    ":component começa depois do período final informado.": ":component inizia dopo il periodo finale indicato.",
+    ":component ainda não possui professor titular.": ":component non ha ancora un docente titolare.",
+    ":component ainda não aparece em nenhum bloco de horário.": ":component non compare ancora in nessun blocco orario.",
+    ":component possui :scheduled bloco(s), mas a matriz prevê :expected.": ":component ha :scheduled blocco/i, ma il piano di studi ne prevede :expected.",
+    "O período :period ainda não foi consolidado.": "Il periodo :period non è ancora consolidato.",
+    ":count matrícula(s) sem resultado final calculado.": ":count iscrizione/i senza risultato finale calcolato.",
+    "A lista de chamada manual só fica disponível para turmas em andamento.": "Il registro presenze manuale è disponibile solo per le classi in corso."
 }

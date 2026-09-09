@@ -72,18 +72,18 @@ class AcademicStructureValidator
             }
 
             if (blank($component->knowledge_area_id)) {
-                $items[] = self::issue('warning', __('Componente sem área'), "{$component->name} ainda não possui área do conhecimento.", __('Abrir componente'), route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
+                $items[] = self::issue('warning', __('Componente sem área'), __(':component ainda não possui área do conhecimento.', ['component' => $component->name]), __('Abrir componente'), route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
             }
 
             if ((int) $component->weekly_lessons < 1 && (int) $component->workload_hours < 1) {
-                $items[] = self::issue('warning', __('Componente sem carga horária'), "{$component->name} precisa de aulas semanais ou carga horária total.", __('Abrir componente'), route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
+                $items[] = self::issue('warning', __('Componente sem carga horária'), __(':component precisa de aulas semanais ou carga horária total.', ['component' => $component->name]), __('Abrir componente'), route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
             }
 
             $starts = $component->startsPeriod;
             $ends = $component->endsPeriod;
 
             if ($starts && $ends && $starts->position > $ends->position) {
-                $items[] = self::issue('danger', __('Duração inválida de componente'), "{$component->name} começa depois do período final informado.", __('Abrir componente'), route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
+                $items[] = self::issue('danger', __('Duração inválida de componente'), __(':component começa depois do período final informado.', ['component' => $component->name]), __('Abrir componente'), route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
             }
         }
 
@@ -137,7 +137,7 @@ class AcademicStructureValidator
             }
 
             if (blank($assignment->teacher_person_id)) {
-                $items[] = self::issue('warning', __('Componente sem docência titular'), ($assignment->component?->name ?? __('Componente sem nome')).' ainda não possui professor titular.', __('Gerenciar turma'), route('academic-years.classes.show', [$academicYear, $class]));
+                $items[] = self::issue('warning', __('Componente sem docência titular'), __(':component ainda não possui professor titular.', ['component' => $assignment->component?->name ?? __('Componente sem nome')]), __('Gerenciar turma'), route('academic-years.classes.show', [$academicYear, $class]));
             }
         }
 
@@ -158,9 +158,9 @@ class AcademicStructureValidator
                 $scheduled = (int) ($scheduledCounts[$assignment->id] ?? 0);
 
                 if ($scheduled === 0) {
-                    $items[] = self::issue('warning', __('Componente fora do horário'), ($assignment->component?->name ?? __('Componente sem nome')).' ainda não aparece em nenhum bloco de horário.', __('Gerenciar horário'), route('academic-years.classes.schedules.index', [$academicYear, $class]));
+                    $items[] = self::issue('warning', __('Componente fora do horário'), __(':component ainda não aparece em nenhum bloco de horário.', ['component' => $assignment->component?->name ?? __('Componente sem nome')]), __('Gerenciar horário'), route('academic-years.classes.schedules.index', [$academicYear, $class]));
                 } elseif ($scheduled > $expected) {
-                    $items[] = self::issue('danger', __('Horário acima das aulas semanais'), ($assignment->component?->name ?? __('Componente sem nome'))." possui {$scheduled} bloco(s), mas a matriz prevê {$expected}.", __('Gerenciar horário'), route('academic-years.classes.schedules.index', [$academicYear, $class]));
+                    $items[] = self::issue('danger', __('Horário acima das aulas semanais'), __(':component possui :scheduled bloco(s), mas a matriz prevê :expected.', ['component' => $assignment->component?->name ?? __('Componente sem nome'), 'scheduled' => $scheduled, 'expected' => $expected]), __('Gerenciar horário'), route('academic-years.classes.schedules.index', [$academicYear, $class]));
                 }
             }
         }

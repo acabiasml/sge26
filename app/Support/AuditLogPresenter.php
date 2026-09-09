@@ -294,7 +294,7 @@ class AuditLogPresenter
         }
 
         if (is_bool($value)) {
-            return $value ? 'Sim' : 'Não';
+            return $value ? __('Sim') : __('Não');
         }
 
         if (is_array($value)) {
@@ -304,10 +304,10 @@ class AuditLogPresenter
         if ($field === 'type' && is_string($value)) {
             return match ($model) {
                 IssuedDocument::class => __(DocumentVerificationPresenter::typeLabel($value)),
-                CalendarDay::class => CalendarDay::TYPE_LABELS[$value] ?? $value,
-                SchoolClassScheduleSlot::class => SchoolClassScheduleSlot::TYPE_LABELS[$value] ?? $value,
-                StudentEnrollment::class => StudentEnrollment::TYPE_LABELS[$value] ?? $value,
-                OfficialDocument::class => OfficialDocument::TYPE_LABELS[$value] ?? $value,
+                CalendarDay::class => __(CalendarDay::TYPE_LABELS[$value] ?? $value),
+                SchoolClassScheduleSlot::class => __(SchoolClassScheduleSlot::TYPE_LABELS[$value] ?? $value),
+                StudentEnrollment::class => __(StudentEnrollment::TYPE_LABELS[$value] ?? $value),
+                OfficialDocument::class => __(OfficialDocument::TYPE_LABELS[$value] ?? $value),
                 default => $value,
             };
         }

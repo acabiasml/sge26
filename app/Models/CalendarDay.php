@@ -95,9 +95,9 @@ class CalendarDay extends Model
 
     public static function labelWithPrintCode(string $type): string
     {
-        $label = self::TYPE_LABELS[$type] ?? $type;
+        $label = __(self::TYPE_LABELS[$type] ?? $type);
         $code = self::PRINT_CODES[$type] ?? null;
 
-        return filled($code) ? "{$label} ({$code})" : $label.' (S/D)';
+        return filled($code) ? "{$label} ({$code})" : $label.' ('.__('S/D').')';
     }
 }

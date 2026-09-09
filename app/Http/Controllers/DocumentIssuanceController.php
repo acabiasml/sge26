@@ -986,7 +986,7 @@ class DocumentIssuanceController extends Controller
         if ($this->requiresCurrentDiary($data['type'])
             && (! $assignment->active || ! $this->isCurrentClass($assignment->schoolClass))) {
             throw ValidationException::withMessages([
-                'target_id' => 'A lista de chamada manual sÃ³ fica disponÃ­vel para turmas em andamento.',
+                'target_id' => __('A lista de chamada manual só fica disponível para turmas em andamento.'),
             ]);
         }
 

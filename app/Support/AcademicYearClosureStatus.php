@@ -43,7 +43,7 @@ class AcademicYearClosureStatus
             if (! $period->diaryConsolidation?->consolidated) {
                 $issues[] = [
                     'level' => 'error',
-                    'message' => "O período {$period->name} ainda não foi consolidado.",
+                    'message' => __('O período :period ainda não foi consolidado.', ['period' => $period->name]),
                     'detail' => __('Consolide os diários do período antes do fechamento do ano letivo.'),
                 ];
             }
@@ -57,7 +57,7 @@ class AcademicYearClosureStatus
         if ($pendingFinalResults->isNotEmpty()) {
             $issues[] = [
                 'level' => 'error',
-                'message' => $pendingFinalResults->count().' matrícula(s) sem resultado final calculado.',
+                'message' => __(':count matrícula(s) sem resultado final calculado.', ['count' => $pendingFinalResults->count()]),
                 'detail' => __('Calcule os resultados finais nas turmas antes de fechar o ano letivo.'),
             ];
         }
