@@ -7,6 +7,7 @@ use App\Models\OfficialDocument;
 use App\Models\School;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
+use App\Support\PdfMetadata;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -16,11 +17,17 @@ use Symfony\Component\HttpFoundation\Response;
 
 class OfficialDocumentController extends Controller
 {
-    public function create(Request $request): Response
+    public function create(Request $request, ?OfficialDocument $document = null): Response
     {
         abort_unless($request->user()->canManagePeople(), 403);
 
+        if ($document) {
+            abort_unless($request->user()->canManageSchool($document->school_id), 403);
+        }
+
         return response()->view('official-documents.create', [
+            'sourceDocument' => $document,
+            'editorContent' => $this->sanitizeContent((string) $request->old('content_html', $document?->content_html ?? '')),
             'schools' => $this->availableSchools($request),
             'recentDocuments' => OfficialDocument::query()
                 ->with(['school', 'issuedDocument'])
@@ -28,8 +35,7 @@ class OfficialDocumentController extends Controller
                     $query->whereIn('school_id', $request->user()->manageableSchoolIds());
                 })
                 ->latest()
-                ->limit(8)
-                ->get(),
+                ->paginate(10),
         ]);
     }
 
@@ -84,7 +90,7 @@ class OfficialDocumentController extends Controller
             'letterhead' => PdfLetterhead::make($school),
         ])->setPaper('a4', $data['orientation']);
 
-        return \App\Support\PdfMetadata::stream($pdf, $this->filename($officialDocument), $officialDocument->title.' - Beabá');
+        return PdfMetadata::stream($pdf, $this->filename($officialDocument), $officialDocument->title.' - Beabá');
     }
 
     private function issuedDocument(Request $request, OfficialDocument $officialDocument): IssuedDocument
@@ -129,7 +135,7 @@ class OfficialDocumentController extends Controller
             $attributes = $matches[2] ?? '';
             $style = $this->sanitizeStyle($attributes);
 
-            if ($style === '' || ! in_array($tag, ['span', 'p', 'div', 'h2', 'h3', 'h4', 'th', 'td'], true)) {
+            if ($style === '' || ! in_array($tag, ['span', 'p', 'div', 'h2', 'h3', 'h4', 'th', 'td', 'li', 'ul', 'ol', 'blockquote'], true)) {
                 return '<'.$tag.'>';
             }
 
@@ -141,11 +147,16 @@ class OfficialDocumentController extends Controller
 
     private function sanitizeStyle(string $attributes): string
     {
-        if (! preg_match('/\sstyle\s*=\s*(["\'])(.*?)\1/is', $attributes, $match)) {
-            return '';
+        $alignment = '';
+        if (preg_match('/\salign\s*=\s*(?:["\'](left|center|right|justify)["\']|(left|center|right|justify)(?=\s|$))/i', $attributes, $align)) {
+            $alignment = 'text-align: '.strtolower($align[1] ?: $align[2]);
         }
 
-        $allowed = [];
+        if (! preg_match('/\sstyle\s*=\s*(["\'])(.*?)\1/is', $attributes, $match)) {
+            return $alignment;
+        }
+
+        $allowed = $alignment ? [$alignment] : [];
         $fontFamilies = ['Atkinson Hyperlegible Next', 'DejaVu Sans', 'DejaVu Serif', 'DejaVu Sans Mono'];
 
         $style = html_entity_decode($match[2], ENT_QUOTES | ENT_HTML5, 'UTF-8');

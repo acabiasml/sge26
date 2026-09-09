@@ -119,6 +119,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('conformidade/pdf', [DataQualityController::class, 'pdf'])->name('data-quality.pdf');
 
     Route::get('documentos-oficiais', [OfficialDocumentController::class, 'create'])->name('official-documents.create');
+    Route::get('documentos-oficiais/{document}/reeditar', [OfficialDocumentController::class, 'create'])->name('official-documents.edit');
     Route::post('documentos-oficiais/pdf', [OfficialDocumentController::class, 'store'])->name('official-documents.store');
     Route::get('emissao-de-documentos', [DocumentIssuanceController::class, 'index'])->name('document-issuance.index');
     Route::get('emissao-de-documentos/destinatarios', [DocumentIssuanceController::class, 'targets'])->name('document-issuance.targets');

@@ -18,6 +18,13 @@
     <link href="{{ asset('template/css/sge-brand.css') }}?v={{ filemtime(public_path('template/css/sge-brand.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-govbr.css') }}?v={{ filemtime(public_path('template/css/sge-govbr.css')) }}" rel="stylesheet">
     <style>
+        .sge-theme-switcher { display: flex; align-items: center; }
+        .topbar .sge-theme-switcher .nav-link {
+            width: 2.4rem; height: 2.4rem; padding: 0; border: 0; border-radius: .45rem;
+            color: var(--sge-brown) !important; background: var(--sge-surface);
+        }
+        .topbar .sge-theme-switcher .nav-link i { color: inherit !important; }
+        .sge-theme-switcher .dropdown-header { color: var(--sge-muted); }
         .sge-language-switcher { align-items: center; display: flex; gap: .15rem; padding: 0 .35rem; }
         .sge-language-switcher form { display: flex; margin: 0; }
         .sge-language-button {
@@ -261,6 +268,29 @@
                     </button>
 
                     <ul class="navbar-nav ml-auto">
+                        <li class="nav-item dropdown no-arrow sge-theme-switcher">
+                            <button class="nav-link btn btn-link dropdown-toggle sge-topbar-icon-button" type="button" id="themeDropdown"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="{{ __('theme.label') }}" title="{{ __('theme.label') }}">
+                                <i class="fas fa-palette" aria-hidden="true"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-right shadow" aria-labelledby="themeDropdown">
+                                <h2 class="dropdown-header">{{ __('theme.label') }}</h2>
+                                @foreach (['beaba' => 'Beabá', 'govbr' => 'gov.br'] as $theme => $themeLabel)
+                                    <form method="POST" action="{{ route('theme.update') }}">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="theme" value="{{ $theme }}">
+                                        <button type="submit" class="dropdown-item d-flex align-items-center justify-content-between"
+                                            aria-pressed="{{ (auth()->user()->theme ?? 'beaba') === $theme ? 'true' : 'false' }}">
+                                            <span>{{ $themeLabel }}</span>
+                                            @if ((auth()->user()->theme ?? 'beaba') === $theme)
+                                                <i class="fas fa-check ml-3" aria-hidden="true"></i>
+                                            @endif
+                                        </button>
+                                    </form>
+                                @endforeach
+                            </div>
+                        </li>
                         <li class="nav-item sge-language-switcher" aria-label="{{ __('navigation.language') }}">
                             @foreach ([
                                 'pt_BR' => ['flag' => '🇧🇷', 'label' => __('navigation.portuguese'), 'title' => __('navigation.change_to_portuguese')],
@@ -351,17 +381,6 @@
                                     <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-500" aria-hidden="true"></i>
                                     {{ __('navigation.my_profile') }}
                                 </a>
-                                <div class="dropdown-divider"></div>
-                                <form method="POST" action="{{ route('theme.update') }}" class="px-3 py-2">
-                                    @csrf
-                                    @method('PATCH')
-                                    <label for="interface-theme" class="font-weight-bold">{{ __('theme.label') }}</label>
-                                    <select id="interface-theme" name="theme" class="custom-select mb-2">
-                                        <option value="beaba" @selected(auth()->user()->theme !== 'govbr')>Beabá</option>
-                                        <option value="govbr" @selected(auth()->user()->theme === 'govbr')>gov.br</option>
-                                    </select>
-                                    <button type="submit" class="btn btn-primary btn-sm btn-block">{{ __('theme.apply') }}</button>
-                                </form>
                                 <div class="dropdown-divider"></div>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf

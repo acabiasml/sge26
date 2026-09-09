@@ -8,12 +8,15 @@
         <div class="col-xl-8 mb-4">
             <div class="card shadow">
                 <div class="card-header py-3">
-                    <h2 class="h6 m-0 font-weight-bold text-primary">Novo documento em papel timbrado</h2>
+                    <h2 class="h6 m-0 font-weight-bold text-primary">{{ $sourceDocument ? 'Reeditar documento em papel timbrado' : 'Novo documento em papel timbrado' }}</h2>
                 </div>
                 <div class="card-body">
+                    @if ($sourceDocument)
+                        <div class="alert alert-info">Você está reeditando “{{ $sourceDocument->title }}”. A emissão criará um novo documento e um novo código de autenticidade.</div>
+                    @endif
                     <form method="POST" action="{{ route('official-documents.store') }}" id="official-document-form">
                         @csrf
-                        <input type="hidden" name="type" value="{{ \App\Models\OfficialDocument::TYPE_OTHER }}">
+                        <input type="hidden" name="type" value="{{ old('type', $sourceDocument?->type ?? \App\Models\OfficialDocument::TYPE_OTHER) }}">
 
                         <div class="row">
                             <div class="col-md-5 form-group">
@@ -21,7 +24,7 @@
                                 <select id="school_id" name="school_id" class="form-control @error('school_id') is-invalid @enderror" required>
                                     <option value="">Selecione</option>
                                     @foreach ($schools as $school)
-                                        <option value="{{ $school->id }}" @selected((int) old('school_id') === $school->id)>{{ $school->name }}</option>
+                                        <option value="{{ $school->id }}" @selected((int) old('school_id', $sourceDocument?->school_id) === $school->id)>{{ $school->name }}</option>
                                     @endforeach
                                 </select>
                                 @error('school_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -29,18 +32,18 @@
                             <div class="col-md-3 form-group">
                                 <label for="orientation">Orientação</label>
                                 <select id="orientation" name="orientation" class="form-control @error('orientation') is-invalid @enderror" required>
-                                    <option value="portrait" @selected(old('orientation', 'portrait') === 'portrait')>Retrato</option>
-                                    <option value="landscape" @selected(old('orientation') === 'landscape')>Paisagem</option>
+                                    <option value="portrait" @selected(old('orientation', $sourceDocument?->orientation ?? 'portrait') === 'portrait')>Retrato</option>
+                                    <option value="landscape" @selected(old('orientation', $sourceDocument?->orientation) === 'landscape')>Paisagem</option>
                                 </select>
                                 @error('orientation') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-4 form-group">
                                 <label for="line_spacing">Espaçamento entre linhas</label>
                                 <select id="line_spacing" name="line_spacing" class="form-control @error('line_spacing') is-invalid @enderror" required>
-                                    <option value="1" @selected(old('line_spacing') === '1')>Simples</option>
-                                    <option value="1.15" @selected(old('line_spacing') === '1.15')>1,15</option>
-                                    <option value="1.5" @selected(old('line_spacing', '1.5') === '1.5')>1,5</option>
-                                    <option value="2" @selected(old('line_spacing') === '2')>Duplo</option>
+                                    <option value="1" @selected((string) old('line_spacing', $sourceDocument?->line_spacing ?? '1.5') === '1')>Simples</option>
+                                    <option value="1.15" @selected((string) old('line_spacing', $sourceDocument?->line_spacing ?? '1.5') === '1.15')>1,15</option>
+                                    <option value="1.5" @selected((string) old('line_spacing', $sourceDocument?->line_spacing ?? '1.5') === '1.5')>1,5</option>
+                                    <option value="2" @selected((string) old('line_spacing', $sourceDocument?->line_spacing ?? '1.5') === '2')>Duplo</option>
                                 </select>
                                 @error('line_spacing') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
@@ -48,7 +51,7 @@
 
                         <div class="form-group">
                             <label for="title">Título do documento</label>
-                            <input id="title" name="title" class="form-control @error('title') is-invalid @enderror" value="{{ old('title') }}" maxlength="255" required>
+                            <input id="title" name="title" class="form-control @error('title') is-invalid @enderror" value="{{ old('title', $sourceDocument?->title) }}" maxlength="255" required>
                             @error('title') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
 
@@ -110,8 +113,8 @@
                                     <i class="fas fa-align-justify" aria-hidden="true"></i>
                                 </button>
                             </div>
-                            <div id="official-editor" class="form-control sge-rich-editor @error('content_html') is-invalid @enderror" contenteditable="true" role="textbox" aria-multiline="true">{{ old('content_html') }}</div>
-                            <textarea id="content_html" name="content_html" class="d-none" required>{{ old('content_html') }}</textarea>
+                            <div id="official-editor" class="form-control sge-rich-editor @error('content_html') is-invalid @enderror" contenteditable="true" role="textbox" aria-multiline="true">{!! $editorContent !!}</div>
+                            <textarea id="content_html" name="content_html" class="d-none" required>{{ $editorContent }}</textarea>
                             @error('content_html') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                         </div>
 
@@ -127,7 +130,7 @@
         <div class="col-xl-4 mb-4">
             <div class="card shadow">
                 <div class="card-header py-3">
-                    <h2 class="h6 m-0 font-weight-bold text-primary">Emissões recentes</h2>
+                    <h2 class="h6 m-0 font-weight-bold text-primary">Documentos emitidos</h2>
                 </div>
                 <div class="card-body">
                     @forelse ($recentDocuments as $document)
@@ -137,10 +140,14 @@
                             @if ($document->issuedDocument)
                                 <span class="d-block small">Código: {{ $document->issuedDocument->verification_code }}</span>
                             @endif
+                            <a class="btn btn-sm btn-outline-primary mt-2" href="{{ route('official-documents.edit', $document) }}">
+                                <i class="fas fa-edit mr-1" aria-hidden="true"></i> Reeditar e reemitir
+                            </a>
                         </div>
                     @empty
                         <p class="text-muted mb-0">Nenhum documento emitido ainda.</p>
                     @endforelse
+                    {{ $recentDocuments->links() }}
                 </div>
             </div>
         </div>
@@ -187,10 +194,17 @@
             syncOfficialEditor();
         };
 
+        // Keep the selected paragraph when the toolbar receives a mouse click.
+        document.querySelectorAll('.sge-editor-toolbar button').forEach((button) => {
+            button.addEventListener('mousedown', (event) => event.preventDefault());
+        });
+
         document.querySelectorAll('[data-editor-command]').forEach((button) => {
             button.addEventListener('click', () => {
                 officialEditor.focus();
+                document.execCommand('styleWithCSS', false, button.dataset.editorCommand.startsWith('justify'));
                 document.execCommand(button.dataset.editorCommand, false, null);
+                document.execCommand('styleWithCSS', false, false);
                 syncOfficialEditor();
             });
         });

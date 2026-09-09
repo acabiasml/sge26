@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\AcademicYear;
 use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
+use App\Models\AcademicYear;
 use App\Models\CalendarDay;
 use App\Models\IssuedDocument;
 use App\Models\OfficialDocument;
@@ -93,6 +93,46 @@ class AdminScreensTest extends TestCase
         $this->assertInstanceOf(IssuedDocument::class, $document->issuedDocument);
     }
 
+    public function test_saved_document_can_be_reedited_without_changing_original(): void
+    {
+        $school = School::query()->create($this->officialSchoolData(['name' => 'Escola A']));
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id, 'reedicao@ctjj.org');
+        $original = OfficialDocument::query()->create([
+            'school_id' => $school->id, 'created_by_user_id' => $manager->id,
+            'type' => OfficialDocument::TYPE_LETTER, 'title' => 'Ofício anterior',
+            'content_html' => '<p align="center">Texto original</p>',
+            'paper_size' => 'a4', 'orientation' => 'landscape', 'line_spacing' => 1.15,
+        ]);
+        $this->actingAs($manager)->get(route('official-documents.edit', $original))
+            ->assertOk()->assertSee('Texto original')->assertSee('text-align: center', false)
+            ->assertSee('novo código de autenticidade');
+        $this->actingAs($manager)->post(route('official-documents.store'), [
+            'school_id' => $school->id, 'type' => $original->type, 'title' => 'Ofício reemitido',
+            'orientation' => $original->orientation, 'line_spacing' => $original->line_spacing,
+            'content_html' => '<p align="right" onclick="alert(1)">Texto revisado</p><ul><li style="text-align: center">Item centralizado</li></ul>',
+        ])->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertSame('<p align="center">Texto original</p>', $original->fresh()->content_html);
+        $new = OfficialDocument::query()->latest('id')->firstOrFail();
+        $this->assertNotSame($original->id, $new->id);
+        $this->assertNotNull($new->issued_document_id);
+        $this->assertStringContainsString('text-align: right', $new->content_html);
+        $this->assertStringContainsString('<li style="text-align: center">', $new->content_html);
+        $this->assertStringNotContainsString('onclick', $new->content_html);
+    }
+
+    public function test_manager_cannot_reedit_document_from_another_school(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A']);
+        $other = School::query()->create(['name' => 'Escola B']);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id, 'escopo-documento@ctjj.org');
+        $document = OfficialDocument::query()->create([
+            'school_id' => $other->id, 'created_by_user_id' => $manager->id, 'title' => 'Restrito', 'content_html' => '<p>Restrito</p>',
+            'type' => OfficialDocument::TYPE_OTHER, 'orientation' => 'portrait', 'line_spacing' => 1.5,
+        ]);
+        $this->actingAs($manager)->get(route('official-documents.edit', $document))->assertForbidden();
+        $this->actingAs($manager)->get(route('official-documents.create'))->assertDontSee('Restrito');
+    }
+
     public function test_manager_cannot_emit_official_document_for_other_school(): void
     {
         $managedSchool = School::query()->create(['name' => 'Escola A', 'active' => true]);
@@ -145,10 +185,10 @@ class AdminScreensTest extends TestCase
                 'inep' => '51061716',
                 'founded_at' => '1990-01-15',
                 'phone' => '(66) 99613-6796',
-            'address' => 'Rua de Teste',
-            'city' => 'Poxoreu',
-            'state' => 'MT',
-            'postal_code' => '78700-000',
+                'address' => 'Rua de Teste',
+                'city' => 'Poxoreu',
+                'state' => 'MT',
+                'postal_code' => '78700-000',
                 'email' => 'ctjj.mt@gmail.com',
                 'website' => 'https://ctjj.org',
                 'letterhead_text' => 'Texto para papel timbrado.',
@@ -184,10 +224,10 @@ class AdminScreensTest extends TestCase
                 'inep' => '51061716',
                 'founded_at' => '1990-10-04',
                 'phone' => '(66) 99613-6796',
-            'address' => 'Rua de Teste',
-            'city' => 'Poxoreu',
-            'state' => 'MT',
-            'postal_code' => '78700-000',
+                'address' => 'Rua de Teste',
+                'city' => 'Poxoreu',
+                'state' => 'MT',
+                'postal_code' => '78700-000',
                 'email' => 'ctjj.mt@gmail.com',
                 'website' => 'https://ctjj.org',
                 'letterhead_text' => 'Credenciamento e autorizacao vigentes.',
@@ -360,10 +400,10 @@ class AdminScreensTest extends TestCase
                 'cpf' => '123.456.789-10',
                 'nis' => '12345678901',
                 'phone' => '(65) 99999-0000',
-            'address' => 'Rua de Teste',
-            'city' => 'Poxoreu',
-            'state' => 'MT',
-            'postal_code' => '78700-000',
+                'address' => 'Rua de Teste',
+                'city' => 'Poxoreu',
+                'state' => 'MT',
+                'postal_code' => '78700-000',
                 'legal_guardian' => '1',
                 'emergency_contact' => '1',
             ])
@@ -1097,7 +1137,7 @@ class AdminScreensTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $overrides
+     * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>
      */
     private function officialSchoolData(array $overrides = []): array

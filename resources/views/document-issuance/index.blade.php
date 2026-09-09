@@ -100,8 +100,8 @@
                                 <option value="">Todos os anos letivos</option>
                                 @foreach ($academicYears as $year)
                                     <option value="{{ $year->id }}" data-school-id="{{ $year->school_id }}"
-                                        data-starts-at="{{ $year->starts_at?->format('Y-m-d') }}"
-                                        data-ends-at="{{ $year->ends_at?->format('Y-m-d') }}">
+                                        data-starts-at="{{ $year->starts_at?->format('Y-m-d') ?? $year->reference_year.'-01-01' }}"
+                                        data-ends-at="{{ $year->ends_at?->format('Y-m-d') ?? $year->reference_year.'-12-31' }}">
                                         {{ $year->referenceYearsLabel() }} · {{ $year->name }}
                                     </option>
                                 @endforeach
@@ -238,7 +238,9 @@
 
                         <div id="attendance-month-option" class="form-group mb-0 mt-3" hidden>
                             <label for="attendance-month">Mês</label>
-                            <input id="attendance-month" name="attendance_month" type="month" class="form-control" disabled>
+                            <select id="attendance-month" name="attendance_month" class="form-control" disabled>
+                                <option value="">Selecione a matrícula ou o ano letivo</option>
+                            </select>
                         </div>
 
                         <label id="federal-aid-only-option" class="sge-choice-tile mt-3" hidden>
@@ -396,14 +398,23 @@
                 const yearOption = Array.from(yearSelect.options).find((option) => option.value === String(academicYearId));
                 const minimum = yearOption?.dataset.startsAt?.slice(0, 7) || '';
                 const maximum = yearOption?.dataset.endsAt?.slice(0, 7) || '';
-                attendanceMonthInput.min = minimum;
-                attendanceMonthInput.max = maximum;
-                if (monthEnabled && !attendanceMonthInput.value) {
+                const previousMonth = attendanceMonthInput.value;
+                attendanceMonthInput.replaceChildren(new Option('Selecione o mês', ''));
+                if (minimum && maximum) {
+                    let [year, month] = minimum.split('-').map(Number);
+                    while (`${year}-${String(month).padStart(2, '0')}` <= maximum) {
+                        const value = `${year}-${String(month).padStart(2, '0')}`;
+                        const label = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' })
+                            .format(new Date(year, month - 1, 1));
+                        attendanceMonthInput.add(new Option(label, value));
+                        if (++month > 12) { month = 1; year++; }
+                    }
                     const currentMonth = @json(now()->format('Y-m'));
-                    attendanceMonthInput.value = minimum && currentMonth < minimum
-                        ? minimum
-                        : (maximum && currentMonth > maximum ? maximum : currentMonth);
+                    attendanceMonthInput.value = previousMonth >= minimum && previousMonth <= maximum
+                        ? previousMonth
+                        : (currentMonth < minimum ? minimum : (currentMonth > maximum ? maximum : currentMonth));
                 }
+
             };
 
             const syncFilterOptions = () => {

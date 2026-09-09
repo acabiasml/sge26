@@ -16,9 +16,9 @@ use App\Models\Person;
 use App\Models\PersonContact;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
+use App\Models\SchoolAssessmentRule;
 use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
-use App\Models\SchoolAssessmentRule;
 use App\Models\StudentEnrollment;
 use App\Models\User;
 use App\Support\StudentAttendanceCertificateBuilder;
@@ -537,6 +537,27 @@ class TeacherDiaryTest extends TestCase
         $this->assertSame('month', $document->payload['scope']);
         $this->assertSame(2, $document->payload['lessons']);
         $this->assertCount(2, $document->payload['matrices']);
+    }
+
+    public function test_third_bimester_and_its_months_can_be_issued_from_the_document_hub(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $period->update(['name' => 'III Bimestre', 'starts_at' => '2026-08-03', 'ends_at' => '2026-10-09']);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'terceiro-bimestre@ctjj.org');
+
+        foreach ([
+            ['attendance_scope' => 'period', 'academic_period_id' => $period->id],
+            ['attendance_scope' => 'month', 'attendance_month' => '2026-08'],
+            ['attendance_scope' => 'month', 'attendance_month' => '2026-09'],
+            ['attendance_scope' => 'month', 'attendance_month' => '2026-10'],
+        ] as $scope) {
+            $redirect = $this->actingAs($manager)->get(route('document-issuance.issue', [
+                'type' => 'attendance-certificate', 'target_id' => $enrollment->id, ...$scope,
+            ]))->assertRedirect();
+            $this->get($redirect->headers->get('Location'))->assertOk()->assertHeader('content-type', 'application/pdf');
+            $document = IssuedDocument::query()->latest('id')->firstOrFail();
+            $this->assertSame($scope['attendance_scope'], $document->payload['scope']);
+        }
     }
 
     public function test_management_can_review_and_emit_student_declarations(): void

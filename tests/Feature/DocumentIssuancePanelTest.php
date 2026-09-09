@@ -689,6 +689,35 @@ class DocumentIssuancePanelTest extends TestCase
             ->assertJsonPath('targets.0.missing_student_cpf', true);
     }
 
+    public function test_search_matches_separated_name_words_in_any_order_and_keeps_school_scope(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $otherSchool = School::query()->create(['name' => 'Escola B', 'active' => true]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $student = $this->personWithRole('Lucas da Silva Arruda', PersonSchoolRole::ROLE_STUDENT, $school->id);
+        $other = $this->personWithRole('Lucas Arruda de Outra Escola', PersonSchoolRole::ROLE_STUDENT, $otherSchool->id);
+        foreach ([$student, $other] as $person) {
+            $year = AcademicYear::query()->create([
+                'school_id' => $person->id === $student->id ? $school->id : $otherSchool->id,
+                'name' => 'Ano letivo', 'reference_year' => 2026, 'active' => true,
+                'starts_at' => '2026-01-01', 'ends_at' => '2026-12-31',
+            ]);
+            $class = SchoolClass::query()->create(['academic_year_id' => $year->id, 'name' => '3º Ano', 'active' => true]);
+            StudentEnrollment::query()->create([
+                'school_class_id' => $class->id, 'person_id' => $person->id,
+                'enrolled_at' => '2026-02-01', 'status' => StudentEnrollment::STATUS_ENROLLED,
+            ]);
+        }
+        foreach (['person-record', 'attendance-certificate'] as $type) {
+            foreach (['Lucas Arruda', 'Arruda   Lucas'] as $term) {
+                $this->actingAs($manager)->getJson(route('document-issuance.targets', ['type' => $type, 'q' => $term]))
+                    ->assertOk()->assertJsonCount(1, 'targets')->assertJsonPath('targets.0.title', $student->full_name);
+            }
+            $this->actingAs($manager)->getJson(route('document-issuance.targets', ['type' => $type, 'q' => 'Lucas Inexistente']))
+                ->assertOk()->assertJsonCount(0, 'targets');
+        }
+    }
+
     private function userWithRole(string $role, ?int $schoolId = null): User
     {
         $person = $this->personWithRole('Usuário '.$role, $role, $schoolId);

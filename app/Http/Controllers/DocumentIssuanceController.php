@@ -362,8 +362,8 @@ class DocumentIssuanceController extends Controller
             ->when($request->filled('class_id'), fn (Builder $query) => $query->where('school_class_id', $request->integer('class_id')))
             ->when($term !== '', function (Builder $query) use ($term): void {
                 $query->where(function (Builder $search) use ($term): void {
-                    $search->where('people.full_name', 'like', '%'.$term.'%')
-                        ->orWhere('people.social_name', 'like', '%'.$term.'%')
+                    $this->wherePersonName($search, $term, 'people.');
+                    $search
                         ->orWhere('people.cpf', 'like', '%'.$term.'%');
                 });
             })
@@ -552,6 +552,21 @@ class DocumentIssuanceController extends Controller
         return $openYear || $ongoingTechnicalCourse;
     }
 
+    private function wherePersonName(Builder $query, string $term, string $prefix = ''): void
+    {
+        $words = preg_split('/\s+/u', trim($term), -1, PREG_SPLIT_NO_EMPTY);
+
+        $query->where(function (Builder $names) use ($words, $prefix): void {
+            foreach (['full_name', 'social_name'] as $column) {
+                $names->orWhere(function (Builder $name) use ($words, $prefix, $column): void {
+                    foreach ($words as $word) {
+                        $name->where($prefix.$column, 'like', '%'.$word.'%');
+                    }
+                });
+            }
+        });
+    }
+
     /**
      * @param  list<int>  $schoolIds
      * @return Collection<int, array<string, bool|int|string|null>>
@@ -564,8 +579,8 @@ class DocumentIssuanceController extends Controller
             ->when($request->filled('school_id'), fn (Builder $query) => $query->whereHas('schoolRoles', fn (Builder $roles) => $roles->where('school_id', $request->integer('school_id'))))
             ->when($term !== '', function (Builder $query) use ($term): void {
                 $query->where(function (Builder $search) use ($term): void {
-                    $search->where('full_name', 'like', '%'.$term.'%')
-                        ->orWhere('social_name', 'like', '%'.$term.'%')
+                    $this->wherePersonName($search, $term);
+                    $search
                         ->orWhere('institutional_email', 'like', '%'.$term.'%')
                         ->orWhere('cpf', 'like', '%'.$term.'%');
                 });
@@ -597,8 +612,8 @@ class DocumentIssuanceController extends Controller
             ->when($request->filled('school_id'), fn (Builder $query) => $query->where('school_id', $request->integer('school_id')))
             ->when($term !== '', function (Builder $query) use ($term): void {
                 $query->where(function (Builder $search) use ($term): void {
-                    $search->where('people.full_name', 'like', '%'.$term.'%')
-                        ->orWhere('people.social_name', 'like', '%'.$term.'%')
+                    $this->wherePersonName($search, $term, 'people.');
+                    $search
                         ->orWhere('student_academic_histories.title', 'like', '%'.$term.'%')
                         ->orWhere('student_academic_histories.stage', 'like', '%'.$term.'%');
                 });

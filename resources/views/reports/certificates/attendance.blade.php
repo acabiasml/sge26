@@ -4,20 +4,22 @@
     <meta charset="utf-8">
     <style>
         @page { size: A4 portrait; margin: 150px 24px 72px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 11.6px; line-height: 1.5; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 11.6px; line-height: 1.3; }
         @include('reports.partials.letterhead-styles')
-        .certificate-text { font-size: 12.4px; text-align: justify; margin: 22px 0; }
+        .certificate-text { font-size: 12px; text-align: justify; margin: 12px 0; }
         .summary { width: 100%; border-collapse: collapse; margin-top: 14px; }
-        .summary th { width: 30%; text-align: left; background: #f6f0ea; color: #2f241f; padding: 6.5px 7px; border: .7px solid #ead8cc; }
-        .summary td { padding: 6.5px 7px; border: .7px solid #ead8cc; }
+        .summary th { width: 30%; text-align: left; background: #f6f0ea; color: #2f241f; padding: 4px 7px; border: .7px solid #ead8cc; }
+        .summary td { padding: 4px 7px; border: .7px solid #ead8cc; }
         .matrix-summary { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: 11px; }
         .matrix-summary caption { text-align: left; color: #6b3d2e; font-weight: 600; font-size: 11px; margin-bottom: 6px; }
         .matrix-summary th { background: #6b3d2e; color: #fff; padding: 5px 4px; border: .7px solid #6b3d2e; text-align: center; }
         .matrix-summary td { padding: 5px 4px; border: .7px solid #ead8cc; text-align: center; }
         .matrix-summary td:first-child, .matrix-summary td:nth-child(2) { text-align: left; }
-        .signature { margin-top: 76px; width: 100%; }
-        .signature td { border: 0; text-align: center; padding-top: 52px; }
-        .line { border-top: 1px solid #6b3d2e; display: inline-block; min-width: 260px; padding-top: 6px; }
+        .signature { margin-top: 24px; width: 100%; page-break-inside: avoid; }
+        .signature td { border: 0; text-align: center; padding-top: 28px; width: 50%; }
+        .line { border-top: 1px solid #6b3d2e; display: inline-block; width: 85%; padding-top: 6px; }
+        .summary tr, .matrix-summary tr { page-break-inside: avoid; }
+        .matrix-summary thead { display: table-header-group; }
         .muted { color: #6d5f5a; }
     </style>
 </head>

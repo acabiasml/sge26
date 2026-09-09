@@ -243,13 +243,8 @@ class User extends Authenticatable
             return __('roles.no_active_role');
         }
 
-        $period = __('roles.period', [
-            'start' => $role->started_at?->format('d/m/Y') ?? __('roles.no_start'),
-            'end' => $role->ended_at?->format('d/m/Y') ?? __('roles.indefinite'),
-        ]);
-
         return $role->label()
             .($role->school ? ' / '.$role->school->name : ' / '.__('roles.global'))
-            .' ('.$period.')';
+            .($role->started_at ? ' ('.$role->started_at->format('d/m/Y').')' : '');
     }
 }
