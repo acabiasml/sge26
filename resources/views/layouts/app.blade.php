@@ -324,7 +324,7 @@
                                 <h2 class="dropdown-header">{{ __('navigation.alerts') }}</h2>
 
                                 @foreach ($topbarAnnouncements as $announcement)
-                                    <a class="dropdown-item d-flex align-items-start" href="{{ route('dashboard') }}">
+                                    <button type="button" class="dropdown-item d-flex align-items-start" data-toggle="modal" data-target="#announcement-alert-{{ $announcement->id }}" aria-haspopup="dialog">
                                         <div class="mr-3">
                                             <div class="icon-circle bg-primary">
                                                 <i class="fas fa-bullhorn text-white" aria-hidden="true"></i>
@@ -337,11 +337,11 @@
                                                 <span class="badge badge-warning ml-1">{{ __('navigation.highlight') }}</span>
                                             @endif
                                         </div>
-                                    </a>
+                                    </button>
                                 @endforeach
 
                                 @foreach ($topbarDiaryAlerts as $alert)
-                                    <a class="dropdown-item d-flex align-items-start" href="{{ route('teacher-diaries.show', [$alert->schoolClass, $alert->component, 'period' => $alert->academic_period_id]) }}">
+                                    <button type="button" class="dropdown-item d-flex align-items-start" data-toggle="modal" data-target="#diary-alert-{{ $alert->id }}" aria-haspopup="dialog">
                                         <div class="mr-3">
                                             <div class="icon-circle bg-warning">
                                                 <i class="fas fa-book text-white" aria-hidden="true"></i>
@@ -354,7 +354,7 @@
                                             <span class="font-weight-bold">{{ __('navigation.management_alert', ['component' => $alert->component?->name]) }}</span>
                                             <div class="small text-gray-700">{{ \Illuminate\Support\Str::limit($alert->message, 90) }}</div>
                                         </div>
-                                    </a>
+                                    </button>
                                 @endforeach
 
                                 @if ($topbarAnnouncements->isEmpty() && $topbarDiaryAlerts->isEmpty())
@@ -440,6 +440,8 @@
             </div>
         </div>
     </div>
+
+    @include('layouts.partials.alert-details')
 
     <script src="{{ asset('template/vendor/jquery/jquery.min.js') }}"></script>
     <script src="{{ asset('template/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
