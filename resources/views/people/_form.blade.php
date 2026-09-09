@@ -24,13 +24,13 @@
         @if ($lockFullName)
             <small class="form-text text-muted">{{ __('screens.own_name_locked') }}</small>
         @endif
-        @error('full_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('full_name') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 
     <div class="form-group col-md-6">
         <label for="social_name">{{ __('screens.social_name') }}</label>
         <input id="social_name" name="social_name" class="form-control @error('social_name') is-invalid @enderror" value="{{ old('social_name', $person->social_name ?? '') }}">
-        @error('social_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('social_name') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 </div>
 
@@ -41,7 +41,7 @@
         @if ($lockCpf)
             <small class="form-text text-muted">{{ __('screens.own_cpf_locked') }}</small>
         @endif
-        @error('cpf') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('cpf') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 
     <div class="form-group col-md-4">
@@ -50,7 +50,7 @@
         @if ($lockBirthDate)
             <small class="form-text text-muted">{{ __('screens.own_birth_locked') }}</small>
         @endif
-        @error('birth_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('birth_date') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 
     <div class="form-group col-md-4 d-flex align-items-end">
@@ -64,7 +64,7 @@
     <div class="form-group col-md-5">
         <label for="birth_city">{{ __('screens.birth_place') }}</label>
         <input id="birth_city" name="birth_city" class="form-control @error('birth_city') is-invalid @enderror" value="{{ old('birth_city', $person->birth_city ?? ($person->legacy_metadata['naturalidade'] ?? '')) }}" data-brazilian-birth-field @required($requiresBrazilianBirthPlace)>
-        @error('birth_city') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('birth_city') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 
     <div class="form-group col-md-2">
@@ -76,7 +76,7 @@
                 <option value="{{ $state }}" @selected($selectedBirthState === $state)>{{ $state }}</option>
             @endforeach
         </select>
-        @error('birth_state') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('birth_state') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 
     <div class="form-group col-md-5">
@@ -84,13 +84,13 @@
         <select id="nationality" name="nationality" class="form-control @error('nationality') is-invalid @enderror" data-nationality-input data-requires-complete-active-data="{{ $requiresCompleteActiveData ? '1' : '0' }}" @required($requiresCompleteFields)>
             <option value="">{{ __('screens.select') }}</option>
             @foreach ($nationalityOptions as $value => $label)
-                <option value="{{ $value }}" @selected($nationalityValue === $value)>{{ $label }}</option>
+                <option value="{{ $value }}" @selected($nationalityValue === $value)>{{ __($label) }}</option>
             @endforeach
             @if (filled($nationalityValue) && ! array_key_exists($nationalityValue, $nationalityOptions))
                 <option value="{{ $nationalityValue }}" selected>{{ $nationalityValue }}</option>
             @endif
         </select>
-        @error('nationality') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('nationality') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 </div>
 
@@ -99,13 +99,13 @@
         <label for="student_inep">{{ __('screens.student_inep') }}</label>
         <input id="student_inep" name="student_inep" data-mask="digits" data-mask-max="12" inputmode="numeric" autocomplete="off" class="form-control @error('student_inep') is-invalid @enderror" value="{{ old('student_inep', $person->student_inep ?? '') }}">
         <small class="form-text text-muted">{{ __('screens.student_inep_help') }}</small>
-        @error('student_inep') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('student_inep') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
     <div class="form-group col-md-4">
         <label for="nis">{{ __('screens.student_nis') }}</label>
         <input id="nis" name="nis" data-mask="digits" data-mask-max="11" inputmode="numeric" autocomplete="off" class="form-control @error('nis') is-invalid @enderror" value="{{ old('nis', $person->nis ?? '') }}">
         <small class="form-text text-muted">{{ __('screens.student_nis_help') }}</small>
-        @error('nis') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('nis') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
     <div class="form-group col-md-4 d-flex align-items-center">
         <div class="form-check mt-3">
@@ -123,13 +123,13 @@
         @if ($lockMotherName)
             <small class="form-text text-muted">{{ __('screens.own_mother_locked') }}</small>
         @endif
-        @error('mother_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('mother_name') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 
     <div class="form-group col-md-6">
         <label for="father_name">{{ __('screens.father_name') }}</label>
         <input id="father_name" name="father_name" class="form-control @error('father_name') is-invalid @enderror" value="{{ old('father_name', $person->father_name ?? '') }}">
-        @error('father_name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('father_name') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 </div>
 
@@ -142,19 +142,19 @@
         @elseif ($lockInstitutionalEmail)
             <small class="form-text text-muted">{{ __('screens.own_email_locked') }}</small>
         @endif
-        @error('institutional_email') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('institutional_email') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 
     <div class="form-group col-md-4">
         <label for="personal_email">{{ __('screens.personal_email') }}</label>
         <input id="personal_email" name="personal_email" type="email" inputmode="email" autocomplete="email" class="form-control @error('personal_email') is-invalid @enderror" value="{{ old('personal_email', $person->personal_email ?? '') }}">
-        @error('personal_email') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('personal_email') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 
     <div class="form-group col-md-4">
         <label for="phone">{{ __('screens.phone') }}</label>
         <input id="phone" name="phone" data-mask="phone" inputmode="tel" autocomplete="tel" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $person->phone ?? '') }}">
-        @error('phone') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('phone') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 </div>
 
@@ -164,19 +164,19 @@
     <div class="form-group col-md-6">
         <label for="address">{{ __('screens.address') }}</label>
         <input id="address" name="address" autocomplete="street-address" class="form-control @error('address') is-invalid @enderror" value="{{ old('address', $person->address ?? '') }}" @required($requiresCompleteFields)>
-        @error('address') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('address') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 
     <div class="form-group col-md-2">
         <label for="number">{{ __('screens.number') }}</label>
         <input id="number" name="number" class="form-control @error('number') is-invalid @enderror" value="{{ old('number', $person->number ?? '') }}">
-        @error('number') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('number') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 
     <div class="form-group col-md-4">
         <label for="district">{{ __('screens.district') }}</label>
         <input id="district" name="district" class="form-control @error('district') is-invalid @enderror" value="{{ old('district', $person->district ?? '') }}">
-        @error('district') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('district') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 </div>
 
@@ -184,7 +184,7 @@
     <div class="form-group col-md-5">
         <label for="city">{{ __('screens.city') }}</label>
         <input id="city" name="city" class="form-control @error('city') is-invalid @enderror" value="{{ old('city', $person->city ?? '') }}" @required($requiresCompleteFields)>
-        @error('city') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('city') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 
     <div class="form-group col-md-2">
@@ -196,20 +196,20 @@
                 <option value="{{ $state }}" @selected($selectedState === $state)>{{ $state }}</option>
             @endforeach
         </select>
-        @error('state') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('state') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 
     <div class="form-group col-md-5">
         <label for="postal_code">{{ __('screens.postal_code') }}</label>
         <input id="postal_code" name="postal_code" data-mask="cep" inputmode="numeric" autocomplete="postal-code" class="form-control @error('postal_code') is-invalid @enderror" value="{{ old('postal_code', $person->postal_code ?? '') }}" @required($requiresCompleteFields)>
-        @error('postal_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('postal_code') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 </div>
 
 <div class="form-group">
     <label for="address_complement">{{ __('screens.address_complement') }}</label>
     <input id="address_complement" name="address_complement" class="form-control @error('address_complement') is-invalid @enderror" value="{{ old('address_complement', $person->address_complement ?? '') }}">
-    @error('address_complement') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    @error('address_complement') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
 </div>
 
 @once

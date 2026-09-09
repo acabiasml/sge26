@@ -56,10 +56,10 @@ class SchoolClassController extends Controller
             $classStatus = AcademicStructureStatus::schoolClass($class);
             $structureIssues = AcademicStructureValidator::forClass($class);
         } catch (Throwable $exception) {
-            Log::error('Erro ao carregar página da turma', ['exception' => $exception, 'class_id' => $class->id]);
+            Log::error(__('Erro ao carregar página da turma'), ['exception' => $exception, 'class_id' => $class->id]);
 
             return response()->view('errors.custom', [
-                'message' => 'Erro ao carregar a página da turma: '.$exception->getMessage(),
+                'message' => __('Erro ao carregar a página da turma: ').$exception->getMessage(),
                 'exception' => $exception,
             ], 500);
         }
@@ -82,10 +82,10 @@ class SchoolClassController extends Controller
             $academicYear->load('school', 'courses.components', 'periods');
             $class->load('courses', 'startsPeriod', 'endsPeriod');
         } catch (Throwable $exception) {
-            Log::error('Erro ao carregar edição da turma', ['exception' => $exception, 'class_id' => $class->id]);
+            Log::error(__('Erro ao carregar edição da turma'), ['exception' => $exception, 'class_id' => $class->id]);
 
             return response()->view('errors.custom', [
-                'message' => 'Erro ao carregar a edição da turma: '.$exception->getMessage(),
+                'message' => __('Erro ao carregar a edição da turma: ').$exception->getMessage(),
                 'exception' => $exception,
             ], 500);
         }
@@ -115,7 +115,7 @@ class SchoolClassController extends Controller
 
             if ($coursesWithoutComponents !== []) {
                 throw ValidationException::withMessages([
-                    'course_ids' => 'Cadastre os componentes da matriz antes de criar turma para: '.implode(', ', $coursesWithoutComponents).'.',
+                    'course_ids' => __('Cadastre os componentes da matriz antes de criar turma para: ').implode(', ', $coursesWithoutComponents).'.',
                 ]);
             }
 
@@ -124,7 +124,7 @@ class SchoolClassController extends Controller
             $this->syncComponentAssignments($class);
 
             return redirect()->route('academic-years.classes.show', [$academicYear, $class])
-                ->with('status', 'Turma cadastrada com sucesso.');
+                ->with('status', __('Turma cadastrada com sucesso.'));
         } catch (ValidationException $exception) {
             throw $exception;
         } catch (Throwable $exception) {
@@ -151,7 +151,7 @@ class SchoolClassController extends Controller
 
             if ($coursesWithoutComponents !== []) {
                 throw ValidationException::withMessages([
-                    'course_ids' => 'Cadastre os componentes da matriz antes de vincular turma para: '.implode(', ', $coursesWithoutComponents).'.',
+                    'course_ids' => __('Cadastre os componentes da matriz antes de vincular turma para: ').implode(', ', $coursesWithoutComponents).'.',
                 ]);
             }
 
@@ -160,7 +160,7 @@ class SchoolClassController extends Controller
             $this->syncComponentAssignments($class);
 
             return redirect()->route('academic-years.classes.show', [$academicYear, $class])
-                ->with('status', 'Turma atualizada com sucesso.');
+                ->with('status', __('Turma atualizada com sucesso.'));
         } catch (ValidationException $exception) {
             throw $exception;
         } catch (Throwable $exception) {
@@ -177,7 +177,7 @@ class SchoolClassController extends Controller
         $class->delete();
 
         return redirect()->route('academic-years.show', $academicYear)
-            ->with('status', 'Turma removida com sucesso.');
+            ->with('status', __('Turma removida com sucesso.'));
     }
 
     /**
@@ -228,20 +228,20 @@ class SchoolClassController extends Controller
 
         if ($baseCourses->isEmpty()) {
             throw ValidationException::withMessages([
-                'course_ids' => 'Selecione uma matriz de Formação Geral Básica compatível com a etapa da turma.',
+                'course_ids' => __('Selecione uma matriz de Formação Geral Básica compatível com a etapa da turma.'),
             ]);
         }
 
         if ($baseCourses->contains(fn (AcademicCourse $course): bool => $course->stage !== $stage)) {
             throw ValidationException::withMessages([
-                'course_ids' => 'As matrizes de Formação Geral Básica devem pertencer à etapa selecionada para a turma.',
+                'course_ids' => __('As matrizes de Formação Geral Básica devem pertencer à etapa selecionada para a turma.'),
             ]);
         }
 
         if ($stage === AcademicCourse::STAGE_ELEMENTARY
             && $courses->contains(fn (AcademicCourse $course): bool => $course->isItineraryMatrix())) {
             throw ValidationException::withMessages([
-                'course_ids' => 'Turmas do Ensino Fundamental não podem receber matrizes de Itinerário Formativo.',
+                'course_ids' => __('Turmas do Ensino Fundamental não podem receber matrizes de Itinerário Formativo.'),
             ]);
         }
     }
@@ -257,7 +257,7 @@ class SchoolClassController extends Controller
 
     private function handleSaveFailure(Throwable $exception, Request $request, AcademicYear $academicYear, ?SchoolClass $class = null): RedirectResponse
     {
-        Log::error('Erro ao salvar turma', [
+        Log::error(__('Erro ao salvar turma'), [
             'exception' => $exception,
             'academic_year_id' => $academicYear->id,
             'class_id' => $class?->id,
@@ -267,7 +267,7 @@ class SchoolClassController extends Controller
         return back()
             ->withInput()
             ->withErrors([
-                'general' => 'Erro ao salvar turma: '.$exception->getMessage(),
+                'general' => __('Erro ao salvar turma: ').$exception->getMessage(),
             ]);
     }
 
@@ -283,7 +283,7 @@ class SchoolClassController extends Controller
 
         if ($starts && $ends && $starts->position > $ends->position) {
             throw ValidationException::withMessages([
-                'ends_period_id' => 'O período final da turma deve ser igual ou posterior ao período inicial.',
+                'ends_period_id' => __('O período final da turma deve ser igual ou posterior ao período inicial.'),
             ]);
         }
     }
@@ -327,7 +327,7 @@ class SchoolClassController extends Controller
     {
         if ($academicYear->isClosed()) {
             throw ValidationException::withMessages([
-                'closed_at' => 'Este ano letivo está fechado. Reabra o ano letivo antes de alterar turmas.',
+                'closed_at' => __('Este ano letivo está fechado. Reabra o ano letivo antes de alterar turmas.'),
             ]);
         }
 
@@ -336,7 +336,7 @@ class SchoolClassController extends Controller
         }
 
         throw ValidationException::withMessages([
-            'approved_at' => 'Ano letivo aprovado só pode ter sua estrutura acadêmica alterada pela Administração global.',
+            'approved_at' => __('Ano letivo aprovado só pode ter sua estrutura acadêmica alterada pela Administração global.'),
         ]);
     }
 }

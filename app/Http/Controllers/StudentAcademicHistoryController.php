@@ -70,7 +70,7 @@ class StudentAcademicHistoryController extends Controller
         ], true), 404);
         if (! in_array($stage, $this->availableHistoryStages($request, $person), true)) {
             throw ValidationException::withMessages([
-                'stage' => 'O histórico só pode ser iniciado para uma etapa em que o estudante possua matrícula registrada.',
+                'stage' => __('O histórico só pode ser iniciado para uma etapa em que o estudante possua matrícula registrada.'),
             ]);
         }
         $schoolId = $person->studentEnrollments()
@@ -87,7 +87,7 @@ class StudentAcademicHistoryController extends Controller
         $history = $synchronizer->synchronize($person, $schoolId, $request->user()->person_id, $stage);
 
         return redirect()->route('people.histories.show', [$person, $history])
-            ->with('status', 'Histórico unificado atualizado com os dados disponíveis no sistema. Os lançamentos manuais foram preservados.');
+            ->with('status', __('Histórico unificado atualizado com os dados disponíveis no sistema. Os lançamentos manuais foram preservados.'));
     }
 
     public function editDetails(Request $request, Person $person, StudentAcademicHistory $history): View
@@ -119,7 +119,7 @@ class StudentAcademicHistoryController extends Controller
             'updated_by_person_id' => $request->user()->person_id,
         ]));
 
-        return redirect()->route('people.histories.show', [$person, $history])->with('status', 'Dados gerais do histórico atualizados.');
+        return redirect()->route('people.histories.show', [$person, $history])->with('status', __('Dados gerais do histórico atualizados.'));
     }
 
     public function create(Request $request, Person $person): View
@@ -152,7 +152,7 @@ class StudentAcademicHistoryController extends Controller
         $this->syncRows($history, $data);
 
         return redirect()->route('people.histories.show', [$person, $history])
-            ->with('status', 'Histórico escolar cadastrado com sucesso.');
+            ->with('status', __('Histórico escolar cadastrado com sucesso.'));
     }
 
     public function show(Request $request, Person $person, StudentAcademicHistory $history, StudentAcademicHistoryCompleteness $completeness): View
@@ -227,7 +227,7 @@ class StudentAcademicHistoryController extends Controller
         }
 
         return redirect()->route('people.histories.show', [$person, $history])
-            ->with('status', 'Histórico escolar atualizado com sucesso.');
+            ->with('status', __('Histórico escolar atualizado com sucesso.'));
     }
 
     public function destroy(Request $request, Person $person, StudentAcademicHistory $history): RedirectResponse
@@ -237,7 +237,7 @@ class StudentAcademicHistoryController extends Controller
         $history->delete();
 
         return redirect()->route('people.student-map.show', $person)
-            ->with('status', 'Histórico escolar removido.');
+            ->with('status', __('Histórico escolar removido.'));
     }
 
     public function pdf(Request $request, Person $person, StudentAcademicHistory $history, UnifiedStudentHistorySynchronizer $synchronizer, StudentAcademicHistoryCompleteness $completeness): Response|RedirectResponse
@@ -266,7 +266,7 @@ class StudentAcademicHistoryController extends Controller
 
         if (! $history->school) {
             return redirect()->route('people.histories.edit', [$person, $history])
-                ->with('status', 'Não é possível emitir histórico escolar sem escola relacionada ao documento.');
+                ->with('status', __('Não é possível emitir histórico escolar sem escola relacionada ao documento.'));
         }
 
         if ($message = OfficialDocumentCompliance::schoolMessage($history->school)) {
@@ -524,7 +524,7 @@ class StudentAcademicHistoryController extends Controller
         abort_unless(
             $enrollmentIds->isEmpty() || StudentEnrollment::query()->where('person_id', $studentId)->whereIn('id', $enrollmentIds)->count() === $enrollmentIds->unique()->count(),
             422,
-            'Uma das matrículas informadas não pertence ao estudante deste histórico.',
+            __('Uma das matrículas informadas não pertence ao estudante deste histórico.'),
         );
         if ($routeHistory instanceof StudentAcademicHistory && $routeHistory->is_unified) {
             $stage = $routeHistory->education_stage ?: AcademicCourse::STAGE_ELEMENTARY;
@@ -541,17 +541,17 @@ class StudentAcademicHistoryController extends Controller
                     ? [$flexibleFormation]
                     : ['Formação Geral Básica', $flexibleFormation];
                 if (! in_array($component['formation'] ?? null, $validFormations, true)) {
-                    throw ValidationException::withMessages(["components.{$index}.formation" => 'Selecione uma formação válida para esta etapa.']);
+                    throw ValidationException::withMessages(["components.{$index}.formation" => __('Selecione uma formação válida para esta etapa.')]);
                 }
                 if ($stage === AcademicCourse::STAGE_TECHNICAL) {
                     continue;
                 }
                 if (! $areas->pluck('name')->contains($component['knowledge_area'] ?? null)) {
-                    throw ValidationException::withMessages(["components.{$index}.knowledge_area" => 'Selecione uma área de conhecimento da BNCC.']);
+                    throw ValidationException::withMessages(["components.{$index}.knowledge_area" => __('Selecione uma área de conhecimento da BNCC.')]);
                 }
                 if (($component['formation'] ?? null) === 'Formação Geral Básica'
                     && ! collect($componentsByArea[$component['knowledge_area']] ?? [])->contains($component['name'])) {
-                    throw ValidationException::withMessages(["components.{$index}.name" => 'Selecione um componente da BNCC correspondente à área informada.']);
+                    throw ValidationException::withMessages(["components.{$index}.name" => __('Selecione um componente da BNCC correspondente à área informada.')]);
                 }
             }
         }

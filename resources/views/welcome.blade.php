@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    <title>{{ config('app.name', 'Beabá') }} - Entrar</title>
+    <title>{{ config('app.name', 'Beabá') }} {{ __('- Entrar') }}</title>
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
 
@@ -27,7 +27,7 @@
                             <div class="col-lg-6 d-none d-lg-block sge-login-image">
                                 <div class="sge-login-image-inner">
                                     <img src="{{ asset('brand/logo.png') }}" alt="{{ config('app.name', 'Beabá') }}">
-                                    <p class="sge-login-image-caption">Sistema de Gestão Escolar</p>
+                                    <p class="sge-login-image-caption">{{ __('Sistema de Gestão Escolar') }}</p>
                                 </div>
                             </div>
                             <div class="col-lg-6">
@@ -35,12 +35,12 @@
                                     <div class="text-center">
                                         <img class="sge-login-logo" src="{{ asset('brand/logo.png') }}" alt="{{ config('app.name', 'Beabá') }}">
                                         <h1 class="h4 text-gray-900 mb-2">Beabá</h1>
-                                        <p class="sge-login-kicker mb-4">Sistema de Gestão Escolar</p>
+                                        <p class="sge-login-kicker mb-4">{{ __('Sistema de Gestão Escolar') }}</p>
                                     </div>
 
                                     @if (session('status'))
                                         <div class="alert alert-warning small" role="alert">
-                                            {{ session('status') }}
+                                            {{ __(session('status')) }}
                                         </div>
                                     @endif
 
@@ -51,24 +51,24 @@
                                             <path fill="#FBBC05" d="M3.96 10.71a5.41 5.41 0 0 1 0-3.42V4.96H.96a9 9 0 0 0 0 8.08l3-2.33z"/>
                                             <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.9 11.42 0 9 0A9 9 0 0 0 .96 4.96l3 2.33C4.67 5.16 6.66 3.58 9 3.58z"/>
                                         </svg>
-                                        <span>Entrar com Google</span>
+                                        <span>{{ __('Entrar com Google') }}</span>
                                     </a>
 
                                     <hr>
 
                                     <div class="text-center">
                                         <a href="https://ctjj.org/" class="small d-inline-block mb-3">
-                                            Voltar ao site do Centro Técnico Juvenil de Jarudore
+                                            {{ __('Voltar ao site do Centro Técnico Juvenil de Jarudore') }}
                                         </a>
                                         <br>
-                                        <span class="small text-gray-600">Acesso institucional</span>
-                                        <div class="sge-institutional-logos" aria-label="Instituições vinculadas ao sistema">
+                                        <span class="small text-gray-600">{{ __('Acesso institucional') }}</span>
+                                        <div class="sge-institutional-logos" aria-label="{{ __('Instituições vinculadas ao sistema') }}">
                                             <div class="sge-institutional-logo">
-                                                <span>Mantenedora</span>
+                                                <span>{{ __('Mantenedora') }}</span>
                                                 <img src="{{ asset('brand/centro-tecnico-juvenil-de-jarudore.png') }}" alt="Centro Técnico Juvenil de Jarudore">
                                             </div>
                                             <div class="sge-institutional-logo">
-                                                <span>Apoio</span>
+                                                <span>{{ __('Apoio') }}</span>
                                                 <img src="{{ asset('brand/operacao-mato-grosso.jpg') }}" alt="Operação Mato Grosso">
                                             </div>
                                         </div>

@@ -51,7 +51,7 @@
                 'roles' => ($item->label().' / '.($item->school?->name ?? __('screens.global'))),
                 'contacts' => $item->person ? __('screens.responsible_for', ['name' => $item->person->full_name]) : __('screens.person_not_found'),
                 'schools' => trim(($item->city ?? '').' / '.($item->state ?? ''), ' /') ?: __('screens.city_state_missing'),
-                'years' => ($item->school?->name ?? __('screens.school_not_found')).' · '.optional($item->starts_at)->format('d/m/Y').' a '.optional($item->ends_at)->format('d/m/Y'),
+                'years' => ($item->school?->name ?? __('screens.school_not_found')).' · '.optional($item->starts_at)->format('d/m/Y').__(' a ').optional($item->ends_at)->format('d/m/Y'),
                 'enrollments' => ($item->schoolClass?->name ?? __('screens.class_not_found')).' · '.($item->schoolClass?->academicYear?->school?->name ?? __('screens.school_not_found')),
                 'history_enrollments' => $item->history_missing_message,
                 'periods' => ($item->academicYear?->school?->name ?? __('screens.school_not_found')).' · '.($item->academicYear?->referenceYearsLabel() ?? __('screens.year_not_informed')),

@@ -1,13 +1,13 @@
 @extends('layouts.app')
 
-@section('title', 'Diários')
-@section('page-title', $isManagement ? 'Diários das escolas' : 'Meus diários')
+@section('title', __('Diários'))
+@section('page-title', $isManagement ? __('Diários das escolas') : __('Meus diários'))
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('teacher-schedules.index') }}" aria-label="Abrir meu horário docente" title="Meu horário">
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('teacher-schedules.index') }}" aria-label="{{ __('Abrir meu horário docente') }}" title="{{ __('Meu horário') }}">
         <i class="fas fa-calendar-alt" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('teacher-schedules.pdf') }}" aria-label="Imprimir meu horário docente" title="Imprimir meu horário">
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('teacher-schedules.pdf') }}" aria-label="{{ __('Imprimir meu horário docente') }}" title="{{ __('Imprimir meu horário') }}">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
 @endsection
@@ -15,8 +15,8 @@
 @section('content')
     <section class="card shadow mb-4" aria-labelledby="diaries-title">
         <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap">
-            <h2 id="diaries-title" class="h6 m-0 font-weight-bold text-primary">{{ $isManagement ? 'Diários disponíveis para gestão' : 'Diários disponíveis' }}</h2>
-            <span id="diary-results-count" class="badge badge-light" aria-live="polite">{{ $diaries->count() }} diário(s)</span>
+            <h2 id="diaries-title" class="h6 m-0 font-weight-bold text-primary">{{ $isManagement ? __('Diários disponíveis para gestão') : __('Diários disponíveis') }}</h2>
+            <span id="diary-results-count" class="badge badge-light" aria-live="polite">{{ $diaries->count() }} {{ __('diário(s)') }}</span>
         </div>
         <div class="card-body">
             @if (! $isManagement && $diaries->count() > 1)
@@ -27,17 +27,17 @@
                 @endphp
                 <div class="sge-diary-quick-filters mb-4" data-diary-filters>
                     <div class="form-group mb-0 sge-diary-search-field">
-                        <label for="diary-search">Buscar diário</label>
+                        <label for="diary-search">{{ __('Buscar diário') }}</label>
                         <div class="input-group">
                             <div class="input-group-prepend" aria-hidden="true"><span class="input-group-text"><i class="fas fa-search"></i></span></div>
-                            <input id="diary-search" class="form-control" type="search" placeholder="Componente, turma ou escola" autocomplete="off" data-diary-search>
+                            <input id="diary-search" class="form-control" type="search" placeholder="{{ __('Componente, turma ou escola') }}" autocomplete="off" data-diary-search>
                         </div>
                     </div>
                     @if ($diarySchools->count() > 1)
                         <div class="form-group mb-0">
-                            <label for="diary-school-filter">Escola</label>
+                            <label for="diary-school-filter">{{ __('Escola') }}</label>
                             <select id="diary-school-filter" class="custom-select" data-diary-filter="school">
-                                <option value="">Todas</option>
+                                <option value="">{{ __('Todas') }}</option>
                                 @foreach ($diarySchools as $school)
                                     <option value="{{ $school->id }}">{{ $school->name }}</option>
                                 @endforeach
@@ -46,9 +46,9 @@
                     @endif
                     @if ($diaryYears->count() > 1)
                         <div class="form-group mb-0">
-                            <label for="diary-year-filter">Ano letivo</label>
+                            <label for="diary-year-filter">{{ __('Ano letivo') }}</label>
                             <select id="diary-year-filter" class="custom-select" data-diary-filter="year">
-                                <option value="">Todos</option>
+                                <option value="">{{ __('Todos') }}</option>
                                 @foreach ($diaryYears as $year)
                                     <option value="{{ $year->id }}">{{ $year->name }} · {{ $year->reference_year }}</option>
                                 @endforeach
@@ -57,9 +57,9 @@
                     @endif
                     @if ($diaryClasses->count() > 1)
                         <div class="form-group mb-0">
-                            <label for="diary-class-filter">Turma</label>
+                            <label for="diary-class-filter">{{ __('Turma') }}</label>
                             <select id="diary-class-filter" class="custom-select" data-diary-filter="class">
-                                <option value="">Todas</option>
+                                <option value="">{{ __('Todas') }}</option>
                                 @foreach ($diaryClasses as $classOption)
                                     <option value="{{ $classOption->id }}">{{ $classOption->name }}</option>
                                 @endforeach
@@ -67,7 +67,7 @@
                         </div>
                     @endif
                     <button class="btn btn-outline-secondary align-self-end" type="button" data-diary-clear>
-                        <i class="fas fa-eraser mr-1" aria-hidden="true"></i>Limpar
+                        <i class="fas fa-eraser mr-1" aria-hidden="true"></i>{{ __('Limpar') }}
                     </button>
                 </div>
             @endif
@@ -83,16 +83,16 @@
                     <div class="sge-diary-list-main">
                         <h3><a href="{{ route('teacher-diaries.show', [$diary['class'], $diary['component']]) }}">{{ $diary['component']->name }}</a></h3>
                         <p>{{ $diary['class']->name }} · {{ $diary['academicYear']->school?->name }}</p>
-                        <small>{{ $diary['academicYear']->name }} · {{ $diary['course']->name }} · {{ $diary['component']->area?->name ?? 'Área não definida' }}</small>
+                        <small>{{ $diary['academicYear']->name }} · {{ $diary['course']->name }} · {{ $diary['component']->area?->name ?? __('Área não definida') }}</small>
                     </div>
-                    <div class="sge-diary-list-actions" aria-label="Ações do diário de {{ $diary['component']->name }}">
-                        <a class="btn btn-primary btn-sm sge-icon-action" href="{{ route('teacher-diaries.show', [$diary['class'], $diary['component']]) }}" aria-label="Abrir diário de {{ $diary['component']->name }} da turma {{ $diary['class']->name }}" title="Abrir diário">
+                    <div class="sge-diary-list-actions" aria-label="{{ __('Ações do diário de') }} {{ $diary['component']->name }}">
+                        <a class="btn btn-primary btn-sm sge-icon-action" href="{{ route('teacher-diaries.show', [$diary['class'], $diary['component']]) }}" aria-label="{{ __('Abrir diário de') }} {{ $diary['component']->name }} {{ __('da turma') }} {{ $diary['class']->name }}" title="{{ __('Abrir diário') }}">
                             <i class="fas fa-book-open" aria-hidden="true"></i>
                         </a>
-                        <a class="btn btn-outline-primary btn-sm sge-icon-action" href="{{ route('academic-years.classes.schedules.pdf', [$diary['academicYear'], $diary['class']]) }}" aria-label="Imprimir horário da turma {{ $diary['class']->name }}" title="Imprimir horário da turma">
+                        <a class="btn btn-outline-primary btn-sm sge-icon-action" href="{{ route('academic-years.classes.schedules.pdf', [$diary['academicYear'], $diary['class']]) }}" aria-label="{{ __('Imprimir horário da turma') }} {{ $diary['class']->name }}" title="{{ __('Imprimir horário da turma') }}">
                             <i class="fas fa-calendar-week" aria-hidden="true"></i>
                         </a>
-                        <a class="btn btn-outline-primary btn-sm sge-icon-action" href="{{ route('teacher-diaries.attendance-sheet.pdf', [$diary['class'], $diary['component']]) }}" aria-label="Imprimir lista de chamada mensal de {{ $diary['component']->name }}" title="Imprimir lista de chamada">
+                        <a class="btn btn-outline-primary btn-sm sge-icon-action" href="{{ route('teacher-diaries.attendance-sheet.pdf', [$diary['class'], $diary['component']]) }}" aria-label="{{ __('Imprimir lista de chamada mensal de') }} {{ $diary['component']->name }}" title="{{ __('Imprimir lista de chamada') }}">
                             <i class="fas fa-clipboard-list" aria-hidden="true"></i>
                         </a>
                     </div>
@@ -100,16 +100,16 @@
             @empty
                 <div class="sge-empty-state">
                     <i class="fas fa-book-open" aria-hidden="true"></i>
-                    <h3>Nenhum diário disponível</h3>
-                    <p>Os diários aparecem quando o ano letivo está aprovado e a docência está vinculada a uma turma e a um componente curricular.</p>
+                    <h3>{{ __('Nenhum diário disponível') }}</h3>
+                    <p>{{ __('Os diários aparecem quando o ano letivo está aprovado e a docência está vinculada a uma turma e a um componente curricular.') }}</p>
                 </div>
             @endforelse
             </div>
 
             <div class="sge-empty-state d-none" data-diary-no-results role="status">
                 <i class="fas fa-search" aria-hidden="true"></i>
-                <h3>Nenhum diário encontrado</h3>
-                <p>Altere os filtros ou limpe a busca para ver os demais diários.</p>
+                <h3>{{ __('Nenhum diário encontrado') }}</h3>
+                <p>{{ __('Altere os filtros ou limpe a busca para ver os demais diários.') }}</p>
             </div>
         </div>
     </section>

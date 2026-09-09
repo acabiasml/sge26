@@ -1,7 +1,7 @@
 @props([
     'issues' => [],
-    'title' => 'Validação da estrutura',
-    'empty' => 'Nenhuma inconsistência encontrada.',
+    'title' => __('Validação da estrutura'),
+    'empty' => __('Nenhuma inconsistência encontrada.'),
 ])
 
 @php($summary = \App\Support\AcademicStructureValidator::summarize($issues))
@@ -16,12 +16,12 @@
     <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap">
         <div>
             <h2 id="structure-validation-title" class="h6 m-0 font-weight-bold text-primary">{{ $title }}</h2>
-            <p class="small text-muted mb-0 mt-1">Use este painel antes de iniciar matrículas, horários e diários.</p>
+            <p class="small text-muted mb-0 mt-1">{{ __('Use este painel antes de iniciar matrículas, horários e diários.') }}</p>
         </div>
-        <div class="sge-validation-summary mt-2 mt-md-0" aria-label="Resumo da validação">
-            <span class="sge-validation-pill sge-validation-pill-danger">{{ $summary['errors'] }} erro(s)</span>
-            <span class="sge-validation-pill sge-validation-pill-warning">{{ $summary['warnings'] }} aviso(s)</span>
-            <span class="sge-validation-pill sge-validation-pill-info">{{ $summary['info'] }} informação(ões)</span>
+        <div class="sge-validation-summary mt-2 mt-md-0" aria-label="{{ __('Resumo da validação') }}">
+            <span class="sge-validation-pill sge-validation-pill-danger">{{ $summary['errors'] }} {{ __('erro(s)') }}</span>
+            <span class="sge-validation-pill sge-validation-pill-warning">{{ $summary['warnings'] }} {{ __('aviso(s)') }}</span>
+            <span class="sge-validation-pill sge-validation-pill-info">{{ $summary['info'] }} {{ __('informação(ões)') }}</span>
         </div>
     </div>
     <div class="card-body">
@@ -30,7 +30,7 @@
                 <i class="fas fa-check-circle" aria-hidden="true"></i>
                 <div>
                     <strong>{{ $empty }}</strong>
-                    <span>A estrutura está coerente para esta etapa.</span>
+                    <span>{{ __('A estrutura está coerente para esta etapa.') }}</span>
                 </div>
             </div>
         @else
@@ -48,21 +48,21 @@
                                 @endif
                             </strong>
                             @if($isGrouped)
-                                <p>{{ $group->count() }} ocorrências encontradas. Abra os detalhes para conferir cada item.</p>
+                                <p>{{ $group->count() }} {{ __('ocorrências encontradas. Abra os detalhes para conferir cada item.') }}</p>
                                 <details class="sge-validation-details">
-                                    <summary>Ver detalhes</summary>
+                                    <summary>{{ __('Ver detalhes') }}</summary>
                                     <ul>
                                         @foreach($group as $groupIssue)
-                                            <li>{{ $groupIssue['description'] }}</li>
+                                            <li>{{ __($groupIssue['description']) }}</li>
                                         @endforeach
                                     </ul>
                                 </details>
                             @else
-                                <p>{{ $issue['description'] }}</p>
+                                <p>{{ __($issue['description']) }}</p>
                             @endif
                         </div>
                         @if(! empty($issue['action_url']) && ! empty($issue['action_label']))
-                            <a class="btn btn-sm btn-outline-primary" href="{{ $issue['action_url'] }}">{{ $issue['action_label'] }}</a>
+                            <a class="btn btn-sm btn-outline-primary" href="{{ $issue['action_url'] }}">{{ __($issue['action_label']) }}</a>
                         @endif
                     </article>
                 @endforeach

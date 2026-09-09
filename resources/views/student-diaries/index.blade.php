@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
-@section('title', 'Meu diário')
-@section('page-title', 'Meu diário')
+@section('title', __('Meu diário'))
+@section('page-title', __('Meu diário'))
 
 @section('content')
     <section class="card shadow" aria-labelledby="student-diary-title">
         <div class="card-header py-3">
-            <h2 id="student-diary-title" class="h6 m-0 font-weight-bold text-primary">Lançamentos acadêmicos</h2>
+            <h2 id="student-diary-title" class="h6 m-0 font-weight-bold text-primary">{{ __('Lançamentos acadêmicos') }}</h2>
         </div>
         <div class="card-body">
             @forelse($enrollments as $enrollment)
@@ -16,13 +16,13 @@
                         <p class="small text-muted mb-2">{{ $enrollment->schoolClass?->academicYear?->name }}</p>
                         <div class="btn-group btn-group-sm mb-2">
                             <a class="btn btn-outline-primary" href="{{ route('enrollments.report-card.show', $enrollment) }}">
-                                <i class="fas fa-chart-line mr-1" aria-hidden="true"></i>Boletim
+                                <i class="fas fa-chart-line mr-1" aria-hidden="true"></i>{{ __('Boletim') }}
                             </a>
                             <a class="btn btn-outline-primary" href="{{ route('enrollments.individual-record.pdf', $enrollment) }}">
-                                <i class="fas fa-file-alt mr-1" aria-hidden="true"></i>Ficha
+                                <i class="fas fa-file-alt mr-1" aria-hidden="true"></i>{{ __('Ficha') }}
                             </a>
                             <a class="btn btn-outline-primary" href="{{ route('student-diaries.schedule', $enrollment) }}">
-                                <i class="fas fa-clock mr-1" aria-hidden="true"></i>Meu horário
+                                <i class="fas fa-clock mr-1" aria-hidden="true"></i>{{ __('Meu horário') }}
                             </a>
                             <a class="btn btn-outline-primary" href="{{ route('student-diaries.schedule-pdf', $enrollment) }}">
                                 <i class="fas fa-file-pdf mr-1" aria-hidden="true"></i>PDF
@@ -37,7 +37,7 @@
                                         <i class="fas fa-book-open" aria-hidden="true"></i>
                                         <span>
                                             <strong>{{ $component->name }}</strong>
-                                            <small>{{ $course->name }} · {{ $component->area?->name ?? 'Área não definida' }}</small>
+                                            <small>{{ $course->name }} · {{ $component->area?->name ?? __('Área não definida') }}</small>
                                         </span>
                                         <i class="fas fa-chevron-right" aria-hidden="true"></i>
                                     </a>
@@ -47,7 +47,7 @@
                     </div>
                 </article>
             @empty
-                <p class="mb-0">Nenhuma matrícula encontrada.</p>
+                <p class="mb-0">{{ __('Nenhuma matrícula encontrada.') }}</p>
             @endforelse
         </div>
     </section>

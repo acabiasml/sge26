@@ -9,7 +9,7 @@
                 <option value="{{ $value }}" @selected(old('role', $roleModel->role ?? '') === $value)>{{ __('roles.roles.'.$value) }}</option>
             @endforeach
         </select>
-        @error('role') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('role') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 
     <div class="form-group col-md-4">
@@ -21,7 +21,7 @@
             @endforeach
         </select>
         <small class="form-text text-muted">{{ __('screens.administration_global_help') }}</small>
-        @error('school_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('school_id') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 
     <div class="form-group col-md-4">
@@ -32,7 +32,7 @@
                 <option value="{{ $value }}" @selected(old('position', $roleModel->position ?? '') === $value)>{{ __('roles.positions.'.$value) }}</option>
             @endforeach
         </select>
-        @error('position') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('position') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 </div>
 
@@ -41,13 +41,13 @@
         <label for="{{ $fieldPrefix }}started_at">{{ __('screens.start') }}</label>
         <input id="{{ $fieldPrefix }}started_at" name="started_at" type="date" class="form-control @error('started_at') is-invalid @enderror" value="{{ old('started_at', isset($roleModel) && $roleModel->started_at ? $roleModel->started_at->format('Y-m-d') : '') }}">
         <small class="form-text text-muted">{{ __('screens.school_relationship_start_help') }}</small>
-        @error('started_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('started_at') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 
     <div class="form-group col-md-4">
         <label for="{{ $fieldPrefix }}ended_at">{{ __('screens.end') }}</label>
         <input id="{{ $fieldPrefix }}ended_at" name="ended_at" type="date" class="form-control @error('ended_at') is-invalid @enderror" value="{{ old('ended_at', isset($roleModel) && $roleModel->ended_at ? $roleModel->ended_at->format('Y-m-d') : '') }}">
-        @error('ended_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('ended_at') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 
     <div class="form-group col-md-4 d-flex align-items-end">

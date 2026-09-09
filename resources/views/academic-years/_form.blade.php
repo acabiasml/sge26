@@ -18,13 +18,13 @@
             <label for="name">{{ __('screens.school_year_name') }}</label>
             <input id="name" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $academicYear->name ?? '') }}" placeholder="{{ __('screens.basic_education') }}" required>
             <small class="form-text text-muted">{{ __('screens.school_year_name_help') }}</small>
-            @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            @error('name') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
         </div>
         <div class="col-md-5 form-group">
             <label for="reference_year">{{ __('screens.main_year') }}</label>
             <input id="reference_year" name="reference_year" data-mask="year" inputmode="numeric" autocomplete="off" class="form-control @error('reference_year') is-invalid @enderror" value="{{ old('reference_year', $academicYear->reference_year ?? now()->year) }}" required>
             <small class="form-text text-muted">{{ __('screens.main_year_help') }}</small>
-            @error('reference_year') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            @error('reference_year') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
         </div>
     </div>
 </fieldset>
@@ -36,13 +36,13 @@
             <label for="passing_points">{{ __('screens.minimum_points') }}</label>
             <input id="passing_points" name="passing_points" data-mask="decimal" inputmode="decimal" class="form-control @error('passing_points') is-invalid @enderror" value="{{ old('passing_points', $academicYear->passing_points ?? 24) }}" required>
             <small class="form-text text-muted">{{ __('screens.minimum_points_help') }}</small>
-            @error('passing_points') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            @error('passing_points') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
         </div>
         <div class="col-md-6 form-group mb-0">
             <label for="minimum_attendance_percentage">{{ __('screens.minimum_attendance') }}</label>
             <div class="input-group"><input id="minimum_attendance_percentage" name="minimum_attendance_percentage" data-mask="percentage" inputmode="numeric" class="form-control @error('minimum_attendance_percentage') is-invalid @enderror" value="{{ old('minimum_attendance_percentage', $academicYear->minimum_attendance_percentage ?? 75) }}" required><div class="input-group-append"><span class="input-group-text">%</span></div></div>
             <small class="form-text text-muted">{{ __('screens.attendance_help') }}</small>
-            @error('minimum_attendance_percentage') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            @error('minimum_attendance_percentage') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
         </div>
     </div>
 </fieldset>
@@ -53,19 +53,19 @@
         <div class="col-md-4 form-group">
             <label for="starts_at">{{ __('screens.start') }}</label>
             <input id="starts_at" name="starts_at" type="date" class="form-control @error('starts_at') is-invalid @enderror" value="{{ old('starts_at', isset($academicYear) ? $academicYear->starts_at?->toDateString() : '') }}" required>
-            @error('starts_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            @error('starts_at') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
         </div>
         <div class="col-md-4 form-group">
             <label for="ends_at">{{ __('screens.end') }}</label>
             <input id="ends_at" name="ends_at" type="date" class="form-control @error('ends_at') is-invalid @enderror" value="{{ old('ends_at', isset($academicYear) ? $academicYear->ends_at?->toDateString() : '') }}" required>
-            @error('ends_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            @error('ends_at') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
         </div>
         @if (isset($academicYear))
             <div class="col-md-4 form-group">
                 <label for="approved_at">{{ __('screens.approval_date') }}</label>
                 <input id="approved_at" name="approved_at" type="date" class="form-control @error('approved_at') is-invalid @enderror" value="{{ old('approved_at', $academicYear->approved_at?->toDateString()) }}">
                 <small class="form-text text-muted">{{ __('screens.approval_date_help') }}</small>
-                @error('approved_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                @error('approved_at') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
             </div>
         @endif
         <div class="col-md-4 form-group d-flex align-items-end">
@@ -82,7 +82,7 @@
     <div class="form-group mb-0">
         <label for="notes">{{ __('screens.internal_notes') }}</label>
         <textarea id="notes" name="notes" rows="3" class="form-control @error('notes') is-invalid @enderror">{{ old('notes', $academicYear->notes ?? '') }}</textarea>
-        @error('notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        @error('notes') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 </fieldset>
 

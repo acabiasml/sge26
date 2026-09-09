@@ -36,7 +36,7 @@ class AnnouncementController extends Controller
         ]);
 
         return redirect()->route('announcements.index')
-            ->with('status', 'Recado cadastrado com sucesso.');
+            ->with('status', __('Recado cadastrado com sucesso.'));
     }
 
     public function destroy(Request $request, Announcement $announcement): RedirectResponse
@@ -48,7 +48,7 @@ class AnnouncementController extends Controller
         $announcement->delete();
 
         return redirect()->route('announcements.index')
-            ->with('status', 'Recado removido com sucesso.');
+            ->with('status', __('Recado removido com sucesso.'));
     }
 
     /**

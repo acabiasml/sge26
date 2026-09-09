@@ -67,7 +67,7 @@ class PersonController extends Controller
         }
 
         return redirect()->route('people.show', $person)
-            ->with('status', 'Pessoa cadastrada com sucesso.');
+            ->with('status', __('Pessoa cadastrada com sucesso.'));
     }
 
     public function show(Request $request, Person $person): View
@@ -113,7 +113,7 @@ class PersonController extends Controller
         $person->syncActiveFromRoles();
 
         return redirect()->route('people.show', $person)
-            ->with('status', 'Pessoa atualizada com sucesso.');
+            ->with('status', __('Pessoa atualizada com sucesso.'));
     }
 
     public function destroy(Request $request, Person $person): RedirectResponse
@@ -122,13 +122,13 @@ class PersonController extends Controller
 
         if (! $this->canDeletePerson($person)) {
             return redirect()->route('people.show', $person)
-                ->with('status', 'Este cadastro não pode ser excluído porque possui vínculo, login ou registros escolares vinculados.');
+                ->with('status', __('Este cadastro não pode ser excluído porque possui vínculo, login ou registros escolares vinculados.'));
         }
 
         $person->delete();
 
         return redirect()->route('people.index')
-            ->with('status', 'Cadastro de pessoa excluído com sucesso.');
+            ->with('status', __('Cadastro de pessoa excluído com sucesso.'));
     }
 
     private function canSeePerson(Request $request, Person $person): bool

@@ -26,16 +26,16 @@ class AcademicYearClosureStatus
         if (! $academicYear->approved_at) {
             $issues[] = [
                 'level' => 'error',
-                'message' => 'O calendário ainda não foi aprovado.',
-                'detail' => 'Registre a data de aprovação antes de fechar o ano letivo.',
+                'message' => __('O calendário ainda não foi aprovado.'),
+                'detail' => __('Registre a data de aprovação antes de fechar o ano letivo.'),
             ];
         }
 
         if ($academicYear->periods->isEmpty()) {
             $issues[] = [
                 'level' => 'error',
-                'message' => 'Nenhum período avaliativo foi cadastrado.',
-                'detail' => 'O fechamento depende da consolidação dos períodos avaliativos.',
+                'message' => __('Nenhum período avaliativo foi cadastrado.'),
+                'detail' => __('O fechamento depende da consolidação dos períodos avaliativos.'),
             ];
         }
 
@@ -44,7 +44,7 @@ class AcademicYearClosureStatus
                 $issues[] = [
                     'level' => 'error',
                     'message' => "O período {$period->name} ainda não foi consolidado.",
-                    'detail' => 'Consolide os diários do período antes do fechamento do ano letivo.',
+                    'detail' => __('Consolide os diários do período antes do fechamento do ano letivo.'),
                 ];
             }
         }
@@ -58,15 +58,15 @@ class AcademicYearClosureStatus
             $issues[] = [
                 'level' => 'error',
                 'message' => $pendingFinalResults->count().' matrícula(s) sem resultado final calculado.',
-                'detail' => 'Calcule os resultados finais nas turmas antes de fechar o ano letivo.',
+                'detail' => __('Calcule os resultados finais nas turmas antes de fechar o ano letivo.'),
             ];
         }
 
         if ($enrollments->isEmpty()) {
             $issues[] = [
                 'level' => 'warning',
-                'message' => 'Nenhuma matrícula foi encontrada neste ano letivo.',
-                'detail' => 'Feche apenas se este calendário realmente não teve estudantes vinculados.',
+                'message' => __('Nenhuma matrícula foi encontrada neste ano letivo.'),
+                'detail' => __('Feche apenas se este calendário realmente não teve estudantes vinculados.'),
             ];
         }
 

@@ -48,7 +48,7 @@ class CalendarDayController extends Controller
 
         return redirect()->to(route('academic-years.show', $academicYear).'#section-calendario')
             ->with('status', $total === 1
-                ? 'Dia do calendário salvo com sucesso.'
+                ? __('Dia do calendário salvo com sucesso.')
                 : $total.' dias do calendário foram salvos com sucesso.');
     }
 
@@ -61,14 +61,14 @@ class CalendarDayController extends Controller
         $day->delete();
 
         return redirect()->to(route('academic-years.show', $academicYear).'#section-calendario')
-            ->with('status', 'Dia do calendário removido com sucesso.');
+            ->with('status', __('Dia do calendário removido com sucesso.'));
     }
 
     private function ensureCanChangeApprovedCalendar(Request $request, AcademicYear $academicYear): void
     {
         if ($academicYear->isClosed()) {
             throw ValidationException::withMessages([
-                'closed_at' => 'Este ano letivo está fechado. Reabra o ano letivo antes de alterar o calendário.',
+                'closed_at' => __('Este ano letivo está fechado. Reabra o ano letivo antes de alterar o calendário.'),
             ]);
         }
 
@@ -77,7 +77,7 @@ class CalendarDayController extends Controller
         }
 
         throw ValidationException::withMessages([
-            'approved_at' => 'Calendário aprovado só pode ser alterado pela Administração global.',
+            'approved_at' => __('Calendário aprovado só pode ser alterado pela Administração global.'),
         ]);
     }
 }

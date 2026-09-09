@@ -219,7 +219,7 @@ class DashboardController extends Controller
             ->get();
 
         return [
-            'labels' => $rows->map(fn (PersonSchoolRole $role): string => $role->school?->name ?? 'Sem escola')->all(),
+            'labels' => $rows->map(fn (PersonSchoolRole $role): string => $role->school?->name ?? __('Sem escola'))->all(),
             'values' => $rows->map(fn (PersonSchoolRole $role): int => (int) $role->total)->all(),
         ];
     }

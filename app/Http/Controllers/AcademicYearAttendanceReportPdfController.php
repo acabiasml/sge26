@@ -156,7 +156,7 @@ class AcademicYearAttendanceReportPdfController extends Controller
         if ($scope === 'month') {
             $month = CarbonImmutable::createFromFormat('Y-m-d', $data['attendance_month'].'-01');
             if ($month->endOfMonth()->isBefore($yearStart) || $month->startOfMonth()->isAfter($yearEnd)) {
-                throw ValidationException::withMessages(['attendance_month' => 'O mês selecionado está fora deste ano letivo.']);
+                throw ValidationException::withMessages(['attendance_month' => __('O mês selecionado está fora deste ano letivo.')]);
             }
             $start = $month->startOfMonth()->max($yearStart);
             $end = $month->endOfMonth()->min($yearEnd);

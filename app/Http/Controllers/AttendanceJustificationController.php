@@ -65,7 +65,7 @@ class AttendanceJustificationController extends Controller
 
         if ($data['starts_at'] < $startsAt || $data['ends_at'] > $endsAt) {
             throw ValidationException::withMessages([
-                'starts_at' => 'A justificativa deve estar dentro da vigência da matrícula.',
+                'starts_at' => __('A justificativa deve estar dentro da vigência da matrícula.'),
             ]);
         }
 
@@ -78,7 +78,7 @@ class AttendanceJustificationController extends Controller
         ]);
 
         return redirect()->route('attendance-justifications.index', ['school' => $academicYear->school_id])
-            ->with('status', 'Justificativa de ausência registrada com sucesso.');
+            ->with('status', __('Justificativa de ausência registrada com sucesso.'));
     }
 
     public function destroy(Request $request, DiaryAttendanceJustification $justification): RedirectResponse
@@ -92,7 +92,7 @@ class AttendanceJustificationController extends Controller
         $justification->delete();
 
         return redirect()->route('attendance-justifications.index', ['school' => $schoolId])
-            ->with('status', 'Justificativa removida.');
+            ->with('status', __('Justificativa removida.'));
     }
 
     private function ensureAcademicYearIsOpen(AcademicYear $academicYear): void
@@ -102,7 +102,7 @@ class AttendanceJustificationController extends Controller
         }
 
         throw ValidationException::withMessages([
-            'closed_at' => 'Este ano letivo está fechado. Reabra o ano letivo antes de alterar justificativas de ausência.',
+            'closed_at' => __('Este ano letivo está fechado. Reabra o ano letivo antes de alterar justificativas de ausência.'),
         ]);
     }
 }

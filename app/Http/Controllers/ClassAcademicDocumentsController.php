@@ -36,7 +36,7 @@ class ClassAcademicDocumentsController extends Controller
         [$academicYear, $enrollments] = $this->classContext($request, $class);
 
         if ($enrollments->isEmpty()) {
-            return $this->blocked('Não foi possível emitir os atestados: a turma não possui matrículas ativas.');
+            return $this->blocked(__('Não foi possível emitir os atestados: a turma não possui matrículas ativas.'));
         }
 
         if ($message = $this->complianceMessage($request, $academicYear->school, $enrollments)) {
@@ -63,7 +63,7 @@ class ClassAcademicDocumentsController extends Controller
             'school_id' => $academicYear->school_id,
             'issued_by_user_id' => $request->user()->id,
             'payload' => [
-                'title' => 'Atestados de frequência da turma',
+                'title' => __('Atestados de frequência da turma'),
                 'scope_label' => $scope['label'],
                 'school_class_id' => $class->id,
                 'academic_year_id' => $class->academic_year_id,
@@ -92,7 +92,7 @@ class ClassAcademicDocumentsController extends Controller
         [$academicYear, $enrollments] = $this->classContext($request, $class);
 
         if ($enrollments->isEmpty()) {
-            return $this->blocked('Não foi possível emitir os boletins: a turma não possui matrículas ativas.');
+            return $this->blocked(__('Não foi possível emitir os boletins: a turma não possui matrículas ativas.'));
         }
 
         if ($message = $this->complianceMessage($request, $academicYear->school, $enrollments)) {
@@ -110,7 +110,7 @@ class ClassAcademicDocumentsController extends Controller
             ->values();
 
         if ($reports->every(fn (array $report): bool => $report['annualComponents']->isEmpty())) {
-            return $this->blocked('Não foi possível emitir os boletins: as matrículas ativas da turma não possuem componentes curriculares vinculados.');
+            return $this->blocked(__('Não foi possível emitir os boletins: as matrículas ativas da turma não possuem componentes curriculares vinculados.'));
         }
 
         $issuedDocument = $this->issuedDocument(
@@ -141,7 +141,7 @@ class ClassAcademicDocumentsController extends Controller
         [$academicYear, $enrollments] = $this->classContext($request, $class);
 
         if ($enrollments->isEmpty()) {
-            return $this->blocked('Não foi possível emitir o espelho: a turma não possui matrículas ativas.');
+            return $this->blocked(__('Não foi possível emitir o espelho: a turma não possui matrículas ativas.'));
         }
 
         if ($message = $this->complianceMessage($request, $academicYear->school, $enrollments)) {
@@ -161,11 +161,11 @@ class ClassAcademicDocumentsController extends Controller
         $periods = $academicYear->periods()->orderBy('position')->get();
 
         if ($components->isEmpty()) {
-            return $this->blocked('Não foi possível emitir o espelho: a turma não possui componentes curriculares vinculados às matrículas ativas.');
+            return $this->blocked(__('Não foi possível emitir o espelho: a turma não possui componentes curriculares vinculados às matrículas ativas.'));
         }
 
         if ($periods->isEmpty()) {
-            return $this->blocked('Não foi possível emitir o espelho: o ano letivo não possui períodos avaliativos cadastrados.');
+            return $this->blocked(__('Não foi possível emitir o espelho: o ano letivo não possui períodos avaliativos cadastrados.'));
         }
 
         $issuedDocument = $this->issuedDocument(
@@ -234,29 +234,29 @@ class ClassAcademicDocumentsController extends Controller
         if ($type === 'period') {
             $period = empty($data['academic_period_id']) ? null : $academicYear->periods()->find($data['academic_period_id']);
             if (! $period) {
-                throw ValidationException::withMessages(['academic_period_id' => 'Selecione um período avaliativo deste ano letivo.']);
+                throw ValidationException::withMessages(['academic_period_id' => __('Selecione um período avaliativo deste ano letivo.')]);
             }
 
-            return ['type' => $type, 'label' => 'Período avaliativo: '.$period->name, 'filename' => 'periodo-'.$period->id,
+            return ['type' => $type, 'label' => __('Período avaliativo: ').$period->name, 'filename' => 'periodo-'.$period->id,
                 'starts_at' => $period->starts_at->toImmutable(), 'ends_at' => $period->ends_at->toImmutable(), 'period' => $period];
         }
 
         if ($type === 'month') {
             if (empty($data['attendance_month'])) {
-                throw ValidationException::withMessages(['attendance_month' => 'Selecione o mês do atestado.']);
+                throw ValidationException::withMessages(['attendance_month' => __('Selecione o mês do atestado.')]);
             }
             $monthStartsAt = CarbonImmutable::createFromFormat('Y-m-d', $data['attendance_month'].'-01')->startOfMonth();
             $monthEndsAt = $monthStartsAt->endOfMonth();
             if ($monthEndsAt->isBefore($yearStartsAt) || $monthStartsAt->isAfter($yearEndsAt)) {
-                throw ValidationException::withMessages(['attendance_month' => 'O mês selecionado está fora da duração deste ano letivo.']);
+                throw ValidationException::withMessages(['attendance_month' => __('O mês selecionado está fora da duração deste ano letivo.')]);
             }
 
-            return ['type' => $type, 'label' => 'Mensal: '.Str::ucfirst($monthStartsAt->locale('pt_BR')->translatedFormat('F \d\e Y')),
+            return ['type' => $type, 'label' => __('Mensal: ').Str::ucfirst($monthStartsAt->locale('pt_BR')->translatedFormat('F \d\e Y')),
                 'filename' => 'mes-'.$data['attendance_month'], 'starts_at' => $monthStartsAt->isAfter($yearStartsAt) ? $monthStartsAt : $yearStartsAt,
                 'ends_at' => $monthEndsAt->isBefore($yearEndsAt) ? $monthEndsAt : $yearEndsAt, 'period' => null];
         }
 
-        return ['type' => 'annual', 'label' => 'Ano letivo completo', 'filename' => 'anual',
+        return ['type' => 'annual', 'label' => __('Ano letivo completo'), 'filename' => 'anual',
             'starts_at' => $yearStartsAt, 'ends_at' => $yearEndsAt, 'period' => null];
     }
 
@@ -280,11 +280,11 @@ class ClassAcademicDocumentsController extends Controller
 
         $names = $incomplete
             ->take(4)
-            ->map(fn (StudentEnrollment $enrollment): string => $enrollment->student?->full_name ?? 'Estudante sem nome')
+            ->map(fn (StudentEnrollment $enrollment): string => $enrollment->student?->full_name ?? __('Estudante sem nome'))
             ->join(', ');
         $remaining = $incomplete->count() - 4;
 
-        return 'Emissão bloqueada: '
+        return __('Emissão bloqueada: ')
             .$incomplete->count()
             .' matrícula(s) ativa(s) possuem cadastro pessoal incompleto. Revise: '
             .$names
@@ -297,7 +297,7 @@ class ClassAcademicDocumentsController extends Controller
             return null;
         }
 
-        return 'Emissão bloqueada: cadastre uma tabela de conceitos vigente para a escola ou escolha notas numéricas.';
+        return __('Emissão bloqueada: cadastre uma tabela de conceitos vigente para a escola ou escolha notas numéricas.');
     }
 
     /**

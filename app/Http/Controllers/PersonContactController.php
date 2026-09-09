@@ -17,7 +17,7 @@ class PersonContactController extends Controller
         $person->contacts()->create($this->validatedData($request));
 
         return redirect()->route('people.show', $person)
-            ->with('status', 'Contato cadastrado com sucesso.');
+            ->with('status', __('Contato cadastrado com sucesso.'));
     }
 
     public function update(Request $request, Person $person, PersonContact $contact): RedirectResponse
@@ -28,7 +28,7 @@ class PersonContactController extends Controller
         $contact->update($this->validatedData($request));
 
         return redirect()->route('people.show', $person)
-            ->with('status', 'Contato atualizado com sucesso.');
+            ->with('status', __('Contato atualizado com sucesso.'));
     }
 
     public function destroy(Request $request, Person $person, PersonContact $contact): RedirectResponse
@@ -39,7 +39,7 @@ class PersonContactController extends Controller
         $contact->delete();
 
         return redirect()->route('people.show', $person)
-            ->with('status', 'Contato removido com sucesso.');
+            ->with('status', __('Contato removido com sucesso.'));
     }
 
     private function canManagePerson(Request $request, Person $person): bool

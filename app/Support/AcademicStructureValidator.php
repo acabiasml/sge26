@@ -28,11 +28,11 @@ class AcademicStructureValidator
 
         $items = [];
         if ($academicYear->periods->isEmpty()) {
-            $items[] = self::issue('danger', 'Nenhum período avaliativo cadastrado', 'Cadastre os períodos para permitir avaliações, diários e fechamento por etapa.', 'Gerenciar períodos', route('academic-years.periods.index', $academicYear));
+            $items[] = self::issue('danger', __('Nenhum período avaliativo cadastrado'), __('Cadastre os períodos para permitir avaliações, diários e fechamento por etapa.'), __('Gerenciar períodos'), route('academic-years.periods.index', $academicYear));
         }
 
         if ($academicYear->courses->isEmpty()) {
-            $items[] = self::issue('danger', 'Nenhuma matriz cadastrada', 'Crie ao menos uma matriz curricular antes de montar turmas.', 'Nova matriz', route('academic-years.courses.create', $academicYear));
+            $items[] = self::issue('danger', __('Nenhuma matriz cadastrada'), __('Crie ao menos uma matriz curricular antes de montar turmas.'), __('Nova matriz'), route('academic-years.courses.create', $academicYear));
         }
 
         foreach ($academicYear->courses as $course) {
@@ -63,7 +63,7 @@ class AcademicStructureValidator
         $baseUrl = route('academic-years.courses.show', [$course->academic_year_id, $course]);
 
         if ($course->components->where('active', true)->isEmpty()) {
-            $items[] = self::issue('danger', 'Matriz sem componentes ativos', 'Inclua os componentes curriculares antes de criar turmas para esta matriz.', 'Gerenciar matriz', $baseUrl);
+            $items[] = self::issue('danger', __('Matriz sem componentes ativos'), __('Inclua os componentes curriculares antes de criar turmas para esta matriz.'), __('Gerenciar matriz'), $baseUrl);
         }
 
         foreach ($course->components->where('active', true) as $component) {
@@ -72,23 +72,23 @@ class AcademicStructureValidator
             }
 
             if (blank($component->knowledge_area_id)) {
-                $items[] = self::issue('warning', 'Componente sem área', "{$component->name} ainda não possui área do conhecimento.", 'Abrir componente', route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
+                $items[] = self::issue('warning', __('Componente sem área'), "{$component->name} ainda não possui área do conhecimento.", __('Abrir componente'), route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
             }
 
             if ((int) $component->weekly_lessons < 1 && (int) $component->workload_hours < 1) {
-                $items[] = self::issue('warning', 'Componente sem carga horária', "{$component->name} precisa de aulas semanais ou carga horária total.", 'Abrir componente', route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
+                $items[] = self::issue('warning', __('Componente sem carga horária'), "{$component->name} precisa de aulas semanais ou carga horária total.", __('Abrir componente'), route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
             }
 
             $starts = $component->startsPeriod;
             $ends = $component->endsPeriod;
 
             if ($starts && $ends && $starts->position > $ends->position) {
-                $items[] = self::issue('danger', 'Duração inválida de componente', "{$component->name} começa depois do período final informado.", 'Abrir componente', route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
+                $items[] = self::issue('danger', __('Duração inválida de componente'), "{$component->name} começa depois do período final informado.", __('Abrir componente'), route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
             }
         }
 
         if ($course->components->where('active', true)->isNotEmpty() && $course->classes->isEmpty()) {
-            $items[] = self::issue('info', 'Matriz ainda sem turma', 'A matriz está cadastrada, mas ainda não foi vinculada a nenhuma turma.', 'Criar turma', route('academic-years.classes.create', $course->academic_year_id));
+            $items[] = self::issue('info', __('Matriz ainda sem turma'), __('A matriz está cadastrada, mas ainda não foi vinculada a nenhuma turma.'), __('Criar turma'), route('academic-years.classes.create', $course->academic_year_id));
         }
 
         return $items;
@@ -116,19 +116,19 @@ class AcademicStructureValidator
         $academicYear = $class->academicYear;
 
         if (! $class->active) {
-            $items[] = self::issue('warning', 'Turma inativa', 'Turmas inativas não devem receber matrículas nem lançamentos de diário.', 'Editar turma', route('academic-years.classes.edit', [$academicYear, $class]));
+            $items[] = self::issue('warning', __('Turma inativa'), __('Turmas inativas não devem receber matrículas nem lançamentos de diário.'), __('Editar turma'), route('academic-years.classes.edit', [$academicYear, $class]));
         }
 
         if ($class->courses->isEmpty()) {
-            $items[] = self::issue('danger', 'Turma sem matriz', 'Vincule ao menos uma matriz curricular para gerar componentes, matrículas e diários.', 'Editar turma', route('academic-years.classes.edit', [$academicYear, $class]));
+            $items[] = self::issue('danger', __('Turma sem matriz'), __('Vincule ao menos uma matriz curricular para gerar componentes, matrículas e diários.'), __('Editar turma'), route('academic-years.classes.edit', [$academicYear, $class]));
         }
 
         if ($class->startsPeriod && $class->endsPeriod && $class->startsPeriod->position > $class->endsPeriod->position) {
-            $items[] = self::issue('danger', 'Duração inválida da turma', 'O período inicial da turma está depois do período final.', 'Editar turma', route('academic-years.classes.edit', [$academicYear, $class]));
+            $items[] = self::issue('danger', __('Duração inválida da turma'), __('O período inicial da turma está depois do período final.'), __('Editar turma'), route('academic-years.classes.edit', [$academicYear, $class]));
         }
 
         if ($class->enrollments->isEmpty()) {
-            $items[] = self::issue('info', 'Turma sem matrículas', 'Nenhum estudante foi matriculado nesta turma ainda.', 'Gerenciar matrículas', route('classes.enrollments.index', $class));
+            $items[] = self::issue('info', __('Turma sem matrículas'), __('Nenhum estudante foi matriculado nesta turma ainda.'), __('Gerenciar matrículas'), route('classes.enrollments.index', $class));
         }
 
         foreach ($class->componentAssignments->where('active', true) as $assignment) {
@@ -137,7 +137,7 @@ class AcademicStructureValidator
             }
 
             if (blank($assignment->teacher_person_id)) {
-                $items[] = self::issue('warning', 'Componente sem docência titular', ($assignment->component?->name ?? 'Componente sem nome').' ainda não possui professor titular.', 'Gerenciar turma', route('academic-years.classes.show', [$academicYear, $class]));
+                $items[] = self::issue('warning', __('Componente sem docência titular'), ($assignment->component?->name ?? __('Componente sem nome')).' ainda não possui professor titular.', __('Gerenciar turma'), route('academic-years.classes.show', [$academicYear, $class]));
             }
         }
 
@@ -158,9 +158,9 @@ class AcademicStructureValidator
                 $scheduled = (int) ($scheduledCounts[$assignment->id] ?? 0);
 
                 if ($scheduled === 0) {
-                    $items[] = self::issue('warning', 'Componente fora do horário', ($assignment->component?->name ?? 'Componente sem nome').' ainda não aparece em nenhum bloco de horário.', 'Gerenciar horário', route('academic-years.classes.schedules.index', [$academicYear, $class]));
+                    $items[] = self::issue('warning', __('Componente fora do horário'), ($assignment->component?->name ?? __('Componente sem nome')).' ainda não aparece em nenhum bloco de horário.', __('Gerenciar horário'), route('academic-years.classes.schedules.index', [$academicYear, $class]));
                 } elseif ($scheduled > $expected) {
-                    $items[] = self::issue('danger', 'Horário acima das aulas semanais', ($assignment->component?->name ?? 'Componente sem nome')." possui {$scheduled} bloco(s), mas a matriz prevê {$expected}.", 'Gerenciar horário', route('academic-years.classes.schedules.index', [$academicYear, $class]));
+                    $items[] = self::issue('danger', __('Horário acima das aulas semanais'), ($assignment->component?->name ?? __('Componente sem nome'))." possui {$scheduled} bloco(s), mas a matriz prevê {$expected}.", __('Gerenciar horário'), route('academic-years.classes.schedules.index', [$academicYear, $class]));
                 }
             }
         }

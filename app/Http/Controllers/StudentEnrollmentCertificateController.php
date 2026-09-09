@@ -43,7 +43,7 @@ class StudentEnrollmentCertificateController extends Controller
         [$academicYear, $class] = $this->context($request, $enrollment);
 
         if (! $enrollment->isActive()) {
-            return $this->blocked($enrollment, 'Declaração de matrícula bloqueada: a matrícula precisa estar ativa.');
+            return $this->blocked($enrollment, __('Declaração de matrícula bloqueada: a matrícula precisa estar ativa.'));
         }
 
         return $this->declarationPdf(
@@ -79,7 +79,7 @@ class StudentEnrollmentCertificateController extends Controller
         [$academicYear, $class] = $this->context($request, $enrollment);
 
         if ($enrollment->final_result_status !== StudentEnrollment::FINAL_APPROVED) {
-            return $this->blocked($enrollment, 'Declaração de conclusão bloqueada: o resultado final da matrícula precisa estar aprovado.');
+            return $this->blocked($enrollment, __('Declaração de conclusão bloqueada: o resultado final da matrícula precisa estar aprovado.'));
         }
 
         return $this->declarationPdf(
@@ -144,7 +144,7 @@ class StudentEnrollmentCertificateController extends Controller
         [$academicYear, $class] = $this->context($request, $enrollment);
 
         if ($enrollment->status !== StudentEnrollment::STATUS_TRANSFERRED || ! $enrollment->transferred_at) {
-            return $this->blocked($enrollment, 'Atestado de transferência bloqueado: registre a transferência da matrícula antes de emitir o documento.');
+            return $this->blocked($enrollment, __('Atestado de transferência bloqueado: registre a transferência da matrícula antes de emitir o documento.'));
         }
 
         if ($redirect = $this->complianceRedirect($request, $academicYear, $enrollment)) {
@@ -257,7 +257,7 @@ class StudentEnrollmentCertificateController extends Controller
         if ($type === 'period') {
             if (empty($data['academic_period_id'])) {
                 throw ValidationException::withMessages([
-                    'academic_period_id' => 'Selecione o período avaliativo do atestado.',
+                    'academic_period_id' => __('Selecione o período avaliativo do atestado.'),
                 ]);
             }
 
@@ -265,13 +265,13 @@ class StudentEnrollmentCertificateController extends Controller
 
             if (! $period) {
                 throw ValidationException::withMessages([
-                    'academic_period_id' => 'O período selecionado não pertence a este ano letivo.',
+                    'academic_period_id' => __('O período selecionado não pertence a este ano letivo.'),
                 ]);
             }
 
             return [
                 'type' => $type,
-                'label' => 'Período avaliativo: '.$period->name,
+                'label' => __('Período avaliativo: ').$period->name,
                 'filename' => 'periodo-'.$period->id,
                 'starts_at' => $period->starts_at->toImmutable(),
                 'ends_at' => $period->ends_at->toImmutable(),
@@ -282,7 +282,7 @@ class StudentEnrollmentCertificateController extends Controller
         if ($type === 'month') {
             if (empty($data['attendance_month'])) {
                 throw ValidationException::withMessages([
-                    'attendance_month' => 'Selecione o mês do atestado.',
+                    'attendance_month' => __('Selecione o mês do atestado.'),
                 ]);
             }
 
@@ -291,13 +291,13 @@ class StudentEnrollmentCertificateController extends Controller
 
             if ($monthEndsAt->isBefore($yearStartsAt) || $monthStartsAt->isAfter($yearEndsAt)) {
                 throw ValidationException::withMessages([
-                    'attendance_month' => 'O mês selecionado está fora da duração deste ano letivo.',
+                    'attendance_month' => __('O mês selecionado está fora da duração deste ano letivo.'),
                 ]);
             }
 
             return [
                 'type' => $type,
-                'label' => 'Mensal: '.Str::ucfirst($monthStartsAt->locale('pt_BR')->translatedFormat('F \d\e Y')),
+                'label' => __('Mensal: ').Str::ucfirst($monthStartsAt->locale('pt_BR')->translatedFormat('F \d\e Y')),
                 'filename' => 'mes-'.$data['attendance_month'],
                 'starts_at' => $monthStartsAt->isAfter($yearStartsAt) ? $monthStartsAt : $yearStartsAt,
                 'ends_at' => $monthEndsAt->isBefore($yearEndsAt) ? $monthEndsAt : $yearEndsAt,
@@ -307,7 +307,7 @@ class StudentEnrollmentCertificateController extends Controller
 
         return [
             'type' => 'annual',
-            'label' => 'Ano letivo completo',
+            'label' => __('Ano letivo completo'),
             'filename' => 'anual',
             'starts_at' => $yearStartsAt,
             'ends_at' => $yearEndsAt,
@@ -333,40 +333,40 @@ class StudentEnrollmentCertificateController extends Controller
 
         return [
             [
-                'label' => 'Cadastro do estudante',
+                'label' => __('Cadastro do estudante'),
                 'ok' => $personMessage === null,
                 'message' => $personMessage
                     ?? ($studentHasNoCpf
-                        ? 'Estudante sem CPF. A emissão será permitida mediante confirmação, pois há CPF da mãe ou do pai cadastrado.'
-                        : 'Dados civis mínimos preenchidos para emissão oficial.'),
+                        ? __('Estudante sem CPF. A emissão será permitida mediante confirmação, pois há CPF da mãe ou do pai cadastrado.')
+                        : __('Dados civis mínimos preenchidos para emissão oficial.')),
                 'severity' => $personMessage ? 'danger' : ($studentHasNoCpf ? 'warning' : 'success'),
             ],
             [
-                'label' => 'Papel timbrado da escola',
+                'label' => __('Papel timbrado da escola'),
                 'ok' => $schoolMessage === null,
-                'message' => $schoolMessage ?? 'Dados oficiais da escola preenchidos.',
+                'message' => $schoolMessage ?? __('Dados oficiais da escola preenchidos.'),
                 'severity' => $schoolMessage ? 'danger' : 'success',
             ],
             [
-                'label' => 'Matriz vinculada',
+                'label' => __('Matriz vinculada'),
                 'ok' => $enrollment->courses->isNotEmpty(),
                 'message' => $enrollment->courses->isNotEmpty()
-                    ? 'Matrícula ligada a '.$enrollment->courses->pluck('name')->join(' + ').'.'
-                    : 'Vincule ao menos uma matriz/curso à matrícula.',
+                    ? __('Matrícula ligada a ').$enrollment->courses->pluck('name')->join(' + ').'.'
+                    : __('Vincule ao menos uma matriz/curso à matrícula.'),
                 'severity' => $enrollment->courses->isNotEmpty() ? 'success' : 'danger',
             ],
             [
                 'label' => 'Resultado final',
                 'ok' => $hasFinalResult,
                 'message' => $hasFinalResult
-                    ? 'Resultado final: '.$enrollment->finalResultLabel().'.'
-                    : 'Ainda sem resultado final calculado; documentos finais ficam bloqueados.',
+                    ? __('Resultado final: ').__($enrollment->finalResultLabel()).'.'
+                    : __('Ainda sem resultado final calculado; documentos finais ficam bloqueados.'),
                 'severity' => $hasFinalResult ? 'success' : 'warning',
             ],
             [
-                'label' => 'Situação da matrícula',
+                'label' => __('Situação da matrícula'),
                 'ok' => true,
-                'message' => $enrollment->statusLabel().' desde '.($enrollment->enrolled_at?->format('d/m/Y') ?? 'data não informada').'.',
+                'message' => __($enrollment->statusLabel()).__(' desde ').($enrollment->enrolled_at?->format('d/m/Y') ?? 'data não informada').'.',
                 'severity' => $enrollment->isActive() ? 'success' : 'info',
             ],
         ];
@@ -380,15 +380,15 @@ class StudentEnrollmentCertificateController extends Controller
         return [
             [
                 'title' => 'Declaração de matrícula',
-                'description' => 'Comprova matrícula ativa do estudante.',
+                'description' => __('Comprova matrícula ativa do estudante.'),
                 'route' => route('enrollments.enrollment-declaration.pdf', $enrollment),
                 'icon' => 'fa-id-card',
                 'enabled' => $enrollment->isActive(),
-                'reason' => $enrollment->isActive() ? null : 'Disponível apenas para matrícula ativa.',
+                'reason' => $enrollment->isActive() ? null : __('Disponível apenas para matrícula ativa.'),
             ],
             [
                 'title' => 'Declaração de escolaridade',
-                'description' => 'Comprova vínculo escolar atual ou histórico na matrícula.',
+                'description' => __('Comprova vínculo escolar atual ou histórico na matrícula.'),
                 'route' => route('enrollments.schooling-declaration.pdf', $enrollment),
                 'icon' => 'fa-school',
                 'enabled' => true,
@@ -396,15 +396,15 @@ class StudentEnrollmentCertificateController extends Controller
             ],
             [
                 'title' => 'Declaração de conclusão',
-                'description' => 'Comprova conclusão aprovada da etapa/matriz.',
+                'description' => __('Comprova conclusão aprovada da etapa/matriz.'),
                 'route' => route('enrollments.completion-declaration.pdf', $enrollment),
                 'icon' => 'fa-award',
                 'enabled' => $enrollment->final_result_status === StudentEnrollment::FINAL_APPROVED,
-                'reason' => $enrollment->final_result_status === StudentEnrollment::FINAL_APPROVED ? null : 'Exige resultado final aprovado.',
+                'reason' => $enrollment->final_result_status === StudentEnrollment::FINAL_APPROVED ? null : __('Exige resultado final aprovado.'),
             ],
             [
                 'title' => 'Atestado de frequência',
-                'description' => 'Resume a frequência anual. Os recortes mensal e por período estão disponíveis na Central de emissão.',
+                'description' => __('Resume a frequência anual. Os recortes mensal e por período estão disponíveis na Central de emissão.'),
                 'route' => route('enrollments.attendance-certificate.pdf', $enrollment),
                 'icon' => 'fa-user-check',
                 'enabled' => true,
@@ -412,15 +412,15 @@ class StudentEnrollmentCertificateController extends Controller
             ],
             [
                 'title' => 'Atestado de transferência',
-                'description' => 'Emitido após registro formal de transferência.',
+                'description' => __('Emitido após registro formal de transferência.'),
                 'route' => route('enrollments.transfer-certificate.pdf', $enrollment),
                 'icon' => 'fa-exchange-alt',
                 'enabled' => $enrollment->status === StudentEnrollment::STATUS_TRANSFERRED && $enrollment->transferred_at !== null,
-                'reason' => $enrollment->status === StudentEnrollment::STATUS_TRANSFERRED && $enrollment->transferred_at !== null ? null : 'Registre a transferência antes de emitir.',
+                'reason' => $enrollment->status === StudentEnrollment::STATUS_TRANSFERRED && $enrollment->transferred_at !== null ? null : __('Registre a transferência antes de emitir.'),
             ],
             [
                 'title' => 'Ficha de matrícula',
-                'description' => 'Ficha física de matrícula com dados cadastrais e responsáveis.',
+                'description' => __('Ficha física de matrícula com dados cadastrais e responsáveis.'),
                 'route' => route('enrollments.pdf', $enrollment),
                 'icon' => 'fa-file-signature',
                 'enabled' => true,
@@ -428,7 +428,7 @@ class StudentEnrollmentCertificateController extends Controller
             ],
             [
                 'title' => 'Boletim escolar',
-                'description' => 'Resultados por período, frequência e comportamento.',
+                'description' => __('Resultados por período, frequência e comportamento.'),
                 'route' => route('enrollments.report-card.pdf', $enrollment),
                 'icon' => 'fa-chart-line',
                 'enabled' => true,
@@ -436,7 +436,7 @@ class StudentEnrollmentCertificateController extends Controller
             ],
             [
                 'title' => 'Ficha individual',
-                'description' => 'Documento acadêmico individual completo.',
+                'description' => __('Documento acadêmico individual completo.'),
                 'route' => route('enrollments.individual-record.pdf', $enrollment),
                 'icon' => 'fa-file-alt',
                 'enabled' => true,

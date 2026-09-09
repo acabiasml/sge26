@@ -38,7 +38,7 @@ class SchoolConceptController extends Controller
         $school->update(['dependency_component_limit' => $data['dependency_component_limit']]);
 
         return redirect()->route('schools.concepts.index', $school)
-            ->with('status', 'Critérios acadêmicos atualizados com sucesso.');
+            ->with('status', __('Critérios acadêmicos atualizados com sucesso.'));
     }
 
     public function storeDefault(Request $request, School $school): RedirectResponse
@@ -59,7 +59,7 @@ class SchoolConceptController extends Controller
         }
 
         return redirect()->route('schools.concepts.index', $school)
-            ->with('status', 'Tabela padrão de conceitos aplicada. Você ainda pode ajustar os intervalos.');
+            ->with('status', __('Tabela padrão de conceitos aplicada. Você ainda pode ajustar os intervalos.'));
     }
 
     public function store(Request $request, School $school): RedirectResponse
@@ -69,7 +69,7 @@ class SchoolConceptController extends Controller
         $school->concepts()->create($this->validatedConceptData($request));
 
         return redirect()->route('schools.concepts.index', $school)
-            ->with('status', 'Conceito cadastrado com sucesso.');
+            ->with('status', __('Conceito cadastrado com sucesso.'));
     }
 
     public function update(Request $request, School $school, SchoolConcept $concept): RedirectResponse
@@ -80,7 +80,7 @@ class SchoolConceptController extends Controller
         $concept->update($this->validatedConceptData($request));
 
         return redirect()->route('schools.concepts.index', $school)
-            ->with('status', 'Conceito atualizado com sucesso.');
+            ->with('status', __('Conceito atualizado com sucesso.'));
     }
 
     public function destroy(Request $request, School $school, SchoolConcept $concept): RedirectResponse
@@ -91,7 +91,7 @@ class SchoolConceptController extends Controller
         $concept->delete();
 
         return redirect()->route('schools.concepts.index', $school)
-            ->with('status', 'Conceito removido com sucesso.');
+            ->with('status', __('Conceito removido com sucesso.'));
     }
 
     /**
@@ -121,7 +121,7 @@ class SchoolConceptController extends Controller
 
         if ($data['minimum_score'] !== null && $data['maximum_score'] !== null && (float) $data['minimum_score'] >= (float) $data['maximum_score']) {
             throw ValidationException::withMessages([
-                'maximum_score' => 'A nota máxima precisa ser maior que a nota mínima.',
+                'maximum_score' => __('A nota máxima precisa ser maior que a nota mínima.'),
             ]);
         }
 

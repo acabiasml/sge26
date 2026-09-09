@@ -195,13 +195,13 @@ class AcademicCalendarGrid
         $period = $periods->first(fn ($period): bool => $period->starts_at->isSameDay($date));
 
         if ($period) {
-            return ['code' => 'IP', 'label' => 'Início de '.$period->name];
+            return ['code' => 'IP', 'label' => __('Início de ').$period->name];
         }
 
         $period = $periods->first(fn ($period): bool => $period->ends_at->isSameDay($date));
 
         if ($period) {
-            return ['code' => 'TP', 'label' => 'Término de '.$period->name];
+            return ['code' => 'TP', 'label' => __('Término de ').$period->name];
         }
 
         return null;
@@ -209,7 +209,7 @@ class AcademicCalendarGrid
 
     private static function labelForDate(Carbon $date, ?CalendarDay $day, ?array $periodMarker = null): string
     {
-        $label = $day?->label() ?? ($date->isSunday() ? 'Domingo' : ($date->isSaturday() ? 'Sábado' : 'Sem registro'));
+        $label = ($day ? __($day->label()) : null) ?? ($date->isSunday() ? __('Domingo') : ($date->isSaturday() ? __('Sábado') : __('Sem registro')));
 
         return $periodMarker ? $periodMarker['label'].' - '.$label : $label;
     }
@@ -219,7 +219,7 @@ class AcademicCalendarGrid
         $parts = collect();
 
         if ($dayEntries->isEmpty()) {
-            $parts->push($date->isSunday() ? 'Domingo' : ($date->isSaturday() ? 'Sábado' : 'Sem registro'));
+            $parts->push($date->isSunday() ? __('Domingo') : ($date->isSaturday() ? __('Sábado') : __('Sem registro')));
         } else {
             $dayEntries->each(function (array $entry) use ($parts): void {
                 $day = $entry['day'];
@@ -234,7 +234,7 @@ class AcademicCalendarGrid
             });
         }
 
-        $birthdays->each(fn (Person $person) => $parts->push('Aniversário: '.($person->social_name ?: $person->full_name)));
+        $birthdays->each(fn (Person $person) => $parts->push(__('Aniversário: ').($person->social_name ?: $person->full_name)));
 
         return $parts->unique()->join(' | ');
     }

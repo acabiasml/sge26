@@ -4,10 +4,18 @@ namespace Tests\Unit;
 
 use App\Models\AcademicCourse;
 use App\Support\AcademicContextLabel;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class AcademicContextLabelTest extends TestCase
 {
+    public function test_context_labels_follow_the_active_interface_language(): void
+    {
+        app()->setLocale('it');
+        $course = new AcademicCourse(['stage' => AcademicCourse::STAGE_HIGH_SCHOOL]);
+        $this->assertSame('Classe A · Scuola secondaria di secondo grado', AcademicContextLabel::classWithStages('Classe A', [$course]));
+        $this->assertSame('Livello non indicato', AcademicContextLabel::stages([]));
+    }
+
     public function test_class_context_includes_each_distinct_stage(): void
     {
         $regular = new AcademicCourse(['stage' => AcademicCourse::STAGE_HIGH_SCHOOL]);

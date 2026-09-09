@@ -26,7 +26,7 @@
                                 <option value="{{ $value }}" @selected(old('initial_role') === $value)>{{ __('roles.roles.'.$value) }}</option>
                             @endforeach
                         </select>
-                        @error('initial_role') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        @error('initial_role') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
                     </div>
 
                     <div class="form-group col-md-4">
@@ -38,7 +38,7 @@
                             @endforeach
                         </select>
                         <small class="form-text text-muted">{{ __('screens.administration_global_help') }}</small>
-                        @error('initial_school_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        @error('initial_school_id') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
                     </div>
 
                     <div class="form-group col-md-4">
@@ -49,7 +49,7 @@
                                 <option value="{{ $value }}" @selected(old('initial_position') === $value)>{{ __('roles.positions.'.$value) }}</option>
                             @endforeach
                         </select>
-                        @error('initial_position') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        @error('initial_position') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
                     </div>
                 </div>
 
@@ -58,13 +58,13 @@
                         <label for="initial_started_at">{{ __('screens.start') }}</label>
                         <input id="initial_started_at" name="initial_started_at" type="date" class="form-control @error('initial_started_at') is-invalid @enderror" value="{{ old('initial_started_at') }}">
                         <small class="form-text text-muted">{{ __('screens.school_relationship_start_help') }}</small>
-                        @error('initial_started_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        @error('initial_started_at') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
                     </div>
 
                     <div class="form-group col-md-6">
                         <label for="initial_ended_at">{{ __('screens.end') }}</label>
                         <input id="initial_ended_at" name="initial_ended_at" type="date" class="form-control @error('initial_ended_at') is-invalid @enderror" value="{{ old('initial_ended_at') }}">
-                        @error('initial_ended_at') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        @error('initial_ended_at') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
                     </div>
                 </div>
 

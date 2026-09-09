@@ -16,9 +16,9 @@ class OfficialDocumentCompliance
             return null;
         }
 
-        return 'Documento bloqueado: complete o cadastro oficial da escola antes de emitir. Campos pendentes: '
-            .implode(', ', $missing)
-            .'. Abra o cadastro da escola e revise os dados do papel timbrado.';
+        return __('Documento bloqueado: complete o cadastro oficial da escola antes de emitir. Campos pendentes: ')
+            .implode(', ', array_map(fn (string $field): string => __($field), $missing))
+            .__('. Abra o cadastro da escola e revise os dados do papel timbrado.');
     }
 
     public static function personMessage(Person $person): ?string
@@ -29,9 +29,9 @@ class OfficialDocumentCompliance
             return null;
         }
 
-        return 'Documento bloqueado: complete o cadastro da pessoa antes de emitir. Campos pendentes: '
-            .implode(', ', $missing)
-            .'. Abra a ficha da pessoa e revise os dados civis e de endereço.';
+        return __('Documento bloqueado: complete o cadastro da pessoa antes de emitir. Campos pendentes: ')
+            .implode(', ', array_map(fn (string $field): string => __($field), $missing))
+            .__('. Abra a ficha da pessoa e revise os dados civis e de endereço.');
     }
 
     public static function studentMessage(Person $student, bool $missingCpfConfirmed = false): ?string
@@ -42,16 +42,16 @@ class OfficialDocumentCompliance
         ));
 
         if ($missing !== []) {
-            return 'Documento bloqueado: complete o cadastro do estudante antes de emitir. Campos pendentes: '
-                .implode(', ', $missing).'.';
+            return __('Documento bloqueado: complete o cadastro do estudante antes de emitir. Campos pendentes: ')
+                .implode(', ', array_map(fn (string $field): string => __($field), $missing)).'.';
         }
 
         if (self::studentHasNoCpf($student) && ! self::hasParentCpf($student)) {
-            return 'Documento bloqueado: cadastre o CPF da mãe ou do pai na seção Responsáveis e contatos.';
+            return __('Documento bloqueado: cadastre o CPF da mãe ou do pai na seção Responsáveis e contatos.');
         }
 
         if (self::studentHasNoCpf($student) && ! $missingCpfConfirmed) {
-            return 'Confirme que o documento será emitido sem o CPF do estudante.';
+            return __('Confirme que o documento será emitido sem o CPF do estudante.');
         }
 
         return null;

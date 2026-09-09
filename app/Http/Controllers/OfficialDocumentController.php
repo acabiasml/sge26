@@ -65,7 +65,7 @@ class OfficialDocumentController extends Controller
 
         if (blank(strip_tags($content))) {
             throw ValidationException::withMessages([
-                'content_html' => 'Digite o conteúdo do documento antes de gerar o PDF.',
+                'content_html' => __('Digite o conteúdo do documento antes de gerar o PDF.'),
             ]);
         }
 

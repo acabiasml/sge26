@@ -1,13 +1,13 @@
 @extends('layouts.app')
 
-@section('title', 'Meu horário')
-@section('page-title', 'Meu horário')
+@section('title', __('Meu horário'))
+@section('page-title', __('Meu horário'))
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('teacher-schedules.pdf') }}" aria-label="Imprimir meu horário docente" title="Imprimir meu horário">
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('teacher-schedules.pdf') }}" aria-label="{{ __('Imprimir meu horário docente') }}" title="{{ __('Imprimir meu horário') }}">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('teacher-diaries.index') }}" aria-label="Voltar aos diários" title="Voltar aos diários">
+    <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('teacher-diaries.index') }}" aria-label="{{ __('Voltar aos diários') }}" title="{{ __('Voltar aos diários') }}">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
     </a>
 @endsection
@@ -15,16 +15,16 @@
 @section('content')
     <section class="card shadow" aria-labelledby="teacher-schedule-title">
         <div class="card-header py-3">
-            <h2 id="teacher-schedule-title" class="h6 m-0 font-weight-bold text-primary">Horário docente vigente</h2>
+            <h2 id="teacher-schedule-title" class="h6 m-0 font-weight-bold text-primary">{{ __('Horário docente vigente') }}</h2>
         </div>
         <div class="card-body">
             @if($slots->isEmpty())
-                <p class="mb-0">Nenhum horário vigente encontrado para sua docência.</p>
+                <p class="mb-0">{{ __('Nenhum horário vigente encontrado para sua docência.') }}</p>
             @else
                 @foreach($weekdays as $weekday => $weekdayLabel)
                     @php($daySlots = $slots->where('weekday', $weekday))
                     @if($daySlots->isNotEmpty())
-                        <h3 class="h6 font-weight-bold text-primary mt-3">{{ $weekdayLabel }}</h3>
+                        <h3 class="h6 font-weight-bold text-primary mt-3">{{ __($weekdayLabel) }}</h3>
                         <div class="row">
                             @foreach($daySlots as $slot)
                                 @php($colors = \App\Support\ScheduleTeacherColor::for($slot->componentAssignment?->teacher?->id, $slot->componentAssignment?->teacher?->full_name))

@@ -20,7 +20,7 @@ class PersonRoleController extends Controller
         $person->schoolRoles()->create($data);
 
         return redirect()->route('people.show', $person)
-            ->with('status', 'Vínculo cadastrado com sucesso.');
+            ->with('status', __('Vínculo cadastrado com sucesso.'));
     }
 
     public function update(Request $request, Person $person, PersonSchoolRole $role): RedirectResponse
@@ -35,7 +35,7 @@ class PersonRoleController extends Controller
         $role->update($data);
 
         return redirect()->route('people.show', $person)
-            ->with('status', 'Vínculo atualizado com sucesso.');
+            ->with('status', __('Vínculo atualizado com sucesso.'));
     }
 
     public function activate(Request $request, Person $person, PersonSchoolRole $role): RedirectResponse
@@ -54,7 +54,7 @@ class PersonRoleController extends Controller
         ]);
 
         return redirect()->route('people.show', $person)
-            ->with('status', 'Vínculo ativado com sucesso.');
+            ->with('status', __('Vínculo ativado com sucesso.'));
     }
 
     public function deactivate(Request $request, Person $person, PersonSchoolRole $role): RedirectResponse
@@ -72,7 +72,7 @@ class PersonRoleController extends Controller
         ]);
 
         return redirect()->route('people.show', $person)
-            ->with('status', 'Vínculo desativado com sucesso.');
+            ->with('status', __('Vínculo desativado com sucesso.'));
     }
 
     public function destroy(Request $request, Person $person, PersonSchoolRole $role): RedirectResponse
@@ -87,7 +87,7 @@ class PersonRoleController extends Controller
         $role->delete();
 
         return redirect()->route('people.show', $person)
-            ->with('status', 'Vínculo removido com sucesso.');
+            ->with('status', __('Vínculo removido com sucesso.'));
     }
 
     /**
@@ -158,7 +158,7 @@ class PersonRoleController extends Controller
 
         if (! $keepsAdministratorActive) {
             throw ValidationException::withMessages([
-                'role' => 'Não é possível desativar ou remover o único vínculo ativo de Administração no sistema.',
+                'role' => __('Não é possível desativar ou remover o único vínculo ativo de Administração no sistema.'),
             ]);
         }
     }
@@ -170,7 +170,7 @@ class PersonRoleController extends Controller
         }
 
         throw ValidationException::withMessages([
-            'person' => 'Informe o CPF antes de atribuir um vínculo ativo a esta pessoa.',
+            'person' => __('Informe o CPF antes de atribuir um vínculo ativo a esta pessoa.'),
         ]);
     }
 

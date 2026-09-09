@@ -42,7 +42,7 @@
                         <tr>
                             <td>{{ $year->name }}</td>
                             <td>{{ $year->reference_year }}</td>
-                            <td>{{ $year->starts_at?->format('d/m/Y') }} a {{ $year->ends_at?->format('d/m/Y') }}</td>
+                            <td>{{ $year->starts_at?->format('d/m/Y') }} {{ __('a') }} {{ $year->ends_at?->format('d/m/Y') }}</td>
                             <td>{{ $year->schoolDayCount() }}</td>
                             <td>{{ $year->approved_at?->format('d/m/Y') ?? __('screens.pending') }}</td>
                             <td class="text-right">

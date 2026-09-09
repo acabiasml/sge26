@@ -23,11 +23,11 @@ class GoogleWorkspaceController extends Controller
         }
 
         if (! $result['created']) {
-            return back()->with('status', 'A conta já existe no Google Workspace e foi vinculada ao cadastro.');
+            return back()->with('status', __('A conta já existe no Google Workspace e foi vinculada ao cadastro.'));
         }
 
         return back()
-            ->with('status', 'Conta criada no Google Workspace. A senha abaixo será exibida somente agora.')
+            ->with('status', __('Conta criada no Google Workspace. A senha abaixo será exibida somente agora.'))
             ->with('workspace_temporary_password', $result['temporary_password']);
     }
 }

@@ -42,7 +42,7 @@ class SchoolController extends Controller
         $school = School::query()->create($data);
 
         return redirect()->route('schools.edit', $school)
-            ->with('status', 'Escola cadastrada com sucesso.');
+            ->with('status', __('Escola cadastrada com sucesso.'));
     }
 
     public function edit(Request $request, School $school): View
@@ -68,7 +68,7 @@ class SchoolController extends Controller
         $school->update($data);
 
         return redirect()->route('schools.edit', $school)
-            ->with('status', 'Escola atualizada com sucesso.');
+            ->with('status', __('Escola atualizada com sucesso.'));
     }
 
     public function destroy(Request $request, School $school): RedirectResponse
@@ -77,13 +77,13 @@ class SchoolController extends Controller
 
         if ($school->roles()->exists()) {
             return redirect()->route('schools.index')
-                ->with('status', 'Não é possível excluir uma escola que possui vínculos cadastrados. Desative a escola se ela não estiver mais em uso.');
+                ->with('status', __('Não é possível excluir uma escola que possui vínculos cadastrados. Desative a escola se ela não estiver mais em uso.'));
         }
 
         $school->delete();
 
         return redirect()->route('schools.index')
-            ->with('status', 'Escola excluída com sucesso.');
+            ->with('status', __('Escola excluída com sucesso.'));
     }
 
     /**

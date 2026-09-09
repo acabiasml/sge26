@@ -69,7 +69,7 @@ class AcademicCourseController extends Controller
         $course = $academicYear->courses()->create($data);
 
         return redirect()->route('academic-years.courses.show', [$academicYear, $course])
-            ->with('status', 'Curso cadastrado com sucesso.');
+            ->with('status', __('Curso cadastrado com sucesso.'));
     }
 
     public function update(Request $request, AcademicYear $academicYear, AcademicCourse $course): RedirectResponse
@@ -81,7 +81,7 @@ class AcademicCourseController extends Controller
         $course->update($this->validatedData($request, $academicYear, $course));
 
         return redirect()->route('academic-years.courses.show', [$academicYear, $course])
-            ->with('status', 'Matriz atualizada com sucesso.');
+            ->with('status', __('Matriz atualizada com sucesso.'));
     }
 
     public function destroy(Request $request, AcademicYear $academicYear, AcademicCourse $course): RedirectResponse
@@ -93,7 +93,7 @@ class AcademicCourseController extends Controller
         $course->delete();
 
         return redirect()->route('academic-years.show', $academicYear)
-            ->with('status', 'Curso removido com sucesso.');
+            ->with('status', __('Curso removido com sucesso.'));
     }
 
     public function duplicate(Request $request, AcademicYear $academicYear, AcademicCourse $course): RedirectResponse
@@ -147,7 +147,7 @@ class AcademicCourseController extends Controller
         });
 
         return redirect()->route('academic-years.courses.edit', [$academicYear, $duplicatedCourse])
-            ->with('status', 'Matriz duplicada com sucesso. Ajuste o nome conforme necessário.');
+            ->with('status', __('Matriz duplicada com sucesso. Ajuste o nome conforme necessário.'));
     }
 
     /**
@@ -226,7 +226,7 @@ class AcademicCourseController extends Controller
     {
         if ($academicYear->isClosed()) {
             throw ValidationException::withMessages([
-                'closed_at' => 'Este ano letivo está fechado. Reabra o ano letivo antes de alterar matrizes.',
+                'closed_at' => __('Este ano letivo está fechado. Reabra o ano letivo antes de alterar matrizes.'),
             ]);
         }
 
@@ -235,7 +235,7 @@ class AcademicCourseController extends Controller
         }
 
         throw ValidationException::withMessages([
-            'approved_at' => 'Ano letivo aprovado só pode ter sua estrutura acadêmica alterada pela Administração global.',
+            'approved_at' => __('Ano letivo aprovado só pode ter sua estrutura acadêmica alterada pela Administração global.'),
         ]);
     }
 

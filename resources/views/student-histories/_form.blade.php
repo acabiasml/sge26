@@ -84,7 +84,7 @@
     }
 @endphp
 
-<section class="sge-history-workspace mb-4" aria-label="Cadastro de histórico escolar">
+<section class="sge-history-workspace mb-4" aria-label="{{ __('Cadastro de histórico escolar') }}">
     <input type="hidden" name="is_unified" value="{{ old('is_unified', $history->is_unified) ? 1 : 0 }}">
     @if($curriculumOnly)
         <input type="hidden" name="title" value="{{ $history->title }}">
@@ -101,26 +101,26 @@
         <div class="card shadow sge-panel-card mb-4">
             <div class="sge-panel-header">
                 <div>
-                    <h2>Documento</h2>
-                    <p>Identificação geral do histórico recebido.</p>
+                    <h2>{{ __('Documento') }}</h2>
+                    <p>{{ __('Identificação geral do histórico recebido.') }}</p>
                 </div>
             </div>
             <div class="card-body">
                 <div class="form-group">
-                    <label for="title">Título</label>
+                    <label for="title">{{ __('Título') }}</label>
                     <input id="title" name="title" class="form-control @error('title') is-invalid @enderror" value="{{ old('title', $history->title) }}" required>
-                    @error('title') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    @error('title') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
                 </div>
 
                 <div class="form-group">
-                    <label for="stage">Etapa</label>
-                    <input id="stage" name="stage" class="form-control" value="{{ old('stage', $history->stage) }}" placeholder="Ensino Fundamental, Ensino Médio..." required>
+                    <label for="stage">{{ __('Etapa') }}</label>
+                    <input id="stage" name="stage" class="form-control" value="{{ old('stage', $history->stage) }}" placeholder="{{ __('Ensino Fundamental, Ensino Médio...') }}" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="school_id">Escola relacionada</label>
+                    <label for="school_id">{{ __('Escola relacionada') }}</label>
                     <select id="school_id" name="school_id" class="form-control" required>
-                        <option value="">Sem escola definida</option>
+                        <option value="">{{ __('Sem escola definida') }}</option>
                         @foreach($schools as $school)
                             <option value="{{ $school->id }}" @selected((string) old('school_id', $history->school_id) === (string) $school->id)>{{ $school->name }}</option>
                         @endforeach
@@ -128,29 +128,29 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="legal_basis">Fundamento legal</label>
+                    <label for="legal_basis">{{ __('Fundamento legal') }}</label>
                     <textarea id="legal_basis" name="legal_basis" class="form-control" rows="3" required>{{ old('legal_basis', $history->legal_basis) }}</textarea>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group col-md-7">
-                        <label for="issued_place">Local</label>
+                        <label for="issued_place">{{ __('Local') }}</label>
                         <input id="issued_place" name="issued_place" class="form-control" value="{{ old('issued_place', $history->issued_place) }}" required>
                     </div>
                     <div class="form-group col-md-5">
-                        <label for="issued_date">Data</label>
+                        <label for="issued_date">{{ __('Data') }}</label>
                         <input id="issued_date" name="issued_date" type="date" class="form-control" value="{{ old('issued_date', $history->issued_date?->toDateString()) }}" required>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="notes">Observações gerais</label>
-                    <textarea id="notes" name="notes" class="form-control" rows="5" placeholder="Reclassificação, estudos realizados, observações do documento de origem...">{{ old('notes', $history->notes) }}</textarea>
+                    <label for="notes">{{ __('Observações gerais') }}</label>
+                    <textarea id="notes" name="notes" class="form-control" rows="5" placeholder="{{ __('Reclassificação, estudos realizados, observações do documento de origem...') }}">{{ old('notes', $history->notes) }}</textarea>
                 </div>
 
                 <div class="custom-control custom-switch">
                     <input id="active" name="active" value="1" type="checkbox" class="custom-control-input" @checked(old('active', $history->active ?? true))>
-                    <label class="custom-control-label" for="active">Histórico ativo</label>
+                    <label class="custom-control-label" for="active">{{ __('Histórico ativo') }}</label>
                 </div>
             </div>
         </div>
@@ -158,9 +158,9 @@
         <div class="sge-helper-card">
             <i class="fas fa-lightbulb" aria-hidden="true"></i>
             <div>
-                <strong>Como preencher</strong>
-                <p>Use uma coluna para cada ano, série, fase ou etapa que aparece no documento recebido. Nos componentes, mantenha os nomes exatamente como vieram da outra escola.</p>
-                <p>Se o documento trouxer apenas AP, conceito global ou etapa sem transcrição, selecione o tipo correspondente na coluna e use uma linha de síntese.</p>
+                <strong>{{ __('Como preencher') }}</strong>
+                <p>{{ __('Use uma coluna para cada ano, série, fase ou etapa que aparece no documento recebido. Nos componentes, mantenha os nomes exatamente como vieram da outra escola.') }}</p>
+                <p>{{ __('Se o documento trouxer apenas AP, conceito global ou etapa sem transcrição, selecione o tipo correspondente na coluna e use uma linha de síntese.') }}</p>
             </div>
         </div>
     </aside>
@@ -170,11 +170,11 @@
         <section class="card shadow sge-panel-card mb-4">
             <div class="sge-panel-header">
                 <div>
-                    <h2>{{ $manualOnly ? 'Séries cursadas fora do sistema' : 'Anos, séries ou fases' }}</h2>
-                    <p>{{ $manualOnly ? 'Cadastre somente anos realizados em outras instituições.' : 'Cada cartão abaixo vira uma coluna na tabela do histórico.' }}</p>
+                    <h2>{{ $manualOnly ? __('Séries cursadas fora do sistema') : __('Anos, séries ou fases') }}</h2>
+                    <p>{{ $manualOnly ? __('Cadastre somente anos realizados em outras instituições.') : __('Cada cartão abaixo vira uma coluna na tabela do histórico.') }}</p>
                 </div>
                 <button class="btn btn-sm btn-outline-primary" type="button" data-add-history-year>
-                    <i class="fas fa-plus mr-1" aria-hidden="true"></i>Adicionar série/fase
+                    <i class="fas fa-plus mr-1" aria-hidden="true"></i>{{ __('Adicionar série/fase') }}
                 </button>
             </div>
             <div class="card-body">
@@ -184,64 +184,64 @@
                             <input type="hidden" name="years[{{ $yearIndex }}][source]" value="{{ $year['source'] ?? 'manual' }}">
                             <input type="hidden" name="years[{{ $yearIndex }}][student_enrollment_id]" value="{{ $year['student_enrollment_id'] ?? '' }}">
                             <header>
-                                <strong>{{ filled($year['grade_phase'] ?? null) ? $year['grade_phase'] : 'Série/Fase '.$loop->iteration }}</strong>
-                                <button class="btn btn-sm btn-outline-danger sge-icon-action" type="button" data-remove-history-year aria-label="Remover esta coluna do histórico" title="Remover coluna">
+                                <strong>{{ filled($year['grade_phase'] ?? null) ? $year['grade_phase'] : __('Série/Fase ').$loop->iteration }}</strong>
+                                <button class="btn btn-sm btn-outline-danger sge-icon-action" type="button" data-remove-history-year aria-label="{{ __('Remover esta coluna do histórico') }}" title="{{ __('Remover coluna') }}">
                                     <i class="fas fa-trash" aria-hidden="true"></i>
                                 </button>
                             </header>
                             <div class="form-row">
                                 <div class="form-group col-md-4">
-                                    <label>Ano</label>
+                                    <label>{{ __('Ano') }}</label>
                                     <input name="years[{{ $yearIndex }}][year]" data-mask="year" inputmode="numeric" autocomplete="off" class="form-control" value="{{ $year['year'] ?? '' }}" required>
                                 </div>
                                 <div class="form-group col-md-8">
-                                    <label>Série/Fase</label>
+                                    <label>{{ __('Série/Fase') }}</label>
                                     <input name="years[{{ $yearIndex }}][grade_phase]" class="form-control" value="{{ $year['grade_phase'] ?? '' }}" required>
                                 </div>
                                 <div class="form-group col-md-12">
-                                    <label>Tipo de transcrição</label>
+                                    <label>{{ __('Tipo de transcrição') }}</label>
                                     @php($transcriptMode = $year['transcript_mode'] ?? 'detailed')
                                     <select name="years[{{ $yearIndex }}][transcript_mode]" class="form-control" required>
-                                        <option value="detailed" @selected($transcriptMode === 'detailed')>Detalhada por componente curricular</option>
-                                        <option value="summary" @selected($transcriptMode === 'summary')>Global/AP ou síntese sem componentes detalhados</option>
-                                        <option value="no_transcription" @selected($transcriptMode === 'no_transcription')>Etapa sem transcrição no documento recebido</option>
+                                        <option value="detailed" @selected($transcriptMode === 'detailed')>{{ __('Detalhada por componente curricular') }}</option>
+                                        <option value="summary" @selected($transcriptMode === 'summary')>{{ __('Global/AP ou síntese sem componentes detalhados') }}</option>
+                                        <option value="no_transcription" @selected($transcriptMode === 'no_transcription')>{{ __('Etapa sem transcrição no documento recebido') }}</option>
                                     </select>
                                 </div>
                                 @if($manualOnly)
                                     <input type="hidden" name="years[{{ $yearIndex }}][stage]" value="{{ \App\Models\AcademicCourse::STAGE_LABELS[$history->education_stage] ?? $history->stage }}">
                                 @else
                                 <div class="form-group col-md-6">
-                                    <label>Etapa</label>
+                                    <label>{{ __('Etapa') }}</label>
                                     <input name="years[{{ $yearIndex }}][stage]" class="form-control" value="{{ $year['stage'] ?? '' }}" required>
                                 </div>
                                 @endif
                                 <div class="form-group {{ $manualOnly ? 'col-md-12' : 'col-md-6' }}">
-                                    <label>Modalidade</label>
+                                    <label>{{ __('Modalidade') }}</label>
                                     @php($selectedModality = $year['modality'] ?? '')
                                     <select name="years[{{ $yearIndex }}][modality]" class="form-control" required>
-                                        <option value="">Selecione</option>
-                                        @foreach($modalityOptions as $modality)<option value="{{ $modality }}" @selected($selectedModality === $modality)>{{ $modality }}</option>@endforeach
+                                        <option value="">{{ __('Selecione') }}</option>
+                                        @foreach($modalityOptions as $modality)<option value="{{ $modality }}" @selected($selectedModality === $modality)>{{ __($modality) }}</option>@endforeach
                                         @if($selectedModality && ! in_array($selectedModality, $modalityOptions, true))<option value="{{ $selectedModality }}" selected>{{ $selectedModality }}</option>@endif
                                     </select>
                                 </div>
                                 <div class="form-group col-md-12">
-                                    <label>Escola onde cursou</label>
+                                    <label>{{ __('Escola onde cursou') }}</label>
                                     <input name="years[{{ $yearIndex }}][school_name]" class="form-control" value="{{ $year['school_name'] ?? '' }}" required>
                                 </div>
                                 <div class="form-group col-md-7">
-                                    <label>Ato autorizativo/credenciamento</label>
-                                    <textarea name="years[{{ $yearIndex }}][school_authorization]" class="form-control" rows="2" placeholder="Ato, resolução, portaria ou credenciamento da escola">{{ $year['school_authorization'] ?? '' }}</textarea>
+                                    <label>{{ __('Ato autorizativo/credenciamento') }}</label>
+                                    <textarea name="years[{{ $yearIndex }}][school_authorization]" class="form-control" rows="2" placeholder="{{ __('Ato, resolução, portaria ou credenciamento da escola') }}">{{ $year['school_authorization'] ?? '' }}</textarea>
                                 </div>
                                 <div class="form-group col-md-5">
-                                    <label>Documento de origem</label>
-                                    <input name="years[{{ $yearIndex }}][source_document]" class="form-control" value="{{ $year['source_document'] ?? '' }}" placeholder="Ex.: Histórico nº 123/2025">
+                                    <label>{{ __('Documento de origem') }}</label>
+                                    <input name="years[{{ $yearIndex }}][source_document]" class="form-control" value="{{ $year['source_document'] ?? '' }}" placeholder="{{ __('Ex.: Histórico nº 123/2025') }}">
                                 </div>
                                 <div class="form-group col-md-4">
-                                    <label>Cidade</label>
+                                    <label>{{ __('Cidade') }}</label>
                                     <input name="years[{{ $yearIndex }}][city]" class="form-control" value="{{ $year['city'] ?? '' }}" required>
                                 </div>
                                 <div class="form-group col-md-3">
-                                    <label>UF</label>
+                                    <label>{{ __('UF') }}</label>
                                     <select name="years[{{ $yearIndex }}][state]" class="form-control" required>
                                         <option value=""></option>
                                         @foreach($states as $uf => $stateName)
@@ -250,35 +250,35 @@
                                     </select>
                                 </div>
                                 <div class="form-group col-md-5">
-                                    <label>País</label>
+                                    <label>{{ __('País') }}</label>
                                     <input name="years[{{ $yearIndex }}][country]" class="form-control" value="{{ $year['country'] ?? 'Brasil' }}" required>
                                 </div>
                                 <div class="form-group col-md-4">
-                                    <label>CH total</label>
+                                    <label>{{ __('CH total') }}</label>
                                     <input name="years[{{ $yearIndex }}][workload_hours]" data-mask="decimal" inputmode="decimal" class="form-control" value="{{ $year['workload_hours'] ?? '' }}" required>
                                 </div>
                                 <div class="form-group col-md-4">
-                                    <label>Dias letivos</label>
+                                    <label>{{ __('Dias letivos') }}</label>
                                     <input name="years[{{ $yearIndex }}][school_days]" data-mask="digits" data-mask-max="3" inputmode="numeric" autocomplete="off" class="form-control" value="{{ $year['school_days'] ?? '' }}">
                                 </div>
                                 <div class="form-group col-md-4">
-                                    <label>Frequência mínima</label>
+                                    <label>{{ __('Frequência mínima') }}</label>
                                     <div class="input-group">
                                         <input name="years[{{ $yearIndex }}][minimum_attendance_percentage]" data-mask="percentage" inputmode="numeric" class="form-control" value="{{ $year['minimum_attendance_percentage'] ?? '' }}">
                                         <div class="input-group-append"><span class="input-group-text">%</span></div>
                                     </div>
                                 </div>
                                 <div class="form-group col-md-12">
-                                    <label>Resultado final nesta escola/ano</label>
+                                    <label>{{ __('Resultado final nesta escola/ano') }}</label>
                                     <input name="years[{{ $yearIndex }}][final_result]" class="form-control" value="{{ $year['final_result'] ?? '' }}" required>
                                 </div>
                                 <div class="form-group col-md-12">
-                                    <label>Frequência geral ou observação de frequência</label>
-                                    <input name="years[{{ $yearIndex }}][attendance_label]" class="form-control" value="{{ $year['attendance_label'] ?? '' }}" placeholder="Ex.: 92%, frequência suficiente, etapa sem informação">
+                                    <label>{{ __('Frequência geral ou observação de frequência') }}</label>
+                                    <input name="years[{{ $yearIndex }}][attendance_label]" class="form-control" value="{{ $year['attendance_label'] ?? '' }}" placeholder="{{ __('Ex.: 92%, frequência suficiente, etapa sem informação') }}">
                                 </div>
                                 <div class="form-group col-md-12">
-                                    <label>Observações desta coluna</label>
-                                    <textarea name="years[{{ $yearIndex }}][notes]" class="form-control" rows="2" placeholder="Reclassificação, etapa sem transcrição, aproveitamento global...">{{ $year['notes'] ?? '' }}</textarea>
+                                    <label>{{ __('Observações desta coluna') }}</label>
+                                    <textarea name="years[{{ $yearIndex }}][notes]" class="form-control" rows="2" placeholder="{{ __('Reclassificação, etapa sem transcrição, aproveitamento global...') }}">{{ $year['notes'] ?? '' }}</textarea>
                                 </div>
                             </div>
                         </article>
@@ -290,29 +290,29 @@
         <section class="card shadow sge-panel-card mb-4">
             <div class="sge-panel-header">
                 <div>
-                    <h2>Componentes e resultados{{ $manualOnly ? ' externos' : '' }}</h2>
-                    <p>Notas, conceitos, frequência, carga horária e resultado final conforme o documento da outra instituição.</p>
+                    <h2>{{ __('Componentes e resultados') }}{{ $manualOnly ? __(' externos') : '' }}</h2>
+                    <p>{{ __('Notas, conceitos, frequência, carga horária e resultado final conforme o documento da outra instituição.') }}</p>
                 </div>
                 <button class="btn btn-sm btn-outline-primary" type="button" data-add-history-component>
-                    <i class="fas fa-plus mr-1" aria-hidden="true"></i>Adicionar componente
+                    <i class="fas fa-plus mr-1" aria-hidden="true"></i>{{ __('Adicionar componente') }}
                 </button>
             </div>
             <div class="card-body">
                 <div class="sge-history-table-hint">
-                    <span><strong>Nota/conceito</strong> é informada por componente.</span>
-                    <span><strong>Carga horária e resultado final</strong> são informados uma única vez no cartão do ano letivo.</span>
+                    <span><strong>{{ __('Nota/conceito') }}</strong> {{ __('é informada por componente.') }}</span>
+                    <span><strong>{{ __('Carga horária e resultado final') }}</strong> {{ __('são informados uma única vez no cartão do ano letivo.') }}</span>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-bordered table-sm sge-history-edit-table" id="history-components">
                         <thead>
                             <tr>
-                                <th style="min-width: 150px;">Formação</th>
-                                <th style="min-width: 150px;">Área</th>
-                                <th style="min-width: 180px;">Componente</th>
+                                <th style="min-width: 150px;">{{ __('Formação') }}</th>
+                                <th style="min-width: 150px;">{{ __('Área') }}</th>
+                                <th style="min-width: 180px;">{{ __('Componente') }}</th>
                                 @foreach($yearsInput as $year)
-                                    <th style="min-width: 230px;">{{ filled($year['grade_phase'] ?? null) ? $year['grade_phase'] : 'Série/Fase '.$loop->iteration }}</th>
+                                    <th style="min-width: 230px;">{{ filled($year['grade_phase'] ?? null) ? $year['grade_phase'] : __('Série/Fase ').$loop->iteration }}</th>
                                 @endforeach
-                                <th class="text-right">Ações</th>
+                                <th class="text-right">{{ __('Ações') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -324,19 +324,19 @@
                                     @php($catalogComponents = collect($bnccComponentsByArea[$selectedArea] ?? []))
                                     <td>
                                         <select name="components[{{ $componentIndex }}][formation]" class="form-control form-control-sm" data-history-formation required>
-                                            @foreach($formationOptions as $formation)<option value="{{ $formation }}" @selected($selectedFormation === $formation)>{{ $formation }}</option>@endforeach
+                                            @foreach($formationOptions as $formation)<option value="{{ $formation }}" @selected($selectedFormation === $formation)>{{ __($formation) }}</option>@endforeach
                                         </select>
                                     </td>
                                     <td>
                                         <select name="components[{{ $componentIndex }}][knowledge_area]" class="form-control form-control-sm" data-history-area required>
-                                            <option value="">Selecione</option>
+                                            <option value="">{{ __('Selecione') }}</option>
                                             @foreach($bnccAreas as $area)<option value="{{ $area['name'] }}" @selected($selectedArea === $area['name'])>{{ $area['name'] }}</option>@endforeach
                                             @if($selectedArea && ! $bnccAreas->pluck('name')->contains($selectedArea))<option value="{{ $selectedArea }}" selected>{{ $selectedArea }}</option>@endif
                                         </select>
                                     </td>
                                     <td>
                                         <select class="form-control form-control-sm" data-history-component-select @disabled($selectedFormation !== 'Formação Geral Básica')>
-                                            <option value="">Selecione</option>
+                                            <option value="">{{ __('Selecione') }}</option>
                                             @foreach($catalogComponents as $catalogComponent)<option value="{{ $catalogComponent }}" @selected($selectedComponent === $catalogComponent)>{{ $catalogComponent }}</option>@endforeach
                                             @if($selectedComponent && ! $catalogComponents->contains($selectedComponent))<option value="{{ $selectedComponent }}" selected>{{ $selectedComponent }}</option>@endif
                                         </select>
@@ -346,12 +346,12 @@
                                         @php($record = $component['records'][$yearIndex] ?? [])
                                         <td data-history-record-cell>
                                             <div class="sge-history-record-grid">
-                                                <label><span>Nota/conceito</span><input name="components[{{ $componentIndex }}][records][{{ $yearIndex }}][score_label]" class="form-control form-control-sm" value="{{ $record['score_label'] ?? '' }}"></label>
+                                                <label><span>{{ __('Nota/conceito') }}</span><input name="components[{{ $componentIndex }}][records][{{ $yearIndex }}][score_label]" class="form-control form-control-sm" value="{{ $record['score_label'] ?? '' }}"></label>
                                             </div>
                                         </td>
                                     @endforeach
                                     <td class="text-right">
-                                        <button class="btn btn-sm btn-outline-danger sge-icon-action" type="button" data-remove-history-row aria-label="Remover componente" title="Remover componente">
+                                        <button class="btn btn-sm btn-outline-danger sge-icon-action" type="button" data-remove-history-row aria-label="{{ __('Remover componente') }}" title="{{ __('Remover componente') }}">
                                             <i class="fas fa-trash" aria-hidden="true"></i>
                                         </button>
                                     </td>
@@ -367,7 +367,7 @@
 
 <div class="d-flex justify-content-end mb-4">
     <button class="btn btn-primary" type="submit">
-        <i class="fas fa-save mr-1" aria-hidden="true"></i>{{ $history->exists ? 'Salvar histórico' : 'Cadastrar histórico' }}
+        <i class="fas fa-save mr-1" aria-hidden="true"></i>{{ $history->exists ? __('Salvar histórico') : __('Cadastrar histórico') }}
     </button>
 </div>
 
@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const isBasicFormation = formation.value === 'Formação Geral Básica';
         if (isBasicFormation) {
             const current = resetComponent ? '' : input.value;
-            select.innerHTML = '<option value="">Selecione</option>';
+            select.replaceChildren(new Option(@js(__('Selecione')), ''));
             (componentsByArea[area.value] || []).forEach(function (component) {
                 const option = document.createElement('option');
                 option.value = component;
@@ -447,7 +447,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         yearWrapper.querySelectorAll('[data-history-year]').forEach(function (card, yearIndex) {
             const seriesField = card.querySelector('[name$="[grade_phase]"]');
-            const label = seriesField?.value.trim() || 'Série/Fase ' + (yearIndex + 1);
+            const label = seriesField?.value.trim() || @js(__('Série/Fase ')) + (yearIndex + 1);
             card.querySelector('header strong').textContent = label;
             const tableHeader = table.querySelector('thead tr')?.children[yearIndex + 3];
             if (tableHeader) tableHeader.textContent = label;
@@ -533,7 +533,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const header = document.createElement('th');
         header.style.minWidth = '230px';
-        header.textContent = 'Série/Fase ' + (next + 1);
+        header.textContent = @js(__('Série/Fase ')) + (next + 1);
         table.querySelector('thead tr').insertBefore(header, table.querySelector('thead tr th:last-child'));
 
         table.querySelectorAll('tbody tr').forEach(function (row, componentIndex) {
@@ -541,7 +541,7 @@ document.addEventListener('DOMContentLoaded', function () {
             cell.setAttribute('data-history-record-cell', '');
             cell.innerHTML = `
                 <div class="sge-history-record-grid">
-                    <label><span>Nota/conceito</span><input name="components[${componentIndex}][records][${next}][score_label]" class="form-control form-control-sm"></label>
+                    <label><span>{{ __('Nota/conceito') }}</span><input name="components[${componentIndex}][records][${next}][score_label]" class="form-control form-control-sm"></label>
                 </div>`;
             row.insertBefore(cell, row.querySelector('td:last-child'));
         });

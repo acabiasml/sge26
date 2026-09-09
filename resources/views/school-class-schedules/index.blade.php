@@ -1,56 +1,56 @@
 @extends('layouts.app')
 
-@section('title', 'Horários - '.$class->name)
-@section('page-title', 'Horários: '.$class->name)
+@section('title', __('Horários - ').$class->name)
+@section('page-title', __('Horários: ').$class->name)
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('academic-years.classes.show', [$academicYear, $class]) }}" aria-label="Voltar à turma" title="Voltar à turma">
+    <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('academic-years.classes.show', [$academicYear, $class]) }}" aria-label="{{ __('Voltar à turma') }}" title="{{ __('Voltar à turma') }}">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
     </a>
     @if ($schedule)
-        <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.classes.schedules.pdf', [$academicYear, $class, 'schedule' => $schedule->id]) }}" aria-label="Imprimir horário da turma {{ $class->name }}" title="Imprimir horário da turma">
+        <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.classes.schedules.pdf', [$academicYear, $class, 'schedule' => $schedule->id]) }}" aria-label="{{ __('Imprimir horário da turma') }} {{ $class->name }}" title="{{ __('Imprimir horário da turma') }}">
             <i class="fas fa-file-pdf" aria-hidden="true"></i>
         </a>
     @endif
 @endsection
 
 @section('content')
-    <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="Áreas do horário da turma" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? ($schedule ? 'grade' : 'nova') : ($schedule ? 'grade' : 'contexto') }}">
-        <a href="#section-contexto" class="sge-section-nav-item" data-academic-tab="contexto" role="tab"><i class="fas fa-info-circle"></i><span>Contexto</span><small>turma e matrizes</small></a>
-        <a href="#section-nova" class="sge-section-nav-item" data-academic-tab="nova" role="tab"><i class="fas fa-plus-circle"></i><span>Nova versão</span><small>vigência do horário</small></a>
-        <a href="#section-versoes" class="sge-section-nav-item" data-academic-tab="versoes" role="tab"><i class="fas fa-history"></i><span>Versões</span><small>{{ $schedules->count() }} cadastradas</small></a>
-        @if($schedule)<a href="#section-grade" class="sge-section-nav-item" data-academic-tab="grade" role="tab"><i class="fas fa-calendar-week"></i><span>Grade semanal</span><small>{{ $schedule->name }}</small></a>@endif
+    <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="{{ __('Áreas do horário da turma') }}" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? ($schedule ? 'grade' : 'nova') : ($schedule ? 'grade' : 'contexto') }}">
+        <a href="#section-contexto" class="sge-section-nav-item" data-academic-tab="contexto" role="tab"><i class="fas fa-info-circle"></i><span>{{ __('Contexto') }}</span><small>{{ __('turma e matrizes') }}</small></a>
+        <a href="#section-nova" class="sge-section-nav-item" data-academic-tab="nova" role="tab"><i class="fas fa-plus-circle"></i><span>{{ __('Nova versão') }}</span><small>{{ __('vigência do horário') }}</small></a>
+        <a href="#section-versoes" class="sge-section-nav-item" data-academic-tab="versoes" role="tab"><i class="fas fa-history"></i><span>{{ __('Versões') }}</span><small>{{ $schedules->count() }} {{ __('cadastradas') }}</small></a>
+        @if($schedule)<a href="#section-grade" class="sge-section-nav-item" data-academic-tab="grade" role="tab"><i class="fas fa-calendar-week"></i><span>{{ __('Grade semanal') }}</span><small>{{ $schedule->name }}</small></a>@endif
     </nav>
 
     <div class="row">
         <div id="section-contexto" class="col-12 mb-4" data-academic-panel="contexto" role="tabpanel">
             <section class="card shadow sge-schedule-context" aria-labelledby="schedule-context-title">
-                <div class="card-header py-3"><h2 id="schedule-context-title" class="h6 m-0 font-weight-bold text-primary">Contexto</h2></div>
+                <div class="card-header py-3"><h2 id="schedule-context-title" class="h6 m-0 font-weight-bold text-primary">{{ __('Contexto') }}</h2></div>
                 <div class="card-body">
                     <dl class="mb-0">
-                        <dt>Escola</dt><dd>{{ $academicYear->school?->name }}</dd>
-                        <dt>Ano letivo</dt><dd>{{ $academicYear->name }}</dd>
-                        <dt>Turma</dt><dd>{{ $class->name }}</dd>
-                        <dt>Hora-aula de referência</dt><dd>{{ $classMinutes }} minutos</dd>
-                        <dt>Dias no horário</dt><dd>{{ implode(', ', $weekdays) }}</dd>
-                        <dt>Matrizes</dt><dd>{{ $class->courses->pluck('name')->join(' + ') }}</dd>
+                        <dt>{{ __('Escola') }}</dt><dd>{{ $academicYear->school?->name }}</dd>
+                        <dt>{{ __('Ano letivo') }}</dt><dd>{{ $academicYear->name }}</dd>
+                        <dt>{{ __('Turma') }}</dt><dd>{{ $class->name }}</dd>
+                        <dt>{{ __('Hora-aula de referência') }}</dt><dd>{{ $classMinutes }} {{ __('minutos') }}</dd>
+                        <dt>{{ __('Dias no horário') }}</dt><dd>{{ implode(', ', $weekdays) }}</dd>
+                        <dt>{{ __('Matrizes') }}</dt><dd>{{ $class->courses->pluck('name')->join(' + ') }}</dd>
                     </dl>
                 </div>
             </section>
         </div>
         <div id="section-nova" class="col-12 mb-4" data-academic-panel="nova" role="tabpanel">
             <section class="card shadow" aria-labelledby="new-schedule-title">
-                <div class="card-header py-3"><h2 id="new-schedule-title" class="h6 m-0 font-weight-bold text-primary">Nova versão de horário</h2></div>
+                <div class="card-header py-3"><h2 id="new-schedule-title" class="h6 m-0 font-weight-bold text-primary">{{ __('Nova versão de horário') }}</h2></div>
                 <div class="card-body">
                     <form method="POST" action="{{ route('academic-years.classes.schedules.store', [$academicYear, $class]) }}">
                         @csrf
                         <div class="row">
-                            <div class="col-md-5 form-group"><label for="schedule_name">Nome</label><input id="schedule_name" name="name" class="form-control @error('name') is-invalid @enderror" placeholder="Horário regular" required>@error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
-                            <div class="col-md-3 form-group"><label for="schedule_starts_at">Válido a partir de</label><input id="schedule_starts_at" name="starts_at" type="date" min="{{ $class->starts_at?->toDateString() ?? $academicYear->starts_at->toDateString() }}" max="{{ $class->ends_at?->toDateString() ?? $academicYear->ends_at->toDateString() }}" class="form-control @error('starts_at') is-invalid @enderror" required>@error('starts_at')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
-                            <div class="col-md-4 form-group"><label for="schedule_ends_at">Válido até</label><input id="schedule_ends_at" name="ends_at" type="date" min="{{ $class->starts_at?->toDateString() ?? $academicYear->starts_at->toDateString() }}" max="{{ $class->ends_at?->toDateString() ?? $academicYear->ends_at->toDateString() }}" class="form-control @error('ends_at') is-invalid @enderror"><small class="form-text text-muted">Deixe vazio se for indeterminado.</small>@error('ends_at')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
+                            <div class="col-md-5 form-group"><label for="schedule_name">{{ __('Nome') }}</label><input id="schedule_name" name="name" class="form-control @error('name') is-invalid @enderror" placeholder="{{ __('Horário regular') }}" required>@error('name')<div class="invalid-feedback">{{ __($message) }}</div>@enderror</div>
+                            <div class="col-md-3 form-group"><label for="schedule_starts_at">{{ __('Válido a partir de') }}</label><input id="schedule_starts_at" name="starts_at" type="date" min="{{ $class->starts_at?->toDateString() ?? $academicYear->starts_at->toDateString() }}" max="{{ $class->ends_at?->toDateString() ?? $academicYear->ends_at->toDateString() }}" class="form-control @error('starts_at') is-invalid @enderror" required>@error('starts_at')<div class="invalid-feedback">{{ __($message) }}</div>@enderror</div>
+                            <div class="col-md-4 form-group"><label for="schedule_ends_at">{{ __('Válido até') }}</label><input id="schedule_ends_at" name="ends_at" type="date" min="{{ $class->starts_at?->toDateString() ?? $academicYear->starts_at->toDateString() }}" max="{{ $class->ends_at?->toDateString() ?? $academicYear->ends_at->toDateString() }}" class="form-control @error('ends_at') is-invalid @enderror"><small class="form-text text-muted">{{ __('Deixe vazio se for indeterminado.') }}</small>@error('ends_at')<div class="invalid-feedback">{{ __($message) }}</div>@enderror</div>
                         </div>
-                        <div class="form-group"><label for="schedule_notes">Observações</label><input id="schedule_notes" name="notes" class="form-control" placeholder="Opcional"></div>
-                        <button class="btn btn-primary" type="submit"><i class="fas fa-plus mr-1" aria-hidden="true"></i>Criar versão</button>
+                        <div class="form-group"><label for="schedule_notes">{{ __('Observações') }}</label><input id="schedule_notes" name="notes" class="form-control" placeholder="{{ __('Opcional') }}"></div>
+                        <button class="btn btn-primary" type="submit"><i class="fas fa-plus mr-1" aria-hidden="true"></i>{{ __('Criar versão') }}</button>
                     </form>
                 </div>
             </section>
@@ -59,12 +59,12 @@
 
     @if($schedules->isNotEmpty())
         <section id="section-versoes" class="card shadow mb-4" aria-labelledby="schedule-versions-title" data-academic-panel="versoes" role="tabpanel">
-            <div class="card-header py-3"><h2 id="schedule-versions-title" class="h6 m-0 font-weight-bold text-primary">Versões cadastradas</h2></div>
+            <div class="card-header py-3"><h2 id="schedule-versions-title" class="h6 m-0 font-weight-bold text-primary">{{ __('Versões cadastradas') }}</h2></div>
             <div class="card-body">
                 <div class="sge-schedule-version-list">
                     @foreach($schedules as $availableSchedule)
                         <a class="sge-schedule-version {{ $schedule?->id === $availableSchedule->id ? 'is-active' : '' }}" href="{{ route('academic-years.classes.schedules.index', [$academicYear, $class, 'schedule' => $availableSchedule->id]) }}">
-                            <span><strong>{{ $availableSchedule->name }}</strong><small>{{ $availableSchedule->starts_at?->format('d/m/Y') }} até {{ $availableSchedule->ends_at?->format('d/m/Y') ?? 'indeterminado' }}</small></span>
+                            <span><strong>{{ $availableSchedule->name }}</strong><small>{{ $availableSchedule->starts_at?->format('d/m/Y') }} {{ __('até') }} {{ $availableSchedule->ends_at?->format('d/m/Y') ?? __('indeterminado') }}</small></span>
                             <i class="fas fa-chevron-right" aria-hidden="true"></i>
                         </a>
                     @endforeach
@@ -78,11 +78,11 @@
             <div class="col-xl-4 mb-4">
                 <section class="card shadow" aria-labelledby="new-slot-title">
                     <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                        <h2 id="new-slot-title" class="h6 m-0 font-weight-bold text-primary">Novo bloco</h2>
-                        <form method="POST" action="{{ route('academic-years.classes.schedules.destroy', [$academicYear, $class, $schedule]) }}" onsubmit="return confirm('Remover esta versão de horário e todos os seus blocos?')">
+                        <h2 id="new-slot-title" class="h6 m-0 font-weight-bold text-primary">{{ __('Novo bloco') }}</h2>
+                        <form method="POST" action="{{ route('academic-years.classes.schedules.destroy', [$academicYear, $class, $schedule]) }}" onsubmit="return confirm(@js(__('Remover esta versão de horário e todos os seus blocos?')))">
                             @csrf
                             @method('DELETE')
-                            <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="Excluir versão de horário" title="Excluir versão">
+                            <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="{{ __('Excluir versão de horário') }}" title="{{ __('Excluir versão') }}">
                                 <i class="fas fa-trash-alt" aria-hidden="true"></i>
                             </button>
                         </form>
@@ -91,7 +91,7 @@
                         <form method="POST" action="{{ route('academic-years.classes.schedules.slots.store', [$academicYear, $class, $schedule]) }}" data-schedule-slot-form data-class-minutes="{{ $classMinutes }}">
                             @csrf
                             @error('schedule_slot_error')
-                                <div class="alert alert-danger" role="alert">{{ $message }}</div>
+                                <div class="alert alert-danger" role="alert">{{ __($message) }}</div>
                             @enderror
                             @include('school-class-schedules._slot-fields', [
                                 'prefix' => 'slot',
@@ -100,14 +100,14 @@
                                 'assignmentUsage' => $assignmentUsage,
                                 'weekdays' => $weekdays,
                             ])
-                            <p class="small text-muted">Cada bloco de aula conta como uma aula semanal do componente, mesmo com duração menor que a hora-aula de referência.</p>
-                            <button class="btn btn-primary btn-block" type="submit"><i class="fas fa-plus mr-1" aria-hidden="true"></i>Adicionar bloco</button>
+                            <p class="small text-muted">{{ __('Cada bloco de aula conta como uma aula semanal do componente, mesmo com duração menor que a hora-aula de referência.') }}</p>
+                            <button class="btn btn-primary btn-block" type="submit"><i class="fas fa-plus mr-1" aria-hidden="true"></i>{{ __('Adicionar bloco') }}</button>
                         </form>
                     </div>
                 </section>
 
                 <section class="card shadow mt-4" aria-labelledby="weekly-limits-title">
-                    <div class="card-header py-3"><h2 id="weekly-limits-title" class="h6 m-0 font-weight-bold text-primary">Aulas por semana</h2></div>
+                    <div class="card-header py-3"><h2 id="weekly-limits-title" class="h6 m-0 font-weight-bold text-primary">{{ __('Aulas por semana') }}</h2></div>
                     <div class="card-body">
                         @foreach($assignments as $assignment)
                             @php($used = (int) $assignmentUsage->get($assignment->id, 0))
@@ -115,7 +115,7 @@
                             <div class="sge-schedule-limit-row">
                                 <span>
                                     <strong>{{ $assignment->component?->name }}</strong>
-                                    <small>{{ $assignment->teacher?->full_name ?? 'Docência não definida' }}</small>
+                                    <small>{{ $assignment->teacher?->full_name ?? __('Docência não definida') }}</small>
                                 </span>
                                 <span class="badge badge-{{ $limit > 0 && $used >= $limit ? 'success' : 'light' }} border">{{ $used }}/{{ $limit }}</span>
                             </div>
@@ -128,9 +128,9 @@
                     <div class="card-header py-3 d-flex justify-content-between align-items-center">
                         <div>
                             <h2 id="weekly-schedule-title" class="h6 m-0 font-weight-bold text-primary">{{ $schedule->name }}</h2>
-                            <span class="small text-muted">Clique em um bloco para editar. Janela: 06:00-22:00.</span>
+                            <span class="small text-muted">{{ __('Clique em um bloco para editar. Janela: 06:00-22:00.') }}</span>
                         </div>
-                        <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('academic-years.classes.schedules.pdf', [$academicYear, $class, 'schedule' => $schedule->id]) }}" aria-label="Imprimir horário" title="Imprimir horário">
+                        <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('academic-years.classes.schedules.pdf', [$academicYear, $class, 'schedule' => $schedule->id]) }}" aria-label="{{ __('Imprimir horário') }}" title="{{ __('Imprimir horário') }}">
                             <i class="fas fa-file-pdf" aria-hidden="true"></i>
                         </a>
                     </div>
@@ -139,7 +139,7 @@
                             <div class="sge-week-schedule" style="grid-template-columns: repeat({{ count($weekdays) }}, minmax(9.5rem, 1fr)); min-width: {{ count($weekdays) * 9.5 }}rem;">
                                 @foreach($weekdays as $weekday => $weekdayLabel)
                                     <section class="sge-week-schedule-day">
-                                        <h3>{{ $weekdayLabel }}</h3>
+                                        <h3>{{ __($weekdayLabel) }}</h3>
                                         <div class="sge-week-schedule-track">
                                             @for($hour = 6; $hour <= 22; $hour++)
                                                 <span class="sge-week-schedule-hour" style="top: {{ (($hour - 6) / 16) * 100 }}%">{{ sprintf('%02d:00', $hour) }}</span>
@@ -158,17 +158,17 @@
                                                 @php($teacherName = $teacher?->full_name ?? $component?->teacher?->full_name)
                                                 @php($colors = \App\Support\ScheduleTeacherColor::for($teacher?->id, $teacherName))
                                                 <article class="sge-week-schedule-slot sge-week-schedule-slot-{{ $slot->type }}" style="top: {{ $top }}%; height: {{ $height }}%; border-left-color: {{ $colors['border'] }}; background: {{ $slot->type === \App\Models\SchoolClassScheduleSlot::TYPE_BREAK ? 'rgba(240, 144, 48, .22)' : $colors['background'] }};">
-                                                    <button class="sge-week-schedule-edit" type="button" data-toggle="modal" data-target="#edit-slot-{{ $slot->id }}" aria-label="Editar bloco {{ $slot->type === 'aula' ? $component?->name : $slot->label }}">
+                                                    <button class="sge-week-schedule-edit" type="button" data-toggle="modal" data-target="#edit-slot-{{ $slot->id }}" aria-label="{{ __('Editar bloco') }} {{ $slot->type === 'aula' ? $component?->name : $slot->label }}">
                                                         <strong>{{ $slot->type === 'aula' ? $component?->name : $slot->label }}</strong>
                                                         @if($slot->type === 'aula')
-                                                            <span>{{ $teacherName ?? 'Docência não definida' }}</span>
+                                                            <span>{{ $teacherName ?? __('Docência não definida') }}</span>
                                                         @endif
                                                         <small>{{ substr($slot->starts_at, 0, 5) }}-{{ substr($slot->ends_at, 0, 5) }}</small>
                                                     </button>
-                                                    <form method="POST" action="{{ route('academic-years.classes.schedules.slots.destroy', [$academicYear, $class, $schedule, $slot]) }}" onsubmit="return confirm('Remover este bloco?')">
+                                                    <form method="POST" action="{{ route('academic-years.classes.schedules.slots.destroy', [$academicYear, $class, $schedule, $slot]) }}" onsubmit="return confirm(@js(__('Remover este bloco?')))">
                                                         @csrf
                                                         @method('DELETE')
-                                                        <button type="submit" aria-label="Remover bloco {{ $slot->type === 'aula' ? $slot->componentAssignment?->component?->name : $slot->label }}" title="Remover bloco"><i class="fas fa-times" aria-hidden="true"></i></button>
+                                                        <button type="submit" aria-label="{{ __('Remover bloco') }} {{ $slot->type === 'aula' ? $slot->componentAssignment?->component?->name : $slot->label }}" title="{{ __('Remover bloco') }}"><i class="fas fa-times" aria-hidden="true"></i></button>
                                                     </form>
                                                 </article>
                                             @endforeach
@@ -190,8 +190,8 @@
                             @csrf
                             @method('PUT')
                             <div class="modal-header">
-                                <h2 class="modal-title h6" id="edit-slot-title-{{ $slot->id }}">Editar bloco</h2>
-                                <button type="button" class="close" data-dismiss="modal" aria-label="Fechar"><span aria-hidden="true">&times;</span></button>
+                                <h2 class="modal-title h6" id="edit-slot-title-{{ $slot->id }}">{{ __('Editar bloco') }}</h2>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="{{ __('Fechar') }}"><span aria-hidden="true">&times;</span></button>
                             </div>
                             <div class="modal-body">
                                 @include('school-class-schedules._slot-fields', [
@@ -203,8 +203,8 @@
                                 ])
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancelar</button>
-                                <button type="submit" class="btn btn-primary"><i class="fas fa-save mr-1" aria-hidden="true"></i>Salvar bloco</button>
+                                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">{{ __('Cancelar') }}</button>
+                                <button type="submit" class="btn btn-primary"><i class="fas fa-save mr-1" aria-hidden="true"></i>{{ __('Salvar bloco') }}</button>
                             </div>
                         </form>
                     </div>
@@ -212,7 +212,7 @@
             </div>
         @endforeach
     @else
-        <div class="sge-empty-state"><i class="fas fa-calendar-plus" aria-hidden="true"></i><p>Crie uma versão de horário para começar a organizar a semana desta turma.</p></div>
+        <div class="sge-empty-state"><i class="fas fa-calendar-plus" aria-hidden="true"></i><p>{{ __('Crie uma versão de horário para começar a organizar a semana desta turma.') }}</p></div>
     @endif
 @endsection
 

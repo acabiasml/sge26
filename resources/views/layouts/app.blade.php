@@ -366,7 +366,7 @@
 
                     @if (session('status'))
                         <div class="alert alert-success" role="status" aria-live="polite">
-                            {{ session('status') }}
+                            {{ __(session('status')) }}
                         </div>
                     @endif
                     @if (session('error'))
@@ -386,7 +386,7 @@
                             <span>{{ __('navigation.check_fields') }}</span>
                             <ul class="mb-0 mt-2 pl-4">
                                 @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
+                                    <li>{{ __($error) }}</li>
                                 @endforeach
                             </ul>
                         </div>
@@ -621,7 +621,7 @@
                 button.setAttribute('aria-busy', 'true');
                 button.disabled = true;
 
-                const loadingLabel = button.dataset.loadingLabel || 'Processando...';
+                const loadingLabel = button.dataset.loadingLabel || @js(__('Processando...'));
 
                 if (button.tagName === 'BUTTON') {
                     button.innerHTML = `<span class="sge-button-spinner" aria-hidden="true"></span>${loadingLabel}`;
@@ -640,7 +640,7 @@
                 const bar = document.createElement('div');
                 bar.className = 'sge-submit-loading-bar';
                 bar.setAttribute('role', 'progressbar');
-                bar.setAttribute('aria-label', 'Solicitação em processamento');
+                bar.setAttribute('aria-label', @js(__('Solicitação em processamento')));
                 document.body.appendChild(bar);
             }
 
@@ -823,7 +823,7 @@
                 const scrollHint = document.createElement('div');
                 scrollHint.className = 'sge-tabs-scroll-hint';
                 scrollHint.setAttribute('role', 'status');
-                scrollHint.innerHTML = '<span>Deslize as guias para ver mais opções</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
+                scrollHint.innerHTML = '<span>{{ __('Deslize as guias para ver mais opções') }}</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
                 tabList.before(scrollHint);
                 const updateScrollHint = () => {
                     const overflows = tabList.scrollWidth > tabList.clientWidth + 2;

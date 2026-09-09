@@ -43,7 +43,7 @@ class PersonRelationshipController extends Controller
         );
 
         return redirect()->route('people.show', $person)
-            ->with('status', 'Relação cadastrada com sucesso.');
+            ->with('status', __('Relação cadastrada com sucesso.'));
     }
 
     public function destroy(Request $request, Person $person, PersonRelationship $relationship): RedirectResponse
@@ -54,7 +54,7 @@ class PersonRelationshipController extends Controller
         $relationship->delete();
 
         return redirect()->route('people.show', $person)
-            ->with('status', 'Relação removida com sucesso.');
+            ->with('status', __('Relação removida com sucesso.'));
     }
 
     private function canManagePerson(Request $request, Person $person): bool

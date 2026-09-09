@@ -20,7 +20,7 @@
                     <p class="small text-muted mb-4">{{ __('screens.calendar_scope_help') }}</p>
                     <dl class="mb-0">
                         <dt>{{ __('screens.current_period') }}</dt>
-                        <dd>{{ $academicYear->starts_at?->format('d/m/Y') }} a {{ $academicYear->ends_at?->format('d/m/Y') }}</dd>
+                        <dd>{{ $academicYear->starts_at?->format('d/m/Y') }} {{ __('a') }} {{ $academicYear->ends_at?->format('d/m/Y') }}</dd>
                         <dt>{{ __('screens.status') }}</dt>
                         <dd><span class="badge badge-{{ $academicYear->active ? 'success' : 'secondary' }}">{{ $academicYear->active ? __('screens.active_m') : __('screens.inactive_m') }}</span></dd>
                         <dt>{{ __('screens.calendar') }}</dt>

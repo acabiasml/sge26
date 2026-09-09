@@ -47,7 +47,7 @@ class CurriculumComponentController extends Controller
         $course->refreshWorkloadHours();
 
         return redirect()->route('academic-years.courses.show', [$academicYear, $course])
-            ->with('status', 'Componente curricular cadastrado com sucesso.');
+            ->with('status', __('Componente curricular cadastrado com sucesso.'));
     }
 
     public function update(Request $request, AcademicYear $academicYear, AcademicCourse $course, CurriculumComponent $component): RedirectResponse
@@ -61,7 +61,7 @@ class CurriculumComponentController extends Controller
         $course->refreshWorkloadHours();
 
         return redirect()->route('academic-years.courses.components.show', [$academicYear, $course, $component])
-            ->with('status', 'Componente curricular atualizado com sucesso.');
+            ->with('status', __('Componente curricular atualizado com sucesso.'));
     }
 
     public function destroy(Request $request, AcademicYear $academicYear, AcademicCourse $course, CurriculumComponent $component): RedirectResponse
@@ -75,7 +75,7 @@ class CurriculumComponentController extends Controller
         $course->refreshWorkloadHours();
 
         return redirect()->route('academic-years.courses.show', [$academicYear, $course])
-            ->with('status', 'Componente curricular removido com sucesso.');
+            ->with('status', __('Componente curricular removido com sucesso.'));
     }
 
     /**
@@ -144,7 +144,7 @@ class CurriculumComponentController extends Controller
 
         if ($starts && $ends && $starts->position > $ends->position) {
             throw ValidationException::withMessages([
-                'ends_period_id' => 'O período final do componente deve ser igual ou posterior ao período inicial.',
+                'ends_period_id' => __('O período final do componente deve ser igual ou posterior ao período inicial.'),
             ]);
         }
     }
@@ -153,7 +153,7 @@ class CurriculumComponentController extends Controller
     {
         if ($academicYear->isClosed()) {
             throw ValidationException::withMessages([
-                'closed_at' => 'Este ano letivo está fechado. Reabra o ano letivo antes de alterar componentes curriculares.',
+                'closed_at' => __('Este ano letivo está fechado. Reabra o ano letivo antes de alterar componentes curriculares.'),
             ]);
         }
 
@@ -162,7 +162,7 @@ class CurriculumComponentController extends Controller
         }
 
         throw ValidationException::withMessages([
-            'approved_at' => 'Ano letivo aprovado só pode ter sua estrutura acadêmica alterada pela Administração global.',
+            'approved_at' => __('Ano letivo aprovado só pode ter sua estrutura acadêmica alterada pela Administração global.'),
         ]);
     }
 }

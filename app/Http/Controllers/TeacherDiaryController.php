@@ -223,9 +223,9 @@ class TeacherDiaryController extends Controller
     {
         return [
             'pending' => 'Com pendência',
-            'waiting' => 'Aguardando confirmação',
+            'waiting' => __('Aguardando confirmação'),
             'confirmed' => 'Confirmado',
-            'reopened' => 'Reaberto',
+            'reopened' => __('Reaberto'),
         ];
     }
 
@@ -402,7 +402,7 @@ class TeacherDiaryController extends Controller
             ];
         });
         $issuedDocument = $this->issuedDiaryDocument($request, $academicYear, $schoolClass, $component, $periods);
-        $periodLabel = $periods->count() === 1 ? $periods->first()->name : 'Ano completo';
+        $periodLabel = $periods->count() === 1 ? $periods->first()->name : __('Ano completo');
         $documentTitle = collect([
             'Diário de classe',
             $schoolClass->name,
@@ -619,27 +619,27 @@ class TeacherDiaryController extends Controller
         $usesScheduledDiary = $this->usesScheduledDiary($schoolClass, $assignment, $period);
         if ($usesScheduledDiary) {
             if (empty($data['scheduled_dates'])) {
-                throw ValidationException::withMessages(['scheduled_dates' => 'Não há dias previstos pelo horário da turma para lançamento.']);
+                throw ValidationException::withMessages(['scheduled_dates' => __('Não há dias previstos pelo horário da turma para lançamento.')]);
             }
             $days = $this->scheduledDiaryDays($academicYear, $schoolClass, $assignment, $period)
                 ->filter(fn (CalendarDay $day): bool => in_array($day->date->toDateString(), $data['scheduled_dates'], true))
                 ->values();
         } else {
             if (empty($data['starts_at']) || empty($data['ends_at'])) {
-                throw ValidationException::withMessages(['starts_at' => 'Informe o intervalo de dias para lançamento.']);
+                throw ValidationException::withMessages(['starts_at' => __('Informe o intervalo de dias para lançamento.')]);
             }
             $startsAt = Carbon::parse($data['starts_at'])->startOfDay();
             $endsAt = Carbon::parse($data['ends_at'])->startOfDay();
             [$allowedStartsAt, $allowedEndsAt] = $this->diaryDateBounds($academicYear, $period);
             if ($startsAt->lt($allowedStartsAt) || $endsAt->gt($allowedEndsAt) || $startsAt->diffInDays($endsAt) > 14) {
-                throw ValidationException::withMessages(['starts_at' => 'Selecione dias letivos dentro do intervalo permitido, em um período máximo de 15 dias.']);
+                throw ValidationException::withMessages(['starts_at' => __('Selecione dias letivos dentro do intervalo permitido, em um período máximo de 15 dias.')]);
             }
             $days = CalendarDay::query()->where('academic_year_id', $academicYear->id)->whereDate('date', '>=', $startsAt->toDateString())->whereDate('date', '<=', $endsAt->toDateString())->where('counts_as_school_day', true)->orderBy('date')->get();
         }
 
         if ($days->isEmpty()) {
             throw ValidationException::withMessages([
-                'scheduled_dates' => 'Não há dias disponíveis para lançamento.',
+                'scheduled_dates' => __('Não há dias disponíveis para lançamento.'),
             ]);
         }
 
@@ -702,7 +702,7 @@ class TeacherDiaryController extends Controller
         }
 
         return redirect()->route('teacher-diaries.attendance', $redirectParameters)
-            ->with('status', 'Frequências atualizadas com sucesso.');
+            ->with('status', __('Frequências atualizadas com sucesso.'));
     }
 
     public function contents(Request $request, SchoolClass $schoolClass, CurriculumComponent $component): View
@@ -837,7 +837,7 @@ class TeacherDiaryController extends Controller
         }
 
         return redirect()->route('teacher-diaries.contents', $redirectParameters)
-            ->with('status', 'Conteúdos atualizados com sucesso.');
+            ->with('status', __('Conteúdos atualizados com sucesso.'));
     }
 
     public function updateGrades(Request $request, SchoolClass $schoolClass, CurriculumComponent $component): RedirectResponse
@@ -914,7 +914,7 @@ class TeacherDiaryController extends Controller
             'schoolClass' => $schoolClass,
             'component' => $component,
             'period' => $periodId,
-        ])->with('status', 'Notas atualizadas com sucesso.');
+        ])->with('status', __('Notas atualizadas com sucesso.'));
     }
 
     public function confirmPeriod(Request $request, SchoolClass $schoolClass, CurriculumComponent $component): RedirectResponse
@@ -926,11 +926,11 @@ class TeacherDiaryController extends Controller
         $this->ensureAcademicYearIsOpen($course->academicYear);
 
         if ($this->periodIsConsolidated($period)) {
-            throw ValidationException::withMessages(['academic_period_id' => 'Este período já foi consolidado pela gestão. Reabra o período antes de confirmar novamente.']);
+            throw ValidationException::withMessages(['academic_period_id' => __('Este período já foi consolidado pela gestão. Reabra o período antes de confirmar novamente.')]);
         }
 
         if (now()->startOfDay()->lt($period->ends_at->copy()->startOfDay())) {
-            throw ValidationException::withMessages(['academic_period_id' => 'A confirmação estará disponível a partir do último dia do período avaliativo.']);
+            throw ValidationException::withMessages(['academic_period_id' => __('A confirmação estará disponível a partir do último dia do período avaliativo.')]);
         }
 
         $enrollments = $this->enrollments($schoolClass);
@@ -943,7 +943,7 @@ class TeacherDiaryController extends Controller
             ->where('curriculum_component_id', $component->id)->where('academic_period_id', $period->id)->get();
         $pending = $this->periodPending($enrollments, $assessments, $attendance, $contents);
         if ($pending['content_without_attendance'] !== [] || $pending['attendance_without_content'] !== [] || $pending['missing_grades'] > 0) {
-            throw ValidationException::withMessages(['academic_period_id' => 'Conclua os conteúdos, as frequências e as notas pendentes antes de confirmar o período.']);
+            throw ValidationException::withMessages(['academic_period_id' => __('Conclua os conteúdos, as frequências e as notas pendentes antes de confirmar o período.')]);
         }
 
         DiaryPeriodConfirmation::query()->updateOrCreate([
@@ -960,7 +960,7 @@ class TeacherDiaryController extends Controller
         ]);
 
         return redirect()->route('teacher-diaries.show', [$schoolClass, $component, 'period' => $period->id])
-            ->with('status', 'Período confirmado com sucesso.');
+            ->with('status', __('Período confirmado com sucesso.'));
     }
 
     public function reopenPeriod(Request $request, SchoolClass $schoolClass, CurriculumComponent $component): RedirectResponse
@@ -975,7 +975,7 @@ class TeacherDiaryController extends Controller
 
         if ($this->periodIsConsolidated($period)) {
             throw ValidationException::withMessages([
-                'academic_period_id' => 'Este período foi consolidado pela gestão. Reabra o período inteiro antes de reabrir um diário individual.',
+                'academic_period_id' => __('Este período foi consolidado pela gestão. Reabra o período inteiro antes de reabrir um diário individual.'),
             ]);
         }
 
@@ -991,7 +991,7 @@ class TeacherDiaryController extends Controller
         ]);
 
         return redirect()->route('teacher-diaries.show', [$schoolClass, $component, 'period' => $period->id])
-            ->with('status', 'Período reaberto. Os lançamentos podem ser ajustados novamente.');
+            ->with('status', __('Período reaberto. Os lançamentos podem ser ajustados novamente.'));
     }
 
     public function storeAlert(Request $request, SchoolClass $schoolClass, CurriculumComponent $component): RedirectResponse
@@ -1022,7 +1022,7 @@ class TeacherDiaryController extends Controller
             'message' => $data['message'],
         ]);
 
-        return back()->with('status', 'Alerta enviado para a docência.');
+        return back()->with('status', __('Alerta enviado para a docência.'));
     }
 
     public function dismissAlert(Request $request, DiaryAlert $alert): RedirectResponse
@@ -1033,7 +1033,7 @@ class TeacherDiaryController extends Controller
             'dismissed_at' => now(),
         ]);
 
-        return back()->with('status', 'Alerta dispensado.');
+        return back()->with('status', __('Alerta dispensado.'));
     }
 
     private function authorizeDiaryAccess(Request $request, SchoolClass $schoolClass, CurriculumComponent $component): void
@@ -1064,7 +1064,7 @@ class TeacherDiaryController extends Controller
         $this->ensureAcademicYearIsOpen($period->academicYear);
 
         if ($this->periodIsConsolidated($period)) {
-            throw ValidationException::withMessages(['academic_period_id' => 'Este período foi consolidado pela gestão. Reabra o período antes de novos lançamentos.']);
+            throw ValidationException::withMessages(['academic_period_id' => __('Este período foi consolidado pela gestão. Reabra o período antes de novos lançamentos.')]);
         }
 
         $confirmed = DiaryPeriodConfirmation::query()->where([
@@ -1074,7 +1074,7 @@ class TeacherDiaryController extends Controller
         ])->where('confirmed', true)->exists();
 
         if ($confirmed) {
-            throw ValidationException::withMessages(['academic_period_id' => 'Este período está confirmado. A gestão precisa reabri-lo antes de novos lançamentos.']);
+            throw ValidationException::withMessages(['academic_period_id' => __('Este período está confirmado. A gestão precisa reabri-lo antes de novos lançamentos.')]);
         }
     }
 
@@ -1085,7 +1085,7 @@ class TeacherDiaryController extends Controller
         }
 
         throw ValidationException::withMessages([
-            'academic_period_id' => 'Este ano letivo está fechado. Reabra o ano letivo antes de alterar diários.',
+            'academic_period_id' => __('Este ano letivo está fechado. Reabra o ano letivo antes de alterar diários.'),
         ]);
     }
 
@@ -1104,7 +1104,7 @@ class TeacherDiaryController extends Controller
         }
 
         throw ValidationException::withMessages([
-            'academic_period_id' => 'Este componente curricular não está previsto para este período avaliativo.',
+            'academic_period_id' => __('Este componente curricular não está previsto para este período avaliativo.'),
         ]);
     }
 
@@ -1336,7 +1336,7 @@ class TeacherDiaryController extends Controller
             ->where('counts_as_school_day', true)->orderBy('date')->pluck('date')
             ->map(fn ($date): string => Carbon::parse($date)->toDateString())->all();
         if ($request->filled('add_date') && ! in_array($request->input('add_date'), $availableDates, true)) {
-            throw ValidationException::withMessages(['add_date' => 'Selecione um dia letivo dentro do intervalo permitido.']);
+            throw ValidationException::withMessages(['add_date' => __('Selecione um dia letivo dentro do intervalo permitido.')]);
         }
 
         return $availableDates;

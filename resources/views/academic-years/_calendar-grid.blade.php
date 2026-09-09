@@ -5,16 +5,12 @@
 
 <div class="sge-calendar-grid">
     @foreach ($months as $month)
-        <section class="sge-calendar-month" aria-label="Calendário de {{ $month['label'] }}">
+        <section class="sge-calendar-month" aria-label="{{ __('Calendário de') }} {{ $month['label'] }}">
             <header class="sge-calendar-month-header">{{ $month['label'] }}</header>
             <div class="sge-calendar-weekdays" aria-hidden="true">
-                <span>D</span>
-                <span>S</span>
-                <span>T</span>
-                <span>Q</span>
-                <span>Q</span>
-                <span>S</span>
-                <span>S</span>
+                @foreach (__('calendar.weekdays_short') as $weekday)
+                <span>{{ $weekday }}</span>
+            @endforeach
             </div>
             @foreach ($month['weeks'] as $week)
                 <div class="sge-calendar-week">

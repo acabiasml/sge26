@@ -34,7 +34,7 @@ class AuditLogController extends Controller
         ]);
 
         return redirect()->route('audit-logs.index')
-            ->with('status', 'Fuso horário da auditoria atualizado com sucesso.');
+            ->with('status', __('Fuso horário da auditoria atualizado com sucesso.'));
     }
 
     public function show(Request $request, AuditLog $auditLog): View

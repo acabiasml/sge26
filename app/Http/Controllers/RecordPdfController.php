@@ -24,7 +24,7 @@ class RecordPdfController extends Controller
             return redirect()->route($request->user()->canManageSchools() ? 'schools.edit' : 'schools.academic-years.index', $school)->with('status', $message);
         }
 
-        $issuedDocument = $this->issuedDocument($request, 'school-record', 'Ficha da escola', $school->id);
+        $issuedDocument = $this->issuedDocument($request, 'school-record', __('Ficha da escola'), $school->id);
 
         $pdf = Pdf::loadView('reports.records.school', [
             'school' => $school->load('roles.person'),
@@ -44,7 +44,7 @@ class RecordPdfController extends Controller
 
         if (! $person->hasActiveRoleForDate() && ! $person->hasRequiredIdentityForOfficialUse()) {
             return redirect()->route('people.show', $person)
-                ->with('status', 'Não é possível emitir documento de pessoa inativa sem CPF.');
+                ->with('status', __('Não é possível emitir documento de pessoa inativa sem CPF.'));
         }
 
         $school = $this->schoolForPerson($person);
@@ -57,7 +57,7 @@ class RecordPdfController extends Controller
             return redirect()->route($request->user()->canManageSchools() ? 'schools.edit' : 'schools.academic-years.index', $school)->with('status', $message);
         }
 
-        $issuedDocument = $this->issuedDocument($request, 'person-record', 'Ficha da pessoa', $school?->id, $person->id);
+        $issuedDocument = $this->issuedDocument($request, 'person-record', __('Ficha da pessoa'), $school?->id, $person->id);
 
         $pdf = Pdf::loadView('reports.records.person', [
             'person' => $person,

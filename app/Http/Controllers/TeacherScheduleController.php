@@ -102,7 +102,7 @@ class TeacherScheduleController extends Controller
             'school_id' => $schoolId,
             'issued_by_user_id' => $request->user()->id,
             'payload' => [
-                'title' => 'Meu horário docente',
+                'title' => __('Meu horário docente'),
                 'slots_count' => $slotCount,
             ],
             'issued_at' => now(),

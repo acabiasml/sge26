@@ -83,7 +83,7 @@ class ProfileController extends Controller
         $person->syncActiveFromRoles();
 
         return redirect()->route('dashboard')
-            ->with('status', 'Cadastro atualizado com sucesso.');
+            ->with('status', __('Cadastro atualizado com sucesso.'));
     }
 
     private function canChangeOwnInstitutionalEmail($user): bool

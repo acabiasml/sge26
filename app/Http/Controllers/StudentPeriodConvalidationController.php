@@ -14,7 +14,7 @@ class StudentPeriodConvalidationController extends Controller
     {
         $this->authorizeEnrollment($request, $enrollment);
         $academicYear = $enrollment->schoolClass->academicYear;
-        abort_if($academicYear->isClosed(), 422, 'Não é possível convalidar lançamentos em ano letivo fechado.');
+        abort_if($academicYear->isClosed(), 422, __('Não é possível convalidar lançamentos em ano letivo fechado.'));
 
         foreach (['score', 'attendance_lessons', 'attendance_absences', 'attendance_justified_absences'] as $field) {
             if ($request->filled($field)) {
@@ -33,18 +33,18 @@ class StudentPeriodConvalidationController extends Controller
             'convalidated_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
         ], [
-            'academic_period_id.required' => 'Selecione o período avaliativo.',
-            'curriculum_component_id.required' => 'Selecione o componente curricular.',
-            'score.required' => 'Informe a média recebida da escola de origem.',
-            'score.numeric' => 'Informe uma média válida.',
-            'score.min' => 'A média não pode ser menor que zero.',
-            'score.max' => 'A média não pode ser maior que dez.',
-            'attendance_lessons.integer' => 'Informe a quantidade de aulas como número inteiro.',
-            'attendance_lessons.min' => 'A quantidade de aulas precisa ser maior que zero.',
-            'attendance_absences.integer' => 'Informe a quantidade de faltas como número inteiro.',
-            'attendance_absences.lte' => 'As faltas não podem ser maiores que a quantidade de aulas.',
-            'attendance_justified_absences.integer' => 'Informe as faltas justificadas como número inteiro.',
-            'attendance_justified_absences.lte' => 'As faltas justificadas não podem ser maiores que o total de faltas.',
+            'academic_period_id.required' => __('Selecione o período avaliativo.'),
+            'curriculum_component_id.required' => __('Selecione o componente curricular.'),
+            'score.required' => __('Informe a média recebida da escola de origem.'),
+            'score.numeric' => __('Informe uma média válida.'),
+            'score.min' => __('A média não pode ser menor que zero.'),
+            'score.max' => __('A média não pode ser maior que dez.'),
+            'attendance_lessons.integer' => __('Informe a quantidade de aulas como número inteiro.'),
+            'attendance_lessons.min' => __('A quantidade de aulas precisa ser maior que zero.'),
+            'attendance_absences.integer' => __('Informe a quantidade de faltas como número inteiro.'),
+            'attendance_absences.lte' => __('As faltas não podem ser maiores que a quantidade de aulas.'),
+            'attendance_justified_absences.integer' => __('Informe as faltas justificadas como número inteiro.'),
+            'attendance_justified_absences.lte' => __('As faltas justificadas não podem ser maiores que o total de faltas.'),
         ]);
 
         abort_unless(
@@ -73,19 +73,19 @@ class StudentPeriodConvalidationController extends Controller
         );
 
         return redirect()->route('enrollments.report-card.show', $enrollment)
-            ->with('status', 'Resultado parcial convalidado com sucesso.');
+            ->with('status', __('Resultado parcial convalidado com sucesso.'));
     }
 
     public function destroy(Request $request, StudentEnrollment $enrollment, StudentPeriodConvalidation $convalidation): RedirectResponse
     {
         $this->authorizeEnrollment($request, $enrollment);
         abort_unless($convalidation->student_enrollment_id === $enrollment->id, 404);
-        abort_if($enrollment->schoolClass->academicYear->isClosed(), 422, 'Não é possível remover convalidação em ano letivo fechado.');
+        abort_if($enrollment->schoolClass->academicYear->isClosed(), 422, __('Não é possível remover convalidação em ano letivo fechado.'));
 
         $convalidation->delete();
 
         return redirect()->route('enrollments.report-card.show', $enrollment)
-            ->with('status', 'Convalidação removida.');
+            ->with('status', __('Convalidação removida.'));
     }
 
     private function authorizeEnrollment(Request $request, StudentEnrollment $enrollment): void

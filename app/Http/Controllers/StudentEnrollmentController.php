@@ -110,13 +110,13 @@ class StudentEnrollmentController extends Controller
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
         if (! $academicYear->active) {
             throw ValidationException::withMessages([
-                'academic_year_id' => 'Não é possível matricular estudante em ano letivo inativo.',
+                'academic_year_id' => __('Não é possível matricular estudante em ano letivo inativo.'),
             ]);
         }
 
         if (! $class->active) {
             throw ValidationException::withMessages([
-                'school_class_id' => 'Não é possível matricular estudante em turma inativa.',
+                'school_class_id' => __('Não é possível matricular estudante em turma inativa.'),
             ]);
         }
         $this->ensureAcademicYearIsOpen($academicYear);
@@ -129,7 +129,7 @@ class StudentEnrollmentController extends Controller
 
         if (! $student->hasRequiredIdentityForOfficialUse()) {
             throw ValidationException::withMessages([
-                'person_id' => 'A matrícula exige estudante com CPF.',
+                'person_id' => __('A matrícula exige estudante com CPF.'),
             ]);
         }
 
@@ -141,7 +141,7 @@ class StudentEnrollmentController extends Controller
 
         if ($hasActiveEnrollmentInYear) {
             throw ValidationException::withMessages([
-                'person_id' => 'Este estudante já possui uma matrícula ativa neste calendário acadêmico. Use a turma já vinculada ou registre uma reclassificação.',
+                'person_id' => __('Este estudante já possui uma matrícula ativa neste calendário acadêmico. Use a turma já vinculada ou registre uma reclassificação.'),
             ]);
         }
 
@@ -156,7 +156,7 @@ class StudentEnrollmentController extends Controller
         });
 
         return redirect()->route('classes.enrollments.index', $class)
-            ->with('status', 'Matrícula cadastrada com sucesso.');
+            ->with('status', __('Matrícula cadastrada com sucesso.'));
     }
 
     public function transfer(Request $request, StudentEnrollment $enrollment): RedirectResponse
@@ -175,10 +175,10 @@ class StudentEnrollmentController extends Controller
             'confirm_transfer' => ['accepted'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ], [
-            'transferred_at.required' => 'Informe a data da transferência.',
-            'transferred_at.after_or_equal' => 'A data da transferência não pode ser anterior ao início da matrícula.',
-            'transferred_at.before_or_equal' => 'A data da transferência não pode ser posterior ao fim da turma.',
-            'confirm_transfer.accepted' => 'Confirme que a transferência foi conferida antes de registrar.',
+            'transferred_at.required' => __('Informe a data da transferência.'),
+            'transferred_at.after_or_equal' => __('A data da transferência não pode ser anterior ao início da matrícula.'),
+            'transferred_at.before_or_equal' => __('A data da transferência não pode ser posterior ao fim da turma.'),
+            'confirm_transfer.accepted' => __('Confirme que a transferência foi conferida antes de registrar.'),
         ]);
 
         $this->ensureCurrentPeriodGradesAreComplete($enrollment, $class, $academicYear, $data['transferred_at']);
@@ -193,7 +193,7 @@ class StudentEnrollmentController extends Controller
         $this->syncStudentRole($enrollment->student()->firstOrFail(), $academicYear->school_id);
 
         return redirect()->route('classes.enrollments.index', $class)
-            ->with('status', 'Transferência registrada com sucesso.');
+            ->with('status', __('Transferência registrada com sucesso.'));
     }
 
     public function restoreTransfer(Request $request, StudentEnrollment $enrollment): RedirectResponse
@@ -205,7 +205,7 @@ class StudentEnrollmentController extends Controller
 
         if ($enrollment->status !== StudentEnrollment::STATUS_TRANSFERRED) {
             throw ValidationException::withMessages([
-                'enrollment' => 'Apenas matrículas transferidas podem ter a transferência desfeita.',
+                'enrollment' => __('Apenas matrículas transferidas podem ter a transferência desfeita.'),
             ]);
         }
 
@@ -230,7 +230,7 @@ class StudentEnrollmentController extends Controller
         $this->syncStudentRole($enrollment->student()->firstOrFail(), $academicYear->school_id);
 
         return redirect()->route('classes.enrollments.index', $class)
-            ->with('status', 'Transferência de matrícula desfeita com sucesso.');
+            ->with('status', __('Transferência de matrícula desfeita com sucesso.'));
     }
 
     public function reclassify(Request $request, StudentEnrollment $enrollment): RedirectResponse
@@ -267,7 +267,7 @@ class StudentEnrollmentController extends Controller
 
         if ($data['reclassified_at'] < $targetWindow['starts_at'] || $data['reclassified_at'] > $targetWindow['ends_at']) {
             throw ValidationException::withMessages([
-                'reclassified_at' => 'A data da reclassificação precisa estar dentro do período da turma de destino.',
+                'reclassified_at' => __('A data da reclassificação precisa estar dentro do período da turma de destino.'),
             ]);
         }
 
@@ -278,13 +278,13 @@ class StudentEnrollmentController extends Controller
 
         if (array_diff($selectedCourseIds, $targetCourseIds) !== []) {
             throw ValidationException::withMessages([
-                'course_ids' => 'Selecione apenas matrizes vinculadas à turma de destino.',
+                'course_ids' => __('Selecione apenas matrizes vinculadas à turma de destino.'),
             ]);
         }
 
         if ($targetClass->enrollments()->where('person_id', $enrollment->person_id)->exists()) {
             throw ValidationException::withMessages([
-                'target_school_class_id' => 'Este estudante já possui matrícula nesta turma de destino.',
+                'target_school_class_id' => __('Este estudante já possui matrícula nesta turma de destino.'),
             ]);
         }
 
@@ -315,7 +315,7 @@ class StudentEnrollmentController extends Controller
         });
 
         return redirect()->route('classes.enrollments.index', $class)
-            ->with('status', 'Reclassificação registrada com sucesso.');
+            ->with('status', __('Reclassificação registrada com sucesso.'));
     }
 
     public function cancel(Request $request, StudentEnrollment $enrollment): RedirectResponse
@@ -344,7 +344,7 @@ class StudentEnrollmentController extends Controller
         $this->syncStudentRole($enrollment->student()->firstOrFail(), $academicYear->school_id);
 
         return redirect()->route('classes.enrollments.index', $class)
-            ->with('status', 'Matrícula cancelada com sucesso. O histórico foi preservado.');
+            ->with('status', __('Matrícula cancelada com sucesso. O histórico foi preservado.'));
     }
 
     public function restoreCancellation(Request $request, StudentEnrollment $enrollment): RedirectResponse
@@ -356,7 +356,7 @@ class StudentEnrollmentController extends Controller
 
         if ($enrollment->status !== StudentEnrollment::STATUS_CANCELLED) {
             throw ValidationException::withMessages([
-                'enrollment' => 'Apenas matrículas canceladas podem ter o cancelamento desfeito.',
+                'enrollment' => __('Apenas matrículas canceladas podem ter o cancelamento desfeito.'),
             ]);
         }
 
@@ -381,7 +381,7 @@ class StudentEnrollmentController extends Controller
         $this->syncStudentRole($enrollment->student()->firstOrFail(), $academicYear->school_id);
 
         return redirect()->route('classes.enrollments.index', $class)
-            ->with('status', 'Cancelamento de matrícula desfeito com sucesso.');
+            ->with('status', __('Cancelamento de matrícula desfeito com sucesso.'));
     }
 
     public function calculateFinalResults(Request $request, SchoolClass $class, StudentFinalResultCalculator $calculator): RedirectResponse
@@ -408,7 +408,7 @@ class StudentEnrollmentController extends Controller
         });
 
         return redirect()->route('classes.enrollments.index', $class)
-            ->with('status', 'Resultados finais calculados para esta turma.');
+            ->with('status', __('Resultados finais calculados para esta turma.'));
     }
 
     /**
@@ -418,7 +418,7 @@ class StudentEnrollmentController extends Controller
     {
         if (! $class->active) {
             throw ValidationException::withMessages([
-                'school_class_id' => 'Não é possível matricular estudante em turma inativa.',
+                'school_class_id' => __('Não é possível matricular estudante em turma inativa.'),
             ]);
         }
 
@@ -446,15 +446,15 @@ class StudentEnrollmentController extends Controller
             'type' => ['required', Rule::in(array_keys(StudentEnrollment::TYPE_LABELS))],
             'notes' => ['nullable', 'string', 'max:5000'],
         ], [
-            'person_id.required' => 'Selecione o estudante.',
-            'person_id.in' => 'Selecione um estudante ativo com CPF cadastrado.',
-            'person_id.unique' => 'Este estudante já possui matrícula ativa nesta turma.',
-            'course_ids.array' => 'Selecione apenas matrizes vinculadas a esta turma.',
-            'course_ids.*.in' => 'Selecione apenas matrizes vinculadas a esta turma.',
-            'enrolled_at.required' => 'Informe a data da matrícula.',
-            'enrolled_at.after_or_equal' => 'A data da matrícula não pode ser anterior ao início da turma.',
-            'enrolled_at.before_or_equal' => 'A data da matrícula não pode ser posterior ao fim da turma.',
-            'type.required' => 'Informe o tipo de matrícula.',
+            'person_id.required' => __('Selecione o estudante.'),
+            'person_id.in' => __('Selecione um estudante ativo com CPF cadastrado.'),
+            'person_id.unique' => __('Este estudante já possui matrícula ativa nesta turma.'),
+            'course_ids.array' => __('Selecione apenas matrizes vinculadas a esta turma.'),
+            'course_ids.*.in' => __('Selecione apenas matrizes vinculadas a esta turma.'),
+            'enrolled_at.required' => __('Informe a data da matrícula.'),
+            'enrolled_at.after_or_equal' => __('A data da matrícula não pode ser anterior ao início da turma.'),
+            'enrolled_at.before_or_equal' => __('A data da matrícula não pode ser posterior ao fim da turma.'),
+            'type.required' => __('Informe o tipo de matrícula.'),
         ]);
 
         $selectedCourseIds = collect($validated['course_ids'] ?? $courseIds)
@@ -463,7 +463,7 @@ class StudentEnrollmentController extends Controller
 
         if ($selectedCourseIds === []) {
             throw ValidationException::withMessages([
-                'course_ids' => 'Vincule ao menos uma matriz curricular a esta turma antes de cadastrar a matrícula.',
+                'course_ids' => __('Vincule ao menos uma matriz curricular a esta turma antes de cadastrar a matrícula.'),
             ]);
         }
 
@@ -564,7 +564,7 @@ class StudentEnrollmentController extends Controller
 
         if ($hasActiveEnrollmentInYear) {
             throw ValidationException::withMessages([
-                'enrollment' => 'Este estudante já possui matrícula ativa neste ano letivo.',
+                'enrollment' => __('Este estudante já possui matrícula ativa neste ano letivo.'),
             ]);
         }
     }
@@ -602,7 +602,7 @@ class StudentEnrollmentController extends Controller
 
         if ($assessments->isEmpty()) {
             throw ValidationException::withMessages([
-                'transferred_at' => 'Antes de transferir, configure as avaliações e conclua as notas do período '.$period->name.'.',
+                'transferred_at' => __('Antes de transferir, configure as avaliações e conclua as notas do período ').$period->name.'.',
             ]);
         }
 
@@ -614,7 +614,7 @@ class StudentEnrollmentController extends Controller
 
         if ($missing->isNotEmpty()) {
             throw ValidationException::withMessages([
-                'transferred_at' => 'Antes de transferir, conclua as notas do período '.$period->name.'. Pendências: '.$missing->take(5)->join(', ').($missing->count() > 5 ? '...' : '').'.',
+                'transferred_at' => __('Antes de transferir, conclua as notas do período ').$period->name.'. Pendências: '.$missing->take(5)->join(', ').($missing->count() > 5 ? '...' : '').'.',
             ]);
         }
     }
@@ -623,7 +623,7 @@ class StudentEnrollmentController extends Controller
     {
         if (! $enrollment->isActive()) {
             throw ValidationException::withMessages([
-                'enrollment' => 'Esta matrícula já foi encerrada e não pode receber outra movimentação.',
+                'enrollment' => __('Esta matrícula já foi encerrada e não pode receber outra movimentação.'),
             ]);
         }
     }
@@ -635,7 +635,7 @@ class StudentEnrollmentController extends Controller
         }
 
         throw ValidationException::withMessages([
-            'academic_year' => 'Este ano letivo está fechado. Reabra o ano letivo antes de alterar matrículas ou resultados finais.',
+            'academic_year' => __('Este ano letivo está fechado. Reabra o ano letivo antes de alterar matrículas ou resultados finais.'),
         ]);
     }
 }

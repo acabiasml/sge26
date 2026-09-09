@@ -1,10 +1,10 @@
 @extends('layouts.app')
 
-@section('title', 'Central de emissão')
-@section('page-title', 'Central de emissão')
+@section('title', __('Central de emissão'))
+@section('page-title', __('Central de emissão'))
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('official-documents.create') }}" aria-label="Redigir novo documento oficial" title="Redigir documento">
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('official-documents.create') }}" aria-label="{{ __('Redigir novo documento oficial') }}" title="{{ __('Redigir documento') }}">
         <i class="fas fa-pen-fancy" aria-hidden="true"></i>
     </a>
 @endsection
@@ -17,55 +17,54 @@
 
     <section class="sge-document-hub-hero mb-4" aria-labelledby="document-hub-title">
         <div>
-            <span class="sge-eyebrow">Documentos oficiais</span>
-            <h2 id="document-hub-title">Encontre e emita sem percorrer todo o sistema</h2>
+            <span class="sge-eyebrow">{{ __('Documentos oficiais') }}</span>
+            <h2 id="document-hub-title">{{ __('Encontre e emita sem percorrer todo o sistema') }}</h2>
             <p>
-                Escolha o documento e localize a pessoa, matrícula, turma ou ano letivo. A emissão mantém o papel
-                timbrado correspondente, o código de autenticidade e as regras de acesso da escola.
+                {{ __('Escolha o documento e localize a pessoa, matrícula, turma ou ano letivo. A emissão mantém o papel timbrado correspondente, o código de autenticidade e as regras de acesso da escola.') }}
             </p>
         </div>
-        <div class="sge-document-hub-summary" aria-label="Resumo da central">
+        <div class="sge-document-hub-summary" aria-label="{{ __('Resumo da central') }}">
             <strong>{{ $typeCount }}</strong>
-            <span>tipos disponíveis</span>
-            <small>{{ $schools->count() }} escola(s) · {{ $academicYears->count() }} ano(s) letivo(s) · {{ $classes->count() }} turma(s) acessíveis</small>
+            <span>{{ __('tipos disponíveis') }}</span>
+            <small>{{ $schools->count() }} {{ __('escola(s) ·') }} {{ $academicYears->count() }} {{ __('ano(s) letivo(s) ·') }} {{ $classes->count() }} {{ __('turma(s) acessíveis') }}</small>
         </div>
     </section>
 
     @if ($errors->any())
         <div class="alert alert-danger" role="alert">
-            <strong>Não foi possível preparar a emissão.</strong>
-            <span class="d-block">Revise a seleção e tente novamente.</span>
+            <strong>{{ __('Não foi possível preparar a emissão.') }}</strong>
+            <span class="d-block">{{ __('Revise a seleção e tente novamente.') }}</span>
         </div>
     @endif
 
     <form method="GET" action="{{ route('document-issuance.issue') }}" id="document-issuance-form"
         class="sge-document-hub-form" target="_blank" rel="noopener" data-download-form="true">
-        <section class="sge-document-flow" aria-label="Preparar emissão de documento">
+        <section class="sge-document-flow" aria-label="{{ __('Preparar emissão de documento') }}">
             <div class="sge-document-step">
                 <div class="sge-document-step-number" aria-hidden="true">1</div>
                 <div class="sge-document-step-content">
-                    <label for="document-type">Qual documento deseja emitir?</label>
+                    <label for="document-type">{{ __('Qual documento deseja emitir?') }}</label>
                     <select id="document-type" name="type" class="form-control" required aria-describedby="document-type-help">
-                        <option value="">Selecione o tipo de documento</option>
+                        <option value="">{{ __('Selecione o tipo de documento') }}</option>
                         @foreach ($typeGroups as $group => $types)
-                            <optgroup label="{{ $group }}">
+                            <optgroup label="{{ __($group) }}">
                                 @foreach ($types as $key => $type)
                                     <option value="{{ $key }}"
                                         data-target-kind="{{ $type['target'] }}"
-                                        data-description="{{ $type['description'] }}"
+                                        data-description="{{ __($type['description']) }}"
                                         data-icon="{{ $type['icon'] }}"
                                         data-score-view="{{ ! empty($type['score_view']) ? 'true' : 'false' }}"
                                         data-month="{{ ! empty($type['month']) ? 'true' : 'false' }}"
                                         data-attendance-scope="{{ ! empty($type['attendance_scope']) ? 'true' : 'false' }}"
                                         @selected(old('type') === $key)>
-                                        {{ $type['label'] }}
+                                        {{ __($type['label']) }}
                                     </option>
                                 @endforeach
                             </optgroup>
                         @endforeach
                     </select>
                     <p id="document-type-help" class="sge-document-type-help mb-0">
-                        Selecione uma opção para ver os filtros adequados.
+                        {{ __('Selecione uma opção para ver os filtros adequados.') }}
                     </p>
                 </div>
             </div>
@@ -75,18 +74,18 @@
                 <div class="sge-document-step-content">
                     <div class="sge-document-step-heading">
                         <div>
-                            <span class="sge-document-step-label">Contexto</span>
-                            <h3>Restrinja a busca</h3>
+                            <span class="sge-document-step-label">{{ __('Contexto') }}</span>
+                            <h3>{{ __('Restrinja a busca') }}</h3>
                         </div>
-                        <small>Os filtros são opcionais.</small>
+                        <small>{{ __('Os filtros são opcionais.') }}</small>
                     </div>
 
                     <div class="sge-document-context-grid">
                         <div class="form-group mb-0" data-context-filter="school">
-                            <label for="document-school">Escola</label>
+                            <label for="document-school">{{ __('Escola') }}</label>
                             <select id="document-school" class="form-control">
                                 @if ($schools->count() > 1)
-                                    <option value="">Todas as escolas acessíveis</option>
+                                    <option value="">{{ __('Todas as escolas acessíveis') }}</option>
                                 @endif
                                 @foreach ($schools as $school)
                                     <option value="{{ $school->id }}" @selected($schools->count() === 1)>{{ $school->name }}</option>
@@ -95,9 +94,9 @@
                         </div>
 
                         <div class="form-group mb-0" data-context-filter="year">
-                            <label for="document-year">Ano letivo</label>
+                            <label for="document-year">{{ __('Ano letivo') }}</label>
                             <select id="document-year" class="form-control">
-                                <option value="">Todos os anos letivos</option>
+                                <option value="">{{ __('Todos os anos letivos') }}</option>
                                 @foreach ($academicYears as $year)
                                     <option value="{{ $year->id }}" data-school-id="{{ $year->school_id }}"
                                         data-starts-at="{{ $year->starts_at?->format('Y-m-d') ?? $year->reference_year.'-01-01' }}"
@@ -109,9 +108,9 @@
                         </div>
 
                         <div class="form-group mb-0" data-context-filter="class">
-                            <label for="document-class">Turma</label>
+                            <label for="document-class">{{ __('Turma') }}</label>
                             <select id="document-class" class="form-control">
-                                <option value="">Todas as turmas</option>
+                                <option value="">{{ __('Todas as turmas') }}</option>
                                 @foreach ($classes as $class)
                                     <option value="{{ $class->id }}"
                                         data-year-id="{{ $class->academic_year_id }}"
@@ -130,41 +129,41 @@
                 <div class="sge-document-step-content">
                     <div class="sge-document-step-heading">
                         <div>
-                            <span class="sge-document-step-label">Registro</span>
-                            <h3 id="target-heading">Localize o destinatário</h3>
+                            <span class="sge-document-step-label">{{ __('Registro') }}</span>
+                            <h3 id="target-heading">{{ __('Localize o destinatário') }}</h3>
                         </div>
-                        <small>Até 40 resultados por busca.</small>
+                        <small>{{ __('Até 40 resultados por busca.') }}</small>
                     </div>
 
                     <div class="sge-document-search">
                         <div class="form-group mb-0">
-                            <label for="target-query" id="target-query-label">Nome, CPF ou e-mail</label>
+                            <label for="target-query" id="target-query-label">{{ __('Nome, CPF ou e-mail') }}</label>
                             <input id="target-query" type="search" class="form-control" maxlength="100"
                                 autocomplete="off" enterkeyhint="search" disabled>
                         </div>
                         <button type="button" class="btn btn-outline-primary" id="target-search" disabled>
                             <i class="fas fa-search" aria-hidden="true"></i>
-                            <span>Buscar</span>
+                            <span>{{ __('Buscar') }}</span>
                         </button>
                     </div>
 
                     <p id="target-status" class="sge-document-search-status" role="status" aria-live="polite">
-                        Primeiro, escolha o tipo de documento.
+                        {{ __('Primeiro, escolha o tipo de documento.') }}
                     </p>
-                    <div id="target-results" class="sge-target-results" aria-label="Resultados da busca"></div>
+                    <div id="target-results" class="sge-target-results" aria-label="{{ __('Resultados da busca') }}"></div>
 
                     <input type="hidden" name="target_id" id="target-id" value="{{ old('target_id') }}" required>
                     <input type="hidden" name="confirm_missing_student_cpf" id="confirm-missing-student-cpf" value="0">
                     <div id="selected-target" class="sge-selected-target" hidden>
                         <span class="sge-selected-target-icon" aria-hidden="true"><i class="fas fa-check"></i></span>
                         <div>
-                            <small>Selecionado para emissão</small>
+                            <small>{{ __('Selecionado para emissão') }}</small>
                             <strong id="selected-target-title"></strong>
                             <span id="selected-target-subtitle"></span>
                         </div>
                         <button type="button" class="btn btn-sm btn-link" id="clear-target">
-                            Trocar
-                            <span class="sr-only">registro selecionado</span>
+                            {{ __('Trocar') }}
+                            <span class="sr-only">{{ __('registro selecionado') }}</span>
                         </button>
                     </div>
                 </div>
@@ -173,81 +172,81 @@
             <div class="sge-document-step is-muted" id="options-step" hidden>
                 <div class="sge-document-step-number" aria-hidden="true">4</div>
                 <div class="sge-document-step-content">
-                    <span class="sge-document-step-label">Apresentação</span>
-                    <h3>Defina as opções do documento</h3>
+                    <span class="sge-document-step-label">{{ __('Apresentação') }}</span>
+                    <h3>{{ __('Defina as opções do documento') }}</h3>
 
                     <fieldset id="score-view-options" class="sge-document-options" hidden>
-                        <legend>Como apresentar o desempenho?</legend>
+                        <legend>{{ __('Como apresentar o desempenho?') }}</legend>
                         <label class="sge-choice-tile">
                             <input type="radio" name="score_view" value="conceitos" checked>
                             <span>
-                                <strong>Conceitos</strong>
-                                <small>Converte as notas conforme a tabela vigente da escola.</small>
+                                <strong>{{ __('Conceitos') }}</strong>
+                                <small>{{ __('Converte as notas conforme a tabela vigente da escola.') }}</small>
                             </span>
                         </label>
                         <label class="sge-choice-tile">
                             <input type="radio" name="score_view" value="numeros">
                             <span>
-                                <strong>Notas numéricas</strong>
-                                <small>Apresenta os valores registrados no sistema.</small>
+                                <strong>{{ __('Notas numéricas') }}</strong>
+                                <small>{{ __('Apresenta os valores registrados no sistema.') }}</small>
                             </span>
                         </label>
                     </fieldset>
 
                     <div id="month-options" class="form-group mb-0" hidden>
-                        <label for="document-month">Mês da lista de chamada</label>
+                        <label for="document-month">{{ __('Mês da lista de chamada') }}</label>
                         <input id="document-month" name="month" type="month" class="form-control"
                             value="{{ now()->format('Y-m') }}">
                     </div>
 
                     <fieldset id="attendance-scope-options" class="sge-document-options" hidden>
-                        <legend>Qual período de frequência deve constar?</legend>
+                        <legend>{{ __('Qual período de frequência deve constar?') }}</legend>
                         <label class="sge-choice-tile">
                             <input type="radio" name="attendance_scope" value="annual" checked>
                             <span>
-                                <strong>Anual</strong>
-                                <small>Considera toda a duração do ano letivo selecionado.</small>
+                                <strong>{{ __('Anual') }}</strong>
+                                <small>{{ __('Considera toda a duração do ano letivo selecionado.') }}</small>
                             </span>
                         </label>
                         <label class="sge-choice-tile">
                             <input type="radio" name="attendance_scope" value="period">
                             <span>
-                                <strong>Período avaliativo</strong>
-                                <small>Considera somente um bimestre ou outro período cadastrado.</small>
+                                <strong>{{ __('Período avaliativo') }}</strong>
+                                <small>{{ __('Considera somente um bimestre ou outro período cadastrado.') }}</small>
                             </span>
                         </label>
                         <label class="sge-choice-tile">
                             <input type="radio" name="attendance_scope" value="month">
                             <span>
-                                <strong>Mensal</strong>
-                                <small>Considera somente o mês escolhido.</small>
+                                <strong>{{ __('Mensal') }}</strong>
+                                <small>{{ __('Considera somente o mês escolhido.') }}</small>
                             </span>
                         </label>
 
                         <div id="attendance-period-option" class="form-group mb-0 mt-3" hidden>
-                            <label for="attendance-period">Período avaliativo</label>
+                            <label for="attendance-period">{{ __('Período avaliativo') }}</label>
                             <select id="attendance-period" name="academic_period_id" class="form-control" disabled>
-                                <option value="">Selecione o período</option>
+                                <option value="">{{ __('Selecione o período') }}</option>
                                 @foreach ($academicPeriods as $period)
                                     <option value="{{ $period->id }}" data-year-id="{{ $period->academic_year_id }}">
-                                        {{ $period->name }} · {{ $period->starts_at?->format('d/m/Y') }} a {{ $period->ends_at?->format('d/m/Y') }}
+                                        {{ $period->name }} · {{ $period->starts_at?->format('d/m/Y') }} {{ __('a') }} {{ $period->ends_at?->format('d/m/Y') }}
                                     </option>
                                 @endforeach
                             </select>
                         </div>
 
                         <div id="attendance-month-option" class="form-group mb-0 mt-3" hidden>
-                            <label for="attendance-month">Mês</label>
+                            <label for="attendance-month">{{ __('Mês') }}</label>
                             <select id="attendance-month" name="attendance_month" class="form-control" disabled>
-                                <option value="">Selecione a matrícula ou o ano letivo</option>
+                                <option value="">{{ __('Selecione a matrícula ou o ano letivo') }}</option>
                             </select>
                         </div>
 
                         <label id="federal-aid-only-option" class="sge-choice-tile mt-3" hidden>
                             <input type="checkbox" name="federal_aid_only" value="1" disabled>
                             <span>
-                                <strong>Somente estudantes que recebem auxílio federal</strong>
-                                <small>Quando marcado, exclui do relatório os demais estudantes.</small>
+                                <strong>{{ __('Somente estudantes que recebem auxílio federal') }}</strong>
+                                <small>{{ __('Quando marcado, exclui do relatório os demais estudantes.') }}</small>
                             </span>
                         </label>
                     </fieldset>
@@ -256,12 +255,12 @@
 
             <div class="sge-document-submit">
                 <div>
-                    <strong>Documento oficial em PDF</strong>
-                    <span>O documento será aberto no visualizador do navegador para conferência, impressão ou download.</span>
+                    <strong>{{ __('Documento oficial em PDF') }}</strong>
+                    <span>{{ __('O documento será aberto no visualizador do navegador para conferência, impressão ou download.') }}</span>
                 </div>
-                <button type="submit" class="btn btn-primary" id="issue-document" disabled data-loading-label="Abrindo PDF...">
+                <button type="submit" class="btn btn-primary" id="issue-document" disabled data-loading-label="{{ __('Abrindo PDF...') }}">
                     <i class="fas fa-file-pdf" aria-hidden="true"></i>
-                    <span>Visualizar documento</span>
+                    <span>{{ __('Visualizar documento') }}</span>
                 </button>
             </div>
         </section>
@@ -272,20 +271,20 @@
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2 class="modal-title h5" id="missing-student-cpf-title">Documento sem CPF do estudante</h2>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+                    <h2 class="modal-title h5" id="missing-student-cpf-title">{{ __('Documento sem CPF do estudante') }}</h2>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="{{ __('Fechar') }}">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <div class="modal-body" id="missing-student-cpf-description">
-                    <p>O estudante selecionado ainda não possui CPF cadastrado.</p>
-                    <p class="mb-0">O documento será emitido sem esse dado. O CPF da mãe ou do pai já foi conferido pelo sistema.</p>
+                    <p>{{ __('O estudante selecionado ainda não possui CPF cadastrado.') }}</p>
+                    <p class="mb-0">{{ __('O documento será emitido sem esse dado. O CPF da mãe ou do pai já foi conferido pelo sistema.') }}</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">{{ __('Cancelar') }}</button>
                     <button type="button" class="btn btn-primary" id="confirm-missing-student-cpf-button">
                         <i class="fas fa-check" aria-hidden="true"></i>
-                        <span>Estou ciente e emitir</span>
+                        <span>{{ __('Estou ciente e emitir') }}</span>
                     </button>
                 </div>
             </div>
@@ -332,13 +331,13 @@
             const federalAidOnlyInput = federalAidOnlyOption.querySelector('input');
             const targetsUrl = @json(route('document-issuance.targets'));
             const targetCopy = {
-                enrollment: ['Localize a matrícula', 'Nome ou CPF do estudante'],
-                person: ['Localize a pessoa', 'Nome, CPF ou e-mail institucional'],
-                history: ['Localize o histórico', 'Nome do estudante, etapa ou título'],
-                class: ['Localize a turma', 'Nome da turma'],
-                academic_year: ['Localize o ano letivo', 'Nome ou ano de referência'],
-                school: ['Localize a escola', 'Nome da escola'],
-                diary: ['Localize o diário', 'Componente, turma ou docente'],
+                enrollment: [@js(__('Localize a matrícula')), @js(__('Nome ou CPF do estudante'))],
+                person: [@js(__('Localize a pessoa')), @js(__('Nome, CPF ou e-mail institucional'))],
+                history: [@js(__('Localize o histórico')), @js(__('Nome do estudante, etapa ou título'))],
+                class: [@js(__('Localize a turma')), @js(__('Nome da turma'))],
+                academic_year: [@js(__('Localize o ano letivo')), @js(__('Nome ou ano de referência'))],
+                school: [@js(__('Localize a escola')), @js(__('Nome da escola'))],
+                diary: [@js(__('Localize o diário')), @js(__('Componente, turma ou docente'))],
             };
             const contextVisibility = {
                 enrollment: ['school', 'year', 'class'],
@@ -356,7 +355,7 @@
             const selectedOption = () => typeSelect.options[typeSelect.selectedIndex];
             const targetKind = () => selectedOption()?.dataset.targetKind || '';
 
-            const resetTarget = (message = 'Use a busca para localizar o registro correto.') => {
+            const resetTarget = (message = @js(__('Use a busca para localizar o registro correto.'))) => {
                 targetId.value = '';
                 selectedTarget.hidden = true;
                 selectedTitle.textContent = '';
@@ -399,12 +398,12 @@
                 const minimum = yearOption?.dataset.startsAt?.slice(0, 7) || '';
                 const maximum = yearOption?.dataset.endsAt?.slice(0, 7) || '';
                 const previousMonth = attendanceMonthInput.value;
-                attendanceMonthInput.replaceChildren(new Option('Selecione o mês', ''));
+                attendanceMonthInput.replaceChildren(new Option(@js(__('Selecione o mês')), ''));
                 if (minimum && maximum) {
                     let [year, month] = minimum.split('-').map(Number);
                     while (`${year}-${String(month).padStart(2, '0')}` <= maximum) {
                         const value = `${year}-${String(month).padStart(2, '0')}`;
-                        const label = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' })
+                        const label = new Intl.DateTimeFormat(@js(str_replace('_', '-', app()->getLocale())), { month: 'long', year: 'numeric' })
                             .format(new Date(year, month - 1, 1));
                         attendanceMonthInput.add(new Option(label, value));
                         if (++month > 12) { month = 1; year++; }
@@ -441,7 +440,7 @@
                 const hasType = Boolean(option?.value && kind);
                 const visibleFilters = contextVisibility[kind] || [];
 
-                typeHelp.textContent = hasType ? option.dataset.description : 'Selecione uma opção para ver os filtros adequados.';
+                typeHelp.textContent = hasType ? option.dataset.description : @js(__('Selecione uma opção para ver os filtros adequados.'));
                 contextStep.classList.toggle('is-muted', !hasType);
                 targetStep.classList.toggle('is-muted', !hasType);
                 queryInput.disabled = !hasType;
@@ -451,7 +450,7 @@
                     filter.hidden = !visibleFilters.includes(filter.dataset.contextFilter);
                 });
 
-                const copy = targetCopy[kind] || ['Localize o registro', 'Digite para buscar'];
+                const copy = targetCopy[kind] || [@js(__('Localize o registro')), @js(__('Digite para buscar'))];
                 targetHeading.textContent = copy[0];
                 queryLabel.textContent = copy[1];
                 queryInput.placeholder = hasType ? copy[1] : '';
@@ -468,7 +467,7 @@
                 optionsStep.hidden = !hasScoreOptions && !hasMonthOptions && !hasAttendanceOptions;
                 optionsStep.classList.toggle('is-muted', !hasType);
 
-                resetTarget(hasType ? 'Use a busca para localizar o registro correto.' : 'Primeiro, escolha o tipo de documento.');
+                resetTarget(hasType ? @js(__('Use a busca para localizar o registro correto.')) : @js(__('Primeiro, escolha o tipo de documento.')));
                 syncFilterOptions();
                 syncAttendanceOptions();
             };
@@ -492,7 +491,7 @@
                 results.replaceChildren();
 
                 if (!targets.length) {
-                    status.textContent = 'Nenhum registro encontrado com esses filtros.';
+                    status.textContent = @js(__('Nenhum registro encontrado com esses filtros.'));
                     return;
                 }
 
@@ -531,13 +530,13 @@
 
                     const action = document.createElement('span');
                     action.className = 'sge-target-result-action';
-                    action.textContent = target.enabled ? 'Selecionar' : 'Indisponível';
+                    action.textContent = target.enabled ? @js(__('Selecionar')) : @js(__('Indisponível'));
                     item.append(icon, content, action);
                     fragment.appendChild(item);
                 });
 
                 results.appendChild(fragment);
-                status.textContent = `${targets.length} ${targets.length === 1 ? 'resultado encontrado' : 'resultados encontrados'}.`;
+                status.textContent = `${targets.length} ${targets.length === 1 ? @js(__('resultado encontrado')) : @js(__('resultados encontrados'))}.`;
                 results.querySelector('button')?.focus();
             };
 
@@ -546,7 +545,7 @@
 
                 searchController?.abort();
                 searchController = new AbortController();
-                resetTarget('Buscando registros...');
+                resetTarget(@js(__('Buscando registros...')));
                 searchButton.disabled = true;
                 searchButton.setAttribute('aria-busy', 'true');
 
@@ -563,18 +562,18 @@
                     });
                     if (!response.ok) {
                         const messages = {
-                            401: 'Sua sessão expirou. Atualize a página e entre novamente.',
-                            403: 'Você não tem permissão para consultar esses registros.',
-                            422: 'Os filtros informados não são válidos. Revise a seleção.',
+                            401: @js(__('Sua sessão expirou. Atualize a página e entre novamente.')),
+                            403: @js(__('Você não tem permissão para consultar esses registros.')),
+                            422: @js(__('Os filtros informados não são válidos. Revise a seleção.')),
                         };
 
-                        throw new Error(messages[response.status] || 'Não foi possível concluir a busca.');
+                        throw new Error(messages[response.status] || @js(__('Não foi possível concluir a busca.')));
                     }
                     const payload = await response.json();
                     renderResults(payload.targets || []);
                 } catch (error) {
                     if (error.name !== 'AbortError') {
-                        status.textContent = error.message || 'Não foi possível concluir a busca.';
+                        status.textContent = error.message || @js(__('Não foi possível concluir a busca.'));
                     }
                 } finally {
                     searchButton.disabled = false;
@@ -614,7 +613,7 @@
             form.addEventListener('submit', (event) => {
                 if (!targetId.value) {
                     event.preventDefault();
-                    status.textContent = 'Selecione um registro antes de emitir o documento.';
+                    status.textContent = @js(__('Selecione um registro antes de emitir o documento.'));
                     queryInput.focus();
                     return;
                 }

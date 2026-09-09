@@ -384,12 +384,12 @@ class DocumentIssuanceController extends Controller
 
                 return [
                     'id' => $enrollment->id,
-                    'title' => $enrollment->student?->social_name ?: $enrollment->student?->full_name ?: 'Estudante sem nome',
+                    'title' => $enrollment->student?->social_name ?: $enrollment->student?->full_name ?: __('Estudante sem nome'),
                     'subtitle' => collect([
                         $year?->school?->name,
                         $year?->referenceYearsLabel(),
                         AcademicContextLabel::classWithStages($enrollment->schoolClass?->name, $enrollment->schoolClass?->courses ?? collect()),
-                        $enrollment->statusLabel(),
+                        __($enrollment->statusLabel()),
                     ])->filter()->join(' · '),
                     'enabled' => $enabled,
                     'reason' => $reason,
@@ -409,15 +409,15 @@ class DocumentIssuanceController extends Controller
         }
 
         if ($type === 'enrollment-declaration' && ! $enrollment->isActive()) {
-            return [false, 'A matrícula precisa estar ativa.'];
+            return [false, __('A matrícula precisa estar ativa.')];
         }
 
         if ($type === 'completion-declaration' && $enrollment->final_result_status !== StudentEnrollment::FINAL_APPROVED) {
-            return [false, 'O resultado final precisa estar aprovado.'];
+            return [false, __('O resultado final precisa estar aprovado.')];
         }
 
         if ($type === 'transfer-certificate' && ($enrollment->status !== StudentEnrollment::STATUS_TRANSFERRED || ! $enrollment->transferred_at)) {
-            return [false, 'A transferência precisa estar registrada.'];
+            return [false, __('A transferência precisa estar registrada.')];
         }
 
         return [true, null];
@@ -430,11 +430,11 @@ class DocumentIssuanceController extends Controller
         $year = $class?->academicYear;
 
         return match (true) {
-            ! $enrollment->isActive() => 'A matrícula não está ativa.',
-            ! $class?->active => 'A turma desta matrícula está inativa.',
-            ! in_array($enrollment->final_result_status, [null, StudentEnrollment::FINAL_PENDING], true) => 'A matrícula já possui resultado final. Use os documentos acadêmicos de arquivo.',
-            ! $year?->active || $year?->isClosed() => 'O ano letivo está encerrado. Use ficha individual ou histórico escolar.',
-            default => 'Esta matrícula não está disponível para este documento.',
+            ! $enrollment->isActive() => __('A matrícula não está ativa.'),
+            ! $class?->active => __('A turma desta matrícula está inativa.'),
+            ! in_array($enrollment->final_result_status, [null, StudentEnrollment::FINAL_PENDING], true) => __('A matrícula já possui resultado final. Use os documentos acadêmicos de arquivo.'),
+            ! $year?->active || $year?->isClosed() => __('O ano letivo está encerrado. Use ficha individual ou histórico escolar.'),
+            default => __('Esta matrícula não está disponível para este documento.'),
         };
     }
 
@@ -591,7 +591,7 @@ class DocumentIssuanceController extends Controller
             ->map(fn (Person $person): array => [
                 'id' => $person->id,
                 'title' => $person->social_name ?: $person->full_name,
-                'subtitle' => collect([$person->institutional_email, $person->hasActiveRoleForDate() ? 'Com vínculo ativo' : 'Sem vínculo ativo'])->filter()->join(' · '),
+                'subtitle' => collect([$person->institutional_email, $person->hasActiveRoleForDate() ? __('Com vínculo ativo') : __('Sem vínculo ativo')])->filter()->join(' · '),
                 'enabled' => true,
                 'reason' => null,
             ]);
@@ -626,7 +626,7 @@ class DocumentIssuanceController extends Controller
 
                 return [
                     'id' => $history->id,
-                    'title' => $history->student?->social_name ?: $history->student?->full_name ?: 'Estudante sem nome',
+                    'title' => $history->student?->social_name ?: $history->student?->full_name ?: __('Estudante sem nome'),
                     'subtitle' => collect([$history->title, $history->stage, $history->school?->name])->filter()->join(' · '),
                     'enabled' => $enabled,
                     'reason' => $reason,
@@ -683,15 +683,15 @@ class DocumentIssuanceController extends Controller
                     'subtitle' => collect([
                         $class->academicYear?->school?->name,
                         $class->academicYear?->referenceYearsLabel(),
-                        (int) $class->active_enrollments_count.' '.((int) $class->active_enrollments_count === 1 ? 'matrícula ativa' : 'matrículas ativas'),
-                        $class->active ? 'Turma ativa' : 'Turma inativa',
+                        (int) $class->active_enrollments_count.' '.((int) $class->active_enrollments_count === 1 ? __('matrícula ativa') : __('matrículas ativas')),
+                        $class->active ? __('Turma ativa') : __('Turma inativa'),
                     ])->filter()->join(' · '),
                     'enabled' => (! $requiresEnrollments || $hasEnrollments) && $isCurrentClass && ! $missingIdentityCpf,
                     'reason' => match (true) {
-                        $requiresCurrentClass && ! $isCurrentClass => 'Use documentos de arquivo para turmas de anos letivos encerrados.',
-                        $requiresEnrollments && ! $hasEnrollments => 'A turma não possui matrículas ativas.',
-                        $missingIdentityCpf => 'Há estudante sem CPF próprio e sem CPF cadastrado para mãe ou pai. Revise os responsáveis antes da emissão.',
-                        $missingStudentCpf => 'Há estudante sem CPF. A emissão exigirá confirmação.',
+                        $requiresCurrentClass && ! $isCurrentClass => __('Use documentos de arquivo para turmas de anos letivos encerrados.'),
+                        $requiresEnrollments && ! $hasEnrollments => __('A turma não possui matrículas ativas.'),
+                        $missingIdentityCpf => __('Há estudante sem CPF próprio e sem CPF cadastrado para mãe ou pai. Revise os responsáveis antes da emissão.'),
+                        $missingStudentCpf => __('Há estudante sem CPF. A emissão exigirá confirmação.'),
                         default => null,
                     },
                     'missing_student_cpf' => $missingStudentCpf,
@@ -720,7 +720,7 @@ class DocumentIssuanceController extends Controller
             ->map(fn (AcademicYear $year): array => [
                 'id' => $year->id,
                 'title' => $year->referenceYearsLabel(),
-                'subtitle' => collect([$year->school?->name, 'Calendário: '.$year->name, $year->active ? 'Ano letivo ativo' : 'Ano letivo inativo'])->filter()->join(' · '),
+                'subtitle' => collect([$year->school?->name, __('Calendário: ').$year->name, $year->active ? __('Ano letivo ativo') : __('Ano letivo inativo')])->filter()->join(' · '),
                 'enabled' => true,
                 'reason' => null,
             ]);
@@ -741,7 +741,7 @@ class DocumentIssuanceController extends Controller
             ->map(fn (School $school): array => [
                 'id' => $school->id,
                 'title' => $school->name,
-                'subtitle' => collect([$school->city, $school->state, $school->active ? 'Escola ativa' : 'Escola inativa'])->filter()->join(' · '),
+                'subtitle' => collect([$school->city, $school->state, $school->active ? __('Escola ativa') : __('Escola inativa')])->filter()->join(' · '),
                 'enabled' => true,
                 'reason' => null,
             ]);
@@ -784,7 +784,7 @@ class DocumentIssuanceController extends Controller
 
                 return [
                     'id' => $assignment->id,
-                    'title' => ($assignment->component?->name ?? 'Componente não informado').' · '
+                    'title' => ($assignment->component?->name ?? __('Componente não informado')).' · '
                         .AcademicContextLabel::classWithStages(
                             $assignment->schoolClass?->name,
                             collect([$assignment->component?->course])->filter(),
@@ -793,7 +793,7 @@ class DocumentIssuanceController extends Controller
                         $year?->school?->name,
                         $year?->referenceYearsLabel(),
                         $assignment->component?->course?->name,
-                        $assignment->teacher?->full_name ? 'Docência: '.$assignment->teacher->full_name : 'Docência não definida',
+                        $assignment->teacher?->full_name ? __('Docência: ').$assignment->teacher->full_name : __('Docência não definida'),
                     ])->filter()->join(' · '),
                     'enabled' => true,
                     'reason' => null,
@@ -813,7 +813,7 @@ class DocumentIssuanceController extends Controller
 
         if (! $enabled) {
             throw ValidationException::withMessages([
-                'target_id' => $reason ?? 'Este documento não está disponível para esta matrícula.',
+                'target_id' => $reason ?? __('Este documento não está disponível para esta matrícula.'),
             ]);
         }
 
@@ -895,14 +895,14 @@ class DocumentIssuanceController extends Controller
 
         if ($this->requiresCurrentClass($data['type']) && ! $this->isCurrentClass($class)) {
             throw ValidationException::withMessages([
-                'target_id' => 'Use documentos de arquivo para turmas de anos letivos encerrados.',
+                'target_id' => __('Use documentos de arquivo para turmas de anos letivos encerrados.'),
             ]);
         }
 
         if (in_array($data['type'], ['class-report-cards', 'class-grade-mirror', 'class-attendance-certificates'], true)
             && ! $class->enrollments->contains(fn (StudentEnrollment $enrollment): bool => $enrollment->isActive())) {
             throw ValidationException::withMessages([
-                'target_id' => 'A turma não possui matrículas ativas.',
+                'target_id' => __('A turma não possui matrículas ativas.'),
             ]);
         }
 
@@ -1016,11 +1016,11 @@ class DocumentIssuanceController extends Controller
 
         if (OfficialDocumentCompliance::studentHasNoCpf($student)
             && ! OfficialDocumentCompliance::hasParentCpf($student)) {
-            return [false, 'Cadastre o CPF da mãe ou do pai em Responsáveis e contatos antes da emissão.'];
+            return [false, __('Cadastre o CPF da mãe ou do pai em Responsáveis e contatos antes da emissão.')];
         }
 
         return [true, OfficialDocumentCompliance::studentHasNoCpf($student)
-            ? 'O estudante não possui CPF. A emissão exigirá confirmação.'
+            ? __('O estudante não possui CPF. A emissão exigirá confirmação.')
             : null];
     }
 

@@ -36,7 +36,7 @@ class SchoolClassComponentController extends Controller
         ]);
 
         return redirect()->route('academic-years.classes.show', [$academicYear, $class])
-            ->with('status', 'Docência da turma atualizada com sucesso.');
+            ->with('status', __('Docência da turma atualizada com sucesso.'));
     }
 
     public function storeSubstitution(
@@ -57,7 +57,7 @@ class SchoolClassComponentController extends Controller
         $classComponent->substitutions()->create($data);
 
         return redirect()->route('academic-years.classes.show', [$academicYear, $class])
-            ->with('status', 'Substituição docente cadastrada com sucesso.');
+            ->with('status', __('Substituição docente cadastrada com sucesso.'));
     }
 
     public function destroySubstitution(
@@ -73,7 +73,7 @@ class SchoolClassComponentController extends Controller
         $substitution->delete();
 
         return redirect()->route('academic-years.classes.show', [$academicYear, $class])
-            ->with('status', 'Substituição docente removida com sucesso.');
+            ->with('status', __('Substituição docente removida com sucesso.'));
     }
 
     private function authorizeClassComponent(
@@ -88,7 +88,7 @@ class SchoolClassComponentController extends Controller
 
         if ($academicYear->isClosed()) {
             throw ValidationException::withMessages([
-                'closed_at' => 'Este ano letivo está fechado. Reabra o ano letivo antes de alterar docentes da turma.',
+                'closed_at' => __('Este ano letivo está fechado. Reabra o ano letivo antes de alterar docentes da turma.'),
             ]);
         }
     }

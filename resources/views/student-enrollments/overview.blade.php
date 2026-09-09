@@ -4,7 +4,7 @@
 @section('page-title', __('screens.enrollments'))
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('data-quality.index') }}" aria-label="Abrir conformidade antes de matricular" title="Conformidade">
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('data-quality.index') }}" aria-label="{{ __('Abrir conformidade antes de matricular') }}" title="{{ __('Conformidade') }}">
         <i class="fas fa-clipboard-check" aria-hidden="true"></i>
     </a>
 @endsection
@@ -44,7 +44,7 @@
                             <div>
                                 <span class="sge-page-kicker">{{ __('screens.school_year') }}</span>
                                 <h3>{{ $year->name }}</h3>
-                                <p>{{ $year->starts_at?->format('d/m/Y') }} a {{ $year->ends_at?->format('d/m/Y') }}</p>
+                                <p>{{ $year->starts_at?->format('d/m/Y') }} {{ __('a') }} {{ $year->ends_at?->format('d/m/Y') }}</p>
                             </div>
                             <div class="sge-enrollment-year-stats" aria-label="{{ __('screens.year_summary', ['year' => $year->name]) }}">
                                 <span>{{ __('screens.classes_count', ['count' => $year->classes->count()]) }}</span>
@@ -63,7 +63,7 @@
                                             @forelse ($class->courses as $course)
                                                 <span>
                                                     <strong>{{ $course->name }}</strong>
-                                                    <small>{{ $course->stageLabel() }}</small>
+                                                    <small>{{ __($course->stageLabel()) }}</small>
                                                 </span>
                                             @empty
                                                 <span>

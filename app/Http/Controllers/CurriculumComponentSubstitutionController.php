@@ -41,7 +41,7 @@ class CurriculumComponentSubstitutionController extends Controller
         $component->substitutions()->create($data);
 
         return redirect()->route('academic-years.courses.components.show', [$academicYear, $course, $component])
-            ->with('status', 'Substituição docente cadastrada com sucesso.');
+            ->with('status', __('Substituição docente cadastrada com sucesso.'));
     }
 
     public function destroy(
@@ -60,7 +60,7 @@ class CurriculumComponentSubstitutionController extends Controller
         $substitution->delete();
 
         return redirect()->route('academic-years.courses.components.show', [$academicYear, $course, $component])
-            ->with('status', 'Substituição docente removida com sucesso.');
+            ->with('status', __('Substituição docente removida com sucesso.'));
     }
 
     private function ensureCanChangeApprovedCalendar(Request $request, AcademicYear $academicYear): void
@@ -70,7 +70,7 @@ class CurriculumComponentSubstitutionController extends Controller
         }
 
         throw ValidationException::withMessages([
-            'approved_at' => 'Ano letivo aprovado só pode ter sua estrutura acadêmica alterada pela Administração global.',
+            'approved_at' => __('Ano letivo aprovado só pode ter sua estrutura acadêmica alterada pela Administração global.'),
         ]);
     }
 }

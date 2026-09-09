@@ -69,13 +69,13 @@ class SchoolClassScheduleController extends Controller
             ->exists();
 
         if ($overlaps) {
-            throw ValidationException::withMessages(['starts_at' => 'A vigência deste horário se sobrepõe a outra versão cadastrada para a turma.']);
+            throw ValidationException::withMessages(['starts_at' => __('A vigência deste horário se sobrepõe a outra versão cadastrada para a turma.')]);
         }
 
         $schedule = $class->schedules()->create($data);
 
         return redirect()->route('academic-years.classes.schedules.index', [$academicYear, $class, 'schedule' => $schedule->id])
-            ->with('status', 'Versão de horário cadastrada. Agora inclua os blocos semanais.');
+            ->with('status', __('Versão de horário cadastrada. Agora inclua os blocos semanais.'));
     }
 
     public function storeSlot(Request $request, AcademicYear $academicYear, SchoolClass $class, SchoolClassSchedule $schedule): RedirectResponse
@@ -92,10 +92,10 @@ class SchoolClassScheduleController extends Controller
 
             return back()
                 ->withInput()
-                ->withErrors(['schedule_slot_error' => 'Falha ao criar bloco: '.$exception->getMessage()]);
+                ->withErrors(['schedule_slot_error' => __('Falha ao criar bloco: ').$exception->getMessage()]);
         }
 
-        return back()->with('status', 'Bloco incluído no horário.');
+        return back()->with('status', __('Bloco incluído no horário.'));
     }
 
     public function updateSlot(Request $request, AcademicYear $academicYear, SchoolClass $class, SchoolClassSchedule $schedule, SchoolClassScheduleSlot $slot): RedirectResponse
@@ -112,10 +112,10 @@ class SchoolClassScheduleController extends Controller
 
             return back()
                 ->withInput()
-                ->withErrors(['schedule_slot_error' => 'Falha ao atualizar bloco: '.$exception->getMessage()]);
+                ->withErrors(['schedule_slot_error' => __('Falha ao atualizar bloco: ').$exception->getMessage()]);
         }
 
-        return back()->with('status', 'Bloco atualizado no horário.');
+        return back()->with('status', __('Bloco atualizado no horário.'));
     }
 
     public function destroySlot(Request $request, AcademicYear $academicYear, SchoolClass $class, SchoolClassSchedule $schedule, SchoolClassScheduleSlot $slot): RedirectResponse
@@ -124,7 +124,7 @@ class SchoolClassScheduleController extends Controller
         abort_unless($schedule->school_class_id === $class->id && $slot->school_class_schedule_id === $schedule->id, 404);
         $slot->delete();
 
-        return back()->with('status', 'Bloco removido do horário.');
+        return back()->with('status', __('Bloco removido do horário.'));
     }
 
     public function destroy(Request $request, AcademicYear $academicYear, SchoolClass $class, SchoolClassSchedule $schedule): RedirectResponse
@@ -134,7 +134,7 @@ class SchoolClassScheduleController extends Controller
         $schedule->delete();
 
         return redirect()->route('academic-years.classes.schedules.index', [$academicYear, $class])
-            ->with('status', 'Versão de horário removida.');
+            ->with('status', __('Versão de horário removida.'));
     }
 
     private function authorize(Request $request, AcademicYear $academicYear, SchoolClass $class): void
@@ -144,7 +144,7 @@ class SchoolClassScheduleController extends Controller
 
         if ($academicYear->isClosed() && ! $request->isMethod('GET')) {
             throw ValidationException::withMessages([
-                'closed_at' => 'Este ano letivo está fechado. Reabra o ano letivo antes de alterar horários.',
+                'closed_at' => __('Este ano letivo está fechado. Reabra o ano letivo antes de alterar horários.'),
             ]);
         }
     }
@@ -162,12 +162,12 @@ class SchoolClassScheduleController extends Controller
         ]);
 
         if ($data['starts_at'] < '06:00' || $data['ends_at'] > '22:00') {
-            throw ValidationException::withMessages(['starts_at' => 'Os blocos devem estar entre 06:00 e 22:00.']);
+            throw ValidationException::withMessages(['starts_at' => __('Os blocos devem estar entre 06:00 e 22:00.')]);
         }
 
         if ($data['type'] === SchoolClassScheduleSlot::TYPE_CLASS) {
             if (empty($data['school_class_component_id'])) {
-                throw ValidationException::withMessages(['school_class_component_id' => 'Selecione o componente curricular da aula.']);
+                throw ValidationException::withMessages(['school_class_component_id' => __('Selecione o componente curricular da aula.')]);
             }
 
             $data['label'] = null;
@@ -179,7 +179,7 @@ class SchoolClassScheduleController extends Controller
         }
 
         if ($this->overlaps($schedule, (int) $data['weekday'], $data['starts_at'], $data['ends_at'], $slot)) {
-            throw ValidationException::withMessages(['starts_at' => 'Este bloco se sobrepõe a outro horário do mesmo dia.']);
+            throw ValidationException::withMessages(['starts_at' => __('Este bloco se sobrepõe a outro horário do mesmo dia.')]);
         }
 
         return $data;
@@ -196,7 +196,7 @@ class SchoolClassScheduleController extends Controller
 
         if ($weeklyLessons === null) {
             throw ValidationException::withMessages([
-                'school_class_component_id' => 'Defina a quantidade de aulas semanais deste componente antes de montar o horário.',
+                'school_class_component_id' => __('Defina a quantidade de aulas semanais deste componente antes de montar o horário.'),
             ]);
         }
 
@@ -208,7 +208,7 @@ class SchoolClassScheduleController extends Controller
 
         if ($currentCount + 1 > (int) $weeklyLessons) {
             throw ValidationException::withMessages([
-                'school_class_component_id' => 'Este componente já atingiu o limite de '.$weeklyLessons.' aula(s) semanal(is) na matriz.',
+                'school_class_component_id' => __('Este componente já atingiu o limite de ').$weeklyLessons.' aula(s) semanal(is) na matriz.',
             ]);
         }
     }
@@ -229,7 +229,7 @@ class SchoolClassScheduleController extends Controller
 
         if ($startsAt && $schedule->starts_at->lt($startsAt->copy()->startOfDay())) {
             throw ValidationException::withMessages([
-                'school_class_component_id' => 'Este componente começa após o início desta versão de horário.',
+                'school_class_component_id' => __('Este componente começa após o início desta versão de horário.'),
             ]);
         }
 
@@ -243,13 +243,13 @@ class SchoolClassScheduleController extends Controller
 
         if ($endsAt && $scheduleEndsAt && $scheduleEndsAt->gt($endsAt->copy()->startOfDay())) {
             throw ValidationException::withMessages([
-                'school_class_component_id' => 'Este componente termina antes do fim desta versão de horário.',
+                'school_class_component_id' => __('Este componente termina antes do fim desta versão de horário.'),
             ]);
         }
 
         if ($endsAt && ! $scheduleEndsAt) {
             throw ValidationException::withMessages([
-                'school_class_component_id' => 'Este componente termina antes do fim desta versão de horário.',
+                'school_class_component_id' => __('Este componente termina antes do fim desta versão de horário.'),
             ]);
         }
     }
@@ -275,7 +275,7 @@ class SchoolClassScheduleController extends Controller
             'request' => $request->except(['_token', '_method']),
         ];
 
-        Log::error('Falha ao processar bloco de horário da turma.', array_merge($context, ['exception' => $exception]));
+        Log::error(__('Falha ao processar bloco de horário da turma.'), array_merge($context, ['exception' => $exception]));
     }
 
     private function classMinutes(AcademicYear $academicYear, SchoolClass $class): int

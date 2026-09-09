@@ -244,7 +244,7 @@
                             <section aria-labelledby="birthdays-heading">
                                 <div class="sge-subsection-heading">
                                     <h3 id="birthdays-heading">{{ __('dashboard.week_birthdays') }}</h3>
-                                    <span>{{ $birthdayWeekStartsAt->format('d/m') }} a {{ $birthdayWeekEndsAt->format('d/m') }}</span>
+                                    <span>{{ $birthdayWeekStartsAt->format('d/m') }} {{ __('a') }} {{ $birthdayWeekEndsAt->format('d/m') }}</span>
                                 </div>
                                 <div class="sge-birthday-list" role="list" aria-label="{{ __('dashboard.birthdays_between', ['start' => $birthdayWeekStartsAt->format('d/m'), 'end' => $birthdayWeekEndsAt->format('d/m')]) }}">
                                 @forelse ($weekBirthdays as $person)
@@ -315,13 +315,13 @@
                             </div>
                             <div class="sr-only">
                                 @foreach ($roleChart['labels'] as $index => $label)
-                                    {{ $label }}: {{ $roleChart['values'][$index] ?? 0 }}.
+                                    {{ __($label) }}: {{ $roleChart['values'][$index] ?? 0 }}.
                                 @endforeach
                             </div>
                             <div class="sge-chart-list" aria-hidden="true">
                                 @foreach ($roleChart['labels'] as $index => $label)
                                     <div>
-                                        <span>{{ $label }}</span>
+                                        <span>{{ __($label) }}</span>
                                         <strong>{{ number_format($roleChart['values'][$index] ?? 0, 0, ',', '.') }}</strong>
                                     </div>
                                 @endforeach
@@ -382,7 +382,7 @@
                             <div class="sge-chart-list">
                                 @foreach ($calendarTypeChart['labels'] as $index => $label)
                                     <div>
-                                        <span>{{ $label }}</span>
+                                        <span>{{ __($label) }}</span>
                                         <strong>{{ number_format($calendarTypeChart['values'][$index] ?? 0, 0, ',', '.') }}</strong>
                                     </div>
                                 @endforeach
@@ -419,7 +419,7 @@
                             <tbody>
                                 @foreach ($studentsBySchoolChart['labels'] as $index => $label)
                                     <tr>
-                                        <td>{{ $label }}</td>
+                                        <td>{{ __($label) }}</td>
                                         <td class="text-right">{{ number_format($studentsBySchoolChart['values'][$index] ?? 0, 0, ',', '.') }}</td>
                                     </tr>
                                 @endforeach

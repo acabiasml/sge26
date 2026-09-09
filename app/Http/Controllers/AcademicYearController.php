@@ -37,7 +37,7 @@ class AcademicYearController extends Controller
         $this->generateInitialCalendar($year);
 
         return redirect()->route('schools.academic-years.index', $school)
-            ->with('status', 'Ano letivo cadastrado com sucesso.');
+            ->with('status', __('Ano letivo cadastrado com sucesso.'));
     }
 
     public function show(Request $request, AcademicYear $academicYear): View
@@ -90,7 +90,7 @@ class AcademicYearController extends Controller
         $academicYear->update($data);
 
         return redirect()->route('academic-years.show', $academicYear)
-            ->with('status', 'Ano letivo atualizado com sucesso.');
+            ->with('status', __('Ano letivo atualizado com sucesso.'));
     }
 
     public function destroy(Request $request, AcademicYear $academicYear): RedirectResponse
@@ -101,14 +101,14 @@ class AcademicYearController extends Controller
 
         if ($academicYear->periods()->exists()) {
             return redirect()->route('schools.academic-years.index', $academicYear->school_id)
-                ->with('status', 'Não é possível excluir um ano letivo que possui períodos associados.');
+                ->with('status', __('Não é possível excluir um ano letivo que possui períodos associados.'));
         }
 
         $schoolId = $academicYear->school_id;
         $academicYear->delete();
 
         return redirect()->route('schools.academic-years.index', $schoolId)
-            ->with('status', 'Ano letivo excluído com sucesso.');
+            ->with('status', __('Ano letivo excluído com sucesso.'));
     }
 
     public function approve(Request $request, AcademicYear $academicYear): RedirectResponse
@@ -125,7 +125,7 @@ class AcademicYearController extends Controller
         ]);
 
         return redirect()->route('academic-years.show', $academicYear)
-            ->with('status', 'Calendário aprovado. Alterações posteriores devem ser tratadas com cautela.');
+            ->with('status', __('Calendário aprovado. Alterações posteriores devem ser tratadas com cautela.'));
     }
 
     public function close(Request $request, AcademicYear $academicYear, AcademicYearClosureStatus $closureStatus, UnifiedStudentHistorySynchronizer $historySynchronizer): RedirectResponse
@@ -171,7 +171,7 @@ class AcademicYearController extends Controller
         ]);
 
         return redirect()->route('academic-years.show', $academicYear)
-            ->with('status', 'Ano letivo fechado. Os dados acadêmicos ficam preservados para emissão de documentos.');
+            ->with('status', __('Ano letivo fechado. Os dados acadêmicos ficam preservados para emissão de documentos.'));
     }
 
     public function reopen(Request $request, AcademicYear $academicYear): RedirectResponse
@@ -192,7 +192,7 @@ class AcademicYearController extends Controller
         ]);
 
         return redirect()->route('academic-years.show', $academicYear)
-            ->with('status', 'Ano letivo reaberto pela Administração global.');
+            ->with('status', __('Ano letivo reaberto pela Administração global.'));
     }
 
     /**
@@ -256,7 +256,7 @@ class AcademicYearController extends Controller
         }
 
         throw ValidationException::withMessages([
-            'approved_at' => 'Calendário aprovado só pode ser alterado pela Administração global.',
+            'approved_at' => __('Calendário aprovado só pode ser alterado pela Administração global.'),
         ]);
     }
 
@@ -267,7 +267,7 @@ class AcademicYearController extends Controller
         }
 
         throw ValidationException::withMessages([
-            'closed_at' => 'Este ano letivo está fechado. Reabra o ano letivo antes de fazer alterações.',
+            'closed_at' => __('Este ano letivo está fechado. Reabra o ano letivo antes de fazer alterações.'),
         ]);
     }
 
@@ -282,7 +282,7 @@ class AcademicYearController extends Controller
 
         if (blank($data['approved_at'] ?? null)) {
             throw ValidationException::withMessages([
-                'approved_at' => 'Informe a data de aprovação do calendário.',
+                'approved_at' => __('Informe a data de aprovação do calendário.'),
             ]);
         }
 
@@ -308,7 +308,7 @@ class AcademicYearController extends Controller
 
             if ($candidate->isDirty($field)) {
                 throw ValidationException::withMessages([
-                    'approved_at' => 'Calendário aprovado só pode ter dados sensíveis alterados pela Administração global. A Gestão pode ajustar apenas a data de aprovação.',
+                    'approved_at' => __('Calendário aprovado só pode ter dados sensíveis alterados pela Administração global. A Gestão pode ajustar apenas a data de aprovação.'),
                 ]);
             }
         }

@@ -17,9 +17,9 @@
 
 @section('page-actions')
     @if (auth()->user()->isAdministrator() && config('services.google_workspace.enabled'))
-        <form class="d-inline" method="POST" action="{{ route('people.google-workspace.store', $person) }}" onsubmit="return confirm('{{ $person->google_workspace_id ? 'Verificar e atualizar o vínculo desta conta com o Google Workspace?' : 'Criar uma conta real no Google Workspace para este e-mail institucional?' }}');">
+        <form class="d-inline" method="POST" action="{{ route('people.google-workspace.store', $person) }}" onsubmit="return confirm(@js($person->google_workspace_id ? __('Verificar e atualizar o vínculo desta conta com o Google Workspace?') : __('Criar uma conta real no Google Workspace para este e-mail institucional?')));">
             @csrf
-            <button class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" type="submit" aria-label="{{ $person->google_workspace_id ? 'Verificar conta no Google Workspace' : 'Criar conta no Google Workspace' }} de {{ $person->full_name }}" title="{{ $person->google_workspace_id ? 'Conta vinculada ao Google Workspace' : 'Criar conta no Google Workspace' }}">
+            <button class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" type="submit" aria-label="{{ $person->google_workspace_id ? __('Verificar conta no Google Workspace') : __('Criar conta no Google Workspace') }} {{ __('de') }} {{ $person->full_name }}" title="{{ $person->google_workspace_id ? __('Conta vinculada ao Google Workspace') : __('Criar conta no Google Workspace') }}">
                 <i class="fab fa-google" aria-hidden="true"></i>
             </button>
         </form>
@@ -101,7 +101,7 @@
                                 @if ($person->district) - {{ $person->district }} @endif
                                 <span class="d-block text-muted small">
                                     {{ collect([$person->city, $person->state])->filter()->join(' - ') }}
-                                    @if ($person->postal_code) | CEP {{ $person->postal_code }} @endif
+                                    @if ($person->postal_code) {{ __('| CEP') }} {{ $person->postal_code }} @endif
                                 </span>
                                 @if ($person->address_complement)
                                     <span class="d-block text-muted small">{{ $person->address_complement }}</span>
@@ -156,7 +156,7 @@
                                     </td>
                                     <td>{{ $enrollment->schoolClass?->name }}</td>
                                     <td>
-                                        {{ $enrollment->statusLabel() }}
+                                        {{ __($enrollment->statusLabel()) }}
                                         <span class="d-block text-muted small">
                                             {{ $enrollment->enrolled_at?->format('d/m/Y') ?? __('screens.no_date') }}
                                             @if ($enrollment->transferred_at)
@@ -367,7 +367,7 @@
                             <div class="form-group col-md-5">
                                 <label for="contact_name">{{ __('screens.name') }}</label>
                                 <input id="contact_name" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" required>
-                                @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                @error('name') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
                             </div>
 
                             <div class="form-group col-md-3">
@@ -378,18 +378,18 @@
                                         <option value="{{ $value }}" @selected(old('relationship_type') === $value)>{{ __('roles.contacts.'.$value) }}</option>
                                     @endforeach
                                 </select>
-                                @error('relationship_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                @error('relationship_type') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
                             </div>
 
                             <div class="form-group col-md-2">
                                 <label for="contact_cpf">CPF</label>
                                 <input id="contact_cpf" name="cpf" data-mask="cpf" inputmode="numeric" autocomplete="off" class="form-control @error('cpf') is-invalid @enderror" value="{{ old('cpf') }}">
-                                @error('cpf') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                @error('cpf') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
                             </div>
                             <div class="form-group col-md-2">
                                 <label for="contact_nis">NIS</label>
                                 <input id="contact_nis" name="nis" data-mask="digits" data-mask-max="11" inputmode="numeric" autocomplete="off" class="form-control @error('nis') is-invalid @enderror" value="{{ old('nis') }}">
-                                @error('nis') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                @error('nis') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
                             </div>
                         </div>
 
@@ -397,19 +397,19 @@
                             <div class="form-group col-md-4">
                                 <label for="contact_phone">{{ __('screens.phone') }}</label>
                                 <input id="contact_phone" name="phone" data-mask="phone" inputmode="tel" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone') }}">
-                                @error('phone') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                @error('phone') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
                             </div>
 
                             <div class="form-group col-md-4">
                                 <label for="contact_secondary_phone">{{ __('screens.secondary_phone') }}</label>
                                 <input id="contact_secondary_phone" name="secondary_phone" data-mask="phone" inputmode="tel" class="form-control @error('secondary_phone') is-invalid @enderror" value="{{ old('secondary_phone') }}">
-                                @error('secondary_phone') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                @error('secondary_phone') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
                             </div>
 
                             <div class="form-group col-md-4">
                                 <label for="contact_email">{{ __('screens.personal_email') }}</label>
                                 <input id="contact_email" name="email" type="email" inputmode="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email') }}">
-                                @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                @error('email') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
                             </div>
                         </div>
 
@@ -428,7 +428,7 @@
                             <div class="form-group col-md-8">
                                 <label for="contact_notes">{{ __('screens.notes') }}</label>
                                 <textarea id="contact_notes" name="notes" rows="2" class="form-control @error('notes') is-invalid @enderror">{{ old('notes') }}</textarea>
-                                @error('notes') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                @error('notes') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
                             </div>
                         </div>
 

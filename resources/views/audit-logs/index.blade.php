@@ -23,12 +23,12 @@
                     <label for="audit_timezone" class="mr-2 mb-2">{{ __('screens.view_timezone') }}</label>
                     <select id="audit_timezone" name="audit_timezone" class="form-control mr-2 mb-2 @error('audit_timezone') is-invalid @enderror">
                         @foreach ($auditTimezones as $value => $label)
-                            <option value="{{ $value }}" @selected($auditTimezone === $value)>{{ $label }} ({{ $value }})</option>
+                            <option value="{{ $value }}" @selected($auditTimezone === $value)>{{ __($label) }} ({{ $value }})</option>
                         @endforeach
                     </select>
                     <button class="btn btn-primary mb-2" type="submit">{{ __('screens.apply') }}</button>
 
-                    @error('audit_timezone') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                    @error('audit_timezone') <div class="invalid-feedback d-block">{{ __($message) }}</div> @enderror
                 </form>
             </div>
         </div>

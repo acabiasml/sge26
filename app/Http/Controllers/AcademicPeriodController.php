@@ -69,16 +69,16 @@ class AcademicPeriodController extends Controller
         $summaries = $diaryStatus->summaries($academicYear, $period);
         $behaviorMissing = $this->missingBehaviorGrades($academicYear, $period);
         if ($summaries->isEmpty()) {
-            throw ValidationException::withMessages(['period' => 'Não há diários ativos para consolidar neste período.']);
+            throw ValidationException::withMessages(['period' => __('Não há diários ativos para consolidar neste período.')]);
         }
 
         $hasUnconfirmedOrPending = $summaries->contains(fn (array $summary): bool => ! $summary['confirmation']?->confirmed || $summary['pending']['is_pending']);
         if ($hasUnconfirmedOrPending) {
-            throw ValidationException::withMessages(['period' => 'Todos os diários precisam estar confirmados e sem pendências antes da consolidação.']);
+            throw ValidationException::withMessages(['period' => __('Todos os diários precisam estar confirmados e sem pendências antes da consolidação.')]);
         }
 
         if ($behaviorMissing > 0) {
-            throw ValidationException::withMessages(['period' => 'Todos os estudantes precisam ter a nota de comportamento lançada antes da consolidação.']);
+            throw ValidationException::withMessages(['period' => __('Todos os estudantes precisam ter a nota de comportamento lançada antes da consolidação.')]);
         }
 
         AcademicPeriodDiaryConsolidation::query()->updateOrCreate([
@@ -93,7 +93,7 @@ class AcademicPeriodController extends Controller
         ]);
 
         return redirect()->route('academic-years.periods.index', $academicYear)
-            ->with('status', 'Período consolidado pela gestão.');
+            ->with('status', __('Período consolidado pela gestão.'));
     }
 
     public function reopenConsolidation(Request $request, AcademicYear $academicYear, AcademicPeriod $period): RedirectResponse
@@ -127,7 +127,7 @@ class AcademicPeriodController extends Controller
         });
 
         return redirect()->route('academic-years.periods.index', $academicYear)
-            ->with('status', 'Período reaberto. Os diários voltaram para lançamento e confirmação.');
+            ->with('status', __('Período reaberto. Os diários voltaram para lançamento e confirmação.'));
     }
 
     public function updateBehaviorGrades(Request $request, AcademicYear $academicYear, AcademicPeriod $period): RedirectResponse
@@ -138,7 +138,7 @@ class AcademicPeriodController extends Controller
 
         if ($period->diaryConsolidation()->where('consolidated', true)->exists()) {
             throw ValidationException::withMessages([
-                'behavior_scores' => 'Este período já foi consolidado. Reabra o período antes de alterar comportamento.',
+                'behavior_scores' => __('Este período já foi consolidado. Reabra o período antes de alterar comportamento.'),
             ]);
         }
 
@@ -189,7 +189,7 @@ class AcademicPeriodController extends Controller
         });
 
         return redirect()->route('academic-years.periods.index', $academicYear)
-            ->with('status', 'Comportamento do período salvo pela gestão.');
+            ->with('status', __('Comportamento do período salvo pela gestão.'));
     }
 
     public function store(Request $request, AcademicYear $academicYear): RedirectResponse
@@ -220,7 +220,7 @@ class AcademicPeriodController extends Controller
             ->exists();
 
         if ($overlaps) {
-            return back()->withErrors(['starts_at' => 'O período informado se sobrepõe a outro período deste ano letivo.'])->withInput();
+            return back()->withErrors(['starts_at' => __('O período informado se sobrepõe a outro período deste ano letivo.')])->withInput();
         }
 
         $period = $academicYear->periods()->create($data);
@@ -230,7 +230,7 @@ class AcademicPeriodController extends Controller
         $this->normalizeRecessBetweenPeriods($academicYear);
 
         return redirect()->route('academic-years.periods.index', $academicYear)
-            ->with('status', 'Período cadastrado com sucesso.');
+            ->with('status', __('Período cadastrado com sucesso.'));
     }
 
     public function destroy(Request $request, AcademicYear $academicYear, AcademicPeriod $period): RedirectResponse
@@ -253,7 +253,7 @@ class AcademicPeriodController extends Controller
         }
 
         return redirect()->route('academic-years.periods.index', $academicYear)
-            ->with('status', 'Período removido com sucesso.');
+            ->with('status', __('Período removido com sucesso.'));
     }
 
     public function update(Request $request, AcademicYear $academicYear, AcademicPeriod $period): RedirectResponse
@@ -284,7 +284,7 @@ class AcademicPeriodController extends Controller
             ->exists();
 
         if ($overlaps) {
-            return back()->withErrors(['starts_at' => 'O período informado se sobrepõe a outro período deste ano letivo.'])->withInput();
+            return back()->withErrors(['starts_at' => __('O período informado se sobrepõe a outro período deste ano letivo.')])->withInput();
         }
 
         $oldStartsAt = $period->starts_at->copy();
@@ -300,7 +300,7 @@ class AcademicPeriodController extends Controller
         });
 
         return redirect()->route('academic-years.periods.index', $academicYear)
-            ->with('status', 'Período atualizado com sucesso.');
+            ->with('status', __('Período atualizado com sucesso.'));
     }
 
     public function updateDiarySettings(Request $request, AcademicYear $academicYear, AcademicPeriod $period): RedirectResponse
@@ -318,7 +318,7 @@ class AcademicPeriodController extends Controller
         ]);
 
         return redirect()->route('academic-years.periods.index', $academicYear)
-            ->with('status', 'Configuração de lançamentos do período atualizada.');
+            ->with('status', __('Configuração de lançamentos do período atualizada.'));
     }
 
     public function updateAssessmentRules(Request $request, AcademicYear $academicYear, AcademicPeriod $period): RedirectResponse
@@ -329,7 +329,7 @@ class AcademicPeriodController extends Controller
 
         if ($period->diaryConsolidation()->where('consolidated', true)->exists()) {
             throw ValidationException::withMessages([
-                'assessment_count' => 'Este período já foi consolidado pela gestão. Reabra o período antes de alterar as regras de avaliação.',
+                'assessment_count' => __('Este período já foi consolidado pela gestão. Reabra o período antes de alterar as regras de avaliação.'),
             ]);
         }
 
@@ -348,7 +348,7 @@ class AcademicPeriodController extends Controller
         $weights = array_values(array_slice($data['weights'] ?? [], 0, $assessmentCount));
         $names = array_values(array_slice($data['assessment_names'] ?? [], 0, $assessmentCount));
         if (count($weights) !== $assessmentCount) {
-            throw ValidationException::withMessages(['weights' => 'Informe um peso para cada avaliação.']);
+            throw ValidationException::withMessages(['weights' => __('Informe um peso para cada avaliação.')]);
         }
         $names = collect(range(1, $assessmentCount))
             ->map(fn (int $position): string => filled($names[$position - 1] ?? null) ? $names[$position - 1] : 'Avaliação '.$position)
@@ -361,7 +361,7 @@ class AcademicPeriodController extends Controller
             $data['recovery_replaced_position'] = 1;
         }
         if ($data['recovery_mode'] === AcademicPeriod::RECOVERY_REPLACE_ASSESSMENT && $data['recovery_replaced_position'] > $assessmentCount) {
-            throw ValidationException::withMessages(['recovery_replaced_position' => 'Selecione uma avaliação existente neste período.']);
+            throw ValidationException::withMessages(['recovery_replaced_position' => __('Selecione uma avaliação existente neste período.')]);
         }
 
         $existingRules = $period->assessmentRules()
@@ -381,7 +381,7 @@ class AcademicPeriodController extends Controller
 
         if (! $configurationChanged) {
             return redirect()->route('academic-years.periods.index', $academicYear)
-                ->with('status', 'A configuração de avaliação já estava atualizada. Nenhum lançamento foi alterado.');
+                ->with('status', __('A configuração de avaliação já estava atualizada. Nenhum lançamento foi alterado.'));
         }
 
         if ($storedGradeCount > 0 && ! $request->boolean('confirm_delete_assessment_data')) {
@@ -429,8 +429,8 @@ class AcademicPeriodController extends Controller
 
         return redirect()->route('academic-years.periods.index', $academicYear)
             ->with('status', $storedGradeCount > 0
-                ? 'Forma de avaliação alterada. Os lançamentos anteriores foram apagados conforme a confirmação da gestão.'
-                : 'Avaliações do período configuradas para a escola.');
+                ? __('Forma de avaliação alterada. Os lançamentos anteriores foram apagados conforme a confirmação da gestão.')
+                : __('Avaliações do período configuradas para a escola.'));
     }
 
     /**
@@ -624,7 +624,7 @@ class AcademicPeriodController extends Controller
         }
 
         throw ValidationException::withMessages([
-            'approved_at' => 'Calendário aprovado só pode ser alterado pela Administração global.',
+            'approved_at' => __('Calendário aprovado só pode ser alterado pela Administração global.'),
         ]);
     }
 
@@ -635,7 +635,7 @@ class AcademicPeriodController extends Controller
         }
 
         throw ValidationException::withMessages([
-            'closed_at' => 'Este ano letivo está fechado. Reabra o ano letivo antes de alterar períodos, consolidações ou comportamento.',
+            'closed_at' => __('Este ano letivo está fechado. Reabra o ano letivo antes de alterar períodos, consolidações ou comportamento.'),
         ]);
     }
 
