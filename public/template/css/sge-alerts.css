@@ -1,0 +1,34 @@
+/* Shared notification panel; inherits the selected interface palette. */
+.topbar .sge-alert-dropdown {
+    width: 25rem; max-width: calc(100vw - 1.5rem); max-height: none;
+    padding: 0; margin-top: .65rem; overflow: hidden;
+    border: 1px solid var(--sge-border); border-radius: 1rem;
+    background: var(--aurora-panel, #fff); color: var(--sge-ink);
+    box-shadow: 0 12px 36px rgba(20, 30, 40, .16);
+}
+.sge-alert-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.15rem 1.2rem; border-bottom: 1px solid var(--sge-border); }
+.sge-alert-panel-heading h2 { font-size: 1.05rem; margin: 0 0 .3rem; color: var(--sge-ink); }
+.sge-alert-panel-heading p { margin: 0; font-size: .8rem; line-height: 1.4; color: var(--sge-muted); }
+.sge-alert-panel-count { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; min-width: 1.8rem; height: 1.8rem; padding: 0 .4rem; border-radius: 2rem; background: var(--aurora-hover, var(--sge-surface)); color: var(--sge-brown); font-size: .8rem; font-weight: 700; }
+.sge-alert-panel-list { max-height: min(28rem, calc(100dvh - 12rem)); overflow-y: auto; overscroll-behavior: contain; padding: .4rem; }
+.topbar .sge-alert-dropdown .sge-alert-preview {
+    display: flex; align-items: flex-start; gap: .75rem; width: 100%;
+    border: 0; border-radius: .65rem; padding: .9rem .75rem;
+    background: transparent; color: var(--sge-ink); white-space: normal; text-align: left;
+}
+.topbar .sge-alert-dropdown .sge-alert-preview:is(:hover,:focus) { background: var(--aurora-hover, var(--sge-surface)); color: var(--sge-ink); }
+.topbar .sge-alert-dropdown .sge-alert-preview:focus-visible { outline: 2px solid var(--sge-blue) !important; outline-offset: -2px; }
+.sge-alert-preview-icon { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; flex-shrink: 0; border-radius: .65rem; background: var(--aurora-raised, var(--sge-surface)); color: var(--sge-brown); font-size: .85rem; }
+.sge-alert-preview-copy { display: flex; flex-direction: column; gap: .25rem; min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.sge-alert-preview-copy strong { font-size: .9rem; line-height: 1.4; font-weight: 600; }
+.sge-alert-preview-context { color: var(--sge-muted); font-size: .72rem; line-height: 1.4; }
+.sge-alert-preview-message { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; color: var(--sge-muted); font-size: .8rem; line-height: 1.5; }
+.sge-alert-preview-arrow { margin-top: .55rem; color: var(--sge-muted); font-size: .6rem; }
+.sge-alert-highlight { align-self: flex-start; color: var(--sge-orange); font-size: .7rem; font-weight: 600; }
+.sge-alert-panel-empty { padding: 2rem 1rem; text-align: center; color: var(--sge-muted); }
+.sge-alert-panel-empty > i { font-size: 1.4rem; margin-bottom: .8rem; }
+.sge-alert-panel-empty p { margin: 0; font-size: .85rem; }
+@media (max-width: 575.98px) {
+    .topbar .sge-alert-dropdown { width: calc(100vw - 1.5rem); right: .75rem; left: auto; }
+}
+.sge-alert-preview-context, .sge-alert-preview-message { font-weight: 400; }

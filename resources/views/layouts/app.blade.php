@@ -19,6 +19,7 @@
     <link href="{{ asset('template/css/sge-govbr.css') }}?v={{ filemtime(public_path('template/css/sge-govbr.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-aurora.css') }}?v={{ filemtime(public_path('template/css/sge-aurora.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-beathema.css') }}?v={{ filemtime(public_path('template/css/sge-beathema.css')) }}" rel="stylesheet">
+    <link href="{{ asset('template/css/sge-alerts.css') }}?v={{ filemtime(public_path('template/css/sge-alerts.css')) }}" rel="stylesheet">
     <style>
         .sge-theme-switcher { display: flex; align-items: center; }
         .topbar .sge-theme-switcher .nav-link {
@@ -319,47 +320,39 @@
                                     <span class="badge badge-danger badge-counter">{{ $topbarAlertCount }}</span>
                                 @endif
                             </a>
-                            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in sge-alert-dropdown"
-                                aria-labelledby="alertsDropdown">
-                                <h2 class="dropdown-header">{{ __('navigation.alerts') }}</h2>
-
-                                @foreach ($topbarAnnouncements as $announcement)
-                                    <button type="button" class="dropdown-item d-flex align-items-start" data-toggle="modal" data-target="#announcement-alert-{{ $announcement->id }}" aria-haspopup="dialog">
-                                        <div class="mr-3">
-                                            <div class="icon-circle bg-primary">
-                                                <i class="fas fa-bullhorn text-white" aria-hidden="true"></i>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div class="small text-gray-600">{{ $announcement->school?->name ?? __('navigation.global') }}</div>
-                                            <span class="font-weight-bold">{{ $announcement->title }}</span>
-                                            @if ($announcement->highlight)
-                                                <span class="badge badge-warning ml-1">{{ __('navigation.highlight') }}</span>
-                                            @endif
-                                        </div>
-                                    </button>
-                                @endforeach
-
-                                @foreach ($topbarDiaryAlerts as $alert)
-                                    <button type="button" class="dropdown-item d-flex align-items-start" data-toggle="modal" data-target="#diary-alert-{{ $alert->id }}" aria-haspopup="dialog">
-                                        <div class="mr-3">
-                                            <div class="icon-circle bg-warning">
-                                                <i class="fas fa-book text-white" aria-hidden="true"></i>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div class="small text-gray-600">
-                                                {{ $alert->schoolClass?->name }} · {{ $alert->period?->name }}
-                                            </div>
-                                            <span class="font-weight-bold">{{ __('navigation.management_alert', ['component' => $alert->component?->name]) }}</span>
-                                            <div class="small text-gray-700">{{ \Illuminate\Support\Str::limit($alert->message, 90) }}</div>
-                                        </div>
-                                    </button>
-                                @endforeach
-
-                                @if ($topbarAnnouncements->isEmpty() && $topbarDiaryAlerts->isEmpty())
-                                    <div class="dropdown-item text-center small text-gray-600">{{ __('navigation.no_active_announcement') }}</div>
-                                @endif
+                            <div class="dropdown-menu dropdown-menu-right sge-alert-dropdown" aria-labelledby="alertsDropdown">
+                                <div class="sge-alert-panel-heading">
+                                    <div><h2>{{ __('navigation.alerts') }}</h2><p>{{ __('alerts.preview_hint') }}</p></div>
+                                    <span class="sge-alert-panel-count">{{ $topbarAlertCount }}</span>
+                                </div>
+                                <div class="sge-alert-panel-list">
+                                    @foreach ($topbarAnnouncements as $announcement)
+                                        <button type="button" class="dropdown-item sge-alert-preview" data-toggle="modal" data-target="#announcement-alert-{{ $announcement->id }}" aria-haspopup="dialog">
+                                            <span class="sge-alert-preview-icon"><i class="fas fa-bullhorn" aria-hidden="true"></i></span>
+                                            <span class="sge-alert-preview-copy">
+                                                <span class="sge-alert-preview-context">{{ $announcement->school?->name ?? __('navigation.global') }}</span>
+                                                <strong>{{ $announcement->title }}</strong>
+                                                <span class="sge-alert-preview-message">{{ \Illuminate\Support\Str::limit($announcement->body, 160) }}</span>
+                                                @if ($announcement->highlight)<span class="sge-alert-highlight">{{ __('navigation.highlight') }}</span>@endif
+                                            </span>
+                                            <i class="fas fa-chevron-right sge-alert-preview-arrow" aria-hidden="true"></i>
+                                        </button>
+                                    @endforeach
+                                    @foreach ($topbarDiaryAlerts as $alert)
+                                        <button type="button" class="dropdown-item sge-alert-preview" data-toggle="modal" data-target="#diary-alert-{{ $alert->id }}" aria-haspopup="dialog">
+                                            <span class="sge-alert-preview-icon"><i class="fas fa-book-open" aria-hidden="true"></i></span>
+                                            <span class="sge-alert-preview-copy">
+                                                <span class="sge-alert-preview-context">{{ $alert->schoolClass?->name }} · {{ $alert->period?->name }}</span>
+                                                <strong>{{ __('navigation.management_alert', ['component' => $alert->component?->name]) }}</strong>
+                                                <span class="sge-alert-preview-message">{{ \Illuminate\Support\Str::limit($alert->message, 160) }}</span>
+                                            </span>
+                                            <i class="fas fa-chevron-right sge-alert-preview-arrow" aria-hidden="true"></i>
+                                        </button>
+                                    @endforeach
+                                    @if ($topbarAlertCount === 0)
+                                        <div class="sge-alert-panel-empty"><i class="far fa-bell" aria-hidden="true"></i><p>{{ __('navigation.no_active_announcement') }}</p></div>
+                                    @endif
+                                </div>
                             </div>
                         </li>
 
