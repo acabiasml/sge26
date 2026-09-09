@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ app()->getLocale() === 'it' ? 'it' : 'pt-BR' }}">
+<html data-theme="{{ auth()->user()->theme === 'govbr' ? 'govbr' : 'beaba' }}" lang="{{ app()->getLocale() === 'it' ? 'it' : 'pt-BR' }}">
 
 <head>
     <meta charset="utf-8">
@@ -16,6 +16,7 @@
     <link href="{{ asset('vendor/rappasoft/livewire-tables/css/laravel-livewire-tables.min.css') }}" rel="stylesheet">
     <link href="{{ asset('vendor/rappasoft/livewire-tables/css/laravel-livewire-tables-thirdparty.min.css') }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-brand.css') }}?v={{ filemtime(public_path('template/css/sge-brand.css')) }}" rel="stylesheet">
+    <link href="{{ asset('template/css/sge-govbr.css') }}?v={{ filemtime(public_path('template/css/sge-govbr.css')) }}" rel="stylesheet">
     <style>
         .sge-language-switcher { align-items: center; display: flex; gap: .15rem; padding: 0 .35rem; }
         .sge-language-switcher form { display: flex; margin: 0; }
@@ -350,6 +351,17 @@
                                     <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-500" aria-hidden="true"></i>
                                     {{ __('navigation.my_profile') }}
                                 </a>
+                                <div class="dropdown-divider"></div>
+                                <form method="POST" action="{{ route('theme.update') }}" class="px-3 py-2">
+                                    @csrf
+                                    @method('PATCH')
+                                    <label for="interface-theme" class="font-weight-bold">{{ __('theme.label') }}</label>
+                                    <select id="interface-theme" name="theme" class="custom-select mb-2">
+                                        <option value="beaba" @selected(auth()->user()->theme !== 'govbr')>Beabá</option>
+                                        <option value="govbr" @selected(auth()->user()->theme === 'govbr')>gov.br</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-primary btn-sm btn-block">{{ __('theme.apply') }}</button>
+                                </form>
                                 <div class="dropdown-divider"></div>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf

@@ -265,6 +265,8 @@ Recados podem ter público e vigência. Relatórios administrativos aceitam busc
 ## Acessibilidade e interface
 
 - interface em português do Brasil;
+- tema Beabá ou gov.br selecionável no menu da conta em **Tema da interface**, com preferência salva por usuário;
+- tema gov.br inspirado no Design System de Governo, com fonte Rawline local, navegação clara e foco visível;
 - fonte local Atkinson Hyperlegible Next, sem dependência de Google Fonts;
 - foco visível e link para pular ao conteúdo;
 - navegação agrupada por contexto;

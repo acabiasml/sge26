@@ -1,0 +1,99 @@
+/* Theme inspired by https://www.gov.br/ds. Scoped to the authenticated interface. */
+@font-face {
+    font-family: Rawline;
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/rawline/rawline-400.woff2') format('woff2');
+}
+@font-face {
+    font-family: Rawline;
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('../fonts/rawline/rawline-600.woff2') format('woff2');
+}
+@font-face {
+    font-family: Rawline;
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('../fonts/rawline/rawline-700.woff2') format('woff2');
+}
+html[data-theme="govbr"] {
+    --sge-brown: #1351b4;
+    --sge-brown-dark: #071d41;
+    --sge-brown-soft: #2670e8;
+    --sge-green: #168821;
+    --sge-orange: #a26700;
+    --sge-orange-dark: #b50909;
+    --sge-cream: #fff5c2;
+    --sge-blue: #1351b4;
+    --sge-blue-dark: #0c326f;
+    --sge-paper: #fff;
+    --sge-surface: #f8f8f8;
+    --sge-surface-soft: #f0f0f0;
+    --sge-ink: #333;
+    --sge-text: #333;
+    --sge-muted: #555;
+    --sge-border: #ccc;
+    --sge-font-sans: Rawline, "Atkinson Hyperlegible Next", Arial, sans-serif;
+    --sge-font-heading: var(--sge-font-sans);
+    --sge-shadow-sm: 0 2px 4px rgba(0, 0, 0, .1);
+    --sge-shadow-md: 0 3px 8px rgba(0, 0, 0, .15);
+}
+html[data-theme="govbr"] body { color: var(--sge-text); }
+html[data-theme="govbr"] #content-wrapper { background: var(--sge-surface); }
+html[data-theme="govbr"] .bg-gradient-primary { background: #fff; }
+html[data-theme="govbr"] .sidebar { border-right: 1px solid var(--sge-border); }
+html[data-theme="govbr"] .sidebar-dark .sidebar-brand,
+html[data-theme="govbr"] .sidebar-dark .sidebar-heading,
+html[data-theme="govbr"] .sidebar-dark .nav-item .nav-link,
+html[data-theme="govbr"] .sidebar-dark .nav-item .nav-link i,
+html[data-theme="govbr"] .sidebar-dark .nav-item .nav-link::after {
+    color: #1351b4;
+}
+html[data-theme="govbr"] .sidebar-dark .sidebar-heading { color: #555; }
+html[data-theme="govbr"] .sidebar-dark hr.sidebar-divider { border-color: #ccc; }
+html[data-theme="govbr"] .sidebar-dark .nav-item.active .nav-link,
+html[data-theme="govbr"] .sidebar-dark .nav-item .nav-link:hover,
+html[data-theme="govbr"] .sidebar .collapse-inner .collapse-item:hover,
+html[data-theme="govbr"] .sidebar .collapse-inner .collapse-item.active {
+    background: #dbe8fb;
+    color: #071d41;
+    box-shadow: inset 3px 0 0 #1351b4;
+}
+html[data-theme="govbr"] .sidebar-dark #sidebarToggle { background: #dbe8fb; }
+html[data-theme="govbr"] .sidebar-dark #sidebarToggle::after { color: #1351b4; }
+html[data-theme="govbr"] .topbar { background: #fff; box-shadow: var(--sge-shadow-sm); }
+html[data-theme="govbr"] .card { border-radius: .25rem; border-color: #ccc; }
+html[data-theme="govbr"] .card-header,
+html[data-theme="govbr"] .table thead th { background: #f0f0f0; color: #333; }
+html[data-theme="govbr"] .btn { border-radius: 100em; font-weight: 600; }
+html[data-theme="govbr"] .btn-group > .btn { border-radius: .25rem; }
+html[data-theme="govbr"] .form-control,
+html[data-theme="govbr"] .custom-select { border-color: #888; border-radius: .25rem; color: #333; }
+html[data-theme="govbr"] .form-control:focus,
+html[data-theme="govbr"] .custom-select:focus { border-color: #1351b4; box-shadow: none; }
+html[data-theme="govbr"] :focus-visible {
+    outline: 3px solid #c2850c !important;
+    outline-offset: 2px;
+}
+html[data-theme="govbr"] .page-item.active .page-link { background: #1351b4; border-color: #1351b4; }
+html[data-theme="govbr"] .sge-language-button.is-active { background: #dbe8fb; border-color: #1351b4; }
+html[data-theme="govbr"] .sidebar-dark .nav-item .nav-link:focus { background: #dbe8fb; color: #071d41; }
+html[data-theme="govbr"] .sge-section-nav-item { background: #fff; }
+html[data-theme="govbr"] .sge-section-nav-item:hover { border-color: #1351b4; }
+html[data-theme="govbr"] .sge-metric-card { border-radius: .25rem; }
+html[data-theme="govbr"] .table { color: #333; }
+html[data-theme="govbr"] .sidebar .nav-item :is(.collapse, .collapsing) .collapse-inner {
+    background: #f8f8f8 !important;
+    border-color: #ccc;
+    box-shadow: none;
+}
+html[data-theme="govbr"] .sidebar .nav-item :is(.collapse, .collapsing) .collapse-inner .collapse-item,
+html[data-theme="govbr"] .sidebar .collapse-inner .collapse-item i { color: #1351b4; }
+html[data-theme="govbr"] .sidebar .nav-item :is(.collapse, .collapsing) .collapse-inner .collapse-item:is(.active, :hover, :focus) {
+    background: #dbe8fb;
+    color: #071d41;
+}
