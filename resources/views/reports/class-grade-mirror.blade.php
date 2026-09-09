@@ -27,6 +27,7 @@
         .component-heading { height: 170px; padding: 0 !important; }
         .vertical-label { position: relative; height: 170px; }
         .vertical-label span { position: absolute; left: 50%; top: 50%; margin-left: -74px; margin-top: -18px; width: 148px; height: 36px; line-height: 12px; text-align: center; transform: rotate(-90deg); word-wrap: break-word; }
+        .behavior-heading .vertical-label { height: 0; }
         .behavior-heading { width: 4%; background: #f5e7ce !important; }
         .mirror-notes { color: #4f4945; font-size: 11px; margin-top: 5px; }
         .mirror-notes strong { color: #222; }
