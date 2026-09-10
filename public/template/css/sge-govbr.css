@@ -97,3 +97,85 @@ html[data-theme="govbr"] .sidebar .nav-item :is(.collapse, .collapsing) .collaps
     background: #dbe8fb;
     color: #071d41;
 }
+
+/* GOVBR-DS v3 semantic palette and surfaces.
+ * Reference: https://govbr-ds.gitlab.io/tools/govbr-ds-wiki/referencias/tokens/
+ * Keep these overrides scoped: the other themes retain their own identity. */
+html[data-theme="govbr"] {
+    color-scheme: light;
+    --gov-primary: #1351b4;
+    --gov-navy: #071d41;
+    --gov-hover: #dbe8fb;
+    --gov-success: #168821;
+    --gov-success-soft: #e3f5e1;
+    --gov-warning: #ffcd07;
+    --gov-warning-ink: #6f5200;
+    --gov-warning-soft: #fff5c2;
+    --gov-danger: #b50909;
+    --gov-danger-soft: #fff3f2;
+    --gov-info-soft: #dbe8fb;
+    --sge-cream: var(--gov-hover);
+    --sge-orange: var(--gov-warning-ink);
+}
+html[data-theme="govbr"] :is(.sge-dashboard-hero, .sge-dashboard-band, .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero, .sge-student-map-hero) {
+    background: #f0f0f0;
+    border: 0;
+    border-left: 4px solid var(--gov-primary);
+    border-radius: 0;
+    box-shadow: none;
+}
+html[data-theme="govbr"] :is(.sge-dashboard-hero, .sge-dashboard-band, .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero, .sge-student-map-hero) h2,
+html[data-theme="govbr"] .sge-page-header h1 { color: var(--gov-navy); }
+html[data-theme="govbr"] :is(.sge-dashboard-date, .sge-section-nav-item, .sge-metric-card, .sge-document-step, .sge-document-options, .sge-document-submit, .sge-target-result, .sge-choice-tile) {
+    background: #fff;
+    border-color: #ccc;
+    border-radius: .25rem;
+}
+html[data-theme="govbr"] :is(.sge-section-nav-item, .sge-target-result, .sge-choice-tile):hover,
+html[data-theme="govbr"] .sge-choice-tile:has(input:checked),
+html[data-theme="govbr"] .sge-selected-target { background: var(--gov-hover); border-color: var(--gov-primary); }
+html[data-theme="govbr"] :is(.sge-metric-icon, .sge-target-result-icon, .sge-selected-target-icon) {
+    background: var(--gov-info-soft); color: var(--gov-primary); border-radius: 50%;
+}
+html[data-theme="govbr"] .sge-metric-green .sge-metric-icon { background: var(--gov-success-soft); color: var(--gov-success); }
+html[data-theme="govbr"] :is(.sge-metric-gold, .sge-metric-orange) .sge-metric-icon { background: var(--gov-warning-soft); color: var(--gov-warning-ink); }
+html[data-theme="govbr"] :is(.sge-metric-gold, .sge-metric-orange)::before { background: var(--gov-warning); }
+html[data-theme="govbr"] .btn { box-shadow: none; }
+html[data-theme="govbr"] :is(.btn-secondary, .btn-outline-secondary) { background: #fff; color: var(--gov-primary); border-color: var(--gov-primary); }
+html[data-theme="govbr"] :is(.btn-secondary, .btn-outline-secondary, .btn-outline-primary):hover { background: var(--gov-hover) !important; color: var(--gov-primary) !important; }
+html[data-theme="govbr"] :is(.btn-success, .badge-success, .bg-success) { background-color: var(--gov-success) !important; border-color: var(--gov-success); color: #fff; }
+html[data-theme="govbr"] .btn-success:hover { background-color: #0b5d1e !important; border-color: #0b5d1e; }
+html[data-theme="govbr"] :is(.btn-danger, .badge-danger, .bg-danger) { background-color: var(--gov-danger) !important; border-color: var(--gov-danger); color: #fff; }
+html[data-theme="govbr"] .btn-danger:hover { background-color: #8b0a03 !important; border-color: #8b0a03; }
+html[data-theme="govbr"] :is(.btn-info, .badge-info, .bg-info) { background-color: var(--gov-primary) !important; border-color: var(--gov-primary); color: #fff; }
+html[data-theme="govbr"] .btn-info:hover { background-color: var(--gov-navy) !important; border-color: var(--gov-navy); }
+html[data-theme="govbr"] :is(.btn-warning, .badge-warning, .bg-warning) { background-color: var(--gov-warning) !important; border-color: var(--gov-warning); color: #333 !important; }
+html[data-theme="govbr"] .btn-warning:hover { background-color: #e5b900 !important; border-color: #e5b900; }
+html[data-theme="govbr"] .text-danger { color: var(--gov-danger) !important; }
+html[data-theme="govbr"] .border-left-danger { border-left-color: var(--gov-danger) !important; }
+html[data-theme="govbr"] .alert { border: 0; border-left: 4px solid; border-radius: 0; color: #333; }
+html[data-theme="govbr"] .alert-success { background: var(--gov-success-soft); border-color: var(--gov-success); }
+html[data-theme="govbr"] .alert-info { background: var(--gov-info-soft); border-color: var(--gov-primary); }
+html[data-theme="govbr"] .alert-warning { background: var(--gov-warning-soft); border-color: var(--gov-warning); }
+html[data-theme="govbr"] .alert-danger { background: var(--gov-danger-soft); border-color: var(--gov-danger); }
+html[data-theme="govbr"] .alert a { color: var(--gov-primary); text-decoration: underline; }
+html[data-theme="govbr"] .table thead th { background: var(--gov-hover); color: var(--gov-navy); border-color: #ccc; }
+html[data-theme="govbr"] .table-hover tbody tr:hover { background: #eff6fb; }
+html[data-theme="govbr"] .table-striped tbody tr:nth-of-type(odd) { background: #f8f8f8; }
+html[data-theme="govbr"] :is(.modal-content, .dropdown-menu) { border-color: #ccc; border-radius: .25rem; background: #fff; }
+html[data-theme="govbr"] :is(.modal-header, .modal-footer, .card-header) { background: #f8f8f8; border-color: #ccc; }
+html[data-theme="govbr"] .dropdown-item:is(:hover, :focus, .active) { background: var(--gov-hover); color: var(--gov-navy); }
+html[data-theme="govbr"] :is(input[type="checkbox"], input[type="radio"]) { accent-color: var(--gov-primary); }
+html[data-theme="govbr"] .custom-control-input:checked ~ .custom-control-label::before { background-color: var(--gov-primary); border-color: var(--gov-primary); }
+html[data-theme="govbr"] .form-control.is-invalid { border-color: var(--gov-danger); }
+html[data-theme="govbr"] .invalid-feedback { color: var(--gov-danger); }
+html[data-theme="govbr"] .form-control:disabled { background: #eee; color: #555; }
+html[data-theme="govbr"] .progress { background: #ededed; }
+html[data-theme="govbr"] .progress-bar { background-color: var(--gov-primary); }
+html[data-theme="govbr"] .nav-tabs .nav-link.active { color: var(--gov-primary); border-bottom: 3px solid var(--gov-primary); background: #fff; }
+html[data-theme="govbr"] .page-link { color: var(--gov-primary); border-color: #ccc; }
+html[data-theme="govbr"] .page-item.active .page-link { color: #fff; }
+html[data-theme="govbr"] .sge-page-header h1 { color: var(--gov-navy) !important; }
+html[data-theme="govbr"] :is(.sge-page-kicker, .sge-eyebrow) { color: var(--gov-primary); }
+html[data-theme="govbr"] .sge-user-initial { background: var(--gov-primary); color: #fff; }
+html[data-theme="govbr"] .topbar.navbar-light .navbar-nav .nav-item .nav-link i { color: var(--gov-primary); }
