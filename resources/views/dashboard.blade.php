@@ -434,13 +434,17 @@
 
         <script src="{{ asset('template/vendor/chart.js/Chart.min.js') }}"></script>
         <script>
-            const chartColors = ['#6B3D2E', '#44693D', '#DB6B30', '#4A86A0', '#F1C64E', '#7F56D9', '#2A9D8F'];
+            const themeStyle = getComputedStyle(document.documentElement);
+            const themeColor = (name) => themeStyle.getPropertyValue(name).trim();
+            const chartColors = ['--sge-brown', '--sge-green', '--sge-orange', '--sge-blue', '--sge-brown-soft', '--sge-orange-dark'].map(themeColor);
+            const chartSurface = themeColor('--sge-paper');
+            const chartGrid = themeColor('--sge-border');
             const roleValues = @json($roleChart['values']);
             const calendarTypeValues = @json($calendarTypeChart['values']);
             const studentsBySchoolValues = @json($studentsBySchoolChart['values']);
 
-            Chart.defaults.global.defaultFontFamily = "'Atkinson Hyperlegible Next', 'Atkinson Hyperlegible', sans-serif";
-            Chart.defaults.global.defaultFontColor = '#51443d';
+            Chart.defaults.global.defaultFontFamily = getComputedStyle(document.body).fontFamily;
+            Chart.defaults.global.defaultFontColor = themeColor('--sge-text');
 
             if (document.getElementById('rolesChart') && roleValues.some((value) => value > 0)) {
                 new Chart(document.getElementById('rolesChart'), {
@@ -450,7 +454,7 @@
                         datasets: [{
                             data: roleValues,
                             backgroundColor: chartColors,
-                            borderColor: '#fff',
+                            borderColor: chartSurface,
                             borderWidth: 3,
                         }],
                     },
@@ -475,7 +479,7 @@
                         datasets: [{
                             data: calendarTypeValues,
                             backgroundColor: chartColors,
-                            borderColor: '#fff',
+                            borderColor: chartSurface,
                             borderWidth: 3,
                         }],
                     },
@@ -495,8 +499,8 @@
                         datasets: [{
                             label: @json(__('dashboard.students')),
                             data: studentsBySchoolValues,
-                            backgroundColor: '#44693D',
-                            borderColor: '#355330',
+                            backgroundColor: themeColor('--sge-green'),
+                            borderColor: themeColor('--sge-green'),
                             borderWidth: 1,
                         }],
                     },
@@ -509,7 +513,7 @@
                                     beginAtZero: true,
                                     precision: 0,
                                 },
-                                gridLines: { color: 'rgba(107, 61, 46, .08)' },
+                                gridLines: { color: chartGrid },
                             }],
                             yAxes: [{
                                 gridLines: { display: false },

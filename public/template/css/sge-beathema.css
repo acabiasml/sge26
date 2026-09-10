@@ -129,3 +129,9 @@ html[data-theme="beaba"] :focus-visible { outline: 3px solid #3f7180 !important;
 html[data-theme="beaba"] #wrapper #content-wrapper { background: var(--sge-surface); }
 html[data-theme="beaba"] :is(.sge-calendar-day,.sge-calendar-date,.sge-calendar-code) { color: var(--sge-ink); }
 html[data-theme="beaba"] .topbar .sge-theme-switcher .dropdown-header { color: var(--sge-muted); }
+/* An active tab keeps its dark surface even while hovered or focused. */
+html[data-theme="beaba"] .sge-academic-tabs .sge-section-nav-item.is-active,
+html[data-theme="beaba"] .sge-academic-tabs .sge-section-nav-item.is-active:is(:hover, :focus, :active) {
+    background: #614632; border-color: #614632; color: #fff;
+}
+html[data-theme="beaba"] .sge-academic-tabs .sge-section-nav-item.is-active :is(i, span, strong, small) { color: #fff; }
