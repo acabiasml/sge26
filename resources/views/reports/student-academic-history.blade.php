@@ -18,6 +18,15 @@
         .history-table th, .history-table td, .studies-table th, .studies-table td { border: .55px solid #111; padding: 1px 2px; vertical-align: middle; }
         .history-table th, .studies-table th { background: #f1ede9; font-size: 11px; text-transform: uppercase; }
         .history-table td, .studies-table td { font-size: 11px; }
+        .basic-history-matrix th, .basic-history-matrix td { font-size: 11px; padding: 2px 2px; line-height: 1.12; }
+        .basic-history-matrix th { text-transform: none; }
+        .basic-history-matrix .area-label { font-size: 11px; }
+        .basic-history-matrix .score-cell { padding: 2px 0; white-space: nowrap; letter-spacing: -.2px; }
+        .vertical-heading { height: 48px; position: relative; }
+        .vertical-heading span { position: absolute; width: 72px; left: 50%; top: 50%; margin-left: -36px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; }
+        .vertical-result { height: 110px; position: relative; }
+        .vertical-result strong { position: absolute; width: 100px; left: 50%; top: 50%; margin-left: -50px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; }
+        .basic-history-matrix .global-year { background: #faf8f6; }
         .center { text-align: center; }
         .muted { color: #666; }
         .section-title { font-size: 11px; font-weight: 600; margin: 4px 0 2px; text-transform: uppercase; page-break-after: avoid; }
@@ -38,7 +47,7 @@
         .legend-table td { background: #faf8f6; }
         .signatures { border-collapse: collapse; margin-top: 6px; page-break-inside: avoid; width: 100%; }
         .signatures td { border: 0; padding-top: 54px; text-align: center; width: 50%; }
-        .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 280px; padding-top: 6px; }
+        .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 220px; padding-top: 6px; }
         .signature-name { display: block; font-weight: 600; }
         .signature-role { display: block; margin-top: 2px; }
         .document-footer { position: fixed; bottom: -20px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 5px; text-align: center; font-size: 11px; color: #333; }
@@ -70,92 +79,7 @@
 @if($history->education_stage === 'tecnico')
     @include('reports.partials.technical-history-matrix', ['history' => $history])
 @else
-@forelse($history->components->groupBy(fn ($component) => $component->formation ?: '-') as $formation => $formationComponents)
-    <div class="formation-title">
-        {{ $formation }}
-        @if($formation === 'Formação Geral Básica')
-            <span class="formation-title-reference">{{ $basicFormationReference }}</span>
-        @endif
-    </div>
-    @if($formationComponents->pluck('module_label')->filter()->isNotEmpty())
-        <div class="muted" style="margin:2px 0 3px;">A conclusão de cada período avaliativo assegura sua certificação intermediária; a conclusão de todos os períodos e demais requisitos do curso assegura o diploma técnico.</div>
-    @endif
-    @foreach($formationComponents->sortBy(fn ($component) => $component->module_label ?: '')->groupBy(fn ($component) => $component->module_label ?: '') as $moduleLabel => $moduleComponents)
-    @if($moduleLabel)<div class="module-title">{{ $moduleLabel }}</div>@endif
-    <table class="history-table">
-        <thead>
-            <tr><th rowspan="2" style="width: 22%;">Área</th><th rowspan="2" style="width: 28%;">Componente curricular</th>@foreach($history->years as $year)<th colspan="3" class="center" style="width: {{ 50 / max(1, $history->years->count()) }}%;">{{ $year->label }}</th>@endforeach</tr>
-            <tr>@foreach($history->years as $year)<th class="center">N</th><th class="center">CH</th><th class="center">Freq.</th>@endforeach</tr>
-        </thead>
-        @foreach($moduleComponents->groupBy(fn ($component) => $component->knowledge_area ?: '-') as $area => $areaComponents)
-        <tbody class="area-group">
-            @foreach($areaComponents as $component)
-            <tr>
-                @if($loop->first)<td rowspan="{{ $areaComponents->count() }}">{{ $area }}</td>@endif
-                <td>{{ $component->name }}</td>
-                @foreach($history->years as $year)
-                    @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
-                    <td class="center score-cell">{{ $record?->score_label ?: '-' }}</td>
-                    <td class="center score-cell">{{ $record?->workload_hours !== null ? number_format((float) $record->workload_hours, 0, ',', '.').'h' : '-' }}</td>
-                    <td class="center score-cell">{{ $record?->frequency_percentage !== null ? number_format((float) $record->frequency_percentage, 1, ',', '.').'%' : '-' }}</td>
-                @endforeach
-            </tr>
-            @endforeach
-        </tbody>
-        @endforeach
-        <tfoot>
-            <tr>
-                <td colspan="2"><strong>Subtotal de carga horária — {{ $moduleLabel ?: $formation }}</strong></td>
-                @foreach($history->years as $year)
-                    @php($formationWorkload = $moduleComponents->sum(fn ($component) => (float) ($component->records->firstWhere('student_academic_history_year_id', $year->id)?->workload_hours ?? 0)))
-                    <td class="center">-</td>
-                    <td class="center"><strong>{{ $year->transcript_mode === 'no_transcription' ? '-' : number_format($formationWorkload, 0, ',', '.').'h' }}</strong></td>
-                    <td class="center">-</td>
-                @endforeach
-            </tr>
-        </tfoot>
-    </table>
-    @endforeach
-@empty
-    <table class="history-table"><tr><td colspan="{{ 2 + (3 * $history->years->count()) }}" class="center">Histórico cadastrado sem transcrição de componentes curriculares.</td></tr></table>
-@endforelse
-
-<table class="history-table">
-    <colgroup>
-        <col style="width: 22%;">
-        <col style="width: 28%;">
-        @foreach($history->years as $year)
-            <col style="width: {{ (50 / 3) / max(1, $history->years->count()) }}%;">
-            <col style="width: {{ (50 / 3) / max(1, $history->years->count()) }}%;">
-            <col style="width: {{ (50 / 3) / max(1, $history->years->count()) }}%;">
-        @endforeach
-    </colgroup>
-    <tr>
-        <td class="general-total-label" style="width: 22%;"><strong>Carga horária total geral</strong></td>
-        <td class="general-total-label-space" style="width: 28%;"></td>
-        @foreach($history->years as $year)
-            @php($generalWorkload = $history->components->sum(fn ($component) => (float) ($component->records->firstWhere('student_academic_history_year_id', $year->id)?->workload_hours ?? 0)))
-            <td class="center">-</td>
-            <td class="center"><strong>{{ $year->transcript_mode === 'no_transcription' ? '-' : number_format($generalWorkload, 0, ',', '.').'h' }}</strong></td>
-            <td class="center">-</td>
-        @endforeach
-    </tr>
-</table>
-
-@php($basicFormationComponents = $history->components->where('formation', 'Formação Geral Básica'))
-@php($itineraryComponents = $history->components->where('formation', 'Itinerário Formativo'))
-@php($basicFormationHours = $basicFormationComponents->sum(fn ($component) => (float) $component->records->sum('workload_hours')))
-@php($itineraryHours = $itineraryComponents->sum(fn ($component) => (float) $component->records->sum('workload_hours')))
-@if($basicFormationComponents->isNotEmpty() && $itineraryComponents->isNotEmpty())
-    <table class="history-table" style="margin-top:3px;">
-        <tr>
-            <td><strong>Total de Formação Geral Básica</strong></td>
-            <td class="center"><strong>{{ number_format($basicFormationHours, 0, ',', '.').'h' }}</strong></td>
-            <td><strong>Total de Itinerário Formativo</strong></td>
-            <td class="center"><strong>{{ number_format($itineraryHours, 0, ',', '.').'h' }}</strong></td>
-        </tr>
-    </table>
-@endif
+@include('reports.partials.basic-history-matrix', ['history' => $history])
 @endif
 
 @php($technicalRegulation = $history->components->pluck('regulatory_reference')->filter()->unique()->join(' '))
@@ -214,7 +138,7 @@
 <table class="legend-table">
     <tr>
         <th>Legenda</th>
-        <td>N (nota ou conceito) · CH (carga horária) · RF (resultado final) · AP (aproveitamento/progressão global conforme documento de origem).</td>
+        <td>N (nota ou conceito) · CH (carga horária) · F% (frequência em percentual) · RF (resultado final) · AP (aproveitamento/progressão global conforme documento de origem).</td>
     </tr>
 </table>
 

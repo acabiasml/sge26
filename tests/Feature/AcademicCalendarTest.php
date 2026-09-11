@@ -30,6 +30,30 @@ class AcademicCalendarTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_weekly_workload_uses_the_fraction_of_evaluative_periods(): void
+    {
+        $year = $this->academicYear(['minimum_school_days' => 200]);
+        $periods = collect(range(1, 4))->map(fn ($position) => $year->periods()->create([
+            'name' => "Período {$position}", 'position' => $position,
+            'starts_at' => '2026-02-01', 'ends_at' => '2026-11-30',
+        ]));
+        $course = new AcademicCourse(['class_hour_minutes' => 50]);
+        $course->setRelation('academicYear', $year->load('periods'));
+        $course->setRelation('startsPeriod', null)->setRelation('endsPeriod', null);
+        $component = new \App\Models\CurriculumComponent(['weekly_lessons' => 2]);
+        $component->setRelation('startsPeriod', $periods[0])->setRelation('endsPeriod', $periods[1]);
+        $this->assertSame(33.33, $component->calculatedWorkloadHours($course));
+        $component->setRelation('startsPeriod', $periods[2])->setRelation('endsPeriod', null);
+        $component->weekly_lessons = 1;
+        $this->assertSame(16.67, $component->calculatedWorkloadHours($course));
+        $component->setRelation('startsPeriod', null);
+        $this->assertSame(33.33, $component->calculatedWorkloadHours($course));
+        $year->minimum_school_days = 220;
+        $this->assertSame(36.67, $component->calculatedWorkloadHours($course));
+        $component->workload_hours = 60;
+        $this->assertSame(60.0, $component->calculatedWorkloadHours($course));
+    }
+
     public function test_school_day_count_is_not_compared_with_a_fixed_200_day_warning(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);

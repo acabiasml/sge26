@@ -111,6 +111,7 @@
                             </tr>
                         </thead>
                         <tbody>
+                            @php($firstHistoryRow = true)
                             @forelse($history->components->groupBy(fn ($component) => $component->formation ?: '-') as $formation => $formationComponents)
                                 @php($formationFirst = true)
                                 @foreach($formationComponents->sortBy(fn ($component) => collect([$component->module_label, $component->knowledge_area, $component->position])->filter(fn ($value) => $value !== null)->join('|'))->groupBy(fn ($component) => $component->knowledge_area ?: '-') as $area => $areaComponents)
@@ -122,9 +123,14 @@
                                         @if($areaFirst)<td rowspan="{{ $areaComponents->count() }}" class="align-middle">{{ $area }}</td>@php($areaFirst = false)@endif
                                         <td><strong>{{ $component->name }}</strong></td>
                                         @foreach($history->years as $year)
+                                            @if($year->transcript_mode !== 'detailed')
+                                                @if($firstHistoryRow)<td rowspan="{{ $history->components->count() }}" class="text-center align-middle" data-global-year="{{ $year->id }}"><strong>{{ $year->final_result ?: ($transcriptModeLabels[$year->transcript_mode] ?? '-') }}</strong>@if($year->transcript_mode === 'summary')<span class="d-block small text-muted">{{ __('CH') }} {{ $year->workload_hours !== null ? number_format((float) $year->workload_hours, 2, ',', '.') : '-' }}</span><span class="d-block small text-muted">{{ $year->attendance_label }}</span>@endif</td>@endif
+                                            @else
                                             @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
                                             <td class="text-center">@if($record)<strong>{{ $record->score_label ?: '-' }}</strong><span class="d-block small text-muted">{{ __('CH') }} {{ $record->workload_hours !== null ? number_format((float) $record->workload_hours, 2, ',', '.') : '-' }}</span>@if($record->frequency_label)<span class="d-block small text-muted">{{ __('Freq.') }} {{ $record->frequency_label }}</span>@endif @if($record->absences !== null)<span class="d-block small text-muted">{{ __('Faltas') }} {{ $record->absences }}</span>@endif @else - @endif</td>
+                                            @endif
                                         @endforeach
+                                        @php($firstHistoryRow = false)
                                     </tr>
                                     @endforeach
                                 @endforeach

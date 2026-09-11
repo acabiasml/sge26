@@ -93,7 +93,21 @@ class CurriculumComponent extends Model
             return 0.0;
         }
 
-        return round(((int) $this->weekly_lessons * (int) $course->class_hour_minutes * 40) / 60, 2);
+        $course->loadMissing('academicYear.periods', 'startsPeriod', 'endsPeriod');
+        $year = $course->academicYear;
+        $weeks = ($year?->minimum_school_days ?: 200) / 5;
+        $periods = $year?->periods;
+
+        if ($periods?->isNotEmpty()) {
+            $activePeriods = $periods->filter(fn (AcademicPeriod $period): bool =>
+                $this->isActiveInPeriod($period)
+                && (! $course->startsPeriod || $period->position >= $course->startsPeriod->position)
+                && (! $course->endsPeriod || $period->position <= $course->endsPeriod->position)
+            )->count();
+            $weeks *= $activePeriods / $periods->count();
+        }
+
+        return round(((int) $this->weekly_lessons * (int) $course->class_hour_minutes * $weeks) / 60, 2);
     }
 
     public function formattedCalculatedWorkloadHours(?AcademicCourse $course = null): string

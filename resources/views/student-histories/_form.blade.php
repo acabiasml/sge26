@@ -450,6 +450,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         refreshYearLabels();
+        refreshTranscriptModes();
     }
 
     function refreshYearLabels() {
@@ -463,6 +464,38 @@ document.addEventListener('DOMContentLoaded', function () {
             if (tableHeader) tableHeader.textContent = label;
         });
     }
+
+    function refreshTranscriptModes() {
+        if (!yearWrapper || !table) return;
+        const rows = Array.from(table.querySelectorAll('[data-history-component]'));
+        table.querySelectorAll('[data-global-editor]').forEach(panel => panel.remove());
+        yearWrapper.querySelectorAll('[data-history-year]').forEach(function (card, yearIndex) {
+            const mode = card.querySelector('[name$="[transcript_mode]"]')?.value || 'detailed';
+            rows.forEach(function (row, rowIndex) {
+                const cell = row.querySelectorAll('[data-history-record-cell]')[yearIndex];
+                if (!cell) return;
+                cell.hidden = mode !== 'detailed' && rowIndex > 0;
+                cell.style.display = cell.hidden ? 'none' : '';
+                cell.rowSpan = mode !== 'detailed' && rowIndex === 0 ? rows.length : 1;
+                cell.querySelectorAll('.sge-history-record-grid, details').forEach(grid => { grid.hidden = mode !== 'detailed'; grid.style.display = grid.hidden ? 'none' : ''; });
+                if (mode === 'detailed' || rowIndex !== 0) return;
+                const panel = document.createElement('div');
+                panel.dataset.globalEditor = '1';
+                panel.className = 'text-center p-3';
+                const title = document.createElement('strong');
+                title.textContent = card.querySelector('[name$="[final_result]"]')?.value || (mode === 'summary' ? @js(__('Global')) : @js(__('Sem transcrição')));
+                panel.appendChild(title);
+                const hint = document.createElement('p');
+                hint.className = 'small text-muted mt-2';
+                hint.textContent = @js(__('Edite o resultado, a carga horária e a frequência nos dados deste ano. As notas por componente são preservadas ao alternar o tipo.'));
+                panel.appendChild(hint);
+                cell.appendChild(panel);
+            });
+        });
+    }
+
+    refreshTranscriptModes();
+    yearWrapper?.addEventListener('change', refreshTranscriptModes);
 
     function bindRemove(scope) {
         scope.querySelectorAll('[data-remove-history-row]').forEach(function (button) {
