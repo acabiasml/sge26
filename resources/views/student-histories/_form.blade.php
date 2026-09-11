@@ -2,7 +2,7 @@
     $curriculumOnly = $curriculumOnly ?? false;
     $manualOnly = $manualOnly ?? false;
     $history->loadMissing(['years.records', 'components.records.year']);
-    $editableYears = $manualOnly ? $history->years->where('source', 'manual')->values() : $history->years->values();
+    $editableYears = $manualOnly ? $history->years->whereIn('source', ['manual', 'external'])->values() : $history->years->values();
     $catalogStage = $history->education_stage ?: 'fundamental';
     $bnccAreas = collect(config("curriculum.stages.{$catalogStage}.formations.formacao_geral_basica.areas", []));
     $bnccComponentsByArea = $bnccAreas->mapWithKeys(fn ($area) => [$area['name'] => $area['components'] ?? []]);
@@ -300,7 +300,7 @@
             <div class="card-body">
                 <div class="sge-history-table-hint">
                     <span><strong>{{ __('Nota/conceito') }}</strong> {{ __('é informada por componente.') }}</span>
-                    <span><strong>{{ __('Carga horária e resultado final') }}</strong> {{ __('são informados uma única vez no cartão do ano letivo.') }}</span>
+                    <span><strong>{{ __('Carga horária e resultado final') }}</strong> {{ __('são informados no cartão do ano; transcrições por componente ficam nos dados complementares.') }}</span>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-bordered table-sm sge-history-edit-table" id="history-components">
@@ -318,12 +318,13 @@
                         <tbody>
                             @foreach($componentsInput as $componentIndex => $component)
                                 <tr data-history-component>
-                                    @php($selectedFormation = ($component['formation'] ?? '') === 'Formação Geral Básica' ? 'Formação Geral Básica' : $flexibleFormation)
+                                    @php($selectedFormation = ($component['formation'] ?? '') ?: $flexibleFormation)
                                     @php($selectedArea = $component['knowledge_area'] ?? '')
                                     @php($selectedComponent = $component['name'] ?? '')
                                     @php($catalogComponents = collect($bnccComponentsByArea[$selectedArea] ?? []))
                                     <td>
                                         <select name="components[{{ $componentIndex }}][formation]" class="form-control form-control-sm" data-history-formation required>
+                                            @if(! in_array($selectedFormation, $formationOptions, true))<option value="{{ $selectedFormation }}" selected>{{ $selectedFormation }}</option>@endif
                                             @foreach($formationOptions as $formation)<option value="{{ $formation }}" @selected($selectedFormation === $formation)>{{ __($formation) }}</option>@endforeach
                                         </select>
                                     </td>
@@ -347,6 +348,12 @@
                                         <td data-history-record-cell>
                                             <div class="sge-history-record-grid">
                                                 <label><span>{{ __('Nota/conceito') }}</span><input name="components[{{ $componentIndex }}][records][{{ $yearIndex }}][score_label]" class="form-control form-control-sm" value="{{ $record['score_label'] ?? '' }}"></label>
+                                                <details>
+                                                    <summary>{{ __('Dados complementares do registro') }}</summary>
+                                                    @foreach(['score_numeric' => 'Nota numérica', 'workload_hours' => 'Carga horária', 'frequency_label' => 'Frequência', 'frequency_percentage' => 'Frequência (%)', 'absences' => 'Faltas', 'result' => 'Resultado'] as $field => $label)
+                                                        <label><span>{{ __($label) }}</span><input name="components[{{ $componentIndex }}][records][{{ $yearIndex }}][{{ $field }}]" class="form-control form-control-sm" value="{{ $record[$field] ?? '' }}"></label>
+                                                    @endforeach
+                                                </details>
                                             </div>
                                         </td>
                                     @endforeach
@@ -396,6 +403,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 option.selected = component === current;
                 select.appendChild(option);
             });
+            if (current && !Array.from(select.options).some(option => option.value === current)) {
+                select.add(new Option(current, current, true, true));
+            }
             select.disabled = false;
             input.type = 'hidden';
             input.value = select.value;

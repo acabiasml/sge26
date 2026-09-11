@@ -55,7 +55,7 @@
                         <dt>{{ __('Carga horária') }}</dt>
                         <dd>{{ $component->formattedCalculatedWorkloadHours($course) }} {{ __('horas') }}</dd>
                         <dt>{{ __('Forma de definição') }}</dt>
-                        <dd>{{ $component->weekly_lessons !== null ? $component->weekly_lessons.__(' aulas por semana de ').$course->class_hour_minutes.__(' minutos') : number_format((float) $component->workload_hours, 2, ',', '.').__(' horas totais informadas') }}</dd>
+                        <dd>{{ $component->workload_hours === null ? $component->weekly_lessons.__(' aulas por semana de ').$course->class_hour_minutes.__(' minutos') : number_format((float) $component->workload_hours, 2, ',', '.').__(' horas totais informadas') }}</dd>
                         <dt>{{ __('Observações') }}</dt>
                         <dd>{{ $component->notes ?: __('Nenhuma observação cadastrada') }}</dd>
                     </dl>
@@ -79,7 +79,10 @@
                                     <input id="component_name" name="name" class="form-control" value="{{ old('name', $component->name) }}" required>
                                 </div>
                                 <div class="col-md-6 form-group" data-workload-choice>
-                                    @php($workloadMode = old('workload_mode', $component->weekly_lessons !== null ? 'weekly_lessons' : 'workload_hours'))
+                                    @if($component->weekly_lessons !== null && $component->workload_hours !== null)
+                                        <div class="alert alert-warning">{{ __('Este cadastro antigo contém aulas semanais e carga total. O cálculo usa :hours horas totais. Para calcular pelas :lessons aulas semanais, selecione Aulas por semana e salve; a carga total antiga será removida.', ['hours' => $component->workload_hours, 'lessons' => $component->weekly_lessons]) }}</div>
+                                    @endif
+                                    @php($workloadMode = old('workload_mode', $component->workload_hours !== null ? 'workload_hours' : 'weekly_lessons'))
                                     <label class="d-block">{{ __('Como informar a carga horária?') }}</label>
                                     <div class="custom-control custom-radio custom-control-inline">
                                         <input class="custom-control-input" type="radio" id="component_workload_mode_weekly" name="workload_mode" value="weekly_lessons" @checked($workloadMode === 'weekly_lessons') required>

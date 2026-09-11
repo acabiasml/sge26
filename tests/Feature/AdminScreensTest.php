@@ -895,6 +895,43 @@ class AdminScreensTest extends TestCase
             ->assertSee('Dia compartilhado');
     }
 
+    public function test_imported_external_history_loads_and_preserves_transcribed_data_on_edit(): void
+    {
+        $school = School::query()->create($this->officialSchoolData(['name' => 'Escola A']));
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $school->id, 'historico-importado@ctjj.org')->person;
+        $history = StudentAcademicHistory::query()->create([
+            'person_id' => $student->id, 'school_id' => $school->id,
+            'created_by_person_id' => $admin->person_id, 'updated_by_person_id' => $admin->person_id,
+            'title' => 'Histórico importado', 'stage' => 'Ensino Fundamental', 'education_stage' => 'fundamental',
+            'is_unified' => true, 'legal_basis' => 'Documento de origem', 'issued_place' => 'Poxoréu-MT', 'issued_date' => '2026-01-01', 'active' => true,
+        ]);
+        $yearData = ['source' => 'external', 'label' => '1º Ano', 'year' => '2014', 'stage' => 'Ensino Fundamental',
+            'modality' => 'Regular', 'grade_phase' => '1º Ano', 'school_name' => 'Escola Externa',
+            'city' => 'Poxoréu', 'state' => 'MT', 'country' => 'Brasil', 'transcript_mode' => 'summary',
+            'final_result' => 'Aprovado', 'workload_hours' => 817, 'school_days' => 200,
+            'source_document' => 'historico.pdf', 'notes' => 'Transcrito do PDF'];
+        $year = $history->years()->create($yearData + ['position' => 1]);
+        $componentData = ['formation' => 'Formação Geral Básica', 'knowledge_area' => 'Síntese Curricular', 'name' => 'Síntese Global do Documento de Origem'];
+        $component = $history->components()->create($componentData + ['position' => 1]);
+        $recordData = ['score_label' => 'AP', 'workload_hours' => 817, 'result' => 'Aprovado', 'frequency_percentage' => 95, 'absences' => 2];
+        $component->records()->create($recordData + ['student_academic_history_year_id' => $year->id]);
+        $this->actingAs($admin)->get(route('people.histories.edit', [$student, $history]))
+            ->assertOk()->assertSee('value="2014"', false)->assertSee('value="AP"', false)
+            ->assertSee('Síntese Global do Documento de Origem')->assertSee('value="817.00"', false);
+        $recordData['score_label'] = 'Aprovado por conceito';
+        $this->actingAs($admin)->put(route('people.histories.update', [$student, $history]), [
+            'school_id' => $school->id, 'title' => $history->title, 'stage' => $history->stage,
+            'legal_basis' => $history->legal_basis, 'issued_place' => $history->issued_place,
+            'issued_date' => '2026-01-01', 'active' => 1,
+            'years' => [$yearData], 'components' => [$componentData + ['records' => [$recordData]]],
+        ])->assertSessionHasNoErrors()->assertRedirect(route('people.histories.show', [$student, $history]));
+        $this->assertDatabaseHas('student_academic_history_years', ['student_academic_history_id' => $history->id, 'source' => 'external', 'year' => '2014', 'source_document' => 'historico.pdf']);
+        $this->assertDatabaseHas('student_academic_history_records', $recordData);
+        $this->actingAs($admin)->get(route('people.histories.edit', [$student, $history]))
+            ->assertOk()->assertSee('value="Aprovado por conceito"', false)->assertSee('value="817.00"', false);
+    }
+
     public function test_technical_enrollment_can_create_an_independent_unified_history(): void
     {
         $school = School::query()->create([

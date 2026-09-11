@@ -799,6 +799,24 @@ class AcademicCalendarTest extends TestCase
         ]);
     }
 
+    public function test_legacy_component_workload_editor_matches_calculation_and_can_switch_to_weekly(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear();
+        $course = $year->courses()->create(['name' => '1º Ano', 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
+            'class_hour_minutes' => 50, 'active' => true]);
+        $component = $course->components()->create(['name' => 'Arte', 'weekly_lessons' => 1, 'workload_hours' => 33, 'active' => true]);
+        $this->assertEquals(33, $component->calculatedWorkloadHours($course));
+        $response = $this->actingAs($admin)->get(route('academic-years.courses.components.show', [$year, $course, $component]));
+        $response->assertOk()->assertSee('O cálculo usa 33 horas totais');
+        $this->assertMatchesRegularExpression('/id="component_workload_mode_total"[^>]*checked/', $response->getContent());
+        $this->actingAs($admin)->put(route('academic-years.courses.components.update', [$year, $course, $component]), [
+            'name' => 'Arte', 'workload_mode' => 'weekly_lessons', 'weekly_lessons' => 1, 'active' => 1,
+        ])->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertNull($component->fresh()->workload_hours);
+        $this->assertEquals(33.33, $component->fresh()->calculatedWorkloadHours($course));
+    }
+
     public function test_course_workload_is_recalculated_when_component_is_removed(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);

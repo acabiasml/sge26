@@ -17,6 +17,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -195,36 +196,32 @@ class StudentAcademicHistoryController extends Controller
         $this->authorizeHistory($request, $person, $history);
 
         $data = $this->validatedData($request);
-        $history->update($data['history'] + [
-            'updated_by_person_id' => $request->user()->person_id,
-        ]);
-        if ($history->is_unified) {
-            $data['years'] = collect($data['years'])->map(function (array $year): array {
-                $year['source'] = 'manual';
-                $year['student_enrollment_id'] = null;
+        DB::transaction(function () use ($history, $data, $request, $person, $synchronizer): void {
+            $history->update($data['history'] + [
+                'updated_by_person_id' => $request->user()->person_id,
+            ]);
+            if ($history->is_unified) {
+                $data['years'] = collect($data['years'])->map(function (array $year): array {
+                    $year['source'] = ($year['source'] ?? null) === 'external' ? 'external' : 'manual';
+                    $year['student_enrollment_id'] = null;
 
-                return $year;
-            })->all();
-            $data['components'] = collect($data['components'])->map(function (array $component): array {
-                $component['records'] = collect($component['records'] ?? [])->map(fn (array $record): array => [
-                    'score_label' => $record['score_label'] ?? null,
-                    'score_numeric' => $record['score_numeric'] ?? null,
-                ])->all();
+                    return $year;
+                })->all();
 
-                return $component;
-            })->all();
-        }
+            }
 
-        $this->syncRows($history, $data);
+            $this->syncRows($history, $data);
 
-        if ($history->is_unified && $history->education_stage) {
-            $synchronizer->synchronize(
-                $person,
-                $history->school_id,
-                $request->user()->person_id,
-                $history->education_stage,
-            );
-        }
+            if ($history->is_unified && $history->education_stage) {
+                $synchronizer->synchronize(
+                    $person,
+                    $history->school_id,
+                    $request->user()->person_id,
+                    $history->education_stage,
+                );
+            }
+
+        });
 
         return redirect()->route('people.histories.show', [$person, $history])
             ->with('status', __('Histórico escolar atualizado com sucesso.'));
@@ -482,7 +479,7 @@ class StudentAcademicHistoryController extends Controller
             'is_unified' => ['nullable', 'boolean'],
             'years' => ['required', 'array', 'min:1'],
             'years.*.label' => ['required', 'string', 'max:255'],
-            'years.*.source' => ['nullable', Rule::in(['manual', 'system'])],
+            'years.*.source' => ['nullable', Rule::in(['manual', 'external', 'system'])],
             'years.*.student_enrollment_id' => ['nullable', 'integer', Rule::exists('student_enrollments', 'id')],
             'years.*.year' => ['required', 'string', 'max:20'],
             'years.*.stage' => ['required', 'string', 'max:255'],
@@ -509,7 +506,7 @@ class StudentAcademicHistoryController extends Controller
             'components.*.records.*.score_label' => ['nullable', 'string', 'max:255'],
             'components.*.records.*.score_numeric' => ['nullable', 'numeric', 'min:0', 'max:10'],
             // A carga horária pertence ao ano/série, não ao lançamento de cada componente.
-            // Históricos unificados permitem registrar somente a nota/conceito externo.
+            // Preserve complementary data transcribed from external documents.
             'components.*.records.*.workload_hours' => ['nullable', 'numeric', 'min:0'],
             'components.*.records.*.frequency_label' => ['nullable', 'string', 'max:255'],
             'components.*.records.*.frequency_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -537,6 +534,17 @@ class StudentAcademicHistoryController extends Controller
             };
 
             foreach ($data['components'] ?? [] as $index => $component) {
+                // Imported transcripts can use historical labels outside the current BNCC catalog.
+                $existingImported = $routeHistory->components()
+                    ->where('name', $component['name'])
+                    ->where('formation', $component['formation'] ?? null)
+                    ->where('knowledge_area', $component['knowledge_area'] ?? null)
+                    ->whereHas('records.year', fn ($query) => $query->whereIn('source', ['manual', 'external']))
+                    ->exists();
+                if ($existingImported) {
+                    continue;
+                }
+
                 $validFormations = $stage === AcademicCourse::STAGE_TECHNICAL
                     ? [$flexibleFormation]
                     : ['Formação Geral Básica', $flexibleFormation];

@@ -2347,5 +2347,10 @@
     "Reemitir": "Riemetti",
     "Reeditar": "Modifica di nuovo",
     "Reeditar cria uma nova emissão. Reemitir abre o documento já emitido para visualizar ou imprimir.": "Modificare crea una nuova emissione. Riemettere apre il documento già emesso per visualizzarlo o stamparlo.",
-    "Página :page de :pages · :total documentos": "Pagina :page di :pages · :total documenti"
+    "Página :page de :pages · :total documentos": "Pagina :page di :pages · :total documenti",
+    "Dados complementares do registro": "Dati aggiuntivi della registrazione",
+    "Frequência (%)": "Frequenza (%)",
+    "Total de horas cadastrado": "Ore totali registrate",
+    "Este cadastro antigo contém aulas semanais e carga total. O cálculo usa :hours horas totais. Para calcular pelas :lessons aulas semanais, selecione Aulas por semana e salve; a carga total antiga será removida.": "Questa registrazione precedente contiene lezioni settimanali e ore totali. Il calcolo usa :hours ore totali. Per calcolare in base alle :lessons lezioni settimanali, seleziona Lezioni a settimana e salva; il vecchio totale sarà rimosso.",
+    "são informados no cartão do ano; transcrições por componente ficam nos dados complementares.": "sono indicati nella scheda dell’anno; le trascrizioni per materia sono nei dati aggiuntivi."
 }

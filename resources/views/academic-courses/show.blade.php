@@ -185,7 +185,9 @@
                                     <strong>{{ $component->name }}</strong>
                                     <div class="small text-gray-600">
                                         {{ $component->formattedCalculatedWorkloadHours($course) }} {{ __('horas') }}
-                                        @if ($component->weekly_lessons !== null)
+                                        @if ($component->workload_hours !== null)
+                                            · {{ __('Total de horas cadastrado') }}
+                                        @elseif ($component->weekly_lessons !== null)
                                             · {{ $component->weekly_lessons }} {{ __('aulas semanais') }}
                                         @endif
                                         · {{ $component->startsPeriod?->name ?? __('início da turma') }} {{ __('até') }} {{ $component->endsPeriod?->name ?? __('fim da turma') }}
