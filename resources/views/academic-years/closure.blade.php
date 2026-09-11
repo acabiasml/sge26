@@ -7,7 +7,7 @@
 @section('page-title', __('Conferência de fechamento'))
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.final-results.pdf', $academicYear) }}" aria-label="{{ __('Emitir resultados finais do ano em PDF') }}" title="{{ __('Resultados finais do ano em PDF') }}">
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.final-results.pdf', $academicYear) }}" aria-label="{{ __('Emitir resultados finais do ano em PDF') }}" title="{{ __('Resultados finais do ano em PDF') }}">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
     <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('academic-years.show', $academicYear) }}" aria-label="{{ __('Voltar ao ano letivo') }}" title="{{ __('Voltar ao ano letivo') }}">
@@ -151,7 +151,7 @@
             <section class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h2 class="h6 m-0 font-weight-bold text-primary">{{ __('Turmas e resultados finais') }}</h2>
-                    <a class="btn btn-sm btn-outline-primary" href="{{ route('academic-years.final-results.pdf', $academicYear) }}">
+                    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" href="{{ route('academic-years.final-results.pdf', $academicYear) }}">
                         <i class="fas fa-file-pdf mr-1" aria-hidden="true"></i> PDF
                     </a>
                 </div>
@@ -178,7 +178,7 @@
                             </div>
                             <div class="mt-2">
                                 <a class="btn btn-sm btn-outline-primary" href="{{ route('classes.enrollments.index', $class) }}">{{ __('Ver matrículas') }}</a>
-                                <a class="btn btn-sm btn-outline-secondary" href="{{ route('classes.final-results.pdf', $class) }}">{{ __('Ata da turma') }}</a>
+                                <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" href="{{ route('classes.final-results.pdf', $class) }}">{{ __('Ata da turma') }}</a>
                             </div>
                         </div>
                     @empty

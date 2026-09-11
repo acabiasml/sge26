@@ -14,19 +14,19 @@
 @section('page-title', $academicYear->name)
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.calendar-pdf', $academicYear) }}" aria-label="{{ __('Emitir calendário oficial em PDF') }}" title="{{ __('Calendário oficial em PDF') }}">
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.calendar-pdf', $academicYear) }}" aria-label="{{ __('Emitir calendário oficial em PDF') }}" title="{{ __('Calendário oficial em PDF') }}">
         <i class="fas fa-calendar-alt" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.matrices-pdf', $academicYear) }}" aria-label="{{ __('Emitir matrizes curriculares em PDF') }}" title="{{ __('Matrizes curriculares em PDF') }}">
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.matrices-pdf', $academicYear) }}" aria-label="{{ __('Emitir matrizes curriculares em PDF') }}" title="{{ __('Matrizes curriculares em PDF') }}">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.schedules-pdf', $academicYear) }}" aria-label="{{ __('Emitir horários das turmas em PDF') }}" title="{{ __('Horários das turmas em PDF') }}">
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.schedules-pdf', $academicYear) }}" aria-label="{{ __('Emitir horários das turmas em PDF') }}" title="{{ __('Horários das turmas em PDF') }}">
         <i class="fas fa-clock" aria-hidden="true"></i>
     </a>
     <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.closure', $academicYear) }}" aria-label="{{ __('Conferir fechamento do ano letivo') }}" title="{{ __('Conferência de fechamento') }}">
         <i class="fas fa-clipboard-check" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.final-results.pdf', $academicYear) }}" aria-label="{{ __('Emitir resultados finais do ano em PDF') }}" title="{{ __('Resultados finais do ano em PDF') }}">
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.final-results.pdf', $academicYear) }}" aria-label="{{ __('Emitir resultados finais do ano em PDF') }}" title="{{ __('Resultados finais do ano em PDF') }}">
         <i class="fas fa-file-signature" aria-hidden="true"></i>
     </a>
     @if ($canChangeCalendar)

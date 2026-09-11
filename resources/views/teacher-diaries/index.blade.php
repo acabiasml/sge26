@@ -7,7 +7,7 @@
     <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('teacher-schedules.index') }}" aria-label="{{ __('Abrir meu horário docente') }}" title="{{ __('Meu horário') }}">
         <i class="fas fa-calendar-alt" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('teacher-schedules.pdf') }}" aria-label="{{ __('Imprimir meu horário docente') }}" title="{{ __('Imprimir meu horário') }}">
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('teacher-schedules.pdf') }}" aria-label="{{ __('Imprimir meu horário docente') }}" title="{{ __('Imprimir meu horário') }}">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
 @endsection
@@ -89,10 +89,10 @@
                         <a class="btn btn-primary btn-sm sge-icon-action" href="{{ route('teacher-diaries.show', [$diary['class'], $diary['component']]) }}" aria-label="{{ __('Abrir diário de') }} {{ $diary['component']->name }} {{ __('da turma') }} {{ $diary['class']->name }}" title="{{ __('Abrir diário') }}">
                             <i class="fas fa-book-open" aria-hidden="true"></i>
                         </a>
-                        <a class="btn btn-outline-primary btn-sm sge-icon-action" href="{{ route('academic-years.classes.schedules.pdf', [$diary['academicYear'], $diary['class']]) }}" aria-label="{{ __('Imprimir horário da turma') }} {{ $diary['class']->name }}" title="{{ __('Imprimir horário da turma') }}">
+                        <a target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm sge-icon-action" href="{{ route('academic-years.classes.schedules.pdf', [$diary['academicYear'], $diary['class']]) }}" aria-label="{{ __('Imprimir horário da turma') }} {{ $diary['class']->name }}" title="{{ __('Imprimir horário da turma') }}">
                             <i class="fas fa-calendar-week" aria-hidden="true"></i>
                         </a>
-                        <a class="btn btn-outline-primary btn-sm sge-icon-action" href="{{ route('teacher-diaries.attendance-sheet.pdf', [$diary['class'], $diary['component']]) }}" aria-label="{{ __('Imprimir lista de chamada mensal de') }} {{ $diary['component']->name }}" title="{{ __('Imprimir lista de chamada') }}">
+                        <a target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm sge-icon-action" href="{{ route('teacher-diaries.attendance-sheet.pdf', [$diary['class'], $diary['component']]) }}" aria-label="{{ __('Imprimir lista de chamada mensal de') }} {{ $diary['component']->name }}" title="{{ __('Imprimir lista de chamada') }}">
                             <i class="fas fa-clipboard-list" aria-hidden="true"></i>
                         </a>
                     </div>

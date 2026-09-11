@@ -7,7 +7,7 @@
     <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('schools.academic-years.index', $school) }}" aria-label="{{ __('screens.manage_school_years', ['name' => $school->name]) }}" title="{{ __('screens.school_years') }}">
         <i class="fas fa-calendar-alt" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('schools.pdf', $school) }}" aria-label="{{ __('screens.issue_pdf_of', ['name' => $school->name]) }}" title="{{ __('screens.pdf_record') }}">
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('schools.pdf', $school) }}" aria-label="{{ __('screens.issue_pdf_of', ['name' => $school->name]) }}" title="{{ __('screens.pdf_record') }}">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
     <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('schools.concepts.index', $school) }}" aria-label="{{ __('screens.manage_criteria_of', ['name' => $school->name]) }}" title="{{ __('screens.criteria') }}">

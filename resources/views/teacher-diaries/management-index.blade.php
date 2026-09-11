@@ -8,7 +8,7 @@
         <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.periods.index', $academicYear) }}" aria-label="{{ __('Gerenciar períodos avaliativos') }}" title="{{ __('Gerenciar períodos avaliativos') }}">
             <i class="fas fa-sliders-h" aria-hidden="true"></i>
         </a>
-        <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.schedules-pdf', $academicYear) }}" aria-label="{{ __('Imprimir horários das turmas') }}" title="{{ __('Imprimir horários das turmas') }}">
+        <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.schedules-pdf', $academicYear) }}" aria-label="{{ __('Imprimir horários das turmas') }}" title="{{ __('Imprimir horários das turmas') }}">
             <i class="fas fa-calendar-week" aria-hidden="true"></i>
         </a>
     @endif
@@ -208,10 +208,10 @@
                                                     <a class="btn btn-primary btn-sm sge-icon-action" href="{{ route('teacher-diaries.show', [$assignment->schoolClass, $assignment->component, 'period' => $period->id]) }}" aria-label="{{ __('Abrir diário de') }} {{ $assignment->component?->name }}" title="{{ __('Abrir diário') }}">
                                                         <i class="fas fa-book-open" aria-hidden="true"></i>
                                                     </a>
-                                                    <a class="btn btn-outline-primary btn-sm sge-icon-action" href="{{ route('teacher-diaries.pdf', [$assignment->schoolClass, $assignment->component, 'period' => $period->id]) }}" aria-label="{{ __('Imprimir diário de') }} {{ $assignment->component?->name }}" title="{{ __('Imprimir diário') }}">
+                                                    <a target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm sge-icon-action" href="{{ route('teacher-diaries.pdf', [$assignment->schoolClass, $assignment->component, 'period' => $period->id]) }}" aria-label="{{ __('Imprimir diário de') }} {{ $assignment->component?->name }}" title="{{ __('Imprimir diário') }}">
                                                         <i class="fas fa-file-pdf" aria-hidden="true"></i>
                                                     </a>
-                                                    <a class="btn btn-outline-primary btn-sm sge-icon-action" href="{{ route('teacher-diaries.attendance-sheet.pdf', [$assignment->schoolClass, $assignment->component]) }}" aria-label="{{ __('Imprimir lista de chamada de') }} {{ $assignment->component?->name }}" title="{{ __('Lista de chamada') }}">
+                                                    <a target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm sge-icon-action" href="{{ route('teacher-diaries.attendance-sheet.pdf', [$assignment->schoolClass, $assignment->component]) }}" aria-label="{{ __('Imprimir lista de chamada de') }} {{ $assignment->component?->name }}" title="{{ __('Lista de chamada') }}">
                                                         <i class="fas fa-clipboard-list" aria-hidden="true"></i>
                                                     </a>
                                                     <details class="sge-inline-alert-form">

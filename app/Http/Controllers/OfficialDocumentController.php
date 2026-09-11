@@ -11,6 +11,8 @@ use App\Support\PdfMetadata;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,8 +36,8 @@ class OfficialDocumentController extends Controller
                 ->when(! $request->user()->isAdministrator(), function ($query) use ($request): void {
                     $query->whereIn('school_id', $request->user()->manageableSchoolIds());
                 })
-                ->latest()
-                ->paginate(10),
+                ->latest('id')
+                ->paginate(5),
         ]);
     }
 
@@ -69,28 +71,64 @@ class OfficialDocumentController extends Controller
             ]);
         }
 
-        $officialDocument = OfficialDocument::query()->create([
-            'school_id' => $school->id,
-            'created_by_user_id' => $request->user()->id,
-            'type' => $data['type'] ?? OfficialDocument::TYPE_OTHER,
-            'title' => $data['title'],
-            'content_html' => $content,
-            'paper_size' => 'a4',
-            'orientation' => $data['orientation'],
-            'line_spacing' => $data['line_spacing'],
+        return DB::transaction(function () use ($request, $school, $data, $content): Response {
+            $officialDocument = OfficialDocument::query()->create([
+                'school_id' => $school->id,
+                'created_by_user_id' => $request->user()->id,
+                'type' => $data['type'] ?? OfficialDocument::TYPE_OTHER,
+                'title' => $data['title'],
+                'content_html' => $content,
+                'paper_size' => 'a4',
+                'orientation' => $data['orientation'],
+                'line_spacing' => $data['line_spacing'],
+            ]);
+
+            $issuedDocument = $this->issuedDocument($request, $officialDocument);
+            $officialDocument->update(['issued_document_id' => $issuedDocument->id]);
+
+            return $this->archivedPdf($officialDocument);
+        });
+    }
+
+    public function reissue(Request $request, OfficialDocument $document): Response
+    {
+        abort_unless($request->user()->canManagePeople() && $request->user()->canManageSchool($document->school_id), 403);
+
+        return DB::transaction(function () use ($document): Response {
+            $document = OfficialDocument::query()->lockForUpdate()->findOrFail($document->id);
+            abort_unless($document->issuedDocument, 404);
+
+            return $this->archivedPdf($document);
+        });
+    }
+
+    private function archivedPdf(OfficialDocument $document): Response
+    {
+        $issued = $document->issuedDocument;
+        $disk = Storage::disk('local');
+        if ($issued->file_path) {
+            // Never silently replace an archived generation with a fresh render.
+            abort_unless($disk->exists($issued->file_path), 404);
+            $bytes = $disk->get($issued->file_path);
+        } else {
+            $pdf = Pdf::loadView('official-documents.pdf', [
+                'officialDocument' => $document->load('school'),
+                'issuedDocument' => $issued,
+                'verificationUrl' => route('documents.verify', $issued->verification_code),
+                'letterhead' => PdfLetterhead::make($document->school),
+            ])->setPaper('a4', $document->orientation);
+            $response = PdfMetadata::stream($pdf, $this->filename($document), $document->title.' - Beabá');
+            $bytes = $response->getContent();
+            $path = 'issued-documents/'.$issued->uuid.'.pdf';
+            abort_unless($disk->put($path, $bytes), 500);
+            $issued->update(['file_path' => $path]);
+        }
+
+        return response($bytes, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$this->filename($document).'"',
+            'Cache-Control' => 'private, no-store',
         ]);
-
-        $issuedDocument = $this->issuedDocument($request, $officialDocument);
-        $officialDocument->update(['issued_document_id' => $issuedDocument->id]);
-
-        $pdf = Pdf::loadView('official-documents.pdf', [
-            'officialDocument' => $officialDocument->load('school'),
-            'issuedDocument' => $issuedDocument,
-            'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
-            'letterhead' => PdfLetterhead::make($school),
-        ])->setPaper('a4', $data['orientation']);
-
-        return PdfMetadata::stream($pdf, $this->filename($officialDocument), $officialDocument->title.' - Beabá');
     }
 
     private function issuedDocument(Request $request, OfficialDocument $officialDocument): IssuedDocument
@@ -123,7 +161,7 @@ class OfficialDocumentController extends Controller
 
     private function filename(OfficialDocument $document): string
     {
-        return 'beaba-documento-'.Str::slug($document->title).'-'.now()->format('Ymd-His').'.pdf';
+        return 'beaba-documento-'.Str::slug($document->title).'-'.($document->issuedDocument?->issued_at ?? $document->created_at)->format('Ymd-His').'.pdf';
     }
 
     private function sanitizeContent(string $html): string

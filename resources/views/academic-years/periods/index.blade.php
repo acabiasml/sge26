@@ -259,7 +259,7 @@
                                                     <td class="small">{{ count($summary['pending']['attendance_without_content']) }} {{ __('freq. sem conteúdo ·') }} {{ count($summary['pending']['content_without_attendance']) }} {{ __('conteúdo sem freq. ·') }} {{ $summary['pending']['missing_grades'] }} {{ __('notas') }}</td>
                                                     <td>
                                                         <a class="btn btn-sm btn-outline-primary" href="{{ route('teacher-diaries.show', [$assignment->schoolClass, $assignment->component, 'period' => $period->id]) }}"><i class="fas fa-eye mr-1" aria-hidden="true"></i>{{ __('Abrir') }}</a>
-                                                        <a class="btn btn-sm btn-outline-secondary" href="{{ route('teacher-diaries.pdf', [$assignment->schoolClass, $assignment->component, 'period' => $period->id]) }}"><i class="fas fa-file-pdf mr-1" aria-hidden="true"></i>PDF</a>
+                                                        <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" href="{{ route('teacher-diaries.pdf', [$assignment->schoolClass, $assignment->component, 'period' => $period->id]) }}"><i class="fas fa-file-pdf mr-1" aria-hidden="true"></i>PDF</a>
                                                     </td>
                                                 </tr>
                                             @empty

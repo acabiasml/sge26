@@ -50,7 +50,7 @@
                                 <a class="btn btn-sm btn-primary sge-icon-action" href="{{ route('academic-years.show', $year) }}" aria-label="{{ __('screens.open_school_year', ['year' => $year->name]) }}" title="{{ __('screens.open_school_year_title') }}">
                                     <i class="fas fa-folder-open" aria-hidden="true"></i>
                                 </a>
-                                <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('academic-years.calendar-pdf', $year) }}" aria-label="{{ __('screens.issue_calendar_pdf', ['year' => $year->name]) }}" title="{{ __('screens.calendar_pdf') }}">
+                                <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('academic-years.calendar-pdf', $year) }}" aria-label="{{ __('screens.issue_calendar_pdf', ['year' => $year->name]) }}" title="{{ __('screens.calendar_pdf') }}">
                                     <i class="fas fa-file-pdf" aria-hidden="true"></i>
                                 </a>
                                 </div>

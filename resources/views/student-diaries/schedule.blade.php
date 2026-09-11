@@ -4,7 +4,7 @@
 @section('page-title', __('Meu horário'))
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('student-diaries.schedule-pdf', $enrollment) }}" aria-label="{{ __('Imprimir meu horário') }}" title="{{ __('Imprimir meu horário') }}">
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('student-diaries.schedule-pdf', $enrollment) }}" aria-label="{{ __('Imprimir meu horário') }}" title="{{ __('Imprimir meu horário') }}">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
     <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('student-diaries.index') }}" aria-label="{{ __('Voltar ao meu diário') }}" title="{{ __('Voltar ao meu diário') }}">

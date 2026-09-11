@@ -14,7 +14,7 @@
                     @if ($sourceDocument)
                         <div class="alert alert-info">{{ __('Você está reeditando “') }}{{ $sourceDocument->title }}{{ __('”. A emissão criará um novo documento e um novo código de autenticidade.') }}</div>
                     @endif
-                    <form method="POST" action="{{ route('official-documents.store') }}" id="official-document-form">
+                    <form method="POST" action="{{ route('official-documents.store') }}" id="official-document-form" data-download-form="true" target="_blank" rel="noopener">
                         @csrf
                         <input type="hidden" name="type" value="{{ old('type', $sourceDocument?->type ?? \App\Models\OfficialDocument::TYPE_OTHER) }}">
 
@@ -133,6 +133,7 @@
                     <h2 class="h6 m-0 font-weight-bold text-primary">{{ __('Documentos emitidos') }}</h2>
                 </div>
                 <div class="card-body">
+                    <p class="small text-muted">{{ __('Reeditar cria uma nova emissão. Reemitir abre o documento já emitido para visualizar ou imprimir.') }}</p>
                     @forelse ($recentDocuments as $document)
                         <div class="border-bottom pb-2 mb-2">
                             <strong class="d-block">{{ $document->title }}</strong>
@@ -140,14 +141,20 @@
                             @if ($document->issuedDocument)
                                 <span class="d-block small">{{ __('Código:') }} {{ $document->issuedDocument->verification_code }}</span>
                             @endif
+                            @if ($document->issuedDocument)
+                                <a class="btn btn-sm btn-outline-secondary mt-2" href="{{ route('official-documents.reissue', $document) }}" target="_blank" rel="noopener">
+                                    <i class="fas fa-print mr-1" aria-hidden="true"></i> {{ __('Reemitir') }}
+                                </a>
+                            @endif
                             <a class="btn btn-sm btn-outline-primary mt-2" href="{{ route('official-documents.edit', $document) }}">
-                                <i class="fas fa-edit mr-1" aria-hidden="true"></i> {{ __('Reeditar e reemitir') }}
+                                <i class="fas fa-edit mr-1" aria-hidden="true"></i> {{ __('Reeditar') }}
                             </a>
                         </div>
                     @empty
                         <p class="text-muted mb-0">{{ __('Nenhum documento emitido ainda.') }}</p>
                     @endforelse
-                    {{ $recentDocuments->links() }}
+                    <p class="small text-muted">{{ __('Página :page de :pages · :total documentos', ['page' => $recentDocuments->currentPage(), 'pages' => $recentDocuments->lastPage(), 'total' => $recentDocuments->total()]) }}</p>
+                    {{ $recentDocuments->links('pagination::simple-bootstrap-4') }}
                 </div>
             </div>
         </div>

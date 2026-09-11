@@ -33,6 +33,6 @@ class SetUserLocale
         return str_ends_with($routeName, '.pdf')
             || str_ends_with($routeName, '-pdf')
             || str_ends_with($routeName, '.excel')
-            || $routeName === 'official-documents.store';
+            || in_array($routeName, ['official-documents.store', 'official-documents.reissue'], true);
     }
 }

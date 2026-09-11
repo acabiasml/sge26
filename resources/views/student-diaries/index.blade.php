@@ -18,13 +18,13 @@
                             <a class="btn btn-outline-primary" href="{{ route('enrollments.report-card.show', $enrollment) }}">
                                 <i class="fas fa-chart-line mr-1" aria-hidden="true"></i>{{ __('Boletim') }}
                             </a>
-                            <a class="btn btn-outline-primary" href="{{ route('enrollments.individual-record.pdf', $enrollment) }}">
+                            <a target="_blank" rel="noopener" class="btn btn-outline-primary" href="{{ route('enrollments.individual-record.pdf', $enrollment) }}">
                                 <i class="fas fa-file-alt mr-1" aria-hidden="true"></i>{{ __('Ficha') }}
                             </a>
                             <a class="btn btn-outline-primary" href="{{ route('student-diaries.schedule', $enrollment) }}">
                                 <i class="fas fa-clock mr-1" aria-hidden="true"></i>{{ __('Meu horário') }}
                             </a>
-                            <a class="btn btn-outline-primary" href="{{ route('student-diaries.schedule-pdf', $enrollment) }}">
+                            <a target="_blank" rel="noopener" class="btn btn-outline-primary" href="{{ route('student-diaries.schedule-pdf', $enrollment) }}">
                                 <i class="fas fa-file-pdf mr-1" aria-hidden="true"></i>PDF
                             </a>
                         </div>

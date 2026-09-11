@@ -2343,5 +2343,9 @@
     ":component possui :scheduled bloco(s), mas a matriz prevê :expected.": ":component ha :scheduled blocco/i, ma il piano di studi ne prevede :expected.",
     "O período :period ainda não foi consolidado.": "Il periodo :period non è ancora consolidato.",
     ":count matrícula(s) sem resultado final calculado.": ":count iscrizione/i senza risultato finale calcolato.",
-    "A lista de chamada manual só fica disponível para turmas em andamento.": "Il registro presenze manuale è disponibile solo per le classi in corso."
+    "A lista de chamada manual só fica disponível para turmas em andamento.": "Il registro presenze manuale è disponibile solo per le classi in corso.",
+    "Reemitir": "Riemetti",
+    "Reeditar": "Modifica di nuovo",
+    "Reeditar cria uma nova emissão. Reemitir abre o documento já emitido para visualizar ou imprimir.": "Modificare crea una nuova emissione. Riemettere apre il documento già emesso per visualizzarlo o stamparlo.",
+    "Página :page de :pages · :total documentos": "Pagina :page di :pages · :total documenti"
 }

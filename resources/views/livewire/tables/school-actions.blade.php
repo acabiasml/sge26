@@ -9,7 +9,7 @@
         </a>
     @endif
 
-    <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('schools.pdf', $school) }}" aria-label="{{ __('screens.issue_school_pdf', ['name' => $school->name]) }}" title="{{ __('screens.pdf_record') }}">
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('schools.pdf', $school) }}" aria-label="{{ __('screens.issue_school_pdf', ['name' => $school->name]) }}" title="{{ __('screens.pdf_record') }}">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
 

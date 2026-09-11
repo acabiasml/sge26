@@ -12,7 +12,7 @@
     <a class="btn btn-sm btn-outline-primary shadow-sm js-current-query-export sge-icon-action" href="{{ route('reports.excel', ['type' => 'schools'] + request()->query()) }}" data-base-href="{{ route('reports.excel', 'schools') }}" aria-label="{{ __('screens.export_filtered_schools_excel') }}" title="{{ __('screens.export_excel') }}">
         <i class="fas fa-file-excel" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm js-current-query-export sge-icon-action" href="{{ route('reports.pdf', ['type' => 'schools'] + request()->query()) }}" data-base-href="{{ route('reports.pdf', 'schools') }}" aria-label="{{ __('screens.export_filtered_schools_pdf') }}" title="{{ __('screens.export_pdf') }}">
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm js-current-query-export sge-icon-action" href="{{ route('reports.pdf', ['type' => 'schools'] + request()->query()) }}" data-base-href="{{ route('reports.pdf', 'schools') }}" aria-label="{{ __('screens.export_filtered_schools_pdf') }}" title="{{ __('screens.export_pdf') }}">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
 @endsection

@@ -74,7 +74,7 @@
             <p>{{ __('screens.compliance_intro') }}</p>
         </div>
         <div class="sge-quality-actions">
-            <a class="btn btn-outline-primary" href="{{ route('data-quality.pdf', $filterQuery) }}">
+            <a target="_blank" rel="noopener" class="btn btn-outline-primary" href="{{ route('data-quality.pdf', $filterQuery) }}">
                 <i class="fas fa-file-pdf" aria-hidden="true"></i>
                 <span>{{ __('screens.compliance_pdf') }}</span>
             </a>

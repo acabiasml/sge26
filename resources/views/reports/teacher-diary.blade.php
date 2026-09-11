@@ -56,6 +56,12 @@
         return number_format((float) $score, 1, ',', '.');
     };
 @endphp
+@include('reports.partials.letterhead', [
+    'title' => 'Diário de classe - '.$component->name,
+    'letterhead' => $letterhead,
+    'issuedDocument' => $issuedDocument,
+    'verificationUrl' => $verificationUrl,
+])
 @foreach($periodReports as $report)
     @php
         $period = $report['period'];
@@ -70,13 +76,6 @@
             : $attendanceColumns->chunk(36);
     @endphp
     <section class="period-page">
-        @include('reports.partials.letterhead', [
-            'title' => 'Diário de classe - '.$component->name,
-            'letterhead' => $letterhead,
-            'issuedDocument' => $issuedDocument,
-            'verificationUrl' => $verificationUrl,
-        ])
-
         <table class="meta">
             <tr><td class="meta-label">Ano letivo</td><td>{{ $academicYear->referenceYearsLabel() }}</td><td class="meta-label">Período</td><td>{{ $period->name }}</td></tr>
             <tr><td class="meta-label">Turma e etapa</td><td>{{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, collect([$course])) }}</td><td class="meta-label">Matriz</td><td>{{ $course->name }} · {{ $course->stageLabel() }}</td></tr>

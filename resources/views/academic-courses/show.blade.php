@@ -9,7 +9,7 @@
 @section('page-title', __('Matriz: ').$course->name)
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.courses.matrix-pdf', [$academicYear, $course]) }}" aria-label="{{ __('Imprimir matriz') }} {{ $course->name }} {{ __('em PDF') }}" title="{{ __('Imprimir matriz') }}">
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.courses.matrix-pdf', [$academicYear, $course]) }}" aria-label="{{ __('Imprimir matriz') }} {{ $course->name }} {{ __('em PDF') }}" title="{{ __('Imprimir matriz') }}">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
     <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('academic-years.show', $academicYear) }}" aria-label="{{ __('Voltar ao ano letivo') }} {{ $academicYear->name }}" title="{{ __('Voltar ao ano letivo') }}">

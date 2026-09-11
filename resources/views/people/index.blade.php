@@ -10,7 +10,7 @@
     <a class="btn btn-sm btn-outline-primary shadow-sm js-current-query-export sge-icon-action" href="{{ route('reports.excel', ['type' => 'people'] + request()->query()) }}" data-base-href="{{ route('reports.excel', 'people') }}" aria-label="{{ __('screens.export_filtered_people_excel') }}" title="{{ __('screens.export_excel') }}">
         <i class="fas fa-file-excel" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm js-current-query-export sge-icon-action" href="{{ route('reports.pdf', ['type' => 'people'] + request()->query()) }}" data-base-href="{{ route('reports.pdf', 'people') }}" aria-label="{{ __('screens.export_filtered_people_pdf') }}" title="{{ __('screens.export_pdf') }}">
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm js-current-query-export sge-icon-action" href="{{ route('reports.pdf', ['type' => 'people'] + request()->query()) }}" data-base-href="{{ route('reports.pdf', 'people') }}" aria-label="{{ __('screens.export_filtered_people_pdf') }}" title="{{ __('screens.export_pdf') }}">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
 @endsection

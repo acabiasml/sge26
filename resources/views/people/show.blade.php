@@ -32,7 +32,7 @@
     <a class="btn btn-sm btn-primary shadow-sm sge-icon-action" href="{{ route('people.edit', $person) }}" aria-label="{{ __('screens.edit_person_named', ['name' => $person->full_name]) }}" title="{{ __('screens.edit_person') }}">
         <i class="fas fa-pen" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.pdf', $person) }}" aria-label="{{ __('screens.issue_person_pdf', ['name' => $person->full_name]) }}" title="{{ __('screens.pdf_record') }}">
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.pdf', $person) }}" aria-label="{{ __('screens.issue_person_pdf', ['name' => $person->full_name]) }}" title="{{ __('screens.pdf_record') }}">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
     @if ($canDeletePerson)
@@ -168,7 +168,7 @@
                                         <a class="btn btn-sm btn-outline-success sge-icon-action" href="{{ route('enrollments.report-card.show', $enrollment) }}" aria-label="{{ __('screens.open_report_card', ['name' => $person->full_name]) }}" title="{{ __('screens.report_card') }}">
                                             <i class="fas fa-chart-line" aria-hidden="true"></i>
                                         </a>
-                                        <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.individual-record.pdf', $enrollment) }}" aria-label="{{ __('screens.issue_individual_record', ['name' => $person->full_name]) }}" title="{{ __('screens.individual_record') }}">
+                                        <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.individual-record.pdf', $enrollment) }}" aria-label="{{ __('screens.issue_individual_record', ['name' => $person->full_name]) }}" title="{{ __('screens.individual_record') }}">
                                             <i class="fas fa-file-alt" aria-hidden="true"></i>
                                         </a>
                                     </td>
@@ -211,7 +211,7 @@
                                         <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.histories.show', [$person, $history]) }}" aria-label="{{ __('screens.open_history', ['title' => $history->title]) }}" title="{{ __('screens.open_history_title') }}">
                                             <i class="fas fa-folder-open" aria-hidden="true"></i>
                                         </a>
-                                        <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.histories.pdf', [$person, $history]) }}" aria-label="{{ __('screens.issue_history_pdf') }}" title="{{ __('screens.history_pdf') }}">
+                                        <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.histories.pdf', [$person, $history]) }}" aria-label="{{ __('screens.issue_history_pdf') }}" title="{{ __('screens.history_pdf') }}">
                                             <i class="fas fa-file-pdf" aria-hidden="true"></i>
                                         </a>
                                     </td>

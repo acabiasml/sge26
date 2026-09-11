@@ -61,7 +61,7 @@
         </a>
     @endif
     @if ($canManagePerson)
-        <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.pdf', $person) }}" aria-label="{{ __('Emitir ficha cadastral em PDF de') }} {{ $person->full_name }}" title="{{ __('Ficha cadastral em PDF') }}">
+        <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.pdf', $person) }}" aria-label="{{ __('Emitir ficha cadastral em PDF de') }} {{ $person->full_name }}" title="{{ __('Ficha cadastral em PDF') }}">
             <i class="fas fa-file-pdf" aria-hidden="true"></i>
         </a>
     @endif
@@ -89,7 +89,7 @@
                     <i class="fas fa-chart-line mr-1" aria-hidden="true"></i>{{ __('Boletim atual') }}
                 </a>
                 @if ($canManagePerson)
-                    <a class="btn btn-sm btn-outline-primary" href="{{ route('enrollments.individual-record.pdf', $activeEnrollments->first()) }}">
+                    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" href="{{ route('enrollments.individual-record.pdf', $activeEnrollments->first()) }}">
                         <i class="fas fa-file-alt mr-1" aria-hidden="true"></i>{{ __('Ficha individual') }}
                     </a>
                 @endif
@@ -202,10 +202,10 @@
                                             <a class="btn btn-sm btn-primary" href="{{ route('enrollments.documents', $enrollment) }}">
                                                 <i class="fas fa-folder-open mr-1" aria-hidden="true"></i>{{ __('Documentos') }}
                                             </a>
-                                            <a class="btn btn-sm btn-outline-primary" href="{{ route('enrollments.individual-record.pdf', $enrollment) }}">
+                                            <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" href="{{ route('enrollments.individual-record.pdf', $enrollment) }}">
                                                 <i class="fas fa-file-alt mr-1" aria-hidden="true"></i>{{ __('Ficha individual') }}
                                             </a>
-                                            <a class="btn btn-sm btn-outline-primary" href="{{ route('enrollments.pdf', $enrollment) }}">
+                                            <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" href="{{ route('enrollments.pdf', $enrollment) }}">
                                                 <i class="fas fa-file-signature mr-1" aria-hidden="true"></i>{{ __('Matrícula') }}
                                             </a>
                                         @endif
@@ -250,7 +250,7 @@
                                         <a class="btn btn-sm btn-outline-primary" href="{{ route('people.histories.show', [$person, $history]) }}">
                                             <i class="fas fa-eye mr-1" aria-hidden="true"></i>{{ __('Abrir') }}
                                         </a>
-                                        <a class="btn btn-sm btn-outline-primary" href="{{ route('people.histories.pdf', [$person, $history]) }}">
+                                        <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" href="{{ route('people.histories.pdf', [$person, $history]) }}">
                                             <i class="fas fa-file-pdf mr-1" aria-hidden="true"></i>PDF
                                         </a>
                                         <a class="btn btn-sm btn-outline-primary" href="{{ route('people.histories.edit', [$person, $history]) }}">

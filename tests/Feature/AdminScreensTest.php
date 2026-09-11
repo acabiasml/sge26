@@ -61,6 +61,7 @@ class AdminScreensTest extends TestCase
 
     public function test_manager_can_emit_official_document_for_managed_school(): void
     {
+        \Illuminate\Support\Facades\Storage::fake('local');
         $school = School::query()->create($this->officialSchoolData(['name' => 'Escola A']));
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id, 'documentos@ctjj.org');
 
@@ -91,6 +92,18 @@ class AdminScreensTest extends TestCase
             'school_id' => $school->id,
         ]);
         $this->assertInstanceOf(IssuedDocument::class, $document->issuedDocument);
+        $originalBytes = \Illuminate\Support\Facades\Storage::disk('local')->get($document->issuedDocument->file_path);
+        $code = $document->issuedDocument->verification_code;
+        $school->update(['name' => 'Nome alterado depois da emissão']);
+        $this->travel(1)->days();
+        $this->actingAs($manager)->get(route('official-documents.reissue', $document))
+            ->assertOk()->assertContent($originalBytes);
+        $this->assertDatabaseCount('official_documents', 1);
+        $this->assertDatabaseCount('issued_documents', 1);
+        $this->assertSame($code, $document->issuedDocument->fresh()->verification_code);
+        \Illuminate\Support\Facades\Storage::disk('local')->delete($document->issuedDocument->file_path);
+        $this->actingAs($manager)->get(route('official-documents.reissue', $document))->assertNotFound();
+
     }
 
     public function test_saved_document_can_be_reedited_without_changing_original(): void
@@ -130,7 +143,54 @@ class AdminScreensTest extends TestCase
             'type' => OfficialDocument::TYPE_OTHER, 'orientation' => 'portrait', 'line_spacing' => 1.5,
         ]);
         $this->actingAs($manager)->get(route('official-documents.edit', $document))->assertForbidden();
+        $this->actingAs($manager)->get(route('official-documents.reissue', $document))->assertForbidden();
         $this->actingAs($manager)->get(route('official-documents.create'))->assertDontSee('Restrito');
+    }
+
+    public function test_legacy_reissue_keeps_original_code_date_and_content(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        $school = School::query()->create($this->officialSchoolData(['name' => 'Escola A']));
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id, 'legado@ctjj.org');
+        $issued = IssuedDocument::query()->create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(), 'verification_code' => 'BEABA-LEGADO',
+            'type' => 'official-document', 'school_id' => $school->id, 'issued_by_user_id' => $manager->id, 'person_id' => $manager->person_id,
+            'issued_at' => '2026-02-01 12:00:00',
+        ]);
+        $document = OfficialDocument::query()->create([
+            'school_id' => $school->id, 'created_by_user_id' => $manager->id, 'issued_document_id' => $issued->id,
+            'title' => 'Documento antigo', 'content_html' => '<p>Conteúdo original</p>',
+            'type' => OfficialDocument::TYPE_OTHER, 'orientation' => 'portrait', 'line_spacing' => 1.5,
+        ]);
+        $manager->update(['locale' => 'it']);
+        $response = $this->actingAs($manager)->get(route('official-documents.reissue', $document));
+        $response->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertSame('pt_BR', app()->getLocale());
+        $this->assertSame('BEABA-LEGADO', $issued->fresh()->verification_code);
+        $this->assertSame('2026-02-01 12:00:00', $issued->fresh()->issued_at->format('Y-m-d H:i:s'));
+        $this->assertSame('<p>Conteúdo original</p>', $document->fresh()->content_html);
+        $this->assertDatabaseCount('issued_documents', 1);
+        $this->assertDatabaseCount('official_documents', 1);
+        $this->actingAs($manager)->get(route('official-documents.reissue', $document))
+            ->assertContent($response->getContent());
+    }
+
+    public function test_official_document_list_has_pagination_and_pdf_uses_new_tab(): void
+    {
+        $school = School::query()->create($this->officialSchoolData(['name' => 'Escola A']));
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id, 'paginas@ctjj.org');
+        foreach (range(1, 6) as $number) {
+            OfficialDocument::query()->create([
+                'school_id' => $school->id, 'created_by_user_id' => $manager->id,
+                'title' => 'Documento Número '.$number, 'content_html' => '<p>Teste</p>',
+                'type' => OfficialDocument::TYPE_OTHER, 'orientation' => 'portrait', 'line_spacing' => 1.5,
+            ]);
+        }
+        $this->actingAs($manager)->get(route('official-documents.create'))
+            ->assertOk()->assertSee('Documento Número 6')->assertDontSee('Documento Número 1')
+            ->assertSee('page=2', false)->assertSee('target="_blank"', false);
+        $this->actingAs($manager)->get(route('official-documents.create', ['page' => 2]))
+            ->assertOk()->assertSee('Documento Número 1')->assertDontSee('Documento Número 6');
     }
 
     public function test_manager_cannot_emit_official_document_for_other_school(): void

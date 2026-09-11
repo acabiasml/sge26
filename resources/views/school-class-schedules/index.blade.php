@@ -8,7 +8,7 @@
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
     </a>
     @if ($schedule)
-        <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.classes.schedules.pdf', [$academicYear, $class, 'schedule' => $schedule->id]) }}" aria-label="{{ __('Imprimir horário da turma') }} {{ $class->name }}" title="{{ __('Imprimir horário da turma') }}">
+        <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.classes.schedules.pdf', [$academicYear, $class, 'schedule' => $schedule->id]) }}" aria-label="{{ __('Imprimir horário da turma') }} {{ $class->name }}" title="{{ __('Imprimir horário da turma') }}">
             <i class="fas fa-file-pdf" aria-hidden="true"></i>
         </a>
     @endif
@@ -130,7 +130,7 @@
                             <h2 id="weekly-schedule-title" class="h6 m-0 font-weight-bold text-primary">{{ $schedule->name }}</h2>
                             <span class="small text-muted">{{ __('Clique em um bloco para editar. Janela: 06:00-22:00.') }}</span>
                         </div>
-                        <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('academic-years.classes.schedules.pdf', [$academicYear, $class, 'schedule' => $schedule->id]) }}" aria-label="{{ __('Imprimir horário') }}" title="{{ __('Imprimir horário') }}">
+                        <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('academic-years.classes.schedules.pdf', [$academicYear, $class, 'schedule' => $schedule->id]) }}" aria-label="{{ __('Imprimir horário') }}" title="{{ __('Imprimir horário') }}">
                             <i class="fas fa-file-pdf" aria-hidden="true"></i>
                         </a>
                     </div>

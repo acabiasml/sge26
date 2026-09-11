@@ -10,7 +10,7 @@
             <i class="fas fa-check-double" aria-hidden="true"></i>
         </button>
     </form>
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('classes.final-results.pdf', $class) }}" aria-label="{{ __('Emitir ata de resultados finais em PDF') }}" title="{{ __('Ata de resultados finais em PDF') }}">
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('classes.final-results.pdf', $class) }}" aria-label="{{ __('Emitir ata de resultados finais em PDF') }}" title="{{ __('Ata de resultados finais em PDF') }}">
         <i class="fas fa-file-signature" aria-hidden="true"></i>
     </a>
     <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('academic-years.classes.show', [$academicYear, $class]) }}" aria-label="{{ __('Voltar à turma') }} {{ $class->name }}" title="{{ __('Voltar à turma') }}">
@@ -180,17 +180,17 @@
                                 <a class="btn btn-sm btn-outline-success sge-icon-action" href="{{ route('enrollments.report-card.show', $enrollment) }}" aria-label="{{ __('Abrir boletim de') }} {{ $enrollment->student?->full_name }}" title="{{ __('Boletim') }}">
                                     <i class="fas fa-chart-line" aria-hidden="true"></i>
                                 </a>
-                                <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.individual-record.pdf', $enrollment) }}" aria-label="{{ __('Emitir ficha individual em PDF de') }} {{ $enrollment->student?->full_name }}" title="{{ __('Ficha individual em PDF') }}">
+                                <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.individual-record.pdf', $enrollment) }}" aria-label="{{ __('Emitir ficha individual em PDF de') }} {{ $enrollment->student?->full_name }}" title="{{ __('Ficha individual em PDF') }}">
                                     <i class="fas fa-file-alt" aria-hidden="true"></i>
                                 </a>
-                                <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.pdf', $enrollment) }}" aria-label="{{ __('Emitir ficha de matrícula em PDF de') }} {{ $enrollment->student?->full_name }}" title="{{ __('Ficha de matrícula em PDF') }}">
+                                <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.pdf', $enrollment) }}" aria-label="{{ __('Emitir ficha de matrícula em PDF de') }} {{ $enrollment->student?->full_name }}" title="{{ __('Ficha de matrícula em PDF') }}">
                                     <i class="fas fa-file-pdf" aria-hidden="true"></i>
                                 </a>
-                                <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.attendance-certificate.pdf', $enrollment) }}" aria-label="{{ __('Emitir atestado de frequência de') }} {{ $enrollment->student?->full_name }}" title="{{ __('Atestado de frequência') }}">
+                                <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.attendance-certificate.pdf', $enrollment) }}" aria-label="{{ __('Emitir atestado de frequência de') }} {{ $enrollment->student?->full_name }}" title="{{ __('Atestado de frequência') }}">
                                     <i class="fas fa-user-check" aria-hidden="true"></i>
                                 </a>
                                 @if ($enrollment->status === \App\Models\StudentEnrollment::STATUS_TRANSFERRED)
-                                    <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.transfer-certificate.pdf', $enrollment) }}" aria-label="{{ __('Emitir atestado de transferência de') }} {{ $enrollment->student?->full_name }}" title="{{ __('Atestado de transferência') }}">
+                                    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.transfer-certificate.pdf', $enrollment) }}" aria-label="{{ __('Emitir atestado de transferência de') }} {{ $enrollment->student?->full_name }}" title="{{ __('Atestado de transferência') }}">
                                         <i class="fas fa-exchange-alt" aria-hidden="true"></i>
                                     </a>
                                 @endif

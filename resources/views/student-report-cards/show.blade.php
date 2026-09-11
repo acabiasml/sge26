@@ -66,10 +66,10 @@
             <a class="btn btn-{{ $scoreView === 'conceitos' ? 'primary' : 'outline-primary' }}" href="{{ route('enrollments.report-card.show', ['enrollment' => $enrollment, 'notas' => 'conceitos']) }}">{{ __('Conceitos') }}</a>
         </div>
     @endif
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('enrollments.report-card.pdf', ['enrollment' => $enrollment, 'notas' => $scoreView]) }}" aria-label="{{ __('Emitir boletim em PDF') }}" title="{{ __('Boletim em PDF') }}">
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('enrollments.report-card.pdf', ['enrollment' => $enrollment, 'notas' => $scoreView]) }}" aria-label="{{ __('Emitir boletim em PDF') }}" title="{{ __('Boletim em PDF') }}">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('enrollments.individual-record.pdf', ['enrollment' => $enrollment, 'notas' => $scoreView]) }}" aria-label="{{ __('Emitir ficha individual em PDF') }}" title="{{ __('Ficha individual em PDF') }}">
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('enrollments.individual-record.pdf', ['enrollment' => $enrollment, 'notas' => $scoreView]) }}" aria-label="{{ __('Emitir ficha individual em PDF') }}" title="{{ __('Ficha individual em PDF') }}">
         <i class="fas fa-file-alt" aria-hidden="true"></i>
     </a>
     @if (auth()->user()->canManageSchool($academicYear->school_id))
