@@ -9,7 +9,7 @@ final class SchoolClassEnrollmentCourses
 {
     public static function synchronize(SchoolClass $class): void
     {
-        if (! $class->active || ! $class->academicYear?->active || $class->academicYear->isClosed()) {
+        if ((! $class->active && ! $class->academicYear?->allowsAdministrativeChanges()) || ! $class->academicYear?->active || $class->academicYear->isReadOnly()) {
             return;
         }
 

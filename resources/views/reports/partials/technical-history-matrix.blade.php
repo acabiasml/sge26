@@ -19,7 +19,7 @@
             @endforeach
         </tr>
         <tr>
-            @foreach($modules as $module)<th class="center">N</th><th class="center"><div @class(['vertical-workload' => $modules->count() > 4])><span>Carga horária cursada</span></div></th>@endforeach
+            @foreach($modules as $module)<th class="center">N</th><th class="center">CHC</th>@endforeach
         </tr>
     </thead>
     <tbody>

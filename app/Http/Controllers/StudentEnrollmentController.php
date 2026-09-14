@@ -66,7 +66,7 @@ class StudentEnrollmentController extends Controller
             ->orderBy('name')
             ->get();
 
-        $canManageEnrollments = $class->active && $academicYear->active && ! $academicYear->isClosed();
+        $canManageEnrollments = ($class->active || $academicYear->allowsAdministrativeChanges()) && $academicYear->active && ! $academicYear->isReadOnly();
 
         return view('student-enrollments.index', [
             'canManageEnrollments' => $canManageEnrollments,
@@ -85,14 +85,14 @@ class StudentEnrollmentController extends Controller
                 ->get(),
             'targetClasses' => $academicYear->classes()
                 ->whereKeyNot($class->id)
-                ->where('active', true)
+                ->when(! $academicYear->allowsAdministrativeChanges(), fn ($query) => $query->where('active', true))
                 ->whereHas('courses')
                 ->with(['courses' => fn ($courses) => $courses->orderBy('name')])
                 ->orderBy('name')
                 ->get(),
             'targetClassCourseOptions' => $academicYear->classes()
                 ->whereKeyNot($class->id)
-                ->where('active', true)
+                ->when(! $academicYear->allowsAdministrativeChanges(), fn ($query) => $query->where('active', true))
                 ->with(['courses' => fn ($courses) => $courses->orderBy('name')])
                 ->get()
                 ->mapWithKeys(fn (SchoolClass $targetClass) => [
@@ -115,7 +115,7 @@ class StudentEnrollmentController extends Controller
             ]);
         }
 
-        if (! $class->active) {
+        if (! $class->active && ! $academicYear->allowsAdministrativeChanges()) {
             throw ValidationException::withMessages([
                 'school_class_id' => __('Não é possível matricular estudante em turma inativa.'),
             ]);
@@ -245,7 +245,7 @@ class StudentEnrollmentController extends Controller
 
         $targetClassIds = $academicYear->classes()
             ->whereKeyNot($class->id)
-            ->where('active', true)
+            ->when(! $academicYear->allowsAdministrativeChanges(), fn ($query) => $query->where('active', true))
             ->whereHas('courses')
             ->pluck('id')
             ->all();
@@ -417,7 +417,7 @@ class StudentEnrollmentController extends Controller
      */
     private function validatedData(Request $request, AcademicYear $academicYear, SchoolClass $class): array
     {
-        if (! $class->active) {
+        if (! $class->active && ! $academicYear->allowsAdministrativeChanges()) {
             throw ValidationException::withMessages([
                 'school_class_id' => __('Não é possível matricular estudante em turma inativa.'),
             ]);
@@ -631,7 +631,7 @@ class StudentEnrollmentController extends Controller
 
     private function ensureAcademicYearIsOpen(AcademicYear $academicYear): void
     {
-        if (! $academicYear->isClosed()) {
+        if (! $academicYear->isReadOnly()) {
             return;
         }
 

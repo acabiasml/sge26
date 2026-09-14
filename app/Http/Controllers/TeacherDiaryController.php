@@ -1048,7 +1048,7 @@ class TeacherDiaryController extends Controller
 
         abort_unless($academicYear && $schoolClass->academic_year_id === $academicYear->id, 404);
         abort_unless($schoolClass->courses()->whereKey($course->id)->exists(), 404);
-        abort_unless($assignment && $assignment->active, 404);
+        abort_unless($assignment && ($assignment->active || $academicYear->allowsAdministrativeChanges()), 404);
         abort_unless($academicYear->approved_at !== null && $academicYear->active, 403);
 
         if ($request->user()->canManageSchool($academicYear->school_id)) {
@@ -1062,6 +1062,10 @@ class TeacherDiaryController extends Controller
     {
         $period->loadMissing('academicYear');
         $this->ensureAcademicYearIsOpen($period->academicYear);
+
+        if ($period->academicYear->allowsAdministrativeChanges()) {
+            return;
+        }
 
         if ($this->periodIsConsolidated($period)) {
             throw ValidationException::withMessages(['academic_period_id' => __('Este período foi consolidado pela gestão. Reabra o período antes de novos lançamentos.')]);
@@ -1080,7 +1084,7 @@ class TeacherDiaryController extends Controller
 
     private function ensureAcademicYearIsOpen(?AcademicYear $academicYear): void
     {
-        if ($academicYear && ! $academicYear->isClosed()) {
+        if ($academicYear && ! $academicYear->isReadOnly()) {
             return;
         }
 
@@ -1091,6 +1095,10 @@ class TeacherDiaryController extends Controller
 
     private function periodIsConsolidated(AcademicPeriod $period): bool
     {
+        if ($period->academicYear?->allowsAdministrativeChanges()) {
+            return false;
+        }
+
         return AcademicPeriodDiaryConsolidation::query()
             ->where('academic_period_id', $period->id)
             ->where('consolidated', true)

@@ -97,7 +97,7 @@ class AttendanceJustificationController extends Controller
 
     private function ensureAcademicYearIsOpen(AcademicYear $academicYear): void
     {
-        if (! $academicYear->isClosed()) {
+        if (! $academicYear->isReadOnly()) {
             return;
         }
 

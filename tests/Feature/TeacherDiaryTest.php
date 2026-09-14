@@ -1625,6 +1625,30 @@ class TeacherDiaryTest extends TestCase
             ->assertSessionHasErrors("scores.{$assessment->id}.{$enrollment->id}");
     }
 
+    public function test_administrative_reopening_allows_corrections_in_confirmed_and_consolidated_diary(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, $year->school_id, 'admin-reopening@ctjj.org');
+        $this->actingAs($admin)->put(route('academic-years.periods.assessment-rules.update', [$year, $period]), [
+            'assessment_count' => 1, 'weights' => [1], 'recovery_mode' => AcademicPeriod::RECOVERY_NONE,
+        ])->assertSessionHasNoErrors();
+        $assessment = DiaryAssessment::query()->firstOrFail();
+        \App\Models\DiaryPeriodConfirmation::query()->create([
+            'school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id, 'confirmed' => true,
+        ]);
+        \App\Models\AcademicPeriodDiaryConsolidation::query()->create([
+            'academic_period_id' => $period->id, 'consolidated' => true,
+        ]);
+        $year->update(['active' => false, 'closed_at' => now()]);
+        $this->patch(route('academic-years.reopen', $year), ['reopen_reason' => 'Correção de nota'])->assertSessionHasNoErrors();
+        $data = ['academic_period_id' => $period->id, 'scores' => [$assessment->id => [$enrollment->id => 8]]];
+        $this->put(route('teacher-diaries.grades.update', [$class, $component]), $data)->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('diary_assessment_results', ['diary_assessment_id' => $assessment->id, 'student_enrollment_id' => $enrollment->id, 'score' => 8]);
+        $this->actingAs($teacher)->put(route('teacher-diaries.grades.update', [$class, $component]), $data)->assertSessionHasErrors('academic_period_id');
+        $this->get(route('teacher-diaries.show', [$class, $component]))->assertOk();
+    }
+
     public function test_closed_academic_year_blocks_diary_launches(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();

@@ -184,6 +184,8 @@ class AcademicYearController extends Controller
 
         $academicYear->update([
             'closed_at' => null,
+            'active' => true,
+            'administrative_reopened_at' => now(),
             'closed_by_person_id' => null,
             'closure_notes' => trim(collect([
                 $academicYear->closure_notes,
@@ -262,7 +264,7 @@ class AcademicYearController extends Controller
 
     private function ensureYearIsOpen(AcademicYear $academicYear): void
     {
-        if (! $academicYear->isClosed()) {
+        if (! $academicYear->isReadOnly()) {
             return;
         }
 

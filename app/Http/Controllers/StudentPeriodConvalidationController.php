@@ -14,7 +14,7 @@ class StudentPeriodConvalidationController extends Controller
     {
         $this->authorizeEnrollment($request, $enrollment);
         $academicYear = $enrollment->schoolClass->academicYear;
-        abort_if($academicYear->isClosed(), 422, __('Não é possível convalidar lançamentos em ano letivo fechado.'));
+        abort_if($academicYear->isReadOnly(), 422, __('Não é possível convalidar lançamentos em ano letivo fechado.'));
 
         foreach (['score', 'attendance_lessons', 'attendance_absences', 'attendance_justified_absences'] as $field) {
             if ($request->filled($field)) {
@@ -80,7 +80,7 @@ class StudentPeriodConvalidationController extends Controller
     {
         $this->authorizeEnrollment($request, $enrollment);
         abort_unless($convalidation->student_enrollment_id === $enrollment->id, 404);
-        abort_if($enrollment->schoolClass->academicYear->isClosed(), 422, __('Não é possível remover convalidação em ano letivo fechado.'));
+        abort_if($enrollment->schoolClass->academicYear->isReadOnly(), 422, __('Não é possível remover convalidação em ano letivo fechado.'));
 
         $convalidation->delete();
 

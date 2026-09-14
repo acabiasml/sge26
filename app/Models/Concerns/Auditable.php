@@ -50,7 +50,7 @@ trait Auditable
                 'action' => $action,
                 'old_values' => $changes['old'],
                 'new_values' => $changes['new'],
-                'metadata' => null,
+                'metadata' => ['record_description' => \App\Support\AuditLogPresenter::describe($this)],
                 'ip_address' => request()?->ip(),
                 'user_agent' => request()?->userAgent(),
             ]);

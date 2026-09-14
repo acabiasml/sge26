@@ -96,6 +96,45 @@ class AuditLogPresenter
     ];
 
     public const FIELD_LABELS = [
+        'diary_assessment_id' => 'Avaliação',
+        'diary_attendance_record_id' => 'Chamada',
+        'class_date' => 'Data da aula',
+        'mother_name' => 'Nome da mãe',
+        'shift' => 'Turno',
+        'knowledge_area_id' => 'Área do conhecimento',
+        'technical_legal_basis' => 'Base legal do curso técnico',
+        'accreditation_act' => 'Ato de credenciamento',
+        'authorization_act' => 'Ato de autorização',
+        'regulatory_process' => 'Processo de regularização',
+        'regulatory_opinion' => 'Parecer de regularização',
+        'technological_axis' => 'Eixo tecnológico',
+        'offer_forms' => 'Formas de oferta',
+        'official_gazette_reference' => 'Publicação no Diário Oficial',
+        'authorization_starts_at' => 'Início da autorização',
+        'authorization_ends_at' => 'Fim da autorização',
+        'module_certifications' => 'Certificações por módulo',
+        'stage' => 'Etapa de ensino',
+        'weight' => 'Peso da avaliação',
+        'ignore_saturdays' => 'Desconsiderar sábados',
+        'ignore_sundays' => 'Desconsiderar domingos',
+        'id' => 'Referência do registro',
+        'academic_year_id' => 'Ano letivo',
+        'created_at' => 'Cadastrado em',
+        'updated_at' => 'Alterado em',
+        'closed_at' => 'Fechado em',
+        'closed_by_person_id' => 'Fechado por',
+        'closure_notes' => 'Observações de fechamento e reabertura',
+        'administrative_reopened_at' => 'Reabertura para alterações administrativas',
+        'status' => 'Situação',
+        'final_result_status' => 'Resultado final',
+        'final_result_details' => 'Detalhes do resultado final',
+        'legacy_source' => 'Origem da importação',
+        'legacy_id' => 'Referência na origem',
+        'legacy_metadata' => 'Informações da importação',
+        'weekly_lessons' => 'Aulas por semana',
+        'cancelled_at' => 'Cancelado em',
+        'cancelled_by_person_id' => 'Cancelado por',
+        'enrolled_by_person_id' => 'Matriculado por',
         'academic_course_id' => 'Matriz',
         'academic_period_id' => 'Período avaliativo',
         'active' => 'Situação',
@@ -234,13 +273,76 @@ class AuditLogPresenter
 
     public static function modelLabel(?string $model): string
     {
-        return __(self::MODEL_LABELS[$model ?? ''] ?? class_basename($model ?? ''));
+        return __(self::MODEL_LABELS[self::modelClass($model) ?? ''] ?? 'Registro');
+    }
+
+    private static function modelClass(?string $type): ?string
+    {
+        foreach (self::MODEL_LABELS as $class => $label) {
+            if ($type === $class || $type === (new $class)->getTable() || $type === class_basename($class)) {
+                return $class;
+            }
+        }
+
+        return null;
+    }
+
+    public static function describe(\Illuminate\Database\Eloquent\Model $record, int $depth = 0): string
+    {
+        $parts = [];
+        foreach (['full_name', 'name', 'component_name', 'title'] as $field) {
+            if ($record->getAttribute($field)) {
+                $parts[] = $record->getAttribute($field);
+                break;
+            }
+        }
+        if ($record instanceof AcademicYear && $record->reference_year) {
+            $parts[] = $record->reference_year;
+        }
+        if ($depth < 3) {
+            foreach (['person_id', 'teacher_person_id', 'school_class_id', 'academic_year_id', 'student_enrollment_id', 'student_academic_history_id', 'student_academic_history_component_id', 'academic_course_id', 'school_id', 'curriculum_component_id', 'diary_assessment_id', 'diary_attendance_record_id'] as $field) {
+                $id = $record->getAttribute($field);
+                $class = self::referenceClass($field);
+                if ($id && $class && ($related = $class::query()->find($id))) {
+                    $description = self::describe($related, $depth + 1);
+                    if ($description !== '') {
+                        $parts[] = $description;
+                    }
+                }
+            }
+        }
+
+        return implode(' · ', array_unique($parts));
+    }
+
+    private static function referenceClass(string $field): ?string
+    {
+        if ($field === 'person_id' || str_ends_with($field, '_person_id')) {
+            return Person::class;
+        }
+        return match ($field) {
+            'academic_year_id' => AcademicYear::class,
+            'diary_assessment_id' => DiaryAssessment::class,
+            'diary_attendance_record_id' => DiaryAttendanceRecord::class,
+            'knowledge_area_id' => KnowledgeArea::class,
+            'academic_course_id' => AcademicCourse::class,
+            'academic_period_id', 'starts_period_id', 'ends_period_id' => AcademicPeriod::class,
+            'school_id' => School::class,
+            'school_class_id' => SchoolClass::class,
+            'student_enrollment_id', 'reclassified_from_enrollment_id' => StudentEnrollment::class,
+            'curriculum_component_id' => CurriculumComponent::class,
+            'school_class_component_id' => SchoolClassComponent::class,
+            'student_academic_history_id' => StudentAcademicHistory::class,
+            'student_academic_history_component_id' => StudentAcademicHistoryComponent::class,
+            'student_academic_history_year_id' => StudentAcademicHistoryYear::class,
+            'issued_by_user_id', 'user_id' => User::class,
+            default => null,
+        };
     }
 
     public static function recordLabel(AuditLog $auditLog): string
     {
         $label = self::modelLabel($auditLog->auditable_type);
-
         if ($auditLog->auditable_type === IssuedDocument::class) {
             $type = $auditLog->new_values['type'] ?? $auditLog->old_values['type'] ?? null;
 
@@ -254,6 +356,18 @@ class AuditLogPresenter
                     : $documentLabel;
             }
         }
+
+        $description = $auditLog->metadata['record_description'] ?? null;
+        $class = self::modelClass($auditLog->auditable_type);
+        if (! $description && $class) {
+            $record = $class::query()->find($auditLog->auditable_id);
+            $snapshot = array_merge($record?->getAttributes() ?? [], $auditLog->old_values ?? [], $auditLog->new_values ?? []);
+            $description = self::describe((new $class)->forceFill($snapshot));
+        }
+        if ($description) {
+            return $label.' — '.$description;
+        }
+
 
         if (blank($auditLog->auditable_id)) {
             return $label;
@@ -289,16 +403,31 @@ class AuditLogPresenter
 
     public static function value(mixed $value, ?string $field = null, ?string $model = null): string
     {
+        $model = self::modelClass($model) ?? $model;
+
         if ($value === null || $value === '') {
             return '-';
+        }
+
+        if ($field && is_numeric($value) && ($class = self::referenceClass($field))) {
+            $record = $class::query()->find($value);
+            return $record ? (self::describe($record) ?: self::modelLabel($class).' #'.$value)
+                : __('Registro removido').' ('.__('referência').' '.$value.')';
         }
 
         if (is_bool($value)) {
             return $value ? __('Sim') : __('Não');
         }
 
+        if (is_string($value) && in_array($field, ['legacy_metadata', 'payload', 'final_result_details', 'offer_forms', 'module_certifications', 'lesson_presence'], true)) {
+            $decoded = json_decode($value, true);
+            if (is_array($decoded)) {
+                $value = $decoded;
+            }
+        }
+
         if (is_array($value)) {
-            return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '-';
+            return collect($value)->map(fn ($item, $key) => (is_string($key) ? self::fieldLabel($key).': ' : '').self::value($item, is_string($key) ? $key : null))->implode(' · ');
         }
 
         if ($field === 'type' && is_string($value)) {
@@ -310,6 +439,32 @@ class AuditLogPresenter
                 OfficialDocument::class => __(OfficialDocument::TYPE_LABELS[$value] ?? $value),
                 default => $value,
             };
+        }
+
+        if ($field === 'status' && $model === DiaryAttendanceEntry::class) {
+            return __(['present' => 'Presente', 'absent' => 'Ausente', 'justified' => 'Ausência justificada'][$value] ?? $value);
+        }
+        if ($field === 'final_result_status') {
+            return __(StudentEnrollment::FINAL_RESULT_LABELS[$value] ?? $value);
+        }
+        if ($field === 'position' && $model === PersonSchoolRole::class) {
+            return __(PersonSchoolRole::POSITION_LABELS[$value] ?? $value);
+        }
+        if ($field === 'role') {
+            return __(PersonSchoolRole::ROLE_LABELS[$value] ?? $value);
+        }
+        if ($field === 'status' && $model === StudentEnrollment::class) {
+            return __(StudentEnrollment::STATUS_LABELS[$value] ?? $value);
+        }
+        if ($field === 'transcript_mode') {
+            return __(['detailed' => 'Por componente', 'summary' => 'Global', 'no_transcription' => 'Sem transcrição'][$value] ?? $value);
+        }
+        if ($field && (str_ends_with($field, '_at') || in_array($field, ['date', 'birth_date', 'issued_date', 'class_date'])) && is_string($value)) {
+            try {
+                return \Illuminate\Support\Carbon::parse($value)->format(str_contains($value, ':') ? 'd/m/Y H:i' : 'd/m/Y');
+            } catch (\Throwable) {
+                // Preserve a legacy date that cannot be parsed.
+            }
         }
 
         return (string) $value;

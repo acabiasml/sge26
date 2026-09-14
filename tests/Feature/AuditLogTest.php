@@ -20,6 +20,17 @@ class AuditLogTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_audit_resolves_table_names_and_people_and_preserves_deleted_subjects(): void
+    {
+        $person = Person::query()->create(['full_name' => 'Aluno da Auditoria']);
+        $this->assertSame('Matrícula', \App\Support\AuditLogPresenter::modelLabel('student_enrollments'));
+        $this->assertSame('Aluno da Auditoria', \App\Support\AuditLogPresenter::value($person->id, 'teacher_person_id'));
+        $person->delete();
+        $audit = AuditLog::query()->where('auditable_type', Person::class)->where('auditable_id', $person->id)->where('action', 'deleted')->firstOrFail();
+        $this->assertSame('Pessoa — Aluno da Auditoria', \App\Support\AuditLogPresenter::recordLabel($audit));
+        $this->assertSame('14/09/2026', \App\Support\AuditLogPresenter::value('2026-09-14', 'enrolled_at'));
+    }
+
     public function test_model_changes_are_audited_with_old_and_new_values(): void
     {
         $person = Person::query()->create([
@@ -166,7 +177,7 @@ class AuditLogTest extends TestCase
             ->test(AuditLogsTable::class)
             ->assertSee($admin->person->full_name)
             ->assertSee('Cadastro alterado')
-            ->assertSee('Escola (registro '.$school->id.')')
+            ->assertSee('Escola — Escola Auditada')
             ->assertSee('Escola Auditada');
     }
 

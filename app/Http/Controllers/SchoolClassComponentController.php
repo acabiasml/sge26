@@ -86,7 +86,7 @@ class SchoolClassComponentController extends Controller
         abort_unless($classComponent->school_class_id === $class->id, 404);
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
 
-        if ($academicYear->isClosed()) {
+        if ($academicYear->isReadOnly()) {
             throw ValidationException::withMessages([
                 'closed_at' => __('Este ano letivo está fechado. Reabra o ano letivo antes de alterar docentes da turma.'),
             ]);

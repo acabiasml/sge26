@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@php($canChangeCalendar = ! $academicYear->isClosed() && (! $academicYear->approved_at || auth()->user()->isAdministrator()))
+@php($canChangeCalendar = ! $academicYear->isReadOnly() && (! $academicYear->approved_at || auth()->user()->isAdministrator()))
 @php($schoolDays = $academicYear->schoolDayCount())
 @php($calendarMonths = \App\Support\AcademicCalendarGrid::forAcademicYear($academicYear))
 @php($readyCourses = $academicYear->courses->filter->hasMatrixComponents())
@@ -14,6 +14,9 @@
 @section('page-title', $academicYear->name)
 
 @section('page-actions')
+    @if(auth()->user()->isAdministrator())
+        <a class="btn btn-sm btn-warning sge-icon-action" href="#administrative-reopening" onclick="document.getElementById('administrative-reopening').open = true" aria-label="{{ __('Reabrir para alterações') }}" title="{{ __('Reabrir para alterações') }}"><i class="fas fa-unlock" aria-hidden="true"></i></a>
+    @endif
     <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.calendar-pdf', $academicYear) }}" aria-label="{{ __('Emitir calendário oficial em PDF') }}" title="{{ __('Calendário oficial em PDF') }}">
         <i class="fas fa-calendar-alt" aria-hidden="true"></i>
     </a>
@@ -44,6 +47,21 @@
 @endsection
 
 @section('content')
+    @if($academicYear->administrative_reopened_at && ! $academicYear->isClosed())
+        <div class="alert alert-info">{{ __('Ano reaberto para alterações exclusivas da Administração. Os demais usuários podem consultar os dados.') }}</div>
+    @endif
+    @if(auth()->user()->isAdministrator())
+        <details id="administrative-reopening" class="card mb-3" @if(request()->boolean('reopen') || $errors->has('reopen_reason')) open @endif>
+            <summary class="card-header">{{ __('Reabertura administrativa') }}</summary>
+            <form class="card-body" method="POST" action="{{ route('academic-years.reopen', $academicYear) }}">
+                @csrf @method('PATCH')
+                <p>{{ __('Permite à Administração alterar matrículas, turmas, matrizes e diários deste ano, inclusive quando inativo ou encerrado. O motivo fica registrado na auditoria.') }}</p>
+                <label for="administrative-reopen-reason">{{ __('Motivo da reabertura') }}</label>
+                <textarea id="administrative-reopen-reason" name="reopen_reason" class="form-control mb-3" required maxlength="2000">{{ old('reopen_reason') }}</textarea>
+                <button class="btn btn-warning" type="submit">{{ __('Reabrir ano letivo') }}</button>
+            </form>
+        </details>
+    @endif
     <x-academic-trail :school="$academicYear->school" :academic-year="$academicYear" />
 
     @if ($academicYear->approved_at)
@@ -169,7 +187,7 @@
                             <div class="form-group"><label for="approved_at">{{ __('Data de aprovação') }}</label><input id="approved_at" name="approved_at" type="date" class="form-control @error('approved_at') is-invalid @enderror" required>@error('approved_at') <div class="invalid-feedback">{{ __($message) }}</div> @enderror</div>
                             <button class="btn btn-warning" type="submit">{{ __('Registrar aprovação') }}</button>
                         </form>
-                    @elseif (! $academicYear->isClosed())
+                    @elseif (! $academicYear->isReadOnly())
                         <h3 class="h6">{{ __('Fechamento do ano letivo') }}</h3>
                         @if ($closureErrors->isEmpty())<p class="small text-muted">{{ __('O ano letivo pode ser fechado. Depois disso, reabra apenas se houver necessidade administrativa.') }}</p>@else<div class="alert alert-warning small"><strong>{{ __('Antes de fechar:') }}</strong><ul class="mb-0 pl-3">@foreach ($closureErrors as $issue)<li>{{ __($issue['message']) }}</li>@endforeach</ul></div>@endif
                         @if ($closureWarnings->isNotEmpty())<div class="alert alert-light border small"><strong>{{ __('Avisos:') }}</strong><ul class="mb-0 pl-3">@foreach ($closureWarnings as $issue)<li>{{ __($issue['message']) }}</li>@endforeach</ul></div>@endif

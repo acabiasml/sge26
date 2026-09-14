@@ -142,7 +142,7 @@ class SchoolClassScheduleController extends Controller
         abort_unless($class->academic_year_id === $academicYear->id, 404);
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
 
-        if ($academicYear->isClosed() && ! $request->isMethod('GET')) {
+        if ($academicYear->isReadOnly() && ! $request->isMethod('GET')) {
             throw ValidationException::withMessages([
                 'closed_at' => __('Este ano letivo está fechado. Reabra o ano letivo antes de alterar horários.'),
             ]);

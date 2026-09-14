@@ -19,7 +19,7 @@
             @foreach($history->years as $year)<th colspan="{{ $year->transcript_mode === 'detailed' ? 2 : 1 }}" class="center" style="width:{{ $unitWidth * ($year->transcript_mode === 'detailed' ? 2 : 1) }}%">@if($year->transcript_mode !== 'detailed')<div class="vertical-heading"><span>{{ $year->label }}</span></div>@else{{ $year->label }}@endif</th>@endforeach
         </tr>
         <tr>@foreach($history->years as $year)
-            @if($year->transcript_mode === 'detailed')<th class="center">N</th><th class="center"><div @class(['vertical-workload' => $history->years->count() > 4])><span>Carga horária cursada</span></div></th>
+            @if($year->transcript_mode === 'detailed')<th class="center">N</th><th class="center">CHC</th>
             @else<th class="center"><div class="vertical-heading"><span>{{ $year->transcript_mode === 'summary' ? 'Global' : 'Sem transcrição' }}</span></div></th>@endif
         @endforeach</tr>
     </thead>

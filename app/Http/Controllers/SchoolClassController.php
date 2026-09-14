@@ -330,7 +330,7 @@ class SchoolClassController extends Controller
 
     private function ensureCanChangeApprovedCalendar(Request $request, AcademicYear $academicYear): void
     {
-        if ($academicYear->isClosed()) {
+        if ($academicYear->isReadOnly()) {
             throw ValidationException::withMessages([
                 'closed_at' => __('Este ano letivo está fechado. Reabra o ano letivo antes de alterar turmas.'),
             ]);

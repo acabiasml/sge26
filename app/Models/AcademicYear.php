@@ -20,6 +20,7 @@ class AcademicYear extends Model
         'starts_at',
         'ends_at',
         'approved_at',
+        'administrative_reopened_at',
         'closed_at',
         'closed_by_person_id',
         'closure_notes',
@@ -41,6 +42,7 @@ class AcademicYear extends Model
             'ends_at' => 'date',
             'approved_at' => 'date',
             'closed_at' => 'datetime',
+            'administrative_reopened_at' => 'datetime',
             'passing_points' => 'decimal:1',
             'minimum_attendance_percentage' => 'integer',
             'active' => 'boolean',
@@ -101,6 +103,17 @@ class AcademicYear extends Model
     public function isClosed(): bool
     {
         return $this->closed_at !== null;
+    }
+
+    public function allowsAdministrativeChanges(): bool
+    {
+        return $this->administrative_reopened_at !== null && ! $this->isClosed()
+            && auth()->user()?->isAdministrator();
+    }
+
+    public function isReadOnly(): bool
+    {
+        return $this->isClosed() || ($this->administrative_reopened_at !== null && ! $this->allowsAdministrativeChanges());
     }
 
     public function referenceYearsLabel(): string

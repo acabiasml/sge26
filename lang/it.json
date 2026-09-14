@@ -2357,5 +2357,20 @@
     "Carga horária cursada": "Monte ore svolto",
     "Total de horas previstas": "Totale ore previste",
     "Total de horas cursadas": "Totale ore svolte",
-    "Consulta de matrículas de turma ou ano letivo encerrado/inativo. Novas matrículas e movimentações não estão disponíveis.": "Consultazione delle iscrizioni di una classe o di un anno scolastico concluso/inattivo. Nuove iscrizioni e variazioni non sono disponibili."
+    "Consulta de matrículas de turma ou ano letivo encerrado/inativo. Novas matrículas e movimentações não estão disponíveis.": "Consultazione delle iscrizioni di una classe o di un anno scolastico concluso/inattivo. Nuove iscrizioni e variazioni non sono disponibili.",
+    "Carga horária cursada, em horas": "Monte ore frequentato, in ore",
+    "Reabrir para alterações": "Riaprire per modifiche",
+    "Reabrir ano letivo para alterações": "Riaprire l’anno scolastico per modifiche",
+    "Ano reaberto para alterações exclusivas da Administração. Os demais usuários podem consultar os dados.": "Anno riaperto per modifiche riservate all’Amministrazione. Gli altri utenti possono consultare i dati.",
+    "Permite à Administração alterar matrículas, turmas, matrizes e diários deste ano, inclusive quando inativo ou encerrado. O motivo fica registrado na auditoria.": "Consente all’Amministrazione di modificare iscrizioni, classi, piani di studio e registri di questo anno, anche se inattivo o chiuso. La motivazione viene registrata nel registro delle attività.",
+    "Reabertura para alterações administrativas": "Riapertura per modifiche amministrative",
+    "Registro removido": "Registrazione eliminata",
+    "referência": "riferimento",
+    "Referência do registro": "Riferimento della registrazione",
+    "Cadastrado em": "Registrato il",
+    "Alterado em": "Modificato il",
+    "Observações de fechamento e reabertura": "Note di chiusura e riapertura",
+    "Origem da importação": "Origine dell’importazione",
+    "Referência na origem": "Riferimento originale",
+    "Informações da importação": "Informazioni sull’importazione"
 }

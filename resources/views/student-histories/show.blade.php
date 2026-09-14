@@ -19,6 +19,7 @@
 @endsection
 
 @section('content')
+    <p class="small text-muted"><strong>CHC</strong> — {{ __('Carga horária cursada, em horas') }}.</p>
     @if(! $historyCompleteness['complete'])
         <div class="alert alert-danger"><strong>{{ __('Emissão bloqueada.') }}</strong> {{ $historyCompleteness['message'] }}</div>
     @endif
@@ -124,10 +125,10 @@
                                         <td><strong>{{ $component->name }}</strong></td>
                                         @foreach($history->years as $year)
                                             @if($year->transcript_mode !== 'detailed')
-                                                @if($firstHistoryRow)<td rowspan="{{ $history->components->count() }}" class="text-center align-middle" data-global-year="{{ $year->id }}"><strong>{{ $year->final_result ?: ($transcriptModeLabels[$year->transcript_mode] ?? '-') }}</strong>@if($year->transcript_mode === 'summary')<span class="d-block small text-muted">{{ __('Carga horária cursada') }} {{ $year->displaysCompletedWorkload() && $year->workload_hours !== null ? number_format((float) $year->workload_hours, 2, ',', '.') : '-' }}</span>@endif</td>@endif
+                                                @if($firstHistoryRow)<td rowspan="{{ $history->components->count() }}" class="text-center align-middle" data-global-year="{{ $year->id }}"><strong>{{ $year->final_result ?: ($transcriptModeLabels[$year->transcript_mode] ?? '-') }}</strong>@if($year->transcript_mode === 'summary')<span class="d-block small text-muted"><abbr title="{{ __('Carga horária cursada, em horas') }}">CHC</abbr> {{ $year->displaysCompletedWorkload() && $year->workload_hours !== null ? number_format((float) $year->workload_hours, 2, ',', '.') : '-' }}</span>@endif</td>@endif
                                             @else
                                             @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
-                                            <td class="text-center">@if($record)<strong>{{ $record->score_label ?: '-' }}</strong><span class="d-block small text-muted">{{ __('Carga horária cursada') }} {{ $year->displaysCompletedWorkload() && $record->workload_hours !== null ? number_format((float) $record->workload_hours, 2, ',', '.') : '-' }}</span> @else - @endif</td>
+                                            <td class="text-center">@if($record)<strong>{{ $record->score_label ?: '-' }}</strong><span class="d-block small text-muted"><abbr title="{{ __('Carga horária cursada, em horas') }}">CHC</abbr> {{ $year->displaysCompletedWorkload() && $record->workload_hours !== null ? number_format((float) $record->workload_hours, 2, ',', '.') : '-' }}</span> @else - @endif</td>
                                             @endif
                                         @endforeach
                                         @php($firstHistoryRow = false)

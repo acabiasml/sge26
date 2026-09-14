@@ -24,6 +24,9 @@ class AuditLogsTable extends DataTableComponent
             'audit_logs.school_id',
             'audit_logs.auditable_type',
             'audit_logs.auditable_id',
+            'audit_logs.old_values',
+            'audit_logs.new_values',
+            'audit_logs.metadata',
         ]);
         $this->setDefaultSort('created_at', 'desc');
         $this->setOfflineIndicatorDisabled();

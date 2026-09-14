@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @php($canChangeAcademicStructure = ! $academicYear->approved_at || auth()->user()->isAdministrator())
-@php($canManageTeaching = ! $academicYear->isClosed() && auth()->user()->canManageSchool($academicYear->school_id))
+@php($canManageTeaching = ! $academicYear->isReadOnly() && auth()->user()->canManageSchool($academicYear->school_id))
 @php($enrollmentCount = $class->enrollments->count())
 @php($assignments = $class->componentAssignments->sortBy(fn ($assignment) => ($assignment->component?->area?->name ?? '').' '.$assignment->component?->name)->values())
 @php($assignmentGroups = $assignments->groupBy(fn ($assignment) => $assignment->component?->area?->name ?? __('Área não definida')))

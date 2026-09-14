@@ -21,6 +21,9 @@
 @endsection
 
 @section('content')
+    @if(auth()->user()->isAdministrator() && ! $canManageEnrollments)
+        <a class="btn btn-warning mb-3" href="{{ route('academic-years.show', [$academicYear, 'reopen' => 1]) }}#administrative-reopening"><i class="fas fa-unlock mr-1" aria-hidden="true"></i>{{ __('Reabrir ano letivo para alterações') }}</a>
+    @endif
     @unless($canManageEnrollments)
         <div class="alert alert-info" role="status">{{ __('Consulta de matrículas de turma ou ano letivo encerrado/inativo. Novas matrículas e movimentações não estão disponíveis.') }}</div>
     @endunless

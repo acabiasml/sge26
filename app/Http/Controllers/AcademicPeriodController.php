@@ -52,7 +52,7 @@ class AcademicPeriodController extends Controller
 
         return view('academic-years.periods.index', [
             'academicYear' => $academicYear,
-            'canChangeCalendar' => ! $academicYear->approved_at || $request->user()->isAdministrator(),
+            'canChangeCalendar' => ! $academicYear->isReadOnly() && (! $academicYear->approved_at || $request->user()->isAdministrator()),
             'periodDiaryStatus' => $periodDiaryStatus,
             'behaviorEnrollments' => $behaviorEnrollments,
             'behaviorGrades' => $behaviorGrades,
@@ -630,7 +630,7 @@ class AcademicPeriodController extends Controller
 
     private function ensureYearIsOpen(AcademicYear $academicYear): void
     {
-        if (! $academicYear->isClosed()) {
+        if (! $academicYear->isReadOnly()) {
             return;
         }
 
