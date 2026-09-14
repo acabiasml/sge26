@@ -47,6 +47,37 @@ class StudentAcademicHistory extends Model
         ];
     }
 
+    /** @return array<string, array{planned: ?float, completed: ?float}> */
+    public function formationWorkloadTotals(): array
+    {
+        $this->loadMissing('years', 'components.records');
+        $years = $this->years->keyBy('id');
+        $totals = [];
+
+        foreach (['Formação Geral Básica', 'Itinerário Formativo'] as $formation) {
+            $planned = null;
+            $completed = null;
+            foreach ($this->components->where('formation', $formation) as $component) {
+                foreach ($component->records as $record) {
+                    $year = $years->get($record->student_academic_history_year_id);
+                    if (! $year || $year->transcript_mode === 'no_transcription' || $record->workload_hours === null) {
+                        continue;
+                    }
+                    $planned = ($planned ?? 0) + (float) $record->workload_hours;
+                    if ($year->displaysCompletedWorkload()) {
+                        $completed = ($completed ?? 0) + (float) $record->workload_hours;
+                    }
+                }
+            }
+            $totals[$formation] = [
+                'planned' => $planned !== null ? round($planned, 2) : null,
+                'completed' => $completed !== null ? round($completed, 2) : null,
+            ];
+        }
+
+        return $totals;
+    }
+
     public function student(): BelongsTo
     {
         return $this->belongsTo(Person::class, 'person_id');

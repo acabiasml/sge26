@@ -18,10 +18,16 @@
         .history-table th, .history-table td, .studies-table th, .studies-table td { border: .55px solid #111; padding: 1px 2px; vertical-align: middle; }
         .history-table th, .studies-table th { background: #f1ede9; font-size: 11px; text-transform: uppercase; }
         .history-table td, .studies-table td { font-size: 11px; }
+        .basic-history-matrix, .technical-history-matrix { page-break-inside: avoid; }
         .basic-history-matrix th, .basic-history-matrix td { font-size: 11px; padding: 2px 2px; line-height: 1.12; }
         .basic-history-matrix th { text-transform: none; }
         .basic-history-matrix .area-label { font-size: 11px; }
         .basic-history-matrix .score-cell { padding: 2px 0; white-space: nowrap; letter-spacing: -.2px; }
+        .vertical-workload { height: 116px; position: relative; }
+        .vertical-workload span { position: absolute; width: 140px; left: 50%; top: 50%; margin-left: -70px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; }
+        .vertical-formation { height: 160px; position: relative; }
+        .vertical-formation span { position: absolute; width: 190px; left: 50%; top: 50%; margin-left: -95px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; font-weight: 600; }
+        .workload-totals { page-break-inside: avoid; margin-top: 6px; }
         .vertical-heading { height: 48px; position: relative; }
         .vertical-heading span { position: absolute; width: 72px; left: 50%; top: 50%; margin-left: -36px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; }
         .vertical-result { height: 110px; position: relative; }
@@ -80,6 +86,9 @@
     @include('reports.partials.technical-history-matrix', ['history' => $history])
 @else
 @include('reports.partials.basic-history-matrix', ['history' => $history])
+@if($history->education_stage === 'medio')
+    @include('reports.partials.history-formation-workloads')
+@endif
 @endif
 
 @php($technicalRegulation = $history->components->pluck('regulatory_reference')->filter()->unique()->join(' '))
@@ -138,7 +147,7 @@
 <table class="legend-table">
     <tr>
         <th>Legenda</th>
-        <td>N (nota ou conceito) · CH (carga horária) · F% (frequência em percentual) · RF (resultado final) · AP (aproveitamento/progressão global conforme documento de origem).</td>
+        <td>N (nota ou conceito) · CH cursada (carga horária cursada, em horas) · RF (resultado final) · AP (aproveitamento/progressão global conforme documento de origem).</td>
     </tr>
 </table>
 

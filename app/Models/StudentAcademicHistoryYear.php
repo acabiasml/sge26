@@ -61,6 +61,14 @@ class StudentAcademicHistoryYear extends Model
         ];
     }
 
+    public function displaysCompletedWorkload(): bool
+    {
+        return $this->transcript_mode !== 'no_transcription'
+            && ! in_array(mb_strtolower(trim((string) $this->final_result)), [
+                'cursando', 'em andamento', 'em curso', 'matriculado', 'pendente', 'a cursar',
+            ], true);
+    }
+
     public function history(): BelongsTo
     {
         return $this->belongsTo(StudentAcademicHistory::class, 'student_academic_history_id');

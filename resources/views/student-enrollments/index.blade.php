@@ -4,12 +4,14 @@
 @section('page-title', __('Matrículas: ').$class->name)
 
 @section('page-actions')
+    @if($canManageEnrollments)
     <form method="POST" action="{{ route('classes.final-results.calculate', $class) }}" class="d-inline">
         @csrf
         <button class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" type="submit" aria-label="{{ __('Calcular resultados finais da turma') }}" title="{{ __('Calcular resultados finais') }}">
             <i class="fas fa-check-double" aria-hidden="true"></i>
         </button>
     </form>
+    @endif
     <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('classes.final-results.pdf', $class) }}" aria-label="{{ __('Emitir ata de resultados finais em PDF') }}" title="{{ __('Ata de resultados finais em PDF') }}">
         <i class="fas fa-file-signature" aria-hidden="true"></i>
     </a>
@@ -19,9 +21,12 @@
 @endsection
 
 @section('content')
-    <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="{{ __('Áreas das matrículas') }}" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? 'nova' : 'matriculas' }}">
+    @unless($canManageEnrollments)
+        <div class="alert alert-info" role="status">{{ __('Consulta de matrículas de turma ou ano letivo encerrado/inativo. Novas matrículas e movimentações não estão disponíveis.') }}</div>
+    @endunless
+    <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="{{ __('Áreas das matrículas') }}" role="tablist" data-section-tabs data-default-tab="{{ $canManageEnrollments && $errors->any() ? 'nova' : 'matriculas' }}">
         <a href="#section-contexto" class="sge-section-nav-item" data-academic-tab="contexto" role="tab"><i class="fas fa-info-circle"></i><span>{{ __('Contexto') }}</span><small>{{ __('turma e matrizes') }}</small></a>
-        <a href="#section-nova" class="sge-section-nav-item" data-academic-tab="nova" role="tab"><i class="fas fa-user-plus"></i><span>{{ __('Nova matrícula') }}</span><small>{{ __('incluir estudante') }}</small></a>
+        @if($canManageEnrollments)<a href="#section-nova" class="sge-section-nav-item" data-academic-tab="nova" role="tab"><i class="fas fa-user-plus"></i><span>{{ __('Nova matrícula') }}</span><small>{{ __('incluir estudante') }}</small></a>@endif
         <a href="#section-matriculas" class="sge-section-nav-item" data-academic-tab="matriculas" role="tab"><i class="fas fa-user-graduate"></i><span>{{ __('Matrículas') }}</span><small>{{ $class->enrollments->count() }} {{ __('estudantes') }}</small></a>
     </nav>
 
@@ -50,6 +55,7 @@
             </div>
         </div>
 
+        @if($canManageEnrollments)
         <div id="section-nova" class="col-12 mb-4" data-academic-panel="nova" role="tabpanel">
             <div class="card shadow">
                 <div class="card-header py-3">
@@ -112,6 +118,7 @@
                 </div>
             </div>
         </div>
+        @endif
     </div>
 
     <div id="section-matriculas" class="card shadow mb-4" data-academic-panel="matriculas" role="tabpanel">
@@ -194,7 +201,7 @@
                                         <i class="fas fa-exchange-alt" aria-hidden="true"></i>
                                     </a>
                                 @endif
-                                @if ($enrollment->isActive() || in_array($enrollment->status, [\App\Models\StudentEnrollment::STATUS_TRANSFERRED, \App\Models\StudentEnrollment::STATUS_CANCELLED], true))
+                                @if ($canManageEnrollments && ($enrollment->isActive() || in_array($enrollment->status, [\App\Models\StudentEnrollment::STATUS_TRANSFERRED, \App\Models\StudentEnrollment::STATUS_CANCELLED], true)))
                                     <button class="btn btn-sm btn-outline-secondary sge-icon-action" type="button" data-toggle="modal" data-target="#enrollmentMovementModal{{ $enrollment->id }}" aria-label="{{ __('Abrir movimentações da matrícula de') }} {{ $enrollment->student?->full_name }}" title="{{ __('Movimentar matrícula') }}">
                                         <i class="fas fa-random" aria-hidden="true"></i>
                                     </button>
@@ -211,7 +218,7 @@
     </div>
 
     @foreach ($class->enrollments->sortBy(fn ($enrollment) => $enrollment->student?->full_name) as $enrollment)
-        @if ($enrollment->isActive() || in_array($enrollment->status, [\App\Models\StudentEnrollment::STATUS_TRANSFERRED, \App\Models\StudentEnrollment::STATUS_CANCELLED], true))
+        @if ($canManageEnrollments && ($enrollment->isActive() || in_array($enrollment->status, [\App\Models\StudentEnrollment::STATUS_TRANSFERRED, \App\Models\StudentEnrollment::STATUS_CANCELLED], true)))
             <div class="modal fade" id="enrollmentMovementModal{{ $enrollment->id }}" tabindex="-1" role="dialog" aria-labelledby="enrollmentMovementTitle{{ $enrollment->id }}" aria-hidden="true">
                 <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
                     <div class="modal-content">

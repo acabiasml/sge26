@@ -18,8 +18,7 @@
                         <td class="text-center">
                             @if($component->module_label === $module)
                                 <strong>{{ $record?->score_label ?: '-' }}</strong>
-                                <span class="d-block small text-muted">{{ __('CH') }} {{ $record?->workload_hours !== null ? number_format((float) $record->workload_hours, 2, ',', '.') : '-' }}</span>
-                                <span class="d-block small text-muted">{{ __('Freq.') }} {{ $record?->frequency_percentage !== null ? number_format((float) $record->frequency_percentage, 1, ',', '.').'%' : '-' }}</span>
+                                <span class="d-block small text-muted">{{ __('Carga horária cursada') }} {{ $record?->workload_hours !== null ? number_format((float) $record->workload_hours, 2, ',', '.') : '-' }}</span>
                             @else - @endif
                         </td>
                     @endforeach

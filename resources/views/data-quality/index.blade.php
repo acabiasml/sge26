@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', __('screens.compliance'))
+@section('title', __('navigation.compliance'))
 @section('page-title', __('screens.document_academic_compliance'))
 
 @section('content')

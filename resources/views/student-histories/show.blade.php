@@ -124,10 +124,10 @@
                                         <td><strong>{{ $component->name }}</strong></td>
                                         @foreach($history->years as $year)
                                             @if($year->transcript_mode !== 'detailed')
-                                                @if($firstHistoryRow)<td rowspan="{{ $history->components->count() }}" class="text-center align-middle" data-global-year="{{ $year->id }}"><strong>{{ $year->final_result ?: ($transcriptModeLabels[$year->transcript_mode] ?? '-') }}</strong>@if($year->transcript_mode === 'summary')<span class="d-block small text-muted">{{ __('CH') }} {{ $year->workload_hours !== null ? number_format((float) $year->workload_hours, 2, ',', '.') : '-' }}</span><span class="d-block small text-muted">{{ $year->attendance_label }}</span>@endif</td>@endif
+                                                @if($firstHistoryRow)<td rowspan="{{ $history->components->count() }}" class="text-center align-middle" data-global-year="{{ $year->id }}"><strong>{{ $year->final_result ?: ($transcriptModeLabels[$year->transcript_mode] ?? '-') }}</strong>@if($year->transcript_mode === 'summary')<span class="d-block small text-muted">{{ __('Carga horária cursada') }} {{ $year->displaysCompletedWorkload() && $year->workload_hours !== null ? number_format((float) $year->workload_hours, 2, ',', '.') : '-' }}</span>@endif</td>@endif
                                             @else
                                             @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
-                                            <td class="text-center">@if($record)<strong>{{ $record->score_label ?: '-' }}</strong><span class="d-block small text-muted">{{ __('CH') }} {{ $record->workload_hours !== null ? number_format((float) $record->workload_hours, 2, ',', '.') : '-' }}</span>@if($record->frequency_label)<span class="d-block small text-muted">{{ __('Freq.') }} {{ $record->frequency_label }}</span>@endif @if($record->absences !== null)<span class="d-block small text-muted">{{ __('Faltas') }} {{ $record->absences }}</span>@endif @else - @endif</td>
+                                            <td class="text-center">@if($record)<strong>{{ $record->score_label ?: '-' }}</strong><span class="d-block small text-muted">{{ __('Carga horária cursada') }} {{ $year->displaysCompletedWorkload() && $record->workload_hours !== null ? number_format((float) $record->workload_hours, 2, ',', '.') : '-' }}</span> @else - @endif</td>
                                             @endif
                                         @endforeach
                                         @php($firstHistoryRow = false)
@@ -143,14 +143,14 @@
                     </table>
                 </div>
                 @endif
-                @php($basicFormationComponents = $history->components->where('formation', __('Formação Geral Básica')))
-                @php($itineraryComponents = $history->components->where('formation', __('Itinerário Formativo')))
-                @php($basicFormationHours = $basicFormationComponents->sum(fn ($component) => (float) $component->records->sum('workload_hours')))
-                @php($itineraryHours = $itineraryComponents->sum(fn ($component) => (float) $component->records->sum('workload_hours')))
-                @if($basicFormationComponents->isNotEmpty() && $itineraryComponents->isNotEmpty())
-                    <div class="row g-3 p-3 border-top">
-                        <div class="col-md-6"><strong>{{ __('Formação Geral Básica:') }}</strong> {{ number_format($basicFormationHours, 0, ',', '.') }}h</div>
-                        <div class="col-md-6"><strong>{{ __('Itinerário Formativo:') }}</strong> {{ number_format($itineraryHours, 0, ',', '.') }}h</div>
+                @if($history->education_stage === 'medio')
+                    <div class="table-responsive p-3 border-top">
+                        <table class="table table-sm table-bordered mb-0">
+                            <thead><tr><th>{{ __('Formação') }}</th><th>{{ __('Total de horas previstas') }}</th><th>{{ __('Total de horas cursadas') }}</th></tr></thead>
+                            <tbody>@foreach($history->formationWorkloadTotals() as $formation => $hours)
+                                <tr><td>{{ __($formation) }}</td><td>{{ $hours['planned'] !== null ? number_format($hours['planned'], 2, ',', '.').'h' : '-' }}</td><td>{{ $hours['completed'] !== null ? number_format($hours['completed'], 2, ',', '.').'h' : '-' }}</td></tr>
+                            @endforeach</tbody>
+                        </table>
                     </div>
                 @endif
             </section>

@@ -2261,6 +2261,30 @@ class AcademicCalendarTest extends TestCase
             ->assertDontSee('Outra Escola');
     }
 
+    public function test_archived_year_enrollments_remain_available_for_read_only_consultation(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear(['active' => false, 'closed_at' => now()]);
+        $class = $year->classes()->create(['name' => 'Turma arquivada', 'active' => true]);
+        $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'historico.turma@ctjj.org');
+        $enrollment = $class->enrollments()->create([
+            'person_id' => $student->person_id, 'enrolled_at' => '2026-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED, 'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $this->actingAs($admin)->get(route('classes.enrollments.index', $class))
+            ->assertOk()->assertSee($student->person->full_name)
+            ->assertSee('Consulta de matrículas de turma ou ano letivo encerrado/inativo.')
+            ->assertSee(route('enrollments.documents', $enrollment), false)
+            ->assertDontSee('id="section-nova"', false)
+            ->assertDontSee('id="enrollmentMovementModal'.$enrollment->id.'"', false);
+        $this->post(route('classes.enrollments.store', $class), [])->assertSessionHasErrors('academic_year_id');
+
+        $year->update(['active' => true, 'closed_at' => null]);
+        $class->update(['active' => false]);
+        $this->get(route('classes.enrollments.index', $class))->assertOk()->assertDontSee('id="section-nova"', false);
+        $this->actingAs($student)->get(route('classes.enrollments.index', $class))->assertForbidden();
+    }
+
     public function test_student_cannot_be_enrolled_in_inactive_class(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);

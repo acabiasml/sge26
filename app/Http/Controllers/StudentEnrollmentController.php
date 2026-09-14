@@ -66,9 +66,10 @@ class StudentEnrollmentController extends Controller
             ->orderBy('name')
             ->get();
 
-        abort_unless($class->active && $academicYear->active, 404);
+        $canManageEnrollments = $class->active && $academicYear->active && ! $academicYear->isClosed();
 
         return view('student-enrollments.index', [
+            'canManageEnrollments' => $canManageEnrollments,
             'academicYear' => $academicYear,
             'class' => $class->load([
                 'courses' => fn ($courses) => $courses->orderBy('name'),
