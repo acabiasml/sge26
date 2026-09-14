@@ -3,19 +3,21 @@
         ->flatMap(fn ($components) => $components->groupBy(fn ($component) => $component->knowledge_area ?: '-')->flatten(1))->values();
     $matrixSections = $allMatrixComponents->isEmpty() ? collect([collect()]) : $allMatrixComponents->chunk(18)->map(fn ($components) => $components->values());
     $columnUnits = $history->years->sum(fn ($year) => $year->transcript_mode === 'detailed' ? 2 : 1);
-    $unitWidth = 60 / max(1, $columnUnits);
+    $wideComponentColumn = $history->education_stage === 'medio' && $history->years->count() <= 4;
+    [$formationWidth, $areaWidth, $componentWidth] = $wideComponentColumn ? [4, 18, 36] : [5, 12, 23];
+    $unitWidth = (100 - $formationWidth - $areaWidth - $componentWidth) / max(1, $columnUnits);
 @endphp
 @foreach($matrixSections as $matrixComponents)
 @php($lastMatrixSection = $loop->last)
 <table class="history-table basic-history-matrix">
     <colgroup>
-        <col style="width:5%"><col style="width:12%"><col style="width:23%">
+        <col style="width:{{ $formationWidth }}%"><col style="width:{{ $areaWidth }}%"><col style="width:{{ $componentWidth }}%">
         @foreach($history->years as $year)
             @for($i = 0; $i < ($year->transcript_mode === 'detailed' ? 2 : 1); $i++)<col style="width:{{ $unitWidth }}%">@endfor
         @endforeach
     </colgroup>
     <thead>
-        <tr><th rowspan="2" style="width:5%"><div class="vertical-heading"><span>Formação</span></div></th><th rowspan="2" style="width:12%">Área</th><th rowspan="2" style="width:23%">Componente curricular</th>
+        <tr><th rowspan="2" style="width:{{ $formationWidth }}%"><div class="vertical-heading"><span>Formação</span></div></th><th rowspan="2" style="width:{{ $areaWidth }}%">Área</th><th rowspan="2" style="width:{{ $componentWidth }}%">Componente curricular</th>
             @foreach($history->years as $year)<th colspan="{{ $year->transcript_mode === 'detailed' ? 2 : 1 }}" class="center" style="width:{{ $unitWidth * ($year->transcript_mode === 'detailed' ? 2 : 1) }}%">@if($year->transcript_mode !== 'detailed')<div class="vertical-heading"><span>{{ $year->label }}</span></div>@else{{ $year->label }}@endif</th>@endforeach
         </tr>
         <tr>@foreach($history->years as $year)
