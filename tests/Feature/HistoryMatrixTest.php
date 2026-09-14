@@ -32,6 +32,15 @@ class HistoryMatrixTest extends TestCase
             'Formação Geral Básica' => ['planned' => 1650.0, 'completed' => 800.0],
             'Itinerário Formativo' => ['planned' => 450.0, 'completed' => 200.0],
         ], $history->formationWorkloadTotals());
+        $this->assertSame(['planned' => 800.0, 'completed' => 800.0], $history->formationWorkloadTotals($finished)['Formação Geral Básica']);
+        $this->assertSame(['planned' => 250.0, 'completed' => null], $history->formationWorkloadTotals($current)['Itinerário Formativo']);
+        $annual = view('reports.partials.history-annual-formation-workloads', compact('history'))->render();
+        $this->assertStringContainsString('data-workload-year="1"', $annual);
+        $this->assertStringContainsString('data-workload-year="2"', $annual);
+        $this->assertStringContainsString('800,00h', $annual);
+        $this->assertStringContainsString('200,00h', $annual);
+        $this->assertSame(1, substr_count($annual, '850,00h'));
+        $this->assertSame(1, substr_count($annual, '250,00h'));
         $html = view('reports.partials.basic-history-matrix', compact('history'))->render();
         $this->assertStringContainsString('Carga horária cursada', $html);
         $this->assertStringContainsString('formation-cell', $html);

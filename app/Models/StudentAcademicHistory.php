@@ -48,7 +48,7 @@ class StudentAcademicHistory extends Model
     }
 
     /** @return array<string, array{planned: ?float, completed: ?float}> */
-    public function formationWorkloadTotals(): array
+    public function formationWorkloadTotals(?StudentAcademicHistoryYear $selectedYear = null): array
     {
         $this->loadMissing('years', 'components.records');
         $years = $this->years->keyBy('id');
@@ -60,6 +60,9 @@ class StudentAcademicHistory extends Model
             foreach ($this->components->where('formation', $formation) as $component) {
                 foreach ($component->records as $record) {
                     $year = $years->get($record->student_academic_history_year_id);
+                    if ($selectedYear && $record->student_academic_history_year_id != $selectedYear->id) {
+                        continue;
+                    }
                     if (! $year || $year->transcript_mode === 'no_transcription' || $record->workload_hours === null) {
                         continue;
                     }

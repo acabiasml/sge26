@@ -146,6 +146,7 @@
                 @endif
                 @if($history->education_stage === 'medio')
                     <div class="table-responsive p-3 border-top">
+                        @include('reports.partials.history-annual-formation-workloads', ['annualWorkloadTableClass' => 'table table-sm table-bordered mb-3'])
                         <table class="table table-sm table-bordered mb-0">
                             <thead><tr><th>{{ __('Formação') }}</th><th>{{ __('Total de horas previstas') }}</th><th>{{ __('Total de horas cursadas') }}</th></tr></thead>
                             <tbody>@foreach($history->formationWorkloadTotals() as $formation => $hours)

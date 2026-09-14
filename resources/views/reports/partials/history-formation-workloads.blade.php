@@ -1,3 +1,4 @@
+@include('reports.partials.history-annual-formation-workloads')
 <table class="history-table workload-totals">
     <thead><tr><th>Formação</th><th class="center">Total de horas previstas</th><th class="center">Total de horas cursadas</th></tr></thead>
     <tbody>
