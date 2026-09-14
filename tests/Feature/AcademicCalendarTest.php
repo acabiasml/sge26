@@ -1914,9 +1914,11 @@ class AcademicCalendarTest extends TestCase
         $schoolClass = $year->classes()->create(['name' => '1º Ano A', 'active' => true]);
         $schoolClass->courses()->attach($course);
 
-        $this->actingAs($administrator)
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'manager.closed@ctjj.org');
+        $this->actingAs($manager)
             ->post(route('classes.final-results.calculate', $schoolClass))
             ->assertSessionHasErrors('academic_year');
+        $this->actingAs($administrator)->post(route('classes.final-results.calculate', $schoolClass))->assertSessionHasNoErrors();
     }
 
     public function test_student_cannot_have_two_active_enrollments_in_the_same_academic_calendar(): void
@@ -2278,12 +2280,14 @@ class AcademicCalendarTest extends TestCase
         $this->assertFalse($year->isClosed());
         $this->assertNotNull($year->administrative_reopened_at);
         $this->get(route('academic-years.show', $year))->assertOk()->assertSee('id="administrative-reopening"', false);
+        $year->update(['active' => false, 'closed_at' => now(), 'administrative_reopened_at' => null]);
         $this->get(route('classes.enrollments.index', $class))->assertOk()->assertSee('id="section-nova"', false);
         $data = ['person_id' => $student->person_id, 'course_ids' => [$course->id], 'enrolled_at' => '2026-02-01', 'type' => StudentEnrollment::TYPE_REGULAR];
         $this->post(route('classes.enrollments.store', $class), $data)->assertSessionHasNoErrors();
         $this->assertDatabaseHas('student_enrollments', ['person_id' => $student->person_id, 'school_class_id' => $class->id]);
         $this->actingAs($manager)->get(route('classes.enrollments.index', $class))->assertOk()->assertDontSee('id="section-nova"', false);
         $class->update(['active' => true]);
+        $year->update(['active' => true]);
         $this->post(route('classes.enrollments.store', $class), $data)->assertSessionHasErrors('academic_year');
         $this->assertTrue($year->isReadOnly());
         $this->get(route('academic-years.show', $year))->assertOk()->assertDontSee('id="administrative-reopening"', false);
@@ -2298,8 +2302,8 @@ class AcademicCalendarTest extends TestCase
 
     public function test_archived_year_enrollments_remain_available_for_read_only_consultation(): void
     {
-        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
         $year = $this->academicYear(['active' => false, 'closed_at' => now()]);
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'manager.archived@ctjj.org');
         $class = $year->classes()->create(['name' => 'Turma arquivada', 'active' => true]);
         $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'historico.turma@ctjj.org');
         $enrollment = $class->enrollments()->create([
@@ -2322,8 +2326,8 @@ class AcademicCalendarTest extends TestCase
 
     public function test_student_cannot_be_enrolled_in_inactive_class(): void
     {
-        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
         $year = $this->academicYear();
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'manager.archived@ctjj.org');
         $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'aluno.matriz.inativa@ctjj.org');
         $course = $year->courses()->create([
             'name' => 'Matriz Regular',

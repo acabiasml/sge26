@@ -136,7 +136,7 @@ class AcademicPeriodController extends Controller
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
         $this->ensureYearIsOpen($academicYear);
 
-        if ($period->diaryConsolidation()->where('consolidated', true)->exists()) {
+        if (! $academicYear->allowsAdministrativeChanges() && $period->diaryConsolidation()->where('consolidated', true)->exists()) {
             throw ValidationException::withMessages([
                 'behavior_scores' => __('Este período já foi consolidado. Reabra o período antes de alterar comportamento.'),
             ]);
@@ -327,7 +327,7 @@ class AcademicPeriodController extends Controller
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
         $this->ensureYearIsOpen($academicYear);
 
-        if ($period->diaryConsolidation()->where('consolidated', true)->exists()) {
+        if (! $academicYear->allowsAdministrativeChanges() && $period->diaryConsolidation()->where('consolidated', true)->exists()) {
             throw ValidationException::withMessages([
                 'assessment_count' => __('Este período já foi consolidado pela gestão. Reabra o período antes de alterar as regras de avaliação.'),
             ]);

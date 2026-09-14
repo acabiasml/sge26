@@ -1049,7 +1049,7 @@ class TeacherDiaryController extends Controller
         abort_unless($academicYear && $schoolClass->academic_year_id === $academicYear->id, 404);
         abort_unless($schoolClass->courses()->whereKey($course->id)->exists(), 404);
         abort_unless($assignment && ($assignment->active || $academicYear->allowsAdministrativeChanges()), 404);
-        abort_unless($academicYear->approved_at !== null && $academicYear->active, 403);
+        abort_unless($academicYear->allowsAdministrativeChanges() || ($academicYear->approved_at !== null && $academicYear->active), 403);
 
         if ($request->user()->canManageSchool($academicYear->school_id)) {
             return;

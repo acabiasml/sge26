@@ -107,13 +107,13 @@ class AcademicYear extends Model
 
     public function allowsAdministrativeChanges(): bool
     {
-        return $this->administrative_reopened_at !== null && ! $this->isClosed()
-            && auth()->user()?->isAdministrator();
+        return auth()->user()?->isAdministrator() ?? false;
     }
 
     public function isReadOnly(): bool
     {
-        return $this->isClosed() || ($this->administrative_reopened_at !== null && ! $this->allowsAdministrativeChanges());
+        return ! $this->allowsAdministrativeChanges()
+            && ($this->isClosed() || ! $this->active || $this->administrative_reopened_at !== null);
     }
 
     public function referenceYearsLabel(): string

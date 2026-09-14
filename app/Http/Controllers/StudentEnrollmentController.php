@@ -66,7 +66,7 @@ class StudentEnrollmentController extends Controller
             ->orderBy('name')
             ->get();
 
-        $canManageEnrollments = ($class->active || $academicYear->allowsAdministrativeChanges()) && $academicYear->active && ! $academicYear->isReadOnly();
+        $canManageEnrollments = ($class->active || $academicYear->allowsAdministrativeChanges()) && ($academicYear->active || $academicYear->allowsAdministrativeChanges()) && ! $academicYear->isReadOnly();
 
         return view('student-enrollments.index', [
             'canManageEnrollments' => $canManageEnrollments,
@@ -109,7 +109,7 @@ class StudentEnrollmentController extends Controller
     {
         $academicYear = $class->academicYear()->firstOrFail();
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
-        if (! $academicYear->active) {
+        if (! $academicYear->active && ! $academicYear->allowsAdministrativeChanges()) {
             throw ValidationException::withMessages([
                 'academic_year_id' => __('Não é possível matricular estudante em ano letivo inativo.'),
             ]);

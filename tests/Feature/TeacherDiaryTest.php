@@ -1641,10 +1641,12 @@ class TeacherDiaryTest extends TestCase
             'academic_period_id' => $period->id, 'consolidated' => true,
         ]);
         $year->update(['active' => false, 'closed_at' => now()]);
-        $this->patch(route('academic-years.reopen', $year), ['reopen_reason' => 'Correção de nota'])->assertSessionHasNoErrors();
+        $this->assertNull($year->administrative_reopened_at);
+        $this->assertTrue($year->isClosed());
         $data = ['academic_period_id' => $period->id, 'scores' => [$assessment->id => [$enrollment->id => 8]]];
         $this->put(route('teacher-diaries.grades.update', [$class, $component]), $data)->assertSessionHasNoErrors();
         $this->assertDatabaseHas('diary_assessment_results', ['diary_assessment_id' => $assessment->id, 'student_enrollment_id' => $enrollment->id, 'score' => 8]);
+        $year->update(['active' => true]);
         $this->actingAs($teacher)->put(route('teacher-diaries.grades.update', [$class, $component]), $data)->assertSessionHasErrors('academic_period_id');
         $this->get(route('teacher-diaries.show', [$class, $component]))->assertOk();
     }
