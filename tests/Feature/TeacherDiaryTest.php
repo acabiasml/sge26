@@ -48,6 +48,28 @@ class TeacherDiaryTest extends TestCase
             ->assertSee('Meus horários');
     }
 
+    public function test_administrator_can_filter_all_school_years_and_see_inactive_diaries(): void
+    {
+        [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, $year->school_id, 'admin-all-years@ctjj.org');
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'manager-all-years@ctjj.org');
+        $year->school->update(['active' => false]);
+        $year->update(['active' => false, 'approved_at' => null, 'reference_year' => 2022]);
+        $class->update(['active' => false]);
+        SchoolClassComponent::query()->where('school_class_id', $class->id)->update(['active' => false]);
+        $other = School::query()->create(['name' => 'Outra escola arquivada', 'active' => false]);
+        $otherYear = $other->academicYears()->create(['name' => 'Ano antigo', 'reference_year' => 2021, 'starts_at' => '2021-01-01', 'ends_at' => '2021-12-31', 'active' => false]);
+        $this->actingAs($admin)->get(route('teacher-diaries.index'))
+            ->assertOk()->assertSee($other->name)
+            ->assertViewHas('years', fn ($years) => $years->contains('id', $year->id) && $years->contains('id', $otherYear->id));
+        $this->get(route('teacher-diaries.index', ['year' => 2022, 'academic_year' => $year->id]))
+            ->assertOk()->assertViewHas('years', fn ($years) => $years->count() === 1 && $years->first()->id === $year->id)
+            ->assertSee($class->name)->assertSee($component->name)
+            ->assertViewHas('stats', fn ($stats) => $stats['total'] > 0);
+        $this->actingAs($manager)->get(route('teacher-diaries.index', ['academic_year' => $otherYear->id]))
+            ->assertOk()->assertViewHas('years', fn ($years) => $years->isEmpty())->assertDontSee($other->name);
+    }
+
     public function test_management_diary_index_is_grouped_by_class_with_filters(): void
     {
         [$teacher, $year, $class, $component, $period] = $this->diaryScenario();

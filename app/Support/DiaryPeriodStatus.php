@@ -16,12 +16,12 @@ use Illuminate\Support\Collection;
 class DiaryPeriodStatus
 {
     /** @return Collection<int, SchoolClassComponent> */
-    public function assignments(AcademicYear $academicYear): Collection
+    public function assignments(AcademicYear $academicYear, bool $includeInactive = false): Collection
     {
         return SchoolClassComponent::query()
             ->with(['schoolClass.courses', 'schoolClass.startsPeriod', 'schoolClass.endsPeriod', 'component.area', 'component.course', 'component.startsPeriod', 'component.endsPeriod', 'teacher'])
-            ->where('active', true)
-            ->whereHas('schoolClass', fn (Builder $query) => $query->where('academic_year_id', $academicYear->id)->where('active', true))
+            ->when(! $includeInactive, fn (Builder $query) => $query->where('active', true))
+            ->whereHas('schoolClass', fn (Builder $query) => $query->where('academic_year_id', $academicYear->id)->when(! $includeInactive, fn (Builder $classes) => $classes->where('active', true)))
             ->whereHas('component.course', fn (Builder $query) => $query->where('academic_year_id', $academicYear->id))
             ->get()
             ->filter(fn (SchoolClassComponent $assignment): bool => $assignment->schoolClass?->courses->contains('id', $assignment->component?->course?->id) ?? false)
@@ -72,14 +72,14 @@ class DiaryPeriodStatus
     }
 
     /** @return Collection<int, array{assignment:SchoolClassComponent,confirmation:?DiaryPeriodConfirmation,pending:array{attendance_without_content:list<string>,content_without_attendance:list<string>,missing_grades:int,is_pending:bool}}> */
-    public function summaries(AcademicYear $academicYear, AcademicPeriod $period): Collection
+    public function summaries(AcademicYear $academicYear, AcademicPeriod $period, bool $includeInactive = false): Collection
     {
         $confirmations = DiaryPeriodConfirmation::query()
             ->where('academic_period_id', $period->id)
             ->get()
             ->keyBy(fn (DiaryPeriodConfirmation $confirmation): string => $confirmation->school_class_id.'-'.$confirmation->curriculum_component_id);
 
-        return $this->assignments($academicYear)
+        return $this->assignments($academicYear, $includeInactive)
             ->filter(fn (SchoolClassComponent $assignment): bool => $this->assignmentIsActiveInPeriod($assignment, $period))
             ->map(function (SchoolClassComponent $assignment) use ($period, $confirmations): array {
                 return [

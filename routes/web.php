@@ -146,6 +146,10 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('meu-diario/{enrollment}/horario-pdf', [StudentDiaryController::class, 'schedulePdf'])->name('student-diaries.schedule-pdf');
     Route::get('meu-diario/{enrollment}/{component}', [StudentDiaryController::class, 'show'])->name('student-diaries.show');
 
+    Route::get('areas-curriculares/{area}/usos', [\App\Http\Controllers\KnowledgeAreaController::class, 'usages'])->name('knowledge-areas.usages');
+    Route::delete('areas-curriculares/{area}/componentes/{component}', [\App\Http\Controllers\KnowledgeAreaController::class, 'detach'])->name('knowledge-areas.detach');
+    Route::delete('areas-curriculares/{area}/vinculos', [\App\Http\Controllers\KnowledgeAreaController::class, 'detachAll'])->name('knowledge-areas.detach-all');
+    Route::delete('areas-curriculares/{area}', [\App\Http\Controllers\KnowledgeAreaController::class, 'destroy'])->name('knowledge-areas.destroy');
     Route::get('areas-curriculares', [\App\Http\Controllers\KnowledgeAreaController::class, 'index'])->name('knowledge-areas.index');
     Route::post('areas-curriculares', [\App\Http\Controllers\KnowledgeAreaController::class, 'store'])->name('knowledge-areas.store');
     Route::put('areas-curriculares/{area}', [\App\Http\Controllers\KnowledgeAreaController::class, 'update'])->name('knowledge-areas.update');

@@ -34,7 +34,7 @@
                 @if($academicYear && $period)
                     {{ $academicYear->name }} · {{ $period->name }} · {{ $period->starts_at->format('d/m/Y') }} {{ __('a') }} {{ $period->ends_at->format('d/m/Y') }}
                 @else
-                    {{ __('Selecione um ano letivo aprovado para acompanhar os diários.') }}
+                    {{ __('Selecione um ano letivo e um período para acompanhar os diários.') }}
                 @endif
             </p>
         </div>
@@ -78,10 +78,17 @@
                     </select>
                 </div>
                 <div class="form-group">
+                    <label for="year">{{ __('Ano') }}</label>
+                    <select id="year" name="year" class="custom-select">
+                        <option value="">{{ __('Todos') }}</option>
+                        @foreach($referenceYears as $referenceYear)<option value="{{ $referenceYear }}" @selected((string) request('year') === (string) $referenceYear)>{{ $referenceYear }}</option>@endforeach
+                    </select>
+                </div>
+                <div class="form-group">
                     <label for="academic_year">{{ __('Ano letivo') }}</label>
                     <select id="academic_year" name="academic_year" class="custom-select">
                         @foreach($years as $year)
-                            <option value="{{ $year->id }}" @selected($academicYear?->id === $year->id)>{{ $year->school?->name }} · {{ $year->name }}</option>
+                            <option value="{{ $year->id }}" @selected($academicYear?->id === $year->id)>{{ $year->reference_year }} · {{ $year->school?->name }} · {{ $year->name }}</option>
                         @endforeach
                     </select>
                 </div>

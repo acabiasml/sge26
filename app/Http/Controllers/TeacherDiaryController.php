@@ -77,7 +77,7 @@ class TeacherDiaryController extends Controller
     {
         $user = $request->user();
         $schoolIds = $user->isAdministrator()
-            ? School::query()->where('active', true)->orderBy('name')->pluck('id')->all()
+            ? School::query()->orderBy('name')->pluck('id')->all()
             : $user->manageableSchoolIds();
 
         $schools = School::query()
@@ -88,11 +88,15 @@ class TeacherDiaryController extends Controller
         $years = AcademicYear::query()
             ->with('school')
             ->whereIn('school_id', $schoolIds)
-            ->where('active', true)
-            ->whereNotNull('approved_at')
+            ->when(! $user->isAdministrator(), fn (Builder $query) => $query->where('active', true)->whereNotNull('approved_at'))
             ->when($request->filled('school'), fn (Builder $query) => $query->where('school_id', $request->integer('school')))
             ->orderByDesc('starts_at')
             ->get();
+
+        $referenceYears = $years->pluck('reference_year')->filter()->unique()->sortDesc()->values();
+        if ($request->filled('year')) {
+            $years = $years->where('reference_year', $request->integer('year'))->values();
+        }
 
         $academicYear = $years->firstWhere('id', $request->integer('academic_year')) ?? $years->first();
         $periods = $academicYear
@@ -123,7 +127,7 @@ class TeacherDiaryController extends Controller
                 ->get()
                 ->countBy(fn (DiaryAlert $alert): string => $alert->school_class_id.'-'.$alert->curriculum_component_id);
 
-            $summaries = $status->summaries($academicYear, $period)
+            $summaries = $status->summaries($academicYear, $period, $user->isAdministrator())
                 ->map(function (array $summary) use ($alertCounts): array {
                     $summary['alert_count'] = (int) ($alertCounts->get($summary['assignment']->school_class_id.'-'.$summary['assignment']->curriculum_component_id) ?? 0);
 
@@ -151,7 +155,7 @@ class TeacherDiaryController extends Controller
                 })
                 ->values();
 
-            $allAssignments = $status->assignments($academicYear);
+            $allAssignments = $status->assignments($academicYear, $user->isAdministrator());
             $classOptions = $allAssignments->pluck('schoolClass')->filter()->unique('id')->sortBy('name')->values();
             $teacherOptions = $allAssignments->pluck('teacher')->filter()->unique('id')->sortBy('full_name')->values();
             $componentOptions = $allAssignments->pluck('component')->filter()->unique('id')->sortBy('name')->values();
@@ -188,6 +192,7 @@ class TeacherDiaryController extends Controller
         return view('teacher-diaries.management-index', [
             'schools' => $schools,
             'years' => $years,
+            'referenceYears' => $referenceYears,
             'periods' => $periods,
             'academicYear' => $academicYear,
             'period' => $period,

@@ -1065,6 +1065,32 @@ class AcademicCalendarTest extends TestCase
         ]);
     }
 
+    public function test_area_usage_detaching_and_deletion_preserve_components_and_require_administrator(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'manager-area-usage@ctjj.org');
+        $course = $year->courses()->create(['name' => 'Matriz dos usos', 'stage' => 'fundamental', 'active' => true]);
+        $area = KnowledgeArea::query()->create(['name' => 'Área para revisão', 'formation' => CurriculumCatalog::FORMATION_FGB]);
+        $first = $course->components()->create(['name' => 'Componente preservado', 'knowledge_area_id' => $area->id]);
+        $second = $course->components()->create(['name' => 'Outro componente', 'knowledge_area_id' => $area->id]);
+        $this->actingAs($manager)->delete(route('knowledge-areas.detach', [$area, $first]))->assertForbidden();
+        $this->delete(route('knowledge-areas.detach-all', $area))->assertForbidden();
+        $this->delete(route('knowledge-areas.destroy', $area))->assertForbidden();
+        $this->actingAs($admin)->get(route('knowledge-areas.usages', $area))->assertOk()->assertSee($first->name)->assertSee($course->name)->assertSee($year->school->name);
+        $this->delete(route('knowledge-areas.destroy', $area))->assertSessionHasErrors('area');
+        $this->delete(route('knowledge-areas.detach', [$area, $first]))->assertSessionHasNoErrors();
+        $this->assertNull($first->refresh()->knowledge_area_id);
+        $this->assertSame($area->id, $second->refresh()->knowledge_area_id);
+        $this->delete(route('knowledge-areas.detach', [$area, $first]))->assertNotFound();
+        $this->delete(route('knowledge-areas.detach-all', $area))->assertSessionHasNoErrors();
+        $this->assertNull($second->refresh()->knowledge_area_id);
+        $this->delete(route('knowledge-areas.destroy', $area))->assertSessionHasNoErrors();
+        $this->assertDatabaseMissing('knowledge_areas', ['id' => $area->id]);
+        $this->assertDatabaseHas('curriculum_components', ['id' => $first->id, 'name' => $first->name]);
+        $this->assertDatabaseHas('curriculum_components', ['id' => $second->id]);
+    }
+
     public function test_explicit_area_formation_controls_components_across_stages_and_can_be_edited(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
