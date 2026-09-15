@@ -9,54 +9,7 @@
             <h2 class="h6 m-0 font-weight-bold text-primary">{{ __('screens.new_announcement') }}</h2>
         </div>
         <div class="card-body">
-            <form method="POST" action="{{ route('announcements.store') }}">
-                @csrf
-                <div class="row">
-                    <div class="col-md-4 form-group">
-                        <label for="school_id">{{ __('screens.destination') }}</label>
-                        <select id="school_id" name="school_id" class="form-control" @unless(auth()->user()->isAdministrator()) required @endunless>
-                            @if (auth()->user()->isAdministrator())
-                                <option value="">{{ __('screens.global_all_schools') }}</option>
-                            @else
-                                <option value="">{{ __('screens.select') }}</option>
-                            @endif
-                            @foreach ($schools as $school)
-                                <option value="{{ $school->id }}">{{ $school->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-4 form-group">
-                        <label for="starts_at">{{ __('screens.display_from') }}</label>
-                        <input id="starts_at" name="starts_at" type="datetime-local" class="form-control" value="{{ now()->format('Y-m-d\TH:i') }}" required>
-                    </div>
-                    <div class="col-md-4 form-group">
-                        <label for="ends_at">{{ __('screens.display_until') }}</label>
-                        <input id="ends_at" name="ends_at" type="datetime-local" class="form-control">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="title">{{ __('screens.title') }}</label>
-                    <input id="title" name="title" class="form-control" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="body">{{ __('screens.message') }}</label>
-                    <textarea id="body" name="body" class="form-control" rows="4" required></textarea>
-                </div>
-
-                <div class="custom-control custom-checkbox mb-2">
-                    <input class="custom-control-input" id="highlight" name="highlight" type="checkbox" value="1">
-                    <label class="custom-control-label" for="highlight">{{ __('screens.highlight_home') }}</label>
-                </div>
-
-                <div class="custom-control custom-checkbox mb-3">
-                    <input class="custom-control-input" id="active" name="active" type="checkbox" value="1" checked>
-                    <label class="custom-control-label" for="active">{{ __('screens.active_announcement') }}</label>
-                </div>
-
-                <button class="btn btn-primary" type="submit">{{ __('screens.save_announcement') }}</button>
-            </form>
+            @include('announcements.form')
         </div>
     </div>
 
@@ -92,6 +45,7 @@
                             </td>
                             <td>{{ $announcement->active ? __('screens.active_m') : __('screens.inactive_m') }}</td>
                             <td>
+                                <a class="btn btn-sm btn-outline-primary mb-2" href="{{ route('announcements.edit', $announcement) }}"><i class="fas fa-pen mr-1" aria-hidden="true"></i>{{ __('Editar') }}</a>
                                 <form method="POST" action="{{ route('announcements.destroy', $announcement) }}" onsubmit="return confirm(@js(__('screens.remove_announcement_confirm')))">
                                     @csrf
                                     @method('DELETE')

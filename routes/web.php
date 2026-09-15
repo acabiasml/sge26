@@ -69,6 +69,8 @@ Route::put('/meu-cadastro', [ProfileController::class, 'update'])->middleware('a
 Route::patch('/tema', [ThemeController::class, 'update'])->middleware('auth')->name('theme.update');
 Route::patch('/idioma', [LocaleController::class, 'update'])->middleware('auth')->name('locale.update');
 
+Route::post('recados/{announcement}/visto', [AnnouncementController::class, 'seen'])->middleware('auth')->name('announcements.seen');
+
 Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::resource('escolas', SchoolController::class)
         ->parameters(['escolas' => 'school'])
@@ -237,6 +239,8 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
 
     Route::get('recados', [AnnouncementController::class, 'index'])->name('announcements.index');
     Route::post('recados', [AnnouncementController::class, 'store'])->name('announcements.store');
+    Route::get('recados/{announcement}/editar', [AnnouncementController::class, 'edit'])->name('announcements.edit');
+    Route::put('recados/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
     Route::delete('recados/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
 
     Route::get('auditoria', [AuditLogController::class, 'index'])->name('audit-logs.index');

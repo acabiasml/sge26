@@ -2403,5 +2403,13 @@
     "Todos os componentes foram desvinculados da área.": "Tutte le materie sono state scollegate dall’area.",
     "Desvincule os componentes antes de excluir a área.": "Scollega le materie prima di eliminare l’area.",
     "Área excluída com sucesso.": "Area eliminata correttamente.",
-    "Voltar para Pessoas": "Torna a Persone"
+    "Voltar para Pessoas": "Torna a Persone",
+    "Editar recado": "Modifica avviso",
+    "Voltar para Recados": "Torna agli avvisi",
+    "Recado atualizado com sucesso.": "Avviso aggiornato con successo.",
+    "Recado em destaque": "Avviso in evidenza",
+    "Ao marcar como visto, este recado não abrirá novamente nos próximos acessos.": "Segnandolo come letto, questo avviso non si aprirà più ai prossimi accessi.",
+    "Não foi possível salvar. Tente novamente.": "Impossibile salvare. Riprova.",
+    "Fechar por enquanto": "Chiudi per ora",
+    "Marcar como já visto": "Segna come letto"
 }

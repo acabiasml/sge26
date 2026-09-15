@@ -39,6 +39,42 @@ class AnnouncementController extends Controller
             ->with('status', __('Recado cadastrado com sucesso.'));
     }
 
+    public function edit(Request $request, Announcement $announcement): View
+    {
+        $this->authorizeEdit($request, $announcement);
+
+        return view('announcements.edit', ['announcement' => $announcement, 'schools' => $this->schools($request)]);
+    }
+
+    public function update(Request $request, Announcement $announcement): RedirectResponse
+    {
+        $this->authorizeEdit($request, $announcement);
+        $data = $this->validatedData($request);
+        abort_unless($request->user()->isAdministrator() || $request->user()->canManageSchool((int) ($data['school_id'] ?? 0)), 403);
+        $announcement->update($data);
+
+        return redirect()->route('announcements.index')->with('status', __('Recado atualizado com sucesso.'));
+    }
+
+    public function seen(Request $request, Announcement $announcement): \Illuminate\Http\Response
+    {
+        abort_unless(Announcement::query()->visibleTo($request->user())->whereKey($announcement->id)->exists(), 403);
+        \Illuminate\Support\Facades\DB::table('announcement_reads')->insertOrIgnore([
+            'announcement_id' => $announcement->id,
+            'user_id' => $request->user()->id,
+            'seen_at' => now(),
+        ]);
+
+        return response()->noContent();
+    }
+
+    private function authorizeEdit(Request $request, Announcement $announcement): void
+    {
+        abort_unless($announcement->school_id === null
+            ? $request->user()->isAdministrator()
+            : $request->user()->canManageSchool($announcement->school_id), 403);
+    }
+
     public function destroy(Request $request, Announcement $announcement): RedirectResponse
     {
         abort_unless($announcement->school_id === null

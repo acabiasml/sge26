@@ -27,6 +27,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Auth\Events\Login::class, function (): void {
+            session()->forget('announcements_presented');
+        });
+
         $appDir = trim((string) config('app.dir'), '/');
 
         if ($appDir === '') {
@@ -69,6 +73,17 @@ class AppServiceProvider extends ServiceProvider
                 ->latest('starts_at')
                 ->limit(5)
                 ->get();
+
+            $shown = session('announcements_presented', []);
+            $highlighted = Announcement::query()->with('school')->visibleTo($user)
+                ->where('highlight', true)->whereNotIn('id', $shown)
+                ->whereNotExists(function ($query) use ($user): void {
+                    $query->selectRaw('1')->from('announcement_reads')
+                        ->whereColumn('announcement_reads.announcement_id', 'announcements.id')
+                        ->where('user_id', $user->id);
+                })->latest('starts_at')->get();
+            session(['announcements_presented' => array_values(array_unique(array_merge($shown, $highlighted->modelKeys())))]);
+            $view->with('highlightedAnnouncements', $highlighted);
 
             $diaryAlerts = DiaryAlert::query()
                 ->with(['fromPerson', 'schoolClass', 'component', 'period'])

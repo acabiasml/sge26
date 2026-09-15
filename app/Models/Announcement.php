@@ -54,6 +54,12 @@ class Announcement extends Model
         return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        return $query->visibleNow()->when(! $user->isAdministrator(), fn (Builder $query) =>
+            $query->where(fn (Builder $query) => $query->whereNull('school_id')->orWhereIn('school_id', $user->visibleSchoolIds())));
+    }
+
     public function scopeVisibleNow(Builder $query): Builder
     {
         return $query

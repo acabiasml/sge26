@@ -26,3 +26,6 @@
     .sge-alert-entry summary { gap: .65rem; padding: .9rem; }
     .sge-alert-entry-body { padding: 1rem; }
 }
+
+.sge-highlight-modal .modal-content { border-top: .35rem solid var(--sge-primary, #784832); box-shadow: 0 1.5rem 5rem rgba(0, 0, 0, .25); }
+.sge-highlight-modal .modal-header, .sge-highlight-modal .modal-body, .sge-highlight-modal .modal-footer { padding: 1.5rem; }

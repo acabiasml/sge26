@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="utf-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
@@ -56,7 +57,7 @@
                 <div class="sidebar-brand-text mx-3">Beabá</div>
             </a>
 
-            <hr class="sidebar-divider my-0">
+
 
             @php
                 $currentUser = auth()->user();
@@ -399,6 +400,7 @@
     </div>
 
     @include('layouts.partials.alert-details')
+    @include('layouts.partials.highlighted-announcements')
 
     <script src="{{ asset('template/vendor/jquery/jquery.min.js') }}"></script>
     <script src="{{ asset('template/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
