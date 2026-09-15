@@ -13,6 +13,7 @@ class KnowledgeArea extends Model
     use Auditable, HasFactory, HasTitleCaseAttributes;
 
     protected $fillable = [
+        'formation',
         'name',
         'sort_order',
         'active',

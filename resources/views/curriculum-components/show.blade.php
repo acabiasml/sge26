@@ -105,8 +105,13 @@
                             <div class="row">
                                 <div class="col-md-4 form-group">
                                     <label for="component_area">{{ __('Área') }}</label>
-                                    <input id="component_area" class="form-control" value="{{ $component->area?->name ?? __('Não definida') }}" disabled>
-                                    <input type="hidden" name="knowledge_area_id" value="{{ $component->knowledge_area_id }}">
+                                    <select id="component_area" name="knowledge_area_id" class="form-control" required>
+                                        <option value="">{{ __('Selecione a área') }}</option>
+                                        @foreach($knowledgeAreas as $area)
+                                            <option value="{{ $area->id }}" @selected(old('knowledge_area_id', $component->knowledge_area_id) == $area->id)>{{ $area->name }} — {{ __($area->formation ?: 'Formação não definida') }}</option>
+                                        @endforeach
+                                    </select>
+                                    @if(auth()->user()->isAdministrator())<a href="{{ route('knowledge-areas.index') }}" target="_blank" rel="noopener">{{ __('Gerenciar áreas e formações') }}</a>@endif
                                 </div>
                                 <div class="col-md-4 form-group">
                                     <label for="component_starts_period_id">{{ __('Período inicial') }}</label>

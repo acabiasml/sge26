@@ -106,12 +106,13 @@
                                 </div>
                                 <div class="col-md-4 form-group">
                                     <label for="new_component_area_id">{{ __('Área') }}</label>
-                                    <select id="new_component_area_id" name="knowledge_area_id" class="form-control" data-curriculum-area-select>
+                                    <select id="new_component_area_id" name="knowledge_area_id" class="form-control" required data-curriculum-area-select>
                                         <option value="">{{ __('Não definida') }}</option>
                                         @foreach ($knowledgeAreas as $area)
-                                            <option value="{{ $area->id }}">{{ $area->name }}</option>
+                                            <option value="{{ $area->id }}" @selected(old('knowledge_area_id') == $area->id)>{{ $area->name }} — {{ __($area->formation ?: 'Formação não definida') }}</option>
                                         @endforeach
                                     </select>
+                                    @if(auth()->user()->isAdministrator())<a href="{{ route('knowledge-areas.index') }}" target="_blank" rel="noopener">{{ __('Gerenciar áreas e formações') }}</a>@endif
                                 </div>
                                 <div class="col-md-4 form-group" data-workload-choice>
                                     <label class="d-block">{{ __('Como informar a carga horária?') }}</label>
@@ -220,23 +221,6 @@
 
 @push('scripts')
     <script>
-        const curriculumSuggestions = @json($curriculumSuggestionsByComponent);
-        const componentInput = document.querySelector('[data-curriculum-component-name]');
-        const areaSelect = document.querySelector('[data-curriculum-area-select]');
-
-        const normalizeCurriculumText = (value) => value.trim().replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR');
-        const suggestionEntries = Object.values(curriculumSuggestions);
-
-        componentInput?.addEventListener('input', () => {
-            const selectedSuggestion = suggestionEntries.find((suggestion) => {
-                return normalizeCurriculumText(suggestion.component) === normalizeCurriculumText(componentInput.value);
-            });
-
-            if (selectedSuggestion?.area_id && areaSelect) {
-                areaSelect.value = selectedSuggestion.area_id;
-            }
-        });
-
         document.querySelectorAll('[data-workload-choice]').forEach((choice) => {
             const syncWorkloadChoice = () => {
                 const mode = choice.querySelector('input[name="workload_mode"]:checked')?.value;

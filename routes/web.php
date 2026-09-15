@@ -146,6 +146,10 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('meu-diario/{enrollment}/horario-pdf', [StudentDiaryController::class, 'schedulePdf'])->name('student-diaries.schedule-pdf');
     Route::get('meu-diario/{enrollment}/{component}', [StudentDiaryController::class, 'show'])->name('student-diaries.show');
 
+    Route::get('areas-curriculares', [\App\Http\Controllers\KnowledgeAreaController::class, 'index'])->name('knowledge-areas.index');
+    Route::post('areas-curriculares', [\App\Http\Controllers\KnowledgeAreaController::class, 'store'])->name('knowledge-areas.store');
+    Route::put('areas-curriculares/{area}', [\App\Http\Controllers\KnowledgeAreaController::class, 'update'])->name('knowledge-areas.update');
+
     Route::resource('anos-letivos', AcademicYearController::class)
         ->parameters(['anos-letivos' => 'academicYear'])
         ->names('academic-years')

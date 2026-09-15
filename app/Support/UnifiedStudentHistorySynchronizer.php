@@ -165,12 +165,6 @@ class UnifiedStudentHistorySynchronizer
             if ($stage === AcademicCourse::STAGE_TECHNICAL) {
                 $formation = 'Formação Técnica Profissional';
             }
-            if ($stage === AcademicCourse::STAGE_ELEMENTARY && Str::lower(trim($component->name)) === 'ensino religioso') {
-                $formation = CurriculumCatalog::FORMATION_FGB;
-            }
-            if ($stage === AcademicCourse::STAGE_ELEMENTARY && $formation === CurriculumCatalog::FORMATION_COMPLEMENTARY) {
-                $formation = 'Parte Diversificada';
-            }
             $historyComponent = $history->components()
                 ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($component->name), 'UTF-8')])
                 ->where('knowledge_area', $knowledgeArea)
@@ -181,6 +175,16 @@ class UnifiedStudentHistorySynchronizer
                 ->whereIn('knowledge_area', ['Itinerário Formativo', 'Educação Profissional e Tecnológica', 'Parte Complementar', 'Área não definida'])
                 ->when($moduleLabel !== null, fn ($query) => $query->where('module_label', $moduleLabel))
                 ->first();
+            if (! $historyComponent) {
+                $previousRows = $history->components()
+                    ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($component->name), 'UTF-8')])
+                    ->when($moduleLabel !== null, fn ($query) => $query->where('module_label', $moduleLabel))
+                    ->whereHas('records', fn ($query) => $query->where('student_academic_history_year_id', $yearRow->id))
+                    ->get();
+                if ($previousRows->count() === 1) {
+                    $historyComponent = $previousRows->first();
+                }
+            }
             $historyComponent ??= $history->components()->create([
                     'position' => $history->components()->count() + 1,
                     'formation' => $formation,

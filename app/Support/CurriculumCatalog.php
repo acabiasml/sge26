@@ -36,11 +36,8 @@ class CurriculumCatalog
 
     public static function knowledgeAreasForCourse(AcademicCourse $course)
     {
-        $areaNames = self::areaNamesForCourse($course);
-
         return KnowledgeArea::query()
             ->where('active', true)
-            ->when($areaNames !== [], fn ($query) => $query->whereIn('name', $areaNames))
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
@@ -91,41 +88,12 @@ class CurriculumCatalog
 
     public static function formationLabelForArea(AcademicCourse $course, ?KnowledgeArea $area): string
     {
-        if ($area === null) {
-            return $course->stage === AcademicCourse::STAGE_HIGH_SCHOOL
-                ? self::FORMATION_ITINERARY
-                : self::FORMATION_COMPLEMENTARY;
-        }
-
-        $fgbAreas = collect(config("curriculum.stages.{$course->stage}.formations.formacao_geral_basica.areas", []))
-            ->pluck('name')
-            ->map(fn (string $name): string => self::normalize($name))
-            ->all();
-
-        if (in_array(self::normalize($area->name), $fgbAreas, true)) {
-            return self::FORMATION_FGB;
-        }
-
-        if ($course->stage === AcademicCourse::STAGE_HIGH_SCHOOL || $course->stage === AcademicCourse::STAGE_TECHNICAL) {
-            return self::FORMATION_ITINERARY;
-        }
-
-        return self::FORMATION_COMPLEMENTARY;
+        return $area?->formation ?: 'Formação não definida';
     }
 
     public static function areaLabelForComponent(AcademicCourse $course, ?KnowledgeArea $area): string
     {
-        if (self::formationLabelForArea($course, $area) !== self::FORMATION_ITINERARY) {
-            return $area?->name ?? 'Área não definida';
-        }
-
-        if ($course->stage === AcademicCourse::STAGE_TECHNICAL) {
-            return $course->name;
-        }
-
-        return filled($course->itinerary_name)
-            ? $course->itinerary_name
-            : 'Aprofundamento de Estudos';
+        return $area?->name ?? 'Área não definida';
     }
 
     public static function formationOrder(string $formation): int

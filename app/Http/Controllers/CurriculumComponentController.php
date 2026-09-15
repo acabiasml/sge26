@@ -24,6 +24,7 @@ class CurriculumComponentController extends Controller
         return view('curriculum-components.show', [
             'academicYear' => $academicYear->load('school'),
             'course' => $course,
+            'knowledgeAreas' => CurriculumCatalog::knowledgeAreasForCourse($course)->when($component->area, fn ($areas) => $areas->push($component->area))->unique('id'),
             'component' => $component->load('area', 'startsPeriod', 'endsPeriod'),
             'periods' => $academicYear->periods()->orderBy('position')->get(),
         ]);
@@ -115,8 +116,7 @@ class CurriculumComponentController extends Controller
             $data['weekly_lessons'] = null;
         }
         unset($data['workload_mode']);
-        $data['knowledge_area_id'] = ($data['knowledge_area_id'] ?? null)
-            ?: CurriculumCatalog::areaIdForComponent($course, $data['name']);
+        $data['knowledge_area_id'] = $data['knowledge_area_id'] ?? null;
 
         return $data;
     }

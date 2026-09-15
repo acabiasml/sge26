@@ -1065,7 +1065,35 @@ class AcademicCalendarTest extends TestCase
         ]);
     }
 
-    public function test_component_area_is_inferred_from_curriculum_catalog(): void
+    public function test_explicit_area_formation_controls_components_across_stages_and_can_be_edited(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'area-manager@ctjj.org');
+        $this->actingAs($manager)->get(route('knowledge-areas.index'))->assertForbidden();
+        $this->post(route('knowledge-areas.store'), ['name' => 'Nova área', 'formation' => CurriculumCatalog::FORMATION_FGB])->assertForbidden();
+        $this->actingAs($admin)->post(route('knowledge-areas.store'), ['name' => 'Área escolhida', 'formation' => CurriculumCatalog::FORMATION_COMPLEMENTARY])->assertSessionHasNoErrors();
+        $area = KnowledgeArea::query()->where('name', 'Área Escolhida')->firstOrFail();
+        $course = $year->courses()->create(['name' => 'Fundamental', 'stage' => AcademicCourse::STAGE_ELEMENTARY, 'status' => 'curricular', 'active' => true]);
+        $component = $course->components()->create(['name' => 'Língua Portuguesa', 'workload_hours' => 80]);
+        $this->get(route('academic-years.courses.components.show', [$year, $course, $component]))->assertOk()->assertSee('select id="component_area"', false);
+        $this->put(route('academic-years.courses.components.update', [$year, $course, $component]), [
+            'name' => $component->name, 'knowledge_area_id' => $area->id, 'workload_mode' => 'workload_hours', 'workload_hours' => 80,
+        ])->assertSessionHasNoErrors();
+        $this->assertSame($area->id, $component->refresh()->knowledge_area_id);
+        $this->assertSame(CurriculumCatalog::FORMATION_COMPLEMENTARY, CurriculumCatalog::formationLabelForArea($course, $component->area));
+        $this->put(route('knowledge-areas.update', $area), ['name' => $area->name, 'formation' => CurriculumCatalog::FORMATION_FGB])->assertSessionHasNoErrors();
+        $this->assertSame(CurriculumCatalog::FORMATION_FGB, CurriculumCatalog::formationLabelForArea($course, $area->refresh()));
+        $course->stage = AcademicCourse::STAGE_HIGH_SCHOOL;
+        $this->assertSame(CurriculumCatalog::FORMATION_FGB, CurriculumCatalog::formationLabelForArea($course, $area));
+        $this->assertSame('Formação não definida', CurriculumCatalog::formationLabelForArea($course, null));
+        $this->put(route('knowledge-areas.update', $area), ['name' => $area->name, 'formation' => 'Inválida'])->assertSessionHasErrors('formation');
+        $languages = KnowledgeArea::query()->where('name', 'Linguagens e suas Tecnologias')->firstOrFail();
+        $course->stage = AcademicCourse::STAGE_ELEMENTARY;
+        $this->assertSame(CurriculumCatalog::FORMATION_FGB, CurriculumCatalog::formationLabelForArea($course, $languages));
+    }
+
+    public function test_component_area_is_not_inferred_from_its_name(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
         $year = $this->academicYear();
@@ -1093,7 +1121,7 @@ class AcademicCalendarTest extends TestCase
         $this->assertDatabaseHas('curriculum_components', [
             'academic_course_id' => $course->id,
             'name' => 'Biologia',
-            'knowledge_area_id' => $area->id,
+            'knowledge_area_id' => null,
             'weekly_lessons' => null,
             'workload_hours' => 80,
         ]);
@@ -1166,8 +1194,8 @@ class AcademicCalendarTest extends TestCase
             ->assertSee('Linguagens e suas Tecnologias')
             ->assertSee('Ciências Humanas e Sociais Aplicadas')
             ->assertSee('Itinerário Formativo')
-            ->assertDontSee('<option value="'.$unofficialArea->id.'">', false)
-            ->assertDontSee('Parte Diversificada');
+            ->assertSee('Informática')
+            ->assertSee('Parte Diversificada');
 
         $this->actingAs($admin)
             ->get(route('academic-years.courses.show', [$year, $elementarySchool]))
@@ -1176,8 +1204,8 @@ class AcademicCalendarTest extends TestCase
             ->assertSee('Ciências Humanas')
             ->assertSee('Ensino Religioso')
             ->assertSee('Parte Diversificada')
-            ->assertDontSee('<option value="'.$unofficialArea->id.'">', false)
-            ->assertDontSee('Itinerário Formativo');
+            ->assertSee('Informática')
+            ->assertSee('Itinerário Formativo');
 
         $this->actingAs($admin)
             ->post(route('academic-years.courses.components.store', [$year, $highSchool]), [
@@ -1187,7 +1215,7 @@ class AcademicCalendarTest extends TestCase
                 'workload_hours' => 40,
                 'active' => '1',
             ])
-            ->assertSessionHasErrors('knowledge_area_id');
+            ->assertSessionHasNoErrors();
     }
 
     public function test_course_components_are_grouped_by_area_and_sorted_by_name(): void
@@ -1241,11 +1269,11 @@ class AcademicCalendarTest extends TestCase
         );
         $this->assertSame(1, $groups->first()['rowspan']);
         $this->assertSame(1, $groups->last()['rowspan']);
-        $this->assertSame('Aprofundamento de Estudos', $groups->last()['areas']->first()['area']);
+        $this->assertSame('Itinerário Formativo', $groups->last()['areas']->first()['area']);
 
         $course->update(['itinerary_name' => 'Cultura Digital e Projeto de Vida']);
         $namedGroups = $course->fresh()->load('components.area')->componentsGroupedByFormationAndArea();
-        $this->assertSame('Cultura Digital e Projeto de Vida', $namedGroups->last()['areas']->first()['area']);
+        $this->assertSame('Itinerário Formativo', $namedGroups->last()['areas']->first()['area']);
     }
 
     public function test_technical_course_name_identifies_its_itinerary_area(): void
@@ -1269,7 +1297,7 @@ class AcademicCalendarTest extends TestCase
         $groups = $course->fresh()->load('components.area')->componentsGroupedByFormationAndArea();
 
         $this->assertSame(CurriculumCatalog::FORMATION_ITINERARY, $groups->first()['formation']);
-        $this->assertSame('Técnico em Móveis', $groups->first()['areas']->first()['area']);
+        $this->assertSame('Educação Profissional e Tecnológica', $groups->first()['areas']->first()['area']);
     }
 
     public function test_class_cannot_be_created_for_matrix_without_components(): void

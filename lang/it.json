@@ -2373,5 +2373,13 @@
     "Origem da importação": "Origine dell’importazione",
     "Referência na origem": "Riferimento originale",
     "Informações da importação": "Informazioni sull’importazione",
-    "Horas previstas": "Ore previste"
+    "Horas previstas": "Ore previste",
+    "Áreas e formações": "Aree e percorsi formativi",
+    "Gerenciar áreas e formações": "Gestire aree e percorsi formativi",
+    "Selecione a área": "Seleziona l’area",
+    "Formação não definida": "Percorso formativo non definito",
+    "Nova área": "Nuova area",
+    "Área cadastrada com sucesso.": "Area registrata correttamente.",
+    "Área atualizada com sucesso.": "Area aggiornata correttamente.",
+    "A formação da área é utilizada por todos os componentes vinculados a ela, em todas as matrizes. Alterações valem para os próximos relatórios gerados.": "Il percorso formativo dell’area è utilizzato da tutte le materie collegate, in tutti i piani di studio. Le modifiche si applicano ai prossimi documenti generati."
 }
