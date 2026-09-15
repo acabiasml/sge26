@@ -296,8 +296,8 @@
                         </li>
                         <li class="nav-item sge-language-switcher" aria-label="{{ __('navigation.language') }}">
                             @foreach ([
-                                'pt_BR' => ['flag' => '🇧🇷', 'label' => __('navigation.portuguese'), 'title' => __('navigation.change_to_portuguese')],
-                                'it' => ['flag' => '🇮🇹', 'label' => __('navigation.italian'), 'title' => __('navigation.change_to_italian')],
+                                'pt_BR' => ['flag' => 'br.svg', 'label' => __('navigation.portuguese'), 'title' => __('navigation.change_to_portuguese')],
+                                'it' => ['flag' => 'it.svg', 'label' => __('navigation.italian'), 'title' => __('navigation.change_to_italian')],
                             ] as $locale => $language)
                                 <form method="POST" action="{{ route('locale.update') }}">
                                     @csrf
@@ -306,7 +306,7 @@
                                     <button type="submit" class="sge-language-button {{ app()->getLocale() === $locale ? 'is-active' : '' }}"
                                         lang="{{ $locale === 'pt_BR' ? 'pt-BR' : 'it' }}" title="{{ $language['title'] }}"
                                         aria-label="{{ $language['title'] }}" aria-pressed="{{ app()->getLocale() === $locale ? 'true' : 'false' }}">
-                                        <span aria-hidden="true">{{ $language['flag'] }}</span>
+                                        <img src="{{ asset('template/img/flags/'.$language['flag']) }}" width="28" height="20" alt="" aria-hidden="true">
                                         <span class="sr-only">{{ $language['label'] }}</span>
                                     </button>
                                 </form>

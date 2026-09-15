@@ -4,6 +4,9 @@
 @section('page-title', __('screens.edit_person'))
 
 @section('content')
+    @if(auth()->user()->canManagePeople())
+        <a class="btn btn-outline-primary mb-3" href="{{ route('people.index') }}" data-people-return><i class="fas fa-arrow-left mr-1" aria-hidden="true"></i>{{ __('Voltar para Pessoas') }}</a>
+    @endif
     <div class="card shadow mb-4">
         <div class="card-body">
             <form method="POST" action="{{ route('people.update', $person) }}">
@@ -21,3 +24,7 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script src="{{ asset('template/js/sge-people-navigation.js') }}" data-people-list-url="{{ route('people.index') }}" defer></script>
+@endpush
