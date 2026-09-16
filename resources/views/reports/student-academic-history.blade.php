@@ -25,13 +25,13 @@
         .basic-history-matrix .score-cell { padding: 2px 0; white-space: nowrap; letter-spacing: -.2px; }
         .vertical-workload { height: 116px; position: relative; }
         .vertical-workload span { position: absolute; width: 140px; left: 50%; top: 50%; margin-left: -70px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; }
-        .vertical-formation { height: 160px; position: relative; }
-        .vertical-formation span { position: absolute; width: 190px; left: 50%; top: 50%; margin-left: -95px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; font-weight: 600; }
+        .vertical-formation { height: 128px; position: relative; }
+        .vertical-formation span { position: absolute; width: 150px; left: 50%; top: 50%; margin-left: -75px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; font-weight: 600; }
         .workload-totals { page-break-inside: avoid; margin-top: 6px; }
         .vertical-heading { height: 48px; position: relative; }
         .vertical-heading span { position: absolute; width: 72px; left: 50%; top: 50%; margin-left: -36px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; }
-        .vertical-result { height: 110px; position: relative; }
-        .vertical-result strong { position: absolute; width: 100px; left: 50%; top: 50%; margin-left: -50px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; }
+        .vertical-result { height: 128px; position: relative; }
+        .vertical-result strong { position: absolute; width: 150px; left: 50%; top: 50%; margin-left: -75px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; }
         .basic-history-matrix .global-year { background: #faf8f6; }
         .center { text-align: center; }
         .muted { color: #666; }

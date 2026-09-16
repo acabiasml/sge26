@@ -113,6 +113,9 @@ class HistoryMatrixTest extends TestCase
 
             return $component;
         }));
+        $summary = new StudentAcademicHistoryComponent(['name' => 'Síntese Global do Documento de Origem', 'knowledge_area' => 'Síntese Curricular', 'formation' => 'Formação Geral Básica']);
+        $summary->setRelation('records', collect());
+        $history->components->push($summary);
         $html = view('reports.partials.basic-history-matrix', compact('history'))->render();
         $document = new \DOMDocument;
         @$document->loadHTML('<?xml encoding="UTF-8">'.$html);
@@ -121,11 +124,16 @@ class HistoryMatrixTest extends TestCase
         $this->assertSame(2, substr_count($html, '8,5'));
         $this->assertStringContainsString('Língua Portuguesa', $html);
         $this->assertStringContainsString('Matemática', $html);
-        $this->assertSame(1, substr_count($html, 'Aprovado'));
+        $this->assertSame(1, substr_count($html, 'Síntese Global - Aprovado'));
+        $this->assertStringNotContainsString('Síntese Curricular', $html);
+        $this->assertStringNotContainsString('Síntese Global do Documento de Origem', $html);
+        $this->assertStringContainsString('1.000', $html);
+        $this->assertCount(3, $history->components);
 
         $global->transcript_mode = 'detailed';
         $html = view('reports.partials.basic-history-matrix', compact('history'))->render();
         $this->assertStringNotContainsString('data-global-year="1"', $html);
+        $this->assertStringContainsString('Síntese Global do Documento de Origem', $html);
         $this->assertSame(2, substr_count($html, '8,5'));
     }
 }

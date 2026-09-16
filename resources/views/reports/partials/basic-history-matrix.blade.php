@@ -1,5 +1,9 @@
 @php
-    $allMatrixComponents = $history->components->groupBy(fn ($component) => $component->formation ?: '-')
+    $hasGlobalSummary = $history->years->contains('transcript_mode', 'summary');
+    $allMatrixComponents = $history->components->reject(fn ($component) => $hasGlobalSummary
+        && (\Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii(trim($component->knowledge_area ?? ''))) === 'sintese curricular'
+            || \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii(trim($component->name ?? ''))) === 'sintese global do documento de origem'))
+        ->groupBy(fn ($component) => $component->formation ?: '-')
         ->flatMap(fn ($components) => $components->groupBy(fn ($component) => $component->knowledge_area ?: '-')->flatten(1))->values();
     $columnUnits = $history->years->sum(fn ($year) => $year->transcript_mode === 'detailed' ? 2 : 1);
     $wideComponentColumn = $history->education_stage === 'medio' && $history->years->count() <= 4;
@@ -57,7 +61,7 @@
             @foreach($history->years as $year)
                 @if($year->transcript_mode !== 'detailed')
                     @if($firstMatrixRow)<td rowspan="{{ $matrixComponents->count() }}" class="center global-year" style="width:{{ $unitWidth }}%" data-global-year="{{ $year->id }}">
-                        @if($year->transcript_mode === 'summary')<div class="vertical-result"><strong>{{ $year->final_result ?: 'Global' }}</strong></div>
+                        @if($year->transcript_mode === 'summary')<div class="vertical-result"><strong>Síntese Global - {{ $year->final_result ?: '-' }}</strong></div>
                         @else{{ $year->final_result ?: 'Sem transcrição' }}@endif
                     </td>@endif
                 @else
