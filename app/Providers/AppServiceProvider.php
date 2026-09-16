@@ -5,7 +5,9 @@ namespace App\Providers;
 use App\Models\Announcement;
 use App\Models\DiaryAlert;
 use App\Models\User;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
@@ -27,7 +29,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        \Illuminate\Support\Facades\Event::listen(\Illuminate\Auth\Events\Login::class, function (): void {
+        Event::listen(Login::class, function (): void {
             session()->forget('announcements_presented');
         });
 

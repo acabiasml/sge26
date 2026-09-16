@@ -23,7 +23,7 @@ class AnnouncementManagementTest extends TestCase
 
     private function manager(?School $school = null): User
     {
-        $person = Person::create(['full_name' => 'Gestor']);
+        $person = Person::create(['full_name' => 'Gestor', 'cpf' => '12345678901', 'birth_date' => '1990-01-01', 'birth_city' => 'Poxoreu', 'birth_state' => 'MT', 'nationality' => 'Brasileira', 'mother_name' => 'Maria', 'address' => 'Rua A', 'city' => 'Poxoreu', 'state' => 'MT', 'postal_code' => '78700000', 'profile_completed_at' => now()]);
         $person->schoolRoles()->create(['school_id' => $school?->id, 'role' => $school ? PersonSchoolRole::ROLE_MANAGER : PersonSchoolRole::ROLE_ADMINISTRATOR, 'active' => true, 'started_at' => now()->subDay()]);
 
         return User::factory()->create(['person_id' => $person->id]);

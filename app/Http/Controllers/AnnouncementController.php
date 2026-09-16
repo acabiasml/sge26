@@ -7,6 +7,8 @@ use App\Models\School;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -56,10 +58,10 @@ class AnnouncementController extends Controller
         return redirect()->route('announcements.index')->with('status', __('Recado atualizado com sucesso.'));
     }
 
-    public function seen(Request $request, Announcement $announcement): \Illuminate\Http\Response
+    public function seen(Request $request, Announcement $announcement): Response
     {
         abort_unless(Announcement::query()->visibleTo($request->user())->whereKey($announcement->id)->exists(), 403);
-        \Illuminate\Support\Facades\DB::table('announcement_reads')->insertOrIgnore([
+        DB::table('announcement_reads')->insertOrIgnore([
             'announcement_id' => $announcement->id,
             'user_id' => $request->user()->id,
             'seen_at' => now(),
