@@ -47,6 +47,14 @@
             <td class="label">Nascimento</td>
             <td colspan="3">{{ $identityStudent->birth_date?->format('d/m/Y') ?? '-' }}</td>
         </tr>
+        @if(isset($academicYear, $schoolClass, $courses))
+            <tr>
+                <td class="label">Turma e etapa</td>
+                <td>{{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $courses) }}</td>
+                <td class="label">Ano letivo</td>
+                <td>{{ $academicYear->referenceYearsLabel() }}</td>
+            </tr>
+        @endif
     @else
     @if($identityStudent->social_name || $identityStudent->legacy_code)
         <tr>
@@ -96,6 +104,14 @@
         <td class="label">Pai</td>
         <td>{{ $identityStudent->father_name ?: '-' }}</td>
     </tr>
+    @if(isset($academicYear, $schoolClass, $courses))
+        <tr>
+            <td class="label">Turma e etapa</td>
+            <td>{{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $courses) }}</td>
+            <td class="label">Ano letivo</td>
+            <td>{{ $academicYear->referenceYearsLabel() }}</td>
+        </tr>
+    @endif
     @if($identityAddress)
         <tr>
             <td class="label">Endereço</td>

@@ -38,7 +38,7 @@
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 285px; padding-top: 6px; }
         .signature-name { display: block; font-weight: 600; }
         .signature-role { display: block; margin-top: 2px; }
-        .document-footer { position: fixed; bottom: -23px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 5px; text-align: center; font-size: 11px; color: #333; }
+        .document-footer { position: fixed; bottom: 10px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 5px; text-align: center; font-size: 11px; color: #333; }
         .document-footer-contact { line-height: 1.06; white-space: normal; overflow-wrap: break-word; }
     </style>
 </head>
@@ -173,9 +173,12 @@
     'showTechnicalRegulation' => false,
 ])
 
-<div class="class-line">{{ $classLine }}</div>
-
-@include('reports.partials.student-identification', ['student' => $student])
+@include('reports.partials.student-identification', [
+    'student' => $student,
+    'academicYear' => $academicYear,
+    'schoolClass' => $schoolClass,
+    'courses' => $courses,
+])
 
 <div class="section-title">Dados da matrícula</div>
 <table class="meta-table">

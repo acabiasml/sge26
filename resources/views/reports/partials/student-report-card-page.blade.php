@@ -134,11 +134,13 @@
     'showTechnicalRegulation' => false,
 ])
 
-<div class="class-line">
-    {{ $classLine }}
-</div>
-
-@include('reports.partials.student-identification', ['student' => $student, 'mode' => 'bulletin'])
+@include('reports.partials.student-identification', [
+    'student' => $student,
+    'mode' => 'bulletin',
+    'academicYear' => $academicYear,
+    'schoolClass' => $schoolClass,
+    'courses' => $courses,
+])
 
 @forelse($groupedComponents as $formationGroup)
     @php

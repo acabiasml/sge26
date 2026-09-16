@@ -22,7 +22,7 @@
         .signatures { border-collapse: collapse; margin-top: 48px; width: 100%; }
         .signatures td { border: 0; font-size: 11px; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 310px; padding-top: 6px; }
-        .document-footer { position: fixed; bottom: -20px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 5px; text-align: center; font-size: 11px; color: #333; }
+        .document-footer { position: fixed; bottom: 10px; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 5px; text-align: center; font-size: 11px; color: #333; }
     </style>
 </head>
 <body>
