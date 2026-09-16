@@ -123,7 +123,7 @@
                     <select id="component" name="component" class="custom-select">
                         <option value="">{{ __('Todos') }}</option>
                         @foreach($componentOptions as $component)
-                            <option value="{{ $component->id }}" @selected((string) request('component') === (string) $component->id)>{{ $component->name }}</option>
+                            <option value="{{ $component->id }}" @selected($selectedComponentName === mb_strtolower(trim($component->name)))>{{ $component->name }}</option>
                         @endforeach
                     </select>
                 </div>

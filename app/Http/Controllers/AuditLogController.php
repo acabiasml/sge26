@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Support\AuditLogGroups;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -35,6 +36,19 @@ class AuditLogController extends Controller
 
         return redirect()->route('audit-logs.index')
             ->with('status', __('Fuso horário da auditoria atualizado com sucesso.'));
+    }
+
+    public function group(Request $request, AuditLog $auditLog): View
+    {
+        abort_unless($request->user()->isAdministrator() || ($auditLog->school_id && $request->user()->canManageSchool($auditLog->school_id)), 404);
+        $group = AuditLogGroups::query($request->user())
+            ->where('audit_groups.first_id', '<=', $auditLog->id)->where('audit_logs.id', '>=', $auditLog->id)->select('audit_logs.*', 'audit_groups.group_count', 'audit_groups.first_id')->firstOrFail();
+        $records = AuditLog::query()->with(['actorUser', 'actorPerson', 'school'])
+            ->whereBetween('id', [$group->first_id, $group->id])
+            ->when(! $request->user()->isAdministrator(), fn ($query) => $query->whereIn('school_id', $request->user()->manageableSchoolIds()))
+            ->orderByDesc('id')->paginate(30);
+
+        return view('audit-logs.group', ['group' => $group, 'records' => $records, 'auditTimezone' => $request->user()->auditTimezone()]);
     }
 
     public function show(Request $request, AuditLog $auditLog): View

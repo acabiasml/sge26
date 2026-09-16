@@ -36,6 +36,7 @@
 
     <div class="card shadow mb-4 sge-livewire-table-card">
         <div class="card-body">
+            <p class="text-muted small">{{ __('Ações consecutivas do mesmo usuário são agrupadas. Abra o grupo para conferir cada registro.') }}</p>
             <livewire:audit-logs-table :audit-timezone="$auditTimezone" />
         </div>
     </div>

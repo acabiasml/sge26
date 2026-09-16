@@ -2,15 +2,20 @@
 
 namespace Tests\Feature;
 
-use App\Models\AuditLog;
-use App\Models\DiaryAssessmentResult;
-use App\Models\IssuedDocument;
 use App\Livewire\AuditLogsTable;
+use App\Models\AuditLog;
+use App\Models\Concerns\Auditable;
+use App\Models\DiaryAssessmentResult;
+use App\Models\DiaryAttendanceEntry;
+use App\Models\IssuedDocument;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\User;
+use App\Support\AuditLogGroups;
+use App\Support\AuditLogPresenter;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use RuntimeException;
@@ -23,12 +28,12 @@ class AuditLogTest extends TestCase
     public function test_audit_resolves_table_names_and_people_and_preserves_deleted_subjects(): void
     {
         $person = Person::query()->create(['full_name' => 'Aluno da Auditoria']);
-        $this->assertSame('Matrícula', \App\Support\AuditLogPresenter::modelLabel('student_enrollments'));
-        $this->assertSame('Aluno da Auditoria', \App\Support\AuditLogPresenter::value($person->id, 'teacher_person_id'));
+        $this->assertSame('Matrícula', AuditLogPresenter::modelLabel('student_enrollments'));
+        $this->assertSame('Aluno da Auditoria', AuditLogPresenter::value($person->id, 'teacher_person_id'));
         $person->delete();
         $audit = AuditLog::query()->where('auditable_type', Person::class)->where('auditable_id', $person->id)->where('action', 'deleted')->firstOrFail();
-        $this->assertSame('Pessoa — Aluno da Auditoria', \App\Support\AuditLogPresenter::recordLabel($audit));
-        $this->assertSame('14/09/2026', \App\Support\AuditLogPresenter::value('2026-09-14', 'enrolled_at'));
+        $this->assertSame('Pessoa — Aluno da Auditoria', AuditLogPresenter::recordLabel($audit));
+        $this->assertSame('14/09/2026', AuditLogPresenter::value('2026-09-14', 'enrolled_at'));
     }
 
     public function test_model_changes_are_audited_with_old_and_new_values(): void
@@ -87,8 +92,9 @@ class AuditLogTest extends TestCase
 
     public function test_model_updates_continue_when_audit_log_creation_fails(): void
     {
-        $model = new class extends \Illuminate\Database\Eloquent\Model {
-            use \App\Models\Concerns\Auditable;
+        $model = new class extends Model
+        {
+            use Auditable;
 
             protected $guarded = [];
 
@@ -104,10 +110,9 @@ class AuditLogTest extends TestCase
 
             protected function auditLogRepository(): Builder
             {
-                return new class extends \Illuminate\Database\Eloquent\Builder {
-                    public function __construct()
-                    {
-                    }
+                return new class extends Builder
+                {
+                    public function __construct() {}
 
                     public function create(array $attributes = [])
                     {
@@ -219,10 +224,10 @@ class AuditLogTest extends TestCase
             ],
         ]);
 
-        $changes = \App\Support\AuditLogPresenter::changes($audit);
+        $changes = AuditLogPresenter::changes($audit);
 
-        $this->assertSame('Diário de classe', \App\Support\AuditLogPresenter::recordLabel($audit));
-        $this->assertSame('Diário de classe', \App\Support\AuditLogPresenter::value('teacher-diary', 'type', IssuedDocument::class));
+        $this->assertSame('Diário de classe', AuditLogPresenter::recordLabel($audit));
+        $this->assertSame('Diário de classe', AuditLogPresenter::value('teacher-diary', 'type', IssuedDocument::class));
         $this->assertSame(
             ['Tipo', 'Código de verificação', 'Pessoa', 'Emitido pelo usuário', 'Dados complementares'],
             collect($changes)->pluck('field')->all(),
@@ -231,12 +236,12 @@ class AuditLogTest extends TestCase
         $student = Person::query()->create(['full_name' => 'Maria da Silva']);
         $audit->new_values = ['type' => 'student-academic-history', 'person_id' => $student->id];
 
-        $this->assertSame('Histórico escolar do estudante Maria da Silva', \App\Support\AuditLogPresenter::recordLabel($audit));
+        $this->assertSame('Histórico escolar do estudante Maria da Silva', AuditLogPresenter::recordLabel($audit));
 
         app()->setLocale('it');
 
-        $this->assertSame('Registrazione creata', \App\Support\AuditLogPresenter::actionLabel('created'));
-        $this->assertSame('Carriera scolastica dello studente Maria da Silva', \App\Support\AuditLogPresenter::recordLabel($audit));
+        $this->assertSame('Registrazione creata', AuditLogPresenter::actionLabel('created'));
+        $this->assertSame('Carriera scolastica dello studente Maria da Silva', AuditLogPresenter::recordLabel($audit));
     }
 
     public function test_non_administrator_cannot_change_audit_timezone(): void
@@ -251,6 +256,55 @@ class AuditLogTest extends TestCase
             ->assertForbidden();
 
         $this->assertNull($manager->refresh()->audit_timezone);
+    }
+
+    public function test_consecutive_audit_records_are_grouped_before_pagination_and_details_remain_available(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $first = null;
+        for ($i = 0; $i < 37; $i++) {
+            $last = AuditLog::create(['actor_user_id' => $admin->id, 'auditable_type' => 'batch-test', 'auditable_id' => $i + 1, 'action' => 'updated', 'created_at' => now()]);
+            $first ??= $last;
+        }
+        $query = AuditLogGroups::query($admin)->where('auditable_type', 'batch-test');
+        $groups = $query->select('audit_logs.*', 'audit_groups.group_count', 'audit_groups.first_id')->paginate(10);
+        $this->assertSame(1, $groups->total());
+        $this->assertSame(37, (int) $groups->first()->group_count);
+        $this->assertSame($first->id, (int) $groups->first()->first_id);
+        $this->actingAs($admin)->get(route('audit-logs.group', $last))->assertOk()->assertViewHas('records', fn ($records) => $records->total() === 37 && $records->count() === 30);
+        $this->get(route('audit-logs.group', [$last, 'page' => 2]))->assertOk()->assertViewHas('records', fn ($records) => $records->count() === 7);
+    }
+
+    public function test_audit_grouping_respects_actor_action_sequence_time_and_attendance_context(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $other = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $make = function ($actor, $context, $action = 'created', $time = null) {
+            $log = AuditLog::create(['actor_user_id' => $actor->id, 'auditable_type' => DiaryAttendanceEntry::class, 'auditable_id' => 99999, 'action' => $action, 'metadata' => ['group_context' => $context]]);
+            if ($time) {
+                $log->forceFill(['created_at' => $time])->save();
+            }
+
+            return $log;
+        };
+        $make($admin, 10);
+        $make($admin, 10);
+        $make($admin, 11);
+        $make($other, 11);
+        $make($admin, 11);
+        $make($admin, 11, 'updated');
+        $make($admin, 11, 'updated', now()->addMinutes(10));
+        $groups = AuditLogGroups::query($admin)->where('auditable_type', DiaryAttendanceEntry::class)->orderBy('audit_logs.id')->pluck('audit_groups.group_count')->map(fn ($count) => (int) $count)->all();
+        $this->assertSame([2, 1, 1, 1, 1, 1], $groups);
+    }
+
+    public function test_manager_cannot_open_a_group_from_another_school(): void
+    {
+        $school = School::create(['name' => 'Escola permitida']);
+        $other = School::create(['name' => 'Outra escola']);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $log = AuditLog::create(['school_id' => $other->id, 'auditable_type' => Person::class, 'auditable_id' => 123, 'action' => 'updated']);
+        $this->actingAs($manager)->get(route('audit-logs.group', $log))->assertNotFound();
     }
 
     private function userWithRole(string $role, ?int $schoolId = null): User

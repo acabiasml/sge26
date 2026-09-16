@@ -22,6 +22,7 @@ use App\Models\StudentEnrollment;
 use App\Support\DiaryGradeCalculator;
 use App\Support\DiaryPeriodStatus;
 use App\Support\PdfLetterhead;
+use App\Support\PdfMetadata;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -120,6 +121,9 @@ class TeacherDiaryController extends Controller
         ];
 
         if ($academicYear && $period) {
+            $allAssignments = $status->assignments($academicYear, $user->isAdministrator());
+            $selectedComponent = $allAssignments->pluck('component')->filter()->firstWhere('id', $request->integer('component'));
+            $selectedComponentName = $selectedComponent ? mb_strtolower(trim($selectedComponent->name)) : null;
             $alertCounts = DiaryAlert::query()
                 ->where('academic_period_id', $period->id)
                 ->whereNull('resolved_at')
@@ -133,7 +137,7 @@ class TeacherDiaryController extends Controller
 
                     return $summary;
                 })
-                ->filter(function (array $summary) use ($request): bool {
+                ->filter(function (array $summary) use ($request, $selectedComponentName): bool {
                     /** @var SchoolClassComponent $assignment */
                     $assignment = $summary['assignment'];
 
@@ -141,7 +145,7 @@ class TeacherDiaryController extends Controller
                         return false;
                     }
 
-                    if ($request->filled('component') && $assignment->curriculum_component_id !== $request->integer('component')) {
+                    if ($request->filled('component') && ($selectedComponentName === null || mb_strtolower(trim($assignment->component?->name ?? '')) !== $selectedComponentName)) {
                         return false;
                     }
 
@@ -155,10 +159,9 @@ class TeacherDiaryController extends Controller
                 })
                 ->values();
 
-            $allAssignments = $status->assignments($academicYear, $user->isAdministrator());
             $classOptions = $allAssignments->pluck('schoolClass')->filter()->unique('id')->sortBy('name')->values();
             $teacherOptions = $allAssignments->pluck('teacher')->filter()->unique('id')->sortBy('full_name')->values();
-            $componentOptions = $allAssignments->pluck('component')->filter()->unique('id')->sortBy('name')->values();
+            $componentOptions = $allAssignments->pluck('component')->filter()->unique(fn ($component) => mb_strtolower(trim($component->name)))->sortBy('name')->values();
 
             $stats = [
                 'total' => $summaries->count(),
@@ -199,6 +202,7 @@ class TeacherDiaryController extends Controller
             'classOptions' => $classOptions,
             'teacherOptions' => $teacherOptions,
             'componentOptions' => $componentOptions,
+            'selectedComponentName' => $selectedComponentName ?? null,
             'groupedClasses' => $groupedClasses,
             'stats' => $stats,
             'statusLabels' => $this->diaryManagementStatusLabels(),
@@ -514,7 +518,7 @@ class TeacherDiaryController extends Controller
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'landscape');
 
-        return \App\Support\PdfMetadata::stream($pdf, 'beaba-lista-chamada-'.$schoolClass->id.'-'.$component->id.'-'.$month->format('Ym').'.pdf');
+        return PdfMetadata::stream($pdf, 'beaba-lista-chamada-'.$schoolClass->id.'-'.$component->id.'-'.$month->format('Ym').'.pdf');
     }
 
     public function attendance(Request $request, SchoolClass $schoolClass, CurriculumComponent $component): View
@@ -902,6 +906,7 @@ class TeacherDiaryController extends Controller
 
                 if ($score === null || $score === '') {
                     $assessment->results()->where('student_enrollment_id', (int) $enrollmentId)->delete();
+
                     continue;
                 }
 

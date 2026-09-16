@@ -245,6 +245,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
 
     Route::get('auditoria', [AuditLogController::class, 'index'])->name('audit-logs.index');
     Route::patch('auditoria/fuso-horario', [AuditLogController::class, 'updateTimezone'])->name('audit-logs.timezone.update');
+    Route::get('auditoria/{auditLog}/grupo', [AuditLogController::class, 'group'])->name('audit-logs.group');
     Route::get('auditoria/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
 
     Route::get('relatorios/{type}/excel', [ReportController::class, 'excel'])->name('reports.excel');

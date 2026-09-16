@@ -16,6 +16,10 @@
 @section('page-title', $person->full_name)
 
 @section('page-actions')
+    @if(auth()->user()->canManagePeople())
+        <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.index') }}" data-people-return aria-label="{{ __('Voltar para Pessoas') }}" title="{{ __('Voltar para Pessoas') }}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
+    @endif
+
     @if (auth()->user()->isAdministrator() && config('services.google_workspace.enabled'))
         <form class="d-inline" method="POST" action="{{ route('people.google-workspace.store', $person) }}" onsubmit="return confirm(@js($person->google_workspace_id ? __('Verificar e atualizar o vínculo desta conta com o Google Workspace?') : __('Criar uma conta real no Google Workspace para este e-mail institucional?')));">
             @csrf
@@ -47,9 +51,6 @@
 @endsection
 
 @section('content')
-    @if(auth()->user()->canManagePeople())
-        <a class="btn btn-outline-primary mb-3" href="{{ route('people.index') }}" data-people-return><i class="fas fa-arrow-left mr-1" aria-hidden="true"></i>{{ __('Voltar para Pessoas') }}</a>
-    @endif
     <div class="row">
         <div class="col-xl-4 col-lg-5">
             <div class="card shadow mb-4">

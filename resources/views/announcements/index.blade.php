@@ -45,8 +45,8 @@
                             </td>
                             <td>{{ $announcement->active ? __('screens.active_m') : __('screens.inactive_m') }}</td>
                             <td>
-                                <a class="btn btn-sm btn-outline-primary mb-2" href="{{ route('announcements.edit', $announcement) }}"><i class="fas fa-pen mr-1" aria-hidden="true"></i>{{ __('Editar') }}</a>
-                                <form method="POST" action="{{ route('announcements.destroy', $announcement) }}" onsubmit="return confirm(@js(__('screens.remove_announcement_confirm')))">
+                                <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('announcements.edit', $announcement) }}" aria-label="{{ __('Editar recado') }}: {{ $announcement->title }}" title="{{ __('Editar recado') }}"><i class="fas fa-pen" aria-hidden="true"></i></a>
+                                <form class="d-inline" method="POST" action="{{ route('announcements.destroy', $announcement) }}" onsubmit="return confirm(@js(__('screens.remove_announcement_confirm')))">
                                     @csrf
                                     @method('DELETE')
                                     <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="{{ __('screens.remove_announcement', ['title' => $announcement->title]) }}" title="{{ __('screens.remove_announcement_title') }}">

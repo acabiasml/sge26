@@ -2411,5 +2411,11 @@
     "Ao marcar como visto, este recado não abrirá novamente nos próximos acessos.": "Segnandolo come letto, questo avviso non si aprirà più ai prossimi accessi.",
     "Não foi possível salvar. Tente novamente.": "Impossibile salvare. Riprova.",
     "Fechar por enquanto": "Chiudi per ora",
-    "Marcar como já visto": "Segna come letto"
+    "Marcar como já visto": "Segna come letto",
+    ":count registros em sequência": ":count registrazioni consecutive",
+    "Ver :count registros agrupados": "Visualizza :count registrazioni raggruppate",
+    "Registros agrupados": "Registrazioni raggruppate",
+    "Voltar para Auditoria": "Torna all’audit",
+    "Os registros originais e os detalhes de cada alteração foram preservados.": "I registri originali e i dettagli di ogni modifica sono stati conservati.",
+    "Ações consecutivas do mesmo usuário são agrupadas. Abra o grupo para conferir cada registro.": "Le azioni consecutive dello stesso utente sono raggruppate. Apri il gruppo per consultare ogni registrazione."
 }

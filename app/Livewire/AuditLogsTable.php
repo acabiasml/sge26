@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\AuditLog;
 use App\Models\School;
+use App\Support\AuditLogGroups;
 use App\Support\AuditLogPresenter;
 use Illuminate\Database\Eloquent\Builder;
 use Rappasoft\LaravelLivewireTables\DataTableComponent;
@@ -27,6 +28,8 @@ class AuditLogsTable extends DataTableComponent
             'audit_logs.old_values',
             'audit_logs.new_values',
             'audit_logs.metadata',
+            'audit_groups.group_count',
+            'audit_groups.first_id',
         ]);
         $this->setDefaultSort('created_at', 'desc');
         $this->setOfflineIndicatorDisabled();
@@ -36,9 +39,7 @@ class AuditLogsTable extends DataTableComponent
     {
         $user = auth()->user();
 
-        return AuditLog::query()
-            ->with(['actorUser', 'actorPerson', 'school'])
-            ->when(! $user->isAdministrator(), fn (Builder $query) => $query->whereIn('school_id', $user->manageableSchoolIds()));
+        return AuditLogGroups::query($user);
     }
 
     public function columns(): array
@@ -58,7 +59,7 @@ class AuditLogsTable extends DataTableComponent
                 ->sortable()
                 ->searchable(),
             Column::make(__('screens.record'))
-                ->label(fn (AuditLog $row): string => e(AuditLogPresenter::recordLabel($row)))
+                ->label(fn (AuditLog $row): string => e(AuditLogGroups::label($row)).((int) $row->group_count > 1 ? '<span class="d-block text-muted small">'.e(__(':count registros em sequência', ['count' => $row->group_count])).'</span>' : ''))
                 ->html(),
             Column::make(__('screens.school'), 'school.name')->sortable()->searchable(),
             Column::make(__('screens.details'))

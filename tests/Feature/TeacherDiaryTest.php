@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
+use App\Models\AcademicPeriodDiaryConsolidation;
 use App\Models\AcademicYear;
 use App\Models\CalendarDay;
 use App\Models\CurriculumComponent;
@@ -11,6 +12,7 @@ use App\Models\DiaryAlert;
 use App\Models\DiaryAssessment;
 use App\Models\DiaryAttendanceJustification;
 use App\Models\DiaryAttendanceRecord;
+use App\Models\DiaryPeriodConfirmation;
 use App\Models\IssuedDocument;
 use App\Models\Person;
 use App\Models\PersonContact;
@@ -21,10 +23,12 @@ use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
 use App\Models\StudentEnrollment;
 use App\Models\User;
+use App\Support\SchoolClassEnrollmentCourses;
 use App\Support\StudentAttendanceCertificateBuilder;
 use App\Support\StudentReportCardBuilder;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\View;
 use Tests\TestCase;
 
 class TeacherDiaryTest extends TestCase
@@ -89,6 +93,28 @@ class TeacherDiaryTest extends TestCase
             ->assertSee($class->name)
             ->assertSee($component->name)
             ->assertSee('Aguardando');
+    }
+
+    public function test_component_filter_groups_identical_names_and_matches_all_corresponding_diaries(): void
+    {
+        [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'manager-filter@ctjj.org');
+        $otherCourse = $component->course->replicate();
+        $otherCourse->name = 'Outra matriz';
+        $otherCourse->save();
+        $otherComponent = $component->replicate();
+        $otherComponent->academic_course_id = $otherCourse->id;
+        $otherComponent->save();
+        $otherClass = $class->replicate();
+        $otherClass->name = 'Outra turma';
+        $otherClass->save();
+        $otherClass->courses()->attach($otherCourse);
+        SchoolClassComponent::create(['school_class_id' => $otherClass->id, 'curriculum_component_id' => $otherComponent->id, 'teacher_person_id' => $teacher->person_id, 'active' => true]);
+        foreach ([$component->id, $otherComponent->id] as $id) {
+            $this->actingAs($manager)->get(route('teacher-diaries.index', ['academic_year' => $year->id, 'period' => $period->id, 'component' => $id]))
+                ->assertOk()->assertViewHas('componentOptions', fn ($options) => $options->count() === 1)
+                ->assertViewHas('groupedClasses', fn ($classes) => $classes->count() === 2);
+        }
     }
 
     public function test_component_with_short_duration_rejects_launches_outside_its_periods(): void
@@ -339,7 +365,7 @@ class TeacherDiaryTest extends TestCase
         $enrollment->update(['status' => StudentEnrollment::STATUS_TRANSFERRED]);
         $migration = require database_path('migrations/2026_09_09_000002_link_current_enrollments_to_class_courses.php');
         $migration->up();
-        \App\Support\SchoolClassEnrollmentCourses::synchronize($class);
+        SchoolClassEnrollmentCourses::synchronize($class);
         $this->assertFalse($enrollment->courses()->whereKey($course->id)->exists());
         $enrollment->update(['status' => StudentEnrollment::STATUS_ENROLLED]);
         $migration->up();
@@ -349,12 +375,12 @@ class TeacherDiaryTest extends TestCase
         $this->assertContains($technical->id, $report['annualComponents']->pluck('component.id')->all());
         $this->assertContains($component->id, $report['annualComponents']->pluck('component.id')->all());
         $enrollment->courses()->detach($course);
-        \App\Support\SchoolClassEnrollmentCourses::synchronize($class);
+        SchoolClassEnrollmentCourses::synchronize($class);
         $this->assertSame(2, $enrollment->courses()->count());
         $enrollment->courses()->detach($course);
         $year->update(['closed_at' => now()]);
         $migration->up();
-        \App\Support\SchoolClassEnrollmentCourses::synchronize($class->fresh());
+        SchoolClassEnrollmentCourses::synchronize($class->fresh());
         $this->assertSame(1, $enrollment->courses()->count());
     }
 
@@ -433,7 +459,7 @@ class TeacherDiaryTest extends TestCase
         $this->assertContains($technicalComponent->id, $report['annualComponents']->pluck('component.id')->all());
         $this->assertContains($technicalPeriod->id, $report['periods']->pluck('id')->all());
         $mirrorData = null;
-        \Illuminate\Support\Facades\View::composer('reports.class-grade-mirror', function ($view) use (&$mirrorData): void {
+        View::composer('reports.class-grade-mirror', function ($view) use (&$mirrorData): void {
             $mirrorData = $view->getData();
         });
         $this->actingAs($manager)
@@ -441,7 +467,6 @@ class TeacherDiaryTest extends TestCase
             ->assertOk()->assertHeader('content-type', 'application/pdf');
         $this->assertContains($technicalPeriod->id, $mirrorData['periods']->pluck('id')->all());
         $this->assertContains($technicalComponent->id, $mirrorData['components']->pluck('id')->all());
-
 
         $this->actingAs($manager)
             ->get(route('enrollments.report-card.pdf', $regularEnrollment))
@@ -1655,11 +1680,11 @@ class TeacherDiaryTest extends TestCase
             'assessment_count' => 1, 'weights' => [1], 'recovery_mode' => AcademicPeriod::RECOVERY_NONE,
         ])->assertSessionHasNoErrors();
         $assessment = DiaryAssessment::query()->firstOrFail();
-        \App\Models\DiaryPeriodConfirmation::query()->create([
+        DiaryPeriodConfirmation::query()->create([
             'school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
             'academic_period_id' => $period->id, 'confirmed' => true,
         ]);
-        \App\Models\AcademicPeriodDiaryConsolidation::query()->create([
+        AcademicPeriodDiaryConsolidation::query()->create([
             'academic_period_id' => $period->id, 'consolidated' => true,
         ]);
         $year->update(['active' => false, 'closed_at' => now()]);

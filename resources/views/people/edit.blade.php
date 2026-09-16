@@ -3,10 +3,13 @@
 @section('title', __('screens.edit_person'))
 @section('page-title', __('screens.edit_person'))
 
-@section('content')
+@section('page-actions')
     @if(auth()->user()->canManagePeople())
-        <a class="btn btn-outline-primary mb-3" href="{{ route('people.index') }}" data-people-return><i class="fas fa-arrow-left mr-1" aria-hidden="true"></i>{{ __('Voltar para Pessoas') }}</a>
+        <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.index') }}" data-people-return aria-label="{{ __('Voltar para Pessoas') }}" title="{{ __('Voltar para Pessoas') }}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
     @endif
+@endsection
+
+@section('content')
     <div class="card shadow mb-4">
         <div class="card-body">
             <form method="POST" action="{{ route('people.update', $person) }}">

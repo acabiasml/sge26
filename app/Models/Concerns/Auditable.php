@@ -5,6 +5,7 @@ namespace App\Models\Concerns;
 use App\Models\AuditLog;
 use App\Models\PersonSchoolRole;
 use App\Models\User;
+use App\Support\AuditLogPresenter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -50,7 +51,10 @@ trait Auditable
                 'action' => $action,
                 'old_values' => $changes['old'],
                 'new_values' => $changes['new'],
-                'metadata' => ['record_description' => \App\Support\AuditLogPresenter::describe($this)],
+                'metadata' => [
+                    'record_description' => AuditLogPresenter::describe($this),
+                    'group_context' => $this->getAttribute('diary_attendance_record_id') ?? $this->getAttribute('diary_assessment_id'),
+                ],
                 'ip_address' => request()?->ip(),
                 'user_agent' => request()?->userAgent(),
             ]);
@@ -155,7 +159,7 @@ trait Auditable
     }
 
     /**
-     * @param array<string, mixed> $attributes
+     * @param  array<string, mixed>  $attributes
      * @return array<string, mixed>
      */
     protected function auditAttributes(array $attributes): array
