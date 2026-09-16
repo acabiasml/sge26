@@ -408,6 +408,7 @@
     <script src="{{ asset('template/js/sb-admin-2.min.js') }}"></script>
     <script src="{{ asset('vendor/rappasoft/livewire-tables/js/laravel-livewire-tables.min.js') }}"></script>
     <script src="{{ asset('vendor/rappasoft/livewire-tables/js/laravel-livewire-tables-thirdparty.min.js') }}"></script>
+    <script src="{{ asset('template/js/sge-loading.js') }}?v={{ filemtime(public_path('template/js/sge-loading.js')) }}" data-loading-label="{{ __('Solicitação em processamento') }}"></script>
     @livewireScripts(['url' => asset('livewire/livewire.min.js')])
     <script>
         const inputMasks = {
@@ -581,8 +582,15 @@
             syncPosition();
         });
 
+        const formLoading = new Map();
         const resetSubmitLoading = (targetForm = null) => {
-            document.querySelector('.sge-submit-loading-bar')?.remove();
+            if (targetForm) {
+                formLoading.get(targetForm)?.();
+                formLoading.delete(targetForm);
+            } else {
+                formLoading.forEach((finish) => finish());
+                formLoading.clear();
+            }
 
             const forms = targetForm ? [targetForm] : document.querySelectorAll('form[data-processing="true"]');
 
@@ -638,13 +646,7 @@
                 }
             });
 
-            if (!document.querySelector('.sge-submit-loading-bar')) {
-                const bar = document.createElement('div');
-                bar.className = 'sge-submit-loading-bar';
-                bar.setAttribute('role', 'progressbar');
-                bar.setAttribute('aria-label', @js(__('Solicitação em processamento')));
-                document.body.appendChild(bar);
-            }
+            formLoading.set(form, window.sgeLoading.start());
 
             if (form.dataset.downloadForm === 'true') {
                 window.setTimeout(() => resetSubmitLoading(form), 4500);
