@@ -13,7 +13,9 @@
         ->filter()
         ->values();
     $siteLine = $footerSegments->first(fn ($line): bool => str_starts_with(mb_strtolower($line, 'UTF-8'), 'site:'));
-    $contactLine = $footerSegments->reject(fn ($line): bool => $line === $siteLine)->implode(' | ');
+    $contactSegments = $footerSegments->reject(fn ($line): bool => $line === $siteLine)->values();
+    $phoneLine = $contactSegments->first(fn ($line): bool => str_starts_with(mb_strtolower($line, 'UTF-8'), 'tel.:'));
+    $contactLine = $contactSegments->reject(fn ($line): bool => $line === $phoneLine)->implode(' | ');
 @endphp
 
 <footer class="document-footer">
@@ -25,6 +27,7 @@
             <div class="document-footer-contact">{{ $contactLine }}</div>
         @endif
         <div class="document-footer-authentication">
+            @if($phoneLine){{ $phoneLine }} | @endif
             @if($siteLine){{ $siteLine }} | @endif
             Documento emitido pelo Beabá. Autenticidade: {{ $issuedDocument->verification_code }}.
         </div>
