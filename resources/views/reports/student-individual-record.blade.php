@@ -178,7 +178,7 @@
     'courses' => $courses,
 ])
 
-<div class="section-title">Dados da matrícula</div>
+<div class="section-title">DADOS DA MATRÍCULA</div>
 <table class="meta-table">
     <tr>
         <td class="label">Escola</td>
@@ -206,7 +206,7 @@
     </tr>
 </table>
 
-<div class="section-title">Rendimento, frequência e carga horária</div>
+<div class="section-title">RENDIMENTO, FREQUÊNCIA E CARGA HORÁRIA</div>
 @forelse($groupedComponents as $formationGroup)
     @php
         $formationPeriods = $formationGroup['periods'];

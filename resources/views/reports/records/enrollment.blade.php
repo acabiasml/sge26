@@ -22,7 +22,7 @@
         'issuedDocument' => $issuedDocument,
     ])
 
-    <h2>Dados da matrícula</h2>
+    <h2>DADOS DA MATRÍCULA</h2>
     <table>
         <tr><th>Estudante</th><td>{{ $enrollment->student?->full_name }}</td></tr>
         <tr><th>CPF</th><td>{{ $enrollment->student?->cpf ?: '-' }}</td></tr>
