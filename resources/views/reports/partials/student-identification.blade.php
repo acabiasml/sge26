@@ -23,7 +23,7 @@
 @endphp
 
 @if($showTitle ?? true)
-    <div class="section-title">Identificação do estudante</div>
+    <div class="section-title">IDENTIFICAÇÃO DO ESTUDANTE</div>
 @endif
 <table class="meta-table student-identification">
     <tr>
