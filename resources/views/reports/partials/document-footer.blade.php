@@ -4,7 +4,8 @@
         ?? $issuedDocument->issuedBy?->email
         ?? 'Sistema';
     $verificationUrl = route('documents.verify', $issuedDocument->verification_code);
-    $qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=72x72&margin=0&data='.urlencode($verificationUrl);
+    $qrCodeUrl = 'https://chart.googleapis.com/chart?cht=qr&chs=150x150&chl='.urlencode($verificationUrl);
+
     $footerSegments = collect($letterhead['footer_lines'] ?? [])
         ->filter()
         ->flatMap(fn ($line) => explode('|', $line))
@@ -19,16 +20,14 @@
     <div class="document-footer-qr" aria-label="Código de autenticação do documento">
         <img src="{{ $qrCodeUrl }}" alt="QR Code de validação do documento" />
     </div>
-    <div class="document-footer-content">
+    <div class="document-footer-text">
         @if($contactLine)
             <div class="document-footer-contact">{{ $contactLine }}</div>
         @endif
         <div class="document-footer-authentication">
             @if($siteLine){{ $siteLine }} | @endif
             Documento emitido pelo Beabá. Autenticidade: {{ $issuedDocument->verification_code }}.
-        </div>
-        <div class="document-footer-row">
-            <span class="document-footer-date">Emitido em {{ $issuedDocument->issued_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i:s') }}.</span>
+            Emitido em {{ $issuedDocument->issued_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i:s') }}.
             <span class="document-footer-issuer">por {{ $issuer }}.</span>
         </div>
     </div>
@@ -36,13 +35,11 @@
 <script type="text/php">
     if (isset($pdf, $fontMetrics)) {
         $font = $fontMetrics->getFont('DejaVu Sans', 'normal');
-        $issuerText = {!! json_encode('por '.$issuer.'.', JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!};
         $label = 'Página {PAGE_NUM} de {PAGE_COUNT}';
-        $size = 8.25;
-        $issuerWidth = $fontMetrics->getTextWidth($issuerText, $font, $size);
-        $gap = 4;
-        $issuerOffset = 28.125;
-        $x = $pdf->get_width() / 2 - $issuerOffset + $issuerWidth / 2 + $gap;
-        $pdf->page_text($x, $pdf->get_height() - 30, $label, $font, $size, [0.37, 0.35, 0.33]);
+        $size = 7.6;
+        $pageTextWidth = $fontMetrics->getTextWidth(str_replace('{PAGE_NUM}', '99', str_replace('{PAGE_COUNT}', '99', $label)), $font, $size);
+        $x = $pdf->get_width() - 18 - $pageTextWidth;
+        $y = $pdf->get_height() - 72;
+        $pdf->page_text($x, $y, $label, $font, $size, [0.37, 0.35, 0.33]);
     }
 </script>

@@ -87,11 +87,11 @@ class ReportExportTest extends TestCase
             'letterhead' => ['footer_lines' => ['Site: https://ctjj.org', 'Tel.: (66) 99999-9999']],
         ])->render();
 
-        $this->assertStringContainsString('document-footer-row', $html);
-        $this->assertStringContainsString('api.qrserver.com/v1/create-qr-code', $html);
+        $this->assertStringContainsString('document-footer-qr', $html);
+        $this->assertStringContainsString('chart.googleapis.com/chart?cht=qr', $html);
         $this->assertStringContainsString('Autenticidade: BEABA-ABCD-EFGH-IJKL', $html);
         $this->assertStringContainsString('Emitido em', $html);
-        $this->assertStringContainsString('document-footer-date', $html);
+        $this->assertStringContainsString('document-footer-text', $html);
         $this->assertStringContainsString('document-footer-issuer', $html);
         $this->assertStringContainsString('por Sistema.', $html);
     }

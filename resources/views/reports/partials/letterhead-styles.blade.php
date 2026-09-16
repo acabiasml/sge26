@@ -37,10 +37,9 @@ thead { display: table-header-group; }
 .document-title { font-size: 16px; line-height: 1.12; margin: 8px 0 3px; color: #6B3D2E; font-weight: 600; text-align: center; }
 .document-meta { color: #5f5a55; font-size: 11px; line-height: 1.3; }
 .document-footer { position: fixed; bottom: -49px !important; left: 0; right: 0; border-top: .6px solid #d9c9c0; padding-top: 3px; font-size: 11px; line-height: 1.12; color: #5f5a55; display: flex; align-items: center; justify-content: center; gap: 8px; }
-.document-footer-qr { flex-shrink: 0; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
-.document-footer-qr img { display: block; width: 18px; height: 18px; object-fit: contain; }
-.document-footer-content { flex: 1; min-width: 0; text-align: center; }
+.document-footer-qr { flex-shrink: 0; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+.document-footer-qr img { display: block; width: 22px; height: 22px; object-fit: contain; }
+.document-footer-text { flex: 1; min-width: 0; text-align: center; }
 .document-footer-contact { white-space: normal; letter-spacing: -.08px; }
 .document-footer-authentication { white-space: normal; }
-.document-footer-row { display: flex; justify-content: center; align-items: center; gap: 6px; flex-wrap: wrap; }
-.document-footer-date, .document-footer-issuer { white-space: nowrap; }
+.document-footer-issuer { white-space: nowrap; }
