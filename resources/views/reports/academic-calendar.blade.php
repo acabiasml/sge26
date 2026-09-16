@@ -49,7 +49,6 @@
         .signature { width: 18%; text-align: center; padding-left: 8px; font-size: 11px; }
         .signature .line { border-top: .7px solid #6B3D2E; margin-top: 54px; padding-top: 4px; font-weight: 600; }
         .signature .role { display: block; font-weight: 400; margin-top: 2px; }
-        .document-footer { font-size: 11px; padding-top: 3px; }
     </style>
 </head>
 <body>

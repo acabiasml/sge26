@@ -18,7 +18,6 @@
         .lesson-count { display: block; font-size: 11px; font-weight: 400; color: #f8e6d8; }
         .signature { margin-top: 36px; text-align: center; }
         .signature-line { display: inline-block; min-width: 260px; border-top: .8px solid #6B3D2E; padding-top: 5px; font-weight: 600; }
-        .document-footer { font-size: 11px; }
     </style>
 </head>
 <body>

@@ -35,7 +35,6 @@
         .signature-grid { width: 100%; margin-top: 42px; }
         .signature-grid td { border: 0; width: 50%; text-align: center; padding-top: 38px; }
         .signature-line { border-top: .8px solid #6B3D2E; display: inline-block; min-width: 230px; padding-top: 5px; font-weight: 600; }
-        .document-footer { position: fixed; bottom: 10px; left: 0; right: 0; font-size: 11px; color: #6b625e; }
     </style>
 </head>
 <body>

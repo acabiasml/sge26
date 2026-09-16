@@ -46,7 +46,6 @@
         .signature-date { margin-bottom: 48px; }
         .signature-line { border-top: .8px solid #6B3D2E; padding-top: 5px; font-weight: 600; }
         .signature-role { display: block; font-weight: 400; margin-top: 2px; }
-        .document-footer { position: fixed; bottom: 10px; left: 0; right: 0; font-size: 11px; }
     </style>
 </head>
 <body>

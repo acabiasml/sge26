@@ -14,7 +14,6 @@
         .slot strong, .slot span, .slot small { display: block; }
         .slot span { color: #6B3D2E; font-weight: 600; }
         .slot small { color: #5f5a55; font-size: 11px; }
-        .document-footer { font-size: 11px; }
     </style>
 </head>
 <body>

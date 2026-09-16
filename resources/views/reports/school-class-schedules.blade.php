@@ -25,7 +25,6 @@
         .teacher-legend { margin: 3px 0 5px; color: #4f4650; font-size: 11px; line-height: 1.14; }
         .teacher-legend strong { color: #2f241f; }
         .page-break { page-break-after: always; }
-        .document-footer { font-size: 11px; }
     </style>
 </head>
 <body>
