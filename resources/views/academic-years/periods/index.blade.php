@@ -430,6 +430,14 @@ document.querySelectorAll('[data-period-selector]').forEach((selector) => {
 });
 
 document.querySelectorAll('[data-assessment-rules-form]').forEach((container) => {
+    const form = container.querySelector('form');
+    const scrollKey = 'sge-academic-assessment-scroll-{{ $academicYear->id }}';
+    if (form) {
+        form.addEventListener('submit', () => {
+            sessionStorage.setItem(scrollKey, String(window.scrollY || document.documentElement.scrollTop || 0));
+        });
+    }
+
     const count = container.querySelector('[data-assessment-count]');
     const sync = () => {
         const selectedCount = Number(count.value || 0);
@@ -472,6 +480,17 @@ document.querySelectorAll('[data-assessment-rules-form]').forEach((container) =>
     container.querySelectorAll('[data-recovery-mode]').forEach((input) => input.addEventListener('change', syncRecovery));
     sync();
     syncRecovery();
+});
+
+window.addEventListener('load', () => {
+    const scrollKey = 'sge-academic-assessment-scroll-{{ $academicYear->id }}';
+    const savedY = Number(sessionStorage.getItem(scrollKey));
+    if (Number.isFinite(savedY) && savedY >= 0) {
+        requestAnimationFrame(() => {
+            window.scrollTo({ top: savedY, left: 0, behavior: 'auto' });
+            sessionStorage.removeItem(scrollKey);
+        });
+    }
 });
 </script>
 @endpush

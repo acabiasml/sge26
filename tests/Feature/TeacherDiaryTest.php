@@ -1545,6 +1545,95 @@ class TeacherDiaryTest extends TestCase
         ]);
     }
 
+    public function test_management_can_rename_assessment_without_warning_when_grades_exist(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-renomeia-avaliacao@ctjj.org');
+
+        $this->actingAs($manager)
+            ->put(route('academic-years.periods.assessment-rules.update', [$year, $period]), [
+                'assessment_count' => 2,
+                'weights' => [5, 5],
+                'assessment_names' => ['Avaliação 1', 'Avaliação 2'],
+                'recovery_mode' => AcademicPeriod::RECOVERY_NONE,
+            ])
+            ->assertRedirect(route('academic-years.periods.index', $year));
+
+        $assessment = DiaryAssessment::query()->where('is_recovery', false)->orderBy('id')->firstOrFail();
+
+        $this->actingAs($teacher)
+            ->put(route('teacher-diaries.grades.update', [$class, $component]), [
+                'academic_period_id' => $period->id,
+                'scores' => [$assessment->id => [$enrollment->id => 8]],
+            ])
+            ->assertRedirect(route('teacher-diaries.show', [$class, $component, 'period' => $period->id]));
+
+        $this->actingAs($manager)
+            ->put(route('academic-years.periods.assessment-rules.update', [$year, $period]), [
+                'assessment_count' => 2,
+                'weights' => [5, 5],
+                'assessment_names' => ['Nova avaliação 1', 'Nova avaliação 2'],
+                'recovery_mode' => AcademicPeriod::RECOVERY_NONE,
+            ])
+            ->assertRedirect(route('academic-years.periods.index', $year))
+            ->assertSessionMissing('assessment_change_warning');
+
+        $this->assertDatabaseHas('school_assessment_rules', [
+            'academic_period_id' => $period->id,
+            'position' => 1,
+            'name' => 'Nova avaliação 1',
+        ]);
+        $this->assertDatabaseHas('diary_assessment_results', [
+            'diary_assessment_id' => $assessment->id,
+            'score' => 8,
+        ]);
+    }
+
+    public function test_management_can_change_recovery_mode_without_warning_when_grades_exist(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-altera-recuperacao@ctjj.org');
+
+        $this->actingAs($manager)
+            ->put(route('academic-years.periods.assessment-rules.update', [$year, $period]), [
+                'assessment_count' => 2,
+                'weights' => [5, 5],
+                'assessment_names' => ['Avaliação 1', 'Avaliação 2'],
+                'recovery_mode' => AcademicPeriod::RECOVERY_NONE,
+            ])
+            ->assertRedirect(route('academic-years.periods.index', $year));
+
+        $assessment = DiaryAssessment::query()->where('is_recovery', false)->orderBy('id')->firstOrFail();
+
+        $this->actingAs($teacher)
+            ->put(route('teacher-diaries.grades.update', [$class, $component]), [
+                'academic_period_id' => $period->id,
+                'scores' => [$assessment->id => [$enrollment->id => 8]],
+            ])
+            ->assertRedirect(route('teacher-diaries.show', [$class, $component, 'period' => $period->id]));
+
+        $this->actingAs($manager)
+            ->put(route('academic-years.periods.assessment-rules.update', [$year, $period]), [
+                'assessment_count' => 2,
+                'weights' => [5, 5],
+                'assessment_names' => ['Avaliação 1', 'Avaliação 2'],
+                'recovery_mode' => AcademicPeriod::RECOVERY_WEIGHTED,
+                'recovery_weight' => 2,
+            ])
+            ->assertRedirect(route('academic-years.periods.index', $year))
+            ->assertSessionMissing('assessment_change_warning');
+
+        $this->assertDatabaseHas('academic_periods', [
+            'id' => $period->id,
+            'recovery_mode' => AcademicPeriod::RECOVERY_WEIGHTED,
+            'recovery_weight' => 2,
+        ]);
+        $this->assertDatabaseHas('diary_assessment_results', [
+            'diary_assessment_id' => $assessment->id,
+            'score' => 8,
+        ]);
+    }
+
     public function test_management_can_confirm_recovery_rule_change_after_regular_grade_entry(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();

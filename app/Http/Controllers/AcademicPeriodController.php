@@ -377,6 +377,7 @@ class AcademicPeriodController extends Controller
             ->sum('results_count');
         $regularConfigurationChanged = $this->regularAssessmentConfigurationChanged($existingRules, $weights, $names);
         $recoveryConfigurationChanged = $this->recoveryConfigurationChanged($period, $data);
+        $requiresDataReset = $this->regularAssessmentConfigurationRequiresDataReset($existingRules, $weights);
         $configurationChanged = $regularConfigurationChanged || $recoveryConfigurationChanged;
 
         if (! $configurationChanged) {
@@ -384,7 +385,7 @@ class AcademicPeriodController extends Controller
                 ->with('status', __('A configuração de avaliação já estava atualizada. Nenhum lançamento foi alterado.'));
         }
 
-        if ($storedGradeCount > 0 && ! $request->boolean('confirm_delete_assessment_data')) {
+        if ($storedGradeCount > 0 && $requiresDataReset && ! $request->boolean('confirm_delete_assessment_data')) {
             return back()
                 ->withInput()
                 ->with('assessment_change_warning', [
@@ -393,34 +394,109 @@ class AcademicPeriodController extends Controller
                 ]);
         }
 
-        DB::transaction(function () use ($existingRules, $weights, $names, $academicYear, $period, $data): void {
-            $existingRules->flatMap->assessments->each->delete();
-            $existingRules->each->delete();
-            DiaryAssessment::query()->where('academic_period_id', $period->id)->where('is_recovery', true)->delete();
-            DiaryPeriodConfirmation::query()->where('academic_period_id', $period->id)->delete();
+        DB::transaction(function () use ($existingRules, $weights, $names, $academicYear, $period, $data, $requiresDataReset): void {
+            if ($requiresDataReset) {
+                $existingRules->flatMap->assessments->each->delete();
+                $existingRules->each->delete();
+                DiaryAssessment::query()->where('academic_period_id', $period->id)->where('is_recovery', true)->delete();
+                DiaryPeriodConfirmation::query()->where('academic_period_id', $period->id)->delete();
 
-            $createdRules = collect();
-            foreach ($weights as $index => $weight) {
-                $rule = SchoolAssessmentRule::query()->create([
-                    'school_id' => $academicYear->school_id,
-                    'academic_period_id' => $period->id,
-                    'name' => $names[$index],
-                    'position' => $index + 1,
-                    'weight' => $weight,
-                    'maximum_score' => 10,
+                $createdRules = collect();
+                foreach ($weights as $index => $weight) {
+                    $rule = SchoolAssessmentRule::query()->create([
+                        'school_id' => $academicYear->school_id,
+                        'academic_period_id' => $period->id,
+                        'name' => $names[$index],
+                        'position' => $index + 1,
+                        'weight' => $weight,
+                        'maximum_score' => 10,
+                    ]);
+                    $this->createAssessmentsForRule($academicYear->id, $rule);
+                    $createdRules->put($rule->position, $rule);
+                }
+
+                $recoveryRule = $data['recovery_mode'] === AcademicPeriod::RECOVERY_REPLACE_ASSESSMENT
+                    ? $createdRules->get((int) $data['recovery_replaced_position'])
+                    : null;
+                $period->update([
+                    'recovery_mode' => $data['recovery_mode'],
+                    'recovery_weight' => $data['recovery_mode'] === AcademicPeriod::RECOVERY_WEIGHTED ? $data['recovery_weight'] : null,
+                    'recovery_replaced_rule_id' => $recoveryRule?->id,
                 ]);
-                $this->createAssessmentsForRule($academicYear->id, $rule);
-                $createdRules->put($rule->position, $rule);
+
+                if ($data['recovery_mode'] !== AcademicPeriod::RECOVERY_NONE) {
+                    $this->createRecoveryAssessments($academicYear->id, $period);
+                }
+
+                return;
             }
 
-            $recoveryRule = $data['recovery_mode'] === AcademicPeriod::RECOVERY_REPLACE_ASSESSMENT
-                ? $createdRules->get((int) $data['recovery_replaced_position'])
-                : null;
+            if ($existingRules->isEmpty()) {
+                foreach ($weights as $index => $weight) {
+                    $rule = SchoolAssessmentRule::query()->create([
+                        'school_id' => $academicYear->school_id,
+                        'academic_period_id' => $period->id,
+                        'name' => $names[$index],
+                        'position' => $index + 1,
+                        'weight' => $weight,
+                        'maximum_score' => 10,
+                    ]);
+                    $this->createAssessmentsForRule($academicYear->id, $rule);
+                }
+
+                $period->update([
+                    'recovery_mode' => $data['recovery_mode'],
+                    'recovery_weight' => $data['recovery_mode'] === AcademicPeriod::RECOVERY_WEIGHTED ? $data['recovery_weight'] : null,
+                    'recovery_replaced_rule_id' => $data['recovery_mode'] === AcademicPeriod::RECOVERY_REPLACE_ASSESSMENT
+                        ? SchoolAssessmentRule::query()->where('school_id', $academicYear->school_id)->where('academic_period_id', $period->id)->where('position', (int) $data['recovery_replaced_position'])->value('id')
+                        : null,
+                ]);
+
+                if ($data['recovery_mode'] !== AcademicPeriod::RECOVERY_NONE) {
+                    $this->createRecoveryAssessments($academicYear->id, $period);
+                }
+
+                return;
+            }
+
+            foreach ($existingRules->sortBy('position') as $rule) {
+                $ruleIndex = ((int) $rule->position) - 1;
+
+                if (array_key_exists($ruleIndex, $weights) && array_key_exists($ruleIndex, $names)) {
+                    $rule->update([
+                        'name' => $names[$ruleIndex],
+                        'weight' => $weights[$ruleIndex],
+                        'maximum_score' => 10,
+                    ]);
+
+                    $rule->assessments()->update([
+                        'title' => $this->assessmentTitleForRule($rule, $names[$ruleIndex]),
+                        'weight' => $weights[$ruleIndex],
+                        'maximum_score' => 10,
+                    ]);
+                }
+            }
+
             $period->update([
                 'recovery_mode' => $data['recovery_mode'],
                 'recovery_weight' => $data['recovery_mode'] === AcademicPeriod::RECOVERY_WEIGHTED ? $data['recovery_weight'] : null,
-                'recovery_replaced_rule_id' => $recoveryRule?->id,
+                'recovery_replaced_rule_id' => $data['recovery_mode'] === AcademicPeriod::RECOVERY_REPLACE_ASSESSMENT
+                    ? $period->assessmentRules()->where('school_id', $academicYear->school_id)->where('position', (int) $data['recovery_replaced_position'])->value('id')
+                    : null,
             ]);
+
+            DiaryAssessment::query()
+                ->where('academic_period_id', $period->id)
+                ->where('is_recovery', true)
+                ->update([
+                    'title' => 'Recuperação',
+                    'weight' => $data['recovery_mode'] === AcademicPeriod::RECOVERY_WEIGHTED ? $data['recovery_weight'] : 0,
+                    'maximum_score' => 10,
+                    'recovery_mode' => $data['recovery_mode'],
+                    'recovery_replaced_rule_id' => $data['recovery_mode'] === AcademicPeriod::RECOVERY_REPLACE_ASSESSMENT
+                        ? $period->assessmentRules()->where('school_id', $academicYear->school_id)->where('position', (int) $data['recovery_replaced_position'])->value('id')
+                        : null,
+                ]);
 
             if ($data['recovery_mode'] !== AcademicPeriod::RECOVERY_NONE) {
                 $this->createRecoveryAssessments($academicYear->id, $period);
@@ -456,6 +532,30 @@ class AcademicPeriodController extends Controller
             }
 
             if ((string) $rule->name !== (string) $names[$index]) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  Collection<int, SchoolAssessmentRule>  $existingRules
+     */
+    private function regularAssessmentConfigurationRequiresDataReset(Collection $existingRules, array $weights): bool
+    {
+        $orderedRules = $existingRules->sortBy('position')->values();
+
+        if ($orderedRules->count() !== count($weights)) {
+            return true;
+        }
+
+        foreach ($orderedRules as $index => $rule) {
+            if ((int) $rule->position !== $index + 1) {
+                return true;
+            }
+
+            if ((int) $rule->weight !== (int) $weights[$index]) {
                 return true;
             }
         }
@@ -590,6 +690,11 @@ class AcademicPeriodController extends Controller
         }
 
         return false;
+    }
+
+    private function assessmentTitleForRule(SchoolAssessmentRule $rule, string $name): string
+    {
+        return $name ?: $rule->label();
     }
 
     /**
