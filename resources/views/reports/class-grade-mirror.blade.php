@@ -10,7 +10,7 @@
         .letterhead-logo img { max-width: 62px; max-height: 44px; }
         .letterhead-line { font-size: 11px; line-height: 1.12; }
         .letterhead-line-main { font-size: 11px; }
-        .document-title { font-size: 12.5px; margin: 4px 0 1px; text-transform: uppercase; }
+        .document-title { font-size: 12.5px; margin: 4px 0 0; text-transform: uppercase; }
         .mirror-context { margin: 0 0 6px; text-align: center; }
         .mirror-context strong { font-size: 11px; text-transform: uppercase; }
         .mirror-context span { color: #555; display: block; margin-top: 2px; }

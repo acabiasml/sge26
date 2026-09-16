@@ -8,7 +8,7 @@
         @include('reports.partials.letterhead-styles')
         .letterhead-repeat { top: -114px; padding-bottom: 4px; }
         .letterhead-logo img { max-height: 45px; }
-        .document-title { font-size: 15px; margin: 4px 0 1px; text-transform: uppercase; }
+        .document-title { font-size: 15px; margin: 4px 0 0; text-transform: uppercase; }
         .schedule-title { margin: 4px 0 2px; color: #6B3D2E; font-size: 12px; text-transform: uppercase; }
         .schedule-subtitle { margin: 0 0 3px; color: #5f5a55; font-size: 11px; }
         .schedule-table { width: 100%; border-collapse: collapse; page-break-inside: avoid; margin-bottom: 4px; table-layout: fixed; }

@@ -8,7 +8,7 @@
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 6px; padding-bottom: 5px; }
         .letterhead-logo img { max-width: 64px; max-height: 48px; }
-        .document-title { font-size: 14px; margin: 4px 0 2px; text-transform: uppercase; }
+        .document-title { font-size: 14px; margin: 4px 0 0; text-transform: uppercase; }
         table { border-collapse: collapse; width: 100%; }
         .context { margin: 5px 0 7px; }
         .context td, .totals td { border: .45px solid #c9bdb5; padding: 3px 4px; }
