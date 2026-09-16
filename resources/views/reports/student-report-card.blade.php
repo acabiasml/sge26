@@ -9,9 +9,9 @@
         .letterhead-line, .document-title, .document-meta, .document-footer { line-height: 1.06; }
         .letterhead { margin-bottom: 7px; padding-bottom: 5px; }
         .letterhead-logo img { max-width: 66px; max-height: 50px; }
-        .document-title { font-size: 14px; margin: 5px 0 2px; text-transform: uppercase; }
-        .class-line { font-size: 11px; margin: 1px 0 8px; text-align: center; text-transform: uppercase; white-space: normal; }
-        .section-title { color: #6f3a29; font-size: 11px; font-weight: 600; margin: 4px 0 2px; text-transform: uppercase; }
+        .document-title { font-size: 14px; margin: 5px 0 2px; }
+        .class-line { font-size: 11px; margin: 1px 0 8px; text-align: center; white-space: normal; }
+        .section-title { color: #6f3a29; font-size: 11px; font-weight: 600; margin: 4px 0 2px; }
         .meta-table { border-collapse: collapse; margin-bottom: 5px; width: 100%; }
         .meta-table td { border: .45px solid #d8ccc4; padding: 1.5px 3px; vertical-align: top; }
         .meta-table .label { background: #f3eee9; font-weight: 600; width: 18%; }
@@ -21,7 +21,7 @@
         .report-table th { background: #f1ede9; font-size: 11px; font-weight: 600; text-align: center; }
         .report-table td { font-size: 11px; }
         .technical-regulation { margin: 5px 0; padding: 3px 5px; border: .5px solid #d8c8bf; background: #faf8f6; font-size: 11px; line-height: 1.06; page-break-inside: avoid; }
-        .area-cell { font-size: 11px; text-align: center; text-transform: uppercase; width: 22%; word-wrap: break-word; }
+        .area-cell { font-size: 11px; text-align: center; width: 22%; word-wrap: break-word; }
         .formation-area-label { display: block; font-size: 11px; font-weight: 600; margin-top: 3px; }
         .component-cell { width: 20%; word-wrap: break-word; }
         .center { text-align: center; }

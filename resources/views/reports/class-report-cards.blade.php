@@ -8,16 +8,16 @@
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 7px; padding-bottom: 5px; }
         .letterhead-logo img { max-width: 66px; max-height: 50px; }
-        .document-title { font-size: 14px; margin: 5px 0 2px; text-transform: uppercase; }
-        .class-line { font-size: 11px; margin: 1px 0 8px; text-align: center; text-transform: uppercase; white-space: normal; }
+        .document-title { font-size: 14px; margin: 5px 0 2px; }
+        .class-line { font-size: 11px; margin: 1px 0 8px; text-align: center; white-space: normal; }
         .student-meta { margin: 0 0 7px; }
         .student-meta p { margin: 0 0 2px; }
         .report-table { border-collapse: collapse; margin: 7px 0; width: 100%; }
         .report-table th, .report-table td { border: .55px solid #111; padding: 1.8px 2.2px; vertical-align: middle; }
         .report-table th { background: #f1ede9; font-size: 11px; font-weight: 600; text-align: center; }
         .report-table td { font-size: 11px; }
-        .formation-cell { font-size: 11px; font-weight: 600; text-align: center; text-transform: uppercase; width: 10%; }
-        .area-cell { font-size: 11px; text-align: center; text-transform: uppercase; width: 15%; }
+        .formation-cell { font-size: 11px; font-weight: 600; text-align: center; width: 10%; }
+        .area-cell { font-size: 11px; text-align: center; width: 15%; }
         .component-cell { width: 22%; }
         .center { text-align: center; }
         .right { text-align: right; }
