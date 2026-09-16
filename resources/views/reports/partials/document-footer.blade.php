@@ -41,7 +41,7 @@
         $size = 7.6;
         $pageTextWidth = $fontMetrics->getTextWidth(str_replace('{PAGE_NUM}', '99', str_replace('{PAGE_COUNT}', '99', $label)), $font, $size);
         $x = $pdf->get_width() - 18 - $pageTextWidth;
-        $y = $pdf->get_height() - 72;
+        $y = $pdf->get_height() - 88;
         $pdf->page_text($x, $y, $label, $font, $size, [0.37, 0.35, 0.33]);
     }
 </script>

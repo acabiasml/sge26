@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { size: A4 portrait; margin: 150px 24px 72px; }
+        @page { size: A4 portrait; margin: 150px 24px 96px; }
         body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 11px; line-height: 1.06; }
         @include('reports.partials.letterhead-styles')
         .letterhead-line, .document-title, .document-meta, .document-footer { line-height: 1.06; }
