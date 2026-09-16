@@ -11,7 +11,7 @@
         .letterhead-logo img { max-width: 66px; max-height: 50px; }
         .document-title { font-size: 14px; margin: 5px 0 0; text-transform: uppercase; }
         .class-line { font-size: 11px; margin: 0 0 7px; text-align: center; white-space: normal; }
-        .section-title { color: #6f3a29; font-size: 11px; font-weight: 600; margin: 6px 0 3px; }
+        .section-title { color: #6f3a29; font-size: 11px; font-weight: 600; margin: 4px 0 2px; }
         .meta-table, .report-table, .summary-table { border-collapse: collapse; width: 100%; }
         .summary-table { page-break-inside: avoid; }
         .meta-table td, .summary-table td { border: .45px solid #d8ccc4; padding: 2.2px 3.5px; vertical-align: top; }
