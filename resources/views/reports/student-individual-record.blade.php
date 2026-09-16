@@ -9,8 +9,8 @@
         .letterhead-line, .document-title, .document-meta, .document-footer { line-height: 1.06; }
         .letterhead { margin-bottom: 6px; padding-bottom: 5px; }
         .letterhead-logo img { max-width: 66px; max-height: 50px; }
-        .document-title { font-size: 14px; margin: 5px 0 2px; }
-        .class-line { font-size: 11px; margin: 1px 0 7px; text-align: center; white-space: normal; }
+        .document-title { font-size: 14px; margin: 5px 0 0; text-transform: uppercase; }
+        .class-line { font-size: 11px; margin: 0 0 7px; text-align: center; white-space: normal; }
         .section-title { color: #6f3a29; font-size: 11px; font-weight: 600; margin: 6px 0 3px; }
         .meta-table, .report-table, .summary-table { border-collapse: collapse; width: 100%; }
         .summary-table { page-break-inside: avoid; }
