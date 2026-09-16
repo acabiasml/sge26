@@ -40,7 +40,26 @@
 
                     @if ($verification['school_name'])
                         <dt class="col-sm-4">{{ __('Instituição') }}</dt>
-                        <dd class="col-sm-8">{{ $verification['school_name'] }}</dd>
+                        <dd class="col-sm-8">
+                            <strong>{{ $verification['school_name'] }}</strong>
+
+                            @if ($verification['school_contact'])
+                                <div class="small text-gray-600 mt-2">
+                                    @foreach ($verification['school_contact'] as $label => $value)
+                                        <div><strong>{{ $label }}:</strong> {{ $value }}</div>
+                                    @endforeach
+                                </div>
+                            @endif
+
+                            @if ($verification['school_managers'])
+                                <div class="small mt-2">
+                                    <strong>{{ __('Gestores') }}:</strong>
+                                    @foreach ($verification['school_managers'] as $manager)
+                                        <div>{{ $manager['name'] }} — {{ $manager['role'] }}</div>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </dd>
                     @endif
 
                     @if ($verification['scope_label'])

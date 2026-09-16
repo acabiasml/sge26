@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\IssuedDocument;
+use App\Models\PersonSchoolRole;
 
 class DocumentVerificationPresenter
 {
@@ -14,18 +15,45 @@ class DocumentVerificationPresenter
      *     scope_label: string|null,
      *     rows_count: int|null,
      *     school_name: string|null,
+    *     school_contact: array<string, string>,
+    *     school_managers: list<array{name: string, role: string}>,
      *     revoked: bool
      * }
      */
     public static function make(IssuedDocument $document): array
     {
+        $school = $document->school;
+        $managerRoles = $school?->roles
+            ->filter(fn (PersonSchoolRole $role): bool => in_array($role->role, [
+                PersonSchoolRole::ROLE_ADMINISTRATOR,
+                PersonSchoolRole::ROLE_MANAGER,
+            ], true) && $role->isActiveForDate())
+            ->sortBy(fn (PersonSchoolRole $role): string => $role->person?->full_name ?? '')
+            ->map(fn (PersonSchoolRole $role): array => [
+                'name' => $role->person?->full_name ?? __('Pessoa não identificada'),
+                'role' => $role->position
+                    ? (PersonSchoolRole::POSITION_LABELS[$role->position] ?? $role->position)
+                    : (PersonSchoolRole::ROLE_LABELS[$role->role] ?? $role->role),
+            ])
+            ->values()
+            ->all() ?? [];
+
+        $schoolContact = collect([
+            'Telefone' => $school?->phone,
+            'E-mail' => $school?->email,
+            'Site' => $school?->website,
+            'Endereço' => $school?->address,
+        ])->filter(fn (?string $value): bool => filled($value))->all();
+
         return [
             'type_label' => self::typeLabel($document->type),
             'description' => self::description($document->type),
             'title' => is_string($document->payload['title'] ?? null) ? $document->payload['title'] : null,
             'scope_label' => is_string($document->payload['scope_label'] ?? null) ? $document->payload['scope_label'] : null,
             'rows_count' => is_numeric($document->payload['rows_count'] ?? null) ? (int) $document->payload['rows_count'] : null,
-            'school_name' => $document->school?->name,
+            'school_name' => $school?->name,
+            'school_contact' => $schoolContact,
+            'school_managers' => $managerRoles,
             'revoked' => $document->revoked_at !== null,
         ];
     }

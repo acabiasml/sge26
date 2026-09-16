@@ -49,7 +49,7 @@ class ReportController extends Controller
         $code = strtoupper(trim($code));
 
         $document = IssuedDocument::query()
-            ->with(['issuedBy.person', 'school'])
+            ->with(['issuedBy.person', 'school.roles.person'])
             ->where('verification_code', $code)
             ->first();
 
