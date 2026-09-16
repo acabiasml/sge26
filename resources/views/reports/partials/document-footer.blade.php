@@ -3,6 +3,8 @@
         ?? $issuedDocument->issuedBy?->name
         ?? $issuedDocument->issuedBy?->email
         ?? 'Sistema';
+    $verificationUrl = route('documents.verify', $issuedDocument->verification_code);
+    $qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=72x72&margin=0&data='.urlencode($verificationUrl);
     $footerSegments = collect($letterhead['footer_lines'] ?? [])
         ->filter()
         ->flatMap(fn ($line) => explode('|', $line))
@@ -14,15 +16,22 @@
 @endphp
 
 <footer class="document-footer">
-    @if($contactLine)
-        <div class="document-footer-contact">{{ $contactLine }}</div>
-    @endif
-    <div class="document-footer-authentication">
-        @if($siteLine){{ $siteLine }} | @endif
-        Documento emitido pelo Beabá. Autenticidade: {{ $issuedDocument->verification_code }}.
-        Emitido em {{ $issuedDocument->issued_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i:s') }}.
+    <div class="document-footer-qr" aria-label="Código de autenticação do documento">
+        <img src="{{ $qrCodeUrl }}" alt="QR Code de validação do documento" />
     </div>
-    <div class="document-footer-issuer">por {{ $issuer }}.</div>
+    <div class="document-footer-content">
+        @if($contactLine)
+            <div class="document-footer-contact">{{ $contactLine }}</div>
+        @endif
+        <div class="document-footer-authentication">
+            @if($siteLine){{ $siteLine }} | @endif
+            Documento emitido pelo Beabá. Autenticidade: {{ $issuedDocument->verification_code }}.
+        </div>
+        <div class="document-footer-row">
+            <span class="document-footer-date">Emitido em {{ $issuedDocument->issued_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i:s') }}.</span>
+            <span class="document-footer-issuer">por {{ $issuer }}.</span>
+        </div>
+    </div>
 </footer>
 <script type="text/php">
     if (isset($pdf, $fontMetrics)) {

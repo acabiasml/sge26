@@ -68,6 +68,34 @@ class ReportExportTest extends TestCase
             ->assertSee('Documento válido');
     }
 
+    public function test_document_footer_stacks_the_issuance_line_with_the_issuer_and_includes_qr_code(): void
+    {
+        $issuedDocument = IssuedDocument::query()->create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'verification_code' => 'BEABA-ABCD-EFGH-IJKL',
+            'type' => 'official-document',
+            'person_id' => Person::query()->create([
+                'full_name' => 'Pessoa de teste',
+                'active' => true,
+            ])->id,
+            'payload' => ['title' => 'Documento de teste'],
+            'issued_at' => now(),
+        ]);
+
+        $html = view('reports.partials.document-footer', [
+            'issuedDocument' => $issuedDocument,
+            'letterhead' => ['footer_lines' => ['Site: https://ctjj.org', 'Tel.: (66) 99999-9999']],
+        ])->render();
+
+        $this->assertStringContainsString('document-footer-row', $html);
+        $this->assertStringContainsString('api.qrserver.com/v1/create-qr-code', $html);
+        $this->assertStringContainsString('Autenticidade: BEABA-ABCD-EFGH-IJKL', $html);
+        $this->assertStringContainsString('Emitido em', $html);
+        $this->assertStringContainsString('document-footer-date', $html);
+        $this->assertStringContainsString('document-footer-issuer', $html);
+        $this->assertStringContainsString('por Sistema.', $html);
+    }
+
     public function test_public_document_verification_form_can_be_opened(): void
     {
         $this->get(route('documents.verify.form'))
