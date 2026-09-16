@@ -38,11 +38,19 @@ class DocumentVerificationPresenter
             ->values()
             ->all() ?? [];
 
+        $schoolAddress = collect([
+            $school?->address,
+            $school?->number ? 'nº '.$school->number : null,
+            $school?->district,
+            collect([$school?->city, $school?->state])->filter()->join(' - '),
+            $school?->postal_code ? 'CEP '.$school->postal_code : null,
+        ])->filter()->join(', ');
+
         $schoolContact = collect([
             'Telefone' => $school?->phone,
             'E-mail' => $school?->email,
             'Site' => $school?->website,
-            'Endereço' => $school?->address,
+            'Endereço' => $schoolAddress,
         ])->filter(fn (?string $value): bool => filled($value))->all();
 
         return [

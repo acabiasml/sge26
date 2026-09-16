@@ -64,6 +64,12 @@ class DocumentVerificationNavigationTest extends TestCase
             'phone' => '(66) 99999-1111',
             'email' => 'contato@escola.test',
             'website' => 'https://escola.test',
+            'address' => 'Rua das Flores',
+            'number' => '123',
+            'district' => 'Centro',
+            'city' => 'Poxoréu',
+            'state' => 'MT',
+            'postal_code' => '78800-000',
             'active' => true,
         ]);
         $manager = Person::query()->create(['full_name' => 'Maria Gestora', 'active' => true]);
@@ -84,6 +90,7 @@ class DocumentVerificationNavigationTest extends TestCase
             ->assertSee('(66) 99999-1111')
             ->assertSee('contato@escola.test')
             ->assertSee('https://escola.test')
+            ->assertSee('Rua das Flores, nº 123, Centro, Poxoréu - MT, CEP 78800-000')
             ->assertSee('Maria Gestora')
             ->assertSee('Direção');
     }
