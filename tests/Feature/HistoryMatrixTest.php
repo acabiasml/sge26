@@ -61,7 +61,7 @@ class HistoryMatrixTest extends TestCase
         $year = new StudentAcademicHistoryYear(['label' => '1º Ano', 'transcript_mode' => 'summary', 'final_result' => 'Aprovado']);
         $year->id = 1;
         $history->setRelation('years', collect([$year]));
-        $history->setRelation('components', collect(range(1, 24))->map(function ($number) {
+        $history->setRelation('components', collect(range(1, 48))->map(function ($number) {
             $component = new StudentAcademicHistoryComponent([
                 'name' => 'Componente '.$number, 'formation' => 'Formação Geral Básica', 'knowledge_area' => 'Área',
             ]);
@@ -73,13 +73,28 @@ class HistoryMatrixTest extends TestCase
         $document = new \DOMDocument;
         @$document->loadHTML('<?xml encoding="UTF-8">'.$html);
         $xpath = new \DOMXPath($document);
-        foreach ($xpath->query('//table') as $table) {
+        $this->assertSame(1, $xpath->query('//thead')->length);
+        foreach ($xpath->query('//table[contains(@class,"matrix-section")]') as $table) {
             $this->assertSame(1, $xpath->query('.//td[contains(@class,"formation-cell")]', $table)->length);
             $this->assertSame(1, $xpath->query('.//td[@data-global-year="1"]', $table)->length);
         }
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->output();
-        $this->assertStringStartsWith('%PDF-', $pdf);
-        $this->assertStringContainsString('Componente 24', $html);
+        $headersPerPage = [];
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML('<style>table { width:100%; border-collapse:collapse; } td, th { font-size:11px; padding:4px; }</style>'.$html)->setPaper('a5');
+        $pdf->getDomPDF()->setCallbacks([[
+            'event' => 'end_frame',
+            'f' => function ($frame, $canvas) use (&$headersPerPage): void {
+                if ($frame->get_node()->nodeName === 'thead') {
+                    $page = $canvas->get_page_number();
+                    $headersPerPage[$page] = ($headersPerPage[$page] ?? 0) + 1;
+                }
+            },
+        ]]);
+        $this->assertStringStartsWith('%PDF-', $pdf->output());
+        $this->assertGreaterThanOrEqual(2, count($headersPerPage));
+        foreach ($headersPerPage as $count) {
+            $this->assertSame(1, $count, 'O cabeçalho deve aparecer uma única vez em cada página da tabela.');
+        }
+        $this->assertStringContainsString('Componente 48', $html);
     }
 
     public function test_global_year_spans_all_components_without_discarding_detailed_results(): void

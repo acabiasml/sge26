@@ -38,7 +38,8 @@ O Centro Técnico Juvenil de Jarudore é a mantenedora, e a Operação Mato Gros
 - integração REST com o Google Workspace Admin SDK para provisionamento opcional de contas;
 - Laravel Excel para exportações;
 - Dompdf para documentos oficiais;
-- Tailwind CSS 4 e Vite 7;
+- Bootstrap 4/SB Admin 2 e estilos próprios na interface administrativa;
+- Tailwind CSS 4 e Vite 7 no pipeline de assets;
 - SQLite como padrão local e banco configurável por ambiente;
 - PHPUnit 11.
 
@@ -79,7 +80,8 @@ Regras principais:
 - CPF e e-mail institucional são únicos;
 - dados sensíveis possuem restrições de autoedição;
 - a última Administração ativa não pode ser removida ou desativada;
-- ações de Gestão são limitadas às escolas vinculadas.
+- ações de Gestão são limitadas às escolas vinculadas;
+- a Administração pode retirar fechamentos, reativar anos inativos e alterar diários confirmados, matrículas e movimentações; bloqueios por estado acadêmico não impedem essas ações administrativas. As validações de integridade e a auditoria continuam aplicáveis.
 
 O provisionamento de contas Google Workspace é opcional e depende de `GOOGLE_WORKSPACE_ENABLED` e das credenciais administrativas configuradas no ambiente.
 
@@ -139,7 +141,9 @@ A média é arredondada para o múltiplo de `0,5` mais próximo. Conceitos, faix
 
 ### Matrizes e componentes
 
-Matrizes representam cursos ou etapas e podem ser duplicadas. Componentes possuem área de conhecimento, formação, carga horária, aulas semanais e período de oferta.
+Matrizes representam cursos ou etapas e podem ser duplicadas. Componentes possuem área de conhecimento, carga horária, aulas semanais e período de oferta. A área é escolhida explicitamente no cadastro ou na edição do componente e se associa à Formação Geral Básica, ao Itinerário Formativo ou à Parte Complementar.
+
+Em **Áreas curriculares**, a Administração pode rastrear os usos por escola, ano, matriz e componente, desvincular componentes e excluir áreas sem usos. A desvinculação preserva os componentes e seus registros acadêmicos.
 
 No Ensino Médio, o sistema separa:
 
@@ -149,8 +153,12 @@ No Ensino Médio, o sistema separa:
 O nome do itinerário e a regulamentação do curso técnico são mantidos na matriz e refletidos nos documentos acadêmicos. A carga horária calculada usa:
 
 ```text
-aulas semanais × minutos da hora-aula × 40 ÷ 60
+semanas anuais = dias letivos previstos ÷ 5
+semanas de oferta = semanas anuais × períodos de oferta ÷ total de períodos
+carga horária = aulas semanais × minutos da hora-aula × semanas de oferta ÷ 60
 ```
+
+Para 200 dias letivos e quatro períodos, uma oferta de dois períodos considera 20 semanas. O cálculo respeita a interseção dos períodos da matriz e do componente. Uma carga horária informada manualmente prevalece sobre o cálculo.
 
 ### Turmas, docentes e horários
 
@@ -183,9 +191,9 @@ Os diários são gerados por turma e componente. Docentes podem:
 - confirmar o diário ao concluir o período;
 - imprimir diário e lista de chamada.
 
-Gestão e Administração podem acompanhar pendências, enviar alertas, corrigir registros, reabrir diários e consolidar períodos. Frequência sem conteúdo, ou conteúdo sem frequência, é sinalizada como inconsistência.
+Gestão e Administração podem acompanhar pendências, enviar alertas, corrigir registros, reabrir diários e consolidar períodos. A Administração visualiza anos letivos de todas as escolas, inclusive inativos, com filtro por ano. O filtro de componente reúne nomes iguais e encontra os diários correspondentes nas diferentes turmas. Frequência sem conteúdo, ou conteúdo sem frequência, é sinalizada como inconsistência.
 
-Quando existe horário, as datas seguem os dias e aulas previstos. Sem horário, permanece disponível a seleção manual, necessária em ofertas técnicas e especiais. O lançamento fora do intervalo do período é bloqueado por padrão e só é liberado quando a Gestão habilita essa opção no próprio período.
+Quando existe horário, as datas seguem os dias e aulas previstos. Sem horário, permanece disponível a seleção manual, necessária em ofertas técnicas e especiais. Para docentes, o lançamento fora do intervalo do período é bloqueado por padrão e depende da liberação da Gestão no próprio período. A Administração possui permissão de alteração independentemente desses bloqueios de estado acadêmico.
 
 Justificativas de ausência, inclusive atestados médicos, são registradas separadamente. As faltas permanecem no registro bruto, enquanto o cálculo de frequência efetiva considera as justificativas conforme a regra acadêmica adotada.
 
@@ -195,7 +203,7 @@ Um período somente pode ser consolidado quando os diários obrigatórios estão
 
 O resultado anual considera pontos acumulados, frequência mínima, recuperações aplicadas, situação da matrícula e regras vigentes da escola.
 
-Antes do fechamento do ano, a conferência verifica calendário aprovado, períodos consolidados, resultados finais, dias letivos, turmas e matrículas. O fechamento bloqueia alterações acadêmicas sensíveis, mas pode ser revertido por usuários autorizados.
+Antes do fechamento do ano, a conferência verifica calendário aprovado, períodos consolidados, resultados finais, dias letivos, turmas e matrículas. O fechamento bloqueia alterações acadêmicas sensíveis para os demais perfis. A Administração pode reabrir, reativar e corrigir o ano; a reabertura administrativa mantém os demais usuários em consulta.
 
 ## Vida escolar e históricos
 
@@ -211,6 +219,8 @@ O histórico unificado é separado por etapa — Fundamental, Médio ou Técnico
 - Itinerários Formativos cursados em matriz ou ano letivo paralelo;
 - módulos e cargas horárias de cursos técnicos;
 - atos legais e regularizações da vida escolar.
+
+Na tabela principal dos históricos da educação básica, **CHC** significa carga horária cursada, com legenda no documento. Anos ainda em andamento não exibem CHC. O Ensino Médio apresenta totais previstos e cursados por formação e por ano, além dos totais gerais. Anos em modo **Global** usam uma coluna unificada. O cabeçalho da matriz curricular se repete somente quando a tabela continua em outra página.
 
 ## Documentos
 
@@ -254,17 +264,27 @@ BEABA-XXXX-XXXX-XXXX
 
 A consulta pública está disponível em `/documentos/verificar`. O código, a data, a pessoa emissora e os metadados necessários ficam registrados em `issued_documents`.
 
+No editor de documentos oficiais:
+
+- **Reeditar** reaproveita o conteúdo para uma nova emissão, com outro registro e código;
+- **Reemitir** abre a mesma geração para visualizar ou imprimir novamente, mantendo o código;
+- a lista de documentos emitidos possui paginação.
+
 Detalhes da revisão documental estão em [docs/auditoria-documental-pdfs.md](docs/auditoria-documental-pdfs.md).
 
 ## Dashboard, comunicação e relatórios
 
 O dashboard combina indicadores conforme o perfil, recados, aniversariantes e calendário mensal. O menu é organizado em Meu espaço, Gestão escolar, Rotina acadêmica, Documentos, Comunicação e Administração.
 
-Recados podem ter público e vigência. Relatórios administrativos aceitam busca e filtros respeitando o escopo escolar do usuário.
+Recados podem ser cadastrados e editados, com público, vigência e destaque. Os destaques ainda não vistos aparecem em um modal central após o login. **Marcar como já visto** salva a leitura por usuário; fechar sem marcar permite a apresentação no próximo acesso.
+
+A auditoria apresenta nomes e descrições dos registros e agrupa ações consecutivas do mesmo usuário, tipo e contexto, com intervalo de até cinco minutos entre registros. Chamadas e avaliações distintas permanecem separadas. Cada grupo permite consultar os registros originais e os detalhes das alterações. O agrupamento é feito antes da paginação.
+
+Relatórios administrativos aceitam busca e filtros respeitando o escopo escolar do usuário.
 
 ## Acessibilidade e interface
 
-- interface em português do Brasil;
+- interface em português do Brasil e italiano, com bandeiras em SVG para exibição consistente entre navegadores;
 - temas beathema, gov.br e Aurora (clara e escura) selecionáveis no ícone de paleta ao lado dos idiomas no menu superior, com preferência salva por usuário;
 - tema gov.br inspirado no Design System de Governo, com fonte Rawline local, navegação clara e foco visível;
 - fonte local Atkinson Hyperlegible Next, sem dependência de Google Fonts;
@@ -272,6 +292,9 @@ Recados podem ter público e vigência. Relatórios administrativos aceitam busc
 - navegação agrupada por contexto;
 - ícones com nomes acessíveis;
 - tabelas responsivas;
+- retorno à lista de Pessoas pela seta no cabeçalho, preservando busca, filtros e página na mesma aba;
+- faixa colorida no topo durante envios de formulários e atualizações do Livewire, incluindo paginação, busca e filtros;
+- prevenção de cliques repetidos na paginação enquanto a atualização está em andamento;
 - cores, pesos e tamanhos voltados à legibilidade;
 - suporte à navegação por teclado e leitores de tela.
 
@@ -354,11 +377,27 @@ Build de produção:
 npm run build
 ```
 
-Testes:
+Testes devem rodar em **PHP 8.4, dentro de container**, com SQLite em memória. A configuração está em `phpunit.xml`:
+
+```env
+APP_ENV=testing
+DB_CONNECTION=sqlite
+DB_DATABASE=:memory:
+CACHE_STORE=array
+SESSION_DRIVER=array
+QUEUE_CONNECTION=sync
+MAIL_MAILER=array
+```
+
+Dentro do container preparado com as dependências do projeto:
 
 ```bash
-composer test
+php -v
+php -r 'echo extension_loaded("gd") ? "GD habilitada\n" : "GD ausente\n";'
+php -d memory_limit=4G artisan test
 ```
+
+A extensão GD é necessária nos testes de PDF. Falhas de versão do PHP, extensões, memória ou permissões devem ser resolvidas no ambiente antes de serem tratadas como defeito da aplicação. Não usar a base de produção nos testes locais.
 
 Formatação PHP:
 
@@ -399,7 +438,11 @@ A branch principal é publicada no GitHub e aciona o deploy automático na Hosti
 6. verificar o status das migrations;
 7. executar migrations pendentes somente quando a alteração exigir e o deploy não as tiver aplicado.
 
-O código da aplicação não deve ser editado diretamente no servidor de produção.
+O código da aplicação Laravel não deve ser editado diretamente no servidor de produção. Mensagens de commit devem ser escritas em português. As regras operacionais completas e a fonte de verdade para agentes estão em [AGENTS.md](AGENTS.md).
+
+### Página institucional
+
+A página pública de `ctjj.org` é independente do Laravel, cuja aplicação está em `/sge`. Sua fonte está em [site-institucional](site-institucional/README.md), com publicação manual por SSH/SFTP, cópia prévia fora do diretório público e substituição atômica dos arquivos. O deploy do Laravel não publica automaticamente essa página. Ela reúne unidades escolares, trajetórias em abas, documentos e referências externas, além do acesso ao Beabá e à verificação de autenticidade.
 
 ## Diretrizes de contribuição
 
@@ -407,7 +450,7 @@ O código da aplicação não deve ser editado diretamente no servidor de produ�
 - nunca reescrever migrations já executadas em produção;
 - respeitar o escopo por escola e as regras de autorização;
 - manter alterações acadêmicas e documentos auditáveis;
-- não enfraquecer bloqueios de anos ou períodos consolidados;
+- preservar os bloqueios de anos e períodos para os perfis restritos e as permissões administrativas explícitas;
 - garantir código de autenticidade nos documentos oficiais;
 - manter textos em português correto e UFs em maiúsculas;
 - preservar acessibilidade, responsividade e identidade visual;
