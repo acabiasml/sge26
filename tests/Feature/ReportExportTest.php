@@ -88,9 +88,10 @@ class ReportExportTest extends TestCase
         ])->render();
 
         $this->assertStringContainsString('document-footer-qr', $html);
-        $this->assertStringContainsString('chart.googleapis.com/chart?cht=qr', $html);
+        $this->assertStringContainsString('quickchart.io/qr?size=150', $html);
         $this->assertStringContainsString('Autenticidade: BEABA-ABCD-EFGH-IJKL', $html);
         $this->assertStringContainsString('Emitido em', $html);
+        $this->assertStringContainsString('document-footer-issuance', $html);
         $this->assertStringContainsString('document-footer-text', $html);
         $this->assertStringContainsString('document-footer-issuer', $html);
         $this->assertStringContainsString('por Sistema.', $html);

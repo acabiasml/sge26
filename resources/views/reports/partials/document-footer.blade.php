@@ -4,7 +4,7 @@
         ?? $issuedDocument->issuedBy?->email
         ?? 'Sistema';
     $verificationUrl = route('documents.verify', $issuedDocument->verification_code);
-    $qrCodeUrl = 'https://chart.googleapis.com/chart?cht=qr&chs=150x150&chl='.urlencode($verificationUrl);
+    $qrCodeUrl = 'https://quickchart.io/qr?size=150&text='.urlencode($verificationUrl);
 
     $footerSegments = collect($letterhead['footer_lines'] ?? [])
         ->filter()
@@ -27,6 +27,8 @@
         <div class="document-footer-authentication">
             @if($siteLine){{ $siteLine }} | @endif
             Documento emitido pelo Beabá. Autenticidade: {{ $issuedDocument->verification_code }}.
+        </div>
+        <div class="document-footer-issuance">
             Emitido em {{ $issuedDocument->issued_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i:s') }}.
             <span class="document-footer-issuer">por {{ $issuer }}.</span>
         </div>
