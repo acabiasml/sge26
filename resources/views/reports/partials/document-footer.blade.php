@@ -24,7 +24,7 @@
     </div>
     <div class="document-footer-text">
         @if($contactLine)
-            <div class="document-footer-contact">{{ $contactLine }}</div>
+            <div class="document-footer-contact">{{ $contactLine }}.</div>
         @endif
         <div class="document-footer-authentication">
             @if($phoneLine){{ $phoneLine }} | @endif
@@ -32,7 +32,7 @@
             Documento emitido pelo Beabá. Autenticidade: {{ $issuedDocument->verification_code }}.
         </div>
         <div class="document-footer-issuance">
-            Emitido em {{ $issuedDocument->issued_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i:s') }}.
+            Emitido em {{ $issuedDocument->issued_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i:s') }} 
             <span class="document-footer-issuer">por {{ $issuer }}.</span>
         </div>
     </div>
