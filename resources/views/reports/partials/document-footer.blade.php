@@ -4,7 +4,7 @@
         ?? $issuedDocument->issuedBy?->email
         ?? 'Sistema';
     $verificationUrl = route('documents.verify', $issuedDocument->verification_code);
-    $qrCodeUrl = 'https://quickchart.io/qr?size=150&text='.urlencode($verificationUrl);
+    $qrCodeDataUri = (new \chillerlan\QRCode\QRCode)->render($verificationUrl);
 
     $footerSegments = collect($letterhead['footer_lines'] ?? [])
         ->filter()
@@ -18,7 +18,7 @@
 
 <footer class="document-footer">
     <div class="document-footer-qr" aria-label="Código de autenticação do documento">
-        <img src="{{ $qrCodeUrl }}" alt="QR Code de validação do documento" />
+        <img src="{{ $qrCodeDataUri }}" alt="QR Code de validação do documento" />
     </div>
     <div class="document-footer-text">
         @if($contactLine)
