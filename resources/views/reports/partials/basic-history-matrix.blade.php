@@ -5,7 +5,7 @@
     $wideComponentColumn = $history->education_stage === 'medio' && $history->years->count() <= 4;
     // Wider component names need fewer wrapped lines; fill the first page while
     // keeping merged formation/area cells inside each printable section.
-    $sectionSize = $wideComponentColumn ? 26 : 18;
+    $sectionSize = $wideComponentColumn ? 12 : 10;
     $matrixSections = $allMatrixComponents->isEmpty() ? collect([collect()]) : $allMatrixComponents->chunk($sectionSize)->map(fn ($components) => $components->values());
     [$formationWidth, $areaWidth, $componentWidth] = $wideComponentColumn ? [4, 18, 36] : [5, 12, 23];
     $unitWidth = (100 - $formationWidth - $areaWidth - $componentWidth) / max(1, $columnUnits);

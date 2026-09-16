@@ -18,7 +18,7 @@
         .history-table th, .history-table td, .studies-table th, .studies-table td { border: .55px solid #111; padding: 1px 2px; vertical-align: middle; }
         .history-table th, .studies-table th { background: #f1ede9; font-size: 11px; text-transform: uppercase; }
         .history-table td, .studies-table td { font-size: 11px; }
-        .basic-history-matrix, .technical-history-matrix { page-break-inside: avoid; }
+        .basic-history-matrix, .technical-history-matrix { page-break-inside: auto; }
         .basic-history-matrix th, .basic-history-matrix td { font-size: 11px; padding: 2px 2px; line-height: 1.12; }
         .basic-history-matrix th { text-transform: none; }
         .basic-history-matrix .area-label { font-size: 11px; }
@@ -35,7 +35,7 @@
         .basic-history-matrix .global-year { background: #faf8f6; }
         .center { text-align: center; }
         .muted { color: #666; }
-        .section-title { font-size: 11px; font-weight: 600; margin: 4px 0 2px; text-transform: uppercase; page-break-after: avoid; }
+        .section-title { color: #6f3a29; font-size: 11px; font-weight: 600; margin: 4px 0 2px; text-transform: uppercase; page-break-after: avoid; }
         .section-title-reference { font-weight: 400; margin-left: 6px; text-transform: none; }
         .formation-title { background: #e7dfd9; border: .55px solid #111; font-size: 11px; font-weight: 700; margin-top: 3px; padding: 2px 4px; text-transform: uppercase; page-break-after: avoid; }
         .formation-title-reference { font-weight: 400; margin-left: 6px; text-transform: none; }
