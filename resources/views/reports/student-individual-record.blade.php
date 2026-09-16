@@ -7,7 +7,7 @@
         body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 11px; line-height: 1.06; }
         @include('reports.partials.letterhead-styles')
         .letterhead-line, .document-title, .document-meta, .document-footer { line-height: 1.06; }
-        .letterhead { margin-bottom: 6px; padding-bottom: 5px; }
+        .letterhead { margin-bottom: 2px; padding-bottom: 5px; }
         .letterhead-logo img { max-width: 66px; max-height: 50px; }
         .document-title { font-size: 14px; margin: 5px 0 0; text-transform: uppercase; }
         .class-line { font-size: 11px; margin: 0 0 7px; text-align: center; white-space: normal; }
