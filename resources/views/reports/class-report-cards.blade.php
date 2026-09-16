@@ -8,7 +8,7 @@
         @include('reports.partials.letterhead-styles')
         .letterhead { margin-bottom: 7px; padding-bottom: 5px; }
         .letterhead-logo img { max-width: 66px; max-height: 50px; }
-        .document-title { font-size: 14px; margin: 5px 0 2px; }
+        .document-title { font-size: 14px; margin: 5px 0 0; }
         .class-line { font-size: 11px; margin: 1px 0 8px; text-align: center; white-space: normal; }
         .student-meta { margin: 0 0 7px; }
         .student-meta p { margin: 0 0 2px; }

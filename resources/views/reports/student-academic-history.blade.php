@@ -8,7 +8,7 @@
         @include('reports.partials.letterhead-styles')
         .letterhead-line, .document-title, .document-meta, .document-footer { line-height: 1.06; }
         .letterhead { padding-bottom: 6px; }
-        .document-title { font-size: 14px; text-transform: uppercase; margin: 5px 0 2px; }
+        .document-title { font-size: 14px; text-transform: uppercase; margin: 5px 0 0; }
         .meta-table, .history-table, .studies-table { border-collapse: collapse; width: 100%; }
         .meta-table { margin-bottom: 4px; }
         .meta-table td { border: .45px solid #d8ccc4; padding: 1.5px 3px; vertical-align: top; }

@@ -34,7 +34,7 @@ thead { display: table-header-group; }
 .letterhead-center { text-align: center; }
 .letterhead-line { font-size: 11px; color: #534741; line-height: 1.17; margin-top: 1px; }
 .letterhead-line-main { font-size: 11px; font-weight: 600; color: #6B3D2E; letter-spacing: .12px; text-transform: uppercase; }
-.document-title { font-size: 16px; line-height: 1.12; margin: 8px 0 3px; color: #6B3D2E; font-weight: 600; text-align: center; }
+.document-title { font-size: 16px; line-height: 1.12; margin: 8px 0 0; color: #6B3D2E; font-weight: 600; text-align: center; text-transform: uppercase; }
 .document-meta { color: #5f5a55; font-size: 11px; line-height: 1.3; }
 .document-footer { position: fixed; bottom: 10px !important; left: 0; right: 0; border-top: .6px solid #bbb; padding-top: 5px; font-size: 11px; line-height: 1.06; color: #333; display: table; width: 100%; table-layout: auto; text-align: center; }
 .document-footer-qr { display: table-cell; width: 79px; height: 72px; padding-right: 7px; vertical-align: middle; }
