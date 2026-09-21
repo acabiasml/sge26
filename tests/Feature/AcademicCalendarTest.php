@@ -30,6 +30,24 @@ class AcademicCalendarTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_historical_area_usages_are_traceable_without_changing_the_catalog(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'historic-area-manager@ctjj.org');
+        $student = Person::create(['full_name' => 'Estudante do Histórico']);
+        $history = \App\Models\StudentAcademicHistory::create([
+            'person_id' => $student->id, 'school_id' => $year->school_id,
+            'title' => 'Histórico importado', 'stage' => 'Fundamental',
+        ]);
+        $component = $history->components()->create(['name' => 'Saberes e Fazeres do Campo', 'formation' => 'Parte Diversificada', 'knowledge_area' => 'Ciências da Natureza', 'position' => 1]);
+        $url = route('knowledge-areas.historical-usages', ['formation' => $component->formation, 'area' => $component->knowledge_area]);
+        $this->actingAs($manager)->get($url)->assertForbidden();
+        $this->actingAs($admin)->get(route('knowledge-areas.index'))->assertOk()->assertSee('Áreas registradas nos históricos')->assertSee($component->formation);
+        $this->get($url)->assertOk()->assertSee($student->full_name)->assertSee($component->name)->assertSee(route('people.histories.edit', [$student, $history]));
+        $this->assertDatabaseHas('student_academic_history_components', ['id' => $component->id, 'formation' => 'Parte Diversificada']);
+    }
+
     public function test_weekly_workload_uses_the_fraction_of_evaluative_periods(): void
     {
         $year = $this->academicYear(['minimum_school_days' => 200]);

@@ -16,6 +16,10 @@
 
             return $components->chunk($balancedSize)->map(fn ($section) => $section->values());
         })->values();
+    // A compact matrix fits on one page: merge global results across formations too.
+    if ($hasGlobalSummary && $allMatrixComponents->count() <= 18 && $allMatrixComponents->groupBy('formation')->count() <= 3) {
+        $matrixSections = collect([$allMatrixComponents]);
+    }
     [$formationWidth, $areaWidth, $componentWidth] = $wideComponentColumn ? [4, 18, 36] : [5, 12, 23];
     $unitWidth = (100 - $formationWidth - $areaWidth - $componentWidth) / max(1, $columnUnits);
 @endphp

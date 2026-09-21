@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\KnowledgeArea;
+use App\Models\StudentAcademicHistoryComponent;
 use App\Models\CurriculumComponent;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -17,8 +18,25 @@ class KnowledgeAreaController extends Controller
         abort_unless($request->user()->isAdministrator(), 403);
 
         return view('knowledge-areas.index', [
+            'historicalAreas' => StudentAcademicHistoryComponent::query()->selectRaw('formation, knowledge_area, COUNT(*) as uses_count')->groupBy('formation', 'knowledge_area')->orderBy('formation')->orderBy('knowledge_area')->get(),
             'areas' => KnowledgeArea::query()->withCount('components')->orderBy('sort_order')->orderBy('name')->get(),
             'formations' => [CurriculumCatalog::FORMATION_FGB, CurriculumCatalog::FORMATION_ITINERARY, CurriculumCatalog::FORMATION_COMPLEMENTARY],
+        ]);
+    }
+
+    public function historicalUsages(Request $request)
+    {
+        abort_unless($request->user()->isAdministrator(), 403);
+        $filters = $request->validate(['formation' => ['nullable', 'string', 'max:255'], 'area' => ['nullable', 'string', 'max:255']]);
+
+        return view('knowledge-areas.historical-usages', [
+            'components' => StudentAcademicHistoryComponent::query()
+                ->where('formation', $filters['formation'] ?? null)
+                ->where('knowledge_area', $filters['area'] ?? null)
+                ->with(['history.student', 'history.school'])->orderBy('student_academic_history_id')->orderBy('name')
+                ->paginate(25)->withQueryString(),
+            'formation' => $filters['formation'] ?? '—',
+            'area' => $filters['area'] ?? '—',
         ]);
     }
 

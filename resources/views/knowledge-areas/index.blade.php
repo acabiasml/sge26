@@ -35,6 +35,15 @@
             </table>
         </div>
     </section>
+    <details class="card shadow-sm mt-4">
+        <summary class="card-header font-weight-bold">{{ __('Áreas registradas nos históricos') }}</summary>
+        <div class="card-body"><p>{{ __('Os históricos preservam as áreas e formações do documento de origem. Esses nomes são independentes do catálogo das matrizes. Consulte os usos para editar o histórico correspondente.') }}</p>
+        <div class="table-responsive"><table class="table"><thead><tr><th>{{ __('Área') }}</th><th>{{ __('Formação') }}</th><th>{{ __('Usos') }}</th></tr></thead><tbody>
+        @foreach($historicalAreas as $historicalArea)
+            <tr><td>{{ $historicalArea->knowledge_area ?: '—' }}</td><td>{{ $historicalArea->formation ?: '—' }}</td><td><a href="{{ route('knowledge-areas.historical-usages', ['formation' => $historicalArea->formation, 'area' => $historicalArea->knowledge_area]) }}">{{ __('Ver usos') }} ({{ $historicalArea->uses_count }})</a></td></tr>
+        @endforeach
+        </tbody></table></div></div>
+    </details>
     @foreach($areas as $area)
         <div class="modal fade" id="edit-area-{{ $area->id }}" tabindex="-1" role="dialog" aria-labelledby="edit-area-title-{{ $area->id }}" aria-hidden="true"><div class="modal-dialog modal-dialog-centered" role="document"><form class="modal-content" method="POST" action="{{ route('knowledge-areas.update', $area) }}">
             @csrf @method('PUT')

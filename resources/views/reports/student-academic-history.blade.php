@@ -152,7 +152,7 @@
 
 <p class="center">
     {{ preg_replace_callback('/-([a-z]{2})$/iu', fn ($match) => '-'.mb_strtoupper($match[1], 'UTF-8'), $history->issued_place ?: 'Jarudore / Poxoréu-MT') }},
-    {{ $history->issued_date?->format('d/m/Y') ?? now('America/Sao_Paulo')->format('d/m/Y') }}.
+    {{ ($issuedDocument->issued_at ?? now())->copy()->timezone('America/Cuiaba')->format('d/m/Y') }}.
 </p>
 
 <table class="signatures">

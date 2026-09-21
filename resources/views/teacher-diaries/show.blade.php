@@ -156,7 +156,8 @@
                         @method('PUT')
                         <input type="hidden" name="academic_period_id" value="{{ $period->id }}">
                         <div class="table-responsive">
-                            <table class="table table-sm table-bordered">
+                            <table class="table table-sm table-bordered" style="table-layout:fixed; min-width:{{ 440 + $assessments->count() * 140 }}px">
+                                <colgroup><col style="width:240px">@foreach($assessments as $assessment)<col>@endforeach<col style="width:200px"></colgroup>
                                 <thead>
                                     <tr>
                                         <th>{{ __('Estudante') }}</th>
@@ -196,9 +197,9 @@
                                             </td>
                                             @foreach ($assessments as $assessment)
                                                 @php($result = $assessment->results->firstWhere('student_enrollment_id', $enrollment->id))
-                                                <td><label class="sr-only" for="score_{{ $assessment->id }}_{{ $enrollment->id }}">{{ __('Nota de') }} {{ $enrollment->student?->full_name }} {{ __('em') }} {{ $assessment->title }}</label><input id="score_{{ $assessment->id }}_{{ $enrollment->id }}" name="scores[{{ $assessment->id }}][{{ $enrollment->id }}]" data-mask="decimal" inputmode="decimal" class="form-control form-control-sm" value="{{ $result?->score }}" @disabled($enrollmentLocked)>@if($assessment->is_recovery && $assessment->recovery_mode === \App\Models\AcademicPeriod::RECOVERY_REPLACE_PERIOD_AVERAGE && ! $average['recovery_required'])<span class="d-block small text-muted mt-1">{{ __('Opcional; a média do período já atingiu a referência.') }}</span>@endif @if($result?->updatedBy && $result->updated_by_person_id !== $assignment->teacher_person_id)<span class="d-block small text-warning mt-1" title="{{ __('Lançamento alterado por') }} {{ $result->updatedBy->full_name }}"><i class="fas fa-user-shield" aria-hidden="true"></i><span class="sr-only">{{ __('Alterado por') }} {{ $result->updatedBy->full_name }}</span></span>@endif</td>
+                                                <td><label class="sr-only" for="score_{{ $assessment->id }}_{{ $enrollment->id }}">{{ __('Nota de') }} {{ $enrollment->student?->full_name }} {{ __('em') }} {{ $assessment->title }}</label><input id="score_{{ $assessment->id }}_{{ $enrollment->id }}" name="scores[{{ $assessment->id }}][{{ $enrollment->id }}]" data-mask="decimal" inputmode="decimal" class="form-control form-control-sm" value="{{ $result?->score }}" @disabled($enrollmentLocked)> @if($result?->updatedBy && $result->updated_by_person_id !== $assignment->teacher_person_id)<span class="d-block small text-warning mt-1" title="{{ __('Lançamento alterado por') }} {{ $result->updatedBy->full_name }}"><i class="fas fa-user-shield" aria-hidden="true"></i><span class="sr-only">{{ __('Alterado por') }} {{ $result->updatedBy->full_name }}</span></span>@endif</td>
                                             @endforeach
-                                            <td class="text-center font-weight-bold">{{ $average['value'] ?? '-' }}@if (($average['value'] ?? null) !== null)<span class="d-block small text-muted">{{ $average['complete'] ? __('Completa') : $average['completed_assessments'].__(' de ').$average['total_assessments'].__(' lançada(s)') }}</span>@if($average['recovery_value'] !== null)<span class="d-block small text-muted">{{ __('Original:') }} {{ $average['regular_value'] }} {{ __('· Recuperação:') }} {{ $average['recovery_value'] }}</span>@elseif($average['recovery_required'])<span class="d-block small text-muted">{{ __('Recuperação disponível') }}</span>@endif @endif</td>
+                                            <td class="text-center">@include('teacher-diaries.partials.grade-status', ['average' => $average])</td>
                                         </tr>
                                     @endforeach
                                 </tbody>

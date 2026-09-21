@@ -106,7 +106,7 @@ class HistoryMatrixTest extends TestCase
         $detailed->id = 2;
         $history->setRelation('years', collect([$global, $detailed]));
         $history->setRelation('components', collect(['Língua Portuguesa', 'Matemática'])->map(function ($name) {
-            $component = new StudentAcademicHistoryComponent(['name' => $name, 'formation' => 'Formação Geral Básica', 'knowledge_area' => 'Área']);
+            $component = new StudentAcademicHistoryComponent(['name' => $name, 'formation' => $name === 'Matemática' ? 'Parte Diversificada' : 'Formação Geral Básica', 'knowledge_area' => 'Área']);
             $component->setRelation('records', collect([new StudentAcademicHistoryRecord([
                 'student_academic_history_year_id' => 2, 'score_label' => '8,5', 'workload_hours' => 200,
             ])]));
