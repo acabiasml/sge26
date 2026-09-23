@@ -56,65 +56,10 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="official-editor">{{ __('Conteúdo') }}</label>
-                            <div class="sge-editor-toolbar" role="toolbar" aria-label="{{ __('Formatação do conteúdo') }}">
-                                <label class="sge-editor-control" for="editor_font_family">
-                                    <span>{{ __('Fonte') }}</span>
-                                    <select id="editor_font_family" class="form-control form-control-sm" data-editor-font-family>
-                                        <option value="">{{ __('Padrão') }}</option>
-                                        <option value="Atkinson Hyperlegible Next">Atkinson Hyperlegible</option>
-                                        <option value="DejaVu Serif">{{ __('Serifada') }}</option>
-                                        <option value="DejaVu Sans Mono">{{ __('Monoespaçada') }}</option>
-                                    </select>
-                                </label>
-                                <label class="sge-editor-control" for="editor_font_size">
-                                    <span>{{ __('Tamanho') }}</span>
-                                    <select id="editor_font_size" class="form-control form-control-sm" data-editor-font-size>
-                                        <option value="">{{ __('Padrão') }}</option>
-                                        <option value="10pt">10</option>
-                                        <option value="11pt">11</option>
-                                        <option value="12pt">12</option>
-                                        <option value="14pt">14</option>
-                                        <option value="16pt">16</option>
-                                        <option value="18pt">18</option>
-                                    </select>
-                                </label>
-                                <button type="button" class="btn btn-sm btn-outline-primary sge-icon-action" data-editor-command="bold" aria-label="{{ __('Negrito') }}" title="{{ __('Negrito') }}">
-                                    <i class="fas fa-bold" aria-hidden="true"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-primary sge-icon-action" data-editor-command="italic" aria-label="{{ __('Itálico') }}" title="{{ __('Itálico') }}">
-                                    <i class="fas fa-italic" aria-hidden="true"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-primary sge-icon-action" data-editor-command="underline" aria-label="{{ __('Sublinhado') }}" title="{{ __('Sublinhado') }}">
-                                    <i class="fas fa-underline" aria-hidden="true"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-primary sge-icon-action" data-editor-command="insertUnorderedList" aria-label="{{ __('Lista com marcadores') }}" title="{{ __('Lista com marcadores') }}">
-                                    <i class="fas fa-list-ul" aria-hidden="true"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-primary sge-icon-action" data-editor-command="insertOrderedList" aria-label="{{ __('Lista numerada') }}" title="{{ __('Lista numerada') }}">
-                                    <i class="fas fa-list-ol" aria-hidden="true"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-primary sge-icon-action" data-editor-format="h2" aria-label="{{ __('Título') }}" title="{{ __('Título') }}">
-                                    <i class="fas fa-heading" aria-hidden="true"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-primary sge-icon-action" data-editor-format="p" aria-label="{{ __('Parágrafo') }}" title="{{ __('Parágrafo') }}">
-                                    <i class="fas fa-paragraph" aria-hidden="true"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-primary sge-icon-action" data-editor-command="justifyLeft" aria-label="{{ __('Alinhar à esquerda') }}" title="{{ __('Alinhar à esquerda') }}">
-                                    <i class="fas fa-align-left" aria-hidden="true"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-primary sge-icon-action" data-editor-command="justifyCenter" aria-label="{{ __('Centralizar') }}" title="{{ __('Centralizar') }}">
-                                    <i class="fas fa-align-center" aria-hidden="true"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-primary sge-icon-action" data-editor-command="justifyRight" aria-label="{{ __('Alinhar à direita') }}" title="{{ __('Alinhar à direita') }}">
-                                    <i class="fas fa-align-right" aria-hidden="true"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-primary sge-icon-action" data-editor-command="justifyFull" aria-label="{{ __('Justificar') }}" title="{{ __('Justificar') }}">
-                                    <i class="fas fa-align-justify" aria-hidden="true"></i>
-                                </button>
-                            </div>
-                            <div id="official-editor" class="form-control sge-rich-editor @error('content_html') is-invalid @enderror" contenteditable="true" role="textbox" aria-multiline="true">{!! $editorContent !!}</div>
-                            <textarea id="content_html" name="content_html" class="d-none" required>{{ $editorContent }}</textarea>
+                            <label for="content_html">{{ __('Conteúdo') }}</label>
+                            <p id="editor-help" class="small text-muted">{{ __('Insira tabelas e imagens pela barra de ferramentas. Clique numa tabela para editar linhas e colunas; clique numa imagem para redimensionar ou remover.') }}</p>
+                            <textarea id="content_html" name="content_html" class="form-control" aria-describedby="editor-help" aria-label="{{ __('Formatação do conteúdo') }}">{{ $editorContent }}</textarea>
+                            <p id="editor-feedback" class="small text-danger mt-2" role="alert" hidden></p>
                             @error('content_html') <div class="invalid-feedback d-block">{{ __($message) }}</div> @enderror
                         </div>
 
@@ -162,78 +107,21 @@
 @endsection
 
 @push('scripts')
+    <link rel="stylesheet" href="{{ asset('template/vendor/summernote/summernote-bs4.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('template/css/sge-document-editor.css') }}?v={{ filemtime(public_path('template/css/sge-document-editor.css')) }}">
+    <script src="{{ asset('template/vendor/summernote/summernote-bs4.min.js') }}"></script>
+    <script src="{{ asset('template/vendor/summernote/lang/summernote-'.(app()->getLocale() === 'it' ? 'it-IT' : 'pt-BR').'.min.js') }}"></script>
     <script>
-        const officialEditor = document.getElementById('official-editor');
-        const officialEditorInput = document.getElementById('content_html');
-        const officialDocumentForm = document.getElementById('official-document-form');
-        const fontFamilySelect = document.querySelector('[data-editor-font-family]');
-        const fontSizeSelect = document.querySelector('[data-editor-font-size]');
-
-        const syncOfficialEditor = () => {
-            officialEditorInput.value = officialEditor.innerHTML.trim();
+        window.sgeDocumentEditor = {
+            language: @js(app()->getLocale() === 'it' ? 'it-IT' : 'pt-BR'),
+            imageError: @js(__('Use imagens PNG ou JPEG de até 1 MB e 4096 pixels por lado. O documento aceita até 4 MB de imagens.')),
+            localImage: @js(__('Escolha uma imagem do seu dispositivo.')),
+            empty: @js(__('Digite o conteúdo do documento antes de gerar o PDF.')),
+            busy: @js(__('Aguarde a inserção das imagens.')),
+            originalSize: @js(__('Tamanho original')),
+            fontUnit: @js(__('Unidade do tamanho da fonte')),
+            imageDescription: @js(__('Descrição da imagem')),
         };
-
-        const applyEditorStyle = (styles) => {
-            officialEditor.focus();
-
-            const selection = window.getSelection();
-            if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
-                return;
-            }
-
-            const range = selection.getRangeAt(0);
-            const wrapper = document.createElement('span');
-
-            Object.entries(styles).forEach(([property, value]) => {
-                if (value) {
-                    wrapper.style[property] = value;
-                }
-            });
-
-            wrapper.appendChild(range.extractContents());
-            range.insertNode(wrapper);
-
-            selection.removeAllRanges();
-            const newRange = document.createRange();
-            newRange.selectNodeContents(wrapper);
-            selection.addRange(newRange);
-
-            syncOfficialEditor();
-        };
-
-        // Keep the selected paragraph when the toolbar receives a mouse click.
-        document.querySelectorAll('.sge-editor-toolbar button').forEach((button) => {
-            button.addEventListener('mousedown', (event) => event.preventDefault());
-        });
-
-        document.querySelectorAll('[data-editor-command]').forEach((button) => {
-            button.addEventListener('click', () => {
-                officialEditor.focus();
-                document.execCommand('styleWithCSS', false, button.dataset.editorCommand.startsWith('justify'));
-                document.execCommand(button.dataset.editorCommand, false, null);
-                document.execCommand('styleWithCSS', false, false);
-                syncOfficialEditor();
-            });
-        });
-
-        document.querySelectorAll('[data-editor-format]').forEach((button) => {
-            button.addEventListener('click', () => {
-                officialEditor.focus();
-                document.execCommand('formatBlock', false, button.dataset.editorFormat);
-                syncOfficialEditor();
-            });
-        });
-
-        fontFamilySelect?.addEventListener('change', () => {
-            applyEditorStyle({ fontFamily: fontFamilySelect.value });
-        });
-
-        fontSizeSelect?.addEventListener('change', () => {
-            applyEditorStyle({ fontSize: fontSizeSelect.value });
-        });
-
-        officialEditor?.addEventListener('input', syncOfficialEditor);
-        officialEditor?.addEventListener('paste', () => setTimeout(syncOfficialEditor, 0));
-        officialDocumentForm?.addEventListener('submit', syncOfficialEditor);
     </script>
+    <script src="{{ asset('template/js/sge-document-editor.js') }}?v={{ filemtime(public_path('template/js/sge-document-editor.js')) }}"></script>
 @endpush

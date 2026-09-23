@@ -106,6 +106,25 @@ class AdminScreensTest extends TestCase
 
     }
 
+    public function test_official_document_retains_table_and_image_when_reedited_and_reissued(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        $school = School::query()->create($this->officialSchoolData(['name' => 'Escola Imagens']));
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id, 'imagens@ctjj.org');
+        $image = imagecreatetruecolor(40, 20);
+        ob_start(); imagepng($image); $src = 'data:image/png;base64,'.base64_encode(ob_get_clean());
+        $html = '<table><tbody><tr><td colspan="2">Tabela de teste</td></tr><tr><td>Imagem</td><td><img src="'.$src.'" alt="Exemplo" style="width: 50%"></td></tr></tbody></table>';
+        $this->actingAs($manager)->post(route('official-documents.store'), [
+            'school_id' => $school->id, 'title' => 'Documento com imagem', 'orientation' => 'portrait', 'line_spacing' => '1.5', 'content_html' => $html,
+        ])->assertOk()->assertHeader('content-type', 'application/pdf');
+        $document = OfficialDocument::query()->with('issuedDocument')->firstOrFail();
+        $this->assertStringContainsString($src, $document->content_html);
+        $this->assertStringContainsString('colspan="2"', $document->content_html);
+        $this->get(route('official-documents.edit', $document))->assertOk()->assertSee($src, false)->assertSee('summernote-bs4.min.js', false);
+        $bytes = \Illuminate\Support\Facades\Storage::disk('local')->get($document->issuedDocument->file_path);
+        $this->get(route('official-documents.reissue', $document))->assertOk()->assertContent($bytes);
+    }
+
     public function test_saved_document_can_be_reedited_without_changing_original(): void
     {
         $school = School::query()->create($this->officialSchoolData(['name' => 'Escola A']));

@@ -1,0 +1,14 @@
+/* The editable page uses paper colors so contrast and PDF output agree. */
+.note-editor.note-frame { border: 1px solid var(--sge-border, #c5c5c5); border-radius: .5rem; }
+.note-editor .note-editing-area .note-editable { background: #fff; color: #2f241f; font-family: 'Atkinson Hyperlegible Next', sans-serif; font-size: 12pt; }
+.note-editor .note-toolbar { background: var(--sge-surface, #f7f7f7); border-bottom: 1px solid var(--sge-border, #ccc); }
+.note-editor .note-editable table { width: 100%; border-collapse: collapse; }
+.note-editor .note-editable td, .note-editor .note-editable th { border: 1px solid #bdb5ae; padding: 6px; }
+.note-editor .note-editable img { max-width: 100%; height: auto; }
+.note-editor .note-editable:focus { outline: 2px solid var(--sge-primary, #276d81); outline-offset: -2px; }
+.note-editor button:focus-visible, .note-popover button:focus-visible { outline: 2px solid var(--sge-primary, #276d81); outline-offset: 2px; }
+.note-group-image-url { display: none; }
+.note-popover { z-index: 1050; }
+.note-editor .note-btn { min-height: 32px; }
+
+.note-editor .note-editing-area .note-editable table, .note-editor .note-editing-area .note-editable td, .note-editor .note-editing-area .note-editable th { background: #fff !important; color: #2f241f !important; }

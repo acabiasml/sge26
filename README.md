@@ -460,3 +460,7 @@ A página pública de `ctjj.org` é independente do Laravel, cuja aplicação es
 ## Licença
 
 Este repositório usa a licença MIT. Consulte [LICENSE](LICENSE).
+
+### Editor de documentos em papel timbrado
+
+O editor usa Summernote 0.9.1 (MIT), servido localmente em `public/template/vendor/summernote`, sem CDN. Permite tabelas com inserção e exclusão de linhas/colunas, imagens PNG/JPEG, redimensionamento, descrição alternativa e desfazer/refazer. As imagens são incorporadas ao conteúdo salvo e ao PDF; reemitir mantém o arquivo original. Limites: 1 MB por imagem, 4096 pixels por lado, 8 megapixels e 4 MB de imagens por documento. O servidor valida as imagens e preserva apenas HTML e estilos permitidos, incluindo células mescladas e alinhamentos.

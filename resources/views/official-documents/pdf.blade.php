@@ -6,7 +6,6 @@
         @page { size: A4 {{ $officialDocument->orientation }}; margin: 150px 24px 72px; }
         body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 11.5px; line-height: {{ number_format((float) $officialDocument->line_spacing, 2, '.', '') }}; }
         @include('reports.partials.letterhead-styles')
-        .official-content, .official-content * { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif !important; }
         .official-content { margin-top: 18px; }
         .official-content h2 { font-size: 16px; color: #44693D; margin: 14px 0 8px; }
         .official-content h3 { font-size: 14px; color: #44693D; margin: 12px 0 7px; }
@@ -16,8 +15,9 @@
         .official-content ul, .official-content ol { margin: 0 0 10px 20px; padding: 0; }
         .official-content li { margin-bottom: 4px; }
         .official-content blockquote { border-left: 3px solid #e6ddd8; margin: 10px 0; padding: 4px 0 4px 10px; color: #5f5a55; }
-        .official-content table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-        .official-content th, .official-content td { border: 1px solid #e6ddd8; padding: 6px; vertical-align: top; }
+        .official-content table { table-layout: fixed; width: 100%; border-collapse: collapse; margin: 10px 0; }
+        .official-content tr { page-break-inside: avoid; }
+        .official-content th, .official-content td { word-wrap: break-word; border: 1px solid #e6ddd8; padding: 6px; vertical-align: top; }
         .official-content th { background: #f6f0ea; }
     </style>
 </head>

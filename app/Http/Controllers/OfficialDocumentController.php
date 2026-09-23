@@ -51,7 +51,7 @@ class OfficialDocumentController extends Controller
             'school_id' => ['required', Rule::in($availableSchoolIds)],
             'type' => ['nullable', Rule::in(array_keys(OfficialDocument::TYPE_LABELS))],
             'title' => ['required', 'string', 'max:255'],
-            'content_html' => ['required', 'string', 'max:200000'],
+            'content_html' => ['required', 'string', 'max:6000000'],
             'orientation' => ['required', Rule::in(['portrait', 'landscape'])],
             'line_spacing' => ['required', 'numeric', 'min:1', 'max:2'],
         ]);
@@ -65,7 +65,7 @@ class OfficialDocumentController extends Controller
 
         $content = $this->sanitizeContent($data['content_html']);
 
-        if (blank(strip_tags($content))) {
+        if (blank(strip_tags($content)) && ! str_contains($content, '<img ')) {
             throw ValidationException::withMessages([
                 'content_html' => __('Digite o conteúdo do documento antes de gerar o PDF.'),
             ]);
@@ -166,59 +166,7 @@ class OfficialDocumentController extends Controller
 
     private function sanitizeContent(string $html): string
     {
-        $html = preg_replace('/<\/?(script|style|iframe|object|embed|link|meta)[^>]*>/i', '', $html) ?? '';
-        $html = strip_tags($html, '<p><div><br><span><strong><b><em><i><u><ul><ol><li><h2><h3><h4><blockquote><table><thead><tbody><tr><th><td>');
-        $html = preg_replace_callback('/<([a-z][a-z0-9]*)(\s+[^>]*)?>/i', function (array $matches): string {
-            $tag = strtolower($matches[1]);
-            $attributes = $matches[2] ?? '';
-            $style = $this->sanitizeStyle($attributes);
-
-            if ($style === '' || ! in_array($tag, ['span', 'p', 'div', 'h2', 'h3', 'h4', 'th', 'td', 'li', 'ul', 'ol', 'blockquote'], true)) {
-                return '<'.$tag.'>';
-            }
-
-            return '<'.$tag.' style="'.htmlspecialchars($style, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'">';
-        }, $html) ?? '';
-
-        return trim($html);
-    }
-
-    private function sanitizeStyle(string $attributes): string
-    {
-        $alignment = '';
-        if (preg_match('/\salign\s*=\s*(?:["\'](left|center|right|justify)["\']|(left|center|right|justify)(?=\s|$))/i', $attributes, $align)) {
-            $alignment = 'text-align: '.strtolower($align[1] ?: $align[2]);
-        }
-
-        if (! preg_match('/\sstyle\s*=\s*(["\'])(.*?)\1/is', $attributes, $match)) {
-            return $alignment;
-        }
-
-        $allowed = $alignment ? [$alignment] : [];
-        $fontFamilies = ['Atkinson Hyperlegible Next', 'DejaVu Sans', 'DejaVu Serif', 'DejaVu Sans Mono'];
-
-        $style = html_entity_decode($match[2], ENT_QUOTES | ENT_HTML5, 'UTF-8');
-
-        foreach (explode(';', $style) as $declaration) {
-            [$property, $value] = array_pad(explode(':', $declaration, 2), 2, null);
-
-            $property = strtolower(trim((string) $property));
-            $value = trim((string) $value, " \t\n\r\0\x0B\"'");
-
-            if ($property === 'font-family' && in_array($value, $fontFamilies, true)) {
-                $allowed[] = 'font-family: '.$value;
-            }
-
-            if ($property === 'font-size' && preg_match('/^(10|11|12|14|16|18)pt$/', $value)) {
-                $allowed[] = 'font-size: '.$value;
-            }
-
-            if ($property === 'text-align' && in_array($value, ['left', 'center', 'right', 'justify'], true)) {
-                $allowed[] = 'text-align: '.$value;
-            }
-        }
-
-        return implode('; ', $allowed);
+        return app(\App\Support\OfficialDocumentContent::class)->sanitize($html);
     }
 
     private function availableSchools(Request $request)

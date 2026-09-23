@@ -2423,5 +2423,11 @@
     "Média alcançada": "Media raggiunta",
     "Áreas registradas nos históricos": "Aree registrate nei documenti scolastici",
     "Voltar para áreas": "Torna alle aree",
-    "Os históricos preservam as áreas e formações do documento de origem. Esses nomes são independentes do catálogo das matrizes. Consulte os usos para editar o histórico correspondente.": "I documenti scolastici conservano le aree e i percorsi del documento originale. Questi nomi sono indipendenti dal catalogo dei piani di studio. Consulta gli utilizzi per modificare il documento corrispondente."
+    "Os históricos preservam as áreas e formações do documento de origem. Esses nomes são independentes do catálogo das matrizes. Consulte os usos para editar o histórico correspondente.": "I documenti scolastici conservano le aree e i percorsi del documento originale. Questi nomi sono indipendenti dal catalogo dei piani di studio. Consulta gli utilizzi per modificare il documento corrispondente.",
+    "Insira tabelas e imagens pela barra de ferramentas. Clique numa tabela para editar linhas e colunas; clique numa imagem para redimensionar ou remover.": "Inserisci tabelle e immagini dalla barra degli strumenti. Fai clic su una tabella per modificare righe e colonne; su un’immagine per ridimensionarla o rimuoverla.",
+    "Use imagens PNG ou JPEG de até 1 MB e 4096 pixels por lado. O documento aceita até 4 MB de imagens.": "Usa immagini PNG o JPEG fino a 1 MB e 4096 pixel per lato. Il documento accetta fino a 4 MB di immagini.",
+    "Escolha uma imagem do seu dispositivo.": "Scegli un’immagine dal tuo dispositivo.",
+    "Aguarde a inserção das imagens.": "Attendi l’inserimento delle immagini.",
+    "Descrição da imagem": "Descrizione dell’immagine",
+    "Unidade do tamanho da fonte": "Unità della dimensione del carattere"
 }
