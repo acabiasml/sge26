@@ -24,6 +24,28 @@ class OfficialDocumentContentTest extends TestCase
         $this->assertStringContainsString('/Subtype /Image', $pdf);
     }
 
+    public function test_extended_formatting_and_clickable_links_survive_pdf_and_reediting(): void
+    {
+        $html = '<p style="line-height: 1.8"><font color="#ff0000">Cor</font><span style="background-color: rgb(255, 255, 0); font-size: 24pt">Destaque</span><s>Revogado</s>H<sub>2</sub>O x<sup>2</sup></p><hr><a href="https://ctjj.org/?a=1&amp;b=2" target="_blank">Site</a>';
+        $content = app(OfficialDocumentContent::class)->sanitize($html);
+        foreach (['color: #ff0000', 'background-color: #ffff00', 'font-size: 24pt', 'line-height: 1.8', '<s>Revogado</s>', '<sub>2</sub>', '<sup>2</sup>', '<hr>', 'href="https://ctjj.org/?a=1&amp;b=2"', 'rel="noopener noreferrer"'] as $expected) {
+            $this->assertStringContainsString($expected, $content);
+        }
+        $this->assertSame($content, app(OfficialDocumentContent::class)->sanitize($content));
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($content)->output();
+        $this->assertStringStartsWith('%PDF-', $pdf);
+        $this->assertStringContainsString('/URI', $pdf);
+    }
+
+    public function test_links_and_colors_cannot_introduce_scripts_or_external_styles(): void
+    {
+        $html = '<a href="javascript:alert(1)">A</a><a href="java&#10;script:alert(1)">B</a><a href="data:text/html,bad">C</a><font color="url(https://example.org)">D</font><span style="background-color: url(file:///etc/passwd); color: expression(alert(1))">E</span>';
+        $content = app(OfficialDocumentContent::class)->sanitize($html);
+        foreach (['href=', 'url(', 'expression', 'javascript', 'file:', 'data:'] as $unsafe) {
+            $this->assertStringNotContainsString($unsafe, $content);
+        }
+    }
+
     public function test_unsafe_elements_attributes_and_styles_are_removed(): void
     {
         $html = '<script>alert(1)</script><iframe src="http://localhost"></iframe><p onclick="bad()" style="background: url(file:///etc/passwd); position: fixed; text-align: center">Texto</p><table><tr><td colspan="999999" style="width: expression(bad())">Célula</td></tr></table>';

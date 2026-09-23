@@ -35,11 +35,24 @@ class OfficialDocumentContent
             foreach ($node->childNodes as $child) {
                 $children .= $render($child);
             }
-            if (! in_array($tag, ['p', 'div', 'br', 'span', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'h2', 'h3', 'h4', 'blockquote', 'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'img'], true)) {
+            if (! in_array($tag, ['p', 'div', 'br', 'span', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'h2', 'h3', 'h4', 'blockquote', 'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'img', 'font', 'a', 's', 'strike', 'sub', 'sup', 'hr'], true)) {
                 return $children;
             }
             $attributes = '';
             $escape = fn ($value) => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            if ($tag === 'a') {
+                $href = trim($node->getAttribute('href'));
+                if (preg_match('/^(?:https?:\/\/[^\s<>]+|mailto:[^\s<>]+|tel:[+0-9() .-]+)$/iD', $href)) {
+                    $attributes .= ' href="'.$escape($href).'"';
+                    if ($node->getAttribute('target') === '_blank') {
+                        $attributes .= ' target="_blank" rel="noopener noreferrer"';
+                    }
+                }
+            }
+            if ($tag === 'font') {
+                $tag = 'span';
+                $node->setAttribute('style', 'color: '.$node->getAttribute('color').';'.$node->getAttribute('style'));
+            }
             if ($tag === 'img') {
                 $src = $node->getAttribute('src');
                 if (! preg_match('#^data:image/(png|jpeg);base64,([a-zA-Z0-9+/=]+)$#D', $src, $match)) {
@@ -65,7 +78,7 @@ class OfficialDocumentContent
             if ($style !== '') {
                 $attributes .= ' style="'.$escape($style).'"';
             }
-            return '<'.$tag.$attributes.'>'.(in_array($tag, ['br', 'img'], true) ? '' : $children.'</'.$tag.'>');
+            return '<'.$tag.$attributes.'>'.(in_array($tag, ['br', 'img', 'hr'], true) ? '' : $children.'</'.$tag.'>');
         };
         return trim($render($document->getElementsByTagName('body')->item(0)));
     }
@@ -101,11 +114,26 @@ class OfficialDocumentContent
                 $allowed[] = 'font-family: '.$value;
             }
 
-            if ($property === 'font-size' && preg_match('/^(?:10|11|12|14|16|18)(?:pt|px)$/', $value)) {
+            if ($property === 'font-size' && preg_match('/^(?:8|9|10|11|12|14|16|18|20|24|28|32|36)(?:pt|px)$/', $value)) {
                 $allowed[] = 'font-size: '.$value;
             }
 
-            if ($property === 'width' && preg_match('/^(?:100|[1-9]?[0-9](?:\.[0-9]+)?)%$|^[1-9][0-9]{0,3}(?:\.[0-9]+)?px$/', $value)) {
+            if (in_array($property, ['color', 'background-color'], true)) {
+                if (preg_match('/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/iD', $value)) {
+                    $allowed[] = $property.': '.$value;
+                } elseif (preg_match('/^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/iD', $value, $rgb) && max((int) $rgb[1], (int) $rgb[2], (int) $rgb[3]) <= 255) {
+                    $allowed[] = $property.': '.sprintf('#%02x%02x%02x', $rgb[1], $rgb[2], $rgb[3]);
+                } elseif ($property === 'background-color' && $value === 'transparent') {
+                    $allowed[] = 'background-color: transparent';
+                }
+            }
+            if ($property === 'line-height' && in_array($value, ['1', '1.0', '1.2', '1.4', '1.5', '1.6', '1.8', '2', '2.0', '3', '3.0'], true)) {
+                $allowed[] = 'line-height: '.$value;
+            }
+            if ($property === 'text-decoration' && in_array($value, ['line-through', 'underline', 'none'], true)) {
+                $allowed[] = 'text-decoration: '.$value;
+            }
+            if ($property === 'width'  && preg_match('/^(?:100|[1-9]?[0-9](?:\.[0-9]+)?)%$|^[1-9][0-9]{0,3}(?:\.[0-9]+)?px$/', $value)) {
                 $allowed[] = 'width: '.$value;
             }
             if ($property === 'height' && $value === 'auto') {

@@ -15,6 +15,8 @@
         .official-content ul, .official-content ol { margin: 0 0 10px 20px; padding: 0; }
         .official-content li { margin-bottom: 4px; }
         .official-content blockquote { border-left: 3px solid #e6ddd8; margin: 10px 0; padding: 4px 0 4px 10px; color: #5f5a55; }
+        .official-content a { color: #175d91; text-decoration: underline; }
+        .official-content hr { border: 0; border-top: 1px solid #aaa; margin: 12px 0; }
         .official-content table { table-layout: fixed; width: 100%; border-collapse: collapse; margin: 10px 0; }
         .official-content tr { page-break-inside: avoid; }
         .official-content th, .official-content td { word-wrap: break-word; border: 1px solid #e6ddd8; padding: 6px; vertical-align: top; }

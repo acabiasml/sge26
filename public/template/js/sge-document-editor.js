@@ -47,18 +47,20 @@
         styleTags: ['p', 'h2', 'h3', 'h4', 'blockquote'],
         fontNames: ['Atkinson Hyperlegible Next', 'DejaVu Serif', 'DejaVu Sans Mono'],
         fontNamesIgnoreCheck: ['Atkinson Hyperlegible Next', 'DejaVu Serif', 'DejaVu Sans Mono'],
-        fontSizes: ['10', '11', '12', '14', '16', '18'],
+        fontSizes: ['8', '9', '10', '11', '12', '14', '16', '18', '20', '24', '28', '32', '36'],
         fontSizeUnits: ['pt'],
         toolbar: [
             ['history', ['undo', 'redo']], ['style', ['style']],
             ['font', ['fontname', 'fontsize', 'fontsizeunit', 'bold', 'italic', 'underline', 'clear']],
-            ['paragraph', ['ul', 'ol', 'paragraph']], ['insert', ['table', 'picture']],
+            ['effects', ['strikethrough', 'superscript', 'subscript']],
+            ['color', ['color']],
+            ['paragraph', ['ul', 'ol', 'paragraph', 'height']], ['insert', ['table', 'picture', 'link', 'hr']],
             ['view', ['fullscreen', 'help']]
         ],
         popover: {
             image: [['size', ['resizeFull', 'resizeHalf', 'resizeQuarter', 'resizeNone']], ['float', ['floatLeft', 'floatRight', 'floatNone']], ['description', ['imageDescription']], ['remove', ['removeMedia']]],
             table: [['add', ['addRowUp', 'addRowDown', 'addColLeft', 'addColRight']], ['delete', ['deleteRow', 'deleteCol', 'deleteTable']]],
-            link: [], air: []
+            link: [['link', ['linkDialogShow', 'unlink']]], air: []
         },
         buttons: {
             imageDescription: context => window.jQuery.summernote.ui.button({
