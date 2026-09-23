@@ -26,7 +26,7 @@
         <a href="#section-resumo" class="sge-section-nav-item" data-academic-tab="resumo" role="tab"><i class="fas fa-clipboard-list"></i><span>{{ __('Resumo') }}</span><small>{{ __('turma e período') }}</small></a>
         @if($period)
             <a href="#section-situacao" class="sge-section-nav-item" data-academic-tab="situacao" role="tab"><i class="fas fa-check-circle"></i><span>{{ __('Situação') }}</span><small>{{ $confirmation?->confirmed ? __('confirmado') : __('em lançamento') }}</small></a>
-            <a href="#section-frequencia" class="sge-section-nav-item" data-academic-tab="frequencia" role="tab"><i class="fas fa-clipboard-check"></i><span>{{ __('Frequência') }}</span><small>{{ $attendanceRecords->count() }} {{ __('chamadas') }}</small></a>
+            <a href="#section-frequencia" class="sge-section-nav-item" data-academic-tab="frequencia" role="tab"><i class="fas fa-clipboard-check"></i><span>{{ __('Frequência') }}</span><small>{{ $attendanceRecords->sum('lesson_count') }} {{ __('chamadas') }}</small></a>
             <a href="#section-notas" class="sge-section-nav-item" data-academic-tab="notas" role="tab"><i class="fas fa-star-half-alt"></i><span>{{ __('Notas') }}</span><small>{{ $assessmentRules->count() }} {{ __('avaliações') }}</small></a>
         @endif
     </nav>
@@ -51,7 +51,7 @@
                     </dl>
                     <div class="sge-academic-metrics mt-3 mb-0" aria-label="{{ __('Indicadores do diário no período selecionado') }}">
                         <div><strong>{{ $enrollments->filter->isActive()->count() }}</strong><span>{{ __('estudantes ativos') }}</span></div>
-                        <div><strong>{{ $attendanceRecords->count() }}</strong><span>{{ __('chamadas') }}</span></div>
+                        <div><strong>{{ $attendanceRecords->sum('lesson_count') }}</strong><span>{{ __('chamadas') }}</span></div>
                         <div><strong>{{ $contents->count() }}</strong><span>{{ __('conteúdos') }}</span></div>
                         <div><strong>{{ $assessments->count() }}</strong><span>{{ __('avaliações') }}</span></div>
                     </div>
@@ -135,7 +135,7 @@
             </div>
             <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
                 <p class="mb-0 mr-3">{{ __('Use a folha visual para lançar até 15 dias de uma vez, inclusive presenças parciais por aula.') }}</p>
-                <span class="small text-muted">{{ $attendanceRecords->count() }} {{ __('chamada(s) ·') }} {{ $contents->count() }} {{ __('conteúdo(s) neste período') }}</span>
+                <span class="small text-muted">{{ $attendanceRecords->sum('lesson_count') }} {{ __('chamada(s) ·') }} {{ $contents->count() }} {{ __('conteúdo(s) neste período') }}</span>
             </div>
         </div>
 
