@@ -1,6 +1,26 @@
 @php
     $hasGlobalSummary = $history->years->contains('transcript_mode', 'summary');
-    $allMatrixComponents = $history->components->reject(fn ($component) => $hasGlobalSummary
+    // Global assessment changes the results column, not the stage's curriculum rows.
+    // These display-only rows must not create records or invent grades/workloads.
+    $displayComponents = collect($history->components->all());
+    if ($history->education_stage === 'fundamental' && $hasGlobalSummary) {
+        $normalize = fn ($value) => \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii(trim($value ?? '')));
+        $formation = config('curriculum.stages.fundamental.formations.formacao_geral_basica.label');
+        $existingNames = $displayComponents->filter(fn ($component) => $normalize($component->formation) === $normalize($formation))
+            ->map(fn ($component) => $normalize($component->name));
+        $missingComponents = collect();
+        foreach (config('curriculum.stages.fundamental.formations.formacao_geral_basica.areas', []) as $area) {
+            foreach ($area['components'] as $name) {
+                if (! $existingNames->contains($normalize($name))) {
+                    $component = new \App\Models\StudentAcademicHistoryComponent(['formation' => $formation, 'knowledge_area' => $area['name'], 'name' => $name]);
+                    $component->setRelation('records', collect());
+                    $missingComponents->push($component);
+                }
+            }
+        }
+        $displayComponents = $missingComponents->concat($displayComponents);
+    }
+    $allMatrixComponents = $displayComponents->reject(fn ($component) => $hasGlobalSummary
         && (\Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii(trim($component->knowledge_area ?? ''))) === 'sintese curricular'
             || \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii(trim($component->name ?? ''))) === 'sintese global do documento de origem'))
         ->groupBy(fn ($component) => $component->formation ?: '-')

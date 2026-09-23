@@ -10,6 +10,37 @@ use Tests\TestCase;
 
 class HistoryMatrixTest extends TestCase
 {
+    public function test_global_fundamental_history_keeps_basic_curriculum_rows_without_creating_records(): void
+    {
+        $history = new StudentAcademicHistory(['education_stage' => 'fundamental']);
+        $year = new StudentAcademicHistoryYear(['label' => '1º Ano', 'transcript_mode' => 'summary', 'final_result' => 'Aprovado', 'workload_hours' => 800]);
+        $year->id = 1;
+        $history->setRelation('years', collect([$year]));
+        $history->setRelation('components', collect());
+        $html = view('reports.partials.basic-history-matrix', compact('history'))->render();
+        foreach (config('curriculum.stages.fundamental.formations.formacao_geral_basica.areas') as $area) {
+            foreach ($area['components'] as $name) {
+                $this->assertStringContainsString($name, $html);
+            }
+        }
+        $this->assertStringContainsString('rowspan="9" class="center global-year"', $html);
+        $this->assertSame(1, substr_count($html, 'Síntese Global - Aprovado'));
+        $this->assertStringContainsString('800', $html);
+        $this->assertCount(0, $history->components);
+
+        $component = new StudentAcademicHistoryComponent(['name' => 'Língua Portuguesa', 'formation' => 'Formação Geral Básica', 'knowledge_area' => 'Linguagens']);
+        $component->setRelation('records', collect());
+        $history->components->push($component);
+        $html = view('reports.partials.basic-history-matrix', compact('history'))->render();
+        $this->assertSame(1, substr_count($html, 'Língua Portuguesa'));
+        $this->assertStringContainsString('rowspan="9" class="center global-year"', $html);
+        $this->assertCount(1, $history->components);
+
+        $history->education_stage = 'medio';
+        $html = view('reports.partials.basic-history-matrix', compact('history'))->render();
+        $this->assertStringNotContainsString('Educação Física', $html);
+    }
+
     public function test_planned_and_completed_hours_are_separate_and_current_year_hours_are_hidden(): void
     {
         $history = new StudentAcademicHistory(['education_stage' => 'medio']);
