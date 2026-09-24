@@ -3,10 +3,11 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { size: A4 {{ $officialDocument->orientation }}; margin: 150px 24px 72px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 11.5px; line-height: {{ number_format((float) $officialDocument->line_spacing, 2, '.', '') }}; }
+        @page { size: A4 {{ $officialDocument->orientation }}; margin: {{ $contentTopMargin ?? 150 }}px 24px 72px; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 12pt; line-height: {{ number_format((float) $officialDocument->line_spacing, 2, '.', '') }}; }
         @include('reports.partials.letterhead-styles')
-        .official-content { margin-top: 18px; }
+        .letterhead-repeat { top: -{{ ($contentTopMargin ?? 150) - 16 }}px; }
+        .official-content { margin-top: 0; }
         .official-content h2 { font-size: 16px; color: #44693D; margin: 14px 0 8px; }
         .official-content h3 { font-size: 14px; color: #44693D; margin: 12px 0 7px; }
         .official-content h4 { font-size: 13px; color: #44693D; margin: 10px 0 6px; }
@@ -31,10 +32,12 @@
         'verificationUrl' => $verificationUrl,
     ])
 
+    @unless($measureLetterhead ?? false)
     <main class="official-content">
         {!! $officialDocument->content_html !!}
     </main>
 
     @include('reports.partials.document-footer', ['issuedDocument' => $issuedDocument])
+    @endunless
 </body>
 </html>

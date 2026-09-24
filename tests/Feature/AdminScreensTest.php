@@ -125,6 +125,38 @@ class AdminScreensTest extends TestCase
         $this->get(route('official-documents.reissue', $document))->assertOk()->assertContent($bytes);
     }
 
+    public function test_long_official_document_keeps_content_below_wrapped_letterhead_on_every_page(): void
+    {
+        $document = new OfficialDocument(['title' => str_repeat('Título extenso do documento ', 7), 'orientation' => 'portrait', 'line_spacing' => 1.5,
+            'content_html' => str_repeat('<p>CONTEUDO Texto para verificar a separação entre o cabeçalho e o corpo do documento.</p>', 90)]);
+        $issued = new IssuedDocument(['issued_at' => now(), 'verification_code' => 'PREVIA']);
+        $issued->setRelation('issuedBy', null);
+        foreach (['portrait', 'landscape'] as $orientation) {
+            $document->orientation = $orientation;
+            $pdf = app(\App\Support\OfficialDocumentPdf::class)->make([
+                'officialDocument' => $document, 'issuedDocument' => $issued,
+                'verificationUrl' => 'https://ctjj.org/sge/documentos/verificar/PREVIA',
+                'letterhead' => ['lines' => ['Centro Técnico Juvenil de Jarudore', 'Certificação institucional', 'Escola de teste', 'CNPJ e endereço', 'Credenciamento e autorização']],
+            ]);
+            $headers = []; $bodies = [];
+            $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame, $canvas) use (&$headers, &$bodies): void {
+                $node = $frame->get_node(); $box = $frame->get_border_box(); $page = $canvas->get_page_number();
+                if ($node instanceof \DOMElement && $node->tagName === 'header') {
+                    $headers[$page] = $box['y'] + $box['h'];
+                }
+                if ($node->nodeType === XML_TEXT_NODE && str_starts_with($node->nodeValue, 'CONTEUDO')) {
+                    $bodies[$page] = min($bodies[$page] ?? PHP_FLOAT_MAX, $box['y']);
+                }
+            }]]);
+            $this->assertStringStartsWith('%PDF-', $pdf->output());
+            $this->assertGreaterThan(1, count($bodies));
+            foreach ($bodies as $page => $top) {
+                $this->assertArrayHasKey($page, $headers);
+                $this->assertGreaterThan($headers[$page] + 5, $top, 'Conteúdo sobreposto ao cabeçalho na página '.$page);
+            }
+        }
+    }
+
     public function test_saved_document_can_be_reedited_without_changing_original(): void
     {
         $school = School::query()->create($this->officialSchoolData(['name' => 'Escola A']));

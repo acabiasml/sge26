@@ -51,7 +51,7 @@ class OfficialDocumentContent
             }
             if ($tag === 'font') {
                 $tag = 'span';
-                $node->setAttribute('style', 'color: '.$node->getAttribute('color').';'.$node->getAttribute('style'));
+                $node->setAttribute('style', 'font-family: '.$node->getAttribute('face').';color: '.$node->getAttribute('color').';'.$node->getAttribute('style'));
             }
             if ($tag === 'img') {
                 $src = $node->getAttribute('src');
@@ -110,8 +110,11 @@ class OfficialDocumentContent
             $property = strtolower(trim((string) $property));
             $value = trim((string) $value, " \t\n\r\0\x0B\"'");
 
-            if ($property === 'font-family' && in_array($value, $fontFamilies, true)) {
-                $allowed[] = 'font-family: '.$value;
+            if ($property === 'font-family') {
+                $family = trim(explode(',', $value)[0], " \"'");
+                if (in_array($family, $fontFamilies, true)) {
+                    $allowed[] = 'font-family: '.$family;
+                }
             }
 
             if ($property === 'font-size' && preg_match('/^(?:8|9|10|11|12|14|16|18|20|24|28|32|36)(?:pt|px)$/', $value)) {

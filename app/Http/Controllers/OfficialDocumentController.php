@@ -111,12 +111,12 @@ class OfficialDocumentController extends Controller
             abort_unless($disk->exists($issued->file_path), 404);
             $bytes = $disk->get($issued->file_path);
         } else {
-            $pdf = Pdf::loadView('official-documents.pdf', [
+            $pdf = app(\App\Support\OfficialDocumentPdf::class)->make([
                 'officialDocument' => $document->load('school'),
                 'issuedDocument' => $issued,
                 'verificationUrl' => route('documents.verify', $issued->verification_code),
                 'letterhead' => PdfLetterhead::make($document->school),
-            ])->setPaper('a4', $document->orientation);
+            ]);
             $response = PdfMetadata::stream($pdf, $this->filename($document), $document->title.' - Beabá');
             $bytes = $response->getContent();
             $path = 'issued-documents/'.$issued->uuid.'.pdf';

@@ -46,6 +46,16 @@ class OfficialDocumentContentTest extends TestCase
         }
     }
 
+    public function test_editor_font_face_and_font_stacks_are_preserved(): void
+    {
+        $html = '<font face="DejaVu Serif">Serifada</font><font face="Atkinson Hyperlegible Next">Padrão</font><span style="font-family: &quot;DejaVu Sans Mono&quot;, monospace; font-size: 18pt">Mono</span>';
+        $content = app(OfficialDocumentContent::class)->sanitize($html);
+        foreach (['font-family: DejaVu Serif', 'font-family: Atkinson Hyperlegible Next', 'font-family: DejaVu Sans Mono', 'font-size: 18pt'] as $font) {
+            $this->assertStringContainsString($font, $content);
+        }
+        $this->assertSame($content, app(OfficialDocumentContent::class)->sanitize($content));
+    }
+
     public function test_unsafe_elements_attributes_and_styles_are_removed(): void
     {
         $html = '<script>alert(1)</script><iframe src="http://localhost"></iframe><p onclick="bad()" style="background: url(file:///etc/passwd); position: fixed; text-align: center">Texto</p><table><tr><td colspan="999999" style="width: expression(bad())">Célula</td></tr></table>';
