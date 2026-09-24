@@ -20,21 +20,30 @@ class HistoryMatrixTest extends TestCase
         $html = view('reports.partials.basic-history-matrix', compact('history'))->render();
         foreach (config('curriculum.stages.fundamental.formations.formacao_geral_basica.areas') as $area) {
             foreach ($area['components'] as $name) {
-                $this->assertStringContainsString($name, $html);
+                if ($name !== 'Ensino Religioso') $this->assertStringContainsString($name, $html);
             }
         }
-        $this->assertStringContainsString('rowspan="9" class="center global-year"', $html);
+        $this->assertStringContainsString('rowspan="8" class="center global-year"', $html);
         $this->assertSame(1, substr_count($html, 'Síntese Global - Aprovado'));
         $this->assertStringContainsString('800', $html);
         $this->assertCount(0, $history->components);
+        $this->assertStringNotContainsString('Ensino Religioso', $html);
+        $this->assertStringNotContainsString('>Global<', $html);
 
         $component = new StudentAcademicHistoryComponent(['name' => 'Língua Portuguesa', 'formation' => 'Formação Geral Básica', 'knowledge_area' => 'Linguagens']);
         $component->setRelation('records', collect());
         $history->components->push($component);
         $html = view('reports.partials.basic-history-matrix', compact('history'))->render();
         $this->assertSame(1, substr_count($html, 'Língua Portuguesa'));
-        $this->assertStringContainsString('rowspan="9" class="center global-year"', $html);
+        $this->assertStringContainsString('rowspan="8" class="center global-year"', $html);
         $this->assertCount(1, $history->components);
+
+        $religion = new StudentAcademicHistoryComponent(['name' => 'Ensino Religioso', 'formation' => 'Formação Geral Básica', 'knowledge_area' => 'Ensino Religioso']);
+        $religion->setRelation('records', collect());
+        $history->components->push($religion);
+        $html = view('reports.partials.basic-history-matrix', compact('history'))->render();
+        $this->assertStringContainsString('Ensino Religioso', $html);
+        $this->assertStringContainsString('rowspan="9" class="center global-year"', $html);
 
         $history->education_stage = 'medio';
         $html = view('reports.partials.basic-history-matrix', compact('history'))->render();
