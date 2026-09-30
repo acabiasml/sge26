@@ -10,6 +10,32 @@ use Tests\TestCase;
 
 class HistoryMatrixTest extends TestCase
 {
+    public function test_untranscribed_year_has_one_header_and_a_vertical_result_next_to_mixed_years(): void
+    {
+        $history = new StudentAcademicHistory;
+        $years = collect(['no_transcription', 'summary', 'detailed'])->map(function ($mode, $index) {
+            $year = new StudentAcademicHistoryYear(['label' => ($index + 1).'º Ano', 'transcript_mode' => $mode, 'final_result' => $index === 0 ? 'Inturmado por Idade' : 'Aprovado']);
+            $year->id = $index + 1;
+            return $year;
+        });
+        $component = new StudentAcademicHistoryComponent(['name' => 'Português', 'formation' => 'Formação Geral Básica', 'knowledge_area' => 'Linguagens']);
+        $component->setRelation('records', collect());
+        $history->setRelation('years', $years)->setRelation('components', collect([$component]));
+        $html = view('reports.partials.basic-history-matrix', compact('history'))->render();
+        $document = new \DOMDocument;
+        @$document->loadHTML('<?xml encoding="UTF-8">'.$html);
+        $xpath = new \DOMXPath($document);
+        $this->assertSame(1, $xpath->query('//thead/tr[1]/th[@rowspan="2"][contains(., "1º Ano")]')->length);
+        $this->assertSame(2, $xpath->query('//thead/tr[2]/th')->length);
+        $this->assertSame(1, $xpath->query('//td[@data-global-year="1"]/div[@class="vertical-result"]/strong[contains(., "Inturmado por Idade")]')->length);
+        $this->assertStringNotContainsString('Sem transcrição', $html);
+        $years[0]->final_result = null;
+        $history->setRelation('years', collect([$years[0]]));
+        $html = view('reports.partials.basic-history-matrix', compact('history'))->render();
+        $this->assertStringContainsString('<strong>Sem transcrição</strong>', $html);
+        $this->assertStringNotContainsString('rowspan="2"', $html);
+    }
+
     public function test_global_fundamental_history_keeps_basic_curriculum_rows_without_creating_records(): void
     {
         $history = new StudentAcademicHistory(['education_stage' => 'fundamental']);

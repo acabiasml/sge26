@@ -25,7 +25,7 @@
             || \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii(trim($component->name ?? ''))) === 'sintese global do documento de origem'))
         ->groupBy(fn ($component) => $component->formation ?: '-')
         ->flatMap(fn ($components) => $components->groupBy(fn ($component) => $component->knowledge_area ?: '-')->flatten(1))->values();
-    $headerRows = $history->years->contains(fn ($year) => $year->transcript_mode !== 'summary') ? 2 : 1;
+    $headerRows = $history->years->contains(fn ($year) => $year->transcript_mode === 'detailed') ? 2 : 1;
     $columnUnits = $history->years->sum(fn ($year) => $year->transcript_mode === 'detailed' ? 2 : 1);
     $wideComponentColumn = $history->education_stage === 'medio' && $history->years->count() <= 4;
     // Keep merged cells within indivisible rows of the outer table. Its single
@@ -53,12 +53,12 @@
     </colgroup>
     <thead>
         <tr><th rowspan="{{ $headerRows }}" style="width:{{ $formationWidth }}%"><div class="vertical-heading"><span>Formação</span></div></th><th rowspan="{{ $headerRows }}" style="width:{{ $areaWidth }}%">Área</th><th rowspan="{{ $headerRows }}" style="width:{{ $componentWidth }}%">Componente curricular</th>
-            @foreach($history->years as $year)<th @if($year->transcript_mode === 'summary') rowspan="{{ $headerRows }}" @endif colspan="{{ $year->transcript_mode === 'detailed' ? 2 : 1 }}" class="center" style="width:{{ $unitWidth * ($year->transcript_mode === 'detailed' ? 2 : 1) }}%">@if($year->transcript_mode !== 'detailed')<div class="vertical-heading"><span>{{ $year->label }}</span></div>@else{{ $year->label }}@endif</th>@endforeach
+            @foreach($history->years as $year)<th @if($year->transcript_mode !== 'detailed') rowspan="{{ $headerRows }}" @endif colspan="{{ $year->transcript_mode === 'detailed' ? 2 : 1 }}" class="center" style="width:{{ $unitWidth * ($year->transcript_mode === 'detailed' ? 2 : 1) }}%">@if($year->transcript_mode !== 'detailed')<div class="vertical-heading"><span>{{ $year->label }}</span></div>@else{{ $year->label }}@endif</th>@endforeach
         </tr>
         @if($headerRows === 2)
         <tr>@foreach($history->years as $year)
             @if($year->transcript_mode === 'detailed')<th class="center">N</th><th class="center">CHC</th>
-            @elseif($year->transcript_mode !== 'summary')<th class="center"><div class="vertical-heading"><span>Sem transcrição</span></div></th>@endif
+            @endif
         @endforeach</tr>
         @endif
     </thead>
@@ -89,7 +89,7 @@
                 @if($year->transcript_mode !== 'detailed')
                     @if($firstMatrixRow)<td rowspan="{{ $matrixComponents->count() }}" class="center global-year" style="width:{{ $unitWidth }}%" data-global-year="{{ $year->id }}">
                         @if($year->transcript_mode === 'summary')<div class="vertical-result"><strong>Síntese Global - {{ $year->final_result ?: '-' }}</strong></div>
-                        @else{{ $year->final_result ?: 'Sem transcrição' }}@endif
+                        @else<div class="vertical-result"><strong>{{ $year->final_result ?: 'Sem transcrição' }}</strong></div>@endif
                     </td>@endif
                 @else
                     @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
