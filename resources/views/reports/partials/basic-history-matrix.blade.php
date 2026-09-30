@@ -53,7 +53,8 @@
     </colgroup>
     <thead>
         <tr><th rowspan="{{ $headerRows }}" style="width:{{ $formationWidth }}%"><div class="vertical-heading"><span>Formação</span></div></th><th rowspan="{{ $headerRows }}" style="width:{{ $areaWidth }}%">Área</th><th rowspan="{{ $headerRows }}" style="width:{{ $componentWidth }}%">Componente curricular</th>
-            @foreach($history->years as $year)<th @if($year->transcript_mode !== 'detailed') rowspan="{{ $headerRows }}" @endif colspan="{{ $year->transcript_mode === 'detailed' ? 2 : 1 }}" class="center" style="width:{{ $unitWidth * ($year->transcript_mode === 'detailed' ? 2 : 1) }}%">@if($year->transcript_mode !== 'detailed')<div class="vertical-heading"><span>{{ $year->label }}</span></div>@else{{ $year->label }}@endif</th>@endforeach
+            @foreach($history->years as $year)<th @if($year->transcript_mode !== 'detailed') rowspan="{{ $headerRows }}" @endif colspan="{{ $year->transcript_mode === 'detailed' ? 2 : 1 }}" class="center" style="width:{{ $unitWidth * ($year->transcript_mode === 'detailed' ? 2 : 1) }}%">@if($year->transcript_mode !== 'detailed')@php($yearLabelLines = preg_split('/\s+(?=\d+\s*[º°o]?\s*ciclo\b)/iu', trim($year->label), 2))
+                <div class="vertical-heading {{ count($yearLabelLines) > 1 ? 'vertical-heading-multiline' : '' }}"><span>@foreach($yearLabelLines as $line){{ $line }}@unless($loop->last)<br>@endunless@endforeach</span></div>@else{{ $year->label }}@endif</th>@endforeach
         </tr>
         @if($headerRows === 2)
         <tr>@foreach($history->years as $year)

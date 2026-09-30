@@ -10,6 +10,19 @@ use Tests\TestCase;
 
 class HistoryMatrixTest extends TestCase
 {
+    public function test_cycle_heading_breaks_between_phase_and_cycle(): void
+    {
+        $history = new StudentAcademicHistory;
+        $year = new StudentAcademicHistoryYear(['label' => '1ª Fase do 1º Ciclo', 'transcript_mode' => 'no_transcription']);
+        $year->id = 1;
+        $history->setRelation('years', collect([$year]));
+        $history->setRelation('components', collect());
+        $html = view('reports.partials.basic-history-matrix', compact('history'))->render();
+        $this->assertStringContainsString('vertical-heading-multiline', $html);
+        $this->assertStringContainsString('1ª Fase do<br>1º Ciclo', $html);
+        $this->assertSame('1ª Fase do 1º Ciclo', $year->label);
+    }
+
     public function test_untranscribed_year_has_one_header_and_a_vertical_result_next_to_mixed_years(): void
     {
         $history = new StudentAcademicHistory;

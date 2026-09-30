@@ -30,6 +30,8 @@
         .workload-totals { page-break-inside: avoid; margin-top: 6px; }
         .vertical-heading { height: 48px; position: relative; }
         .vertical-heading span { position: absolute; width: 72px; left: 50%; top: 50%; margin-left: -36px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; }
+        .vertical-heading-multiline { height: 76px; }
+        .vertical-heading-multiline span { white-space: normal; margin-top: -12px; line-height: 1.12; }
         .vertical-result { height: 128px; position: relative; }
         .vertical-result strong { position: absolute; width: 150px; left: 50%; top: 50%; margin-left: -75px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; }
         .basic-history-matrix .global-year { background: #faf8f6; }
