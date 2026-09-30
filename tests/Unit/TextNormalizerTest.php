@@ -11,6 +11,19 @@ use PHPUnit\Framework\TestCase;
 
 class TextNormalizerTest extends TestCase
 {
+    public function test_school_acronyms_are_uppercase_in_existing_histories_and_when_saved(): void
+    {
+        foreach (['Emef Vila Paulista' => 'EMEF Vila Paulista', 'Emref São Domingos Sávio' => 'EMREF São Domingos Sávio', 'Ee Maria Silva' => 'EE Maria Silva'] as $input => $expected) {
+            $year = new \App\Models\StudentAcademicHistoryYear;
+            $year->setRawAttributes(['school_name' => $input]);
+            $this->assertSame($expected, $year->school_name);
+            $year->applyTitleCaseAttributes();
+            $this->assertSame($expected, $year->getAttributes()['school_name']);
+        }
+        $this->assertSame('Escola Municipal Indígena', TextNormalizer::schoolAcronym('Escola Municipal Indígena'));
+        $this->assertNull(TextNormalizer::schoolAcronym(null));
+    }
+
     public function test_it_preserves_roman_numerals_only_when_requested(): void
     {
         $this->assertSame('Desenho Técnico Ii', TextNormalizer::titleCase('DESENHO TÉCNICO II'));

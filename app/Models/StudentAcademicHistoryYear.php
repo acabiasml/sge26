@@ -61,6 +61,11 @@ class StudentAcademicHistoryYear extends Model
         ];
     }
 
+    public function getSchoolNameAttribute(?string $value): ?string
+    {
+        return \App\Support\TextNormalizer::schoolAcronym($value);
+    }
+
     public function displaysCompletedWorkload(): bool
     {
         return $this->transcript_mode !== 'no_transcription'

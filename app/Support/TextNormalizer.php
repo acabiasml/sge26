@@ -33,10 +33,28 @@ class TextNormalizer
         'CNPJ',
         'CTJJ',
         'EJA',
+        'EMREF',
+        'EMEF',
+        'EE',
+        'EMEI',
+        'EMEIEF',
+        'EMEB',
+        'EEEF',
+        'EEEM',
+        'EEEFM',
+        'CMEI',
         'INEP',
         'RG',
         'UF',
     ];
+
+    public static function schoolAcronym(?string $value): ?string
+    {
+        if ($value === null) return null;
+
+        return preg_replace_callback('/^(\s*)(EMREF|EMEF|EE|EMEI|EMEIEF|EMEB|EEEF|EEEM|EEEFM|CMEI)(?=\s|[.\-]|$)/iu',
+            fn ($match) => $match[1].mb_strtoupper($match[2], 'UTF-8'), $value);
+    }
 
     public static function titleCase(?string $value): ?string
     {
