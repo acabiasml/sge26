@@ -46,7 +46,8 @@
         .score-cell { white-space: normal; }
         .general-total-label { border-right: 0 !important; white-space: normal; }
         .general-total-label-space { border-left: 0 !important; }
-        .studies-table { page-break-inside: avoid; }
+        .studies-table { page-break-inside: auto; }
+        .studies-table tr { page-break-inside: avoid; }
         .studies-nowrap { white-space: normal; }
         .notes { margin: 3px 0 0; }
         .legend-table { border-collapse: collapse; font-size: 11px; line-height: 1.06; margin-top: 5px; width: 100%; }

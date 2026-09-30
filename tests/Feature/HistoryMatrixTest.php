@@ -10,6 +10,38 @@ use Tests\TestCase;
 
 class HistoryMatrixTest extends TestCase
 {
+    public function test_studies_table_uses_remaining_page_space_and_repeats_its_header(): void
+    {
+        $history = new StudentAcademicHistory(['education_stage' => 'fundamental', 'title' => 'Histórico Escolar']);
+        $history->setRelation('school', null);
+        $years = collect(range(1, 9))->map(function ($number) {
+            $year = new StudentAcademicHistoryYear(['label' => $number.'º Ano', 'grade_phase' => 'ESTUDO '.$number, 'transcript_mode' => 'summary', 'final_result' => 'Aprovado', 'school_name' => str_repeat('Escola Municipal de Educação ', 9)]);
+            $year->id = $number;
+            return $year;
+        });
+        $history->setRelation('years', $years);
+        $component = new StudentAcademicHistoryComponent(['name' => 'COMPONENTE FINAL', 'formation' => 'Parte Diversificada', 'knowledge_area' => 'Linguagens']);
+        $component->setRelation('records', collect());
+        $history->setRelation('components', collect([$component]));
+        $issued = new \App\Models\IssuedDocument(['issued_at' => now(), 'verification_code' => 'PREVIA']);
+        $issued->setRelation('issuedBy', null);
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.student-academic-history', [
+            'history' => $history, 'person' => new \App\Models\Person(['full_name' => 'Estudante de teste']),
+            'issuedDocument' => $issued, 'verificationUrl' => 'https://ctjj.org/verificar/PREVIA', 'letterhead' => ['lines' => ['Escola de teste']],
+        ]);
+        $matrixPage = null; $studiesPage = null; $headers = [];
+        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame, $canvas) use (&$matrixPage, &$studiesPage, &$headers): void {
+            $node = $frame->get_node(); $page = $canvas->get_page_number();
+            if ($node->nodeType === XML_TEXT_NODE && str_contains($node->nodeValue, 'COMPONENTE FINAL')) $matrixPage = $page;
+            if ($node->nodeType === XML_TEXT_NODE && str_contains($node->nodeValue, 'ESTUDO 1')) $studiesPage = $page;
+            if ($node instanceof \DOMElement && $node->tagName === 'thead' && str_contains($node->parentNode->getAttribute('class'), 'studies-table')) $headers[$page] = true;
+        }]]);
+        $this->assertStringStartsWith('%PDF-', $pdf->output());
+        $this->assertNotNull($matrixPage);
+        $this->assertSame($matrixPage, $studiesPage, 'Estudos realizados deve aproveitar o espaço após a matriz.');
+        $this->assertGreaterThanOrEqual(2, count($headers));
+    }
+
     public function test_cycle_heading_breaks_between_phase_and_cycle(): void
     {
         $history = new StudentAcademicHistory;
