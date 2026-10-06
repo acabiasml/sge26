@@ -267,7 +267,9 @@ class DocumentIssuanceController extends Controller
         $schoolIds = $this->accessibleSchoolIds($request->user());
 
         return view('document-issuance.index', [
-            'documentTypes' => $this->availableTypes($request->user()),
+            'documentTypes' => collect($this->availableTypes($request->user()))
+                ->reject(fn (array $type): bool => in_array($type['group'], ['Ano letivo', 'Gestão', 'Documentos personalizados', 'Listagens'], true))
+                ->all(),
             'schools' => School::query()->whereKey($schoolIds)->orderBy('name')->get(['id', 'name']),
             'academicYears' => AcademicYear::query()
                 ->whereIn('school_id', $schoolIds)

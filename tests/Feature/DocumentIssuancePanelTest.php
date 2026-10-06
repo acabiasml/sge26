@@ -23,13 +23,13 @@ class DocumentIssuancePanelTest extends TestCase
 
     private int $personSequence = 0;
 
-    public function test_additional_reports_are_visible_searchable_and_redirect_to_existing_emitters(): void
+    public function test_additional_report_links_keep_working_after_sections_are_hidden(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
         $this->actingAs($admin);
         foreach (['schools', 'people', 'roles', 'audit-logs'] as $listing) {
             $type = 'listing-'.$listing;
-            $this->get(route('document-issuance.index'))->assertSee('value="'.$type.'"', false);
+            $this->get(route('document-issuance.index'))->assertDontSee('value="'.$type.'"', false);
             $this->getJson(route('document-issuance.targets', ['type' => $type]))->assertOk()->assertJsonCount(2, 'targets');
             foreach ([1 => 'pdf', 2 => 'excel'] as $id => $format) {
                 $this->get(route('document-issuance.issue', ['type' => $type, 'target_id' => $id]))
@@ -37,7 +37,12 @@ class DocumentIssuancePanelTest extends TestCase
             }
         }
         foreach (['teacher-schedule' => 'teacher-schedules.pdf', 'compliance-report' => 'data-quality.pdf', 'official-editor' => 'official-documents.create'] as $type => $route) {
-            $this->get(route('document-issuance.index'))->assertSee('value="'.$type.'"', false);
+            $page = $this->get(route('document-issuance.index'));
+            if ($type === 'teacher-schedule') {
+                $page->assertSee('value="'.$type.'"', false);
+            } else {
+                $page->assertDontSee('value="'.$type.'"', false);
+            }
             $this->getJson(route('document-issuance.targets', ['type' => $type]))->assertOk()->assertJsonCount(1, 'targets');
             $this->get(route('document-issuance.issue', ['type' => $type, 'target_id' => 1]))->assertRedirect(route($route));
         }
@@ -73,9 +78,13 @@ class DocumentIssuancePanelTest extends TestCase
             ->get(route('document-issuance.index'))
             ->assertOk()
             ->assertSee('Central de emissão')
+            ->assertDontSee('<optgroup label="Ano letivo">', false)
+            ->assertDontSee('<optgroup label="Gestão">', false)
+            ->assertDontSee('<optgroup label="Documentos personalizados">', false)
+            ->assertDontSee('<optgroup label="Listagens">', false)
             ->assertSee('value="enrollment-declaration"', false)
-            ->assertSee('value="academic-calendar"', false)
-            ->assertSee('value="attendance-report"', false)
+            ->assertDontSee('value="academic-calendar"', false)
+            ->assertDontSee('value="attendance-report"', false)
             ->assertSee('value="class-report-cards"', false)
             ->assertSee('value="class-student-contacts"', false)
             ->assertSee('value="class-grade-mirror"', false)
