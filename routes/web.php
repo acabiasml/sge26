@@ -216,6 +216,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('turmas/{class}/matriculas', [StudentEnrollmentController::class, 'index'])->name('classes.enrollments.index');
     Route::post('turmas/{class}/matriculas', [StudentEnrollmentController::class, 'store'])->name('classes.enrollments.store');
     Route::post('turmas/{class}/resultados-finais', [StudentEnrollmentController::class, 'calculateFinalResults'])->name('classes.final-results.calculate');
+    Route::get('turmas/{class}/alunos-responsaveis-pdf', [ClassAcademicDocumentsController::class, 'studentContacts'])->name('classes.student-contacts.pdf');
     Route::get('turmas/{class}/resultados-finais-pdf', ClassFinalResultsPdfController::class)->name('classes.final-results.pdf');
     Route::get('turmas/{class}/boletins-pdf', [ClassAcademicDocumentsController::class, 'reportCards'])->name('classes.report-cards.pdf');
     Route::get('turmas/{class}/atestados-frequencia-pdf', [ClassAcademicDocumentsController::class, 'attendanceCertificates'])->name('classes.attendance-certificates.pdf');

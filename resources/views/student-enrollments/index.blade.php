@@ -4,6 +4,9 @@
 @section('page-title', __('Matrículas: ').$class->name)
 
 @section('page-actions')
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('classes.student-contacts.pdf', $class) }}" aria-label="{{ __('Alunos e responsáveis da turma em PDF') }}" title="{{ __('Alunos e responsáveis da turma em PDF') }}">
+        <i class="fas fa-address-book" aria-hidden="true"></i>
+    </a>
     @if($canManageEnrollments)
     <form method="POST" action="{{ route('classes.final-results.calculate', $class) }}" class="d-inline">
         @csrf

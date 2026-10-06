@@ -30,6 +30,30 @@ class AcademicCalendarTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_class_student_contacts_pdf_is_scoped_and_includes_only_enrolled_students(): void
+    {
+        $year = $this->academicYear();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id);
+        $class = $year->classes()->create(['name' => 'Turma de contatos', 'active' => true]);
+        $student = Person::query()->create(['full_name' => 'Aluno de Contatos', 'birth_date' => '2010-10-07']);
+        $student->contacts()->create(['name' => 'Responsável de Teste', 'relationship_type' => 'responsavel_legal',
+            'phone' => '66999990001', 'secondary_phone' => '66999990002']);
+        $class->enrollments()->create(['person_id' => $student->id, 'enrolled_at' => '2026-02-02',
+            'status' => StudentEnrollment::STATUS_ENROLLED, 'type' => StudentEnrollment::TYPE_REGULAR]);
+        $former = Person::query()->create(['full_name' => 'Aluno Transferido']);
+        $class->enrollments()->create(['person_id' => $former->id, 'enrolled_at' => '2026-02-02',
+            'status' => StudentEnrollment::STATUS_TRANSFERRED, 'type' => StudentEnrollment::TYPE_REGULAR]);
+        $response = $this->actingAs($manager)->get(route('classes.student-contacts.pdf', $class));
+        $response->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF-', $response->getContent());
+        $document = IssuedDocument::query()->where('type', 'class-student-contacts')->sole();
+        $this->assertSame(1, $document->payload['rows_count']);
+        $otherYear = $this->academicYear();
+        $otherClass = $otherYear->classes()->create(['name' => 'Outra turma', 'active' => true]);
+        $this->get(route('classes.student-contacts.pdf', $otherClass))->assertForbidden();
+        $this->assertSame(1, IssuedDocument::query()->where('type', 'class-student-contacts')->count());
+    }
+
     public function test_historical_area_usages_are_traceable_without_changing_the_catalog(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);

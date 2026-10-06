@@ -14,6 +14,9 @@
 @section('page-title', __('Turma: ').$class->name)
 
 @section('page-actions')
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('classes.student-contacts.pdf', $class) }}" aria-label="{{ __('Alunos e responsáveis da turma em PDF') }}" title="{{ __('Alunos e responsáveis da turma em PDF') }}">
+        <i class="fas fa-address-book" aria-hidden="true"></i>
+    </a>
     <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('academic-years.show', $academicYear) }}" aria-label="{{ __('Voltar ao ano letivo') }} {{ $academicYear->name }}" title="{{ __('Voltar ao ano letivo') }}">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
     </a>

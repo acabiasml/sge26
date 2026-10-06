@@ -80,6 +80,7 @@ class DocumentVerificationPresenter
             $type === 'student-schedule' => __('Horário do estudante'),
             $type === 'attendance-sheet' => __('Lista de chamada manual'),
             $type === 'student-report-card' => __('Boletim escolar'),
+            $type === 'class-student-contacts' => __('Alunos e responsáveis da turma'),
             $type === 'class-report-cards' => __('Boletins escolares da turma'),
             $type === 'class-grade-mirror' => __('Espelho de notas da turma'),
             $type === 'student-individual-record' => __('Ficha individual do estudante'),

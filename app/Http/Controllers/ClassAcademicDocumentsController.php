@@ -31,6 +31,25 @@ class ClassAcademicDocumentsController extends Controller
 {
     public function __construct(private readonly StudentAttendanceCertificateBuilder $attendanceCertificateBuilder) {}
 
+    public function studentContacts(Request $request, SchoolClass $class): Response
+    {
+        [$academicYear, $enrollments] = $this->classContext($request, $class);
+        $enrollments->load('student.relationships.relatedPerson');
+        $issuedDocument = $this->issuedDocument($request, $class, 'class-student-contacts',
+            'Alunos e responsáveis da turma', $enrollments->count(), '');
+        $referenceDate = CarbonImmutable::instance($issuedDocument->issued_at)->setTimezone('America/Cuiaba')->startOfDay();
+        $rows = $enrollments->map(fn (StudentEnrollment $enrollment): array =>
+            \App\Support\ClassStudentContacts::student($enrollment->student, $referenceDate));
+
+        $pdf = Pdf::loadView('reports.class-student-contacts', [
+            'schoolClass' => $class, 'academicYear' => $academicYear, 'rows' => $rows,
+            'referenceDate' => $referenceDate, 'issuedDocument' => $issuedDocument,
+            'letterhead' => PdfLetterhead::make($academicYear->school),
+        ])->setPaper('a4', 'portrait');
+
+        return \App\Support\PdfMetadata::stream($pdf, 'beaba-alunos-responsaveis-turma-'.$class->id.'.pdf');
+    }
+
     public function attendanceCertificates(Request $request, SchoolClass $class): Response|RedirectResponse
     {
         [$academicYear, $enrollments] = $this->classContext($request, $class);
