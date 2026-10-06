@@ -15,7 +15,7 @@
         .identity, .family { width: 100%; border-collapse: collapse; table-layout: fixed; }
         .identity td, .family td { padding: 4px 6px; border: .5px solid #c6c6c6; vertical-align: top; overflow-wrap: break-word; }
         .name { background: #eee; font-size: 13px; }
-        .label { color: #555; font-size: 10px; }
+        .label { color: #555; font-size: 11px; }
         .family td { border-top: 0; }
         .contact { margin: 2px 0 4px; }
     </style>
