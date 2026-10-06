@@ -23,6 +23,46 @@ class DocumentIssuancePanelTest extends TestCase
 
     private int $personSequence = 0;
 
+    public function test_additional_reports_are_visible_searchable_and_redirect_to_existing_emitters(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $this->actingAs($admin);
+        foreach (['schools', 'people', 'roles', 'audit-logs'] as $listing) {
+            $type = 'listing-'.$listing;
+            $this->get(route('document-issuance.index'))->assertSee('value="'.$type.'"', false);
+            $this->getJson(route('document-issuance.targets', ['type' => $type]))->assertOk()->assertJsonCount(2, 'targets');
+            foreach ([1 => 'pdf', 2 => 'excel'] as $id => $format) {
+                $this->get(route('document-issuance.issue', ['type' => $type, 'target_id' => $id]))
+                    ->assertRedirect(route('reports.'.$format, ['type' => $listing]));
+            }
+        }
+        foreach (['teacher-schedule' => 'teacher-schedules.pdf', 'compliance-report' => 'data-quality.pdf', 'official-editor' => 'official-documents.create'] as $type => $route) {
+            $this->get(route('document-issuance.index'))->assertSee('value="'.$type.'"', false);
+            $this->getJson(route('document-issuance.targets', ['type' => $type]))->assertOk()->assertJsonCount(1, 'targets');
+            $this->get(route('document-issuance.issue', ['type' => $type, 'target_id' => 1]))->assertRedirect(route($route));
+        }
+        $this->getJson(route('document-issuance.targets', ['type' => 'student-schedule']))->assertOk()->assertJsonCount(0, 'targets');
+        $this->get(route('document-issuance.issue', ['type' => 'student-schedule', 'target_id' => 999]))->assertNotFound();
+        $this->get(route('document-issuance.issue', ['type' => 'listing-people', 'target_id' => 999]))->assertNotFound();
+    }
+
+    public function test_individual_matrix_selection_respects_managed_school(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $other = School::query()->create(['name' => 'Escola B', 'active' => true]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $courses = [];
+        foreach ([$school, $other] as $unit) {
+            $year = AcademicYear::query()->create(['school_id' => $unit->id, 'name' => 'Ensino', 'reference_year' => 2026, 'starts_at' => '2026-01-01', 'ends_at' => '2026-12-31']);
+            $courses[] = $year->courses()->create(['name' => 'Matriz de teste', 'stage' => 'fundamental', 'active' => true]);
+        }
+        $this->actingAs($manager)->getJson(route('document-issuance.targets', ['type' => 'course-matrix']))
+            ->assertOk()->assertJsonCount(1, 'targets')->assertJsonPath('targets.0.id', $courses[0]->id);
+        $this->get(route('document-issuance.issue', ['type' => 'course-matrix', 'target_id' => $courses[0]->id]))
+            ->assertRedirect(route('academic-years.courses.matrix-pdf', [$courses[0]->academic_year_id, $courses[0]]));
+        $this->get(route('document-issuance.issue', ['type' => 'course-matrix', 'target_id' => $courses[1]->id]))->assertNotFound();
+    }
+
     public function test_administration_and_management_can_open_the_document_issuance_panel(): void
     {
         $school = School::query()->create(['name' => 'Escola A', 'active' => true]);

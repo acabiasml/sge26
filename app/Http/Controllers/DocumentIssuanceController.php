@@ -44,6 +44,43 @@ class DocumentIssuanceController extends Controller
      * @var array<string, array<string, bool|string>>
      */
     private const DOCUMENT_TYPES = [
+        'course-matrix' => [
+            'group' => 'Ano letivo', 'label' => 'Matriz curricular individual',
+            'description' => 'Selecione a matriz do ano letivo.', 'target' => 'course', 'icon' => 'fa-file-alt',
+        ],
+        'teacher-schedule' => [
+            'group' => 'Horários pessoais', 'label' => 'Meu horário docente',
+            'description' => 'Emite o horário docente do usuário conectado.', 'target' => 'direct', 'icon' => 'fa-file-alt',
+        ],
+        'student-schedule' => [
+            'group' => 'Horários pessoais', 'label' => 'Meu horário de estudante',
+            'description' => 'Selecione uma de suas próprias matrículas.', 'target' => 'own_enrollment', 'icon' => 'fa-file-alt',
+        ],
+        'compliance-report' => [
+            'group' => 'Gestão', 'label' => 'Relatório de conformidade',
+            'description' => 'Emite a conferência documental e acadêmica das escolas acessíveis.', 'target' => 'direct', 'icon' => 'fa-file-alt',
+        ],
+        'official-editor' => [
+            'group' => 'Documentos personalizados', 'label' => 'Documento pelo editor',
+            'description' => 'Abre o editor para redigir, reeditar ou reemitir documentos.', 'target' => 'direct', 'icon' => 'fa-file-alt',
+        ],
+        'listing-schools' => [
+            'group' => 'Listagens', 'label' => 'Escolas — PDF ou Excel',
+            'description' => 'Exporta a listagem completa dentro das suas permissões.', 'target' => 'listing', 'icon' => 'fa-file-alt',
+        ],
+        'listing-people' => [
+            'group' => 'Listagens', 'label' => 'Pessoas — PDF ou Excel',
+            'description' => 'Exporta a listagem completa dentro das suas permissões.', 'target' => 'listing', 'icon' => 'fa-file-alt',
+        ],
+        'listing-roles' => [
+            'group' => 'Listagens', 'label' => 'Vínculos — PDF ou Excel',
+            'description' => 'Exporta a listagem completa dentro das suas permissões.', 'target' => 'listing', 'icon' => 'fa-file-alt',
+        ],
+        'listing-audit-logs' => [
+            'group' => 'Listagens', 'label' => 'Auditoria — PDF ou Excel',
+            'description' => 'Exporta a listagem completa dentro das suas permissões.', 'target' => 'listing', 'icon' => 'fa-file-alt',
+        ],
+
         'enrollment-declaration' => [
             'group' => 'Estudante',
             'label' => 'Declaração de matrícula',
@@ -266,6 +303,9 @@ class DocumentIssuanceController extends Controller
         $term = trim((string) ($data['q'] ?? ''));
 
         $targets = match ($types[$data['type']]['target']) {
+            'course' => $this->courseTargets($request, $schoolIds, $term),
+            'own_enrollment' => StudentEnrollment::query()->with('schoolClass')->where('person_id', $request->user()->person_id)->get()->map(fn ($enrollment) => ['id' => $enrollment->id, 'title' => $enrollment->schoolClass?->name ?? '-', 'subtitle' => $enrollment->enrolled_at?->format('d/m/Y'), 'enabled' => true]),
+            'direct', 'listing' => collect($types[$data['type']]['target'] === 'listing' ? [1 => 'PDF', 2 => 'Excel'] : [1 => $types[$data['type']]['label']])->map(fn ($label, $id) => ['id' => $id, 'title' => __($label), 'subtitle' => __($types[$data['type']]['description']), 'enabled' => true]),
             'enrollment' => $this->enrollmentTargets($request, $schoolIds, $term, $data['type']),
             'person' => $this->personTargets($request, $schoolIds, $term),
             'history' => $this->historyTargets($request, $schoolIds, $term),
@@ -297,6 +337,9 @@ class DocumentIssuanceController extends Controller
         $schoolIds = $this->accessibleSchoolIds($request->user());
 
         return match ($types[$data['type']]['target']) {
+            'course' => $this->issueCourse($data, $schoolIds),
+            'own_enrollment' => redirect()->route('student-diaries.schedule-pdf', StudentEnrollment::query()->where('person_id', $request->user()->person_id)->findOrFail($data['target_id'])),
+            'direct', 'listing' => $this->issueDirect($data),
             'enrollment' => $this->issueEnrollment($data, $schoolIds),
             'person' => $this->issuePerson($data, $request->user(), $schoolIds),
             'history' => $this->issueHistory($data, $request->user(), $schoolIds),
@@ -306,6 +349,43 @@ class DocumentIssuanceController extends Controller
             'diary' => $this->issueDiary($data, $schoolIds),
             default => abort(404),
         };
+    }
+
+    private function courseTargets(Request $request, array $schoolIds, string $term): Collection
+    {
+        return AcademicCourse::query()->with('academicYear.school')
+            ->whereHas('academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
+            ->when($request->filled('school_id'), fn (Builder $query) => $query->whereHas('academicYear', fn (Builder $year) => $year->where('school_id', $request->integer('school_id'))))
+            ->when($request->filled('academic_year_id'), fn (Builder $query) => $query->where('academic_year_id', $request->integer('academic_year_id')))
+            ->when($term !== '', fn (Builder $query) => $query->where('name', 'like', '%'.$term.'%'))
+            ->orderBy('name')->limit(40)->get()->map(fn (AcademicCourse $course): array => [
+                'id' => $course->id, 'title' => $course->name,
+                'subtitle' => $course->academicYear->school->name.' · '.$course->academicYear->referenceYearsLabel(), 'enabled' => true,
+            ]);
+    }
+
+    private function issueCourse(array $data, array $schoolIds): RedirectResponse
+    {
+        $course = AcademicCourse::query()->whereHas('academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))->findOrFail($data['target_id']);
+
+        return redirect()->route('academic-years.courses.matrix-pdf', [$course->academic_year_id, $course]);
+    }
+
+    private function issueDirect(array $data): RedirectResponse
+    {
+        if (str_starts_with($data['type'], 'listing-')) {
+            abort_unless(in_array((int) $data['target_id'], [1, 2], true), 404);
+
+            return redirect()->route((int) $data['target_id'] === 1 ? 'reports.pdf' : 'reports.excel', ['type' => substr($data['type'], 8)]);
+        }
+        abort_unless((int) $data['target_id'] === 1, 404);
+
+        return redirect()->route(match ($data['type']) {
+            'teacher-schedule' => 'teacher-schedules.pdf',
+            'compliance-report' => 'data-quality.pdf',
+            'official-editor' => 'official-documents.create',
+            default => abort(404),
+        });
     }
 
     /**

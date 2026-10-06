@@ -332,6 +332,10 @@
             const targetsUrl = @json(route('document-issuance.targets'));
             const targetCopy = {
                 enrollment: [@js(__('Localize a matrícula')), @js(__('Nome ou CPF do estudante'))],
+                course: [@js(__('Localize a matriz')), @js(__('Nome da matriz'))],
+                direct: [@js(__('Abrir documento')), @js(__('Opções disponíveis'))],
+                listing: [@js(__('Escolha o formato')), @js(__('PDF ou Excel'))],
+                own_enrollment: [@js(__('Selecione sua matrícula')), @js(__('Suas matrículas'))],
                 person: [@js(__('Localize a pessoa')), @js(__('Nome, CPF ou e-mail institucional'))],
                 history: [@js(__('Localize o histórico')), @js(__('Nome do estudante, etapa ou título'))],
                 class: [@js(__('Localize a turma')), @js(__('Nome da turma'))],
@@ -341,6 +345,7 @@
             };
             const contextVisibility = {
                 enrollment: ['school', 'year', 'class'],
+                course: ['school', 'year'],
                 person: ['school'],
                 history: ['school'],
                 class: ['school', 'year', 'class'],
@@ -581,7 +586,10 @@
                 }
             };
 
-            typeSelect.addEventListener('change', updateType);
+            typeSelect.addEventListener('change', () => {
+                updateType();
+                if (['direct', 'listing', 'own_enrollment'].includes(targetKind())) searchTargets();
+            });
             schoolSelect.addEventListener('change', () => {
                 yearSelect.value = '';
                 classSelect.value = '';
