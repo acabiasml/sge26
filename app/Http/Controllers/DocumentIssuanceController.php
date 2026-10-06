@@ -125,6 +125,13 @@ class DocumentIssuanceController extends Controller
             'target' => 'class',
             'icon' => 'fa-calendar-week',
         ],
+        'class-student-contacts' => [
+            'group' => 'Turma e diário',
+            'label' => 'Alunos e responsáveis da turma',
+            'description' => 'Lista os alunos com matrícula ativa, nascimento, idade, CPF, filiação e telefones dos responsáveis.',
+            'target' => 'class',
+            'icon' => 'fa-address-book',
+        ],
         'class-report-cards' => [
             'group' => 'Turma e diário',
             'label' => 'Boletins da turma',
@@ -915,6 +922,7 @@ class DocumentIssuanceController extends Controller
         $confirmation = ! empty($data['confirm_missing_student_cpf']) ? 1 : null;
 
         return match ($data['type']) {
+            'class-student-contacts' => redirect()->route('classes.student-contacts.pdf', ['class' => $class]),
             'class-schedule' => redirect()->route('academic-years.classes.schedules.pdf', [$class->academicYear, $class]),
             'class-report-cards' => redirect()->route('classes.report-cards.pdf', [
                 'class' => $class,

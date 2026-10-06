@@ -37,6 +37,7 @@ class DocumentIssuancePanelTest extends TestCase
             ->assertSee('value="academic-calendar"', false)
             ->assertSee('value="attendance-report"', false)
             ->assertSee('value="class-report-cards"', false)
+            ->assertSee('value="class-student-contacts"', false)
             ->assertSee('value="class-grade-mirror"', false)
             ->assertSee('name="attendance_scope"', false)
             ->assertSee('name="attendance_month"', false)
@@ -433,6 +434,10 @@ class DocumentIssuancePanelTest extends TestCase
         ]);
 
         $this->actingAs($administrator)
+            ->get(route('document-issuance.issue', ['type' => 'class-student-contacts', 'target_id' => $class->id]))
+            ->assertRedirect(route('classes.student-contacts.pdf', ['class' => $class]));
+
+        $this->actingAs($administrator)
             ->get(route('document-issuance.issue', [
                 'type' => 'class-report-cards',
                 'target_id' => $class->id,
@@ -591,6 +596,7 @@ class DocumentIssuancePanelTest extends TestCase
             'person-record',
             'academic-history',
             'class-schedule',
+            'class-student-contacts',
             'class-report-cards',
             'class-grade-mirror',
             'academic-calendar',
