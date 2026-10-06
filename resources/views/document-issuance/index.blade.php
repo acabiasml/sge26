@@ -4,9 +4,11 @@
 @section('page-title', __('Central de emissão'))
 
 @section('page-actions')
+    @if(auth()->user()->canManagePeople())
     <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('official-documents.create') }}" aria-label="{{ __('Redigir novo documento oficial') }}" title="{{ __('Redigir documento') }}">
         <i class="fas fa-pen-fancy" aria-hidden="true"></i>
     </a>
+    @endif
 @endsection
 
 @section('content')
@@ -35,6 +37,10 @@
             <strong>{{ __('Não foi possível preparar a emissão.') }}</strong>
             <span class="d-block">{{ __('Revise a seleção e tente novamente.') }}</span>
         </div>
+    @endif
+
+    @if(empty($documentTypes))
+        <div class="alert alert-info" role="status">{{ __('Seu perfil não possui documentos disponíveis para emissão no momento.') }}</div>
     @endif
 
     <form method="GET" action="{{ route('document-issuance.issue') }}" id="document-issuance-form"

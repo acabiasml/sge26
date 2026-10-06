@@ -30,6 +30,7 @@ class StudentReportCardController extends Controller
     public function pdf(Request $request, StudentEnrollment $enrollment, StudentReportCardBuilder $builder): Response|RedirectResponse
     {
         $this->authorizeReportCard($request, $enrollment);
+        abort_unless($request->user()->canManageSchool($enrollment->schoolClass->academicYear->school_id), 403);
 
         $report = $builder->build($enrollment);
 
@@ -54,6 +55,7 @@ class StudentReportCardController extends Controller
     public function individualRecordPdf(Request $request, StudentEnrollment $enrollment, StudentReportCardBuilder $builder): Response|RedirectResponse
     {
         $this->authorizeReportCard($request, $enrollment);
+        abort_unless($request->user()->canManageSchool($enrollment->schoolClass->academicYear->school_id), 403);
 
         $report = $builder->build($enrollment);
 

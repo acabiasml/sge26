@@ -219,11 +219,11 @@
                 </a>
                 <div id="collapseDocuments" class="collapse {{ $documentsMenuActive ? 'show' : '' }}" aria-labelledby="headingDocuments" data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
-                        @if ($canManagePeople)
                             <a class="collapse-item {{ request()->routeIs('document-issuance.*') ? 'active' : '' }}" href="{{ route('document-issuance.index') }}">
                                 <i class="fas fa-print" aria-hidden="true"></i>
                                 <span>{{ __('navigation.issuance_center') }}</span>
                             </a>
+                        @if ($canManagePeople)
                             <a class="collapse-item {{ request()->routeIs('official-documents.*') ? 'active' : '' }}" href="{{ route('official-documents.create') }}">
                                 <i class="fas fa-file-signature" aria-hidden="true"></i>
                                 <span>{{ __('navigation.document_editor') }}</span>

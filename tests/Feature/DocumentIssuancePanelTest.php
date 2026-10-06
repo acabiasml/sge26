@@ -23,6 +23,31 @@ class DocumentIssuancePanelTest extends TestCase
 
     private int $personSequence = 0;
 
+    public function test_student_can_only_issue_own_schedule_and_cannot_generate_grade_documents(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $school->id);
+        $other = $this->personWithRole('Outro aluno', PersonSchoolRole::ROLE_STUDENT, $school->id);
+        $year = AcademicYear::query()->create(['school_id' => $school->id, 'name' => 'Ensino', 'reference_year' => 2026, 'starts_at' => '2026-01-01', 'ends_at' => '2026-12-31']);
+        $class = $year->classes()->create(['name' => 'Turma', 'active' => true]);
+        $enrollments = [];
+        foreach ([$student->person, $other] as $person) {
+            $enrollments[] = $class->enrollments()->create(['person_id' => $person->id, 'enrolled_at' => '2026-02-01', 'status' => StudentEnrollment::STATUS_ENROLLED, 'type' => StudentEnrollment::TYPE_REGULAR]);
+        }
+        $this->actingAs($student)->get(route('document-issuance.index'))->assertOk()
+            ->assertSee('value="student-schedule"', false)->assertDontSee('value="report-card"', false)->assertDontSee('value="academic-history"', false);
+        $this->getJson(route('document-issuance.targets', ['type' => 'student-schedule']))->assertOk()->assertJsonCount(1, 'targets')->assertJsonPath('targets.0.id', $enrollments[0]->id);
+        $this->get(route('document-issuance.issue', ['type' => 'student-schedule', 'target_id' => $enrollments[0]->id]))->assertRedirect(route('student-diaries.schedule-pdf', $enrollments[0]));
+        $this->get(route('document-issuance.issue', ['type' => 'student-schedule', 'target_id' => $enrollments[1]->id]))->assertNotFound();
+        foreach (['report-card', 'individual-record', 'academic-history', 'teacher-diary', 'class-grade-mirror'] as $type) {
+            $this->getJson(route('document-issuance.targets', ['type' => $type]))->assertUnprocessable();
+            $this->getJson(route('document-issuance.issue', ['type' => $type, 'target_id' => $enrollments[0]->id]))->assertUnprocessable();
+        }
+        foreach (['enrollments.report-card.pdf', 'enrollments.individual-record.pdf'] as $route) {
+            $this->get(route($route, $enrollments[0]))->assertForbidden();
+        }
+    }
+
     public function test_additional_report_links_keep_working_after_sections_are_hidden(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
@@ -102,14 +127,17 @@ class DocumentIssuancePanelTest extends TestCase
             ->assertDontSee('Ficha cadastral da escola');
     }
 
-    public function test_regular_users_cannot_open_the_document_issuance_panel(): void
+    public function test_regular_users_can_open_the_panel_without_management_documents(): void
     {
         $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
         $teacher = $this->userWithRole(PersonSchoolRole::ROLE_TEACHER, $school->id);
 
         $this->actingAs($teacher)
             ->get(route('document-issuance.index'))
-            ->assertForbidden();
+            ->assertOk()
+            ->assertSee('Seu perfil não possui documentos disponíveis')
+            ->assertDontSee('value="report-card"', false)
+            ->assertDontSee('Redigir novo documento oficial');
     }
 
     public function test_attendance_report_selection_preserves_period_scope(): void

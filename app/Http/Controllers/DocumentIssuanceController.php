@@ -264,7 +264,7 @@ class DocumentIssuanceController extends Controller
     public function index(Request $request): View
     {
         $this->authorizeAccess($request);
-        $schoolIds = $this->accessibleSchoolIds($request->user());
+        $schoolIds = $request->user()->canManagePeople() ? $this->accessibleSchoolIds($request->user()) : [];
 
         return view('document-issuance.index', [
             'documentTypes' => collect($this->availableTypes($request->user()))
@@ -348,7 +348,7 @@ class DocumentIssuanceController extends Controller
             'class' => $this->issueClass($data, $schoolIds),
             'academic_year' => $this->issueAcademicYear($data, $schoolIds),
             'school' => $this->issueSchool($data, $request->user()),
-            'diary' => $this->issueDiary($data, $schoolIds),
+            'diary' => $this->issueDiary($data, $schoolIds, $request->user()),
             default => abort(404),
         };
     }
@@ -395,6 +395,18 @@ class DocumentIssuanceController extends Controller
      */
     private function availableTypes(User $user): array
     {
+        if (! $user->canManagePeople()) {
+            $allowed = [];
+            if ($user->hasTeachingDiaries()) {
+                $allowed = ['teacher-diary', 'attendance-sheet', 'teacher-schedule'];
+            }
+            if ($user->hasStudentMap()) {
+                $allowed[] = 'student-schedule';
+            }
+
+            return collect(self::DOCUMENT_TYPES)->only($allowed)->all();
+        }
+
         return collect(self::DOCUMENT_TYPES)
             ->reject(fn (array $type): bool => ($type['admin_only'] ?? false) && ! $user->isAdministrator())
             ->all();
@@ -409,12 +421,33 @@ class DocumentIssuanceController extends Controller
             return School::query()->pluck('id')->map(fn ($id): int => (int) $id)->all();
         }
 
+        if (! $user->canManagePeople()) {
+            return SchoolClassComponent::query()->whereHas('schoolClass.academicYear')
+                ->where(fn (Builder $query) => $this->scopeTeacherAssignments($query, $user))
+                ->with('schoolClass.academicYear')->get()
+                ->pluck('schoolClass.academicYear.school_id')->unique()->map(fn ($id) => (int) $id)->all();
+        }
+
         return $user->manageableSchoolIds();
+    }
+
+    private function scopeTeacherAssignments(Builder $query, User $user): void
+    {
+        $query->where('active', true)
+            ->whereHas('schoolClass.academicYear', fn (Builder $year) => $year->whereNotNull('approved_at')->where('active', true))
+            ->where(function (Builder $assignment) use ($user): void {
+                $assignment->where('teacher_person_id', $user->person_id)
+                    ->orWhereHas('substitutions', function (Builder $substitution) use ($user): void {
+                        $substitution->where('substitute_teacher_person_id', $user->person_id)
+                            ->whereDate('starts_at', '<=', now()->toDateString())
+                            ->where(fn (Builder $end) => $end->whereNull('ends_at')->orWhereDate('ends_at', '>=', now()->toDateString()));
+                    });
+            });
     }
 
     private function authorizeAccess(Request $request): void
     {
-        abort_unless($request->user()->canManagePeople(), 403);
+        abort_unless($request->user()->person_id, 403);
     }
 
     /**
@@ -843,6 +876,7 @@ class DocumentIssuanceController extends Controller
     private function diaryTargets(Request $request, array $schoolIds, string $term, string $type): Collection
     {
         return SchoolClassComponent::query()
+            ->when(! $request->user()->canManagePeople(), fn (Builder $query) => $this->scopeTeacherAssignments($query, $request->user()))
             ->with([
                 'schoolClass.academicYear.school:id,name',
                 'component.course:id,name,stage,academic_year_id',
@@ -1065,9 +1099,10 @@ class DocumentIssuanceController extends Controller
     }
 
     /** @param array<string, mixed> $data @param list<int> $schoolIds */
-    private function issueDiary(array $data, array $schoolIds): RedirectResponse
+    private function issueDiary(array $data, array $schoolIds, User $user): RedirectResponse
     {
         $assignment = SchoolClassComponent::query()
+            ->when(! $user->canManagePeople(), fn (Builder $query) => $this->scopeTeacherAssignments($query, $user))
             ->with(['schoolClass.academicYear', 'schoolClass.courses', 'schoolClass.enrollments', 'component'])
             ->whereKey($data['target_id'])
             ->whereHas('schoolClass.academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))

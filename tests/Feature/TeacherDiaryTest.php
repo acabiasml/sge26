@@ -35,6 +35,25 @@ class TeacherDiaryTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_teacher_central_only_lists_and_issues_assigned_diaries(): void
+    {
+        [$teacher, $year, $class, $component] = $this->diaryScenario();
+        $own = SchoolClassComponent::query()->where('school_class_id', $class->id)->where('curriculum_component_id', $component->id)->firstOrFail();
+        $other = $own->replicate();
+        $otherClass = $year->classes()->create(['name' => 'Outra turma', 'active' => true]);
+        $other->school_class_id = $otherClass->id;
+        $other->teacher_person_id = null;
+        $other->save();
+        $this->actingAs($teacher)->get(route('document-issuance.index'))->assertOk()
+            ->assertSee('value="teacher-diary"', false)->assertSee('value="attendance-sheet"', false)
+            ->assertDontSee('value="class-report-cards"', false);
+        $this->getJson(route('document-issuance.targets', ['type' => 'teacher-diary']))->assertOk()
+            ->assertJsonCount(1, 'targets')->assertJsonPath('targets.0.id', $own->id);
+        $this->get(route('document-issuance.issue', ['type' => 'teacher-diary', 'target_id' => $own->id]))
+            ->assertRedirect(route('teacher-diaries.pdf', ['schoolClass' => $class, 'component' => $component, 'notas' => 'numeros']));
+        $this->get(route('document-issuance.issue', ['type' => 'teacher-diary', 'target_id' => $other->id]))->assertNotFound();
+    }
+
     public function test_teacher_sees_diary_for_approved_academic_year_component(): void
     {
         [$teacher, $year, $class, $component] = $this->diaryScenario();
