@@ -21,6 +21,14 @@ class User extends Authenticatable
         'govbr' => 'theme.govbr',
         'aurora-light' => 'theme.aurora_light',
         'aurora-dark' => 'theme.aurora_dark',
+        'instagram-light' => 'theme.instagram_light',
+        'instagram-dark' => 'theme.instagram_dark',
+        'tiktok-light' => 'theme.tiktok_light',
+        'tiktok-dark' => 'theme.tiktok_dark',
+        'gmail-light' => 'theme.gmail_light',
+        'gmail-dark' => 'theme.gmail_dark',
+        'outlook-light' => 'theme.outlook_light',
+        'outlook-dark' => 'theme.outlook_dark',
     ];
 
     public const DEFAULT_AUDIT_TIMEZONE = 'America/Sao_Paulo';

@@ -1,0 +1,189 @@
+/* Brand-inspired palettes. Typography and document/PDF styling remain unchanged. */
+html[data-theme="instagram-light"] {
+    --aurora-canvas: #fff8fb;
+    --aurora-panel: #ffffff;
+    --aurora-raised: #fff0f6;
+    --aurora-hover: #fce2ef;
+    --aurora-ink: #301e2b;
+    --aurora-muted: #6d5064;
+    --aurora-border: #e7ccdc;
+    --aurora-accent: #a3216b;
+    --aurora-strong: #7d1551;
+    --aurora-on-accent: #ffffff;
+    --aurora-violet: #7438a3;
+    --aurora-glow: var(--aurora-hover);
+    --aurora-violet-glow: var(--aurora-hover);
+    --aurora-focus: var(--aurora-accent);
+    --aurora-feature: var(--aurora-panel);
+    --aurora-feature-end: var(--aurora-raised);
+    --aurora-shadow: none;
+}
+[data-theme-swatch="instagram-light"] { background: linear-gradient(135deg, #a3216b 50%, #fff8fb 50%); }
+html[data-theme="instagram-dark"] {
+    --aurora-canvas: #171117;
+    --aurora-panel: #241b25;
+    --aurora-raised: #302333;
+    --aurora-hover: #402c41;
+    --aurora-ink: #fff1fa;
+    --aurora-muted: #d4b8cf;
+    --aurora-border: #654a61;
+    --aurora-accent: #ff9dd0;
+    --aurora-strong: #ffc8e4;
+    --aurora-on-accent: #391029;
+    --aurora-violet: #d6afff;
+    --aurora-glow: var(--aurora-hover);
+    --aurora-violet-glow: var(--aurora-hover);
+    --aurora-focus: var(--aurora-accent);
+    --aurora-feature: var(--aurora-panel);
+    --aurora-feature-end: var(--aurora-raised);
+    --aurora-shadow: none;
+}
+[data-theme-swatch="instagram-dark"] { background: linear-gradient(135deg, #ff9dd0 50%, #171117 50%); }
+html[data-theme="tiktok-light"] {
+    --aurora-canvas: #f5f7f8;
+    --aurora-panel: #ffffff;
+    --aurora-raised: #eef4f5;
+    --aurora-hover: #dceff0;
+    --aurora-ink: #141b20;
+    --aurora-muted: #495c64;
+    --aurora-border: #c3d4d8;
+    --aurora-accent: #a90e43;
+    --aurora-strong: #830832;
+    --aurora-on-accent: #ffffff;
+    --aurora-violet: #006b72;
+    --aurora-glow: var(--aurora-hover);
+    --aurora-violet-glow: var(--aurora-hover);
+    --aurora-focus: var(--aurora-accent);
+    --aurora-feature: var(--aurora-panel);
+    --aurora-feature-end: var(--aurora-raised);
+    --aurora-shadow: none;
+}
+[data-theme-swatch="tiktok-light"] { background: linear-gradient(135deg, #a90e43 50%, #f5f7f8 50%); }
+html[data-theme="tiktok-dark"] {
+    --aurora-canvas: #090d0f;
+    --aurora-panel: #141a1d;
+    --aurora-raised: #1d262a;
+    --aurora-hover: #26383e;
+    --aurora-ink: #f3fbfc;
+    --aurora-muted: #b6cbd0;
+    --aurora-border: #415b64;
+    --aurora-accent: #66eee5;
+    --aurora-strong: #b1fff8;
+    --aurora-on-accent: #082a2a;
+    --aurora-violet: #ff9ab7;
+    --aurora-glow: var(--aurora-hover);
+    --aurora-violet-glow: var(--aurora-hover);
+    --aurora-focus: var(--aurora-accent);
+    --aurora-feature: var(--aurora-panel);
+    --aurora-feature-end: var(--aurora-raised);
+    --aurora-shadow: none;
+}
+[data-theme-swatch="tiktok-dark"] { background: linear-gradient(135deg, #66eee5 50%, #090d0f 50%); }
+html[data-theme="gmail-light"] {
+    --aurora-canvas: #f6f8fc;
+    --aurora-panel: #ffffff;
+    --aurora-raised: #edf2fa;
+    --aurora-hover: #d3e3fd;
+    --aurora-ink: #202124;
+    --aurora-muted: #535d6c;
+    --aurora-border: #cbd4e3;
+    --aurora-accent: #0b57d0;
+    --aurora-strong: #0842a0;
+    --aurora-on-accent: #ffffff;
+    --aurora-violet: #a02722;
+    --aurora-glow: var(--aurora-hover);
+    --aurora-violet-glow: var(--aurora-hover);
+    --aurora-focus: var(--aurora-accent);
+    --aurora-feature: var(--aurora-panel);
+    --aurora-feature-end: var(--aurora-raised);
+    --aurora-shadow: none;
+}
+[data-theme-swatch="gmail-light"] { background: linear-gradient(135deg, #0b57d0 50%, #f6f8fc 50%); }
+html[data-theme="gmail-dark"] {
+    --aurora-canvas: #17191d;
+    --aurora-panel: #22252b;
+    --aurora-raised: #2c3039;
+    --aurora-hover: #354767;
+    --aurora-ink: #edf1fa;
+    --aurora-muted: #bac5d8;
+    --aurora-border: #525e73;
+    --aurora-accent: #a8c7fa;
+    --aurora-strong: #d3e3fd;
+    --aurora-on-accent: #092b60;
+    --aurora-violet: #ffb4ab;
+    --aurora-glow: var(--aurora-hover);
+    --aurora-violet-glow: var(--aurora-hover);
+    --aurora-focus: var(--aurora-accent);
+    --aurora-feature: var(--aurora-panel);
+    --aurora-feature-end: var(--aurora-raised);
+    --aurora-shadow: none;
+}
+[data-theme-swatch="gmail-dark"] { background: linear-gradient(135deg, #a8c7fa 50%, #17191d 50%); }
+html[data-theme="outlook-light"] {
+    --aurora-canvas: #f3f6fa;
+    --aurora-panel: #ffffff;
+    --aurora-raised: #eaf2fa;
+    --aurora-hover: #cfe8ff;
+    --aurora-ink: #172d43;
+    --aurora-muted: #486078;
+    --aurora-border: #bdcfe0;
+    --aurora-accent: #005a9e;
+    --aurora-strong: #004578;
+    --aurora-on-accent: #ffffff;
+    --aurora-violet: #5b409a;
+    --aurora-glow: var(--aurora-hover);
+    --aurora-violet-glow: var(--aurora-hover);
+    --aurora-focus: var(--aurora-accent);
+    --aurora-feature: var(--aurora-panel);
+    --aurora-feature-end: var(--aurora-raised);
+    --aurora-shadow: none;
+}
+[data-theme-swatch="outlook-light"] { background: linear-gradient(135deg, #005a9e 50%, #f3f6fa 50%); }
+html[data-theme="outlook-dark"] {
+    --aurora-canvas: #101b26;
+    --aurora-panel: #192b3b;
+    --aurora-raised: #223a4e;
+    --aurora-hover: #2b4c66;
+    --aurora-ink: #eff7ff;
+    --aurora-muted: #b5cedf;
+    --aurora-border: #48657b;
+    --aurora-accent: #83caff;
+    --aurora-strong: #b5dfff;
+    --aurora-on-accent: #082c47;
+    --aurora-violet: #cfbaff;
+    --aurora-glow: var(--aurora-hover);
+    --aurora-violet-glow: var(--aurora-hover);
+    --aurora-focus: var(--aurora-accent);
+    --aurora-feature: var(--aurora-panel);
+    --aurora-feature-end: var(--aurora-raised);
+    --aurora-shadow: none;
+}
+[data-theme-swatch="outlook-dark"] { background: linear-gradient(135deg, #83caff 50%, #101b26 50%); }
+html:is([data-theme="instagram-light"], [data-theme="instagram-dark"], [data-theme="tiktok-light"], [data-theme="tiktok-dark"], [data-theme="gmail-light"], [data-theme="gmail-dark"], [data-theme="outlook-light"], [data-theme="outlook-dark"]) :is(.sge-dashboard-hero, .sge-dashboard-band, .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero, .sge-student-map-hero) { background: var(--aurora-panel); color: var(--aurora-ink); border: 1px solid var(--aurora-border); border-radius: var(--brand-radius); box-shadow: var(--brand-shadow); }
+html:is([data-theme="instagram-light"], [data-theme="instagram-dark"], [data-theme="tiktok-light"], [data-theme="tiktok-dark"], [data-theme="gmail-light"], [data-theme="gmail-dark"], [data-theme="outlook-light"], [data-theme="outlook-dark"]) :is(.sge-dashboard-hero, .sge-dashboard-band, .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero, .sge-student-map-hero) :is(h2,h3) { color: var(--aurora-ink); }
+html:is([data-theme="instagram-light"], [data-theme="instagram-dark"], [data-theme="tiktok-light"], [data-theme="tiktok-dark"], [data-theme="gmail-light"], [data-theme="gmail-dark"], [data-theme="outlook-light"], [data-theme="outlook-dark"]) :is(.sge-dashboard-hero, .sge-dashboard-band, .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero, .sge-student-map-hero) :is(p,.sge-eyebrow,.sge-page-kicker) { color: var(--aurora-muted); }
+html:is([data-theme="instagram-light"], [data-theme="instagram-dark"], [data-theme="tiktok-light"], [data-theme="tiktok-dark"], [data-theme="gmail-light"], [data-theme="gmail-dark"], [data-theme="outlook-light"], [data-theme="outlook-dark"]) :is(.sge-dashboard-hero, .sge-dashboard-band, .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero, .sge-student-map-hero) :is(.btn-primary,.btn-outline-primary) { background: var(--aurora-accent) !important; color: var(--aurora-on-accent) !important; border-color: var(--aurora-accent) !important; }
+html:is([data-theme="instagram-light"], [data-theme="instagram-dark"], [data-theme="tiktok-light"], [data-theme="tiktok-dark"], [data-theme="gmail-light"], [data-theme="gmail-dark"], [data-theme="outlook-light"], [data-theme="outlook-dark"]) :is(.card,.sge-panel-card,.sge-workflow-card,.sge-quality-filters) { border-radius: var(--brand-radius); box-shadow: var(--brand-shadow); }
+html:is([data-theme="instagram-light"], [data-theme="instagram-dark"], [data-theme="tiktok-light"], [data-theme="tiktok-dark"], [data-theme="gmail-light"], [data-theme="gmail-dark"], [data-theme="outlook-light"], [data-theme="outlook-dark"]) .card-header:first-child { border-radius: var(--brand-radius) var(--brand-radius) 0 0; }
+html:is([data-theme="instagram-light"], [data-theme="instagram-dark"], [data-theme="tiktok-light"], [data-theme="tiktok-dark"], [data-theme="gmail-light"], [data-theme="gmail-dark"], [data-theme="outlook-light"], [data-theme="outlook-dark"]) .sidebar .sidebar-brand { border-color: var(--aurora-border); }
+html:is([data-theme="instagram-light"], [data-theme="instagram-dark"], [data-theme="tiktok-light"], [data-theme="tiktok-dark"], [data-theme="gmail-light"], [data-theme="gmail-dark"], [data-theme="outlook-light"], [data-theme="outlook-dark"]) :is(.form-control,.custom-select,.input-group-text) { border-color: var(--aurora-muted); }
+.sge-theme-switcher .dropdown-menu { max-height: min(75vh, 36rem); overflow-y: auto; }
+html:is([data-theme="instagram-light"], [data-theme="instagram-dark"]) { --brand-radius: 1.15rem; --brand-shadow: 0 8px 28px -18px var(--aurora-violet); }
+html:is([data-theme="instagram-light"], [data-theme="instagram-dark"]) .topbar.navbar { border-bottom: 3px solid transparent; border-image: linear-gradient(90deg,#f9ce34,#ee2a7b,#6228d7) 1; }
+html:is([data-theme="instagram-light"], [data-theme="instagram-dark"]) :is(.sge-dashboard-hero, .sge-dashboard-band, .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero, .sge-student-map-hero) { background: linear-gradient(120deg,var(--aurora-panel),var(--aurora-hover)); border-top: 3px solid var(--aurora-accent); }
+html:is([data-theme="instagram-light"], [data-theme="instagram-dark"]) .sidebar-dark .nav-item.active > .nav-link { border-radius: 1rem; box-shadow: inset 4px 0 var(--aurora-accent); }
+html:is([data-theme="tiktok-light"], [data-theme="tiktok-dark"]) { --brand-radius: .25rem; --brand-shadow: 3px 3px 0 var(--aurora-border); }
+html:is([data-theme="tiktok-light"], [data-theme="tiktok-dark"]) .topbar.navbar { border-bottom: 3px solid #25f4ee; box-shadow: 0 2px #fe2c55; }
+html:is([data-theme="tiktok-light"], [data-theme="tiktok-dark"]) :is(.sge-dashboard-hero, .sge-dashboard-band, .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero, .sge-student-map-hero) { border-left: 4px solid #25f4ee; border-right: 4px solid #fe2c55; }
+html:is([data-theme="tiktok-light"], [data-theme="tiktok-dark"]) .btn-primary { box-shadow: 2px 2px 0 var(--aurora-violet); border-radius: .25rem; }
+html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) { --brand-radius: 1.5rem; --brand-shadow: none; }
+html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) .sidebar.bg-gradient-primary, html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) .topbar.navbar { background: var(--aurora-canvas) !important; border: 0; }
+html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) .sidebar-dark .nav-item.active > .nav-link, html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) .sidebar-dark .nav-item .nav-link:is(:hover,:focus) { border-radius: 0 2rem 2rem 0; box-shadow: none; }
+html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) .btn-primary { border-radius: 1.25rem; box-shadow: none; }
+html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) .card-header { background: var(--aurora-panel); }
+html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) { --brand-radius: .3rem; --brand-shadow: 0 2px 6px -3px var(--aurora-muted); }
+html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar.navbar { background: #005a9e !important; border-bottom: 0; }
+html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar.navbar :is(.nav-link,.nav-link i,.sge-topbar-icon-button,.text-gray-600) { color: #fff !important; }
+html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar.navbar .sge-topbar-icon-button { background: #004578; }
+html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .card-header { background: var(--aurora-raised); border-top: 2px solid var(--aurora-accent); }
+html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .sidebar-dark .nav-item.active > .nav-link { border-radius: 0; box-shadow: inset 4px 0 var(--aurora-accent); }
