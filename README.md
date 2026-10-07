@@ -440,6 +440,16 @@ A branch principal é publicada no GitHub e aciona o deploy automático na Hosti
 
 O código da aplicação Laravel não deve ser editado diretamente no servidor de produção. Mensagens de commit devem ser escritas em português. As regras operacionais completas e a fonte de verdade para agentes estão em [AGENTS.md](AGENTS.md).
 
+### Verificação manual por SSH
+
+Execute no terminal do seu computador:
+
+```bash
+./scripts/verificar-hostinger.sh
+```
+
+O SSH solicita a senha quando necessário; ela não aparece durante a digitação e não é armazenada pelo script. A verificação compara o commit em produção com o `HEAD` local, confere PHP 8.4 e migrations pendentes e consulta a resposta HTTP da página de entrada. Para verificar um commit específico, passe seu hash como argumento. O script retorna código zero somente quando todas essas verificações passam. Ele não publica código nem executa migrations. Consulte `--help` para configurar outro endereço ou caminho.
+
 ### Página institucional
 
 A página pública de `ctjj.org` é independente do Laravel, cuja aplicação está em `/sge`. Sua fonte está em [site-institucional](site-institucional/README.md), com publicação manual por SSH/SFTP, cópia prévia fora do diretório público e substituição atômica dos arquivos. O deploy do Laravel não publica automaticamente essa página. Ela reúne unidades escolares, trajetórias em abas, documentos e referências externas, além do acesso ao Beabá e à verificação de autenticidade.
