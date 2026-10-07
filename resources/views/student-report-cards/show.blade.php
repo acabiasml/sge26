@@ -49,7 +49,6 @@
     };
     $conceptLegend = $academicYear->school?->conceptsForDate($academicYear->ends_at ?? now()) ?? collect();
     $convalidations = $enrollment->periodConvalidations->sortByDesc('convalidated_at');
-    $editingConvalidation = auth()->user()->canManageSchool($academicYear->school_id) ? $convalidations->firstWhere('id', (int) request('convalidation')) : null;
     $availableComponents = $report['courses']
         ->flatMap(fn ($course) => $course->components)
         ->unique('id')
@@ -174,64 +173,8 @@
                 <span class="badge badge-light">{{ $convalidations->count() }} {{ __('registro(s)') }}</span>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ route('enrollments.convalidations.store', $enrollment) }}" class="mb-4">
-                    @csrf
-                    @if($editingConvalidation)
-                        <input type="hidden" name="convalidation_id" value="{{ $editingConvalidation->id }}">
-                        <input type="hidden" name="academic_period_id" value="{{ $editingConvalidation->academic_period_id }}">
-                        <input type="hidden" name="curriculum_component_id" value="{{ $editingConvalidation->curriculum_component_id }}">
-                        <p role="status">{{ __('Editando resultado da escola de origem.') }} <a href="{{ route('enrollments.report-card.show', $enrollment) }}#convalidation-title">{{ __('Cancelar edição') }}</a></p>
-                    @endif
-                    <div class="form-row">
-                        <div class="form-group col-md-3">
-                            <label for="academic_period_id">{{ __('Período') }}</label>
-                            <select id="academic_period_id" name="academic_period_id" class="form-control" required @disabled($editingConvalidation)>
-                                @foreach($report['periods'] as $period)
-                                    <option value="{{ $period->id }}" @selected(old('academic_period_id', $editingConvalidation?->academic_period_id) == $period->id)>{{ $period->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="form-group col-md-4">
-                            <label for="curriculum_component_id">{{ __('Componente') }}</label>
-                            <select id="curriculum_component_id" name="curriculum_component_id" class="form-control" required @disabled($editingConvalidation)>
-                                @foreach($availableComponents as $component)
-                                    <option value="{{ $component->id }}" @selected(old('curriculum_component_id', $editingConvalidation?->curriculum_component_id) == $component->id)>{{ $component->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="form-group col-md-2">
-                            <label for="score">{{ __('Média') }}</label>
-                            <input id="score" name="score" value="{{ old('score', $editingConvalidation?->score) }}" data-mask="decimal" class="form-control" inputmode="decimal" required placeholder="7,0">
-                        </div>
-                        <div class="form-group col-md-3">
-                            <label for="convalidated_at">{{ __('Data') }}</label>
-                            <input id="convalidated_at" name="convalidated_at" type="date" class="form-control" value="{{ old('convalidated_at', $editingConvalidation?->convalidated_at?->toDateString() ?? now('America/Cuiaba')->toDateString()) }}">
-                        </div>
-                        <div class="form-group col-md-4">
-                            <label for="attendance_lessons">{{ __('Aulas cursadas na origem') }}</label>
-                            <input id="attendance_lessons" name="attendance_lessons" value="{{ old('attendance_lessons', $editingConvalidation?->attendance_lessons) }}" type="number" min="1" max="999" class="form-control" inputmode="numeric" placeholder="{{ __('Opcional') }}">
-                        </div>
-                        <div class="form-group col-md-4">
-                            <label for="attendance_absences">{{ __('Faltas na origem') }}</label>
-                            <input id="attendance_absences" name="attendance_absences" value="{{ old('attendance_absences', $editingConvalidation?->attendance_absences) }}" type="number" min="0" max="999" class="form-control" inputmode="numeric" placeholder="0">
-                        </div>
-                        <div class="form-group col-md-4">
-                            <label for="attendance_justified_absences">{{ __('Faltas justificadas na origem') }}</label>
-                            <input id="attendance_justified_absences" name="attendance_justified_absences" value="{{ old('attendance_justified_absences', $editingConvalidation?->attendance_justified_absences) }}" type="number" min="0" max="999" class="form-control" inputmode="numeric" placeholder="0">
-                        </div>
-                        <div class="form-group col-md-5">
-                            <label for="source_school">{{ __('Escola de origem') }}</label>
-                            <input id="source_school" name="source_school" value="{{ old('source_school', $editingConvalidation?->source_school) }}" class="form-control">
-                        </div>
-                        <div class="form-group col-md-7">
-                            <label for="notes">{{ __('Observações') }}</label>
-                            <input id="notes" name="notes" value="{{ old('notes', $editingConvalidation?->notes) }}" class="form-control" placeholder="{{ __('Ex.: resultado apresentado em histórico parcial.') }}">
-                        </div>
-                    </div>
-                    <button class="btn btn-primary" type="submit">
-                        <i class="fas fa-check mr-1" aria-hidden="true"></i>{{ __('Convalidar resultado') }}
-                    </button>
-                </form>
+                <p>{{ __('Informe a escola uma única vez e preencha os componentes e períodos da ficha recebida.') }}</p>
+                <a class="btn btn-primary mb-4" href="{{ route('enrollments.origin-sheet', $enrollment) }}"><i class="fas fa-file-import mr-1" aria-hidden="true"></i>{{ __('Lançar ficha da escola de origem') }}</a>
 
                 <div class="table-responsive">
                     <table class="table table-sm mb-0">
@@ -266,7 +209,7 @@
                                         @if($convalidation->notes)<span class="d-block small text-muted">{{ $convalidation->notes }}</span>@endif
                                     </td>
                                     <td class="text-right">
-                                        <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.report-card.show', ['enrollment' => $enrollment, 'convalidation' => $convalidation->id]) }}#convalidation-title" title="{{ __('Editar resultado da origem') }}" aria-label="{{ __('Editar resultado da origem') }}"><i class="fas fa-pen" aria-hidden="true"></i></a>
+                                        <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.origin-sheet', ['enrollment' => $enrollment, 'source_school' => $convalidation->source_school ?? '']) }}" title="{{ __('Editar resultado da origem') }}" aria-label="{{ __('Editar resultado da origem') }}"><i class="fas fa-pen" aria-hidden="true"></i></a>
                                         <form method="POST" action="{{ route('enrollments.convalidations.destroy', [$enrollment, $convalidation]) }}">
                                             @csrf
                                             @method('DELETE')

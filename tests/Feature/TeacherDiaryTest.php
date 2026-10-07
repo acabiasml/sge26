@@ -35,6 +35,60 @@ class TeacherDiaryTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_management_saves_origin_sheet_together_and_reopens_existing_values(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'sheet-manager@ctjj.org');
+        $second = $year->periods()->create(['name' => '2º Bimestre', 'starts_at' => '2026-04-11', 'ends_at' => '2026-06-30', 'position' => 2]);
+        $another = $component->course->components()->create(['name' => 'História', 'active' => true, 'weekly_lessons' => 2]);
+        $key = $period->id.'_'.$component->id;
+        $secondKey = $second->id.'_'.$another->id;
+        $data = ['source_school' => 'Escola anterior', 'previous_source_school' => '', 'convalidated_at' => '2026-07-01', 'sheet_complete' => 1,
+            'rows' => [$key => ['score' => '7,5', 'attendance_lessons' => 40, 'attendance_absences' => 3],
+                $secondKey => ['score' => '0', 'attendance_lessons' => 30, 'attendance_absences' => 0]]];
+        $this->actingAs($manager)->post(route('enrollments.origin-sheet.store', $enrollment), $data)->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertSame(2, $enrollment->periodConvalidations()->count());
+        $this->assertDatabaseCount('diary_attendance_records', 0);
+        $this->assertDatabaseCount('diary_assessment_results', 0);
+        $this->get(route('enrollments.origin-sheet', $enrollment))->assertOk()->assertSee('value="Escola anterior"', false)->assertSee('value="7.5"', false);
+        $data['previous_source_school'] = 'Escola anterior';
+        $data['rows'][$key]['score'] = '8,0';
+        $this->post(route('enrollments.origin-sheet.store', $enrollment), $data)->assertSessionHasNoErrors();
+        $this->assertSame(2, $enrollment->periodConvalidations()->count());
+        $this->assertSame('8.0', $enrollment->periodConvalidations()->where('academic_period_id', $period->id)->sole()->score);
+        $data['rows'][$key]['score'] = 9;
+        $data['rows'][$secondKey]['attendance_absences'] = 99;
+        $this->post(route('enrollments.origin-sheet.store', $enrollment), $data)->assertSessionHasErrors('rows.'.$secondKey.'.attendance_absences');
+        $this->assertSame('8.0', $enrollment->periodConvalidations()->where('academic_period_id', $period->id)->sole()->score);
+        $data['rows'][$secondKey]['attendance_absences'] = 0;
+        $data['rows'][$key] = ['score' => '', 'attendance_lessons' => '', 'attendance_absences' => ''];
+        $this->post(route('enrollments.origin-sheet.store', $enrollment), $data)->assertSessionHasNoErrors();
+        $this->assertSame('8.0', $enrollment->periodConvalidations()->where('academic_period_id', $period->id)->sole()->score);
+        unset($data['sheet_complete']);
+        $this->post(route('enrollments.origin-sheet.store', $enrollment), $data)->assertSessionHasErrors('sheet_complete');
+        $this->actingAs($teacher)->get(route('enrollments.origin-sheet', $enrollment))->assertForbidden();
+        $this->post(route('enrollments.origin-sheet.store', $enrollment), $data)->assertForbidden();
+    }
+
+    public function test_origin_sheet_rejects_foreign_components_and_preserves_other_source_results(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'sheet-scope@ctjj.org');
+        $key = $period->id.'_'.$component->id;
+        $enrollment->periodConvalidations()->create(['academic_period_id' => $period->id, 'curriculum_component_id' => $component->id, 'score' => 6, 'source_school' => 'Escola preservada']);
+        $data = ['source_school' => 'Outra escola', 'previous_source_school' => '', 'convalidated_at' => '2026-07-01', 'sheet_complete' => 1, 'rows' => [$key => ['score' => 9]]];
+        $this->actingAs($manager)->post(route('enrollments.origin-sheet.store', $enrollment), $data)->assertSessionHasErrors('rows');
+        $this->assertSame('6.0', $enrollment->periodConvalidations()->sole()->score);
+        $this->get(route('enrollments.origin-sheet', ['enrollment' => $enrollment, 'new' => 1]))->assertOk()->assertViewHas('sourceSchool', '')->assertSee('Resultado cadastrado em outra ficha');
+        $data['rows'] = [$period->id.'_999999' => ['score' => 8]];
+        $this->post(route('enrollments.origin-sheet.store', $enrollment), $data)->assertSessionHasErrors('rows');
+        $this->assertSame(1, $enrollment->periodConvalidations()->count());
+        $otherSchool = School::query()->create(['name' => 'Outra unidade', 'active' => true]);
+        $otherManager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $otherSchool->id, 'other-sheet@ctjj.org');
+        $this->actingAs($otherManager)->get(route('enrollments.origin-sheet', $enrollment))->assertForbidden();
+        $this->post(route('enrollments.origin-sheet.store', $enrollment), $data)->assertForbidden();
+    }
+
     public function test_teacher_central_only_lists_and_issues_assigned_diaries(): void
     {
         [$teacher, $year, $class, $component] = $this->diaryScenario();
@@ -775,8 +829,8 @@ class TeacherDiaryTest extends TestCase
             ->assertRedirect(route('enrollments.report-card.show', $enrollment));
 
         $saved = $enrollment->periodConvalidations()->sole();
-        $this->get(route('enrollments.report-card.show', ['enrollment' => $enrollment, 'convalidation' => $saved->id]))
-            ->assertOk()->assertSee('Notas e faltas da escola de origem')->assertSee('value="Escola de origem"', false);
+        $this->get(route('enrollments.origin-sheet', $enrollment))
+            ->assertOk()->assertSee('Ficha da escola de origem')->assertSee('value="Escola de origem"', false);
         $this->assertDatabaseCount('diary_attendance_records', 0);
         $this->actingAs($teacher)->post(route('enrollments.convalidations.store', $enrollment), [])->assertForbidden();
         $this->actingAs($manager)->post(route('enrollments.convalidations.store', $enrollment), [

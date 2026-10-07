@@ -236,6 +236,8 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('matriculas/{enrollment}/boletim', [StudentReportCardController::class, 'show'])->name('enrollments.report-card.show');
     Route::get('matriculas/{enrollment}/boletim-pdf', [StudentReportCardController::class, 'pdf'])->name('enrollments.report-card.pdf');
     Route::get('matriculas/{enrollment}/ficha-individual-pdf', [StudentReportCardController::class, 'individualRecordPdf'])->name('enrollments.individual-record.pdf');
+    Route::get('matriculas/{enrollment}/ficha-origem', [StudentPeriodConvalidationController::class, 'sheet'])->name('enrollments.origin-sheet');
+    Route::post('matriculas/{enrollment}/ficha-origem', [StudentPeriodConvalidationController::class, 'storeSheet'])->name('enrollments.origin-sheet.store');
     Route::post('matriculas/{enrollment}/convalidacoes', [StudentPeriodConvalidationController::class, 'store'])->name('enrollments.convalidations.store');
     Route::delete('matriculas/{enrollment}/convalidacoes/{convalidation}', [StudentPeriodConvalidationController::class, 'destroy'])->name('enrollments.convalidations.destroy');
 

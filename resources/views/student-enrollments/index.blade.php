@@ -193,7 +193,7 @@
                                 <a class="btn btn-sm btn-outline-success sge-icon-action" href="{{ route('enrollments.report-card.show', $enrollment) }}" aria-label="{{ __('Abrir boletim de') }} {{ $enrollment->student?->full_name }}" title="{{ __('Boletim') }}">
                                     <i class="fas fa-chart-line" aria-hidden="true"></i>
                                 </a>
-                                <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.report-card.show', $enrollment) }}#convalidation-title" title="{{ __('Notas e faltas da escola de origem') }}" aria-label="{{ __('Notas e faltas da escola de origem') }}"><i class="fas fa-file-import" aria-hidden="true"></i></a>
+                                <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.origin-sheet', $enrollment) }}" title="{{ __('Notas e faltas da escola de origem') }}" aria-label="{{ __('Notas e faltas da escola de origem') }}"><i class="fas fa-file-import" aria-hidden="true"></i></a>
                                 <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.individual-record.pdf', $enrollment) }}" aria-label="{{ __('Emitir ficha individual em PDF de') }} {{ $enrollment->student?->full_name }}" title="{{ __('Ficha individual em PDF') }}">
                                     <i class="fas fa-file-alt" aria-hidden="true"></i>
                                 </a>
