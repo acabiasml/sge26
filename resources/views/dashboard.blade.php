@@ -326,7 +326,7 @@
                             <div class="sge-chart-list" aria-hidden="true">
                                 @foreach ($roleChart['labels'] as $index => $label)
                                     <div>
-                                        <span>{{ __($label) }}</span>
+                                        <span><span aria-hidden="true" style="display:inline-block;width:.8rem;height:.8rem;border-radius:50%;margin-right:.5rem;background:{{ $roleChart['colors'][$index] }}"></span>{{ __($label) }}</span>
                                         <strong>{{ number_format($roleChart['values'][$index] ?? 0, 0, ',', '.') }}</strong>
                                     </div>
                                 @endforeach
@@ -458,7 +458,7 @@
                         labels: @json($roleChart['labels']),
                         datasets: [{
                             data: roleValues,
-                            backgroundColor: chartColors,
+                            backgroundColor: @json($roleChart['colors']),
                             borderColor: chartSurface,
                             borderWidth: 3,
                         }],
