@@ -23,11 +23,12 @@ class StudentPeriodConvalidationController extends Controller
         }
 
         $data = $request->validate([
+            'convalidation_id' => ['nullable', 'integer'],
             'academic_period_id' => ['required', 'integer', Rule::exists('academic_periods', 'id')->where('academic_year_id', $academicYear->id)],
             'curriculum_component_id' => ['required', 'integer'],
             'score' => ['required', 'numeric', 'min:0', 'max:10'],
-            'attendance_lessons' => ['nullable', 'integer', 'min:1', 'max:999'],
-            'attendance_absences' => ['nullable', 'integer', 'min:0', 'max:999', 'lte:attendance_lessons'],
+            'attendance_lessons' => ['nullable', 'required_with:attendance_absences,attendance_justified_absences', 'integer', 'min:1', 'max:999'],
+            'attendance_absences' => ['nullable', 'required_with:attendance_justified_absences', 'integer', 'min:0', 'max:999', 'lte:attendance_lessons'],
             'attendance_justified_absences' => ['nullable', 'integer', 'min:0', 'max:999', 'lte:attendance_absences'],
             'source_school' => ['nullable', 'string', 'max:255'],
             'convalidated_at' => ['nullable', 'date'],
@@ -53,6 +54,12 @@ class StudentPeriodConvalidationController extends Controller
                 ->exists(),
             422
         );
+
+        if (! empty($data['convalidation_id'])) {
+            $existing = $enrollment->periodConvalidations()->findOrFail($data['convalidation_id']);
+            abort_unless((int) $existing->academic_period_id === (int) $data['academic_period_id']
+                && (int) $existing->curriculum_component_id === (int) $data['curriculum_component_id'], 422);
+        }
 
         StudentPeriodConvalidation::query()->updateOrCreate(
             [

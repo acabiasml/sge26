@@ -774,6 +774,16 @@ class TeacherDiaryTest extends TestCase
             ])
             ->assertRedirect(route('enrollments.report-card.show', $enrollment));
 
+        $saved = $enrollment->periodConvalidations()->sole();
+        $this->get(route('enrollments.report-card.show', ['enrollment' => $enrollment, 'convalidation' => $saved->id]))
+            ->assertOk()->assertSee('Notas e faltas da escola de origem')->assertSee('value="Escola de origem"', false);
+        $this->assertDatabaseCount('diary_attendance_records', 0);
+        $this->actingAs($teacher)->post(route('enrollments.convalidations.store', $enrollment), [])->assertForbidden();
+        $this->actingAs($manager)->post(route('enrollments.convalidations.store', $enrollment), [
+            'academic_period_id' => $period->id, 'curriculum_component_id' => $component->id,
+            'score' => 7, 'attendance_absences' => 2,
+        ])->assertSessionHasErrors('attendance_lessons');
+
         $report = app(StudentReportCardBuilder::class)->build($enrollment->fresh());
         $componentReport = $report['periodReports']->first()['components']->first();
 

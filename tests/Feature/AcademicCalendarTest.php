@@ -30,6 +30,30 @@ class AcademicCalendarTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_dashboard_shortcuts_prioritize_current_periods_and_personal_audit_without_leaking_other_schools(): void
+    {
+        $this->travelTo(\Carbon\Carbon::parse('2026-10-07'));
+        $year = $this->academicYear();
+        $otherYear = $this->academicYear();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id);
+        $defaults = [
+            ['url' => route('teacher-diaries.index'), 'label' => 'Diários', 'description' => '', 'icon' => 'fa-book'],
+            ['url' => route('enrollments.index'), 'label' => 'Matrículas', 'description' => '', 'icon' => 'fa-users'],
+        ];
+        \App\Models\AuditLog::query()->create(['actor_user_id' => $manager->id, 'actor_role' => PersonSchoolRole::ROLE_MANAGER,
+            'auditable_type' => StudentEnrollment::class, 'auditable_id' => 1, 'action' => 'created', 'school_id' => $year->school_id]);
+        $shortcuts = collect(\App\Support\DashboardShortcuts::make($manager, $defaults));
+        $this->assertSame(route('academic-years.periods.index', $year), $shortcuts[0]['url']);
+        $this->assertSame(route('enrollments.index'), $shortcuts[1]['url']);
+        $this->assertFalse($shortcuts->contains('url', route('academic-years.periods.index', $otherYear)));
+        $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'shortcuts-student@ctjj.org');
+        $studentLinks = \App\Support\DashboardShortcuts::make($student, [
+            ['url' => route('profile.edit'), 'label' => 'Perfil', 'description' => '', 'icon' => 'fa-user'],
+        ]);
+        $this->assertCount(1, $studentLinks);
+        $this->assertSame(route('profile.edit'), $studentLinks[0]['url']);
+    }
+
     public function test_class_student_contacts_pdf_is_scoped_and_includes_only_enrolled_students(): void
     {
         $year = $this->academicYear();

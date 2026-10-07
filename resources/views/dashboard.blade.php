@@ -126,6 +126,7 @@
     $hasRoleChart = $roleTotal > 0;
     $hasStudentsChart = array_sum($studentsBySchoolChart['values']) > 0;
     $hasCalendarTypeChart = array_sum($calendarTypeChart['values']) > 0;
+    $dashboardShortcuts = \App\Support\DashboardShortcuts::make($dashboardUser, $dashboardShortcuts);
 @endphp
 
 @section('content')
