@@ -156,7 +156,7 @@
                         @endforeach
                         @if($showBehavior)
                             <td class="score-cell">
-                                {{ $scoreLabel(($periodReport['behavior'] ?? null)?->score, $period->ends_at ?? $period->starts_at) }}
+                                {{ ($periodReport['behavior'] ?? null)?->formattedScore() ?? '-' }}
                             </td>
                         @endif
                     </tr>

@@ -272,7 +272,7 @@
                     <h2 id="period-report-{{ $period->id }}">{{ $period->name }}</h2>
                     <p>{{ $period->starts_at?->format('d/m/Y') }} {{ __('a') }} {{ $period->ends_at?->format('d/m/Y') }}</p>
                 </div>
-                <span class="badge badge-light">{{ __('Comportamento:') }} {{ $scoreLabel($periodReport['behavior']?->score, $period->ends_at ?? $period->starts_at) }}</span>
+                <span class="badge badge-light">{{ __('Comportamento:') }} {{ ($periodReport['behavior'] ?? null)?->formattedScore() ?? '-' }}</span>
             </div>
             <div class="card-body">
                 <div class="sge-period-result-grid">

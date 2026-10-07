@@ -29,23 +29,8 @@
         return number_format((float) $result->score, 1, ',', '.');
     };
 
-    $behaviorLabel = function ($grade) use ($scoreView): string {
-        if (! $grade) {
-            return __('Pendente');
-        }
+    $behaviorLabel = fn ($grade): string => $grade?->formattedScore() ?? __('Pendente');
 
-        if ($scoreView === 'conceitos') {
-            $school = $grade->enrollment?->schoolClass?->academicYear?->school;
-            $referenceDate = $grade->academicPeriod?->ends_at ?? $grade->academicPeriod?->starts_at;
-            $concept = $school?->conceptForScore((float) $grade->score, $referenceDate);
-
-            if ($concept) {
-                return $concept->shortLabel();
-            }
-        }
-
-        return number_format((float) $grade->score, 1, ',', '.');
-    };
 @endphp
 
 @section('title', __('Vida escolar'))

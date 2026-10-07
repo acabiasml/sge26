@@ -51,7 +51,7 @@
                             @php($behaviorGrade = $behaviorGrades->get($period->id))
                             <li class="list-group-item px-0 d-flex justify-content-between">
                                 <span>{{ __('Comportamento') }}</span>
-                                <strong>{{ $studentConceptLabel($behaviorGrade?->score, $period) }}</strong>
+                                <strong>{{ $behaviorGrade?->formattedScore() ?? '-' }}</strong>
                             </li>
                             @forelse($assessments->where('academic_period_id', $period->id) as $assessment)
                                 @php($result = $assessment->results->first())

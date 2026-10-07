@@ -286,7 +286,7 @@
                             $periodReport = $report['periodReports']->first(fn (array $item): bool => $period->is($item['period']));
                             $periodDate = $period->ends_at ?? $period->starts_at;
                         @endphp
-                        <td class="center">{{ $scoreLabel($periodReport['behavior']?->score ?? null, $periodDate) }}</td>
+                        <td class="center">{{ ($periodReport['behavior'] ?? null)?->formattedScore() ?? '-' }}</td>
                         <td class="center">-</td>
                     @endforeach
                     <td colspan="5" class="center">Registro por período avaliativo</td>

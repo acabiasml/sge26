@@ -25,6 +25,11 @@ class StudentBehaviorGrade extends Model
         ];
     }
 
+    public function formattedScore(): string
+    {
+        return $this->score === null ? '-' : number_format((float) $this->score, 1, ',', '.');
+    }
+
     public function academicPeriod(): BelongsTo
     {
         return $this->belongsTo(AcademicPeriod::class);
