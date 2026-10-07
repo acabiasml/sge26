@@ -142,7 +142,11 @@
         </div>
     </section>
 
-    <nav class="sge-dashboard-shortcuts mb-4" aria-label="{{ __('dashboard.quick_access') }}">
+    <div class="mb-3">
+        <h2 id="dashboard-quick-access-title" class="h5 mb-1">{{ __('Acesso rápido') }}</h2>
+        <p id="dashboard-quick-access-description" class="small text-muted mb-0">{{ __('Atalhos atualizados automaticamente conforme suas ações recentes e os serviços mais usados pelo seu perfil.') }}</p>
+    </div>
+    <nav class="sge-dashboard-shortcuts mb-4" aria-labelledby="dashboard-quick-access-title" aria-describedby="dashboard-quick-access-description">
         @foreach ($dashboardShortcuts as $shortcut)
             <a class="sge-dashboard-shortcut" href="{{ $shortcut['url'] }}">
                 <span class="sge-dashboard-shortcut-icon" aria-hidden="true">
