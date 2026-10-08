@@ -237,7 +237,7 @@ class DocumentIssuanceController extends Controller
             'icon' => 'fa-clipboard-check',
         ],
         'attendance-report' => [
-            'group' => 'Ano letivo',
+            'group' => 'Estudante',
             'label' => 'Relatório de Frequência',
             'description' => 'Lista, por escola e em ordem alfabética, a frequência e as faltas dos estudantes no período selecionado.',
             'target' => 'academic_year',

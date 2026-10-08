@@ -109,7 +109,7 @@ class DocumentIssuancePanelTest extends TestCase
             ->assertDontSee('<optgroup label="Listagens">', false)
             ->assertSee('value="enrollment-declaration"', false)
             ->assertDontSee('value="academic-calendar"', false)
-            ->assertDontSee('value="attendance-report"', false)
+            ->assertSee('value="attendance-report"', false)
             ->assertSee('value="class-report-cards"', false)
             ->assertSee('value="class-student-contacts"', false)
             ->assertSee('value="class-grade-mirror"', false)
