@@ -187,3 +187,30 @@ html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar.navba
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar.navbar .sge-topbar-icon-button { background: #004578; }
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .card-header { background: var(--aurora-raised); border-top: 2px solid var(--aurora-accent); }
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .sidebar-dark .nav-item.active > .nav-link { border-radius: 0; box-shadow: inset 4px 0 var(--aurora-accent); }
+
+/* Mobile navigation must remain readable on every topbar, including Outlook blue. */
+html .topbar #sidebarToggleTop {
+    color: var(--sge-text) !important;
+    background: var(--sge-paper) !important;
+    border: 1px solid var(--sge-muted);
+    min-width: 44px;
+    min-height: 44px;
+    flex-shrink: 0;
+}
+html .topbar #sidebarToggleTop i { color: inherit !important; }
+html .topbar #sidebarToggleTop:is(:hover, :focus, :active) {
+    color: var(--sge-text) !important;
+    background: var(--sge-surface-soft) !important;
+    border-color: currentColor;
+}
+html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar #sidebarToggleTop {
+    color: #fff !important;
+    background: #004578 !important;
+    border-color: #b5dfff;
+}
+html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar #sidebarToggleTop:is(:hover, :focus, :active) {
+    background: #00345b !important;
+}
+html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar #sidebarToggleTop:focus-visible {
+    outline-color: #fff !important;
+}
