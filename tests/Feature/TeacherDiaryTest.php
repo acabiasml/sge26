@@ -1528,6 +1528,33 @@ class TeacherDiaryTest extends TestCase
         $this->assertSame(1, DiaryAttendanceJustification::query()->count());
     }
 
+    public function test_weight_change_preserves_existing_grades_without_delete_confirmation(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'pesos@ctjj.org');
+        $url = route('academic-years.periods.assessment-rules.update', [$year, $period]);
+        $payload = ['assessment_count' => 2, 'weights' => [10, 10], 'recovery_mode' => AcademicPeriod::RECOVERY_NONE];
+        $this->actingAs($manager)->put($url, $payload)->assertRedirect();
+        $assessments = DiaryAssessment::query()->orderBy('id')->get();
+        $scores = [];
+        foreach ($assessments as $index => $assessment) {
+            $scores[$assessment->id] = [$enrollment->id => $index === 0 ? 8 : 6];
+        }
+        $this->actingAs($teacher)->put(route('teacher-diaries.grades.update', [$class, $component]), [
+            'academic_period_id' => $period->id, 'scores' => $scores,
+        ])->assertSessionHasNoErrors();
+        $before = \Illuminate\Support\Facades\DB::table('diary_assessment_results')->orderBy('id')->get()->toJson();
+        $this->assertNotSame('[]', $before);
+        $payload['weights'] = [10, 5];
+        $this->actingAs($manager)->put($url, $payload)->assertSessionHasNoErrors()
+            ->assertSessionMissing('assessment_change_warning')
+            ->assertSessionHas('status', 'Avaliações do período configuradas. As notas existentes foram preservadas.');
+        $this->assertSame($before, \Illuminate\Support\Facades\DB::table('diary_assessment_results')->orderBy('id')->get()->toJson());
+        $this->assertSame($assessments->pluck('id')->all(), DiaryAssessment::query()->orderBy('id')->pluck('id')->all());
+        $this->assertSame(5, (int) $assessments->last()->fresh()->weight);
+        $this->assertSame(5, (int) $period->assessmentRules()->where('position', 2)->firstOrFail()->weight);
+    }
+
     public function test_management_must_confirm_before_changing_assessment_configuration_with_grades(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();

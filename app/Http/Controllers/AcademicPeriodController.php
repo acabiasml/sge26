@@ -474,6 +474,9 @@ class AcademicPeriodController extends Controller
                         'weight' => $weights[$ruleIndex],
                         'maximum_score' => 10,
                     ]);
+                    if (! $rule->assessments()->exists()) {
+                        $this->createAssessmentsForRule($academicYear->id, $rule);
+                    }
                 }
             }
 
@@ -504,9 +507,9 @@ class AcademicPeriodController extends Controller
         });
 
         return redirect()->route('academic-years.periods.index', $academicYear)
-            ->with('status', $storedGradeCount > 0
+            ->with('status', $storedGradeCount > 0 && $requiresDataReset
                 ? __('Forma de avaliação alterada. Os lançamentos anteriores foram apagados conforme a confirmação da gestão.')
-                : __('Avaliações do período configuradas para a escola.'));
+                : __('Avaliações do período configuradas. As notas existentes foram preservadas.'));
     }
 
     /**
@@ -555,9 +558,6 @@ class AcademicPeriodController extends Controller
                 return true;
             }
 
-            if ((int) $rule->weight !== (int) $weights[$index]) {
-                return true;
-            }
         }
 
         return false;
