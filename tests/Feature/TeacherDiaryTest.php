@@ -1744,7 +1744,7 @@ class TeacherDiaryTest extends TestCase
         ]);
     }
 
-    public function test_management_can_confirm_recovery_rule_change_after_regular_grade_entry(): void
+    public function test_management_can_change_weights_and_recovery_without_erasing_regular_grades(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-recuperacao-tardia@ctjj.org');
@@ -1775,20 +1775,11 @@ class TeacherDiaryTest extends TestCase
                 'period_form_id' => $period->id,
                 'assessment_count' => 2,
                 'weights' => [99, 99],
-                'assessment_names' => ['Nome que não deve alterar', 'Outro nome que não deve alterar'],
-                'recovery_mode' => AcademicPeriod::RECOVERY_REPLACE_LOWEST,
-            ])
-            ->assertSessionHas('assessment_change_warning');
-
-        $this->actingAs($manager)
-            ->put(route('academic-years.periods.assessment-rules.update', [$year, $period]), [
-                'period_form_id' => $period->id,
-                'assessment_count' => 2,
-                'weights' => [99, 99],
                 'assessment_names' => ['Nova Avaliação 1', 'Nova Avaliação 2'],
                 'recovery_mode' => AcademicPeriod::RECOVERY_REPLACE_LOWEST,
-                'confirm_delete_assessment_data' => 1,
             ])
+            ->assertSessionHasNoErrors()
+            ->assertSessionMissing('assessment_change_warning')
             ->assertRedirect(route('academic-years.periods.index', $year));
 
         $this->assertDatabaseHas('school_assessment_rules', [
@@ -1814,7 +1805,11 @@ class TeacherDiaryTest extends TestCase
             'is_recovery' => true,
             'recovery_mode' => AcademicPeriod::RECOVERY_REPLACE_LOWEST,
         ]);
-        $this->assertDatabaseMissing('diary_assessment_results', ['diary_assessment_id' => $assessment->id]);
+        $this->assertDatabaseHas('diary_assessment_results', [
+            'diary_assessment_id' => $assessment->id,
+            'student_enrollment_id' => $enrollment->id,
+            'score' => 7.5,
+        ]);
     }
 
     public function test_diary_show_creates_missing_recovery_column_from_period_rule(): void
