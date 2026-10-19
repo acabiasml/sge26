@@ -12,6 +12,7 @@ th { background: #eee; }
 .component-table { page-break-inside: avoid; table-layout: fixed; }
 .component-title { text-align: left; background: #e7ddd6; color: #4f2d22; }
 .report-context { margin-top: 24px; }
+.student-name { white-space: nowrap; }
 .number { text-align: center; }
 .note { font-size: 11px; color: #444; }
 </style></head><body>
@@ -29,7 +30,7 @@ Frequência mínima: {{ $academicYear->minimum_attendance_percentage }}%.</p>
         ->unique('id')
         ->sortBy('position')
         ->values();
-    $periodWidth = $endedPeriods->isEmpty() ? 0 : 24 / $endedPeriods->count();
+    $periodWidth = $endedPeriods->isEmpty() ? 0 : 21 / $endedPeriods->count();
     $componentGroups = $reports
         ->flatMap(fn ($report) => $report['annualComponents']->map(fn ($summary) => [
             'report' => $report,
@@ -43,14 +44,19 @@ Frequência mínima: {{ $academicYear->minimum_attendance_percentage }}%.</p>
     $component = $componentRows->first()['summary']['component'];
 @endphp
 <table class="component-table">
+<colgroup>
+<col style="width:30%"><col style="width:9%">
+@foreach($endedPeriods as $endedPeriod)<col style="width:{{ $periodWidth }}%">@endforeach
+<col style="width:9%"><col style="width:9%"><col style="width:10%"><col style="width:12%">
+</colgroup>
 <thead><tr><th class="component-title" colspan="{{ 6 + $endedPeriods->count() }}">{{ $loop->iteration }}. {{ $component->name }}@if($component->course?->name) <span class="note">· {{ $component->course->name }}</span>@endif</th></tr>
 <tr>
-<th style="width:28%">Estudante</th>
-<th style="width:10%">Frequência anual</th>
+<th>Estudante</th>
+<th>Frequência anual</th>
 @foreach($endedPeriods as $endedPeriod)
-<th style="width:{{ $periodWidth }}%" title="{{ $endedPeriod->name }}">{{ preg_replace(['/\s+Bimestre$/iu', '/\s+Trimestre$/iu', '/\s+Semestre$/iu'], [' Bim.', ' Trim.', ' Sem.'], $endedPeriod->name) }}</th>
+<th title="{{ $endedPeriod->name }}">{{ preg_replace(['/\s+Bimestre$/iu', '/\s+Trimestre$/iu', '/\s+Semestre$/iu'], [' Bim.', ' Trim.', ' Sem.'], $endedPeriod->name) }}</th>
 @endforeach
-<th style="width:9%">Pontos atuais</th><th style="width:9%">Faltam pontos</th><th style="width:9%">Períodos completos</th><th style="width:11%">Situação</th>
+<th>Pontos atuais</th><th>Faltam pontos</th><th>Períodos completos</th><th>Situação</th>
 </tr></thead>
 <tbody>
 @foreach($componentRows as $row)
@@ -60,7 +66,7 @@ Frequência mínima: {{ $academicYear->minimum_attendance_percentage }}%.</p>
     $hasScore = $summary['periods']->contains(fn ($item) => ($item['average']['value'] ?? null) !== null);
     $missing = max(0, $report['passingPoints'] - $summary['points']);
 @endphp
-<tr><td>{{ $report['student']->full_name }}</td>
+<tr><td class="student-name">{{ $report['student']->full_name }}</td>
 <td class="number">{{ $report['annualAttendance']['percentage'] === null ? '—' : number_format($report['annualAttendance']['percentage'], 1, ',', '.').'%' }}</td>
 @foreach($endedPeriods as $endedPeriod)
 @php
