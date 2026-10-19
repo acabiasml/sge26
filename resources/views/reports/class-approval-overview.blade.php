@@ -9,8 +9,9 @@ thead { display: table-header-group; }
 tr { page-break-inside: avoid; }
 th, td { border: .5px solid #999; padding: 4px; vertical-align: middle; }
 th { background: #eee; }
-.component-table { page-break-inside: avoid; table-layout: fixed; }
-.component-title { text-align: left; background: #e7ddd6; color: #4f2d22; }
+.component-block, .component-table { page-break-inside: avoid; }
+.component-table { table-layout: fixed; }
+.component-title { padding: 5px; border: .5px solid #999; border-bottom: 0; background: #e7ddd6; color: #4f2d22; font-weight: 600; }
 .report-context { margin-top: 24px; }
 .student-name { white-space: nowrap; }
 .number { text-align: center; }
@@ -43,14 +44,15 @@ Frequência mínima: {{ $academicYear->minimum_attendance_percentage }}%.</p>
 @php
     $component = $componentRows->first()['summary']['component'];
 @endphp
-<table class="component-table">
+<div class="component-block">
+<div class="component-title">{{ $loop->iteration }}. {{ $component->name }}@if($component->course?->name) <span class="note">· {{ $component->course->name }}</span>@endif</div>
+<table class="component-table" style="margin-top:0">
 <colgroup>
 <col style="width:30%"><col style="width:9%">
 @foreach($endedPeriods as $endedPeriod)<col style="width:{{ $periodWidth }}%">@endforeach
 <col style="width:9%"><col style="width:9%"><col style="width:10%"><col style="width:12%">
 </colgroup>
-<thead><tr><th class="component-title" colspan="{{ 6 + $endedPeriods->count() }}">{{ $loop->iteration }}. {{ $component->name }}@if($component->course?->name) <span class="note">· {{ $component->course->name }}</span>@endif</th></tr>
-<tr>
+<thead><tr>
 <th>Estudante</th>
 <th>Frequência anual</th>
 @foreach($endedPeriods as $endedPeriod)
@@ -81,6 +83,7 @@ Frequência mínima: {{ $academicYear->minimum_attendance_percentage }}%.</p>
 <td>{{ ! $hasScore ? 'Sem notas' : ($missing > 0 ? 'Abaixo da meta' : 'Meta atingida') }}</td></tr>
 @endforeach
 </tbody></table>
+</div>
 @empty
 <p>Nenhum componente vinculado às matrículas ativas desta turma.</p>
 @endforelse
