@@ -26,17 +26,17 @@ Frequência mínima: {{ $academicYear->minimum_attendance_percentage }}%.</p>
         ->unique('id')
         ->sortBy('position')
         ->values();
-    $periodWidth = $endedPeriods->isEmpty() ? 0 : 28 / $endedPeriods->count();
+    $periodWidth = $endedPeriods->isEmpty() ? 0 : 20 / $endedPeriods->count();
 @endphp
 <table>
 <thead><tr><th colspan="{{ 5 + $endedPeriods->count() }}" style="text-align:left">{{ $loop->iteration }}. {{ $report['student']->full_name }}<br>
 <span class="note">Frequência anual: {{ $report['annualAttendance']['percentage'] === null ? 'Sem registros' : number_format($report['annualAttendance']['percentage'], 1, ',', '.').'%' }}</span></th></tr>
 <tr>
-<th style="width:23%">Componente</th>
+<th style="width:32%">Componente</th>
 @foreach($endedPeriods as $endedPeriod)
 <th style="width:{{ $periodWidth }}%" title="{{ $endedPeriod->name }}">{{ preg_replace(['/\s+Bimestre$/iu', '/\s+Trimestre$/iu', '/\s+Semestre$/iu'], [' Bim.', ' Trim.', ' Sem.'], $endedPeriod->name) }}</th>
 @endforeach
-<th style="width:10%">Pontos atuais</th><th style="width:10%">Faltam pontos</th><th style="width:12%">Períodos completos</th><th style="width:17%">Situação da pontuação</th>
+<th style="width:9%">Pontos atuais</th><th style="width:9%">Faltam pontos</th><th style="width:12%">Períodos completos</th><th style="width:18%">Situação da pontuação</th>
 </tr></thead>
 <tbody>
 @forelse($report['annualComponents'] as $summary)
