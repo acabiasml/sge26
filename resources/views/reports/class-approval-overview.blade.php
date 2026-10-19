@@ -11,8 +11,6 @@ th, td { border: .5px solid #999; padding: 4px; vertical-align: middle; }
 th { background: #eee; }
 .number { text-align: center; }
 .note { font-size: 11px; color: #444; }
-.period-scores { line-height: 1.45; }
-.period-score { display: inline-block; margin-right: 10px; white-space: nowrap; }
 </style></head><body>
 @include('reports.partials.letterhead', ['title' => 'Panorama de aprovação da turma', 'showTechnicalRegulation' => false])
 <p><strong>{{ $schoolClass->name }}</strong> · {{ $academicYear->referenceYearsLabel() }} · {{ $academicYear->school?->name }}</p>
@@ -20,33 +18,46 @@ th { background: #eee; }
 Frequência mínima: {{ $academicYear->minimum_attendance_percentage }}%.</p>
 <p class="note">Panorama dos lançamentos atuais. As notas individuais abaixo são exibidas somente para períodos já encerrados. A pontuação inclui médias parciais e pode mudar com novas notas ou recuperação. Atingir a meta de pontos não significa aprovação final: também são necessários frequência mínima e fechamento dos períodos. Períodos sem notas não são tratados como nota zero.</p>
 @forelse($reports as $report)
+@php
+    $endedPeriods = $report['annualComponents']
+        ->flatMap(fn ($summary) => $summary['periods'])
+        ->filter(fn ($item) => $item['period']->ends_at?->copy()->endOfDay()->isPast())
+        ->map(fn ($item) => $item['period'])
+        ->unique('id')
+        ->sortBy('position')
+        ->values();
+    $periodWidth = $endedPeriods->isEmpty() ? 0 : 28 / $endedPeriods->count();
+@endphp
 <table>
-<thead><tr><th colspan="6" style="text-align:left">{{ $loop->iteration }}. {{ $report['student']->full_name }}<br>
+<thead><tr><th colspan="{{ 5 + $endedPeriods->count() }}" style="text-align:left">{{ $loop->iteration }}. {{ $report['student']->full_name }}<br>
 <span class="note">Frequência anual: {{ $report['annualAttendance']['percentage'] === null ? 'Sem registros' : number_format($report['annualAttendance']['percentage'], 1, ',', '.').'%' }}</span></th></tr>
-<tr><th style="width:22%">Componente</th><th style="width:30%">Notas dos períodos encerrados</th><th style="width:11%">Pontos atuais</th><th style="width:11%">Faltam pontos</th><th style="width:12%">Períodos completos</th><th style="width:14%">Situação da pontuação</th></tr></thead>
+<tr>
+<th style="width:23%">Componente</th>
+@foreach($endedPeriods as $endedPeriod)
+<th style="width:{{ $periodWidth }}%" title="{{ $endedPeriod->name }}">{{ preg_replace(['/\s+Bimestre$/iu', '/\s+Trimestre$/iu', '/\s+Semestre$/iu'], [' Bim.', ' Trim.', ' Sem.'], $endedPeriod->name) }}</th>
+@endforeach
+<th style="width:10%">Pontos atuais</th><th style="width:10%">Faltam pontos</th><th style="width:12%">Períodos completos</th><th style="width:17%">Situação da pontuação</th>
+</tr></thead>
 <tbody>
 @forelse($report['annualComponents'] as $summary)
 @php
     $hasScore = $summary['periods']->contains(fn ($item) => ($item['average']['value'] ?? null) !== null);
     $missing = max(0, $report['passingPoints'] - $summary['points']);
-    $endedPeriods = $summary['periods']->filter(
-        fn ($item) => $item['period']->ends_at?->copy()->endOfDay()->isPast()
-    );
 @endphp
 <tr><td>{{ $summary['component']->name }}<br><span class="note">{{ $summary['component']->course?->name }}</span></td>
-<td class="period-scores">
-@forelse($endedPeriods as $periodSummary)
-<span class="period-score"><strong>{{ $periodSummary['period']->name }}:</strong> {{ ($periodSummary['average']['value'] ?? null) === null ? '—' : number_format($periodSummary['average']['value'], 1, ',', '.') }}</span>
-@empty
-<span class="note">Nenhum período encerrado.</span>
-@endforelse
-</td>
+@foreach($endedPeriods as $endedPeriod)
+@php
+    $periodSummary = $summary['periods']->first(fn ($item) => $item['period']->id === $endedPeriod->id);
+    $periodScore = $periodSummary['average']['value'] ?? null;
+@endphp
+<td class="number">{{ $periodScore === null ? '—' : number_format($periodScore, 1, ',', '.') }}</td>
+@endforeach
 <td class="number">{{ $hasScore ? number_format($summary['points'], 1, ',', '.') : '—' }}</td>
 <td class="number">{{ number_format($missing, 1, ',', '.') }}</td>
 <td class="number">{{ $summary['complete_periods'] }}/{{ $summary['total_periods'] }}</td>
 <td>{{ ! $hasScore ? 'Sem notas' : ($missing > 0 ? 'Abaixo da meta' : 'Meta atingida') }}</td></tr>
 @empty
-<tr><td colspan="6">Sem componentes vinculados.</td></tr>
+<tr><td colspan="{{ 5 + $endedPeriods->count() }}">Sem componentes vinculados.</td></tr>
 @endforelse
 </tbody></table>
 @empty
