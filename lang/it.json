@@ -20,10 +20,8 @@
     "Preencha ao menos um resultado da ficha.": "Compila almeno un risultato della scheda.",
     "Já existe resultado de outra ficha neste período e componente. Abra a ficha correspondente para editá-lo.": "Esiste già un risultato di un’altra scheda per questo periodo e materia. Apri la scheda corrispondente per modificarlo.",
     "Ficha da escola de origem salva com sucesso.": "Scheda della scuola di provenienza salvata.",
-
     "Acesso rápido": "Accesso rapido",
     "Atalhos atualizados automaticamente conforme suas ações recentes e os serviços mais usados pelo seu perfil.": "Collegamenti aggiornati automaticamente in base alle tue attività recenti e ai servizi più usati dal tuo profilo.",
-
     "Notas e faltas da escola de origem": "Voti e assenze della scuola di provenienza",
     "A gestão registra os períodos cursados na escola de origem, sem alterar o diário do professor. Informe o total de aulas para calcular a frequência com as faltas recebidas.": "La gestione registra i periodi svolti nella scuola di provenienza, senza modificare il registro docente. Indica il totale delle lezioni per calcolare la frequenza con le assenze ricevute.",
     "Editar resultado da origem": "Modifica risultato di provenienza",
@@ -31,7 +29,6 @@
     "Cadastros e responsáveis": "Anagrafiche e responsabili",
     "Documentos disponíveis para seu perfil": "Documenti disponibili per il tuo profilo",
     "Consultar e editar históricos": "Consulta e modifica gli storici scolastici",
-
     "Seu perfil não possui documentos disponíveis para emissão no momento.": "Al momento non ci sono documenti disponibili per il tuo profilo.",
     "Matriz curricular individual": "Matrice curricolare individuale",
     "Selecione a matriz do ano letivo.": "Seleziona la matrice dell’anno scolastico.",
@@ -58,7 +55,6 @@
     "PDF ou Excel": "PDF o Excel",
     "Selecione sua matrícula": "Seleziona la tua iscrizione",
     "Suas matrículas": "Le tue iscrizioni",
-
     "Lista os alunos com matrícula ativa, nascimento, idade, CPF, filiação e telefones dos responsáveis.": "Elenca gli studenti iscritti, data di nascita, età, CPF, genitori e telefoni dei responsabili.",
     "Alunos e responsáveis da turma em PDF": "Studenti e responsabili della classe in PDF",
     "Alunos e responsáveis da turma": "Studenti e responsabili della classe",
@@ -2492,5 +2488,7 @@
     "Escolha uma imagem do seu dispositivo.": "Scegli un’immagine dal tuo dispositivo.",
     "Aguarde a inserção das imagens.": "Attendi l’inserimento delle immagini.",
     "Descrição da imagem": "Descrizione dell’immagine",
-    "Unidade do tamanho da fonte": "Unità della dimensione del carattere"
+    "Unidade do tamanho da fonte": "Unità della dimensione del carattere",
+    "Panorama de aprovação da turma": "Quadro dei risultati della classe",
+    "Pontuação acumulada e pontos que faltam para a aprovação em cada componente.": "Punteggio accumulato e punti mancanti per la promozione in ogni disciplina."
 }

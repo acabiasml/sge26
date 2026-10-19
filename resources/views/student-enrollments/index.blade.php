@@ -4,6 +4,9 @@
 @section('page-title', __('Matrículas: ').$class->name)
 
 @section('page-actions')
+    @if(auth()->user()->canManageSchool($class->academicYear->school_id))
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('classes.approval-overview.pdf', $class) }}" aria-label="{{ __('Panorama de aprovação da turma') }}" title="{{ __('Panorama de aprovação da turma') }}"><i class="fas fa-chart-line" aria-hidden="true"></i></a>
+    @endif
     <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('classes.student-contacts.pdf', $class) }}" aria-label="{{ __('Alunos e responsáveis da turma em PDF') }}" title="{{ __('Alunos e responsáveis da turma em PDF') }}">
         <i class="fas fa-address-book" aria-hidden="true"></i>
     </a>

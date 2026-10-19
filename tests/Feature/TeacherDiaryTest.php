@@ -1528,6 +1528,20 @@ class TeacherDiaryTest extends TestCase
         $this->assertSame(1, DiaryAttendanceJustification::query()->count());
     }
 
+    public function test_management_can_issue_approval_overview_but_teacher_cannot(): void
+    {
+        [$teacher, $year, $class] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'panorama@ctjj.org');
+        $url = route('classes.approval-overview.pdf', $class);
+        $this->actingAs($teacher)->get($url)->assertForbidden();
+        $this->actingAs($manager)->get($url)->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertDatabaseHas('issued_documents', ['type' => 'class-approval-overview', 'school_id' => $year->school_id]);
+        $this->actingAs($manager)->get(route('document-issuance.index'))->assertOk()->assertSee('value="class-approval-overview"', false);
+        $this->actingAs($manager)->get(route('document-issuance.issue', [
+            'type' => 'class-approval-overview', 'target_id' => $class->id,
+        ]))->assertRedirect($url);
+    }
+
     public function test_weight_change_preserves_existing_grades_without_delete_confirmation(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();

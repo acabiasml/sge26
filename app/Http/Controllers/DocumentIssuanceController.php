@@ -177,6 +177,13 @@ class DocumentIssuanceController extends Controller
             'icon' => 'fa-file-pdf',
             'score_view' => true,
         ],
+        'class-approval-overview' => [
+            'group' => 'Turma e diário',
+            'label' => 'Panorama de aprovação da turma',
+            'description' => 'Pontuação acumulada e pontos que faltam para a aprovação em cada componente.',
+            'target' => 'class',
+            'icon' => 'fa-chart-line',
+        ],
         'class-grade-mirror' => [
             'group' => 'Turma e diário',
             'label' => 'Espelho de notas da turma',
@@ -1052,6 +1059,7 @@ class DocumentIssuanceController extends Controller
                 'attendance_month' => $data['attendance_month'] ?? null,
                 'confirm_missing_student_cpf' => $confirmation,
             ]),
+            'class-approval-overview' => redirect()->route('classes.approval-overview.pdf', $class),
             'class-grade-mirror' => redirect()->route('classes.grade-mirror.pdf', [
                 'class' => $class,
                 'notas' => $data['score_view'] ?? 'conceitos',

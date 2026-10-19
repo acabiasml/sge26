@@ -152,6 +152,22 @@ class ClassAcademicDocumentsController extends Controller
         return \App\Support\PdfMetadata::stream($pdf, 'beaba-boletins-turma-'.$class->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
+    public function approvalOverview(Request $request, SchoolClass $class, StudentReportCardBuilder $builder): Response
+    {
+        [$academicYear, $enrollments] = $this->classContext($request, $class);
+        $reports = $enrollments->map(fn (StudentEnrollment $enrollment): array => $builder->build($enrollment));
+        $issuedDocument = $this->issuedDocument($request, $class, 'class-approval-overview',
+            'Panorama de aprovação da turma', $enrollments->count(), 'numeros');
+        $pdf = Pdf::loadView('reports.class-approval-overview', [
+            'schoolClass' => $class, 'academicYear' => $academicYear, 'reports' => $reports,
+            'issuedDocument' => $issuedDocument,
+            'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
+            'letterhead' => PdfLetterhead::make($academicYear->school),
+        ])->setPaper('a4', 'portrait');
+
+        return \App\Support\PdfMetadata::stream($pdf, 'beaba-panorama-turma-'.$class->id.'.pdf');
+    }
+
     public function gradeMirror(
         Request $request,
         SchoolClass $class,

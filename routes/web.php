@@ -220,6 +220,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('turmas/{class}/resultados-finais-pdf', ClassFinalResultsPdfController::class)->name('classes.final-results.pdf');
     Route::get('turmas/{class}/boletins-pdf', [ClassAcademicDocumentsController::class, 'reportCards'])->name('classes.report-cards.pdf');
     Route::get('turmas/{class}/atestados-frequencia-pdf', [ClassAcademicDocumentsController::class, 'attendanceCertificates'])->name('classes.attendance-certificates.pdf');
+    Route::get('turmas/{class}/panorama-aprovacao-pdf', [ClassAcademicDocumentsController::class, 'approvalOverview'])->name('classes.approval-overview.pdf');
     Route::get('turmas/{class}/espelho-de-notas-pdf', [ClassAcademicDocumentsController::class, 'gradeMirror'])->name('classes.grade-mirror.pdf');
     Route::patch('matriculas/{enrollment}/transferir', [StudentEnrollmentController::class, 'transfer'])->name('enrollments.transfer');
     Route::post('matriculas/{enrollment}/reclassificar', [StudentEnrollmentController::class, 'reclassify'])->name('enrollments.reclassify');
