@@ -4,6 +4,8 @@
 body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; font-size: 11px; color: #111; }
 @include('reports.partials.letterhead-styles')
 .letterhead-repeat { top: -168px; }
+.letterhead-line { line-height: 1.05; margin-top: 0; }
+.document-title { font-size: 14px; line-height: 1; margin-top: 3px; }
 table { width: 100%; border-collapse: collapse; margin: 7px 0 11px; table-layout: fixed; }
 thead { display: table-header-group; }
 tr { page-break-inside: avoid; }
