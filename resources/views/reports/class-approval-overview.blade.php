@@ -9,7 +9,7 @@ tr { page-break-inside: avoid; }
 th, td { border: .5px solid #999; padding: 5px; }
 th { background: #eee; }
 .number { text-align: center; }
-.note { font-size: 10px; color: #444; }
+.note { font-size: 11px; color: #444; }
 </style></head><body>
 @include('reports.partials.letterhead', ['title' => 'Panorama de aprovação da turma', 'showTechnicalRegulation' => false])
 <p><strong>{{ $schoolClass->name }}</strong> · {{ $academicYear->referenceYearsLabel() }} · {{ $academicYear->school?->name }}</p>
