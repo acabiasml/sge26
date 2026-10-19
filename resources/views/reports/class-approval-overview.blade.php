@@ -53,12 +53,12 @@ Frequência mínima: {{ $academicYear->minimum_attendance_percentage }}%.</p>
 <col style="width:9%"><col style="width:9%"><col style="width:10%"><col style="width:12%">
 </colgroup>
 <thead><tr>
-<th>Estudante</th>
-<th>Frequência anual</th>
+<th width="30%">Estudante</th>
+<th width="9%">Frequência anual</th>
 @foreach($endedPeriods as $endedPeriod)
-<th title="{{ $endedPeriod->name }}">{{ preg_replace(['/\s+Bimestre$/iu', '/\s+Trimestre$/iu', '/\s+Semestre$/iu'], [' Bim.', ' Trim.', ' Sem.'], $endedPeriod->name) }}</th>
+<th width="{{ $periodWidth }}%" title="{{ $endedPeriod->name }}">{{ preg_replace(['/\s+Bimestre$/iu', '/\s+Trimestre$/iu', '/\s+Semestre$/iu'], [' Bim.', ' Trim.', ' Sem.'], $endedPeriod->name) }}</th>
 @endforeach
-<th>Pontos atuais</th><th>Faltam pontos</th><th>Períodos completos</th><th>Situação</th>
+<th width="9%">Pontos atuais</th><th width="9%">Faltam pontos</th><th width="10%">Períodos completos</th><th width="12%">Situação</th>
 </tr></thead>
 <tbody>
 @foreach($componentRows as $row)
