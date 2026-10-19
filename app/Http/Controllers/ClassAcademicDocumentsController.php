@@ -163,7 +163,7 @@ class ClassAcademicDocumentsController extends Controller
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
             'letterhead' => PdfLetterhead::make($academicYear->school),
-        ])->setPaper('a4', 'portrait');
+        ])->setPaper('a4', 'landscape');
 
         return \App\Support\PdfMetadata::stream($pdf, 'beaba-panorama-turma-'.$class->id.'.pdf');
     }
