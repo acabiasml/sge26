@@ -3,12 +3,12 @@
 @page { size: A4 landscape; margin: 150px 22px 96px; }
 body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; font-size: 11px; color: #111; }
 @include('reports.partials.letterhead-styles')
-table { width: 100%; border-collapse: collapse; margin: 7px 0 11px; table-layout: fixed; }
+table { width: 100%; border-collapse: collapse; margin: 7px 0 11px; }
 thead { display: table-header-group; }
 tr { page-break-inside: avoid; }
 th, td { border: .5px solid #999; padding: 4px; vertical-align: middle; }
 th { background: #eee; }
-.component-table { page-break-inside: avoid; }
+.component-table { page-break-inside: avoid; table-layout: fixed; }
 .component-title { text-align: left; background: #e7ddd6; color: #4f2d22; }
 .number { text-align: center; }
 .note { font-size: 11px; color: #444; }
