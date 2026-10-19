@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="utf-8"><style>
-@page { size: A4 landscape; margin: 150px 22px 96px; }
+@page { size: A4 landscape; margin: 170px 22px 96px; }
 body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; font-size: 11px; color: #111; }
 @include('reports.partials.letterhead-styles')
+.letterhead-repeat { top: -156px; }
 table { width: 100%; border-collapse: collapse; margin: 7px 0 11px; }
 thead { display: table-header-group; }
 tr { page-break-inside: avoid; }
