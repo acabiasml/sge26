@@ -10,11 +10,12 @@ th, td { border: .5px solid #999; padding: 4px; vertical-align: middle; }
 th { background: #eee; }
 .component-table { page-break-inside: avoid; table-layout: fixed; }
 .component-title { text-align: left; background: #e7ddd6; color: #4f2d22; }
+.report-context { margin-top: 24px; }
 .number { text-align: center; }
 .note { font-size: 11px; color: #444; }
 </style></head><body>
 @include('reports.partials.letterhead', ['title' => 'Panorama de aprovação da turma', 'showTechnicalRegulation' => false])
-<p><strong>{{ $schoolClass->name }}</strong> · {{ $academicYear->referenceYearsLabel() }} · {{ $academicYear->school?->name }}</p>
+<p class="report-context"><strong>{{ $schoolClass->name }}</strong> · {{ $academicYear->referenceYearsLabel() }} · {{ $academicYear->school?->name }}</p>
 <p>Meta anual por componente: <strong>{{ number_format((float) $academicYear->passing_points, 1, ',', '.') }} pontos</strong>.
 Frequência mínima: {{ $academicYear->minimum_attendance_percentage }}%.</p>
 <p class="note">Panorama dos lançamentos atuais. As notas individuais abaixo são exibidas somente para períodos já encerrados. A pontuação inclui médias parciais e pode mudar com novas notas ou recuperação. Atingir a meta de pontos não significa aprovação final: também são necessários frequência mínima e fechamento dos períodos. Períodos sem notas não são tratados como nota zero.</p>
