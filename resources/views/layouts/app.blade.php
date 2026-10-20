@@ -21,6 +21,7 @@
     <link href="{{ asset('template/css/sge-aurora.css') }}?v={{ filemtime(public_path('template/css/sge-aurora.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-beathema.css') }}?v={{ filemtime(public_path('template/css/sge-beathema.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-brand-themes.css') }}?v={{ filemtime(public_path('template/css/sge-brand-themes.css')) }}" rel="stylesheet">
+    <link href="{{ asset('template/css/sge-navigation.css') }}?v={{ filemtime(public_path('template/css/sge-navigation.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-alerts.css') }}?v={{ filemtime(public_path('template/css/sge-alerts.css')) }}" rel="stylesheet">
     <style>
         .sge-theme-switcher { display: flex; align-items: center; }
@@ -717,9 +718,10 @@
 
         const mobileViewport = window.matchMedia('(max-width: 991.98px)');
         const handleMobileViewportChange = (event) => {
-            if (!event.matches) {
-                setMobileMenuOpen(false);
-            }
+            // Clear the legacy compact sidebar state when crossing the drawer breakpoint.
+            sidebar?.classList.remove('toggled');
+            document.body.classList.remove('sidebar-toggled');
+            setMobileMenuOpen(false);
         };
 
         if (typeof mobileViewport.addEventListener === 'function') {
