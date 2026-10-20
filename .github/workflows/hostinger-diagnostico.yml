@@ -1,0 +1,24 @@
+name: Diagnóstico Hostinger
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hostinger-diagnostico
+  cancel-in-progress: false
+jobs:
+  verificar:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Preparar cliente SSH
+        run: python -m pip install 'paramiko==3.5.1'
+      - name: Verificar produção sem alterar dados
+        env:
+          HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}
+          HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
+        run: python scripts/hostinger-diagnostico.py
+      - name: Verificar resposta HTTP
+        run: curl --fail --silent --show-error --location --max-time 30 --output /dev/null https://ctjj.org/sge/

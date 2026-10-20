@@ -1,0 +1,40 @@
+"""Read-only production verification over SSH from a GitHub-hosted runner."""
+import json
+import os
+import pathlib
+import tempfile
+
+import paramiko
+
+config = json.loads(os.environ['HOSTINGER_CONNECTION'])
+with tempfile.TemporaryDirectory() as directory:
+    known_hosts = pathlib.Path(directory) / 'known_hosts'
+    known_hosts.write_text(os.environ['HOSTINGER_KNOWN_HOSTS'])
+    client = paramiko.SSHClient()
+    client.load_host_keys(str(known_hosts))
+    try:
+        client.connect(**config, timeout=20, auth_timeout=20, banner_timeout=20,
+                       allow_agent=False, look_for_keys=False)
+        # Fixed read-only commands. No arbitrary commands or user input reach the shell.
+        commands = [
+            ('Commit publicado', 'git rev-parse HEAD'),
+            ('Arquivos modificados', 'git status --short'),
+            ('PHP', 'php -r \'echo PHP_VERSION, PHP_EOL;\''),
+            ('Migrations', 'php artisan migrate:status --no-ansi'),
+            ('Botão na chamada', "grep -c 'data-all-present' resources/views/teacher-diaries/attendance.blade.php"),
+        ]
+        for label, command in commands:
+            print(f'\n--- {label} ---', flush=True)
+            _, stdout, stderr = client.exec_command(
+                'cd /home/u810745753/domains/ctjj.org/public_html/sge && ' + command,
+                timeout=45,
+            )
+            output = stdout.read().decode(errors='replace')
+            error = stderr.read().decode(errors='replace')
+            code = stdout.channel.recv_exit_status()
+            print(output, flush=True)
+            if code:
+                # Do not print application errors, which may contain sensitive values.
+                raise RuntimeError(f'{label}: comando falhou com código {code}')
+    finally:
+        client.close()

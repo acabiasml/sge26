@@ -476,3 +476,9 @@ Este repositório usa a licença MIT. Consulte [LICENSE](LICENSE).
 O editor usa Summernote 0.9.1 (MIT), servido localmente em `public/template/vendor/summernote`, sem CDN. Permite tabelas com inserção e exclusão de linhas/colunas, imagens PNG/JPEG, redimensionamento, descrição alternativa e desfazer/refazer. As imagens são incorporadas ao conteúdo salvo e ao PDF; reemitir mantém o arquivo original. Limites: 1 MB por imagem, 4096 pixels por lado, 8 megapixels e 4 MB de imagens por documento. O servidor valida as imagens e preserva apenas HTML e estilos permitidos, incluindo células mescladas e alinhamentos.
 
 O editor também oferece cores e marca-texto, links clicáveis, tachado, sobrescrito/subscrito, linha horizontal, espaçamento por parágrafo e tamanhos de fonte de 8 a 36. Esses recursos são preservados no HTML salvo e no PDF.
+
+### Diagnóstico da Hostinger em redes que bloqueiam SSH
+
+O workflow **Diagnóstico Hostinger** pode ser executado manualmente pela aba Actions ou por `gh workflow run hostinger-diagnostico.yml --ref main`. O runner do GitHub estabelece a conexão SSH; o computador local usa somente HTTPS para acionar e consultar a execução. A operação é somente de leitura: consulta commit, arquivos modificados, PHP, migrations e presença do botão da chamada, além de verificar a resposta HTTP.
+
+As configurações ficam nos GitHub Actions Secrets `HOSTINGER_CONNECTION` (JSON de conexão) e `HOSTINGER_KNOWN_HOSTS` (chaves do servidor previamente verificadas). Nunca colocar esses valores no código. O cliente rejeita servidores com chaves desconhecidas. O workflow só executa na branch `main` e não aceita comandos livres. Alterações de código e banco continuam seguindo o fluxo de publicação e validação descrito acima.
