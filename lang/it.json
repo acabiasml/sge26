@@ -2490,5 +2490,8 @@
     "Descrição da imagem": "Descrizione dell’immagine",
     "Unidade do tamanho da fonte": "Unità della dimensione del carattere",
     "Panorama de aprovação da turma": "Quadro dei risultati della classe",
-    "Pontuação acumulada e pontos que faltam para a aprovação em cada componente.": "Punteggio accumulato e punti mancanti per la promozione in ogni disciplina."
+    "Pontuação acumulada e pontos que faltam para a aprovação em cada componente.": "Punteggio accumulato e punti mancanti per la promozione in ogni disciplina.",
+    "Todos presentes": "Tutti presenti",
+    "Marca todas as presenças disponíveis nesta folha. Ajuste as faltas antes de salvar.": "Segna tutte le presenze disponibili in questo foglio. Correggi le assenze prima di salvare.",
+    "Presenças marcadas. Confira as faltas e salve as frequências.": "Presenze selezionate. Verifica le assenze e salva."
 }

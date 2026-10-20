@@ -34,6 +34,11 @@
                     @method('PUT')
                     <input type="hidden" name="academic_period_id" value="{{ $period->id }}">
                     @if($usesScheduledDiary)<input type="hidden" name="page" value="{{ $page }}">@foreach($days as $scheduledDay)<input type="hidden" name="scheduled_dates[]" value="{{ $scheduledDay->date->toDateString() }}">@endforeach @else<input type="hidden" name="starts_at" value="{{ $startsAt?->format('Y-m-d') }}"><input type="hidden" name="ends_at" value="{{ $endsAt?->format('Y-m-d') }}">@endif
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-outline-primary btn-sm" data-all-present disabled aria-describedby="all-present-help"><i class="fas fa-check-double mr-1" aria-hidden="true"></i>{{ __('Todos presentes') }}</button>
+                        <p id="all-present-help" class="small text-muted mt-2 mb-0">{{ __('Marca todas as presenças disponíveis nesta folha. Ajuste as faltas antes de salvar.') }}</p>
+                        <span class="sr-only" role="status" aria-live="polite" data-all-present-status></span>
+                    </div>
                     <div class="table-responsive sge-attendance-sheet-wrap">
                         <table class="table table-bordered table-sm sge-attendance-sheet">
                             <thead><tr>
@@ -101,6 +106,16 @@
 @push('scripts')
     <script>
         document.querySelectorAll('[data-attendance-sheet]').forEach((form) => {
+            const allPresentButton = form.querySelector('[data-all-present]');
+            const availableChecks = () => Array.from(form.querySelectorAll('[data-lesson-checkbox] input[type="checkbox"]'))
+                .filter((input) => !input.disabled && !input.closest('[data-lesson-checkbox]').hidden);
+            allPresentButton.addEventListener('click', () => {
+                availableChecks().forEach((input) => {
+                    input.checked = true;
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+                form.querySelector('[data-all-present-status]').textContent = @json(__('Presenças marcadas. Confira as faltas e salve as frequências.'));
+            });
             const syncDate = (date) => {
                 const lessonCount = Number(form.querySelector(`[data-lesson-count][data-date="${date}"]`).value);
                 form.querySelectorAll(`[data-attendance-cell][data-date="${date}"]`).forEach((cell) => {
@@ -111,6 +126,7 @@
                         input.disabled = !visible || input.dataset.locked === '1';
                     });
                 });
+                allPresentButton.disabled = availableChecks().length === 0;
             };
             form.querySelectorAll('[data-lesson-count]').forEach((field) => {
                 field.addEventListener('change', () => syncDate(field.dataset.date));
