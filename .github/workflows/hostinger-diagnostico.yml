@@ -1,6 +1,11 @@
 name: Diagnóstico Hostinger
 on:
   workflow_dispatch:
+    inputs:
+      refresh_views:
+        description: Limpar cache das telas Blade
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -17,6 +22,7 @@ jobs:
         run: python -m pip install 'paramiko==3.5.1'
       - name: Verificar produção sem alterar dados
         env:
+          REFRESH_VIEWS: ${{ inputs.refresh_views }}
           HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
         run: python scripts/hostinger-diagnostico.py

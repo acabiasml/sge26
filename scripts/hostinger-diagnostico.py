@@ -23,6 +23,8 @@ with tempfile.TemporaryDirectory() as directory:
             ('Migrations', 'php artisan migrate:status --no-ansi'),
             ('Botão na chamada', "grep -c 'data-all-present' resources/views/teacher-diaries/attendance.blade.php"),
         ]
+        if os.environ.get('REFRESH_VIEWS') == 'true':
+            commands.append(('Limpar cache das telas', 'php artisan view:clear --no-ansi'))
         for label, command in commands:
             print(f'\n--- {label} ---', flush=True)
             _, stdout, stderr = client.exec_command(
@@ -33,6 +35,10 @@ with tempfile.TemporaryDirectory() as directory:
             error = stderr.read().decode(errors='replace')
             code = stdout.channel.recv_exit_status()
             print(output, flush=True)
+            if label == 'Commit publicado' and output.strip() != os.environ.get('GITHUB_SHA', output.strip()):
+                raise RuntimeError('O commit esperado ainda não foi publicado.')
+            if label == 'Migrations' and 'Pending' in output:
+                raise RuntimeError('Há migrations pendentes em produção.')
             if code:
                 # Do not print application errors, which may contain sensitive values.
                 raise RuntimeError(f'{label}: comando falhou com código {code}')
