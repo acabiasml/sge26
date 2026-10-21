@@ -268,22 +268,32 @@ class AdminScreensTest extends TestCase
         $otherPublic = $makeDocument('Publico Escola B', $otherSchool->id, $manager->id, OfficialDocument::VISIBILITY_PUBLIC);
         $private = $makeDocument('Privado Gestor', $school->id, $manager->id, OfficialDocument::VISIBILITY_PRIVATE);
         $ownPrivate = $makeDocument('Privado Professor', $school->id, $teacher->id, OfficialDocument::VISIBILITY_PRIVATE);
+        $ownPublic = $makeDocument('Publico Professor', $school->id, $teacher->id, OfficialDocument::VISIBILITY_PUBLIC);
 
         $this->actingAs($teacher)->get(route('official-documents.create'))
             ->assertOk()->assertSee('Publico Escola A')->assertDontSee('Publico Escola B')
-            ->assertDontSee('Privado Gestor')->assertDontSee('Novo documento em papel timbrado');
+            ->assertDontSee('Privado Gestor')->assertDontSee('Novo documento em papel timbrado')
+            ->assertSee('Documentos públicos')->assertSee('Meus documentos')
+            ->assertDontSee('visibility=all', false);
+        $this->actingAs($teacher)->get(route('official-documents.create', ['visibility' => 'mine']))
+            ->assertOk()->assertSee('Privado Professor')->assertSee('Publico Professor')
+            ->assertDontSee('Privado Gestor')->assertDontSee('Publico Escola A');
+        $this->actingAs($teacher)->get(route('official-documents.create', ['visibility' => 'all']))->assertForbidden();
         $this->actingAs($teacher)->get(route('official-documents.create', ['visibility' => 'private']))
-            ->assertOk()->assertSee('Privado Professor')->assertDontSee('Privado Gestor')
-            ->assertDontSee('Publico Escola A');
+            ->assertOk()->assertSee('Privado Professor');
         $this->actingAs($teacher)->get(route('official-documents.reissue', $private))->assertForbidden();
         $this->actingAs($teacher)->get(route('official-documents.edit', $private))->assertForbidden();
         $this->actingAs($teacher)->get(route('official-documents.reissue', $otherPublic))->assertForbidden();
         $this->actingAs($teacher)->get(route('official-documents.reissue', $public))->assertNotFound();
         $this->actingAs($teacher)->get(route('official-documents.reissue', $ownPrivate))->assertNotFound();
-        $this->actingAs($manager)->get(route('official-documents.create', ['visibility' => 'private']))
-            ->assertSee('Privado Gestor')->assertDontSee('Privado Professor');
-        $this->actingAs($admin)->get(route('official-documents.create', ['visibility' => 'private']))
-            ->assertSee('Privado Gestor')->assertSee('Privado Professor');
+        $this->actingAs($manager)->get(route('official-documents.create', ['visibility' => 'mine']))
+            ->assertSee('Privado Gestor')->assertSee('Publico Escola A')
+            ->assertDontSee('Privado Professor')->assertDontSee('Publico Escola B');
+        $this->actingAs($admin)->get(route('official-documents.create', ['visibility' => 'mine']))
+            ->assertOk()->assertSee('Todos')->assertDontSee('Privado Gestor');
+        $this->actingAs($admin)->get(route('official-documents.create', ['visibility' => 'all']))
+            ->assertSee('Privado Gestor')->assertSee('Privado Professor')
+            ->assertSee('Publico Escola B')->assertSee($ownPublic->title);
 
         $this->actingAs($manager)->patch(route('official-documents.visibility', $private), ['visibility' => 'public'])
             ->assertForbidden();
@@ -295,7 +305,7 @@ class AdminScreensTest extends TestCase
         $this->actingAs($admin)->patch(route('official-documents.visibility', $private), [
             'visibility' => 'private', 'private_owner_user_id' => $manager->id,
         ])
-            ->assertRedirect(route('official-documents.create', ['visibility' => 'private']));
+            ->assertRedirect(route('official-documents.create', ['visibility' => 'all']));
         $this->actingAs($teacher)->get(route('official-documents.create'))->assertDontSee('Privado Gestor');
         $this->actingAs($teacher)->post(route('official-documents.store'), [
             'school_id' => $school->id, 'title' => 'Emissão indevida',
@@ -336,21 +346,21 @@ class AdminScreensTest extends TestCase
         $this->actingAs($admin)->patch(route('official-documents.visibility', $document), [
             'visibility' => OfficialDocument::VISIBILITY_PRIVATE,
             'private_owner_user_id' => $teacher->id,
-        ])->assertRedirect(route('official-documents.create', ['visibility' => 'private']));
+        ])->assertRedirect(route('official-documents.create', ['visibility' => 'all']));
 
         $document->refresh();
         $this->assertSame($manager->id, $document->created_by_user_id);
         $this->assertSame($teacher->id, $document->private_owner_user_id);
-        $this->actingAs($manager)->get(route('official-documents.create', ['visibility' => 'private']))
+        $this->actingAs($manager)->get(route('official-documents.create', ['visibility' => 'mine']))
             ->assertDontSee($document->title);
         $this->actingAs($manager)->get(route('official-documents.reissue', $document))->assertForbidden();
         $this->actingAs($manager)->delete(route('official-documents.destroy', $document))->assertForbidden();
-        $this->actingAs($teacher)->get(route('official-documents.create', ['visibility' => 'private']))
+        $this->actingAs($teacher)->get(route('official-documents.create', ['visibility' => 'mine']))
             ->assertSee($document->title)
             ->assertSee('action="'.route('official-documents.destroy', $document).'"', false);
         $this->actingAs($teacher)->get(route('official-documents.reissue', $document))->assertNotFound();
         $this->actingAs($teacher)->delete(route('official-documents.destroy', $document))
-            ->assertRedirect(route('official-documents.create', ['visibility' => 'private']));
+            ->assertRedirect(route('official-documents.create', ['visibility' => 'mine']));
         $this->assertDatabaseMissing('official_documents', ['id' => $document->id]);
     }
 
@@ -383,7 +393,7 @@ class AdminScreensTest extends TestCase
         $this->assertSame($manager->id, $document->private_owner_user_id);
         $this->actingAs($manager)->get(route('official-documents.create'))
             ->assertDontSee('Documento Reservado');
-        $this->actingAs($manager)->get(route('official-documents.create', ['visibility' => 'private']))
+        $this->actingAs($manager)->get(route('official-documents.create', ['visibility' => 'mine']))
             ->assertSee('Documento Reservado');
     }
 
@@ -433,7 +443,7 @@ class AdminScreensTest extends TestCase
         $private->update(['issued_document_id' => $issued->id]);
         \Illuminate\Support\Facades\Storage::disk('local')->put($issued->file_path, '%PDF-teste');
 
-        $this->actingAs($manager)->get(route('official-documents.create', ['visibility' => 'private']))
+        $this->actingAs($manager)->get(route('official-documents.create', ['visibility' => 'mine']))
             ->assertSee('action="'.route('official-documents.destroy', $private).'"', false)
             ->assertDontSee('action="'.route('official-documents.destroy', $teacherPrivate).'"', false);
         $this->actingAs($manager)->get(route('official-documents.create'))
@@ -443,14 +453,14 @@ class AdminScreensTest extends TestCase
         $this->actingAs($teacher)->delete(route('official-documents.destroy', $private))->assertForbidden();
 
         $this->actingAs($manager)->delete(route('official-documents.destroy', $private))
-            ->assertRedirect(route('official-documents.create', ['visibility' => 'private']));
+            ->assertRedirect(route('official-documents.create', ['visibility' => 'mine']));
         $this->assertDatabaseMissing('official_documents', ['id' => $private->id]);
         $this->assertDatabaseMissing('issued_documents', ['id' => $issued->id]);
         \Illuminate\Support\Facades\Storage::disk('local')->assertMissing($issued->file_path);
         $this->get(route('documents.verify', $issued->verification_code))->assertNotFound();
 
         $this->actingAs($teacher)->delete(route('official-documents.destroy', $teacherPrivate))
-            ->assertRedirect(route('official-documents.create', ['visibility' => 'private']));
+            ->assertRedirect(route('official-documents.create', ['visibility' => 'mine']));
         $this->actingAs($admin)->get(route('official-documents.create'))
             ->assertSee('action="'.route('official-documents.destroy', $public).'"', false);
         $this->actingAs($admin)->delete(route('official-documents.destroy', $public))

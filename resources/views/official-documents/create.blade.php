@@ -90,14 +90,20 @@
                 </div>
                 <div class="card-body">
                     <nav class="nav nav-pills mb-3" aria-label="{{ __('Visibilidade dos documentos') }}">
-                        <a class="nav-link {{ $visibility === 'public' ? 'active' : '' }}" href="{{ route('official-documents.create', ['visibility' => 'public']) }}">{{ __('Públicos das minhas escolas') }}</a>
-                        <a class="nav-link {{ $visibility === 'private' ? 'active' : '' }}" href="{{ route('official-documents.create', ['visibility' => 'private']) }}">{{ auth()->user()->isAdministrator() ? __('Documentos privados') : __('Meus documentos privados') }}</a>
+                        <a class="nav-link {{ $tab === 'public' ? 'active' : '' }}" href="{{ route('official-documents.create', ['visibility' => 'public']) }}">{{ __('Documentos públicos') }}</a>
+                        <a class="nav-link {{ $tab === 'mine' ? 'active' : '' }}" href="{{ route('official-documents.create', ['visibility' => 'mine']) }}">{{ __('Meus documentos') }}</a>
+                        @if (auth()->user()->isAdministrator())
+                            <a class="nav-link {{ $tab === 'all' ? 'active' : '' }}" href="{{ route('official-documents.create', ['visibility' => 'all']) }}">{{ __('Todos') }}</a>
+                        @endif
                     </nav>
                     <p class="small text-muted">{{ __('Reeditar cria uma nova emissão. Reemitir abre o documento já emitido para visualizar ou imprimir.') }}</p>
                     @if (session('status')) <div class="alert alert-success" role="status">{{ session('status') }}</div> @endif
                     @forelse ($recentDocuments as $document)
                         <div class="border-bottom pb-2 mb-2">
                             <strong class="d-block">{{ $document->title }}</strong>
+                            @if ($tab !== 'public')
+                                <span class="badge badge-{{ $document->visibility === 'public' ? 'primary' : 'secondary' }}">{{ $document->visibility === 'public' ? __('Público') : __('Privado') }}</span>
+                            @endif
                             <span class="small text-muted">{{ $document->school?->name }}</span>
                             @if (auth()->user()->isAdministrator() && $document->visibility === 'private')
                                 <span class="d-block small text-muted">{{ __('Proprietário:') }} {{ $document->privateOwner?->person?->full_name ?: $document->privateOwner?->name ?: __('Usuário não disponível') }}</span>

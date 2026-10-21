@@ -28,25 +28,35 @@ class OfficialDocumentController extends Controller
                 && $this->canView($request, $document), 403);
         }
 
-        $visibility = $request->query('visibility', OfficialDocument::VISIBILITY_PUBLIC);
-        abort_unless(in_array($visibility, [OfficialDocument::VISIBILITY_PUBLIC, OfficialDocument::VISIBILITY_PRIVATE], true), 404);
-
         $user = $request->user();
+        $tab = $request->query('visibility', 'public');
+        $tab = $tab === 'private' ? 'mine' : $tab;
+        abort_unless(in_array($tab, ['public', 'mine', 'all'], true), 404);
+        abort_if($tab === 'all' && ! $user->isAdministrator(), 403);
+        $visibleSchoolIds = $user->visibleSchoolIds();
 
         return response()->view('official-documents.create', [
             'sourceDocument' => $document,
             'editorContent' => $this->sanitizeContent((string) $request->old('content_html', $document?->content_html ?? '')),
             'schools' => $user->canManagePeople() ? $this->availableSchools($request) : collect(),
-            'visibility' => $visibility,
+            'tab' => $tab,
             'recentDocuments' => OfficialDocument::query()
                 ->with(['school', 'issuedDocument', 'privateOwner.person'])
-                ->where('visibility', $visibility)
-                ->when(! $user->isAdministrator(), function ($query) use ($user, $visibility): void {
-                    if ($visibility === OfficialDocument::VISIBILITY_PUBLIC) {
-                        $query->whereIn('school_id', $user->visibleSchoolIds());
-                    } else {
-                        $query->where('private_owner_user_id', $user->id);
-                    }
+                ->when($tab === 'public', function ($query) use ($user, $visibleSchoolIds): void {
+                    $query->where('visibility', OfficialDocument::VISIBILITY_PUBLIC)
+                        ->when(! $user->isAdministrator(), fn ($query) => $query->whereIn('school_id', $visibleSchoolIds));
+                })
+                ->when($tab === 'mine', function ($query) use ($user, $visibleSchoolIds): void {
+                    $query->where(function ($query) use ($user, $visibleSchoolIds): void {
+                        $query->where(function ($query) use ($user): void {
+                            $query->where('visibility', OfficialDocument::VISIBILITY_PRIVATE)
+                                ->where('private_owner_user_id', $user->id);
+                        })->orWhere(function ($query) use ($user, $visibleSchoolIds): void {
+                            $query->where('visibility', OfficialDocument::VISIBILITY_PUBLIC)
+                                ->where('created_by_user_id', $user->id)
+                                ->when(! $user->isAdministrator(), fn ($query) => $query->whereIn('school_id', $visibleSchoolIds));
+                        });
+                    });
                 })
                 ->latest('id')
                 ->paginate(5)->withQueryString(),
@@ -136,7 +146,9 @@ class OfficialDocumentController extends Controller
                 ? $data['private_owner_user_id'] : null,
         ]);
 
-        return redirect()->route('official-documents.create', ['visibility' => $data['visibility']])
+        return redirect()->route('official-documents.create', [
+            'visibility' => $data['visibility'] === OfficialDocument::VISIBILITY_PRIVATE ? 'all' : 'public',
+        ])
             ->with('status', __('Visibilidade do documento atualizada.'));
     }
 
@@ -158,7 +170,7 @@ class OfficialDocumentController extends Controller
 
     public function destroy(Request $request, OfficialDocument $document): \Illuminate\Http\RedirectResponse
     {
-        $visibility = DB::transaction(function () use ($request, $document): string {
+        $tab = DB::transaction(function () use ($request, $document): string {
             $document = OfficialDocument::query()->lockForUpdate()->findOrFail($document->id);
             abort_unless($request->user()->isAdministrator()
                 || ($document->visibility === OfficialDocument::VISIBILITY_PRIVATE
@@ -166,7 +178,8 @@ class OfficialDocumentController extends Controller
 
             $issued = $document->issuedDocument;
             $filePath = $issued?->file_path;
-            $visibility = $document->visibility;
+            $tab = $document->visibility === OfficialDocument::VISIBILITY_PUBLIC ? 'public'
+                : ($document->private_owner_user_id === $request->user()->id ? 'mine' : 'all');
 
             $document->delete();
             $issued?->delete();
@@ -175,10 +188,10 @@ class OfficialDocumentController extends Controller
                 abort_unless(Storage::disk('local')->delete($filePath), 500);
             }
 
-            return $visibility;
+            return $tab;
         });
 
-        return redirect()->route('official-documents.create', ['visibility' => $visibility])
+        return redirect()->route('official-documents.create', ['visibility' => $tab])
             ->with('status', __('Documento excluído.'));
     }
 
