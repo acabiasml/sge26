@@ -2951,15 +2951,15 @@ a.sge-stat-card:focus {
     padding: 1rem;
     border: 1px solid var(--sge-border);
     border-radius: .5rem;
-    background: #fffdf8;
+    background: var(--sge-paper);
     color: var(--sge-ink);
     cursor: pointer;
     transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease, transform .15s ease;
 }
 
 .sge-weekday-option:hover {
-    border-color: rgba(107, 61, 46, .45);
-    box-shadow: 0 .35rem 1rem rgba(75, 40, 29, .08);
+    border-color: var(--sge-brown);
+    box-shadow: var(--sge-shadow-sm);
     transform: translateY(-1px);
 }
 
@@ -3753,7 +3753,7 @@ textarea:focus-visible {
     padding: .6rem .4rem;
     border: 1px solid var(--sge-border);
     border-radius: .35rem;
-    background: #fbf8f2;
+    background: var(--sge-surface-soft, var(--sge-surface));
     text-align: center;
 }
 
@@ -3787,7 +3787,7 @@ textarea:focus-visible {
 }
 
 .sge-periods-panel {
-    border-top: 3px solid var(--sge-orange);
+    border-top: 3px solid var(--sge-brown);
 }
 
 .sge-period-context {
@@ -3805,7 +3805,7 @@ textarea:focus-visible {
     padding: .65rem .45rem;
     border: 1px solid var(--sge-border);
     border-radius: .4rem;
-    background: #fbf8f2;
+    background: var(--sge-surface-soft, var(--sge-surface));
     text-align: center;
 }
 
@@ -3842,8 +3842,8 @@ textarea:focus-visible {
     min-width: 1.6rem;
     height: 1.6rem;
     border-radius: 50%;
-    background: var(--sge-orange);
-    color: #fff;
+    background: var(--sge-brown);
+    color: var(--aurora-on-accent, #fff);
     font-size: .86rem;
     font-weight: 700;
 }
@@ -3852,7 +3852,7 @@ textarea:focus-visible {
     margin-bottom: .8rem;
     border: 1px solid var(--sge-border);
     border-radius: .5rem;
-    background: #fff;
+    background: var(--sge-paper);
     overflow: hidden;
     transition: border-color .18s ease, box-shadow .18s ease;
 }
@@ -3870,10 +3870,10 @@ textarea:focus-visible {
 
 .sge-period-selector-item {
     align-items: center;
-    background: #fff;
-    border: 1px solid #dccfc7;
+    background: var(--sge-paper);
+    border: 1px solid var(--sge-border);
     border-radius: .65rem;
-    color: #49382f;
+    color: var(--sge-ink);
     cursor: pointer;
     display: grid;
     gap: .65rem;
@@ -3885,15 +3885,15 @@ textarea:focus-visible {
 
 .sge-period-selector-item:hover,
 .sge-period-selector-item:focus {
-    border-color: #9d684f;
-    box-shadow: 0 .2rem .65rem rgba(91, 54, 39, .12);
+    border-color: var(--sge-brown);
+    box-shadow: var(--sge-shadow-sm);
     outline: 0;
 }
 
 .sge-period-selector-item.is-active {
-    background: #fbf6f2;
-    border-color: #7c4936;
-    box-shadow: inset 0 0 0 1px #7c4936;
+    background: var(--sge-surface);
+    border-color: var(--sge-brown);
+    box-shadow: inset 0 0 0 1px var(--sge-brown);
 }
 
 .sge-period-selector-item strong,
@@ -3902,15 +3902,15 @@ textarea:focus-visible {
 }
 
 .sge-period-selector-item small {
-    color: #756860;
+    color: var(--sge-muted);
     margin-top: .1rem;
 }
 
 .sge-period-selector-order {
     align-items: center;
-    background: #7c4936;
+    background: var(--sge-brown);
     border-radius: 50%;
-    color: #fff;
+    color: var(--aurora-on-accent, #fff);
     display: inline-flex;
     font-weight: 700;
     height: 2rem;
@@ -3920,8 +3920,9 @@ textarea:focus-visible {
 
 .sge-period-selector-item .badge-secondary,
 .sge-period-card-stats .badge-secondary {
-    background-color: #596372;
-    color: #fff;
+    background-color: var(--sge-surface-soft, var(--sge-surface));
+    border: 1px solid var(--sge-border);
+    color: var(--sge-ink);
 }
 
 .sge-period-card:last-child {
@@ -3929,8 +3930,8 @@ textarea:focus-visible {
 }
 
 .sge-period-card:hover {
-    border-color: rgba(116, 67, 45, .42);
-    box-shadow: 0 .25rem .8rem rgba(61, 42, 33, .08);
+    border-color: var(--sge-brown);
+    box-shadow: var(--sge-shadow-sm);
 }
 
 .sge-period-card-header {
@@ -3939,7 +3940,7 @@ textarea:focus-visible {
     align-items: center;
     gap: .85rem;
     padding: .9rem 1rem;
-    background: #fffaf5;
+    background: var(--sge-surface);
 }
 
 .sge-period-card-title {
@@ -3974,14 +3975,14 @@ textarea:focus-visible {
     min-width: 4.15rem;
     min-height: 2rem;
     padding: .22rem .55rem;
-    border: 1px solid rgba(116, 67, 45, .2);
+    border: 1px solid var(--sge-border);
     border-radius: .45rem;
-    background: linear-gradient(180deg, #fff 0%, #fff6ee 100%);
+    background: var(--sge-paper);
     color: var(--sge-brown);
     font-size: .82rem;
     font-weight: 700;
     line-height: 1;
-    box-shadow: 0 .15rem .45rem rgba(61, 42, 33, .05);
+    box-shadow: var(--sge-shadow-sm);
 }
 
 .sge-period-position-label {
@@ -4041,7 +4042,7 @@ textarea:focus-visible {
     border: 0;
     border-top: 1px solid var(--sge-border);
     border-radius: 0;
-    background: #fbf8f2;
+    background: var(--sge-surface-soft, var(--sge-surface));
 }
 
 .sge-period-assessments summary {
@@ -4219,9 +4220,9 @@ textarea:focus-visible {
     gap: .85rem;
     align-items: end;
     padding: .85rem;
-    border: 1px solid rgba(74, 134, 160, .18);
+    border: 1px solid var(--sge-border);
     border-radius: .6rem;
-    background: rgba(74, 134, 160, .06);
+    background: var(--sge-surface-soft, var(--sge-surface));
 }
 
 .sge-assessment-intro strong,
@@ -4264,7 +4265,7 @@ textarea:focus-visible {
     width: 2rem;
     height: 2rem;
     border-radius: 50%;
-    background: rgba(107, 61, 46, .1);
+    background: var(--sge-surface-soft, var(--sge-surface));
     color: var(--sge-brown);
     font-weight: 700;
 }
