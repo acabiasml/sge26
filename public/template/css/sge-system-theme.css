@@ -89,6 +89,17 @@ html[data-theme$="-dark"] .sge-validation-pill-info {
     color: var(--aurora-ink);
 }
 
+/* O resumo da gestão pedagógica acompanha as superfícies do tema escuro. */
+html[data-theme$="-dark"] .sge-diary-management-hero {
+    background: linear-gradient(135deg, var(--aurora-panel), var(--aurora-raised));
+    color: var(--aurora-ink);
+}
+
+html[data-theme$="-dark"] .sge-diary-management-metrics div {
+    background: var(--aurora-raised);
+    border-color: var(--aurora-border);
+}
+
 /* Os cartões de horário mantêm fundos pastel próprios em ambos os modos. */
 html[data-theme$="-dark"] .sge-teacher-schedule-card,
 html[data-theme$="-dark"] .sge-teacher-schedule-card strong {

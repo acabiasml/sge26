@@ -4746,7 +4746,7 @@ textarea:focus-visible {
 }
 
 .sge-diary-management-metrics strong {
-    color: var(--sge-primary);
+    color: var(--sge-brown);
     font-size: 1.35rem;
     line-height: 1;
 }
