@@ -217,6 +217,12 @@ class AdminScreensTest extends TestCase
             'title' => 'Documento antigo', 'content_html' => '<p>Conteúdo original</p>',
             'type' => OfficialDocument::TYPE_OTHER, 'orientation' => 'portrait', 'line_spacing' => 1.5,
         ]);
+        $this->actingAs($manager)->get(route('official-documents.create'))
+            ->assertOk()->assertSeeInOrder(['BEABA-LEGADO', 'Emitido em:', '01/02/2026 08:00', 'Emitido por:', $manager->person->full_name]);
+        $issued->update(['issued_by_user_id' => null]);
+        $this->get(route('official-documents.create'))
+            ->assertSeeInOrder(['BEABA-LEGADO', 'Emitido por:', $manager->person->full_name]);
+        $issued->update(['issued_by_user_id' => $manager->id]);
         $manager->update(['locale' => 'it']);
         $response = $this->actingAs($manager)->get(route('official-documents.reissue', $document));
         $response->assertOk()->assertHeader('content-type', 'application/pdf');

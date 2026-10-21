@@ -41,7 +41,7 @@ class OfficialDocumentController extends Controller
             'schools' => $user->canManagePeople() ? $this->availableSchools($request) : collect(),
             'tab' => $tab,
             'recentDocuments' => OfficialDocument::query()
-                ->with(['school', 'issuedDocument', 'privateOwner.person'])
+                ->with(['school', 'issuedDocument.issuedBy.person', 'createdBy.person', 'privateOwner.person'])
                 ->when($tab === 'public', function ($query) use ($user, $visibleSchoolIds): void {
                     $query->where('visibility', OfficialDocument::VISIBILITY_PUBLIC)
                         ->when(! $user->isAdministrator(), fn ($query) => $query->whereIn('school_id', $visibleSchoolIds));

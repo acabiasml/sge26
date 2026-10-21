@@ -518,6 +518,13 @@ label {
     margin-top: .65rem;
 }
 
+.sge-official-metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .2rem .7rem;
+    overflow-wrap: anywhere;
+}
+
 .sge-actions-cell {
     min-width: 6.25rem;
     white-space: nowrap;

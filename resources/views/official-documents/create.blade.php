@@ -109,7 +109,12 @@
                                 <span class="d-block small text-muted">{{ __('Proprietário:') }} {{ $document->privateOwner?->person?->full_name ?: $document->privateOwner?->name ?: __('Usuário não disponível') }}</span>
                             @endif
                             @if ($document->issuedDocument)
-                                <span class="d-block small">{{ __('Código:') }} {{ $document->issuedDocument->verification_code }}</span>
+                                @php($issuer = $document->issuedDocument->issuedBy ?? $document->createdBy)
+                                <p class="sge-official-metadata small mb-0">
+                                    <span><strong>{{ __('Código:') }}</strong> {{ $document->issuedDocument->verification_code }}</span>
+                                    <span><strong>{{ __('Emitido em:') }}</strong> <time datetime="{{ $document->issuedDocument->issued_at->toIso8601String() }}">{{ $document->issuedDocument->issued_at->copy()->timezone('America/Cuiaba')->format('d/m/Y H:i') }}</time> {{ __('(MT)') }}</span>
+                                    <span><strong>{{ __('Emitido por:') }}</strong> {{ $issuer?->person?->full_name ?: $issuer?->name ?: $issuer?->email ?: __('Usuário não disponível') }}</span>
+                                </p>
                             @endif
                             <div class="sge-action-buttons justify-content-start sge-official-actions" role="group" aria-label="{{ __('Ações para :title', ['title' => $document->title]) }}">
                                 @if ($document->issuedDocument)
