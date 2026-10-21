@@ -30,6 +30,7 @@ class OfficialDocument extends Model
     protected $fillable = [
         'school_id',
         'created_by_user_id',
+        'private_owner_user_id',
         'issued_document_id',
         'type',
         'title',
@@ -62,6 +63,11 @@ class OfficialDocument extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
+    public function privateOwner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'private_owner_user_id');
     }
 
     public function issuedDocument(): BelongsTo

@@ -99,6 +99,9 @@
                         <div class="border-bottom pb-2 mb-2">
                             <strong class="d-block">{{ $document->title }}</strong>
                             <span class="small text-muted">{{ $document->school?->name }}</span>
+                            @if (auth()->user()->isAdministrator() && $document->visibility === 'private')
+                                <span class="d-block small text-muted">{{ __('Proprietário:') }} {{ $document->privateOwner?->person?->full_name ?: $document->privateOwner?->name ?: __('Usuário não disponível') }}</span>
+                            @endif
                             @if ($document->issuedDocument)
                                 <span class="d-block small">{{ __('Código:') }} {{ $document->issuedDocument->verification_code }}</span>
                             @endif
@@ -113,14 +116,18 @@
                                 </a>
                             @endif
                             @if (auth()->user()->isAdministrator())
-                                <form method="POST" action="{{ route('official-documents.visibility', $document) }}" class="d-inline-block mt-2">
-                                    @csrf
-                                    @method('PATCH')
-                                    <input type="hidden" name="visibility" value="{{ $document->visibility === 'public' ? 'private' : 'public' }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-warning">{{ $document->visibility === 'public' ? __('Tornar privado') : __('Tornar público') }}</button>
-                                </form>
+                                @if ($document->visibility === 'public')
+                                    <a href="{{ route('official-documents.private-owner', $document) }}" class="btn btn-sm btn-outline-warning mt-2">{{ __('Tornar privado') }}</a>
+                                @else
+                                    <form method="POST" action="{{ route('official-documents.visibility', $document) }}" class="d-inline-block mt-2">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="visibility" value="public">
+                                        <button type="submit" class="btn btn-sm btn-outline-warning">{{ __('Tornar público') }}</button>
+                                    </form>
+                                @endif
                             @endif
-                            @if (auth()->user()->isAdministrator() || ($document->visibility === 'private' && $document->created_by_user_id === auth()->id()))
+                            @if (auth()->user()->isAdministrator() || ($document->visibility === 'private' && $document->private_owner_user_id === auth()->id()))
                                 <form method="POST" action="{{ route('official-documents.destroy', $document) }}" class="d-inline-block mt-2" onsubmit="return confirm('{{ __('Deseja excluir este documento? Esta ação é permanente.') }}')">
                                     @csrf
                                     @method('DELETE')

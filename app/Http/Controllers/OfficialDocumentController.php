@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\IssuedDocument;
 use App\Models\OfficialDocument;
 use App\Models\School;
+use App\Models\User;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
 use App\Support\PdfMetadata;
@@ -38,13 +39,13 @@ class OfficialDocumentController extends Controller
             'schools' => $user->canManagePeople() ? $this->availableSchools($request) : collect(),
             'visibility' => $visibility,
             'recentDocuments' => OfficialDocument::query()
-                ->with(['school', 'issuedDocument'])
+                ->with(['school', 'issuedDocument', 'privateOwner.person'])
                 ->where('visibility', $visibility)
                 ->when(! $user->isAdministrator(), function ($query) use ($user, $visibility): void {
                     if ($visibility === OfficialDocument::VISIBILITY_PUBLIC) {
                         $query->whereIn('school_id', $user->visibleSchoolIds());
                     } else {
-                        $query->where('created_by_user_id', $user->id);
+                        $query->where('private_owner_user_id', $user->id);
                     }
                 })
                 ->latest('id')
@@ -87,6 +88,8 @@ class OfficialDocumentController extends Controller
             $officialDocument = OfficialDocument::query()->create([
                 'school_id' => $school->id,
                 'created_by_user_id' => $request->user()->id,
+                'private_owner_user_id' => $data['visibility'] === OfficialDocument::VISIBILITY_PRIVATE
+                    ? $request->user()->id : null,
                 'type' => $data['type'] ?? OfficialDocument::TYPE_OTHER,
                 'title' => $data['title'],
                 'content_html' => $content,
@@ -121,12 +124,36 @@ class OfficialDocumentController extends Controller
 
         $data = $request->validate([
             'visibility' => ['required', Rule::in([OfficialDocument::VISIBILITY_PUBLIC, OfficialDocument::VISIBILITY_PRIVATE])],
+            'private_owner_user_id' => [
+                Rule::requiredIf($request->input('visibility') === OfficialDocument::VISIBILITY_PRIVATE),
+                'nullable', 'integer', Rule::exists('users', 'id'),
+            ],
         ]);
 
-        $document->update(['visibility' => $data['visibility']]);
+        $document->update([
+            'visibility' => $data['visibility'],
+            'private_owner_user_id' => $data['visibility'] === OfficialDocument::VISIBILITY_PRIVATE
+                ? $data['private_owner_user_id'] : null,
+        ]);
 
         return redirect()->route('official-documents.create', ['visibility' => $data['visibility']])
             ->with('status', __('Visibilidade do documento atualizada.'));
+    }
+
+    public function choosePrivateOwner(Request $request, OfficialDocument $document): Response
+    {
+        abort_unless($request->user()->isAdministrator(), 403);
+        abort_unless($document->visibility === OfficialDocument::VISIBILITY_PUBLIC, 404);
+
+        $users = User::query()->with('person:id,full_name')
+            ->get(['id', 'person_id', 'name', 'email'])
+            ->sortBy(fn (User $user): string => mb_strtolower(Str::ascii($user->person?->full_name ?: $user->name)))
+            ->values();
+
+        return response()->view('official-documents.choose-private-owner', [
+            'document' => $document->load('school'),
+            'users' => $users,
+        ]);
     }
 
     public function destroy(Request $request, OfficialDocument $document): \Illuminate\Http\RedirectResponse
@@ -135,7 +162,7 @@ class OfficialDocumentController extends Controller
             $document = OfficialDocument::query()->lockForUpdate()->findOrFail($document->id);
             abort_unless($request->user()->isAdministrator()
                 || ($document->visibility === OfficialDocument::VISIBILITY_PRIVATE
-                    && $document->created_by_user_id === $request->user()->id), 403);
+                    && $document->private_owner_user_id === $request->user()->id), 403);
 
             $issued = $document->issuedDocument;
             $filePath = $issued?->file_path;
@@ -161,7 +188,7 @@ class OfficialDocumentController extends Controller
 
         return $user->isAdministrator()
             || ($document->visibility === OfficialDocument::VISIBILITY_PRIVATE
-                ? $document->created_by_user_id === $user->id
+                ? $document->private_owner_user_id === $user->id
                 : in_array($document->school_id, $user->visibleSchoolIds(), true));
     }
 

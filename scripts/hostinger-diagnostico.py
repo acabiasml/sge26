@@ -1,4 +1,4 @@
-"""Production verification over SSH, with one explicitly requested migration."""
+"""Production verification over SSH, with explicitly requested migrations."""
 import json
 import os
 import pathlib
@@ -26,6 +26,11 @@ with tempfile.TemporaryDirectory() as directory:
             commands.append((
                 'Aplicar migration de visibilidade',
                 'php artisan migrate --path=database/migrations/2026_10_21_000001_add_visibility_to_official_documents_table.php --force --no-ansi',
+            ))
+        if os.environ.get('APPLY_PRIVATE_OWNER_MIGRATION') == 'true':
+            commands.append((
+                'Aplicar migration de proprietário privado',
+                'php artisan migrate --path=database/migrations/2026_10_21_000002_add_private_owner_to_official_documents_table.php --force --no-ansi',
             ))
         commands.append(('Migrations', 'php artisan migrate:status --no-ansi'))
         if os.environ.get('REFRESH_VIEWS') == 'true':

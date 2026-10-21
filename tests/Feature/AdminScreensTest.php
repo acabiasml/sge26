@@ -258,6 +258,7 @@ class AdminScreensTest extends TestCase
 
         $makeDocument = fn (string $title, int $schoolId, int $authorId, string $visibility) => OfficialDocument::query()->create([
             'school_id' => $schoolId, 'created_by_user_id' => $authorId,
+            'private_owner_user_id' => $visibility === OfficialDocument::VISIBILITY_PRIVATE ? $authorId : null,
             'title' => $title, 'content_html' => '<p>Texto</p>',
             'type' => OfficialDocument::TYPE_OTHER, 'orientation' => 'portrait', 'line_spacing' => 1.5,
             'visibility' => $visibility,
@@ -289,8 +290,11 @@ class AdminScreensTest extends TestCase
         $this->actingAs($admin)->patch(route('official-documents.visibility', $private), ['visibility' => 'public'])
             ->assertRedirect(route('official-documents.create', ['visibility' => 'public']));
         $this->assertSame(OfficialDocument::VISIBILITY_PUBLIC, $private->fresh()->visibility);
+        $this->assertNull($private->fresh()->private_owner_user_id);
         $this->actingAs($teacher)->get(route('official-documents.create'))->assertSee('Privado Gestor');
-        $this->actingAs($admin)->patch(route('official-documents.visibility', $private), ['visibility' => 'private'])
+        $this->actingAs($admin)->patch(route('official-documents.visibility', $private), [
+            'visibility' => 'private', 'private_owner_user_id' => $manager->id,
+        ])
             ->assertRedirect(route('official-documents.create', ['visibility' => 'private']));
         $this->actingAs($teacher)->get(route('official-documents.create'))->assertDontSee('Privado Gestor');
         $this->actingAs($teacher)->post(route('official-documents.store'), [
@@ -298,6 +302,56 @@ class AdminScreensTest extends TestCase
             'visibility' => OfficialDocument::VISIBILITY_PRIVATE,
             'orientation' => 'portrait', 'line_spacing' => '1.5', 'content_html' => '<p>Texto</p>',
         ])->assertForbidden();
+    }
+
+    public function test_admin_must_choose_owner_when_making_public_document_private(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A']);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $teacher = $this->userWithRole(PersonSchoolRole::ROLE_TEACHER, $school->id);
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $document = OfficialDocument::query()->create([
+            'school_id' => $school->id, 'created_by_user_id' => $manager->id,
+            'title' => 'Documento para professor', 'content_html' => '<p>Texto</p>',
+            'type' => OfficialDocument::TYPE_OTHER, 'orientation' => 'portrait', 'line_spacing' => 1.5,
+            'visibility' => OfficialDocument::VISIBILITY_PUBLIC,
+        ]);
+
+        $this->actingAs($manager)->get(route('official-documents.private-owner', $document))->assertForbidden();
+        $this->actingAs($admin)->get(route('official-documents.create'))
+            ->assertSee(route('official-documents.private-owner', $document));
+        $this->actingAs($admin)->get(route('official-documents.private-owner', $document))
+            ->assertOk()->assertSee('Proprietário do documento')
+            ->assertSee($teacher->email)->assertSee($manager->email);
+
+        $this->actingAs($admin)->patch(route('official-documents.visibility', $document), [
+            'visibility' => OfficialDocument::VISIBILITY_PRIVATE,
+        ])->assertSessionHasErrors('private_owner_user_id');
+        $this->actingAs($admin)->patch(route('official-documents.visibility', $document), [
+            'visibility' => OfficialDocument::VISIBILITY_PRIVATE,
+            'private_owner_user_id' => 999999,
+        ])->assertSessionHasErrors('private_owner_user_id');
+        $this->assertSame(OfficialDocument::VISIBILITY_PUBLIC, $document->fresh()->visibility);
+
+        $this->actingAs($admin)->patch(route('official-documents.visibility', $document), [
+            'visibility' => OfficialDocument::VISIBILITY_PRIVATE,
+            'private_owner_user_id' => $teacher->id,
+        ])->assertRedirect(route('official-documents.create', ['visibility' => 'private']));
+
+        $document->refresh();
+        $this->assertSame($manager->id, $document->created_by_user_id);
+        $this->assertSame($teacher->id, $document->private_owner_user_id);
+        $this->actingAs($manager)->get(route('official-documents.create', ['visibility' => 'private']))
+            ->assertDontSee($document->title);
+        $this->actingAs($manager)->get(route('official-documents.reissue', $document))->assertForbidden();
+        $this->actingAs($manager)->delete(route('official-documents.destroy', $document))->assertForbidden();
+        $this->actingAs($teacher)->get(route('official-documents.create', ['visibility' => 'private']))
+            ->assertSee($document->title)
+            ->assertSee('action="'.route('official-documents.destroy', $document).'"', false);
+        $this->actingAs($teacher)->get(route('official-documents.reissue', $document))->assertNotFound();
+        $this->actingAs($teacher)->delete(route('official-documents.destroy', $document))
+            ->assertRedirect(route('official-documents.create', ['visibility' => 'private']));
+        $this->assertDatabaseMissing('official_documents', ['id' => $document->id]);
     }
 
     public function test_official_document_visibility_must_be_chosen_when_issued(): void
@@ -326,6 +380,7 @@ class AdminScreensTest extends TestCase
 
         $document = OfficialDocument::query()->firstOrFail();
         $this->assertSame(OfficialDocument::VISIBILITY_PRIVATE, $document->visibility);
+        $this->assertSame($manager->id, $document->private_owner_user_id);
         $this->actingAs($manager)->get(route('official-documents.create'))
             ->assertDontSee('Documento Reservado');
         $this->actingAs($manager)->get(route('official-documents.create', ['visibility' => 'private']))
@@ -359,6 +414,7 @@ class AdminScreensTest extends TestCase
 
         $makeDocument = fn (string $title, int $authorId, string $visibility) => OfficialDocument::query()->create([
             'school_id' => $school->id, 'created_by_user_id' => $authorId,
+            'private_owner_user_id' => $visibility === OfficialDocument::VISIBILITY_PRIVATE ? $authorId : null,
             'title' => $title, 'content_html' => '<p>Texto</p>',
             'type' => OfficialDocument::TYPE_OTHER, 'orientation' => 'portrait', 'line_spacing' => 1.5,
             'visibility' => $visibility,
