@@ -6,6 +6,10 @@ on:
         description: Limpar cache das telas Blade
         type: boolean
         default: false
+      apply_visibility_migration:
+        description: Aplicar somente a migration de visibilidade dos documentos oficiais
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -20,9 +24,10 @@ jobs:
       - uses: actions/checkout@v6
       - name: Preparar cliente SSH
         run: python -m pip install 'paramiko==3.5.1'
-      - name: Verificar produção sem alterar dados
+      - name: Verificar produção e aplicar migration quando solicitado
         env:
           REFRESH_VIEWS: ${{ inputs.refresh_views }}
+          APPLY_VISIBILITY_MIGRATION: ${{ inputs.apply_visibility_migration }}
           HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
         run: python scripts/hostinger-diagnostico.py

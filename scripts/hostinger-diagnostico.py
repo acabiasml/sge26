@@ -1,4 +1,4 @@
-"""Read-only production verification over SSH from a GitHub-hosted runner."""
+"""Production verification over SSH, with one explicitly requested migration."""
 import json
 import os
 import pathlib
@@ -20,9 +20,14 @@ with tempfile.TemporaryDirectory() as directory:
             ('Commit publicado', 'git rev-parse HEAD'),
             ('Arquivos modificados', 'git status --short'),
             ('PHP', 'php -r \'echo PHP_VERSION, PHP_EOL;\''),
-            ('Migrations', 'php artisan migrate:status --no-ansi'),
             ('Botão na chamada', "grep -c 'data-all-present' resources/views/teacher-diaries/attendance.blade.php"),
         ]
+        if os.environ.get('APPLY_VISIBILITY_MIGRATION') == 'true':
+            commands.append((
+                'Aplicar migration de visibilidade',
+                'php artisan migrate --path=database/migrations/2026_10_21_000001_add_visibility_to_official_documents_table.php --force --no-ansi',
+            ))
+        commands.append(('Migrations', 'php artisan migrate:status --no-ansi'))
         if os.environ.get('REFRESH_VIEWS') == 'true':
             commands.append(('Limpar cache das telas', 'php artisan view:clear --no-ansi'))
         for label, command in commands:
