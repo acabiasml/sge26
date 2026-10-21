@@ -75,7 +75,7 @@
 
                         <button class="btn btn-primary" type="submit" @disabled($schools->isEmpty())>
                             <i class="fas fa-file-pdf mr-1" aria-hidden="true"></i>
-                            {{ __('Visualizar PDF oficial') }}
+                            {{ __('Visualizar PDF oficial') }}<span class="sr-only"> {{ __('(abre em nova aba)') }}</span>
                         </button>
                     </form>
                 </div>
@@ -86,66 +86,73 @@
         <div class="{{ auth()->user()->canManagePeople() ? 'col-xl-4' : 'col-12' }} mb-4">
             <div class="card shadow">
                 <div class="card-header py-3">
-                    <h2 class="h6 m-0 font-weight-bold text-primary">{{ __('Documentos emitidos') }}</h2>
+                    <h2 class="h6 m-0 font-weight-bold text-primary">{{ __('Emitidos') }}</h2>
                 </div>
                 <div class="card-body">
-                    <nav class="nav nav-pills mb-3" aria-label="{{ __('Visibilidade dos documentos') }}">
-                        <a class="nav-link {{ $tab === 'public' ? 'active' : '' }}" href="{{ route('official-documents.create', ['visibility' => 'public']) }}">{{ __('Documentos públicos') }}</a>
-                        <a class="nav-link {{ $tab === 'mine' ? 'active' : '' }}" href="{{ route('official-documents.create', ['visibility' => 'mine']) }}">{{ __('Meus documentos') }}</a>
+                    <nav class="nav nav-pills sge-official-tabs mb-3" aria-label="{{ __('Filtrar emitidos') }}">
+                        <a class="nav-link {{ $tab === 'public' ? 'active' : '' }}" href="{{ route('official-documents.create', ['visibility' => 'public']) }}" @if ($tab === 'public') aria-current="page" @endif>{{ __('Públicos') }}</a>
+                        <a class="nav-link {{ $tab === 'mine' ? 'active' : '' }}" href="{{ route('official-documents.create', ['visibility' => 'mine']) }}" @if ($tab === 'mine') aria-current="page" @endif>{{ __('Meus') }}</a>
                         @if (auth()->user()->isAdministrator())
-                            <a class="nav-link {{ $tab === 'all' ? 'active' : '' }}" href="{{ route('official-documents.create', ['visibility' => 'all']) }}">{{ __('Todos') }}</a>
+                            <a class="nav-link {{ $tab === 'all' ? 'active' : '' }}" href="{{ route('official-documents.create', ['visibility' => 'all']) }}" @if ($tab === 'all') aria-current="page" @endif>{{ __('Todos') }}</a>
                         @endif
                     </nav>
-                    <p class="small text-muted">{{ __('Reeditar cria uma nova emissão. Reemitir abre o documento já emitido para visualizar ou imprimir.') }}</p>
-                    @if (session('status')) <div class="alert alert-success" role="status">{{ session('status') }}</div> @endif
+                    <p class="small text-muted">{{ __('Reeditar cria uma nova emissão; reemitir abre o PDF original.') }}</p>
+                    <ul class="list-unstyled mb-2">
                     @forelse ($recentDocuments as $document)
-                        <div class="border-bottom pb-2 mb-2">
-                            <strong class="d-block">{{ $document->title }}</strong>
+                        <li class="border-bottom pb-3 mb-3">
+                            <h3 class="h6 font-weight-bold mb-1">{{ $document->title }}</h3>
                             @if ($tab !== 'public')
                                 <span class="badge badge-{{ $document->visibility === 'public' ? 'primary' : 'secondary' }}">{{ $document->visibility === 'public' ? __('Público') : __('Privado') }}</span>
                             @endif
-                            <span class="small text-muted">{{ $document->school?->name }}</span>
+                            <span class="d-block small text-muted">{{ $document->school?->name }}</span>
                             @if (auth()->user()->isAdministrator() && $document->visibility === 'private')
                                 <span class="d-block small text-muted">{{ __('Proprietário:') }} {{ $document->privateOwner?->person?->full_name ?: $document->privateOwner?->name ?: __('Usuário não disponível') }}</span>
                             @endif
                             @if ($document->issuedDocument)
                                 <span class="d-block small">{{ __('Código:') }} {{ $document->issuedDocument->verification_code }}</span>
                             @endif
-                            @if ($document->issuedDocument)
-                                <a class="btn btn-sm btn-outline-secondary mt-2" href="{{ route('official-documents.reissue', $document) }}" target="_blank" rel="noopener">
-                                    <i class="fas fa-print mr-1" aria-hidden="true"></i> {{ __('Reemitir') }}
-                                </a>
-                            @endif
-                            @if (auth()->user()->canManageSchool($document->school_id))
-                                <a class="btn btn-sm btn-outline-primary mt-2" href="{{ route('official-documents.edit', $document) }}">
-                                    <i class="fas fa-edit mr-1" aria-hidden="true"></i> {{ __('Reeditar') }}
-                                </a>
-                            @endif
-                            @if (auth()->user()->isAdministrator())
-                                @if ($document->visibility === 'public')
-                                    <a href="{{ route('official-documents.private-owner', $document) }}" class="btn btn-sm btn-outline-warning mt-2">{{ __('Tornar privado') }}</a>
-                                @else
-                                    <form method="POST" action="{{ route('official-documents.visibility', $document) }}" class="d-inline-block mt-2">
+                            <div class="sge-action-buttons justify-content-start sge-official-actions" role="group" aria-label="{{ __('Ações para :title', ['title' => $document->title]) }}">
+                                @if ($document->issuedDocument)
+                                    <a class="btn btn-sm btn-outline-secondary" href="{{ route('official-documents.reissue', $document) }}" target="_blank" rel="noopener" aria-label="{{ __('Reemitir PDF de :title em nova aba', ['title' => $document->title]) }}" title="{{ __('Reemitir PDF') }}">
+                                        <i class="fas fa-print" aria-hidden="true"></i> {{ __('Reemitir') }}
+                                    </a>
+                                @endif
+                                @if (auth()->user()->canManageSchool($document->school_id))
+                                    <a class="btn btn-sm btn-outline-primary" href="{{ route('official-documents.edit', $document) }}" aria-label="{{ __('Reeditar :title', ['title' => $document->title]) }}" title="{{ __('Reeditar') }}">
+                                        <i class="fas fa-edit" aria-hidden="true"></i> {{ __('Reeditar') }}
+                                    </a>
+                                @endif
+                                @if (auth()->user()->isAdministrator())
+                                    @if ($document->visibility === 'public')
+                                        <a href="{{ route('official-documents.private-owner', $document) }}" class="btn btn-sm btn-outline-warning" aria-label="{{ __('Definir proprietário e tornar privado: :title', ['title' => $document->title]) }}" title="{{ __('Tornar privado') }}">
+                                            <i class="fas fa-lock" aria-hidden="true"></i> {{ __('Tornar privado') }}
+                                        </a>
+                                    @else
+                                        <form method="POST" action="{{ route('official-documents.visibility', $document) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="hidden" name="visibility" value="public">
+                                            <button type="submit" class="btn btn-sm btn-outline-warning" aria-label="{{ __('Tornar público: :title', ['title' => $document->title]) }}" title="{{ __('Tornar público') }}">
+                                                <i class="fas fa-globe-americas" aria-hidden="true"></i> {{ __('Tornar público') }}
+                                            </button>
+                                        </form>
+                                    @endif
+                                @endif
+                                @if (auth()->user()->isAdministrator() || ($document->visibility === 'private' && $document->private_owner_user_id === auth()->id()))
+                                    <form method="POST" action="{{ route('official-documents.destroy', $document) }}" onsubmit="return confirm('{{ __('Deseja excluir este documento? Esta ação é permanente.') }}')">
                                         @csrf
-                                        @method('PATCH')
-                                        <input type="hidden" name="visibility" value="public">
-                                        <button type="submit" class="btn btn-sm btn-outline-warning">{{ __('Tornar público') }}</button>
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="{{ __('Excluir :title', ['title' => $document->title]) }}" title="{{ __('Excluir') }}">
+                                            <i class="fas fa-trash-alt" aria-hidden="true"></i> {{ __('Excluir') }}
+                                        </button>
                                     </form>
                                 @endif
-                            @endif
-                            @if (auth()->user()->isAdministrator() || ($document->visibility === 'private' && $document->private_owner_user_id === auth()->id()))
-                                <form method="POST" action="{{ route('official-documents.destroy', $document) }}" class="d-inline-block mt-2" onsubmit="return confirm('{{ __('Deseja excluir este documento? Esta ação é permanente.') }}')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="{{ __('Excluir documento') }}" title="{{ __('Excluir documento') }}">
-                                        <i class="fas fa-trash-alt" aria-hidden="true"></i>
-                                    </button>
-                                </form>
-                            @endif
-                        </div>
+                            </div>
+                        </li>
                     @empty
-                        <p class="text-muted mb-0">{{ __('Nenhum documento emitido ainda.') }}</p>
+                        <li class="text-muted">{{ __('Nenhum item encontrado.') }}</li>
                     @endforelse
+                    </ul>
                     <p class="small text-muted">{{ __('Página :page de :pages · :total documentos', ['page' => $recentDocuments->currentPage(), 'pages' => $recentDocuments->lastPage(), 'total' => $recentDocuments->total()]) }}</p>
                     {{ $recentDocuments->links('pagination::simple-bootstrap-4') }}
                 </div>

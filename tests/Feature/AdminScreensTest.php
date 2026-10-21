@@ -273,7 +273,8 @@ class AdminScreensTest extends TestCase
         $this->actingAs($teacher)->get(route('official-documents.create'))
             ->assertOk()->assertSee('Publico Escola A')->assertDontSee('Publico Escola B')
             ->assertDontSee('Privado Gestor')->assertDontSee('Novo documento em papel timbrado')
-            ->assertSee('Documentos públicos')->assertSee('Meus documentos')
+            ->assertSee('>Públicos</a>', false)->assertSee('>Meus</a>', false)
+            ->assertSee('aria-current="page"', false)
             ->assertDontSee('visibility=all', false);
         $this->actingAs($teacher)->get(route('official-documents.create', ['visibility' => 'mine']))
             ->assertOk()->assertSee('Privado Professor')->assertSee('Publico Professor')
@@ -293,7 +294,8 @@ class AdminScreensTest extends TestCase
             ->assertOk()->assertSee('Todos')->assertDontSee('Privado Gestor');
         $this->actingAs($admin)->get(route('official-documents.create', ['visibility' => 'all']))
             ->assertSee('Privado Gestor')->assertSee('Privado Professor')
-            ->assertSee('Publico Escola B')->assertSee($ownPublic->title);
+            ->assertSee('Publico Escola B')->assertSee($ownPublic->title)
+            ->assertSee('aria-label="Excluir '.$ownPublic->title.'"', false);
 
         $this->actingAs($manager)->patch(route('official-documents.visibility', $private), ['visibility' => 'public'])
             ->assertForbidden();
@@ -306,6 +308,8 @@ class AdminScreensTest extends TestCase
             'visibility' => 'private', 'private_owner_user_id' => $manager->id,
         ])
             ->assertRedirect(route('official-documents.create', ['visibility' => 'all']));
+        $response = $this->actingAs($admin)->get(route('official-documents.create', ['visibility' => 'all']));
+        $this->assertSame(1, substr_count($response->getContent(), 'Visibilidade do documento atualizada.'));
         $this->actingAs($teacher)->get(route('official-documents.create'))->assertDontSee('Privado Gestor');
         $this->actingAs($teacher)->post(route('official-documents.store'), [
             'school_id' => $school->id, 'title' => 'Emissão indevida',

@@ -22,7 +22,7 @@
 
                         <div class="form-group">
                             <label for="private_owner_user_id">{{ __('Proprietário do documento') }}</label>
-                            <select id="private_owner_user_id" name="private_owner_user_id" class="form-control @error('private_owner_user_id') is-invalid @enderror" required>
+                            <select id="private_owner_user_id" name="private_owner_user_id" class="form-control @error('private_owner_user_id') is-invalid @enderror" @error('private_owner_user_id') aria-invalid="true" aria-describedby="private-owner-error" @enderror required>
                                 <option value="">{{ __('Selecione um usuário') }}</option>
                                 @foreach ($users as $user)
                                     <option value="{{ $user->id }}" @selected((string) old('private_owner_user_id') === (string) $user->id)>
@@ -30,11 +30,13 @@
                                     </option>
                                 @endforeach
                             </select>
-                            @error('private_owner_user_id') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
+                            @error('private_owner_user_id') <div id="private-owner-error" class="invalid-feedback">{{ __($message) }}</div> @enderror
                         </div>
 
-                        <button type="submit" class="btn btn-primary">{{ __('Confirmar como privado') }}</button>
-                        <a href="{{ route('official-documents.create') }}" class="btn btn-outline-secondary">{{ __('Cancelar') }}</a>
+                        <div class="sge-form-actions">
+                            <button type="submit" class="btn btn-primary">{{ __('Confirmar como privado') }}</button>
+                            <a href="{{ route('official-documents.create') }}" class="btn btn-outline-secondary">{{ __('Cancelar') }}</a>
+                        </div>
                     </form>
                 </div>
             </div>

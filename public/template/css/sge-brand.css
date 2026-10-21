@@ -503,6 +503,21 @@ label {
     margin: 0;
 }
 
+.sge-official-tabs {
+    gap: .3rem;
+}
+
+.sge-official-tabs .nav-link,
+.sge-official-actions .btn {
+    align-items: center;
+    display: inline-flex;
+    min-height: 2.75rem;
+}
+
+.sge-official-actions {
+    margin-top: .65rem;
+}
+
 .sge-actions-cell {
     min-width: 6.25rem;
     white-space: nowrap;
