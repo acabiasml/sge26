@@ -2547,6 +2547,20 @@ a.sge-metric-card:focus {
     color: var(--sge-muted);
 }
 
+.sge-chart-list-label {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.sge-chart-swatch {
+    width: .9rem;
+    height: .9rem;
+    flex: 0 0 auto;
+    border: 1px solid var(--sge-border);
+    border-radius: 50%;
+}
+
 .sge-chart-list strong {
     color: var(--sge-ink);
 }

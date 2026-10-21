@@ -126,6 +126,7 @@
     $hasRoleChart = $roleTotal > 0;
     $hasStudentsChart = array_sum($studentsBySchoolChart['values']) > 0;
     $hasCalendarTypeChart = array_sum($calendarTypeChart['values']) > 0;
+    $calendarChartColorVariables = ['--sge-brown', '--sge-green', '--sge-orange', '--sge-blue', '--sge-brown-soft', '--sge-orange-dark', '--sge-blue-dark', '--sge-muted'];
     $dashboardShortcuts = \App\Support\DashboardShortcuts::make($dashboardUser, $dashboardShortcuts);
 @endphp
 
@@ -387,7 +388,10 @@
                             <div class="sge-chart-list">
                                 @foreach ($calendarTypeChart['labels'] as $index => $label)
                                     <div>
-                                        <span>{{ __($label) }}</span>
+                                        <span class="sge-chart-list-label">
+                                            <span class="sge-chart-swatch" style="background-color: var({{ $calendarChartColorVariables[$index] }})" aria-hidden="true"></span>
+                                            {{ __($label) }}
+                                        </span>
                                         <strong>{{ number_format($calendarTypeChart['values'][$index] ?? 0, 0, ',', '.') }}</strong>
                                     </div>
                                 @endforeach
@@ -441,7 +445,7 @@
         <script>
             const themeStyle = getComputedStyle(document.documentElement);
             const themeColor = (name) => themeStyle.getPropertyValue(name).trim();
-            const chartColors = ['--sge-brown', '--sge-green', '--sge-orange', '--sge-blue', '--sge-brown-soft', '--sge-orange-dark'].map(themeColor);
+            const chartColors = @json($calendarChartColorVariables).map(themeColor);
             const chartSurface = themeColor('--sge-paper');
             const chartGrid = themeColor('--sge-border');
             const roleValues = @json($roleChart['values']);
