@@ -50,7 +50,7 @@
                 <div class="sge-document-step-number" aria-hidden="true">1</div>
                 <div class="sge-document-step-content">
                     <label for="document-type">{{ __('Qual documento deseja emitir?') }}</label>
-                    <select id="document-type" name="type" class="form-control" required aria-describedby="document-type-help">
+                    <select id="document-type" name="type" class="form-control sge-document-type-list" size="8" required aria-describedby="document-type-help">
                         <option value="">{{ __('Selecione o tipo de documento') }}</option>
                         @foreach ($typeGroups as $group => $types)
                             <optgroup label="{{ __($group) }}">

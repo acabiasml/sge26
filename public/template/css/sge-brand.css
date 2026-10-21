@@ -6353,6 +6353,12 @@ small,
     min-width: 0;
 }
 
+#document-type.sge-document-type-list {
+    height: 18rem;
+    max-height: 42vh;
+    overflow-y: auto;
+}
+
 .sge-document-step-content > label,
 .sge-document-step-content > h3,
 .sge-document-step-heading h3 {
