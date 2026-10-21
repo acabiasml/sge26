@@ -20,15 +20,10 @@ class User extends Authenticatable
         'beaba' => 'theme.beathema',
         'govbr' => 'theme.govbr',
         'aurora-light' => 'theme.aurora_light',
-        'aurora-dark' => 'theme.aurora_dark',
         'instagram-light' => 'theme.instagram_light',
-        'instagram-dark' => 'theme.instagram_dark',
         'tiktok-light' => 'theme.tiktok_light',
-        'tiktok-dark' => 'theme.tiktok_dark',
         'gmail-light' => 'theme.gmail_light',
-        'gmail-dark' => 'theme.gmail_dark',
         'outlook-light' => 'theme.outlook_light',
-        'outlook-dark' => 'theme.outlook_dark',
     ];
 
     public const DEFAULT_AUDIT_TIMEZONE = 'America/Sao_Paulo';
@@ -245,7 +240,12 @@ class User extends Authenticatable
 
     public function interfaceTheme(): string
     {
-        return array_key_exists($this->theme ?? '', self::INTERFACE_THEMES) ? $this->theme : 'beaba';
+        $theme = (string) $this->theme;
+        if (str_ends_with($theme, '-dark')) {
+            $theme = substr($theme, 0, -5).'-light';
+        }
+
+        return array_key_exists($theme, self::INTERFACE_THEMES) ? $theme : 'beaba';
     }
 
     public function auditTimezone(): string

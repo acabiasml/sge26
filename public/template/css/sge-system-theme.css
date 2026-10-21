@@ -1,0 +1,50 @@
+/* The established Beabá and gov.br palettes use Aurora's dark surfaces with their own colors. */
+html[data-theme="aurora-dark"][data-theme-family="beaba"] {
+    --aurora-canvas: #191615;
+    --aurora-panel: #29221f;
+    --aurora-raised: #372c27;
+    --aurora-hover: #48382f;
+    --aurora-ink: #f5eade;
+    --aurora-muted: #d7c4b1;
+    --aurora-border: #665143;
+    --aurora-accent: #e8bd82;
+    --aurora-strong: #f5d6a7;
+    --aurora-on-accent: #322014;
+    --aurora-violet: #afd4af;
+    --aurora-success: #a6d3aa;
+    --aurora-danger: #ffb7a7;
+    --aurora-warning: #f0cc8d;
+    --aurora-focus: #f0cc8d;
+    --aurora-feature: #3a291f;
+    --aurora-feature-end: #263528;
+}
+
+html[data-theme="aurora-dark"][data-theme-family="beaba"] .sidebar.bg-gradient-primary {
+    background: linear-gradient(175deg, #392b25, #211a18) !important;
+}
+
+html[data-theme="aurora-dark"][data-theme-family="govbr"] {
+    --sge-font-sans: Rawline, "Atkinson Hyperlegible Next", Arial, sans-serif;
+    --sge-font-heading: var(--sge-font-sans);
+    --aurora-canvas: #101820;
+    --aurora-panel: #1b2938;
+    --aurora-raised: #253649;
+    --aurora-hover: #334d6b;
+    --aurora-ink: #eef5ff;
+    --aurora-muted: #bfd2ea;
+    --aurora-border: #506986;
+    --aurora-accent: #a9cbff;
+    --aurora-strong: #d4e5ff;
+    --aurora-on-accent: #102b50;
+    --aurora-violet: #f4d36e;
+    --aurora-success: #a7d9ad;
+    --aurora-danger: #ffb7b3;
+    --aurora-warning: #f4d36e;
+    --aurora-focus: #f4d36e;
+    --aurora-feature: #122b4d;
+    --aurora-feature-end: #1b3d69;
+}
+
+html[data-theme="aurora-dark"][data-theme-family="govbr"] .sidebar.bg-gradient-primary {
+    background: #102746 !important;
+}

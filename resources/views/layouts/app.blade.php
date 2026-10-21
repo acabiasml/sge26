@@ -8,6 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <title>{{ config('app.name', 'Beabá') }} - @yield('title', __('navigation.home'))</title>
+    <script src="{{ asset('template/js/sge-system-theme.js') }}?v={{ filemtime(public_path('template/js/sge-system-theme.js')) }}"></script>
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
 
@@ -23,6 +24,7 @@
     <link href="{{ asset('template/css/sge-brand-themes.css') }}?v={{ filemtime(public_path('template/css/sge-brand-themes.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-navigation.css') }}?v={{ filemtime(public_path('template/css/sge-navigation.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-alerts.css') }}?v={{ filemtime(public_path('template/css/sge-alerts.css')) }}" rel="stylesheet">
+    <link href="{{ asset('template/css/sge-system-theme.css') }}?v={{ filemtime(public_path('template/css/sge-system-theme.css')) }}" rel="stylesheet">
     <style>
         .sge-theme-switcher { display: flex; align-items: center; }
         .topbar .sge-theme-switcher .nav-link {
@@ -279,6 +281,7 @@
                             </button>
                             <div class="dropdown-menu dropdown-menu-right shadow" aria-labelledby="themeDropdown">
                                 <h2 class="dropdown-header">{{ __('theme.label') }}</h2>
+                                <p class="dropdown-header text-wrap mb-0">{{ __('theme.system_mode') }}</p>
                                 @foreach (\App\Models\User::INTERFACE_THEMES as $theme => $themeLabel)
                                     <form method="POST" action="{{ route('theme.update') }}">
                                         @csrf
