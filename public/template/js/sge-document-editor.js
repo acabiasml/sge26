@@ -6,8 +6,14 @@
     const form = document.getElementById('official-document-form');
     const feedback = document.getElementById('editor-feedback');
     const labels = window.sgeDocumentEditor;
+    const descriptionModal = document.getElementById('imageDescriptionModal');
+    const descriptionForm = document.getElementById('imageDescriptionForm');
+    const descriptionInput = document.getElementById('imageDescriptionInput');
     let pending = 0;
     let selectedImage = null;
+    let imageForDescription = null;
+    let descriptionContext = null;
+    let descriptionTrigger = null;
     const error = message => { feedback.textContent = message; feedback.hidden = !message; };
     const imageBytes = () => {
         const doc = new DOMParser().parseFromString($editor.summernote('code'), 'text/html');
@@ -38,6 +44,21 @@
     };
     window.jQuery.summernote.lang[labels.language].font.sizeunit = labels.fontUnit;
     window.jQuery.summernote.lang[labels.language].image.resizeNone = labels.originalSize;
+    window.jQuery(descriptionModal).on('shown.bs.modal', () => descriptionInput.focus());
+    window.jQuery(descriptionModal).on('hidden.bs.modal', () => {
+        if (descriptionTrigger?.isConnected) descriptionTrigger.focus();
+        descriptionTrigger = null;
+        imageForDescription = null;
+        descriptionContext = null;
+    });
+    descriptionForm.addEventListener('submit', event => {
+        event.preventDefault();
+        if (!imageForDescription?.isConnected || !descriptionContext) return;
+        descriptionContext.invoke('editor.beforeCommand');
+        imageForDescription.alt = descriptionInput.value;
+        descriptionContext.invoke('editor.afterCommand');
+        window.jQuery(descriptionModal).modal('hide');
+    });
     $editor.summernote({
         lang: labels.language,
         minHeight: 420,
@@ -66,13 +87,13 @@
             imageDescription: context => window.jQuery.summernote.ui.button({
                 contents: '<i class="fas fa-comment-alt" aria-hidden="true"></i>',
                 tooltip: labels.imageDescription,
-                click: () => {
+                click: event => {
                     if (!selectedImage?.isConnected) return;
-                    const description = window.prompt(labels.imageDescription, selectedImage.alt);
-                    if (description === null) return;
-                    context.invoke('editor.beforeCommand');
-                    selectedImage.alt = description.slice(0, 500);
-                    context.invoke('editor.afterCommand');
+                    imageForDescription = selectedImage;
+                    descriptionContext = context;
+                    descriptionTrigger = event.currentTarget;
+                    descriptionInput.value = selectedImage.alt;
+                    window.jQuery(descriptionModal).modal('show');
                 }
             }).render()
         },

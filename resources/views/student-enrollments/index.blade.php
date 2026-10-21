@@ -261,7 +261,7 @@
                                 <div class="alert alert-warning" role="alert">
                                     {{ __('Esta matrícula está transferida desde') }} {{ $enrollment->transferred_at?->format('d/m/Y') ?? __('data não informada') }}{{ __('. Use esta ação somente quando a transferência foi registrada por engano.') }}
                                 </div>
-                                <form method="POST" action="{{ route('enrollments.restore-transfer', $enrollment) }}" onsubmit="return confirm(@js(__('Desfazer a transferência desta matrícula? O estudante voltará a ficar ativo nesta turma se não houver outra matrícula ativa no mesmo ano letivo.')))">
+                                <form method="POST" action="{{ route('enrollments.restore-transfer', $enrollment) }}" data-confirm-message="{{ __('Desfazer a transferência desta matrícula? O estudante voltará a ficar ativo nesta turma se não houver outra matrícula ativa no mesmo ano letivo.') }}">
                                     @csrf
                                     @method('PATCH')
                                     <div class="form-group">
@@ -278,7 +278,7 @@
                                         <section class="sge-movement-panel h-100">
                                             <h3 class="h6">{{ __('Transferência') }}</h3>
                                             <p class="small text-muted">{{ __('Registra a saída do estudante preservando o histórico desta matrícula.') }}</p>
-                                            <form method="POST" action="{{ route('enrollments.transfer', $enrollment) }}" onsubmit="return confirm(@js(__('Confirmar transferência desta matrícula? Antes de registrar, confira se as notas do período atual estão completas.')))">
+                                            <form method="POST" action="{{ route('enrollments.transfer', $enrollment) }}" data-confirm-message="{{ __('Confirmar transferência desta matrícula? Antes de registrar, confira se as notas do período atual estão completas.') }}">
                                                 @csrf
                                                 @method('PATCH')
                                                 <div class="form-group">
@@ -337,7 +337,7 @@
                                 <section class="sge-movement-panel sge-movement-danger">
                                     <h3 class="h6">{{ __('Cancelamento') }}</h3>
                                     <p class="small text-muted">{{ __('Use apenas quando a matrícula foi registrada indevidamente. Transferência deve ser usada para saída para outra escola.') }}</p>
-                                    <form method="POST" action="{{ route('enrollments.cancel', $enrollment) }}" onsubmit="return confirm(@js(__('Cancelar esta matrícula? O histórico será preservado.')))">
+                                    <form method="POST" action="{{ route('enrollments.cancel', $enrollment) }}" data-confirm-message="{{ __('Cancelar esta matrícula? O histórico será preservado.') }}">
                                         @csrf
                                         @method('PATCH')
                                         <div class="row">

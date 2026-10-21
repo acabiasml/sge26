@@ -21,7 +21,7 @@
     @endif
 
     @if (auth()->user()->isAdministrator() && config('services.google_workspace.enabled'))
-        <form class="d-inline" method="POST" action="{{ route('people.google-workspace.store', $person) }}" onsubmit="return confirm(@js($person->google_workspace_id ? __('Verificar e atualizar o vínculo desta conta com o Google Workspace?') : __('Criar uma conta real no Google Workspace para este e-mail institucional?')));">
+        <form class="d-inline" method="POST" action="{{ route('people.google-workspace.store', $person) }}" data-confirm-message="{{ $person->google_workspace_id ? __('Verificar e atualizar o vínculo desta conta com o Google Workspace?') : __('Criar uma conta real no Google Workspace para este e-mail institucional?') }}">
             @csrf
             <button class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" type="submit" aria-label="{{ $person->google_workspace_id ? __('Verificar conta no Google Workspace') : __('Criar conta no Google Workspace') }} {{ __('de') }} {{ $person->full_name }}" title="{{ $person->google_workspace_id ? __('Conta vinculada ao Google Workspace') : __('Criar conta no Google Workspace') }}">
                 <i class="fab fa-google" aria-hidden="true"></i>
@@ -40,7 +40,7 @@
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
     @if ($canDeletePerson)
-        <form class="d-inline" method="POST" action="{{ route('people.destroy', $person) }}" onsubmit="return confirm(@js(__('screens.delete_person_confirm')));">
+        <form class="d-inline" method="POST" action="{{ route('people.destroy', $person) }}" data-confirm-message="{{ __('screens.delete_person_confirm') }}">
             @csrf
             @method('DELETE')
             <button class="btn btn-sm btn-outline-danger shadow-sm sge-icon-action" type="submit" aria-label="{{ __('screens.delete_person', ['name' => $person->full_name]) }}" title="{{ __('screens.delete_record') }}">

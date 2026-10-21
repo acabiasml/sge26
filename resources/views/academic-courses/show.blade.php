@@ -199,7 +199,7 @@
                                         <i class="fas fa-cog" aria-hidden="true"></i>
                                     </a>
                                     @if ($canChangeAcademicStructure)
-                                        <form method="POST" action="{{ route('academic-years.courses.components.destroy', [$academicYear, $course, $component]) }}" onsubmit="return confirm(@js(__('Remover este componente?')))">
+                                        <form method="POST" action="{{ route('academic-years.courses.components.destroy', [$academicYear, $course, $component]) }}" data-confirm-message="{{ __('Remover este componente?') }}">
                                             @csrf
                                             @method('DELETE')
                                             <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="{{ __('Remover componente') }} {{ $component->name }}" title="{{ __('Remover componente') }}">

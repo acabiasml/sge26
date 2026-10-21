@@ -67,7 +67,7 @@
                                         <td>{{ $justification->starts_at?->format('d/m/Y') }} {{ __('a') }} {{ $justification->ends_at?->format('d/m/Y') }}</td>
                                         <td>{{ $justification->reason }}</td>
                                         <td>{{ $justification->grantedBy?->full_name ?? __('Sistema') }}</td>
-                                        <td class="text-right"><form class="d-inline" method="POST" action="{{ route('attendance-justifications.destroy', $justification) }}" onsubmit="return confirm(@js(__('Remover esta justificativa?')))">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="{{ __('Remover justificativa de') }} {{ $justification->enrollment?->student?->full_name }}" title="{{ __('Remover justificativa') }}"><i class="fas fa-trash-alt" aria-hidden="true"></i></button></form></td>
+                                        <td class="text-right"><form class="d-inline" method="POST" action="{{ route('attendance-justifications.destroy', $justification) }}" data-confirm-message="{{ __('Remover esta justificativa?') }}">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="{{ __('Remover justificativa de') }} {{ $justification->enrollment?->student?->full_name }}" title="{{ __('Remover justificativa') }}"><i class="fas fa-trash-alt" aria-hidden="true"></i></button></form></td>
                                     </tr>
                                 @empty
                                     <tr><td colspan="5">{{ __('Nenhuma justificativa registrada para esta escola.') }}</td></tr>

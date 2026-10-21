@@ -202,7 +202,7 @@
                                                         <td>{{ $substitution->notes ?: '-' }}</td>
                                                         <td class="text-right">
                                                             @if ($canManageTeaching)
-                                                                <form method="POST" action="{{ route('academic-years.classes.components.substitutions.destroy', [$academicYear, $class, $assignment, $substitution]) }}" onsubmit="return confirm(@js(__('Remover esta substituição?')))">
+                                                                <form method="POST" action="{{ route('academic-years.classes.components.substitutions.destroy', [$academicYear, $class, $assignment, $substitution]) }}" data-confirm-message="{{ __('Remover esta substituição?') }}">
                                                                     @csrf
                                                                     @method('DELETE')
                                                                     <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="{{ __('Remover substituição docente de') }} {{ $substitution->substituteTeacher?->full_name }}" title="{{ __('Remover substituição') }}">

@@ -27,7 +27,7 @@
                         <td class="align-middle text-right text-nowrap">
                             <button class="btn btn-sm btn-outline-primary" data-toggle="modal" data-target="#edit-area-{{ $area->id }}">{{ __('Editar') }}</button>
                             @if($area->components_count === 0)
-                                <form class="d-inline" method="POST" action="{{ route('knowledge-areas.destroy', $area) }}" onsubmit="return confirm(@js(__('Excluir esta área sem vínculos?')))">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">{{ __('Excluir') }}</button></form>
+                                <form class="d-inline" method="POST" action="{{ route('knowledge-areas.destroy', $area) }}" data-confirm-message="{{ __('Excluir esta área sem vínculos?') }}">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">{{ __('Excluir') }}</button></form>
                             @endif
                         </td>
                     </tr>

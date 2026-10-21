@@ -41,7 +41,7 @@
                                 <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('academic-years.edit', $year) }}" aria-label="{{ __('Editar ano letivo') }} {{ $year->name }}" title="{{ __('Editar ano letivo') }}">
                                     <i class="fas fa-pen" aria-hidden="true"></i>
                                 </a>
-                                <form class="d-inline" method="POST" action="{{ route('academic-years.destroy', $year) }}" onsubmit="return confirm(@js(__('Excluir este ano letivo? Os dias do calendário gerados para ele também serão apagados.')))">
+                                <form class="d-inline" method="POST" action="{{ route('academic-years.destroy', $year) }}" data-confirm-message="{{ __('Excluir este ano letivo? Os dias do calendário gerados para ele também serão apagados.') }}">
                                     @csrf
                                     @method('DELETE')
                                     <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="{{ __('Excluir ano letivo') }} {{ $year->name }}" title="{{ __('Excluir ano letivo') }}">

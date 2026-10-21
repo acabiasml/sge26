@@ -123,7 +123,7 @@
                             <span class="badge badge-{{ $consolidation?->consolidated ? 'success' : 'secondary' }}">{{ $consolidation?->consolidated ? __('Consolidado') : __('Aberto') }}</span>
                         </div>
                         @if ($canChangeCalendar)
-                            <form method="POST" action="{{ route('academic-years.periods.destroy', [$academicYear, $period]) }}" onsubmit="return confirm(@js(__('Remover este período?')))">
+                            <form method="POST" action="{{ route('academic-years.periods.destroy', [$academicYear, $period]) }}" data-confirm-message="{{ __('Remover este período?') }}">
                                 @csrf @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="{{ __('Remover período') }} {{ $period->name }}" title="{{ __('Remover período') }}"><i class="fas fa-trash-alt" aria-hidden="true"></i></button>
                             </form>

@@ -36,7 +36,10 @@ class AdminScreensTest extends TestCase
         $this->actingAs($admin)->get(route('people.index'))->assertOk();
         $this->actingAs($admin)->get(route('people.create'))->assertOk();
         $this->actingAs($admin)->get(route('data-quality.index'))->assertOk();
-        $this->actingAs($admin)->get(route('official-documents.create'))->assertOk();
+        $this->actingAs($admin)->get(route('official-documents.create'))
+            ->assertOk()->assertSee('id="confirmActionModal"', false)
+            ->assertSee('id="imageDescriptionModal"', false)
+            ->assertSee('data-no-loading="true"', false);
         $this->actingAs($admin)->get(route('announcements.index'))->assertOk();
         $this->actingAs($admin)->get(route('audit-logs.index'))->assertOk();
     }

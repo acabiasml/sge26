@@ -36,7 +36,7 @@
         <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.edit', $academicYear) }}" aria-label="{{ __('Editar ano letivo') }} {{ $academicYear->name }}" title="{{ __('Editar ano letivo') }}">
             <i class="fas fa-pen" aria-hidden="true"></i>
         </a>
-        <form class="d-inline" method="POST" action="{{ route('academic-years.destroy', $academicYear) }}" onsubmit="return confirm(@js(__('Excluir este ano letivo? Os dias do calendário gerados para ele também serão apagados.')))">
+        <form class="d-inline" method="POST" action="{{ route('academic-years.destroy', $academicYear) }}" data-confirm-message="{{ __('Excluir este ano letivo? Os dias do calendário gerados para ele também serão apagados.') }}">
             @csrf
             @method('DELETE')
             <button class="btn btn-sm btn-outline-danger shadow-sm sge-icon-action" type="submit" aria-label="{{ __('Excluir ano letivo') }} {{ $academicYear->name }}" title="{{ __('Excluir ano letivo') }}">
@@ -310,13 +310,13 @@
                                         <a class="btn btn-sm btn-outline-secondary sge-icon-action" href="{{ route('academic-years.courses.edit', [$academicYear, $course]) }}" aria-label="{{ __('Editar matriz') }} {{ $course->name }}" title="{{ __('Editar matriz') }}">
                                             <i class="fas fa-pen" aria-hidden="true"></i>
                                         </a>
-                                        <form method="POST" action="{{ route('academic-years.courses.duplicate', [$academicYear, $course]) }}" onsubmit="return confirm(@js(__('Duplicar esta matriz com seus componentes curriculares?')))">
+                                        <form method="POST" action="{{ route('academic-years.courses.duplicate', [$academicYear, $course]) }}" data-confirm-message="{{ __('Duplicar esta matriz com seus componentes curriculares?') }}">
                                             @csrf
                                             <button class="btn btn-sm btn-outline-secondary sge-icon-action" type="submit" aria-label="{{ __('Duplicar matriz') }} {{ $course->name }}" title="{{ __('Duplicar matriz') }}">
                                                 <i class="fas fa-copy" aria-hidden="true"></i>
                                             </button>
                                         </form>
-                                        <form method="POST" action="{{ route('academic-years.courses.destroy', [$academicYear, $course]) }}" onsubmit="return confirm(@js(__('Excluir esta matriz? Os componentes curriculares também serão removidos.')))">
+                                        <form method="POST" action="{{ route('academic-years.courses.destroy', [$academicYear, $course]) }}" data-confirm-message="{{ __('Excluir esta matriz? Os componentes curriculares também serão removidos.') }}">
                                             @csrf
                                             @method('DELETE')
                                             <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="{{ __('Excluir matriz') }} {{ $course->name }}" title="{{ __('Excluir matriz') }}">

@@ -144,7 +144,7 @@
                                     @endif
                                 @endif
                                 @if (auth()->user()->isAdministrator() || ($document->visibility === 'private' && $document->private_owner_user_id === auth()->id()))
-                                    <form method="POST" action="{{ route('official-documents.destroy', $document) }}" onsubmit="return confirm('{{ __('Deseja excluir este documento? Esta ação é permanente.') }}')">
+                                    <form method="POST" action="{{ route('official-documents.destroy', $document) }}" data-confirm-message="{{ __('Deseja excluir este documento? Esta ação é permanente.') }}">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="{{ __('Excluir :title', ['title' => $document->title]) }}" title="{{ __('Excluir') }}">
@@ -164,6 +164,30 @@
             </div>
         </div>
     </div>
+
+    @if (auth()->user()->canManagePeople())
+        <div class="modal fade" id="imageDescriptionModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="imageDescriptionTitle" aria-describedby="imageDescriptionHelp">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <form id="imageDescriptionForm" data-no-loading="true">
+                        <div class="modal-header">
+                            <h2 class="modal-title h5" id="imageDescriptionTitle">{{ __('Descrição da imagem') }}</h2>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="{{ __('Fechar') }}"><span aria-hidden="true">&times;</span></button>
+                        </div>
+                        <div class="modal-body">
+                            <label for="imageDescriptionInput">{{ __('Descrição da imagem') }}</label>
+                            <input id="imageDescriptionInput" class="form-control" maxlength="500" aria-describedby="imageDescriptionHelp">
+                            <p class="small text-muted mt-2 mb-0" id="imageDescriptionHelp">{{ __('Descreva a imagem para quem usa leitor de tela. Deixe vazio se ela for decorativa.') }}</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">{{ __('Cancelar') }}</button>
+                            <button type="submit" class="btn btn-primary">{{ __('Salvar descrição') }}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
 @endsection
 
 @push('scripts')

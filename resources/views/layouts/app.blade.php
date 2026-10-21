@@ -404,9 +404,11 @@
 
     @include('layouts.partials.alert-details')
     @include('layouts.partials.highlighted-announcements')
+    @include('layouts.partials.confirm-action')
 
     <script src="{{ asset('template/vendor/jquery/jquery.min.js') }}"></script>
     <script src="{{ asset('template/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ asset('template/js/sge-confirm-modal.js') }}?v={{ filemtime(public_path('template/js/sge-confirm-modal.js')) }}"></script>
     <script src="{{ asset('template/vendor/jquery-easing/jquery.easing.min.js') }}"></script>
     <script src="{{ asset('template/js/sb-admin-2.min.js') }}"></script>
     <script src="{{ asset('vendor/rappasoft/livewire-tables/js/laravel-livewire-tables.min.js') }}"></script>
@@ -586,6 +588,7 @@
         });
 
         const formLoading = new Map();
+        const preservedSubmitValues = new WeakMap();
         const resetSubmitLoading = (targetForm = null) => {
             if (targetForm) {
                 formLoading.get(targetForm)?.();
@@ -598,6 +601,8 @@
             const forms = targetForm ? [targetForm] : document.querySelectorAll('form[data-processing="true"]');
 
             forms.forEach((form) => {
+                preservedSubmitValues.get(form)?.remove();
+                preservedSubmitValues.delete(form);
                 form.dataset.processing = 'false';
                 form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach((button) => {
                     button.disabled = false;
@@ -629,6 +634,14 @@
                 : form.querySelector('button[type="submit"], input[type="submit"]');
 
             if (button) {
+                if (button.name) {
+                    const submittedValue = document.createElement('input');
+                    submittedValue.type = 'hidden';
+                    submittedValue.name = button.name;
+                    submittedValue.value = button.value;
+                    form.appendChild(submittedValue);
+                    preservedSubmitValues.set(form, submittedValue);
+                }
                 button.dataset.originalHtml = button.tagName === 'BUTTON' ? button.innerHTML : button.value;
                 button.classList.add('is-processing');
                 button.setAttribute('aria-busy', 'true');

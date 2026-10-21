@@ -18,7 +18,7 @@
     </a>
 
     @if (auth()->user()?->canManageSchools())
-        <form method="POST" action="{{ route('schools.destroy', $school) }}" onsubmit="return confirm(@js(__('screens.delete_school_confirm')));">
+        <form method="POST" action="{{ route('schools.destroy', $school) }}" data-confirm-message="{{ __('screens.delete_school_confirm') }}">
             @csrf
             @method('DELETE')
             <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="{{ __('screens.delete_school', ['name' => $school->name]) }}" title="{{ __('screens.delete_school_title') }}">

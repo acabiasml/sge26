@@ -110,7 +110,7 @@
                                         <i class="fas fa-pen" aria-hidden="true"></i>
                                     </a>
 
-                                    <form method="POST" action="{{ route('schools.concepts.destroy', [$school, $concept]) }}" onsubmit="return confirm(@js(__('Remover este conceito?')));">
+                                    <form method="POST" action="{{ route('schools.concepts.destroy', [$school, $concept]) }}" data-confirm-message="{{ __('Remover este conceito?') }}">
                                         @csrf
                                         @method('DELETE')
                                         <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="{{ __('Remover conceito') }} {{ $concept->name }}" title="{{ __('Remover conceito') }}">
@@ -178,7 +178,7 @@
                 <div class="card-header font-weight-bold">{{ __('Padrão sugerido') }}</div>
                 <div class="card-body">
                     <p class="text-gray-600">{{ __('Preenche uma vigência com os conceitos do exemplo enviado: Ótimo, Bom, Suficiente, Insuficiente e Insuficiente Grave.') }}</p>
-                    <form method="POST" action="{{ route('schools.concepts.default', $school) }}" onsubmit="return confirm(@js(__('Substituir a tabela desta vigência pelos conceitos padrão?')));">
+                    <form method="POST" action="{{ route('schools.concepts.default', $school) }}" data-confirm-message="{{ __('Substituir a tabela desta vigência pelos conceitos padrão?') }}">
                         @csrf
                         <div class="form-group">
                             <label for="default_effective_from">{{ __('Vigente a partir de') }}</label>

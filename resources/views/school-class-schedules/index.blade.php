@@ -79,7 +79,7 @@
                 <section class="card shadow" aria-labelledby="new-slot-title">
                     <div class="card-header py-3 d-flex justify-content-between align-items-center">
                         <h2 id="new-slot-title" class="h6 m-0 font-weight-bold text-primary">{{ __('Novo bloco') }}</h2>
-                        <form method="POST" action="{{ route('academic-years.classes.schedules.destroy', [$academicYear, $class, $schedule]) }}" onsubmit="return confirm(@js(__('Remover esta versão de horário e todos os seus blocos?')))">
+                        <form method="POST" action="{{ route('academic-years.classes.schedules.destroy', [$academicYear, $class, $schedule]) }}" data-confirm-message="{{ __('Remover esta versão de horário e todos os seus blocos?') }}">
                             @csrf
                             @method('DELETE')
                             <button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="{{ __('Excluir versão de horário') }}" title="{{ __('Excluir versão') }}">
@@ -165,7 +165,7 @@
                                                         @endif
                                                         <small>{{ substr($slot->starts_at, 0, 5) }}-{{ substr($slot->ends_at, 0, 5) }}</small>
                                                     </button>
-                                                    <form method="POST" action="{{ route('academic-years.classes.schedules.slots.destroy', [$academicYear, $class, $schedule, $slot]) }}" onsubmit="return confirm(@js(__('Remover este bloco?')))">
+                                                    <form method="POST" action="{{ route('academic-years.classes.schedules.slots.destroy', [$academicYear, $class, $schedule, $slot]) }}" data-confirm-message="{{ __('Remover este bloco?') }}">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" aria-label="{{ __('Remover bloco') }} {{ $slot->type === 'aula' ? $slot->componentAssignment?->component?->name : $slot->label }}" title="{{ __('Remover bloco') }}"><i class="fas fa-times" aria-hidden="true"></i></button>
