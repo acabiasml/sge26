@@ -13,7 +13,11 @@
 
 @section('content')
     @php
-        $typeGroups = collect($documentTypes)->groupBy('group', true);
+        $sortLabel = fn (string $label): string => mb_strtolower(\Illuminate\Support\Str::ascii(__($label)));
+        $typeGroups = collect($documentTypes)
+            ->groupBy('group', true)
+            ->map(fn ($types) => $types->sortBy(fn ($type) => $sortLabel($type['label'])))
+            ->sortKeysUsing(fn ($left, $right) => strcmp($sortLabel($left), $sortLabel($right)));
         $typeCount = count($documentTypes);
     @endphp
 
