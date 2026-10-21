@@ -35,6 +35,7 @@ class VolunteerReceiptTest extends TestCase
         $response = $this->get(route('people.volunteer-receipt', array_merge(['person' => $volunteer], $params)));
         $response->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->assertStringStartsWith('%PDF', $response->getContent());
+        $this->assertSame(1, preg_match_all('/\/Type\s*\/Page\b/', $response->getContent()));
         $issued = IssuedDocument::query()->where('type', 'volunteer-receipt')->sole();
         $this->assertSame('450.00', $issued->payload['amount']);
         $this->assertSame('quatrocentos e cinquenta reais', $issued->payload['amount_words']);
