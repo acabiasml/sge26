@@ -89,6 +89,16 @@ html[data-theme$="-dark"] .sge-validation-pill-info {
     color: var(--aurora-ink);
 }
 
+html:is([data-theme$="-light"], [data-theme$="-dark"]) .sge-period-selector-item small {
+    color: var(--aurora-muted);
+}
+
+html[data-theme$="-dark"] .sge-period-position {
+    background: var(--aurora-hover);
+    border-color: var(--aurora-border);
+    box-shadow: none;
+}
+
 /* O resumo da gestão pedagógica acompanha as superfícies do tema escuro. */
 html[data-theme$="-dark"] .sge-diary-management-hero {
     background: linear-gradient(135deg, var(--aurora-panel), var(--aurora-raised));

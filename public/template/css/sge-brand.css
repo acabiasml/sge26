@@ -3918,6 +3918,12 @@ textarea:focus-visible {
     width: 2rem;
 }
 
+.sge-period-selector-item .badge-secondary,
+.sge-period-card-stats .badge-secondary {
+    background-color: #596372;
+    color: #fff;
+}
+
 .sge-period-card:last-child {
     margin-bottom: 0;
 }
