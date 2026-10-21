@@ -4,10 +4,9 @@
     <meta charset="utf-8">
     <style>
         @page { size: A4 portrait; margin: 36px 42px 108px; }
-        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; font-size: 12pt; color: #262626; line-height: 1.65; }
+        body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; font-size: 12px; color: #262626; line-height: 1.65; }
         @include('reports.partials.letterhead-styles')
-        .letterhead-line, .letterhead-line-main { font-size: 10pt; }
-        .document-title { font-size: 14pt; }
+        .receipt-body, .receipt-truth, .receipt-date, .receipt-signature { font-size: 12pt; }
         .receipt-body { margin-top: 45px; text-align: justify; text-indent: 35px; }
         .receipt-truth { margin-top: 27px; text-indent: 35px; }
         .receipt-date { text-align: center; margin-top: 70px; }
