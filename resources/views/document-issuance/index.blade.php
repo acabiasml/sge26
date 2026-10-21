@@ -181,6 +181,23 @@
                     <span class="sge-document-step-label">{{ __('Apresentação') }}</span>
                     <h3>{{ __('Defina as opções do documento') }}</h3>
 
+                    <fieldset id="receipt-options" class="sge-document-options" hidden disabled>
+                        <legend>{{ __('Dados do recibo de atividade voluntária') }}</legend>
+                        <div class="form-row">
+                            <div class="form-group col-md-12"><label for="receipt-school">Escola do recibo</label>
+                                <select id="receipt-school" name="receipt_school_id" class="form-control" required>
+                                    @foreach ($schools as $school)
+                                        <option value="{{ $school->id }}" @selected((string) old('receipt_school_id') === (string) $school->id)>{{ $school->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group col-md-6"><label for="period-start">Início do período</label><input id="period-start" name="period_start" type="date" class="form-control" value="{{ old('period_start') }}" required></div>
+                            <div class="form-group col-md-6"><label for="period-end">Fim do período</label><input id="period-end" name="period_end" type="date" class="form-control" value="{{ old('period_end') }}" required></div>
+                            <div class="form-group col-md-6"><label for="receipt-amount">Valor (R$)</label><input id="receipt-amount" name="amount" type="number" min="0.01" max="999999.99" step="0.01" class="form-control" value="{{ old('amount') }}" required></div>
+                            <div class="form-group col-md-6"><label for="receipt-date">Data de emissão</label><input id="receipt-date" name="issued_date" type="date" class="form-control" value="{{ old('issued_date', now()->toDateString()) }}" required></div>
+                        </div>
+                    </fieldset>
+
                     <fieldset id="score-view-options" class="sge-document-options" hidden>
                         <legend>{{ __('Como apresentar o desempenho?') }}</legend>
                         <label class="sge-choice-tile">
@@ -475,7 +492,11 @@
                 monthInput.disabled = !hasMonthOptions;
                 attendanceScopeOptions.hidden = !hasAttendanceOptions;
                 attendanceScopeOptions.disabled = !hasAttendanceOptions;
-                optionsStep.hidden = !hasScoreOptions && !hasMonthOptions && !hasAttendanceOptions;
+                const hasReceiptOptions = typeSelect.value === 'volunteer-receipt';
+                const receiptOptions = document.getElementById('receipt-options');
+                receiptOptions.hidden = !hasReceiptOptions;
+                receiptOptions.disabled = !hasReceiptOptions;
+                optionsStep.hidden = !hasScoreOptions && !hasMonthOptions && !hasAttendanceOptions && !hasReceiptOptions;
                 optionsStep.classList.toggle('is-muted', !hasType);
 
                 resetTarget(hasType ? @js(__('Use a busca para localizar o registro correto.')) : @js(__('Primeiro, escolha o tipo de documento.')));
@@ -594,14 +615,25 @@
 
             typeSelect.addEventListener('change', () => {
                 updateType();
+                if (typeSelect.value === 'volunteer-receipt') {
+                    schoolSelect.value = document.getElementById('receipt-school').value;
+                    schoolSelect.dispatchEvent(new Event('change'));
+                }
                 if (['direct', 'listing', 'own_enrollment'].includes(targetKind())) searchTargets();
             });
             schoolSelect.addEventListener('change', () => {
+                if (typeSelect.value === 'volunteer-receipt' && schoolSelect.value) {
+                    document.getElementById('receipt-school').value = schoolSelect.value;
+                }
                 yearSelect.value = '';
                 classSelect.value = '';
                 syncFilterOptions();
                 syncAttendanceOptions();
                 resetTarget();
+            });
+            document.getElementById('receipt-school').addEventListener('change', (event) => {
+                schoolSelect.value = event.target.value;
+                schoolSelect.dispatchEvent(new Event('change'));
             });
             yearSelect.addEventListener('change', () => {
                 classSelect.value = '';

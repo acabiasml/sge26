@@ -90,6 +90,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::resource('pessoas', PersonController::class)
         ->parameters(['pessoas' => 'person'])
         ->names('people');
+    Route::get('pessoas/{person}/recibo-voluntario', [RecordPdfController::class, 'volunteerReceipt'])->name('people.volunteer-receipt');
     Route::get('pessoas/{person}/pdf', [RecordPdfController::class, 'person'])->name('people.pdf');
     Route::post('pessoas/{person}/google-workspace', [GoogleWorkspaceController::class, 'store'])->name('people.google-workspace.store');
     Route::get('pessoas/{person}/vida-escolar', [StudentMapController::class, 'show'])->name('people.student-map.show');

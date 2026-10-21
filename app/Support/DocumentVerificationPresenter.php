@@ -15,8 +15,8 @@ class DocumentVerificationPresenter
      *     scope_label: string|null,
      *     rows_count: int|null,
      *     school_name: string|null,
-    *     school_contact: array<string, string>,
-    *     school_managers: list<array{name: string, role: string}>,
+     *     school_contact: array<string, string>,
+     *     school_managers: list<array{name: string, role: string}>,
      *     revoked: bool
      * }
      */
@@ -70,6 +70,7 @@ class DocumentVerificationPresenter
     {
         return match (true) {
             $type === 'person-record' => __('Ficha de cadastro de pessoa'),
+            $type === 'volunteer-receipt' => __('Recibo de atividade voluntária'),
             $type === 'school-record' => __('Ficha de cadastro de escola'),
             $type === 'academic-calendar' => __('Calendário escolar oficial'),
             $type === 'academic-matrices' => __('Matrizes curriculares oficiais'),
@@ -104,6 +105,7 @@ class DocumentVerificationPresenter
     {
         return match (true) {
             $type === 'person-record' => __('Este código confirma que uma ficha cadastral de pessoa foi emitida pelo Beabá.'),
+            $type === 'volunteer-receipt' => __('Este código confirma que um recibo de atividade voluntária foi emitido pelo Beabá.'),
             $type === 'school-record' => __('Este código confirma que uma ficha cadastral de escola foi emitida pelo Beabá.'),
             $type === 'academic-calendar' => __('Este código confirma que um calendário escolar oficial foi emitido pelo Beabá.'),
             $type === 'academic-matrices' => __('Este código confirma que um documento oficial de matrizes curriculares foi emitido pelo Beabá.'),

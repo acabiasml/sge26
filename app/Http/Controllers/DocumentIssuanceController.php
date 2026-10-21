@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\VolunteerReceiptRequest;
 use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
 use App\Models\AcademicYear;
@@ -251,6 +252,11 @@ class DocumentIssuanceController extends Controller
             'icon' => 'fa-user-check',
             'attendance_scope' => true,
         ],
+        'volunteer-receipt' => [
+            'group' => 'Recibos', 'label' => 'Recibo de atividade voluntária',
+            'description' => 'Selecione a pessoa e informe período, valor e data de emissão.',
+            'target' => 'person', 'icon' => 'fa-file-invoice-dollar',
+        ],
         'person-record' => [
             'group' => 'Cadastros',
             'label' => 'Ficha cadastral da pessoa',
@@ -343,6 +349,9 @@ class DocumentIssuanceController extends Controller
             'federal_aid_only' => ['nullable', 'boolean'],
             'confirm_missing_student_cpf' => ['nullable', 'boolean'],
         ]);
+        if ($data['type'] === 'volunteer-receipt') {
+            $data = array_merge($data, $request->validate(VolunteerReceiptRequest::rulesForReceipt()));
+        }
         $schoolIds = $this->accessibleSchoolIds($request->user());
 
         return match ($types[$data['type']]['target']) {
@@ -991,6 +1000,10 @@ class DocumentIssuanceController extends Controller
             ->whereKey($data['target_id'])
             ->when(! $user->isAdministrator(), fn (Builder $query) => $query->whereHas('schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $schoolIds)))
             ->firstOrFail();
+
+        if ($data['type'] === 'volunteer-receipt') {
+            return redirect()->route('people.volunteer-receipt', array_merge(['person' => $person], array_intersect_key($data, array_flip(['receipt_school_id', 'period_start', 'period_end', 'amount', 'issued_date']))));
+        }
 
         return redirect()->route('people.pdf', $person);
     }
