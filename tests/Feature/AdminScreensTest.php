@@ -69,6 +69,7 @@ class AdminScreensTest extends TestCase
             ->post(route('official-documents.store'), [
                 'school_id' => $school->id,
                 'type' => OfficialDocument::TYPE_LETTER,
+                'visibility' => OfficialDocument::VISIBILITY_PUBLIC,
                 'title' => 'Ofício de teste',
                 'orientation' => 'portrait',
                 'line_spacing' => '1.15',
@@ -80,6 +81,7 @@ class AdminScreensTest extends TestCase
         $document = OfficialDocument::query()->with('issuedDocument')->firstOrFail();
 
         $this->assertSame($school->id, $document->school_id);
+        $this->assertSame(OfficialDocument::VISIBILITY_PUBLIC, $document->visibility);
         $this->assertSame(1.15, (float) $document->line_spacing);
         $this->assertStringNotContainsString('script', $document->content_html);
         $this->assertStringContainsString('text-align: center', $document->content_html);
@@ -116,6 +118,7 @@ class AdminScreensTest extends TestCase
         $html = '<table><tbody><tr><td colspan="2">Tabela de teste</td></tr><tr><td>Imagem</td><td><img src="'.$src.'" alt="Exemplo" style="width: 50%"></td></tr></tbody></table>';
         $this->actingAs($manager)->post(route('official-documents.store'), [
             'school_id' => $school->id, 'title' => 'Documento com imagem', 'orientation' => 'portrait', 'line_spacing' => '1.5', 'content_html' => $html,
+            'visibility' => OfficialDocument::VISIBILITY_PUBLIC,
         ])->assertOk()->assertHeader('content-type', 'application/pdf');
         $document = OfficialDocument::query()->with('issuedDocument')->firstOrFail();
         $this->assertStringContainsString($src, $document->content_html);
@@ -172,6 +175,7 @@ class AdminScreensTest extends TestCase
             ->assertSee('novo código de autenticidade');
         $this->actingAs($manager)->post(route('official-documents.store'), [
             'school_id' => $school->id, 'type' => $original->type, 'title' => 'Ofício reemitido',
+            'visibility' => OfficialDocument::VISIBILITY_PUBLIC,
             'orientation' => $original->orientation, 'line_spacing' => $original->line_spacing,
             'content_html' => '<p align="right" onclick="alert(1)">Texto revisado</p><ul><li style="text-align: center">Item centralizado</li></ul>',
         ])->assertOk()->assertHeader('content-type', 'application/pdf');
@@ -244,6 +248,90 @@ class AdminScreensTest extends TestCase
             ->assertOk()->assertSee('Documento Número 1')->assertDontSee('Documento Número 6');
     }
 
+    public function test_official_documents_are_separated_by_school_and_author(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A']);
+        $otherSchool = School::query()->create(['name' => 'Escola B']);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $teacher = $this->userWithRole(PersonSchoolRole::ROLE_TEACHER, $school->id);
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+
+        $makeDocument = fn (string $title, int $schoolId, int $authorId, string $visibility) => OfficialDocument::query()->create([
+            'school_id' => $schoolId, 'created_by_user_id' => $authorId,
+            'title' => $title, 'content_html' => '<p>Texto</p>',
+            'type' => OfficialDocument::TYPE_OTHER, 'orientation' => 'portrait', 'line_spacing' => 1.5,
+            'visibility' => $visibility,
+        ]);
+
+        $public = $makeDocument('Publico Escola A', $school->id, $manager->id, OfficialDocument::VISIBILITY_PUBLIC);
+        $otherPublic = $makeDocument('Publico Escola B', $otherSchool->id, $manager->id, OfficialDocument::VISIBILITY_PUBLIC);
+        $private = $makeDocument('Privado Gestor', $school->id, $manager->id, OfficialDocument::VISIBILITY_PRIVATE);
+        $ownPrivate = $makeDocument('Privado Professor', $school->id, $teacher->id, OfficialDocument::VISIBILITY_PRIVATE);
+
+        $this->actingAs($teacher)->get(route('official-documents.create'))
+            ->assertOk()->assertSee('Publico Escola A')->assertDontSee('Publico Escola B')
+            ->assertDontSee('Privado Gestor')->assertDontSee('Novo documento em papel timbrado');
+        $this->actingAs($teacher)->get(route('official-documents.create', ['visibility' => 'private']))
+            ->assertOk()->assertSee('Privado Professor')->assertDontSee('Privado Gestor')
+            ->assertDontSee('Publico Escola A');
+        $this->actingAs($teacher)->get(route('official-documents.reissue', $private))->assertForbidden();
+        $this->actingAs($teacher)->get(route('official-documents.edit', $private))->assertForbidden();
+        $this->actingAs($teacher)->get(route('official-documents.reissue', $otherPublic))->assertForbidden();
+        $this->actingAs($teacher)->get(route('official-documents.reissue', $public))->assertNotFound();
+        $this->actingAs($teacher)->get(route('official-documents.reissue', $ownPrivate))->assertNotFound();
+        $this->actingAs($manager)->get(route('official-documents.create', ['visibility' => 'private']))
+            ->assertSee('Privado Gestor')->assertDontSee('Privado Professor');
+        $this->actingAs($admin)->get(route('official-documents.create', ['visibility' => 'private']))
+            ->assertSee('Privado Gestor')->assertSee('Privado Professor');
+
+        $this->actingAs($manager)->patch(route('official-documents.visibility', $private), ['visibility' => 'public'])
+            ->assertForbidden();
+        $this->actingAs($admin)->patch(route('official-documents.visibility', $private), ['visibility' => 'public'])
+            ->assertRedirect(route('official-documents.create', ['visibility' => 'public']));
+        $this->assertSame(OfficialDocument::VISIBILITY_PUBLIC, $private->fresh()->visibility);
+        $this->actingAs($teacher)->get(route('official-documents.create'))->assertSee('Privado Gestor');
+        $this->actingAs($admin)->patch(route('official-documents.visibility', $private), ['visibility' => 'private'])
+            ->assertRedirect(route('official-documents.create', ['visibility' => 'private']));
+        $this->actingAs($teacher)->get(route('official-documents.create'))->assertDontSee('Privado Gestor');
+        $this->actingAs($teacher)->post(route('official-documents.store'), [
+            'school_id' => $school->id, 'title' => 'Emissão indevida',
+            'visibility' => OfficialDocument::VISIBILITY_PRIVATE,
+            'orientation' => 'portrait', 'line_spacing' => '1.5', 'content_html' => '<p>Texto</p>',
+        ])->assertForbidden();
+    }
+
+    public function test_official_document_visibility_must_be_chosen_when_issued(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+
+        $this->actingAs($manager)->post(route('official-documents.store'), [
+            'school_id' => $school->id, 'title' => 'Sem visibilidade',
+            'orientation' => 'portrait', 'line_spacing' => '1.5', 'content_html' => '<p>Texto</p>',
+        ])->assertSessionHasErrors('visibility');
+        $this->assertDatabaseCount('official_documents', 0);
+    }
+
+    public function test_private_document_is_saved_with_its_chosen_visibility(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        $school = School::query()->create($this->officialSchoolData());
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+
+        $this->actingAs($manager)->post(route('official-documents.store'), [
+            'school_id' => $school->id, 'title' => 'Documento reservado',
+            'visibility' => OfficialDocument::VISIBILITY_PRIVATE,
+            'orientation' => 'portrait', 'line_spacing' => '1.5', 'content_html' => '<p>Texto</p>',
+        ])->assertOk()->assertHeader('content-type', 'application/pdf');
+
+        $document = OfficialDocument::query()->firstOrFail();
+        $this->assertSame(OfficialDocument::VISIBILITY_PRIVATE, $document->visibility);
+        $this->actingAs($manager)->get(route('official-documents.create'))
+            ->assertDontSee('Documento Reservado');
+        $this->actingAs($manager)->get(route('official-documents.create', ['visibility' => 'private']))
+            ->assertSee('Documento Reservado');
+    }
+
     public function test_manager_cannot_emit_official_document_for_other_school(): void
     {
         $managedSchool = School::query()->create(['name' => 'Escola A', 'active' => true]);
@@ -254,6 +342,7 @@ class AdminScreensTest extends TestCase
             ->post(route('official-documents.store'), [
                 'school_id' => $otherSchool->id,
                 'type' => OfficialDocument::TYPE_NOTICE,
+                'visibility' => OfficialDocument::VISIBILITY_PUBLIC,
                 'title' => 'Comunicado indevido',
                 'orientation' => 'portrait',
                 'line_spacing' => '1.5',

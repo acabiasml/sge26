@@ -5,6 +5,7 @@
 
 @section('content')
     <div class="row">
+        @if (auth()->user()->canManagePeople())
         <div class="col-xl-8 mb-4">
             <div class="card shadow">
                 <div class="card-header py-3">
@@ -50,6 +51,16 @@
                         </div>
 
                         <div class="form-group">
+                            <label for="visibility">{{ __('Visibilidade do documento') }}</label>
+                            <select id="visibility" name="visibility" class="form-control @error('visibility') is-invalid @enderror" required>
+                                <option value="" @selected(old('visibility', $sourceDocument?->visibility) === null)>{{ __('Selecione') }}</option>
+                                <option value="public" @selected(old('visibility', $sourceDocument?->visibility) === 'public')>{{ __('Público — visível aos vinculados à escola') }}</option>
+                                <option value="private" @selected(old('visibility', $sourceDocument?->visibility) === 'private')>{{ __('Privado — visível apenas para você e administradores') }}</option>
+                            </select>
+                            @error('visibility') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
+                        </div>
+
+                        <div class="form-group">
                             <label for="title">{{ __('Título do documento') }}</label>
                             <input id="title" name="title" class="form-control @error('title') is-invalid @enderror" value="{{ old('title', $sourceDocument?->title) }}" maxlength="255" required>
                             @error('title') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
@@ -71,14 +82,20 @@
                 </div>
             </div>
         </div>
+        @endif
 
-        <div class="col-xl-4 mb-4">
+        <div class="{{ auth()->user()->canManagePeople() ? 'col-xl-4' : 'col-12' }} mb-4">
             <div class="card shadow">
                 <div class="card-header py-3">
                     <h2 class="h6 m-0 font-weight-bold text-primary">{{ __('Documentos emitidos') }}</h2>
                 </div>
                 <div class="card-body">
+                    <nav class="nav nav-pills mb-3" aria-label="{{ __('Visibilidade dos documentos') }}">
+                        <a class="nav-link {{ $visibility === 'public' ? 'active' : '' }}" href="{{ route('official-documents.create', ['visibility' => 'public']) }}">{{ __('Públicos das minhas escolas') }}</a>
+                        <a class="nav-link {{ $visibility === 'private' ? 'active' : '' }}" href="{{ route('official-documents.create', ['visibility' => 'private']) }}">{{ auth()->user()->isAdministrator() ? __('Documentos privados') : __('Meus documentos privados') }}</a>
+                    </nav>
                     <p class="small text-muted">{{ __('Reeditar cria uma nova emissão. Reemitir abre o documento já emitido para visualizar ou imprimir.') }}</p>
+                    @if (session('status')) <div class="alert alert-success" role="status">{{ session('status') }}</div> @endif
                     @forelse ($recentDocuments as $document)
                         <div class="border-bottom pb-2 mb-2">
                             <strong class="d-block">{{ $document->title }}</strong>
@@ -91,9 +108,19 @@
                                     <i class="fas fa-print mr-1" aria-hidden="true"></i> {{ __('Reemitir') }}
                                 </a>
                             @endif
-                            <a class="btn btn-sm btn-outline-primary mt-2" href="{{ route('official-documents.edit', $document) }}">
-                                <i class="fas fa-edit mr-1" aria-hidden="true"></i> {{ __('Reeditar') }}
-                            </a>
+                            @if (auth()->user()->canManageSchool($document->school_id))
+                                <a class="btn btn-sm btn-outline-primary mt-2" href="{{ route('official-documents.edit', $document) }}">
+                                    <i class="fas fa-edit mr-1" aria-hidden="true"></i> {{ __('Reeditar') }}
+                                </a>
+                            @endif
+                            @if (auth()->user()->isAdministrator())
+                                <form method="POST" action="{{ route('official-documents.visibility', $document) }}" class="d-inline-block mt-2">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="visibility" value="{{ $document->visibility === 'public' ? 'private' : 'public' }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-warning">{{ $document->visibility === 'public' ? __('Tornar privado') : __('Tornar público') }}</button>
+                                </form>
+                            @endif
                         </div>
                     @empty
                         <p class="text-muted mb-0">{{ __('Nenhum documento emitido ainda.') }}</p>
@@ -107,6 +134,7 @@
 @endsection
 
 @push('scripts')
+    @if (auth()->user()->canManagePeople())
     <link rel="stylesheet" href="{{ asset('template/vendor/summernote/summernote-bs4.min.css') }}">
     <link rel="stylesheet" href="{{ asset('template/css/sge-document-editor.css') }}?v={{ filemtime(public_path('template/css/sge-document-editor.css')) }}">
     <script src="{{ asset('template/vendor/summernote/summernote-bs4.min.js') }}"></script>
@@ -124,4 +152,5 @@
         };
     </script>
     <script src="{{ asset('template/js/sge-document-editor.js') }}?v={{ filemtime(public_path('template/js/sge-document-editor.js')) }}"></script>
+    @endif
 @endpush

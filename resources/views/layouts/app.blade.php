@@ -225,12 +225,10 @@
                                 <i class="fas fa-print" aria-hidden="true"></i>
                                 <span>{{ __('navigation.issuance_center') }}</span>
                             </a>
-                        @if ($canManagePeople)
                             <a class="collapse-item {{ request()->routeIs('official-documents.*') ? 'active' : '' }}" href="{{ route('official-documents.create') }}">
                                 <i class="fas fa-file-signature" aria-hidden="true"></i>
-                                <span>{{ __('navigation.document_editor') }}</span>
+                                <span>{{ __('Documentos oficiais') }}</span>
                             </a>
-                        @endif
                         <a class="collapse-item {{ request()->routeIs('documents.verify', 'documents.verify.*') ? 'active' : '' }}" href="{{ route('documents.verify.form') }}">
                             <i class="fas fa-certificate" aria-hidden="true"></i>
                             <span>{{ __('navigation.verify_authenticity') }}</span>

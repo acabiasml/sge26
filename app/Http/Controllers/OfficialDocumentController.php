@@ -21,23 +21,34 @@ class OfficialDocumentController extends Controller
 {
     public function create(Request $request, ?OfficialDocument $document = null): Response
     {
-        abort_unless($request->user()->canManagePeople(), 403);
-
         if ($document) {
-            abort_unless($request->user()->canManageSchool($document->school_id), 403);
+            abort_unless($request->user()->canManagePeople()
+                && $request->user()->canManageSchool($document->school_id)
+                && $this->canView($request, $document), 403);
         }
+
+        $visibility = $request->query('visibility', OfficialDocument::VISIBILITY_PUBLIC);
+        abort_unless(in_array($visibility, [OfficialDocument::VISIBILITY_PUBLIC, OfficialDocument::VISIBILITY_PRIVATE], true), 404);
+
+        $user = $request->user();
 
         return response()->view('official-documents.create', [
             'sourceDocument' => $document,
             'editorContent' => $this->sanitizeContent((string) $request->old('content_html', $document?->content_html ?? '')),
-            'schools' => $this->availableSchools($request),
+            'schools' => $user->canManagePeople() ? $this->availableSchools($request) : collect(),
+            'visibility' => $visibility,
             'recentDocuments' => OfficialDocument::query()
                 ->with(['school', 'issuedDocument'])
-                ->when(! $request->user()->isAdministrator(), function ($query) use ($request): void {
-                    $query->whereIn('school_id', $request->user()->manageableSchoolIds());
+                ->where('visibility', $visibility)
+                ->when(! $user->isAdministrator(), function ($query) use ($user, $visibility): void {
+                    if ($visibility === OfficialDocument::VISIBILITY_PUBLIC) {
+                        $query->whereIn('school_id', $user->visibleSchoolIds());
+                    } else {
+                        $query->where('created_by_user_id', $user->id);
+                    }
                 })
                 ->latest('id')
-                ->paginate(5),
+                ->paginate(5)->withQueryString(),
         ]);
     }
 
@@ -54,6 +65,7 @@ class OfficialDocumentController extends Controller
             'content_html' => ['required', 'string', 'max:6000000'],
             'orientation' => ['required', Rule::in(['portrait', 'landscape'])],
             'line_spacing' => ['required', 'numeric', 'min:1', 'max:2'],
+            'visibility' => ['required', Rule::in([OfficialDocument::VISIBILITY_PUBLIC, OfficialDocument::VISIBILITY_PRIVATE])],
         ]);
 
         $school = School::query()->findOrFail($data['school_id']);
@@ -81,6 +93,7 @@ class OfficialDocumentController extends Controller
                 'paper_size' => 'a4',
                 'orientation' => $data['orientation'],
                 'line_spacing' => $data['line_spacing'],
+                'visibility' => $data['visibility'],
             ]);
 
             $issuedDocument = $this->issuedDocument($request, $officialDocument);
@@ -92,7 +105,7 @@ class OfficialDocumentController extends Controller
 
     public function reissue(Request $request, OfficialDocument $document): Response
     {
-        abort_unless($request->user()->canManagePeople() && $request->user()->canManageSchool($document->school_id), 403);
+        abort_unless($this->canView($request, $document), 403);
 
         return DB::transaction(function () use ($document): Response {
             $document = OfficialDocument::query()->lockForUpdate()->findOrFail($document->id);
@@ -100,6 +113,30 @@ class OfficialDocumentController extends Controller
 
             return $this->archivedPdf($document);
         });
+    }
+
+    public function updateVisibility(Request $request, OfficialDocument $document): \Illuminate\Http\RedirectResponse
+    {
+        abort_unless($request->user()->isAdministrator(), 403);
+
+        $data = $request->validate([
+            'visibility' => ['required', Rule::in([OfficialDocument::VISIBILITY_PUBLIC, OfficialDocument::VISIBILITY_PRIVATE])],
+        ]);
+
+        $document->update(['visibility' => $data['visibility']]);
+
+        return redirect()->route('official-documents.create', ['visibility' => $data['visibility']])
+            ->with('status', __('Visibilidade do documento atualizada.'));
+    }
+
+    private function canView(Request $request, OfficialDocument $document): bool
+    {
+        $user = $request->user();
+
+        return $user->isAdministrator()
+            || ($document->visibility === OfficialDocument::VISIBILITY_PRIVATE
+                ? $document->created_by_user_id === $user->id
+                : in_array($document->school_id, $user->visibleSchoolIds(), true));
     }
 
     private function archivedPdf(OfficialDocument $document): Response

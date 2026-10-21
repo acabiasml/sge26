@@ -12,6 +12,9 @@ class OfficialDocument extends Model
 {
     use Auditable, HasFactory, HasTitleCaseAttributes;
 
+    public const VISIBILITY_PUBLIC = 'public';
+    public const VISIBILITY_PRIVATE = 'private';
+
     public const TYPE_NOTICE = 'comunicado';
     public const TYPE_LETTER = 'oficio';
     public const TYPE_HANDOUT = 'apostila';
@@ -34,6 +37,7 @@ class OfficialDocument extends Model
         'paper_size',
         'orientation',
         'line_spacing',
+        'visibility',
     ];
 
     protected function casts(): array

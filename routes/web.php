@@ -124,6 +124,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('documentos-oficiais', [OfficialDocumentController::class, 'create'])->name('official-documents.create');
     Route::get('documentos-oficiais/{document}/reeditar', [OfficialDocumentController::class, 'create'])->name('official-documents.edit');
     Route::get('documentos-oficiais/{document}/reemitir', [OfficialDocumentController::class, 'reissue'])->name('official-documents.reissue');
+    Route::patch('documentos-oficiais/{document}/visibilidade', [OfficialDocumentController::class, 'updateVisibility'])->name('official-documents.visibility');
     Route::post('documentos-oficiais/pdf', [OfficialDocumentController::class, 'store'])->name('official-documents.store');
     Route::get('emissao-de-documentos', [DocumentIssuanceController::class, 'index'])->name('document-issuance.index');
     Route::get('emissao-de-documentos/destinatarios', [DocumentIssuanceController::class, 'targets'])->name('document-issuance.targets');
