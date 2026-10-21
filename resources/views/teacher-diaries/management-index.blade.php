@@ -38,7 +38,7 @@
                 @endif
             </p>
         </div>
-        <div class="sge-diary-management-metrics" aria-label="{{ __('Resumo dos diários filtrados') }}">
+        <div role="group" class="sge-diary-management-metrics" aria-label="{{ __('Resumo dos diários filtrados') }}">
             <div><strong>{{ $stats['total'] }}</strong><span>{{ __('diários') }}</span></div>
             <div><strong>{{ $stats['pending'] }}</strong><span>{{ __('com pendência') }}</span></div>
             <div><strong>{{ $stats['waiting'] }}</strong><span>{{ __('aguardando') }}</span></div>

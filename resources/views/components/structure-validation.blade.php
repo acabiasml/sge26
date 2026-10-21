@@ -18,7 +18,7 @@
             <h2 id="structure-validation-title" class="h6 m-0 font-weight-bold text-primary">{{ $title }}</h2>
             <p class="small text-muted mb-0 mt-1">{{ __('Use este painel antes de iniciar matrículas, horários e diários.') }}</p>
         </div>
-        <div class="sge-validation-summary mt-2 mt-md-0" aria-label="{{ __('Resumo da validação') }}">
+        <div role="group" class="sge-validation-summary mt-2 mt-md-0" aria-label="{{ __('Resumo da validação') }}">
             <span class="sge-validation-pill sge-validation-pill-danger">{{ $summary['errors'] }} {{ __('erro(s)') }}</span>
             <span class="sge-validation-pill sge-validation-pill-warning">{{ $summary['warnings'] }} {{ __('aviso(s)') }}</span>
             <span class="sge-validation-pill sge-validation-pill-info">{{ $summary['info'] }} {{ __('informação(ões)') }}</span>

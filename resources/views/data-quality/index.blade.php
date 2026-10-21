@@ -85,7 +85,7 @@
         </div>
     </section>
 
-    <div class="sge-quality-summary mb-4" aria-label="{{ __('screens.compliance_summary') }}">
+    <div role="group" class="sge-quality-summary mb-4" aria-label="{{ __('screens.compliance_summary') }}">
         <article>
             <span>{{ __('screens.total_under_review') }}</span>
             <strong>{{ number_format($summary['total'], 0, ',', '.') }}</strong>

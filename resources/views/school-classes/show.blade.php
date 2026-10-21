@@ -60,7 +60,7 @@
                         <span class="badge badge-{{ $classStatus['tone'] }} mt-2" title="{{ __($classStatus['description']) }}">{{ __($classStatus['label']) }}</span>
                     </div>
 
-                    <div class="sge-class-metrics" aria-label="{{ __('Resumo da turma') }}">
+                    <div role="group" class="sge-class-metrics" aria-label="{{ __('Resumo da turma') }}">
                         <div><strong>{{ $activeEnrollmentCount }}</strong><span>{{ __('matrículas ativas') }}</span></div>
                         <div><strong>{{ $enrollmentCount }}</strong><span>{{ __('matrículas no total') }}</span></div>
                         <div><strong>{{ $class->courses->count() }}</strong><span>{{ __('matrizes') }}</span></div>

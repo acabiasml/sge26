@@ -194,7 +194,7 @@
                                         · {{ $component->startsPeriod?->name ?? __('início da turma') }} {{ __('até') }} {{ $component->endsPeriod?->name ?? __('fim da turma') }}
                                     </div>
                                 </div>
-                                <div class="sge-action-buttons mt-2 mt-md-0" aria-label="{{ __('Ações do componente') }} {{ $component->name }}">
+                                <div role="group" class="sge-action-buttons mt-2 mt-md-0" aria-label="{{ __('Ações do componente') }} {{ $component->name }}">
                                     <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('academic-years.courses.components.show', [$academicYear, $course, $component]) }}" aria-label="{{ __('Gerenciar componente') }} {{ $component->name }}" title="{{ __('Gerenciar componente') }}">
                                         <i class="fas fa-cog" aria-hidden="true"></i>
                                     </a>

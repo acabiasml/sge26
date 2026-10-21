@@ -136,7 +136,7 @@
             <h2 id="dashboard-title">{{ __('dashboard.hello', ['name' => $dashboardFirstName]) }}</h2>
             <p>{{ $dashboardIntroduction }}</p>
         </div>
-        <div class="sge-dashboard-date" aria-label="{{ __('dashboard.date_brasilia') }}">
+        <div role="group" class="sge-dashboard-date" aria-label="{{ __('dashboard.date_brasilia') }}">
             <span>{{ now('America/Sao_Paulo')->translatedFormat('d \d\e F') }}</span>
             <small>{{ now('America/Sao_Paulo')->format('Y') }} · {{ __('dashboard.brasilia_time') }}</small>
         </div>
@@ -222,7 +222,7 @@
                             <a class="btn btn-sm btn-outline-primary sge-icon-action ml-2" href="{{ route('dashboard', array_merge(request()->except('calendar_month'), ['calendar_month' => $calendarNextMonth->format('Y-m')])) }}#calendar-heading" aria-label="{{ __('dashboard.view_month', ['month' => ucfirst($calendarNextMonth->translatedFormat('F Y'))]) }}" title="{{ __('dashboard.next_month') }}"><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
                         @endif
                     </nav>
-                    <div class="sge-calendar-legend" aria-label="{{ __('dashboard.calendar_legend') }}">
+                    <div role="group" class="sge-calendar-legend" aria-label="{{ __('dashboard.calendar_legend') }}">
                         <span><strong>L</strong> {{ __('dashboard.school_day') }}</span>
                         <span><strong class="sge-dot sge-dot-orange"></strong> {{ __('dashboard.birthday') }}</span>
                     </div>
@@ -362,8 +362,8 @@
                                     <span>{{ $item['label'] }}</span>
                                 </div>
                                 <strong>{{ number_format($item['value'], 0, ',', '.') }}</strong>
-                                <div class="progress" aria-label="{{ $item['label'] }}: {{ $percent }}%">
-                                    <div class="progress-bar" role="progressbar" style="width: {{ $percent }}%;" aria-valuenow="{{ $percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" aria-label="{{ $item['label'] }}" style="width: {{ $percent }}%;" aria-valuenow="{{ $percent }}" aria-valuemin="0" aria-valuemax="100"></div>
                                 </div>
                             </div>
                         @endforeach

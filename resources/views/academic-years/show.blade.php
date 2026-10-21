@@ -302,7 +302,7 @@
                                         <span class="badge badge-{{ $courseStatus['tone'] }} ml-1">{{ __($courseStatus['label']) }}</span>
                                     </div>
                                 </div>
-                                <div class="sge-action-buttons mt-2 mt-md-0" aria-label="{{ __('Ações da matriz') }} {{ $course->name }}">
+                                <div role="group" class="sge-action-buttons mt-2 mt-md-0" aria-label="{{ __('Ações da matriz') }} {{ $course->name }}">
                                     <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('academic-years.courses.show', [$academicYear, $course]) }}" aria-label="{{ __('Gerenciar matriz') }} {{ $course->name }}" title="{{ __('Gerenciar matriz') }}">
                                         <i class="fas fa-cog" aria-hidden="true"></i>
                                     </a>
@@ -368,7 +368,7 @@
                                         <span class="badge badge-{{ $classStatus['tone'] }} ml-1">{{ __($classStatus['label']) }}</span>
                                     </div>
                                 </div>
-                                <div class="sge-action-buttons mt-2 mt-md-0" aria-label="{{ __('Ações da turma') }} {{ $class->name }}">
+                                <div role="group" class="sge-action-buttons mt-2 mt-md-0" aria-label="{{ __('Ações da turma') }} {{ $class->name }}">
                                     <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('academic-years.classes.show', [$academicYear, $class]) }}" aria-label="{{ __('Gerenciar turma') }} {{ $class->name }}" title="{{ __('Gerenciar turma') }}">
                                         <i class="fas fa-cog" aria-hidden="true"></i>
                                     </a>

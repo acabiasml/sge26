@@ -2785,7 +2785,7 @@ a.sge-stat-card:focus {
     justify-content: center;
     gap: .6rem;
     margin-top: .35rem;
-    color: #858796;
+    color: #60535c;
     font-size: .82rem;
 }
 
@@ -3229,14 +3229,12 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-    outline: 3px solid rgba(74, 134, 160, .72);
+    outline: 3px solid #1f596f;
     outline-offset: 2px;
 }
 
-.sidebar-dark .nav-item .nav-link:focus-visible,
-.sidebar .collapse-item:focus-visible,
-.dropdown-item:focus-visible {
-    outline-color: rgba(241, 230, 178, .86);
+.sidebar-dark .nav-item .nav-link:focus-visible {
+    outline-color: #f1e6b2;
 }
 
 .form-control:focus-visible,
@@ -6357,7 +6355,6 @@ small,
 
 .sge-document-step.is-muted {
     background: #fbfaf8;
-    opacity: .68;
 }
 
 .sge-document-step-number {

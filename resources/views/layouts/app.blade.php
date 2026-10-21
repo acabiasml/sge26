@@ -53,7 +53,7 @@
 <body id="page-top">
     <a class="sge-skip-link" href="#main-content">{{ __('navigation.skip') }}</a>
     <div id="wrapper">
-        <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar" aria-label="{{ __('navigation.main_menu') }}">
+        <nav class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar" aria-label="{{ __('navigation.main_menu') }}">
             <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ route('dashboard') }}">
                 <div class="sidebar-brand-icon sge-sidebar-brand-mark">
                     <img class="sge-brand-logo-sm" src="{{ asset('brand/logo.png') }}" alt="{{ config('app.name', 'Beabá') }}">
@@ -87,16 +87,16 @@
                 $documentsMenuActive = request()->routeIs('document-issuance.*') || request()->routeIs('official-documents.*') || request()->routeIs('documents.verify', 'documents.verify.*');
             @endphp
 
-            <li class="nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+            <div class="nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                 <a class="nav-link" href="{{ route('dashboard') }}">
                     <i class="fas fa-fw fa-home" aria-hidden="true"></i>
                     <span>{{ __('navigation.home') }}</span>
                 </a>
-            </li>
+            </div>
 
             <div class="sidebar-heading">{{ __('navigation.my_space') }}</div>
 
-            <li class="nav-item {{ $personalMenuActive ? 'active' : '' }}">
+            <div class="nav-item {{ $personalMenuActive ? 'active' : '' }}">
                 <a class="nav-link {{ $personalMenuActive ? '' : 'collapsed' }}" href="#" data-toggle="collapse" data-target="#collapsePersonal"
                     aria-expanded="{{ $personalMenuActive ? 'true' : 'false' }}" aria-controls="collapsePersonal">
                     <i class="fas fa-fw fa-user-circle" aria-hidden="true"></i>
@@ -130,12 +130,12 @@
                         @endif
                     </div>
                 </div>
-            </li>
+            </div>
 
             @if ($canManageSchools || $canManagePeople)
                 <div class="sidebar-heading">{{ __('navigation.school_management') }}</div>
 
-                <li class="nav-item {{ $schoolManagementActive ? 'active' : '' }}">
+                <div class="nav-item {{ $schoolManagementActive ? 'active' : '' }}">
                     <a class="nav-link {{ $schoolManagementActive ? '' : 'collapsed' }}" href="#" data-toggle="collapse" data-target="#collapseSchoolManagement"
                         aria-expanded="{{ $schoolManagementActive ? 'true' : 'false' }}" aria-controls="collapseSchoolManagement">
                         <i class="fas fa-fw fa-school" aria-hidden="true"></i>
@@ -161,22 +161,22 @@
                             @endif
                         </div>
                     </div>
-                </li>
+                </div>
             @endif
 
             @if ($hasTeachingArea && ! $canManagePeople)
-                <li class="nav-item {{ request()->routeIs('teacher-diaries.*') ? 'active' : '' }}">
+                <div class="nav-item {{ request()->routeIs('teacher-diaries.*') ? 'active' : '' }}">
                     <a class="nav-link" href="{{ route('teacher-diaries.index') }}">
                         <i class="fas fa-fw fa-book" aria-hidden="true"></i>
                         <span>{{ __('navigation.diaries') }}</span>
                     </a>
-                </li>
+                </div>
             @endif
 
             @if ($canManagePeople)
                 <div class="sidebar-heading">{{ __('navigation.academic_routine') }}</div>
 
-                <li class="nav-item {{ $academicRoutineActive ? 'active' : '' }}">
+                <div class="nav-item {{ $academicRoutineActive ? 'active' : '' }}">
                     <a class="nav-link {{ $academicRoutineActive ? '' : 'collapsed' }}" href="#" data-toggle="collapse" data-target="#collapseAcademicRoutine"
                         aria-expanded="{{ $academicRoutineActive ? 'true' : 'false' }}" aria-controls="collapseAcademicRoutine">
                         <i class="fas fa-fw fa-book-open" aria-hidden="true"></i>
@@ -210,12 +210,12 @@
                             </a>
                         </div>
                     </div>
-                </li>
+                </div>
             @endif
 
             <div class="sidebar-heading">{{ __('navigation.documents') }}</div>
 
-            <li class="nav-item {{ $documentsMenuActive ? 'active' : '' }}">
+            <div class="nav-item {{ $documentsMenuActive ? 'active' : '' }}">
                 <a class="nav-link {{ $documentsMenuActive ? '' : 'collapsed' }}" href="#" data-toggle="collapse" data-target="#collapseDocuments"
                     aria-expanded="{{ $documentsMenuActive ? 'true' : 'false' }}" aria-controls="collapseDocuments">
                     <i class="fas fa-fw fa-file-alt" aria-hidden="true"></i>
@@ -237,32 +237,32 @@
                         </a>
                     </div>
                 </div>
-            </li>
+            </div>
 
             @if ($canManagePeople)
                 <div class="sidebar-heading">{{ __('navigation.communication') }}</div>
 
-                <li class="nav-item {{ request()->routeIs('announcements.*') ? 'active' : '' }}">
+                <div class="nav-item {{ request()->routeIs('announcements.*') ? 'active' : '' }}">
                     <a class="nav-link" href="{{ route('announcements.index') }}">
                         <i class="fas fa-fw fa-bullhorn" aria-hidden="true"></i>
                         <span>{{ __('navigation.announcements') }}</span>
                     </a>
-                </li>
+                </div>
             @endif
 
             @if ($currentUser->isAdministrator())
                 <div class="sidebar-heading">{{ __('navigation.administration') }}</div>
 
-                <li class="nav-item {{ request()->routeIs('audit-logs.*') ? 'active' : '' }}">
+                <div class="nav-item {{ request()->routeIs('audit-logs.*') ? 'active' : '' }}">
                     <a class="nav-link" href="{{ route('audit-logs.index') }}">
                         <i class="fas fa-fw fa-history" aria-hidden="true"></i>
                         <span>{{ __('navigation.audit') }}</span>
                     </a>
-                </li>
+                </div>
             @endif
 
             <hr class="sidebar-divider d-none d-md-block">
-        </ul>
+        </nav>
 
         <button class="sge-sidebar-backdrop d-lg-none" type="button" aria-label="{{ __('navigation.close_sidebar') }}" hidden></button>
 
@@ -753,6 +753,7 @@
             }
         });
 
+        let nextTableHintId = 0;
         const syncResponsiveTableHints = () => {
             document.querySelectorAll('.table-responsive').forEach((container) => {
                 const visible = container.offsetParent !== null && container.getBoundingClientRect().height > 0;
@@ -763,14 +764,39 @@
 
                 container.classList.toggle('sge-has-horizontal-scroll', needsHorizontalScroll);
 
+                if (needsHorizontalScroll && !container.hasAttribute('tabindex')) {
+                    container.tabIndex = 0;
+                    container.dataset.sgeScrollFocus = '';
+                } else if (!needsHorizontalScroll && container.hasAttribute('data-sge-scroll-focus')) {
+                    container.removeAttribute('tabindex');
+                    delete container.dataset.sgeScrollFocus;
+                }
+
                 if (needsHorizontalScroll && !currentHint) {
                     const hint = document.createElement('p');
                     hint.className = 'sge-table-scroll-hint';
                     hint.dataset.tableScrollHint = '';
-                    hint.innerHTML = '<i class="fas fa-arrows-alt-h" aria-hidden="true"></i><span>Deslize a tabela para o lado para ver todas as colunas.</span>';
+                    hint.innerHTML = '<i class="fas fa-arrows-alt-h" aria-hidden="true"></i><span></span>';
+                    hint.querySelector('span').textContent = @js(__('Deslize ou use as setas para ver todas as colunas.'));
                     container.before(hint);
                 } else if (!needsHorizontalScroll && currentHint) {
                     currentHint.remove();
+                }
+
+                if (needsHorizontalScroll) {
+                    const hint = container.previousElementSibling;
+                    const hintId = container.dataset.sgeScrollHintId ?? `sge-table-scroll-hint-${++nextTableHintId}`;
+                    container.dataset.sgeScrollHintId = hintId;
+                    hint.id = hintId;
+                    const descriptions = (container.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean);
+                    if (!descriptions.includes(hintId)) {
+                        container.setAttribute('aria-describedby', [...descriptions, hintId].join(' '));
+                    }
+                } else if (container.dataset.sgeScrollHintId) {
+                    const descriptions = (container.getAttribute('aria-describedby') ?? '').split(/\s+/)
+                        .filter(id => id && id !== container.dataset.sgeScrollHintId);
+                    if (descriptions.length) container.setAttribute('aria-describedby', descriptions.join(' '));
+                    else container.removeAttribute('aria-describedby');
                 }
             });
         };

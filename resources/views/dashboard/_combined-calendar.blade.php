@@ -33,10 +33,10 @@
                         </span>
 
                         @if ($entry['counts_as_school_day'])
-                            <span class="sge-calendar-mini-mark sge-calendar-mini-mark-school" aria-label="{{ __('dashboard.school_day') }}">L</span>
+                            <span class="sge-calendar-mini-mark sge-calendar-mini-mark-school" role="img" aria-label="{{ __('dashboard.school_day') }}">L</span>
                         @endif
                         @if ($entry['has_birthdays'])
-                            <span class="sge-calendar-birthday-dot" aria-label="{{ __('dashboard.birthday_count', ['count' => $entry['birthdays']->count()]) }}"></span>
+                            <span class="sge-calendar-birthday-dot" role="img" aria-label="{{ __('dashboard.birthday_count', ['count' => $entry['birthdays']->count()]) }}"></span>
                         @endif
 
                         <span class="sr-only">{{ $entry['label'] }}</span>

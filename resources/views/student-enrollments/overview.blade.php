@@ -46,7 +46,7 @@
                                 <h3>{{ $year->name }}</h3>
                                 <p>{{ $year->starts_at?->format('d/m/Y') }} {{ __('a') }} {{ $year->ends_at?->format('d/m/Y') }}</p>
                             </div>
-                            <div class="sge-enrollment-year-stats" aria-label="{{ __('screens.year_summary', ['year' => $year->name]) }}">
+                            <div role="group" class="sge-enrollment-year-stats" aria-label="{{ __('screens.year_summary', ['year' => $year->name]) }}">
                                 <span>{{ __('screens.classes_count', ['count' => $year->classes->count()]) }}</span>
                                 <span>{{ __('screens.active_count', ['count' => $year->classes->sum(fn ($class) => $class->enrollments->where('status', \App\Models\StudentEnrollment::STATUS_ENROLLED)->count())]) }}</span>
                             </div>

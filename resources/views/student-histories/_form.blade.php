@@ -323,25 +323,25 @@
                                     @php($selectedComponent = $component['name'] ?? '')
                                     @php($catalogComponents = collect($bnccComponentsByArea[$selectedArea] ?? []))
                                     <td>
-                                        <select name="components[{{ $componentIndex }}][formation]" class="form-control form-control-sm" data-history-formation required>
+                                        <select name="components[{{ $componentIndex }}][formation]" class="form-control form-control-sm" data-history-formation aria-label="{{ __('Formação') }}" required>
                                             @if(! in_array($selectedFormation, $formationOptions, true))<option value="{{ $selectedFormation }}" selected>{{ $selectedFormation }}</option>@endif
                                             @foreach($formationOptions as $formation)<option value="{{ $formation }}" @selected($selectedFormation === $formation)>{{ __($formation) }}</option>@endforeach
                                         </select>
                                     </td>
                                     <td>
-                                        <select name="components[{{ $componentIndex }}][knowledge_area]" class="form-control form-control-sm" data-history-area required>
+                                        <select name="components[{{ $componentIndex }}][knowledge_area]" class="form-control form-control-sm" data-history-area aria-label="{{ __('Área') }}" required>
                                             <option value="">{{ __('Selecione') }}</option>
                                             @foreach($bnccAreas as $area)<option value="{{ $area['name'] }}" @selected($selectedArea === $area['name'])>{{ $area['name'] }}</option>@endforeach
                                             @if($selectedArea && ! $bnccAreas->pluck('name')->contains($selectedArea))<option value="{{ $selectedArea }}" selected>{{ $selectedArea }}</option>@endif
                                         </select>
                                     </td>
                                     <td>
-                                        <select class="form-control form-control-sm" data-history-component-select @disabled($selectedFormation !== 'Formação Geral Básica')>
+                                        <select class="form-control form-control-sm" data-history-component-select aria-label="{{ __('Componente') }}" @disabled($selectedFormation !== 'Formação Geral Básica')>
                                             <option value="">{{ __('Selecione') }}</option>
                                             @foreach($catalogComponents as $catalogComponent)<option value="{{ $catalogComponent }}" @selected($selectedComponent === $catalogComponent)>{{ $catalogComponent }}</option>@endforeach
                                             @if($selectedComponent && ! $catalogComponents->contains($selectedComponent))<option value="{{ $selectedComponent }}" selected>{{ $selectedComponent }}</option>@endif
                                         </select>
-                                        <input name="components[{{ $componentIndex }}][name]" class="form-control form-control-sm" data-history-component-input value="{{ $selectedComponent }}" @if($selectedFormation === 'Formação Geral Básica') type="hidden" @else type="text" @endif required>
+                                        <input name="components[{{ $componentIndex }}][name]" class="form-control form-control-sm" data-history-component-input aria-label="{{ __('Componente') }}" value="{{ $selectedComponent }}" @if($selectedFormation === 'Formação Geral Básica') type="hidden" @else type="text" @endif required>
                                     </td>
                                     @foreach($yearsInput as $yearIndex => $year)
                                         @php($record = $component['records'][$yearIndex] ?? [])

@@ -102,10 +102,39 @@
             onImageLinkInsert: () => error(labels.localImage),
             onChange: html => { input.value = html; },
             onInit: () => {
-                const editable = $editor.next('.note-editor').find('.note-editable')[0];
+                const editor = $editor.next('.note-editor');
+                const editable = editor.find('.note-editable')[0];
                 editable.setAttribute('aria-label', input.getAttribute('aria-label'));
                 editable.setAttribute('aria-describedby', 'editor-help editor-feedback');
                 editable.addEventListener('mousedown', e => { if (e.target.tagName === 'IMG') selectedImage = e.target; }, true);
+
+                const resizebar = editor.find('.note-resizebar')[0];
+                if (resizebar) {
+                    const minHeight = 420;
+                    const maxHeight = 1000;
+                    resizebar.setAttribute('role', 'separator');
+                    resizebar.setAttribute('tabindex', '0');
+                    resizebar.setAttribute('aria-label', labels.resizeEditor);
+                    resizebar.setAttribute('aria-orientation', 'horizontal');
+                    resizebar.setAttribute('aria-valuemin', minHeight);
+                    resizebar.setAttribute('aria-valuemax', maxHeight);
+                    const syncHeight = () => {
+                        const height = Math.round(editable.getBoundingClientRect().height);
+                        resizebar.setAttribute('aria-valuemax', Math.max(maxHeight, height));
+                        resizebar.setAttribute('aria-valuenow', height);
+                    };
+                    syncHeight();
+                    resizebar.addEventListener('keydown', event => {
+                        if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+                        event.preventDefault();
+                        const current = Math.round(editable.getBoundingClientRect().height);
+                        const next = event.key === 'Home' ? minHeight : event.key === 'End' ? maxHeight
+                            : current + (event.key === 'ArrowDown' ? 40 : -40);
+                        editable.style.height = `${Math.max(minHeight, Math.min(maxHeight, next))}px`;
+                        syncHeight();
+                    });
+                    document.addEventListener('mouseup', syncHeight);
+                }
             }
         }
     });

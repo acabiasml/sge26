@@ -19,7 +19,7 @@
 @endphp
 
 <footer class="document-footer">
-    <div class="document-footer-qr" aria-label="Código de autenticação do documento">
+    <div class="document-footer-qr">
         <img src="{{ $qrCodeDataUri }}" alt="QR Code de validação do documento" />
     </div>
     <div class="document-footer-text">

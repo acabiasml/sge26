@@ -7,9 +7,9 @@
         <div class="card-body d-flex align-items-center justify-content-between flex-wrap">
             <div><span class="text-muted">{{ __('Formação') }}</span><h2 class="h5">{{ __($area->formation ?: 'Formação não definida') }}</h2><span>{{ $area->components_count }} {{ __('componentes vinculados') }}</span></div>
             @if($area->components_count)
-                <form method="POST" action="{{ route('knowledge-areas.detach-all', $area) }}" data-confirm-message="{{ __('Desvincular todos os componentes desta área? Os componentes serão mantidos, sem área definida.') }}">@csrf @method('DELETE')<button class="btn btn-outline-danger">{{ __('Desvincular todos') }}</button></form>
+                <form method="POST" action="{{ route('knowledge-areas.detach-all', $area) }}" data-confirm-message="{{ __('Desvincular todos os componentes desta área? Os componentes serão mantidos, sem área definida.') }}">@csrf @method('DELETE')<button type="submit" class="btn btn-outline-danger">{{ __('Desvincular todos') }}</button></form>
             @else
-                <form method="POST" action="{{ route('knowledge-areas.destroy', $area) }}" data-confirm-message="{{ __('Excluir esta área sem vínculos?') }}">@csrf @method('DELETE')<button class="btn btn-outline-danger">{{ __('Excluir área') }}</button></form>
+                <form method="POST" action="{{ route('knowledge-areas.destroy', $area) }}" data-confirm-message="{{ __('Excluir esta área sem vínculos?') }}">@csrf @method('DELETE')<button type="submit" class="btn btn-outline-danger">{{ __('Excluir área') }}</button></form>
             @endif
         </div>
     </section>
@@ -25,7 +25,7 @@
                     <td><a href="{{ route('academic-years.courses.components.show', [$year, $course, $component]) }}">{{ $component->name }}</a></td>
                     <td><a href="{{ route('academic-years.courses.show', [$year, $course]) }}">{{ $course->name }}</a></td>
                     <td>{{ $year->school?->name }}</td><td><a href="{{ route('academic-years.show', $year) }}">{{ $year->reference_year }} · {{ $year->name }}</a></td>
-                    <td><form method="POST" action="{{ route('knowledge-areas.detach', [$area, $component]) }}" data-confirm-message="{{ __('Desvincular este componente da área?') }}">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">{{ __('Desvincular') }}</button></form></td>
+                    <td><form method="POST" action="{{ route('knowledge-areas.detach', [$area, $component]) }}" data-confirm-message="{{ __('Desvincular este componente da área?') }}">@csrf @method('DELETE')<button type="submit" class="btn btn-sm btn-outline-danger">{{ __('Desvincular') }}</button></form></td>
                 </tr>
             @empty<tr><td colspan="5" class="text-muted p-4">{{ __('Esta área não possui vínculos e pode ser excluída.') }}</td></tr>@endforelse</tbody>
         </table></div>

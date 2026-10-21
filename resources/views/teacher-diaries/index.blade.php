@@ -85,7 +85,7 @@
                         <p>{{ $diary['class']->name }} · {{ $diary['academicYear']->school?->name }}</p>
                         <small>{{ $diary['academicYear']->name }} · {{ $diary['course']->name }} · {{ $diary['component']->area?->name ?? __('Área não definida') }}</small>
                     </div>
-                    <div class="sge-diary-list-actions" aria-label="{{ __('Ações do diário de') }} {{ $diary['component']->name }}">
+                    <div role="group" class="sge-diary-list-actions" aria-label="{{ __('Ações do diário de') }} {{ $diary['component']->name }}">
                         <a class="btn btn-primary btn-sm sge-icon-action" href="{{ route('teacher-diaries.show', [$diary['class'], $diary['component']]) }}" aria-label="{{ __('Abrir diário de') }} {{ $diary['component']->name }} {{ __('da turma') }} {{ $diary['class']->name }}" title="{{ __('Abrir diário') }}">
                             <i class="fas fa-book-open" aria-hidden="true"></i>
                         </a>

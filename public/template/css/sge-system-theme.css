@@ -48,3 +48,62 @@ html[data-theme="aurora-dark"][data-theme-family="govbr"] {
 html[data-theme="aurora-dark"][data-theme-family="govbr"] .sidebar.bg-gradient-primary {
     background: #102746 !important;
 }
+
+/* Contraste e foco compartilhados entre páginas e variantes automáticas. */
+html:is([data-theme="beaba"], [data-theme="govbr"]) .text-primary {
+    color: var(--sge-brown) !important;
+}
+
+html:is([data-theme="beaba"], [data-theme="govbr"]) .sge-livewire-table-card .btn.dropdown-toggle {
+    color: var(--sge-ink) !important;
+}
+
+html:is([data-theme$="-light"], [data-theme$="-dark"]) .sge-livewire-table-card .btn.dropdown-toggle {
+    color: var(--aurora-ink) !important;
+}
+
+html:is([data-theme="beaba"], [data-theme="govbr"]) .sge-official-tabs .nav-link.active {
+    background: var(--sge-brown) !important;
+    color: #fff !important;
+}
+
+html:is([data-theme$="-light"], [data-theme$="-dark"]) .sge-official-tabs .nav-link.active {
+    background: var(--aurora-accent) !important;
+    color: var(--aurora-on-accent) !important;
+}
+
+html[data-theme$="-dark"] details.card > summary.card-header {
+    background: var(--aurora-raised);
+    color: var(--aurora-ink);
+}
+
+html[data-theme$="-dark"] .sge-validation-pill-danger {
+    color: var(--aurora-danger);
+}
+
+html[data-theme$="-dark"] .sge-validation-pill-warning {
+    color: var(--aurora-warning);
+}
+
+html[data-theme$="-dark"] .sge-validation-pill-info {
+    color: var(--aurora-ink);
+}
+
+/* Os cartões de horário mantêm fundos pastel próprios em ambos os modos. */
+html[data-theme$="-dark"] .sge-teacher-schedule-card,
+html[data-theme$="-dark"] .sge-teacher-schedule-card strong {
+    color: #2f241f;
+}
+
+html[data-theme$="-dark"] .sge-teacher-schedule-card span {
+    color: #274c5b;
+}
+
+html[data-theme$="-dark"] .sge-teacher-schedule-card small {
+    color: #4f4650;
+}
+
+.table-responsive[tabindex="0"]:focus-visible {
+    outline: 3px solid var(--aurora-focus, var(--sge-blue-dark));
+    outline-offset: 2px;
+}

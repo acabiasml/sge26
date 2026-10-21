@@ -76,13 +76,13 @@
         </div>
     </div>
 
-    <nav class="sge-section-nav mb-4" aria-label="{{ __('Seções da conferência de fechamento') }}" data-section-tabs data-default-tab="conferencia">
-        <a class="sge-section-nav-item" href="#conferencia" data-academic-tab="conferencia"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>{{ __('Conferência') }}</span><small>{{ __('pendências do fechamento') }}</small></a>
-        <a class="sge-section-nav-item" href="#periodos" data-academic-tab="periodos"><i class="fas fa-calendar-alt" aria-hidden="true"></i><span>{{ __('Períodos') }}</span><small>{{ __('consolidação avaliativa') }}</small></a>
-        <a class="sge-section-nav-item" href="#turmas" data-academic-tab="turmas"><i class="fas fa-users" aria-hidden="true"></i><span>{{ __('Turmas e resultados') }}</span><small>{{ __('situação final') }}</small></a>
+    <nav class="sge-section-nav mb-4" aria-label="{{ __('Seções da conferência de fechamento') }}" role="tablist" data-section-tabs data-default-tab="conferencia">
+        <a class="sge-section-nav-item" href="#section-conferencia" data-academic-tab="conferencia" role="tab"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>{{ __('Conferência') }}</span><small>{{ __('pendências do fechamento') }}</small></a>
+        <a class="sge-section-nav-item" href="#section-periodos" data-academic-tab="periodos" role="tab"><i class="fas fa-calendar-alt" aria-hidden="true"></i><span>{{ __('Períodos') }}</span><small>{{ __('consolidação avaliativa') }}</small></a>
+        <a class="sge-section-nav-item" href="#section-turmas" data-academic-tab="turmas" role="tab"><i class="fas fa-users" aria-hidden="true"></i><span>{{ __('Turmas e resultados') }}</span><small>{{ __('situação final') }}</small></a>
     </nav>
 
-    <div data-academic-panel="conferencia">
+    <div id="section-conferencia" role="tabpanel" data-academic-panel="conferencia">
     @if ($closureErrors->isNotEmpty() || $warnings->isNotEmpty())
         <section class="card shadow mb-4">
             <div class="card-header py-3">
@@ -114,7 +114,7 @@
     @endif
     </div>
 
-    <div data-academic-panel="periodos">
+    <div id="section-periodos" role="tabpanel" data-academic-panel="periodos">
             <section class="card shadow mb-4">
                 <div class="card-header py-3">
                     <h2 class="h6 m-0 font-weight-bold text-primary">{{ __('Períodos avaliativos') }}</h2>
@@ -147,7 +147,7 @@
             </section>
     </div>
 
-    <div data-academic-panel="turmas">
+    <div id="section-turmas" role="tabpanel" data-academic-panel="turmas">
             <section class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h2 class="h6 m-0 font-weight-bold text-primary">{{ __('Turmas e resultados finais') }}</h2>

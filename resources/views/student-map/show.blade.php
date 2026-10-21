@@ -269,7 +269,7 @@
                 </div>
                 <div class="card-body">
                     @if ($latestResults->isNotEmpty())
-                        <div class="sge-result-strip mb-4" aria-label="{{ __('Últimos resultados lançados') }}">
+                        <div role="group" class="sge-result-strip mb-4" aria-label="{{ __('Últimos resultados lançados') }}">
                             @foreach ($latestResults as $result)
                                 <article>
                                     <span>{{ $result->assessment?->component?->name ?? __('Componente') }}</span>

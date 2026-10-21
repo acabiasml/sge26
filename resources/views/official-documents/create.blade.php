@@ -206,6 +206,7 @@
             originalSize: @js(__('Tamanho original')),
             fontUnit: @js(__('Unidade do tamanho da fonte')),
             imageDescription: @js(__('Descrição da imagem')),
+            resizeEditor: @js(__('Redimensionar área de edição')),
         };
     </script>
     <script src="{{ asset('template/js/sge-document-editor.js') }}?v={{ filemtime(public_path('template/js/sge-document-editor.js')) }}"></script>

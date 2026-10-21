@@ -28,7 +28,7 @@
                     <div class="sge-context-school-mark"><i class="fas fa-school" aria-hidden="true"></i></div>
                     <h3 class="h6 font-weight-bold">{{ $academicYear->school?->name }}</h3>
                     <p class="small text-muted">{{ $academicYear->name }} · {{ $academicYear->starts_at?->format('d/m/Y') }} {{ __('a') }} {{ $academicYear->ends_at?->format('d/m/Y') }}</p>
-                    <div class="sge-period-context-metrics" aria-label="{{ __('Resumo dos períodos cadastrados') }}">
+                    <div role="group" class="sge-period-context-metrics" aria-label="{{ __('Resumo dos períodos cadastrados') }}">
                         <div><strong>{{ $periods->count() }}</strong><span>{{ __('períodos') }}</span></div>
                         <div><strong>{{ $periods->sum(fn ($period) => $period->schoolDayCount()) }}</strong><span>{{ __('dias nos períodos') }}</span></div>
                         <div><strong>{{ $periods->sum(fn ($period) => $period->assessmentRules->count()) }}</strong><span>{{ __('regras de avaliação') }}</span></div>
@@ -110,7 +110,7 @@
                 <article id="period-panel-{{ $period->id }}" class="sge-period-card" role="tabpanel" data-period-panel="{{ $period->id }}" @if($period->id !== $activePeriodId) hidden @endif>
                     <div class="sge-period-card-header">
                         <div class="sge-period-card-title">
-                            <span class="sge-period-position" aria-label="{{ __('Ordem') }} {{ $period->position }}">
+                            <span class="sge-period-position">
                                 <span class="sge-period-position-label">{{ __('Ordem') }}</span>
                                 <strong>{{ $period->position }}</strong>
                             </span>
@@ -218,7 +218,7 @@
                                 </div>
                             </div>
 
-                            <div class="sge-period-context-metrics mb-3" aria-label="{{ __('Resumo do fechamento dos diários') }}">
+                            <div role="group" class="sge-period-context-metrics mb-3" aria-label="{{ __('Resumo do fechamento dos diários') }}">
                                 <div><strong>{{ $diarySummaries->count() }}</strong><span>{{ __('diários') }}</span></div>
                                 <div><strong>{{ $confirmedDiaries }}</strong><span>{{ __('confirmados') }}</span></div>
                                 <div><strong>{{ $pendingDiaries }}</strong><span>{{ __('com pendência') }}</span></div>
@@ -365,7 +365,7 @@
                                             </select>
                                         </div>
                                     </div>
-                                    <div class="sge-assessment-grid" aria-label="{{ __('Avaliações do período') }} {{ $period->name }}">
+                                    <div role="group" class="sge-assessment-grid" aria-label="{{ __('Avaliações do período') }} {{ $period->name }}">
                                         @for($position = 1; $position <= 10; $position++)
                                             @php($rule = $period->assessmentRules->firstWhere('position', $position))
                                             <div data-assessment-weight="{{ $position }}">

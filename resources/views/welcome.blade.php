@@ -62,7 +62,7 @@
                                         </a>
                                         <br>
                                         <span class="small text-gray-600">{{ __('Acesso institucional') }}</span>
-                                        <div class="sge-institutional-logos" aria-label="{{ __('Instituições vinculadas ao sistema') }}">
+                                        <div role="group" class="sge-institutional-logos" aria-label="{{ __('Instituições vinculadas ao sistema') }}">
                                             <div class="sge-institutional-logo">
                                                 <span>{{ __('Mantenedora') }}</span>
                                                 <img src="{{ asset('brand/centro-tecnico-juvenil-de-jarudore.png') }}" alt="Centro Técnico Juvenil de Jarudore">

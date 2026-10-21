@@ -29,7 +29,7 @@
             </div>
         </div>
 
-        <div class="sge-concept-stat-grid" aria-label="{{ __('Resumo dos critérios') }}">
+        <div role="group" class="sge-concept-stat-grid" aria-label="{{ __('Resumo dos critérios') }}">
             <div class="sge-concept-stat">
                 <span>{{ $currentConcepts->count() }}</span>
                 <small>{{ __('conceitos vigentes') }}</small>
@@ -90,7 +90,7 @@
                     <span class="badge badge-light">{{ $school->concepts->count() }} {{ __('conceito(s)') }}</span>
                 </div>
                 <div class="card-body">
-                    <div class="sge-concept-list" role="list">
+                    <div class="sge-concept-list" @if($school->concepts->isNotEmpty()) role="list" @endif>
                         @forelse ($school->concepts as $concept)
                             <article class="sge-concept-item @if($editingConcept?->is($concept)) is-editing @endif" role="listitem">
                                 <div class="sge-concept-abbr" aria-hidden="true">{{ $concept->shortLabel() }}</div>

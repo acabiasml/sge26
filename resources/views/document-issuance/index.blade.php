@@ -29,7 +29,7 @@
                 {{ __('Escolha o documento e localize a pessoa, matrícula, turma ou ano letivo. A emissão mantém o papel timbrado correspondente, o código de autenticidade e as regras de acesso da escola.') }}
             </p>
         </div>
-        <div class="sge-document-hub-summary" aria-label="{{ __('Resumo da central') }}">
+        <div role="group" class="sge-document-hub-summary" aria-label="{{ __('Resumo da central') }}">
             <strong>{{ $typeCount }}</strong>
             <span>{{ __('tipos disponíveis') }}</span>
             <small>{{ $schools->count() }} {{ __('escola(s) ·') }} {{ $academicYears->count() }} {{ __('ano(s) letivo(s) ·') }} {{ $classCount }} {{ __('turma(s) acessíveis') }}</small>
@@ -105,7 +105,7 @@
                     <p id="target-status" class="sge-document-search-status" role="status" aria-live="polite">
                         {{ __('Primeiro, escolha o tipo de documento.') }}
                     </p>
-                    <div id="target-results" class="sge-target-results" aria-label="{{ __('Resultados da busca') }}"></div>
+                    <div id="target-results" class="sge-target-results" role="region" aria-label="{{ __('Resultados da busca') }}"></div>
                     <button type="button" id="target-more" class="btn btn-outline-primary mt-3" hidden>{{ __('Carregar mais pessoas') }}</button>
 
                     <input type="hidden" name="target_id" id="target-id" value="{{ old('target_id') }}" required>

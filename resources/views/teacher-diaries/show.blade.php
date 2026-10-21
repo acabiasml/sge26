@@ -49,7 +49,7 @@
                         <dt>{{ __('Período atual') }}</dt><dd>{{ $period ? $period->name.' · '.$period->starts_at->format('d/m/Y').__(' a ').$period->ends_at->format('d/m/Y') : __('Não selecionado') }}</dd>
                         <dt>{{ __('Situação do período') }}</dt><dd>{{ $period ? ($confirmation?->confirmed ? __('Confirmado') : __('Em lançamento')) : __('Sem período') }}</dd>
                     </dl>
-                    <div class="sge-academic-metrics mt-3 mb-0" aria-label="{{ __('Indicadores do diário no período selecionado') }}">
+                    <div role="group" class="sge-academic-metrics mt-3 mb-0" aria-label="{{ __('Indicadores do diário no período selecionado') }}">
                         <div><strong>{{ $enrollments->filter->isActive()->count() }}</strong><span>{{ __('estudantes ativos') }}</span></div>
                         <div><strong>{{ $attendanceRecords->sum('lesson_count') }}</strong><span>{{ __('chamadas') }}</span></div>
                         <div><strong>{{ $contents->count() }}</strong><span>{{ __('conteúdos') }}</span></div>

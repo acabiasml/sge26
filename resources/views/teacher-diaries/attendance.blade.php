@@ -76,7 +76,7 @@
                                             @php($presence = old('attendance.'.$date.'.'.$enrollment->id, $entry?->lesson_presence ?? []))
                                             @php($justified = ($justifications->where('student_enrollment_id', $enrollment->id))->contains(fn ($justification) => $justification->appliesTo($date)))
                                             <td class="text-center {{ $justified ? 'sge-attendance-justified' : '' }}" data-attendance-cell data-date="{{ $date }}">
-                                                <div class="sge-attendance-checks" aria-label="{{ __('Presenças de') }} {{ $enrollment->student?->full_name }} {{ __('em') }} {{ $day->date->format('d/m/Y') }}">
+                                                <div class="sge-attendance-checks" role="group" aria-label="{{ __('Presenças de') }} {{ $enrollment->student?->full_name }} {{ __('em') }} {{ $day->date->format('d/m/Y') }}">
                                                     @for ($lesson = 1; $lesson <= 24; $lesson++)
                                                         @php($isPresent = array_is_list((array) $presence) ? (bool) data_get($presence, $lesson - 1, false) : (bool) data_get($presence, $lesson, false))
                                                         <span data-lesson-checkbox="{{ $lesson }}">
