@@ -6567,6 +6567,72 @@ button.sge-target-result:focus-visible {
     font-weight: 700;
 }
 
+.sge-document-options.sge-receipt-options {
+    display: block;
+    width: 100%;
+    padding: 1.25rem 1.4rem 1.4rem;
+    border: 1px solid var(--sge-border);
+    border-left: 4px solid var(--sge-orange);
+    border-radius: .7rem;
+    background: linear-gradient(135deg, #fffdf9, #f3f8fb);
+}
+
+.sge-document-options.sge-receipt-options[hidden],
+#options-step[hidden] {
+    display: none;
+}
+
+.sge-receipt-options legend {
+    width: auto;
+    padding: 0 .35rem;
+    font-size: 1.05rem;
+}
+
+.sge-receipt-intro {
+    margin: .25rem 0 1.1rem;
+    color: var(--sge-muted);
+}
+
+.sge-receipt-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 1.25rem;
+    max-width: 62rem;
+}
+
+.sge-receipt-field {
+    min-width: 0;
+}
+
+.sge-receipt-field-wide {
+    grid-column: 1 / -1;
+}
+
+.sge-receipt-field label,
+.sge-receipt-field small {
+    display: block;
+}
+
+.sge-receipt-field label {
+    margin-bottom: .35rem;
+    color: var(--sge-ink);
+    font-weight: 700;
+}
+
+.sge-receipt-field small {
+    margin-top: .3rem;
+    color: var(--sge-muted);
+}
+
+.sge-receipt-field .form-control {
+    min-height: 2.75rem;
+    background: #fff;
+}
+
+#target-more[hidden] {
+    display: none;
+}
+
 .sge-choice-tile {
     display: flex;
     gap: .65rem;
@@ -6666,6 +6732,14 @@ button.sge-target-result:focus-visible {
 }
 
 @media (max-width: 575.98px) {
+    .sge-receipt-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .sge-document-options.sge-receipt-options {
+        padding: 1rem;
+    }
+
     .sge-document-hub-hero {
         padding: 1.15rem;
     }

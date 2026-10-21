@@ -65,6 +65,38 @@ class VolunteerReceiptTest extends TestCase
         $this->assertSame(0, IssuedDocument::query()->count());
     }
 
+    public function test_person_search_reaches_every_visible_school_without_context_filter(): void
+    {
+        $firstSchool = $this->school('Escola A');
+        $secondSchool = $this->school('Escola B');
+        $otherSchool = $this->school('Escola C');
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $firstSchool);
+        $manager->person->schoolRoles()->create([
+            'school_id' => $secondSchool->id, 'role' => PersonSchoolRole::ROLE_MANAGER,
+            'active' => true, 'started_at' => '2026-01-01',
+        ]);
+        for ($number = 0; $number < 41; $number++) {
+            $this->personWithRole(sprintf('Pessoa %02d', $number), PersonSchoolRole::ROLE_EMPLOYEE, $firstSchool);
+        }
+        $secondPerson = $this->personWithRole('Pessoa da segunda escola', PersonSchoolRole::ROLE_EMPLOYEE, $secondSchool);
+        $outsidePerson = $this->personWithRole('Pessoa de fora', PersonSchoolRole::ROLE_EMPLOYEE, $otherSchool);
+
+        $this->actingAs($manager)->get(route('document-issuance.index'))
+            ->assertOk()->assertDontSee('Restrinja a busca')->assertDontSee('id="document-school"', false)
+            ->assertSee('Escola emissora')->assertSee('Carregar mais pessoas');
+        $firstPage = $this->getJson(route('document-issuance.targets', ['type' => 'volunteer-receipt']));
+        $firstPage->assertOk()->assertJsonCount(40, 'targets')->assertJsonPath('has_more', true);
+        $secondPage = $this->getJson(route('document-issuance.targets', ['type' => 'volunteer-receipt', 'page' => 2]));
+        $secondPage->assertOk()->assertJsonPath('has_more', false);
+        $ids = collect($firstPage->json('targets'))->concat($secondPage->json('targets'))->pluck('id');
+        $this->assertCount(43, $ids);
+        $this->assertContains($secondPerson->id, $ids);
+        $this->assertNotContains($outsidePerson->id, $ids);
+        $this->getJson(route('document-issuance.targets', ['type' => 'volunteer-receipt', 'q' => 'Pessoa da segunda escola']))
+            ->assertOk()->assertJsonPath('targets.0.id', $secondPerson->id)
+            ->assertJsonPath('targets.0.school_ids.0', $secondSchool->id);
+    }
+
     public function test_amount_in_words_handles_cents_and_thousands(): void
     {
         $this->assertSame('um real e um centavo', BrazilianMoney::words('1.01'));

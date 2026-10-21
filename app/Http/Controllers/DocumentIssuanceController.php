@@ -294,11 +294,9 @@ class DocumentIssuanceController extends Controller
                 ->orderBy('academic_year_id')
                 ->orderBy('position')
                 ->get(['id', 'academic_year_id', 'name', 'starts_at', 'ends_at']),
-            'classes' => SchoolClass::query()
+            'classCount' => SchoolClass::query()
                 ->whereHas('academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
-                ->with(['academicYear:id,school_id,name,reference_year,starts_at,ends_at', 'courses:id,name,stage'])
-                ->orderBy('name')
-                ->get(['id', 'academic_year_id', 'name']),
+                ->count(),
         ]);
     }
 
@@ -312,6 +310,7 @@ class DocumentIssuanceController extends Controller
             'school_id' => ['nullable', 'integer'],
             'academic_year_id' => ['nullable', 'integer'],
             'class_id' => ['nullable', 'integer'],
+            'page' => ['nullable', 'integer', 'min:1', 'max:10000'],
         ]);
         $schoolIds = $this->accessibleSchoolIds($request->user());
         $this->authorizeSchoolFilter($data['school_id'] ?? null, $schoolIds);
@@ -331,7 +330,9 @@ class DocumentIssuanceController extends Controller
             default => collect(),
         };
 
-        return response()->json(['targets' => $targets->values()]);
+        $hasMore = $types[$data['type']]['target'] === 'person' && $targets->count() > 40;
+
+        return response()->json(['targets' => $targets->take(40)->values(), 'has_more' => $hasMore]);
     }
 
     public function issue(Request $request): RedirectResponse
@@ -724,15 +725,24 @@ class DocumentIssuanceController extends Controller
                 });
             })
             ->orderBy('full_name')
-            ->limit(40)
+            ->offset(($request->integer('page', 1) - 1) * 40)
+            ->limit(41)
             ->get(['id', 'full_name', 'social_name', 'institutional_email', 'active'])
-            ->map(fn (Person $person): array => [
-                'id' => $person->id,
-                'title' => $person->social_name ?: $person->full_name,
-                'subtitle' => collect([$person->institutional_email, $person->hasActiveRoleForDate() ? __('Com vínculo ativo') : __('Sem vínculo ativo')])->filter()->join(' · '),
-                'enabled' => true,
-                'reason' => null,
-            ]);
+            ->map(function (Person $person) use ($request, $schoolIds): array {
+                $schoolIdsForPerson = $person->schoolRoles->pluck('school_id')
+                    ->filter(fn ($id): bool => $id !== null && in_array((int) $id, $schoolIds, true))
+                    ->map(fn ($id): int => (int) $id)->unique()->values()->all();
+                $canIssueReceipt = $request->query('type') !== 'volunteer-receipt' || $schoolIdsForPerson !== [];
+
+                return [
+                    'id' => $person->id,
+                    'title' => $person->social_name ?: $person->full_name,
+                    'subtitle' => collect([$person->institutional_email, $person->hasActiveRoleForDate() ? __('Com vínculo ativo') : __('Sem vínculo ativo')])->filter()->join(' · '),
+                    'enabled' => $canIssueReceipt,
+                    'reason' => $canIssueReceipt ? null : __('Pessoa sem vínculo com uma escola acessível para o recibo.'),
+                    'school_ids' => $schoolIdsForPerson,
+                ];
+            });
     }
 
     /**
@@ -833,6 +843,7 @@ class DocumentIssuanceController extends Controller
                         default => null,
                     },
                     'missing_student_cpf' => $missingStudentCpf,
+                    'academic_year_id' => $class->academic_year_id,
                 ];
             });
     }
@@ -861,6 +872,7 @@ class DocumentIssuanceController extends Controller
                 'subtitle' => collect([$year->school?->name, __('Calendário: ').$year->name, $year->active ? __('Ano letivo ativo') : __('Ano letivo inativo')])->filter()->join(' · '),
                 'enabled' => true,
                 'reason' => null,
+                'academic_year_id' => $year->id,
             ]);
     }
 

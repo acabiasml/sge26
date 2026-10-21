@@ -28,7 +28,7 @@
         <div class="sge-document-hub-summary" aria-label="{{ __('Resumo da central') }}">
             <strong>{{ $typeCount }}</strong>
             <span>{{ __('tipos disponíveis') }}</span>
-            <small>{{ $schools->count() }} {{ __('escola(s) ·') }} {{ $academicYears->count() }} {{ __('ano(s) letivo(s) ·') }} {{ $classes->count() }} {{ __('turma(s) acessíveis') }}</small>
+            <small>{{ $schools->count() }} {{ __('escola(s) ·') }} {{ $academicYears->count() }} {{ __('ano(s) letivo(s) ·') }} {{ $classCount }} {{ __('turma(s) acessíveis') }}</small>
         </div>
     </section>
 
@@ -70,75 +70,20 @@
                         @endforeach
                     </select>
                     <p id="document-type-help" class="sge-document-type-help mb-0">
-                        {{ __('Selecione uma opção para ver os filtros adequados.') }}
+                        {{ __('Selecione uma opção para preparar o documento.') }}
                     </p>
                 </div>
             </div>
 
-            <div class="sge-document-step is-muted" id="context-step">
-                <div class="sge-document-step-number" aria-hidden="true">2</div>
-                <div class="sge-document-step-content">
-                    <div class="sge-document-step-heading">
-                        <div>
-                            <span class="sge-document-step-label">{{ __('Contexto') }}</span>
-                            <h3>{{ __('Restrinja a busca') }}</h3>
-                        </div>
-                        <small>{{ __('Os filtros são opcionais.') }}</small>
-                    </div>
-
-                    <div class="sge-document-context-grid">
-                        <div class="form-group mb-0" data-context-filter="school">
-                            <label for="document-school">{{ __('Escola') }}</label>
-                            <select id="document-school" class="form-control">
-                                @if ($schools->count() > 1)
-                                    <option value="">{{ __('Todas as escolas acessíveis') }}</option>
-                                @endif
-                                @foreach ($schools as $school)
-                                    <option value="{{ $school->id }}" @selected($schools->count() === 1)>{{ $school->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="form-group mb-0" data-context-filter="year">
-                            <label for="document-year">{{ __('Ano letivo') }}</label>
-                            <select id="document-year" class="form-control">
-                                <option value="">{{ __('Todos os anos letivos') }}</option>
-                                @foreach ($academicYears as $year)
-                                    <option value="{{ $year->id }}" data-school-id="{{ $year->school_id }}"
-                                        data-starts-at="{{ $year->starts_at?->format('Y-m-d') ?? $year->reference_year.'-01-01' }}"
-                                        data-ends-at="{{ $year->ends_at?->format('Y-m-d') ?? $year->reference_year.'-12-31' }}">
-                                        {{ $year->referenceYearsLabel() }} · {{ $year->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="form-group mb-0" data-context-filter="class">
-                            <label for="document-class">{{ __('Turma') }}</label>
-                            <select id="document-class" class="form-control">
-                                <option value="">{{ __('Todas as turmas') }}</option>
-                                @foreach ($classes as $class)
-                                    <option value="{{ $class->id }}"
-                                        data-year-id="{{ $class->academic_year_id }}"
-                                        data-school-id="{{ $class->academicYear?->school_id }}">
-                                        {{ \App\Support\AcademicContextLabel::classWithStages($class->name, $class->courses) }} · {{ $class->academicYear?->referenceYearsLabel() }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div class="sge-document-step is-muted" id="target-step">
-                <div class="sge-document-step-number" aria-hidden="true">3</div>
+                <div class="sge-document-step-number" aria-hidden="true">2</div>
                 <div class="sge-document-step-content">
                     <div class="sge-document-step-heading">
                         <div>
                             <span class="sge-document-step-label">{{ __('Registro') }}</span>
                             <h3 id="target-heading">{{ __('Localize o destinatário') }}</h3>
                         </div>
-                        <small>{{ __('Até 40 resultados por busca.') }}</small>
+                        <small>{{ __('Até 40 resultados por página.') }}</small>
                     </div>
 
                     <div class="sge-document-search">
@@ -157,6 +102,7 @@
                         {{ __('Primeiro, escolha o tipo de documento.') }}
                     </p>
                     <div id="target-results" class="sge-target-results" aria-label="{{ __('Resultados da busca') }}"></div>
+                    <button type="button" id="target-more" class="btn btn-outline-primary mt-3" hidden>{{ __('Carregar mais pessoas') }}</button>
 
                     <input type="hidden" name="target_id" id="target-id" value="{{ old('target_id') }}" required>
                     <input type="hidden" name="confirm_missing_student_cpf" id="confirm-missing-student-cpf" value="0">
@@ -176,25 +122,40 @@
             </div>
 
             <div class="sge-document-step is-muted" id="options-step" hidden>
-                <div class="sge-document-step-number" aria-hidden="true">4</div>
+                <div class="sge-document-step-number" aria-hidden="true">3</div>
                 <div class="sge-document-step-content">
                     <span class="sge-document-step-label">{{ __('Apresentação') }}</span>
                     <h3>{{ __('Defina as opções do documento') }}</h3>
 
-                    <fieldset id="receipt-options" class="sge-document-options" hidden disabled>
+                    <fieldset id="receipt-options" class="sge-document-options sge-receipt-options" hidden disabled>
                         <legend>{{ __('Dados do recibo de atividade voluntária') }}</legend>
-                        <div class="form-row">
-                            <div class="form-group col-md-12"><label for="receipt-school">Escola do recibo</label>
+                        <p class="sge-receipt-intro">{{ __('Confira a escola, o período e o valor antes de gerar o recibo.') }}</p>
+                        <div class="sge-receipt-fields">
+                            <div class="sge-receipt-field sge-receipt-field-wide">
+                                <label for="receipt-school">{{ __('Escola emissora') }}</label>
                                 <select id="receipt-school" name="receipt_school_id" class="form-control" required>
                                     @foreach ($schools as $school)
                                         <option value="{{ $school->id }}" @selected((string) old('receipt_school_id') === (string) $school->id)>{{ $school->name }}</option>
                                     @endforeach
                                 </select>
+                                <small>{{ __('Esta escola aparecerá no timbre do recibo.') }}</small>
                             </div>
-                            <div class="form-group col-md-6"><label for="period-start">Início do período</label><input id="period-start" name="period_start" type="date" class="form-control" value="{{ old('period_start') }}" required></div>
-                            <div class="form-group col-md-6"><label for="period-end">Fim do período</label><input id="period-end" name="period_end" type="date" class="form-control" value="{{ old('period_end') }}" required></div>
-                            <div class="form-group col-md-6"><label for="receipt-amount">Valor (R$)</label><input id="receipt-amount" name="amount" type="number" min="0.01" max="999999.99" step="0.01" class="form-control" value="{{ old('amount') }}" required></div>
-                            <div class="form-group col-md-6"><label for="receipt-date">Data de emissão</label><input id="receipt-date" name="issued_date" type="date" class="form-control" value="{{ old('issued_date', now()->toDateString()) }}" required></div>
+                            <div class="sge-receipt-field">
+                                <label for="period-start">{{ __('Início do período') }}</label>
+                                <input id="period-start" name="period_start" type="date" class="form-control" value="{{ old('period_start') }}" required>
+                            </div>
+                            <div class="sge-receipt-field">
+                                <label for="period-end">{{ __('Fim do período') }}</label>
+                                <input id="period-end" name="period_end" type="date" class="form-control" value="{{ old('period_end') }}" required>
+                            </div>
+                            <div class="sge-receipt-field">
+                                <label for="receipt-amount">{{ __('Valor do ressarcimento (R$)') }}</label>
+                                <input id="receipt-amount" name="amount" type="number" min="0.01" max="999999.99" step="0.01" inputmode="decimal" placeholder="0,00" class="form-control" value="{{ old('amount') }}" required>
+                            </div>
+                            <div class="sge-receipt-field">
+                                <label for="receipt-date">{{ __('Data de emissão') }}</label>
+                                <input id="receipt-date" name="issued_date" type="date" class="form-control" value="{{ old('issued_date', now()->toDateString()) }}" required>
+                            </div>
                         </div>
                     </fieldset>
 
@@ -321,18 +282,17 @@
             const form = document.getElementById('document-issuance-form');
             const typeSelect = document.getElementById('document-type');
             const typeHelp = document.getElementById('document-type-help');
-            const contextStep = document.getElementById('context-step');
             const targetStep = document.getElementById('target-step');
             const optionsStep = document.getElementById('options-step');
-            const schoolSelect = document.getElementById('document-school');
-            const yearSelect = document.getElementById('document-year');
-            const classSelect = document.getElementById('document-class');
+            const academicYears = @json($academicYears);
             const queryInput = document.getElementById('target-query');
             const queryLabel = document.getElementById('target-query-label');
             const targetHeading = document.getElementById('target-heading');
             const searchButton = document.getElementById('target-search');
             const status = document.getElementById('target-status');
             const results = document.getElementById('target-results');
+            const moreButton = document.getElementById('target-more');
+            const receiptSchool = document.getElementById('receipt-school');
             const targetId = document.getElementById('target-id');
             const missingCpfConfirmation = document.getElementById('confirm-missing-student-cpf');
             const missingCpfModal = document.getElementById('missing-student-cpf-modal');
@@ -366,19 +326,11 @@
                 school: [@js(__('Localize a escola')), @js(__('Nome da escola'))],
                 diary: [@js(__('Localize o diário')), @js(__('Componente, turma ou docente'))],
             };
-            const contextVisibility = {
-                enrollment: ['school', 'year', 'class'],
-                course: ['school', 'year'],
-                person: ['school'],
-                history: ['school'],
-                class: ['school', 'year', 'class'],
-                academic_year: ['school', 'year'],
-                school: [],
-                diary: ['school', 'year', 'class'],
-            };
             let searchController = null;
             let selectedAcademicYearId = '';
             let selectedNeedsCpfConfirmation = false;
+            let currentPage = 1;
+            let lastSearchTerm = '';
 
             const selectedOption = () => typeSelect.options[typeSelect.selectedIndex];
             const targetKind = () => selectedOption()?.dataset.targetKind || '';
@@ -393,13 +345,15 @@
                 missingCpfConfirmation.value = '0';
                 issueButton.disabled = true;
                 results.replaceChildren();
+                moreButton.hidden = true;
+                Array.from(receiptSchool.options).forEach((option) => { option.disabled = false; });
                 status.textContent = message;
             };
 
             const syncAttendanceOptions = () => {
                 const enabled = selectedOption()?.dataset.attendanceScope === 'true';
                 const scope = attendanceScopeOptions.querySelector('input[name="attendance_scope"]:checked')?.value || 'annual';
-                const academicYearId = selectedAcademicYearId || yearSelect.value;
+                const academicYearId = selectedAcademicYearId;
 
                 Array.from(attendancePeriodSelect.options).forEach((option) => {
                     if (!option.value) return;
@@ -422,9 +376,9 @@
                 federalAidOnlyInput.disabled = !aidFilterEnabled;
                 if (!aidFilterEnabled) federalAidOnlyInput.checked = false;
 
-                const yearOption = Array.from(yearSelect.options).find((option) => option.value === String(academicYearId));
-                const minimum = yearOption?.dataset.startsAt?.slice(0, 7) || '';
-                const maximum = yearOption?.dataset.endsAt?.slice(0, 7) || '';
+                const year = academicYears.find((item) => String(item.id) === String(academicYearId));
+                const minimum = year ? (year.starts_at?.slice(0, 7) || `${year.reference_year}-01`) : '';
+                const maximum = year ? (year.ends_at?.slice(0, 7) || `${year.reference_year}-12`) : '';
                 const previousMonth = attendanceMonthInput.value;
                 attendanceMonthInput.replaceChildren(new Option(@js(__('Selecione o mês')), ''));
                 if (minimum && maximum) {
@@ -444,39 +398,15 @@
 
             };
 
-            const syncFilterOptions = () => {
-                const schoolId = schoolSelect.value;
-
-                Array.from(yearSelect.options).forEach((option) => {
-                    if (!option.value) return;
-                    option.hidden = Boolean(schoolId && option.dataset.schoolId !== schoolId);
-                });
-                if (yearSelect.selectedOptions[0]?.hidden) yearSelect.value = '';
-
-                const yearId = yearSelect.value;
-                Array.from(classSelect.options).forEach((option) => {
-                    if (!option.value) return;
-                    option.hidden = Boolean((schoolId && option.dataset.schoolId !== schoolId)
-                        || (yearId && option.dataset.yearId !== yearId));
-                });
-                if (classSelect.selectedOptions[0]?.hidden) classSelect.value = '';
-            };
-
             const updateType = () => {
                 const option = selectedOption();
                 const kind = targetKind();
                 const hasType = Boolean(option?.value && kind);
-                const visibleFilters = contextVisibility[kind] || [];
 
-                typeHelp.textContent = hasType ? option.dataset.description : @js(__('Selecione uma opção para ver os filtros adequados.'));
-                contextStep.classList.toggle('is-muted', !hasType);
+                typeHelp.textContent = hasType ? option.dataset.description : @js(__('Selecione uma opção para preparar o documento.'));
                 targetStep.classList.toggle('is-muted', !hasType);
                 queryInput.disabled = !hasType;
                 searchButton.disabled = !hasType;
-
-                document.querySelectorAll('[data-context-filter]').forEach((filter) => {
-                    filter.hidden = !visibleFilters.includes(filter.dataset.contextFilter);
-                });
 
                 const copy = targetCopy[kind] || [@js(__('Localize o registro')), @js(__('Digite para buscar'))];
                 targetHeading.textContent = copy[0];
@@ -500,7 +430,6 @@
                 optionsStep.classList.toggle('is-muted', !hasType);
 
                 resetTarget(hasType ? @js(__('Use a busca para localizar o registro correto.')) : @js(__('Primeiro, escolha o tipo de documento.')));
-                syncFilterOptions();
                 syncAttendanceOptions();
             };
 
@@ -514,16 +443,27 @@
                 selectedTarget.hidden = false;
                 issueButton.disabled = false;
                 results.replaceChildren();
+                moreButton.hidden = true;
                 status.textContent = `${target.title} selecionado para emissão.`;
+                if (typeSelect.value === 'volunteer-receipt') {
+                    const allowedSchools = (target.school_ids || []).map(String);
+                    Array.from(receiptSchool.options).forEach((option) => {
+                        option.disabled = !allowedSchools.includes(option.value);
+                    });
+                    if (receiptSchool.selectedOptions[0]?.disabled) {
+                        receiptSchool.value = allowedSchools[0] || '';
+                    }
+                }
                 syncAttendanceOptions();
                 selectedTarget.focus?.();
             };
 
-            const renderResults = (targets) => {
-                results.replaceChildren();
+            const renderResults = (targets, append = false, hasMore = false) => {
+                if (!append) results.replaceChildren();
 
-                if (!targets.length) {
-                    status.textContent = @js(__('Nenhum registro encontrado com esses filtros.'));
+                if (!targets.length && !results.childElementCount) {
+                    status.textContent = @js(__('Nenhum registro encontrado.'));
+                    moreButton.hidden = true;
                     return;
                 }
 
@@ -567,25 +507,35 @@
                     fragment.appendChild(item);
                 });
 
+                const firstNewResult = fragment.querySelector('button');
                 results.appendChild(fragment);
-                status.textContent = `${targets.length} ${targets.length === 1 ? @js(__('resultado encontrado')) : @js(__('resultados encontrados'))}.`;
-                results.querySelector('button')?.focus();
+                moreButton.hidden = !hasMore;
+                const count = results.childElementCount;
+                status.textContent = `${count} ${count === 1 ? @js(__('resultado encontrado')) : @js(__('resultados encontrados'))}${hasMore ? @js(__(' · Há mais pessoas disponíveis.')) : '.'}`;
+                (append ? firstNewResult : results.querySelector('button'))?.focus();
             };
 
-            const searchTargets = async () => {
+            const searchTargets = async (append = false) => {
                 if (!typeSelect.value) return;
+                const term = queryInput.value.trim();
+                if (append && term !== lastSearchTerm) return searchTargets();
 
                 searchController?.abort();
                 searchController = new AbortController();
-                resetTarget(@js(__('Buscando registros...')));
+                if (append) {
+                    status.textContent = @js(__('Buscando mais pessoas...'));
+                    moreButton.disabled = true;
+                } else {
+                    currentPage = 1;
+                    lastSearchTerm = term;
+                    resetTarget(@js(__('Buscando registros...')));
+                }
                 searchButton.disabled = true;
                 searchButton.setAttribute('aria-busy', 'true');
 
                 const parameters = new URLSearchParams({ type: typeSelect.value });
-                if (queryInput.value.trim()) parameters.set('q', queryInput.value.trim());
-                if (!document.querySelector('[data-context-filter="school"]').hidden && schoolSelect.value) parameters.set('school_id', schoolSelect.value);
-                if (!document.querySelector('[data-context-filter="year"]').hidden && yearSelect.value) parameters.set('academic_year_id', yearSelect.value);
-                if (!document.querySelector('[data-context-filter="class"]').hidden && classSelect.value) parameters.set('class_id', classSelect.value);
+                if (term) parameters.set('q', term);
+                if (append) parameters.set('page', String(currentPage + 1));
 
                 try {
                     const response = await fetch(`${targetsUrl}?${parameters.toString()}`, {
@@ -602,7 +552,8 @@
                         throw new Error(messages[response.status] || @js(__('Não foi possível concluir a busca.')));
                     }
                     const payload = await response.json();
-                    renderResults(payload.targets || []);
+                    if (append) currentPage++;
+                    renderResults(payload.targets || [], append, payload.has_more === true);
                 } catch (error) {
                     if (error.name !== 'AbortError') {
                         status.textContent = error.message || @js(__('Não foi possível concluir a busca.'));
@@ -610,42 +561,20 @@
                 } finally {
                     searchButton.disabled = false;
                     searchButton.removeAttribute('aria-busy');
+                    moreButton.disabled = false;
                 }
             };
 
             typeSelect.addEventListener('change', () => {
+                searchController?.abort();
                 updateType();
-                if (typeSelect.value === 'volunteer-receipt') {
-                    schoolSelect.value = document.getElementById('receipt-school').value;
-                    schoolSelect.dispatchEvent(new Event('change'));
-                }
                 if (['direct', 'listing', 'own_enrollment'].includes(targetKind())) searchTargets();
             });
-            schoolSelect.addEventListener('change', () => {
-                if (typeSelect.value === 'volunteer-receipt' && schoolSelect.value) {
-                    document.getElementById('receipt-school').value = schoolSelect.value;
-                }
-                yearSelect.value = '';
-                classSelect.value = '';
-                syncFilterOptions();
-                syncAttendanceOptions();
-                resetTarget();
-            });
-            document.getElementById('receipt-school').addEventListener('change', (event) => {
-                schoolSelect.value = event.target.value;
-                schoolSelect.dispatchEvent(new Event('change'));
-            });
-            yearSelect.addEventListener('change', () => {
-                classSelect.value = '';
-                syncFilterOptions();
-                syncAttendanceOptions();
-                resetTarget();
-            });
-            classSelect.addEventListener('change', () => resetTarget());
             attendanceScopeOptions.querySelectorAll('input[name="attendance_scope"]').forEach((input) => {
                 input.addEventListener('change', syncAttendanceOptions);
             });
-            searchButton.addEventListener('click', searchTargets);
+            searchButton.addEventListener('click', () => searchTargets());
+            moreButton.addEventListener('click', () => searchTargets(true));
             queryInput.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter') {
                     event.preventDefault();
