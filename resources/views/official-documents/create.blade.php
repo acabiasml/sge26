@@ -53,9 +53,8 @@
                         <div class="form-group">
                             <label for="visibility">{{ __('Visibilidade do documento') }}</label>
                             <select id="visibility" name="visibility" class="form-control @error('visibility') is-invalid @enderror" required>
-                                <option value="" @selected(old('visibility', $sourceDocument?->visibility) === null)>{{ __('Selecione') }}</option>
-                                <option value="public" @selected(old('visibility', $sourceDocument?->visibility) === 'public')>{{ __('Público — visível aos vinculados à escola') }}</option>
-                                <option value="private" @selected(old('visibility', $sourceDocument?->visibility) === 'private')>{{ __('Privado — visível apenas para você e administradores') }}</option>
+                                <option value="private" @selected(old('visibility', \App\Models\OfficialDocument::VISIBILITY_PRIVATE) === 'private')>{{ __('Privado — visível apenas para você e administradores') }}</option>
+                                <option value="public" @selected(old('visibility', \App\Models\OfficialDocument::VISIBILITY_PRIVATE) === 'public')>{{ __('Público — visível aos vinculados à escola') }}</option>
                             </select>
                             @error('visibility') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
                         </div>
@@ -119,6 +118,15 @@
                                     @method('PATCH')
                                     <input type="hidden" name="visibility" value="{{ $document->visibility === 'public' ? 'private' : 'public' }}">
                                     <button type="submit" class="btn btn-sm btn-outline-warning">{{ $document->visibility === 'public' ? __('Tornar privado') : __('Tornar público') }}</button>
+                                </form>
+                            @endif
+                            @if (auth()->user()->isAdministrator() || ($document->visibility === 'private' && $document->created_by_user_id === auth()->id()))
+                                <form method="POST" action="{{ route('official-documents.destroy', $document) }}" class="d-inline-block mt-2" onsubmit="return confirm('{{ __('Deseja excluir este documento? Esta ação é permanente.') }}')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="{{ __('Excluir documento') }}" title="{{ __('Excluir documento') }}">
+                                        <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                                    </button>
                                 </form>
                             @endif
                         </div>

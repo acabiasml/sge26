@@ -332,6 +332,76 @@ class AdminScreensTest extends TestCase
             ->assertSee('Documento Reservado');
     }
 
+    public function test_new_and_reedited_official_documents_default_to_private(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A']);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $public = OfficialDocument::query()->create([
+            'school_id' => $school->id, 'created_by_user_id' => $manager->id,
+            'title' => 'Documento anterior', 'content_html' => '<p>Texto</p>',
+            'type' => OfficialDocument::TYPE_OTHER, 'orientation' => 'portrait', 'line_spacing' => 1.5,
+            'visibility' => OfficialDocument::VISIBILITY_PUBLIC,
+        ]);
+
+        $this->actingAs($manager)->get(route('official-documents.create'))
+            ->assertOk()->assertSee('value="private" selected', false);
+        $this->actingAs($manager)->get(route('official-documents.edit', $public))
+            ->assertOk()->assertSee('value="private" selected', false);
+    }
+
+    public function test_only_author_can_delete_private_document_and_only_admin_can_delete_public_document(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('local');
+        $school = School::query()->create(['name' => 'Escola A']);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $teacher = $this->userWithRole(PersonSchoolRole::ROLE_TEACHER, $school->id);
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+
+        $makeDocument = fn (string $title, int $authorId, string $visibility) => OfficialDocument::query()->create([
+            'school_id' => $school->id, 'created_by_user_id' => $authorId,
+            'title' => $title, 'content_html' => '<p>Texto</p>',
+            'type' => OfficialDocument::TYPE_OTHER, 'orientation' => 'portrait', 'line_spacing' => 1.5,
+            'visibility' => $visibility,
+        ]);
+
+        $private = $makeDocument('Documento privado gestor', $manager->id, OfficialDocument::VISIBILITY_PRIVATE);
+        $teacherPrivate = $makeDocument('Documento privado professor', $teacher->id, OfficialDocument::VISIBILITY_PRIVATE);
+        $public = $makeDocument('Documento publico gestor', $manager->id, OfficialDocument::VISIBILITY_PUBLIC);
+        $issued = IssuedDocument::query()->create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'verification_code' => 'BEABA-EXCLUIR',
+            'type' => 'official-document', 'person_id' => $manager->person_id,
+            'school_id' => $school->id, 'issued_by_user_id' => $manager->id,
+            'file_path' => 'issued-documents/teste-exclusao.pdf', 'issued_at' => now(),
+        ]);
+        $private->update(['issued_document_id' => $issued->id]);
+        \Illuminate\Support\Facades\Storage::disk('local')->put($issued->file_path, '%PDF-teste');
+
+        $this->actingAs($manager)->get(route('official-documents.create', ['visibility' => 'private']))
+            ->assertSee('action="'.route('official-documents.destroy', $private).'"', false)
+            ->assertDontSee('action="'.route('official-documents.destroy', $teacherPrivate).'"', false);
+        $this->actingAs($manager)->get(route('official-documents.create'))
+            ->assertDontSee('action="'.route('official-documents.destroy', $public).'"', false);
+        $this->actingAs($manager)->delete(route('official-documents.destroy', $teacherPrivate))->assertForbidden();
+        $this->actingAs($manager)->delete(route('official-documents.destroy', $public))->assertForbidden();
+        $this->actingAs($teacher)->delete(route('official-documents.destroy', $private))->assertForbidden();
+
+        $this->actingAs($manager)->delete(route('official-documents.destroy', $private))
+            ->assertRedirect(route('official-documents.create', ['visibility' => 'private']));
+        $this->assertDatabaseMissing('official_documents', ['id' => $private->id]);
+        $this->assertDatabaseMissing('issued_documents', ['id' => $issued->id]);
+        \Illuminate\Support\Facades\Storage::disk('local')->assertMissing($issued->file_path);
+        $this->get(route('documents.verify', $issued->verification_code))->assertNotFound();
+
+        $this->actingAs($teacher)->delete(route('official-documents.destroy', $teacherPrivate))
+            ->assertRedirect(route('official-documents.create', ['visibility' => 'private']));
+        $this->actingAs($admin)->get(route('official-documents.create'))
+            ->assertSee('action="'.route('official-documents.destroy', $public).'"', false);
+        $this->actingAs($admin)->delete(route('official-documents.destroy', $public))
+            ->assertRedirect(route('official-documents.create', ['visibility' => 'public']));
+        $this->assertDatabaseCount('official_documents', 0);
+    }
+
     public function test_manager_cannot_emit_official_document_for_other_school(): void
     {
         $managedSchool = School::query()->create(['name' => 'Escola A', 'active' => true]);

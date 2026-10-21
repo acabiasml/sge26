@@ -129,6 +129,32 @@ class OfficialDocumentController extends Controller
             ->with('status', __('Visibilidade do documento atualizada.'));
     }
 
+    public function destroy(Request $request, OfficialDocument $document): \Illuminate\Http\RedirectResponse
+    {
+        $visibility = DB::transaction(function () use ($request, $document): string {
+            $document = OfficialDocument::query()->lockForUpdate()->findOrFail($document->id);
+            abort_unless($request->user()->isAdministrator()
+                || ($document->visibility === OfficialDocument::VISIBILITY_PRIVATE
+                    && $document->created_by_user_id === $request->user()->id), 403);
+
+            $issued = $document->issuedDocument;
+            $filePath = $issued?->file_path;
+            $visibility = $document->visibility;
+
+            $document->delete();
+            $issued?->delete();
+
+            if ($filePath && Storage::disk('local')->exists($filePath)) {
+                abort_unless(Storage::disk('local')->delete($filePath), 500);
+            }
+
+            return $visibility;
+        });
+
+        return redirect()->route('official-documents.create', ['visibility' => $visibility])
+            ->with('status', __('Documento excluído.'));
+    }
+
     private function canView(Request $request, OfficialDocument $document): bool
     {
         $user = $request->user();
