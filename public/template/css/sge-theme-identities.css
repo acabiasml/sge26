@@ -1,0 +1,331 @@
+/* Identidades da interface. Os documentos impressos não carregam esta folha. */
+html[data-theme-family="govbr"] {
+    --identity-primary: var(--sge-blue);
+    --identity-secondary: color-mix(in srgb, var(--sge-green) 88%, var(--sge-ink));
+    --identity-tertiary: var(--sge-orange);
+    --identity-radius: .25rem;
+    --identity-accent-1: var(--sge-blue);
+    --identity-accent-2: var(--sge-green);
+    --identity-accent-3: var(--sge-orange);
+    --identity-accent-4: var(--sge-orange-dark);
+}
+html[data-theme-family="instagram"] {
+    --identity-primary: var(--aurora-accent);
+    --identity-secondary: var(--aurora-violet);
+    --identity-tertiary: #a34e00;
+    --identity-radius: 1.25rem;
+    --identity-accent-1: var(--aurora-accent);
+    --identity-accent-2: var(--aurora-violet);
+    --identity-accent-3: var(--identity-tertiary);
+    --identity-accent-4: var(--aurora-info);
+}
+html[data-theme="instagram-dark"] { --identity-tertiary: #ffbb80; }
+html[data-theme-family="tiktok"] {
+    --identity-primary: var(--aurora-accent);
+    --identity-secondary: var(--aurora-violet);
+    --identity-tertiary: var(--aurora-info);
+    --identity-radius: .35rem;
+    --identity-accent-1: var(--aurora-violet);
+    --identity-accent-2: var(--aurora-accent);
+    --identity-accent-3: var(--aurora-success);
+    --identity-accent-4: var(--aurora-info);
+    --identity-nav-bg: #141b20;
+    --identity-nav-ink: #f3fbfc;
+    --identity-nav-active: #26383e;
+}
+html[data-theme="tiktok-dark"] { --identity-nav-bg: #090d0f; }
+html[data-theme-family="gmail"] {
+    --identity-primary: var(--aurora-accent);
+    --identity-secondary: var(--aurora-violet);
+    --identity-tertiary: var(--aurora-success);
+    --identity-radius: 1.35rem;
+    --identity-accent-1: var(--aurora-accent);
+    --identity-accent-2: var(--aurora-danger);
+    --identity-accent-3: var(--aurora-warning);
+    --identity-accent-4: var(--aurora-success);
+}
+html[data-theme-family="outlook"] {
+    --identity-primary: var(--aurora-accent);
+    --identity-secondary: var(--aurora-info);
+    --identity-tertiary: var(--aurora-violet);
+    --identity-radius: .4rem;
+    --identity-accent-1: var(--aurora-accent);
+    --identity-accent-2: var(--aurora-info);
+    --identity-accent-3: var(--aurora-violet);
+    --identity-accent-4: var(--aurora-success);
+}
+html[data-theme-family="aurora"] {
+    --identity-primary: var(--aurora-accent);
+    --identity-secondary: var(--aurora-violet);
+    --identity-tertiary: var(--aurora-info);
+    --identity-radius: .9rem;
+    --identity-accent-1: var(--aurora-accent);
+    --identity-accent-2: var(--aurora-violet);
+    --identity-accent-3: var(--aurora-info);
+    --identity-accent-4: var(--aurora-warning);
+}
+html[data-theme-family="beaba"] {
+    --identity-primary: var(--sge-brown);
+    --identity-secondary: var(--sge-green);
+    --identity-tertiary: var(--sge-blue);
+    --identity-radius: .75rem;
+    --identity-accent-1: var(--sge-brown);
+    --identity-accent-2: var(--sge-green);
+    --identity-accent-3: var(--sge-blue);
+    --identity-accent-4: var(--sge-orange);
+}
+html[data-theme="aurora-dark"][data-theme-family="beaba"] {
+    --identity-primary: var(--aurora-accent);
+    --identity-secondary: var(--aurora-success);
+    --identity-tertiary: var(--aurora-info);
+    --identity-accent-1: var(--aurora-accent);
+    --identity-accent-2: var(--aurora-success);
+    --identity-accent-3: var(--aurora-info);
+    --identity-accent-4: var(--aurora-warning);
+}
+
+/* O mesmo componente conserva sua função, mas assume as formas de cada tema. */
+html[data-theme-family] :is(.sge-dashboard-shortcut, .sge-section-nav-item, .sge-document-step,
+    .sge-period-context-metrics > div, .sge-period-selector-item,
+    .sge-period-card-stats > span, .sge-result-strip > article) {
+    --sge-display-accent: var(--identity-accent-1);
+}
+html[data-theme-family] :is(.sge-dashboard-shortcut, .sge-section-nav-item, .sge-document-step,
+    .sge-period-context-metrics > div, .sge-period-selector-item,
+    .sge-period-card-stats > span, .sge-result-strip > article):nth-child(4n + 2) {
+    --sge-display-accent: var(--identity-accent-2);
+}
+html[data-theme-family] :is(.sge-dashboard-shortcut, .sge-section-nav-item, .sge-document-step,
+    .sge-period-context-metrics > div, .sge-period-selector-item,
+    .sge-period-card-stats > span, .sge-result-strip > article):nth-child(4n + 3) {
+    --sge-display-accent: var(--identity-accent-3);
+}
+html[data-theme-family] :is(.sge-dashboard-shortcut, .sge-section-nav-item, .sge-document-step,
+    .sge-period-context-metrics > div, .sge-period-selector-item,
+    .sge-period-card-stats > span, .sge-result-strip > article):nth-child(4n) {
+    --sge-display-accent: var(--identity-accent-4);
+}
+html[data-theme-family] :is(.sge-dashboard-shortcut, .sge-section-nav-item, .sge-document-step,
+    .sge-document-hub-summary, .sge-metric-card, .sge-workflow-card, .sge-status-filter-strip) {
+    border-radius: var(--identity-radius);
+}
+html[data-theme-family] .sge-dashboard-shortcut:nth-child(n) .sge-dashboard-shortcut-icon {
+    border-radius: calc(var(--identity-radius) * .75);
+}
+html[data-theme-family] .sge-page-kicker,
+html[data-theme-family] .sge-eyebrow { color: var(--identity-secondary); }
+html[data-theme-family]:not([data-theme-family="outlook"])
+    .topbar.navbar .nav-link.sge-topbar-icon-button {
+    color: var(--identity-primary) !important;
+    background: var(--sge-surface-soft);
+}
+
+/* gov.br: composição institucional, superfícies planas e acentos azul, verde e amarelo. */
+html[data-theme-family="govbr"] .topbar.navbar {
+    border-bottom: 3px solid var(--identity-primary);
+    box-shadow: none;
+}
+html[data-theme-family="govbr"] .sidebar .sidebar-brand {
+    border-bottom: 3px solid var(--identity-secondary);
+}
+html[data-theme-family="govbr"] :is(.sge-dashboard-hero, .sge-dashboard-band,
+    .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero,
+    .sge-student-map-hero, .sge-diary-management-hero) {
+    border: 1px solid var(--sge-border);
+    border-left: 5px solid var(--identity-primary);
+    border-radius: var(--identity-radius);
+    box-shadow: none;
+}
+html[data-theme-family="govbr"] :is(.card, .sge-workflow-card, .sge-document-flow) {
+    border-radius: var(--identity-radius);
+    box-shadow: none;
+}
+html[data-theme-family="govbr"] .sge-dashboard-shortcut,
+html[data-theme-family="govbr"] .sge-section-nav-item:not(.is-active) {
+    border: 1px solid var(--sge-border);
+    border-left: 4px solid var(--sge-display-accent);
+    background: var(--sge-paper);
+    box-shadow: none;
+}
+html[data-theme-family="govbr"] .sge-dashboard-shortcut:is(:hover, :focus-visible),
+html[data-theme-family="govbr"] .sge-section-nav-item:not(.is-active):is(:hover, :focus-visible) {
+    background: var(--sge-surface-soft);
+    border-color: var(--sge-display-accent);
+}
+html[data-theme-family="govbr"] .card-header:not(.bg-primary, .bg-success, .bg-danger) {
+    border-bottom: 2px solid var(--identity-primary);
+}
+
+/* Instagram: molduras suaves e faixa com cores de fotografia. */
+html[data-theme-family="instagram"] .sidebar.bg-gradient-primary {
+    background: linear-gradient(160deg, var(--aurora-panel), var(--aurora-raised));
+}
+html[data-theme-family="instagram"] .topbar.navbar {
+    border-bottom: 4px solid transparent;
+    border-image: linear-gradient(90deg, var(--identity-secondary), var(--identity-primary), var(--identity-tertiary)) 1;
+}
+html[data-theme-family="instagram"] :is(.sge-dashboard-hero, .sge-dashboard-band,
+    .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero,
+    .sge-student-map-hero, .sge-diary-management-hero) {
+    background: linear-gradient(120deg, var(--aurora-panel), var(--aurora-raised)) padding-box,
+        linear-gradient(90deg, var(--identity-secondary), var(--identity-primary), var(--identity-tertiary)) border-box;
+    border: 2px solid transparent;
+    border-radius: var(--identity-radius);
+    box-shadow: var(--brand-shadow);
+}
+html[data-theme-family="instagram"] .sge-dashboard-shortcut,
+html[data-theme-family="instagram"] .sge-section-nav-item:not(.is-active) {
+    border: 2px solid var(--sge-display-accent);
+    background: var(--aurora-panel);
+    box-shadow: none;
+}
+html[data-theme-family="instagram"] .sge-dashboard-shortcut:nth-child(n) .sge-dashboard-shortcut-icon {
+    border-radius: 50%;
+}
+html[data-theme-family="instagram"] :is(.card, .sge-document-flow) {
+    border-radius: var(--identity-radius);
+    box-shadow: var(--brand-shadow);
+}
+html[data-theme-family="instagram"] .card-header:not(.bg-primary, .bg-success, .bg-danger) {
+    border-bottom: 3px solid var(--identity-secondary);
+}
+
+/* TikTok: navegação escura e dupla marcação ciano/rosa. */
+html[data-theme-family="tiktok"] .sidebar.bg-gradient-primary {
+    background: var(--identity-nav-bg);
+    border-right: 3px solid var(--identity-secondary);
+}
+html[data-theme-family="tiktok"] .sidebar-dark :is(.sidebar-brand, .sidebar-heading,
+    .nav-item .nav-link, .nav-item .nav-link i, .nav-item .nav-link::after) {
+    color: var(--identity-nav-ink);
+}
+html[data-theme-family="tiktok"] .sidebar-dark .nav-item.active > .nav-link,
+html[data-theme-family="tiktok"] .sidebar-dark .nav-item .nav-link:is(:hover, :focus) {
+    background: var(--identity-nav-active);
+    color: var(--identity-nav-ink);
+    border-radius: 0;
+    box-shadow: inset 4px 0 var(--identity-secondary), inset -4px 0 var(--identity-primary);
+}
+html[data-theme-family="tiktok"] .sidebar-dark .nav-item.active > .nav-link i,
+html[data-theme-family="tiktok"] .sidebar-dark .nav-item .nav-link:is(:hover, :focus) i {
+    color: var(--identity-secondary);
+}
+html[data-theme-family="tiktok"] .topbar.navbar {
+    border-bottom: 3px solid var(--identity-secondary);
+    box-shadow: 0 3px 0 var(--identity-primary);
+}
+html[data-theme-family="tiktok"] :is(.sge-dashboard-hero, .sge-dashboard-band,
+    .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero,
+    .sge-student-map-hero, .sge-diary-management-hero) {
+    border: 1px solid var(--sge-border);
+    border-left: 5px solid var(--identity-secondary);
+    border-right: 5px solid var(--identity-primary);
+    border-radius: var(--identity-radius);
+    box-shadow: 4px 4px 0 var(--sge-border);
+}
+html[data-theme-family="tiktok"] .sge-dashboard-shortcut,
+html[data-theme-family="tiktok"] .sge-section-nav-item:not(.is-active) {
+    border: 1px solid var(--sge-border);
+    border-left: 4px solid var(--sge-display-accent);
+    border-right: 4px solid var(--identity-secondary);
+    background: var(--aurora-panel);
+    box-shadow: 3px 3px 0 var(--sge-border);
+}
+html[data-theme-family="tiktok"] :is(.card, .sge-document-flow) {
+    border-radius: var(--identity-radius);
+    box-shadow: 3px 3px 0 var(--sge-border);
+}
+
+/* Gmail: cartões brancos sobre a tela azulada e navegação em cápsulas. */
+html[data-theme-family="gmail"] .sidebar.bg-gradient-primary,
+html[data-theme-family="gmail"] .topbar.navbar { background: var(--aurora-canvas); }
+html[data-theme-family="gmail"] .sidebar-dark .nav-item.active > .nav-link,
+html[data-theme-family="gmail"] .sidebar-dark .nav-item .nav-link:is(:hover, :focus) {
+    border-radius: 0 2rem 2rem 0;
+    box-shadow: none;
+}
+html[data-theme-family="gmail"] :is(.sge-dashboard-hero, .sge-dashboard-band,
+    .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero,
+    .sge-student-map-hero, .sge-diary-management-hero) {
+    background: var(--aurora-panel);
+    border: 0;
+    border-radius: var(--identity-radius);
+    box-shadow: inset 0 4px var(--identity-secondary);
+}
+html[data-theme-family="gmail"] .sge-dashboard-shortcut,
+html[data-theme-family="gmail"] .sge-section-nav-item:not(.is-active) {
+    border: 0;
+    border-radius: var(--identity-radius);
+    background: var(--aurora-panel);
+    box-shadow: inset 0 3px var(--sge-display-accent);
+}
+html[data-theme-family="gmail"] :is(.card, .sge-document-flow) {
+    border: 0;
+    border-radius: var(--identity-radius);
+    box-shadow: none;
+}
+html[data-theme-family="gmail"] .card-header:not(.bg-primary, .bg-success, .bg-danger) {
+    border-bottom: 1px solid var(--sge-border);
+}
+
+/* Outlook: barra azul e cartões de aspecto mais compacto. */
+html[data-theme-family="outlook"] .topbar.navbar {
+    background: var(--identity-primary);
+    border: 0;
+}
+html[data-theme-family="outlook"] .sidebar.bg-gradient-primary {
+    border-right: 2px solid var(--identity-primary);
+}
+html[data-theme-family="outlook"] :is(.sge-dashboard-hero, .sge-dashboard-band,
+    .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero,
+    .sge-student-map-hero, .sge-diary-management-hero) {
+    background: var(--aurora-panel);
+    border: 1px solid var(--sge-border);
+    border-top: 4px solid var(--identity-primary);
+    border-radius: var(--identity-radius);
+    box-shadow: var(--brand-shadow);
+}
+html[data-theme-family="outlook"] .sge-dashboard-shortcut,
+html[data-theme-family="outlook"] .sge-section-nav-item:not(.is-active) {
+    border: 1px solid var(--sge-border);
+    border-top: 3px solid var(--sge-display-accent);
+    background: var(--aurora-panel);
+    box-shadow: var(--brand-shadow);
+}
+html[data-theme-family="outlook"] :is(.card, .sge-document-flow) {
+    border-radius: var(--identity-radius);
+    box-shadow: var(--brand-shadow);
+}
+html[data-theme-family="outlook"] .card-header:not(.bg-primary, .bg-success, .bg-danger) {
+    border-bottom: 1px solid var(--sge-border);
+    border-top: 3px solid var(--identity-primary);
+}
+
+/* Aurora e Beabá também mantêm desenho próprio. */
+html[data-theme-family="aurora"] .sge-dashboard-shortcut,
+html[data-theme-family="aurora"] .sge-section-nav-item:not(.is-active) {
+    border: 1px solid var(--sge-border);
+    border-left: 4px solid var(--sge-display-accent);
+    border-radius: .35rem var(--identity-radius) var(--identity-radius) .35rem;
+    background: var(--aurora-panel);
+    box-shadow: var(--aurora-shadow);
+}
+html[data-theme-family="aurora"] .card-header:not(.bg-primary, .bg-success, .bg-danger) {
+    border-bottom: 2px solid var(--identity-secondary);
+}
+html[data-theme-family="beaba"] .sge-dashboard-shortcut,
+html[data-theme-family="beaba"] .sge-section-nav-item:not(.is-active) {
+    border: 1px solid var(--sge-border);
+    border-bottom: 3px solid var(--sge-display-accent);
+    background: var(--sge-paper);
+    box-shadow: var(--sge-shadow-sm);
+}
+html[data-theme-family="beaba"] .card-header:not(.bg-primary, .bg-success, .bg-danger) {
+    border-bottom: 2px solid var(--identity-secondary);
+}
+
+html[data-theme-family] .sge-dashboard-shortcut:focus-visible,
+html[data-theme-family] .sge-section-nav-item:focus-visible {
+    outline: 3px solid var(--identity-primary);
+    outline-offset: 2px;
+}
