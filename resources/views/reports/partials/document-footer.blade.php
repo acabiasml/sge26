@@ -28,10 +28,10 @@
         @endif
         <div class="document-footer-authentication">
             @if($phoneLine){{ $phoneLine }} | @endif
-            @if($siteLine){{ $siteLine }} | @endif
             Documento emitido pelo Beabá. Autenticidade: {{ $issuedDocument->verification_code }}.
         </div>
         <div class="document-footer-issuance">
+            @if($siteLine){{ $siteLine }} | @endif
             Emitido em {{ $issuedDocument->issued_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i:s') }} 
             <span class="document-footer-issuer">por {{ $issuer }}.</span>
         </div>
