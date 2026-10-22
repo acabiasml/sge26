@@ -27,9 +27,9 @@
                         <h3 class="h6 font-weight-bold text-primary mt-3">{{ __($weekdayLabel) }}</h3>
                         <div class="row">
                             @foreach($daySlots as $slot)
-                                @php($colors = \App\Support\ScheduleTeacherColor::for($slot->componentAssignment?->teacher?->id, $slot->componentAssignment?->teacher?->full_name))
+                                @php($tone = \App\Support\ScheduleTeacherColor::toneIndex($slot->componentAssignment?->teacher?->id, $slot->componentAssignment?->teacher?->full_name))
                                 <div class="col-lg-4 col-md-6 mb-3">
-                                    <a class="sge-teacher-schedule-card" style="border-left-color: {{ $colors['border'] }}; background: {{ $colors['background'] }};" href="{{ route('teacher-diaries.show', [$slot->schedule->schoolClass, $slot->componentAssignment->component]) }}">
+                                    <a class="sge-teacher-schedule-card sge-teacher-tone-{{ $tone }}" href="{{ route('teacher-diaries.show', [$slot->schedule->schoolClass, $slot->componentAssignment->component]) }}">
                                         <span>{{ substr($slot->starts_at, 0, 5) }}-{{ substr($slot->ends_at, 0, 5) }}</span>
                                         <strong>{{ $slot->componentAssignment?->component?->name }}</strong>
                                         <small>{{ $slot->schedule?->schoolClass?->name }} · {{ $slot->schedule?->schoolClass?->academicYear?->school?->name }}</small>

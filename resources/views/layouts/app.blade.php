@@ -44,8 +44,8 @@
         .sge-language-button:hover, .sge-language-button:focus {
             background: var(--sge-cream); border-color: var(--sge-border); opacity: 1; outline: none;
         }
-        .sge-language-button:focus-visible { box-shadow: 0 0 0 .2rem rgba(35, 104, 124, .22); }
-        .sge-language-button.is-active { background: #fff7ec; border-color: var(--sge-orange); opacity: 1; }
+        .sge-language-button:focus-visible { box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--sge-brown) 22%, transparent); }
+        .sge-language-button.is-active { background: var(--sge-surface-soft, var(--sge-surface)); border-color: var(--sge-brown); opacity: 1; }
     </style>
     @livewireStyles
 </head>

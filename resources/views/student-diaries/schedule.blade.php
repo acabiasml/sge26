@@ -37,9 +37,9 @@
                         <div class="row">
                             @foreach($daySlots as $slot)
                                 @php($teacher = $slot->componentAssignment?->teacher)
-                                @php($colors = \App\Support\ScheduleTeacherColor::for($teacher?->id, $teacher?->full_name))
+                                @php($tone = \App\Support\ScheduleTeacherColor::toneIndex($teacher?->id, $teacher?->full_name))
                                 <div class="col-lg-4 col-md-6 mb-3">
-                                    <div class="sge-teacher-schedule-card" style="border-left-color: {{ $colors['border'] }}; background: {{ $colors['background'] }};">
+                                    <div class="sge-teacher-schedule-card sge-teacher-tone-{{ $tone }}">
                                         <span>{{ substr($slot->starts_at, 0, 5) }}-{{ substr($slot->ends_at, 0, 5) }}</span>
                                         <strong>{{ $slot->componentAssignment?->component?->name }}</strong>
                                         <small>{{ $teacher?->full_name ?? __('Docência não definida') }}</small>

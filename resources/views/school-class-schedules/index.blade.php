@@ -156,8 +156,8 @@
                                                 @php($teacher = $componentAssignment?->teacher)
                                                 @php($component = $componentAssignment?->component)
                                                 @php($teacherName = $teacher?->full_name ?? $component?->teacher?->full_name)
-                                                @php($colors = \App\Support\ScheduleTeacherColor::for($teacher?->id, $teacherName))
-                                                <article class="sge-week-schedule-slot sge-week-schedule-slot-{{ $slot->type }}" style="top: {{ $top }}%; height: {{ $height }}%; border-left-color: {{ $colors['border'] }}; background: {{ $slot->type === \App\Models\SchoolClassScheduleSlot::TYPE_BREAK ? 'rgba(240, 144, 48, .22)' : $colors['background'] }};">
+                                                @php($tone = \App\Support\ScheduleTeacherColor::toneIndex($teacher?->id, $teacherName))
+                                                <article class="sge-week-schedule-slot sge-week-schedule-slot-{{ $slot->type }} sge-teacher-tone-{{ $tone }}" style="top: {{ $top }}%; height: {{ $height }}%;">
                                                     <button class="sge-week-schedule-edit" type="button" data-toggle="modal" data-target="#edit-slot-{{ $slot->id }}" aria-label="{{ __('Editar bloco') }} {{ $slot->type === 'aula' ? $component?->name : $slot->label }}">
                                                         <strong>{{ $slot->type === 'aula' ? $component?->name : $slot->label }}</strong>
                                                         @if($slot->type === 'aula')

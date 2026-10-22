@@ -169,12 +169,12 @@ html:is([data-theme="instagram-light"], [data-theme="instagram-dark"], [data-the
 html:is([data-theme="instagram-light"], [data-theme="instagram-dark"], [data-theme="tiktok-light"], [data-theme="tiktok-dark"], [data-theme="gmail-light"], [data-theme="gmail-dark"], [data-theme="outlook-light"], [data-theme="outlook-dark"]) :is(.form-control,.custom-select,.input-group-text) { border-color: var(--aurora-muted); }
 .sge-theme-switcher .dropdown-menu { max-height: min(75vh, 36rem); overflow-y: auto; }
 html:is([data-theme="instagram-light"], [data-theme="instagram-dark"]) { --brand-radius: 1.15rem; --brand-shadow: 0 8px 28px -18px var(--aurora-violet); }
-html:is([data-theme="instagram-light"], [data-theme="instagram-dark"]) .topbar.navbar { border-bottom: 3px solid transparent; border-image: linear-gradient(90deg,#f9ce34,#ee2a7b,#6228d7) 1; }
+html:is([data-theme="instagram-light"], [data-theme="instagram-dark"]) .topbar.navbar { border-bottom: 3px solid transparent; border-image: linear-gradient(90deg,var(--aurora-violet),var(--aurora-accent),var(--aurora-strong)) 1; }
 html:is([data-theme="instagram-light"], [data-theme="instagram-dark"]) :is(.sge-dashboard-hero, .sge-dashboard-band, .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero, .sge-student-map-hero) { background: linear-gradient(120deg,var(--aurora-panel),var(--aurora-hover)); border-top: 3px solid var(--aurora-accent); }
 html:is([data-theme="instagram-light"], [data-theme="instagram-dark"]) .sidebar-dark .nav-item.active > .nav-link { border-radius: 1rem; box-shadow: inset 4px 0 var(--aurora-accent); }
 html:is([data-theme="tiktok-light"], [data-theme="tiktok-dark"]) { --brand-radius: .25rem; --brand-shadow: 3px 3px 0 var(--aurora-border); }
-html:is([data-theme="tiktok-light"], [data-theme="tiktok-dark"]) .topbar.navbar { border-bottom: 3px solid #25f4ee; box-shadow: 0 2px #fe2c55; }
-html:is([data-theme="tiktok-light"], [data-theme="tiktok-dark"]) :is(.sge-dashboard-hero, .sge-dashboard-band, .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero, .sge-student-map-hero) { border-left: 4px solid #25f4ee; border-right: 4px solid #fe2c55; }
+html:is([data-theme="tiktok-light"], [data-theme="tiktok-dark"]) .topbar.navbar { border-bottom: 3px solid var(--aurora-accent); box-shadow: 0 2px var(--aurora-violet); }
+html:is([data-theme="tiktok-light"], [data-theme="tiktok-dark"]) :is(.sge-dashboard-hero, .sge-dashboard-band, .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero, .sge-student-map-hero) { border-left: 4px solid var(--aurora-accent); border-right: 4px solid var(--aurora-violet); }
 html:is([data-theme="tiktok-light"], [data-theme="tiktok-dark"]) .btn-primary { box-shadow: 2px 2px 0 var(--aurora-violet); border-radius: .25rem; }
 html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) { --brand-radius: 1.5rem; --brand-shadow: none; }
 html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) .sidebar.bg-gradient-primary, html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) .topbar.navbar { background: var(--aurora-canvas) !important; border: 0; }
@@ -182,9 +182,9 @@ html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) .sidebar-dark .na
 html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) .btn-primary { border-radius: 1.25rem; box-shadow: none; }
 html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) .card-header { background: var(--aurora-panel); }
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) { --brand-radius: .3rem; --brand-shadow: 0 2px 6px -3px var(--aurora-muted); }
-html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar.navbar { background: #005a9e !important; border-bottom: 0; }
-html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar.navbar :is(.nav-link,.nav-link i,.sge-topbar-icon-button,.text-gray-600) { color: #fff !important; }
-html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar.navbar .sge-topbar-icon-button { background: #004578; }
+html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar.navbar { background: var(--aurora-accent) !important; border-bottom: 0; }
+html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar.navbar :is(.nav-link,.nav-link i,.sge-topbar-icon-button,.text-gray-600) { color: var(--aurora-on-accent) !important; }
+html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar.navbar .sge-topbar-icon-button { background: var(--aurora-strong); }
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .card-header { background: var(--aurora-raised); border-top: 2px solid var(--aurora-accent); }
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .sidebar-dark .nav-item.active > .nav-link { border-radius: 0; box-shadow: inset 4px 0 var(--aurora-accent); }
 
@@ -204,13 +204,13 @@ html .topbar #sidebarToggleTop:is(:hover, :focus, :active) {
     border-color: currentColor;
 }
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar #sidebarToggleTop {
-    color: #fff !important;
-    background: #004578 !important;
-    border-color: #b5dfff;
+    color: var(--aurora-on-accent) !important;
+    background: var(--aurora-strong) !important;
+    border-color: var(--aurora-on-accent);
 }
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar #sidebarToggleTop:is(:hover, :focus, :active) {
-    background: #00345b !important;
+    background: var(--aurora-accent) !important;
 }
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar #sidebarToggleTop:focus-visible {
-    outline-color: #fff !important;
+    outline-color: var(--aurora-on-accent) !important;
 }

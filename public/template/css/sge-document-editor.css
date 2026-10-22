@@ -5,9 +5,9 @@
 .note-editor .note-editable table { width: 100%; border-collapse: collapse; }
 .note-editor .note-editable td, .note-editor .note-editable th { border: 1px solid #bdb5ae; padding: 6px; }
 .note-editor .note-editable img { max-width: 100%; height: auto; }
-.note-editor .note-editable:focus { outline: 2px solid var(--sge-primary, #276d81); outline-offset: -2px; }
-.note-editor button:focus-visible, .note-popover button:focus-visible { outline: 2px solid var(--sge-primary, #276d81); outline-offset: 2px; }
-.note-editor .note-resizebar:focus-visible { outline: 3px solid var(--sge-primary, #276d81); outline-offset: 2px; }
+.note-editor .note-editable:focus { outline: 2px solid var(--sge-brown); outline-offset: -2px; }
+.note-editor button:focus-visible, .note-popover button:focus-visible { outline: 2px solid var(--sge-brown); outline-offset: 2px; }
+.note-editor .note-resizebar:focus-visible { outline: 3px solid var(--sge-brown); outline-offset: 2px; }
 .note-editor .note-color .note-btn.dropdown-toggle { min-width: 24px; }
 .note-group-image-url { display: none; }
 .note-popover { z-index: 1050; }

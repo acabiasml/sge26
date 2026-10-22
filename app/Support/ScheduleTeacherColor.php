@@ -17,6 +17,17 @@ class ScheduleTeacherColor
         ['#6f5f58', '#f1ede9'],
     ];
 
+    public static function toneIndex(?int $teacherId, ?string $teacherName = null): int
+    {
+        if ($teacherId === null && blank($teacherName)) {
+            return count(self::PALETTE);
+        }
+
+        $seed = $teacherId ?? abs(crc32((string) $teacherName));
+
+        return $seed % count(self::PALETTE);
+    }
+
     /**
      * @return array{border: string, background: string}
      */

@@ -64,7 +64,7 @@ html:is([data-theme$="-light"], [data-theme$="-dark"]) .sge-livewire-table-card 
 
 html:is([data-theme="beaba"], [data-theme="govbr"]) .sge-official-tabs .nav-link.active {
     background: var(--sge-brown) !important;
-    color: #fff !important;
+    color: var(--sge-on-accent) !important;
 }
 
 html:is([data-theme$="-light"], [data-theme$="-dark"]) .sge-official-tabs .nav-link.active {
@@ -108,20 +108,6 @@ html[data-theme$="-dark"] .sge-diary-management-hero {
 html[data-theme$="-dark"] .sge-diary-management-metrics div {
     background: var(--aurora-raised);
     border-color: var(--aurora-border);
-}
-
-/* Os cartões de horário mantêm fundos pastel próprios em ambos os modos. */
-html[data-theme$="-dark"] .sge-teacher-schedule-card,
-html[data-theme$="-dark"] .sge-teacher-schedule-card strong {
-    color: #2f241f;
-}
-
-html[data-theme$="-dark"] .sge-teacher-schedule-card span {
-    color: #274c5b;
-}
-
-html[data-theme$="-dark"] .sge-teacher-schedule-card small {
-    color: #4f4650;
 }
 
 .table-responsive[tabindex="0"]:focus-visible {
