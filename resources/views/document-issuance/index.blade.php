@@ -90,6 +90,15 @@
                         <small>{{ __('Até 40 resultados por página.') }}</small>
                     </div>
 
+                    <div class="form-group" id="target-year-filter-group" hidden>
+                        <label for="target-year-filter">{{ __('Ano letivo da turma') }}</label>
+                        <select id="target-year-filter" class="form-control" disabled>
+                            <option value="">{{ __('Todos os anos letivos') }}</option>
+                            @foreach($academicYears as $academicYear)
+                                <option value="{{ $academicYear->id }}">{{ $academicYear->referenceYearsLabel() }} · {{ $academicYear->name }} · {{ $schools->firstWhere('id', $academicYear->school_id)?->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                     <div class="sge-document-search">
                         <div class="form-group mb-0">
                             <label for="target-query" id="target-query-label">{{ __('Nome, CPF ou e-mail') }}</label>
@@ -290,6 +299,8 @@
             const optionsStep = document.getElementById('options-step');
             const academicYears = @json($academicYears);
             const queryInput = document.getElementById('target-query');
+            const yearFilterGroup = document.getElementById('target-year-filter-group');
+            const yearFilter = document.getElementById('target-year-filter');
             const queryLabel = document.getElementById('target-query-label');
             const targetHeading = document.getElementById('target-heading');
             const searchButton = document.getElementById('target-search');
@@ -411,6 +422,9 @@
                 targetStep.classList.toggle('is-muted', !hasType);
                 queryInput.disabled = !hasType;
                 searchButton.disabled = !hasType;
+                yearFilterGroup.hidden = kind !== 'class';
+                yearFilter.disabled = kind !== 'class';
+                yearFilter.value = '';
 
                 const copy = targetCopy[kind] || [@js(__('Localize o registro')), @js(__('Digite para buscar'))];
                 targetHeading.textContent = copy[0];
@@ -539,6 +553,7 @@
 
                 const parameters = new URLSearchParams({ type: typeSelect.value });
                 if (term) parameters.set('q', term);
+                if (targetKind() === 'class' && yearFilter.value) parameters.set('academic_year_id', yearFilter.value);
                 if (append) parameters.set('page', String(currentPage + 1));
 
                 try {
@@ -578,6 +593,7 @@
                 input.addEventListener('change', syncAttendanceOptions);
             });
             searchButton.addEventListener('click', () => searchTargets());
+            yearFilter.addEventListener('change', () => searchTargets());
             moreButton.addEventListener('click', () => searchTargets(true));
             queryInput.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter') {

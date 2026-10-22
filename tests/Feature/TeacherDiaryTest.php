@@ -1403,6 +1403,40 @@ class TeacherDiaryTest extends TestCase
             ->assertRedirect(route('academic-years.periods.index', $year));
     }
 
+    public function test_behavior_class_filter_lists_year_classes_and_saving_one_class_preserves_another(): void
+    {
+        [, $year, $class, , $period, $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-filtro-comportamento@ctjj.org');
+        $otherStudent = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'outro-estudante-filtro@ctjj.org');
+        $otherClass = $year->classes()->create(['name' => '2º Ano B', 'active' => true]);
+        $otherEnrollment = $otherClass->enrollments()->create([
+            'person_id' => $otherStudent->person_id,
+            'enrolled_at' => '2026-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+
+        $this->actingAs($manager)->get(route('academic-years.periods.index', $year))
+            ->assertOk()
+            ->assertSee('id="behavior-class-filter-'.$period->id.'"', false)
+            ->assertSee('value="'.$class->id.'"', false)
+            ->assertSee('value="'.$otherClass->id.'"', false)
+            ->assertSee('data-behavior-class-id="'.$otherClass->id.'"', false);
+
+        $this->put(route('academic-years.periods.behavior.update', [$year, $period]), [
+            'behavior_scores' => [$enrollment->id => 8, $otherEnrollment->id => 9],
+        ])->assertRedirect(route('academic-years.periods.index', $year));
+        $this->put(route('academic-years.periods.behavior.update', [$year, $period]), [
+            'behavior_scores' => [$enrollment->id => 7],
+        ])->assertRedirect(route('academic-years.periods.index', $year));
+
+        $this->assertDatabaseHas('student_behavior_grades', [
+            'academic_period_id' => $period->id,
+            'student_enrollment_id' => $otherEnrollment->id,
+            'score' => 9,
+        ]);
+    }
+
     public function test_period_management_screen_handles_diary_date_pendencies(): void
     {
         [$teacher, $year, $class, $component, $period] = $this->diaryScenario();

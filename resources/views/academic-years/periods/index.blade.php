@@ -13,6 +13,7 @@
     @php($warningPeriodId = (int) data_get(session('assessment_change_warning'), 'period_id', 0))
     @php($currentPeriod = $periods->first(fn ($period) => now()->betweenIncluded($period->starts_at, $period->ends_at)))
     @php($activePeriodId = $errorPeriodId ?: $warningPeriodId ?: ($currentPeriod?->id ?? $periods->first()?->id))
+    @php($behaviorClasses = $behaviorEnrollments->pluck('schoolClass')->filter()->unique('id')->sortBy(fn ($class) => mb_strtolower(\Illuminate\Support\Str::ascii($class->name))))
 
     <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="{{ __('Áreas dos períodos avaliativos') }}" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? 'novo' : 'periodos' }}">
         <a href="#section-contexto" class="sge-section-nav-item" data-academic-tab="contexto" role="tab"><i class="fas fa-info-circle"></i><span>{{ __('Contexto') }}</span><small>{{ $periods->count() }} {{ __('períodos') }}</small></a>
@@ -283,6 +284,16 @@
                             @else
                                 <form method="POST" action="{{ route('academic-years.periods.behavior.update', [$academicYear, $period]) }}">
                                     @csrf @method('PUT')
+                                    <div class="form-group">
+                                        <label for="behavior-class-filter-{{ $period->id }}">{{ __('Filtrar por turma') }}</label>
+                                        <select id="behavior-class-filter-{{ $period->id }}" class="form-control" data-behavior-class-filter aria-controls="behavior-rows-{{ $period->id }}">
+                                            <option value="">{{ __('Todas as turmas') }}</option>
+                                            @foreach($behaviorClasses as $behaviorClass)
+                                                <option value="{{ $behaviorClass->id }}">{{ $behaviorClass->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        <p class="small text-muted mt-1 mb-0" data-behavior-filter-status role="status" aria-live="polite"></p>
+                                    </div>
                                     <div class="table-responsive">
                                         <table class="table table-sm table-bordered mb-3">
                                             <thead>
@@ -293,10 +304,10 @@
                                                     <th>{{ __('Observações') }}</th>
                                                 </tr>
                                             </thead>
-                                            <tbody>
+                                            <tbody id="behavior-rows-{{ $period->id }}">
                                                 @foreach($behaviorEnrollments as $behaviorEnrollment)
                                                     @php($behaviorGrade = $behaviorGrades->get($period->id.'-'.$behaviorEnrollment->id))
-                                                    <tr>
+                                                    <tr data-behavior-class-id="{{ $behaviorEnrollment->school_class_id }}">
                                                         <td>{{ $behaviorEnrollment->student?->full_name }}</td>
                                                         <td>{{ $behaviorEnrollment->schoolClass?->name }}</td>
                                                         <td>
@@ -427,6 +438,30 @@ document.querySelectorAll('[data-period-selector]').forEach((selector) => {
     const forcedPanel = panels.find((panel) => panel.querySelector('.alert-danger, [data-assessment-rules-form][open]'));
     const savedPeriod = sessionStorage.getItem(storageKey);
     showPeriod(forcedPanel?.dataset.periodPanel || savedPeriod || buttons[0]?.dataset.periodTarget, false);
+});
+
+document.querySelectorAll('[data-behavior-class-filter]').forEach((filter) => {
+    const form = filter.closest('form');
+    const rows = Array.from(form.querySelectorAll('[data-behavior-class-id]'));
+    const status = form.querySelector('[data-behavior-filter-status]');
+    const storageKey = `sge-behavior-class-filter-${filter.id}`;
+    const savedClass = sessionStorage.getItem(storageKey);
+    if (savedClass && Array.from(filter.options).some((option) => option.value === savedClass)) filter.value = savedClass;
+
+    const sync = () => {
+        let visibleCount = 0;
+        rows.forEach((row) => {
+            const visible = !filter.value || row.dataset.behaviorClassId === filter.value;
+            row.hidden = !visible;
+            row.querySelectorAll('input').forEach((input) => { input.disabled = !visible; });
+            if (visible) visibleCount++;
+        });
+        status.textContent = `${visibleCount} ${visibleCount === 1 ? @js(__('estudante exibido')) : @js(__('estudantes exibidos'))}`;
+        sessionStorage.setItem(storageKey, filter.value);
+    };
+
+    filter.addEventListener('change', sync);
+    sync();
 });
 
 document.querySelectorAll('[data-assessment-rules-form]').forEach((container) => {

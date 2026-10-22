@@ -93,6 +93,40 @@ class DocumentIssuancePanelTest extends TestCase
         $this->get(route('document-issuance.issue', ['type' => 'course-matrix', 'target_id' => $courses[1]->id]))->assertNotFound();
     }
 
+    public function test_class_search_filters_same_named_classes_by_academic_year(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $classes = [];
+        foreach ([2025, 2026] as $referenceYear) {
+            $year = AcademicYear::query()->create([
+                'school_id' => $school->id,
+                'name' => 'Ano letivo '.$referenceYear,
+                'reference_year' => $referenceYear,
+                'starts_at' => $referenceYear.'-01-01',
+                'ends_at' => $referenceYear.'-12-31',
+                'active' => true,
+            ]);
+            $classes[$referenceYear] = $year->classes()->create(['name' => 'Turma A', 'active' => true]);
+        }
+
+        $this->actingAs($manager)->get(route('document-issuance.index'))
+            ->assertOk()
+            ->assertSee('id="target-year-filter"', false)
+            ->assertSee('Ano letivo da turma')
+            ->assertSee('<option value="'.$classes[2025]->academic_year_id.'">', false)
+            ->assertSee('<option value="'.$classes[2026]->academic_year_id.'">', false);
+
+        $this->getJson(route('document-issuance.targets', [
+            'type' => 'class-student-contacts', 'q' => 'Turma A',
+        ]))->assertOk()->assertJsonCount(2, 'targets');
+
+        $this->getJson(route('document-issuance.targets', [
+            'type' => 'class-student-contacts', 'q' => 'Turma A',
+            'academic_year_id' => $classes[2025]->academic_year_id,
+        ]))->assertOk()->assertJsonCount(1, 'targets')->assertJsonPath('targets.0.id', $classes[2025]->id);
+    }
+
     public function test_administration_and_management_can_open_the_document_issuance_panel(): void
     {
         $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
