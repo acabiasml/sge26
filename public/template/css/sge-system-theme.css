@@ -162,3 +162,111 @@ html .sge-status-filter-chip:focus-visible {
     outline: 3px solid var(--sge-filter-color);
     outline-offset: 2px;
 }
+
+/* Distribui os acentos de cada tema sem alterar o contraste do texto. */
+html[data-theme] :is(
+    .sge-dashboard-shortcut,
+    .sge-section-nav-item,
+    .sge-document-step,
+    .sge-period-context-metrics > div,
+    .sge-period-selector-item,
+    .sge-period-card-stats > span,
+    .sge-result-strip > article
+) { --sge-display-accent: var(--sge-blue); }
+
+html[data-theme] :is(
+    .sge-dashboard-shortcut,
+    .sge-section-nav-item,
+    .sge-document-step,
+    .sge-period-context-metrics > div,
+    .sge-period-selector-item,
+    .sge-period-card-stats > span,
+    .sge-result-strip > article
+):nth-child(4n + 2) { --sge-display-accent: var(--sge-green); }
+
+html[data-theme] :is(
+    .sge-dashboard-shortcut,
+    .sge-section-nav-item,
+    .sge-document-step,
+    .sge-period-context-metrics > div,
+    .sge-period-selector-item,
+    .sge-period-card-stats > span,
+    .sge-result-strip > article
+):nth-child(4n + 3) { --sge-display-accent: var(--sge-chart-recesso); }
+
+html[data-theme] :is(
+    .sge-dashboard-shortcut,
+    .sge-section-nav-item,
+    .sge-document-step,
+    .sge-period-context-metrics > div,
+    .sge-period-selector-item,
+    .sge-period-card-stats > span,
+    .sge-result-strip > article
+):nth-child(4n) { --sge-display-accent: var(--sge-orange); }
+
+html[data-theme] .sge-dashboard-shortcut,
+html[data-theme] .sge-section-nav-item:not(.is-active),
+html[data-theme] .sge-period-selector-item:not(.is-active) {
+    border-top: 3px solid var(--sge-display-accent);
+    background: color-mix(in srgb, var(--sge-display-accent) 6%, var(--sge-paper));
+}
+
+html[data-theme] .sge-dashboard-shortcut:hover,
+html[data-theme] .sge-dashboard-shortcut:focus,
+html[data-theme] .sge-section-nav-item:not(.is-active):is(:hover, :focus),
+html[data-theme] .sge-period-selector-item:not(.is-active):is(:hover, :focus) {
+    border-color: var(--sge-display-accent);
+    background: color-mix(in srgb, var(--sge-display-accent) 11%, var(--sge-paper));
+    color: var(--sge-ink);
+}
+
+html[data-theme] .sge-dashboard-shortcut:nth-child(n) .sge-dashboard-shortcut-icon {
+    background: color-mix(in srgb, var(--sge-display-accent) 18%, var(--sge-paper));
+    color: var(--sge-display-accent);
+}
+
+html[data-theme] .sge-section-nav-item:not(.is-active) i {
+    color: var(--sge-display-accent);
+}
+
+html[data-theme] .sge-document-step {
+    border-left: 4px solid var(--sge-display-accent);
+}
+
+html[data-theme] .sge-document-step .sge-document-step-number {
+    border: 1px solid color-mix(in srgb, var(--sge-display-accent) 50%, var(--sge-border));
+    background: color-mix(in srgb, var(--sge-display-accent) 20%, var(--sge-paper));
+    color: var(--sge-ink);
+}
+
+html[data-theme] .sge-period-context-metrics > div,
+html[data-theme] .sge-result-strip > article {
+    border-left: 3px solid var(--sge-display-accent);
+    background: color-mix(in srgb, var(--sge-display-accent) 7%, var(--sge-paper));
+}
+
+html[data-theme] .sge-period-context-metrics > div strong,
+html[data-theme] .sge-result-strip > article strong {
+    color: color-mix(in srgb, var(--sge-display-accent) 78%, var(--sge-ink));
+}
+
+html[data-theme] .sge-period-card-stats > span {
+    border-color: color-mix(in srgb, var(--sge-display-accent) 32%, var(--sge-border));
+    background: color-mix(in srgb, var(--sge-display-accent) 9%, var(--sge-paper));
+    color: var(--sge-ink);
+}
+
+html[data-theme] .sge-period-card-stats > span i {
+    color: var(--sge-display-accent);
+}
+
+html[data-theme] .card-header:not(.bg-primary, .bg-success, .bg-danger),
+html[data-theme] details.card > summary.card-header {
+    border-bottom-color: color-mix(in srgb, var(--sge-blue) 40%, var(--sge-border));
+}
+
+html[data-theme] .table thead th {
+    background: color-mix(in srgb, var(--sge-blue) 7%, var(--sge-paper));
+    border-bottom-color: color-mix(in srgb, var(--sge-blue) 45%, var(--sge-border));
+    color: var(--sge-ink);
+}
