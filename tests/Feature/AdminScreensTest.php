@@ -1143,7 +1143,10 @@ class AdminScreensTest extends TestCase
         $lauraYear = $this->activeAcademicYear($laura, 'Ensino Médio 2026');
 
         $this->calendarDay($liceuYear, 'Aula regular');
-        $this->calendarDay($lauraYear, 'Conselho de Classe');
+        $this->calendarDay($lauraYear, 'Conselho de Classe')->update([
+            'type' => CalendarDay::TYPE_CLASS_COUNCIL,
+            'counts_as_school_day' => false,
+        ]);
 
         $this->actingAs($admin)
             ->get(route('dashboard'))
@@ -1154,7 +1157,9 @@ class AdminScreensTest extends TestCase
             ->assertSee('Aula regular')
             ->assertSee('Ensino Médio 2026')
             ->assertSee('Escola Laura Vicuña')
-            ->assertSee('Conselho de Classe');
+            ->assertSee('Conselho de Classe')
+            ->assertSee('background-color: var(--sge-chart-letivo)', false)
+            ->assertSee('background-color: var(--sge-chart-conselho-classe)', false);
     }
 
     public function test_dashboard_can_navigate_months_and_does_not_double_count_the_same_school_date(): void

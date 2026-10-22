@@ -210,7 +210,7 @@ class DashboardController extends Controller
 
     /**
      * @param  list<int>|null  $schoolIds
-     * @return array{labels: list<string>, values: list<int>}
+     * @return array{types: list<string>, labels: list<string>, values: list<int>}
      */
     private function studentsBySchoolChart(?array $schoolIds): array
     {
@@ -244,6 +244,7 @@ class DashboardController extends Controller
             ->sortDesc();
 
         return [
+            'types' => $counts->keys()->values()->all(),
             'labels' => $counts->keys()
                 ->map(fn (string $type): string => CalendarDay::TYPE_LABELS[$type] ?? $type)
                 ->values()

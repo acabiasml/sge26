@@ -1,5 +1,7 @@
 /* Brand-inspired palettes. Typography and document/PDF styling remain unchanged. */
 html[data-theme="instagram-light"] {
+    --sge-chart-letivo: var(--aurora-accent);
+    --sge-chart-conselho-classe: #1b5da8;
     --aurora-canvas: #fff8fb;
     --aurora-panel: #ffffff;
     --aurora-raised: #fff0f6;
@@ -20,6 +22,8 @@ html[data-theme="instagram-light"] {
 }
 [data-theme-swatch="instagram-light"] { background: linear-gradient(135deg, #a3216b 50%, #fff8fb 50%); }
 html[data-theme="instagram-dark"] {
+    --sge-chart-letivo: var(--aurora-accent);
+    --sge-chart-conselho-classe: #4a9df4;
     --aurora-canvas: #171117;
     --aurora-panel: #241b25;
     --aurora-raised: #302333;
@@ -40,6 +44,9 @@ html[data-theme="instagram-dark"] {
 }
 [data-theme-swatch="instagram-dark"] { background: linear-gradient(135deg, #ff9dd0 50%, #171117 50%); }
 html[data-theme="tiktok-light"] {
+    --sge-chart-letivo: var(--aurora-accent);
+    --sge-chart-recesso: #7136a7;
+    --sge-chart-conselho-classe: #1b5da8;
     --aurora-canvas: #f5f7f8;
     --aurora-panel: #ffffff;
     --aurora-raised: #eef4f5;
@@ -60,6 +67,7 @@ html[data-theme="tiktok-light"] {
 }
 [data-theme-swatch="tiktok-light"] { background: linear-gradient(135deg, #a90e43 50%, #f5f7f8 50%); }
 html[data-theme="tiktok-dark"] {
+    --sge-chart-letivo: var(--aurora-accent);
     --aurora-canvas: #090d0f;
     --aurora-panel: #141a1d;
     --aurora-raised: #1d262a;
@@ -80,6 +88,9 @@ html[data-theme="tiktok-dark"] {
 }
 [data-theme-swatch="tiktok-dark"] { background: linear-gradient(135deg, #66eee5 50%, #090d0f 50%); }
 html[data-theme="gmail-light"] {
+    --sge-chart-letivo: var(--aurora-accent);
+    --sge-chart-recesso: #6f55a4;
+    --sge-chart-conselho-classe: var(--aurora-violet);
     --aurora-canvas: #f6f8fc;
     --aurora-panel: #ffffff;
     --aurora-raised: #edf2fa;
@@ -100,6 +111,8 @@ html[data-theme="gmail-light"] {
 }
 [data-theme-swatch="gmail-light"] { background: linear-gradient(135deg, #0b57d0 50%, #f6f8fc 50%); }
 html[data-theme="gmail-dark"] {
+    --sge-chart-letivo: var(--aurora-accent);
+    --sge-chart-recesso: #9c71e8;
     --aurora-canvas: #17191d;
     --aurora-panel: #22252b;
     --aurora-raised: #2c3039;
@@ -120,6 +133,7 @@ html[data-theme="gmail-dark"] {
 }
 [data-theme-swatch="gmail-dark"] { background: linear-gradient(135deg, #a8c7fa 50%, #17191d 50%); }
 html[data-theme="outlook-light"] {
+    --sge-chart-letivo: var(--aurora-accent);
     --aurora-canvas: #f3f6fa;
     --aurora-panel: #ffffff;
     --aurora-raised: #eaf2fa;
@@ -140,6 +154,8 @@ html[data-theme="outlook-light"] {
 }
 [data-theme-swatch="outlook-light"] { background: linear-gradient(135deg, #005a9e 50%, #f3f6fa 50%); }
 html[data-theme="outlook-dark"] {
+    --sge-chart-letivo: var(--aurora-accent);
+    --sge-chart-recesso: #9c71e8;
     --aurora-canvas: #101b26;
     --aurora-panel: #192b3b;
     --aurora-raised: #223a4e;

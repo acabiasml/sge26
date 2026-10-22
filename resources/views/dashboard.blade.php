@@ -126,7 +126,12 @@
     $hasRoleChart = $roleTotal > 0;
     $hasStudentsChart = array_sum($studentsBySchoolChart['values']) > 0;
     $hasCalendarTypeChart = array_sum($calendarTypeChart['values']) > 0;
-    $calendarChartColorVariables = ['--sge-brown', '--sge-green', '--sge-orange', '--sge-blue', '--sge-brown-soft', '--sge-orange-dark', '--sge-blue-dark', '--sge-muted'];
+    $calendarChartColorVariables = array_map(
+        fn (string $type): string => '--sge-chart-'.(array_key_exists($type, \App\Models\CalendarDay::TYPE_LABELS)
+            ? str_replace('_', '-', $type)
+            : 'outro'),
+        $calendarTypeChart['types'] ?? []
+    );
     $dashboardShortcuts = \App\Support\DashboardShortcuts::make($dashboardUser, $dashboardShortcuts);
 @endphp
 

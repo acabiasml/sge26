@@ -32,6 +32,14 @@
     --sge-border: #e6dccf;
     --sge-on-accent: #fff;
     --sge-shadow-ink: #2f241f;
+    --sge-chart-letivo: #37677d;
+    --sge-chart-fim-de-semana: #44693d;
+    --sge-chart-feriado: #ad691d;
+    --sge-chart-recesso: #7653a5;
+    --sge-chart-conselho-classe: #b1434b;
+    --sge-chart-ferias-finais: #b34c87;
+    --sge-chart-formacao: #1d8490;
+    --sge-chart-outro: #69737d;
     --sge-font-sans: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
     --sge-font-heading: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", "Segoe UI", Arial, sans-serif;
     --sge-shadow-sm: 0 .18rem .65rem rgba(47, 36, 31, .06);

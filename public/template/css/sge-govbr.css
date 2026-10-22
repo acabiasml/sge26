@@ -37,6 +37,14 @@ html[data-theme="govbr"] {
     --sge-text: #333;
     --sge-muted: #555;
     --sge-border: #ccc;
+    --sge-chart-letivo: #1351b4;
+    --sge-chart-fim-de-semana: #168821;
+    --sge-chart-feriado: #a26700;
+    --sge-chart-recesso: #7136a7;
+    --sge-chart-conselho-classe: #b50909;
+    --sge-chart-ferias-finais: #bb3979;
+    --sge-chart-formacao: #007a83;
+    --sge-chart-outro: #5b6670;
     --sge-font-sans: Rawline, "Atkinson Hyperlegible Next", Arial, sans-serif;
     --sge-font-heading: var(--sge-font-sans);
     --sge-shadow-sm: 0 2px 4px rgba(0, 0, 0, .1);

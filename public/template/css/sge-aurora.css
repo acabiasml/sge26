@@ -27,6 +27,14 @@ html:is([data-theme="aurora-light"], [data-theme="instagram-light"], [data-theme
     --aurora-shadow: 0 5px 22px rgba(28, 66, 73, .065);
     --aurora-glow: rgba(53, 174, 153, .11);
     --aurora-violet-glow: rgba(141, 111, 202, .09);
+    --sge-chart-letivo: #1b5da8;
+    --sge-chart-fim-de-semana: var(--aurora-success);
+    --sge-chart-feriado: var(--aurora-warning);
+    --sge-chart-recesso: var(--aurora-violet);
+    --sge-chart-conselho-classe: var(--aurora-danger);
+    --sge-chart-ferias-finais: #b34c87;
+    --sge-chart-formacao: #1d8490;
+    --sge-chart-outro: var(--aurora-muted);
 }
 html:is([data-theme="aurora-dark"], [data-theme="instagram-dark"], [data-theme="tiktok-dark"], [data-theme="gmail-dark"], [data-theme="outlook-dark"]) {
     color-scheme: dark;
@@ -48,6 +56,14 @@ html:is([data-theme="aurora-dark"], [data-theme="instagram-dark"], [data-theme="
     --aurora-shadow: 0 5px 22px rgba(0, 0, 0, .16);
     --aurora-glow: rgba(53, 174, 153, .09);
     --aurora-violet-glow: rgba(141, 111, 202, .1);
+    --sge-chart-letivo: #4a9df4;
+    --sge-chart-fim-de-semana: #58c989;
+    --sge-chart-feriado: #eeb54a;
+    --sge-chart-recesso: #9c71e8;
+    --sge-chart-conselho-classe: #ed6f83;
+    --sge-chart-ferias-finais: #dc70ba;
+    --sge-chart-formacao: #45c7d0;
+    --sge-chart-outro: #aeb8c5;
 }
 html:is([data-theme="aurora-light"], [data-theme="aurora-dark"], [data-theme="instagram-light"], [data-theme="instagram-dark"], [data-theme="tiktok-light"], [data-theme="tiktok-dark"], [data-theme="gmail-light"], [data-theme="gmail-dark"], [data-theme="outlook-light"], [data-theme="outlook-dark"]) {
     --sge-brown: var(--aurora-accent);
