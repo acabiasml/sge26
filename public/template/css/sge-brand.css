@@ -6378,8 +6378,11 @@ small,
 
 .sge-document-hub-summary {
     min-width: 10.5rem;
-    padding-left: 1.5rem;
-    border-left: 1px solid var(--sge-border);
+    width: 19rem;
+    padding: .75rem .9rem;
+    border: 1px solid var(--sge-border);
+    border-radius: .55rem;
+    background: var(--sge-paper);
     text-align: right;
 }
 
@@ -6796,23 +6799,13 @@ button.sge-target-result:focus-visible {
     }
 
     .sge-document-hub-summary {
-        display: flex;
-        gap: .45rem;
-        align-items: baseline;
         min-width: 0;
-        padding: .85rem 0 0;
-        border-top: 1px solid var(--sge-border);
-        border-left: 0;
+        width: min(100%, 19rem);
         text-align: left;
     }
 
     .sge-document-hub-summary strong {
         font-size: 1.45rem;
-    }
-
-    .sge-document-hub-summary span,
-    .sge-document-hub-summary small {
-        margin: 0;
     }
 
     .sge-document-context-grid {
@@ -6831,10 +6824,6 @@ button.sge-target-result:focus-visible {
 
     .sge-document-hub-hero {
         padding: 1.15rem;
-    }
-
-    .sge-document-hub-summary {
-        flex-wrap: wrap;
     }
 
     .sge-document-step {

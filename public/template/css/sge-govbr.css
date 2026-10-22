@@ -134,7 +134,7 @@ html[data-theme="govbr"] :is(.sge-dashboard-hero, .sge-dashboard-band, .sge-docu
 }
 html[data-theme="govbr"] :is(.sge-dashboard-hero, .sge-dashboard-band, .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero, .sge-student-map-hero) h2,
 html[data-theme="govbr"] .sge-page-header h1 { color: var(--gov-navy); }
-html[data-theme="govbr"] :is(.sge-dashboard-date, .sge-section-nav-item, .sge-metric-card, .sge-document-step, .sge-document-options, .sge-document-submit, .sge-target-result, .sge-choice-tile) {
+html[data-theme="govbr"] :is(.sge-dashboard-date, .sge-document-hub-summary, .sge-section-nav-item, .sge-metric-card, .sge-document-step, .sge-document-options, .sge-document-submit, .sge-target-result, .sge-choice-tile) {
     background: #fff;
     border-color: #ccc;
     border-radius: .25rem;
