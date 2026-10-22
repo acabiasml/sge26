@@ -93,7 +93,7 @@ class DocumentIssuancePanelTest extends TestCase
         $this->get(route('document-issuance.issue', ['type' => 'course-matrix', 'target_id' => $courses[1]->id]))->assertNotFound();
     }
 
-    public function test_class_search_filters_same_named_classes_by_academic_year(): void
+    public function test_class_search_filters_same_named_classes_by_civil_year(): void
     {
         $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
@@ -112,10 +112,12 @@ class DocumentIssuancePanelTest extends TestCase
 
         $this->actingAs($manager)->get(route('document-issuance.index'))
             ->assertOk()
+            ->assertSee('id="target-school-filter"', false)
+            ->assertSee('id="target-class-filters"', false)
             ->assertSee('id="target-year-filter"', false)
-            ->assertSee('Ano letivo da turma')
-            ->assertSee('<option value="'.$classes[2025]->academic_year_id.'">', false)
-            ->assertSee('<option value="'.$classes[2026]->academic_year_id.'">', false);
+            ->assertSee('Ano civil')
+            ->assertSee('<option value="2025">2025</option>', false)
+            ->assertSee('<option value="2026">2026</option>', false);
 
         $this->getJson(route('document-issuance.targets', [
             'type' => 'class-student-contacts', 'q' => 'Turma A',
@@ -123,8 +125,42 @@ class DocumentIssuancePanelTest extends TestCase
 
         $this->getJson(route('document-issuance.targets', [
             'type' => 'class-student-contacts', 'q' => 'Turma A',
-            'academic_year_id' => $classes[2025]->academic_year_id,
+            'reference_year' => 2025,
         ]))->assertOk()->assertJsonCount(1, 'targets')->assertJsonPath('targets.0.id', $classes[2025]->id);
+    }
+
+    public function test_class_search_combines_school_and_civil_year_with_access_scope(): void
+    {
+        $schools = [
+            School::query()->create(['name' => 'Escola A', 'active' => true]),
+            School::query()->create(['name' => 'Escola B', 'active' => true]),
+        ];
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $schools[0]->id);
+        $classes = [];
+        foreach ($schools as $school) {
+            foreach ([2025, 2026] as $referenceYear) {
+                $year = AcademicYear::query()->create([
+                    'school_id' => $school->id,
+                    'name' => 'Ano letivo '.$referenceYear,
+                    'reference_year' => $referenceYear,
+                    'starts_at' => $referenceYear.'-01-01',
+                    'ends_at' => $referenceYear.'-12-31',
+                    'active' => true,
+                ]);
+                $classes[$school->id][$referenceYear] = $year->classes()->create(['name' => 'Turma A', 'active' => true]);
+            }
+        }
+
+        $this->actingAs($administrator)->getJson(route('document-issuance.targets', [
+            'type' => 'class-student-contacts', 'q' => 'Turma A',
+            'school_id' => $schools[1]->id, 'reference_year' => 2026,
+        ]))->assertOk()->assertJsonCount(1, 'targets')
+            ->assertJsonPath('targets.0.id', $classes[$schools[1]->id][2026]->id);
+
+        $this->actingAs($manager)->getJson(route('document-issuance.targets', [
+            'type' => 'class-student-contacts', 'school_id' => $schools[1]->id,
+        ]))->assertForbidden();
     }
 
     public function test_administration_and_management_can_open_the_document_issuance_panel(): void

@@ -90,14 +90,27 @@
                         <small>{{ __('Até 40 resultados por página.') }}</small>
                     </div>
 
-                    <div class="form-group" id="target-year-filter-group" hidden>
-                        <label for="target-year-filter">{{ __('Ano letivo da turma') }}</label>
-                        <select id="target-year-filter" class="form-control" disabled>
-                            <option value="">{{ __('Todos os anos letivos') }}</option>
-                            @foreach($academicYears as $academicYear)
-                                <option value="{{ $academicYear->id }}">{{ $academicYear->referenceYearsLabel() }} · {{ $academicYear->name }} · {{ $schools->firstWhere('id', $academicYear->school_id)?->name }}</option>
-                            @endforeach
-                        </select>
+                    <div id="target-class-filters" hidden>
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label for="target-school-filter">{{ __('Escola') }}</label>
+                                <select id="target-school-filter" class="form-control" disabled>
+                                    <option value="">{{ __('Todas as escolas') }}</option>
+                                    @foreach($schools as $school)
+                                        <option value="{{ $school->id }}">{{ $school->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label for="target-year-filter">{{ __('Ano civil') }}</label>
+                                <select id="target-year-filter" class="form-control" disabled>
+                                    <option value="">{{ __('Todos os anos') }}</option>
+                                    @foreach($academicYears->pluck('reference_year')->filter()->unique()->sortDesc() as $referenceYear)
+                                        <option value="{{ $referenceYear }}">{{ $referenceYear }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
                     </div>
                     <div class="sge-document-search">
                         <div class="form-group mb-0">
@@ -299,7 +312,8 @@
             const optionsStep = document.getElementById('options-step');
             const academicYears = @json($academicYears);
             const queryInput = document.getElementById('target-query');
-            const yearFilterGroup = document.getElementById('target-year-filter-group');
+            const classFilters = document.getElementById('target-class-filters');
+            const schoolFilter = document.getElementById('target-school-filter');
             const yearFilter = document.getElementById('target-year-filter');
             const queryLabel = document.getElementById('target-query-label');
             const targetHeading = document.getElementById('target-heading');
@@ -422,8 +436,10 @@
                 targetStep.classList.toggle('is-muted', !hasType);
                 queryInput.disabled = !hasType;
                 searchButton.disabled = !hasType;
-                yearFilterGroup.hidden = kind !== 'class';
+                classFilters.hidden = kind !== 'class';
+                schoolFilter.disabled = kind !== 'class';
                 yearFilter.disabled = kind !== 'class';
+                schoolFilter.value = '';
                 yearFilter.value = '';
 
                 const copy = targetCopy[kind] || [@js(__('Localize o registro')), @js(__('Digite para buscar'))];
@@ -553,7 +569,8 @@
 
                 const parameters = new URLSearchParams({ type: typeSelect.value });
                 if (term) parameters.set('q', term);
-                if (targetKind() === 'class' && yearFilter.value) parameters.set('academic_year_id', yearFilter.value);
+                if (targetKind() === 'class' && schoolFilter.value) parameters.set('school_id', schoolFilter.value);
+                if (targetKind() === 'class' && yearFilter.value) parameters.set('reference_year', yearFilter.value);
                 if (append) parameters.set('page', String(currentPage + 1));
 
                 try {
@@ -593,6 +610,7 @@
                 input.addEventListener('change', syncAttendanceOptions);
             });
             searchButton.addEventListener('click', () => searchTargets());
+            schoolFilter.addEventListener('change', () => searchTargets());
             yearFilter.addEventListener('change', () => searchTargets());
             moreButton.addEventListener('click', () => searchTargets(true));
             queryInput.addEventListener('keydown', (event) => {

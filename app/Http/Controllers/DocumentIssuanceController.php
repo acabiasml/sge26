@@ -308,6 +308,7 @@ class DocumentIssuanceController extends Controller
             'type' => ['required', Rule::in(array_keys($types))],
             'q' => ['nullable', 'string', 'max:100'],
             'school_id' => ['nullable', 'integer'],
+            'reference_year' => ['nullable', 'integer'],
             'academic_year_id' => ['nullable', 'integer'],
             'class_id' => ['nullable', 'integer'],
             'page' => ['nullable', 'integer', 'min:1', 'max:10000'],
@@ -804,6 +805,7 @@ class DocumentIssuanceController extends Controller
             ->whereHas('academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
             ->when($this->requiresCurrentClass($type), fn (Builder $query) => $this->scopeCurrentClasses($query))
             ->when($request->filled('school_id'), fn (Builder $query) => $query->whereHas('academicYear', fn (Builder $year) => $year->where('school_id', $request->integer('school_id'))))
+            ->when($request->filled('reference_year'), fn (Builder $query) => $query->whereHas('academicYear', fn (Builder $year) => $year->where('reference_year', $request->integer('reference_year'))))
             ->when($request->filled('academic_year_id'), fn (Builder $query) => $query->where('academic_year_id', $request->integer('academic_year_id')))
             ->when($request->filled('class_id'), fn (Builder $query) => $query->whereKey($request->integer('class_id')))
             ->when($term !== '', fn (Builder $query) => $query->where('name', 'like', '%'.$term.'%'))
