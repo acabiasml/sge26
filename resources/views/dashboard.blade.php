@@ -332,7 +332,7 @@
                             <div class="sge-chart-list" aria-hidden="true">
                                 @foreach ($roleChart['labels'] as $index => $label)
                                     <div>
-                                        <span><span aria-hidden="true" style="display:inline-block;width:.8rem;height:.8rem;border-radius:50%;margin-right:.5rem;background:{{ $roleChart['colors'][$index] }}"></span>{{ __($label) }}</span>
+                                        <span><span aria-hidden="true" style="display:inline-block;width:.8rem;height:.8rem;border-radius:50%;margin-right:.5rem;background:var({{ $roleChart['colorVariables'][$index] }})"></span>{{ __($label) }}</span>
                                         <strong>{{ number_format($roleChart['values'][$index] ?? 0, 0, ',', '.') }}</strong>
                                     </div>
                                 @endforeach
@@ -448,11 +448,9 @@
 
         <script src="{{ asset('template/vendor/chart.js/Chart.min.js') }}"></script>
         <script>
-            const themeStyle = getComputedStyle(document.documentElement);
-            const themeColor = (name) => themeStyle.getPropertyValue(name).trim();
-            const chartColors = @json($calendarChartColorVariables).map(themeColor);
-            const chartSurface = themeColor('--sge-paper');
-            const chartGrid = themeColor('--sge-border');
+            const themeColor = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+            const roleColorVariables = @json($roleChart['colorVariables']);
+            const calendarColorVariables = @json($calendarChartColorVariables);
             const roleValues = @json($roleChart['values']);
             const calendarTypeValues = @json($calendarTypeChart['values']);
             const studentsBySchoolValues = @json($studentsBySchoolChart['values']);
@@ -460,15 +458,16 @@
             Chart.defaults.global.defaultFontFamily = getComputedStyle(document.body).fontFamily;
             Chart.defaults.global.defaultFontColor = themeColor('--sge-text');
 
+            let rolesChart = null;
             if (document.getElementById('rolesChart') && roleValues.some((value) => value > 0)) {
-                new Chart(document.getElementById('rolesChart'), {
+                rolesChart = new Chart(document.getElementById('rolesChart'), {
                     type: 'doughnut',
                     data: {
                         labels: @json($roleChart['labels']),
                         datasets: [{
                             data: roleValues,
-                            backgroundColor: @json($roleChart['colors']),
-                            borderColor: chartSurface,
+                            backgroundColor: roleColorVariables.map(themeColor),
+                            borderColor: themeColor('--sge-paper'),
                             borderWidth: 3,
                         }],
                     },
@@ -485,15 +484,16 @@
                 });
             }
 
+            let calendarChart = null;
             if (document.getElementById('calendarTypeChart') && calendarTypeValues.some((value) => value > 0)) {
-                new Chart(document.getElementById('calendarTypeChart'), {
+                calendarChart = new Chart(document.getElementById('calendarTypeChart'), {
                     type: 'doughnut',
                     data: {
                         labels: @json($calendarTypeChart['labels']),
                         datasets: [{
                             data: calendarTypeValues,
-                            backgroundColor: chartColors,
-                            borderColor: chartSurface,
+                            backgroundColor: calendarColorVariables.map(themeColor),
+                            borderColor: themeColor('--sge-paper'),
                             borderWidth: 3,
                         }],
                     },
@@ -505,8 +505,9 @@
                 });
             }
 
+            let studentsChart = null;
             if (document.getElementById('studentsBySchoolChart') && studentsBySchoolValues.some((value) => value > 0)) {
-                new Chart(document.getElementById('studentsBySchoolChart'), {
+                studentsChart = new Chart(document.getElementById('studentsBySchoolChart'), {
                     type: 'horizontalBar',
                     data: {
                         labels: @json($studentsBySchoolChart['labels']),
@@ -527,7 +528,7 @@
                                     beginAtZero: true,
                                     precision: 0,
                                 },
-                                gridLines: { color: chartGrid },
+                                gridLines: { color: themeColor('--sge-border') },
                             }],
                             yAxes: [{
                                 gridLines: { display: false },
@@ -536,6 +537,26 @@
                     },
                 });
             }
+
+            window.matchMedia?.('(prefers-color-scheme: dark)')?.addEventListener?.('change', () => {
+                Chart.defaults.global.defaultFontColor = themeColor('--sge-text');
+                if (rolesChart) {
+                    rolesChart.data.datasets[0].backgroundColor = roleColorVariables.map(themeColor);
+                    rolesChart.data.datasets[0].borderColor = themeColor('--sge-paper');
+                    rolesChart.update();
+                }
+                if (calendarChart) {
+                    calendarChart.data.datasets[0].backgroundColor = calendarColorVariables.map(themeColor);
+                    calendarChart.data.datasets[0].borderColor = themeColor('--sge-paper');
+                    calendarChart.update();
+                }
+                if (studentsChart) {
+                    studentsChart.data.datasets[0].backgroundColor = themeColor('--sge-green');
+                    studentsChart.data.datasets[0].borderColor = themeColor('--sge-green');
+                    studentsChart.options.scales.xAxes[0].gridLines.color = themeColor('--sge-border');
+                    studentsChart.update();
+                }
+            });
         </script>
     @endcan
 @endsection

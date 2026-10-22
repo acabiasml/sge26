@@ -37,6 +37,8 @@ html[data-theme="aurora-dark"][data-theme-family="govbr"] {
     --aurora-strong: #d4e5ff;
     --aurora-on-accent: #102b50;
     --aurora-violet: #f4d36e;
+    --aurora-info: #a9cbff;
+    --sge-chart-recesso: #f4d36e;
     --aurora-success: #a7d9ad;
     --aurora-danger: #ffb7b3;
     --aurora-warning: #f4d36e;
@@ -47,6 +49,29 @@ html[data-theme="aurora-dark"][data-theme-family="govbr"] {
 
 html[data-theme="aurora-dark"][data-theme-family="govbr"] .sidebar.bg-gradient-primary {
     background: #102746 !important;
+}
+
+html[data-theme="aurora-dark"][data-theme-family="govbr"] :is(
+    .sge-dashboard-hero, .sge-dashboard-band, .sge-document-hub-hero,
+    .sge-quality-hero, .sge-concept-hero, .sge-student-map-hero,
+    .sge-diary-management-hero
+) {
+    background: var(--aurora-raised);
+    color: var(--aurora-ink);
+    border: 0;
+    border-left: 4px solid var(--aurora-accent);
+    border-radius: .25rem;
+    box-shadow: none;
+}
+
+html[data-theme="aurora-dark"][data-theme-family="govbr"] :is(.card, .sge-workflow-card, .sge-status-filter-strip) {
+    border-radius: .25rem;
+    box-shadow: none;
+}
+
+html[data-theme="aurora-dark"][data-theme-family="govbr"] .btn {
+    border-radius: 100em;
+    font-weight: 600;
 }
 
 /* Contraste e foco compartilhados entre páginas e variantes automáticas. */
@@ -100,17 +125,40 @@ html[data-theme$="-dark"] .sge-period-position {
 }
 
 /* O resumo da gestão pedagógica acompanha as superfícies do tema escuro. */
-html[data-theme$="-dark"] .sge-diary-management-hero {
+html[data-theme="aurora-dark"] .sge-diary-management-hero {
     background: linear-gradient(135deg, var(--aurora-panel), var(--aurora-raised));
     color: var(--aurora-ink);
 }
 
-html[data-theme$="-dark"] .sge-diary-management-metrics div {
+html[data-theme="aurora-dark"] .sge-diary-management-metrics div {
     background: var(--aurora-raised);
     border-color: var(--aurora-border);
 }
 
 .table-responsive[tabindex="0"]:focus-visible {
     outline: 3px solid var(--aurora-focus, var(--sge-blue-dark));
+    outline-offset: 2px;
+}
+
+/* Situações dos diários usam papéis semânticos de cada paleta, inclusive no Beabá. */
+.sge-status-filter-chip[data-status="all"] { --sge-filter-color: var(--sge-blue); }
+.sge-status-filter-chip[data-status="pending"] { --sge-filter-color: var(--sge-orange-dark); }
+.sge-status-filter-chip[data-status="waiting"] { --sge-filter-color: var(--sge-orange); }
+.sge-status-filter-chip[data-status="confirmed"] { --sge-filter-color: var(--sge-green); }
+.sge-status-filter-chip[data-status="reopened"] { --sge-filter-color: var(--sge-chart-recesso); }
+
+html .sge-status-filter-chip { border-color: var(--sge-border); }
+html .sge-status-filter-chip i,
+html .sge-status-filter-chip strong { color: var(--sge-filter-color); }
+html .sge-status-filter-chip strong {
+    background: var(--sge-paper);
+}
+html[data-theme] .sge-status-filter-strip .sge-status-filter-chip:is(:hover, :focus-visible, .is-active) {
+    border-color: var(--sge-filter-color);
+    background: color-mix(in srgb, var(--sge-filter-color) 2%, var(--sge-paper));
+    color: var(--sge-ink);
+}
+html .sge-status-filter-chip:focus-visible {
+    outline: 3px solid var(--sge-filter-color);
     outline-offset: 2px;
 }

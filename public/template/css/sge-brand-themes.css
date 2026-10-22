@@ -1,7 +1,8 @@
 /* Brand-inspired palettes. Typography and document/PDF styling remain unchanged. */
 html[data-theme="instagram-light"] {
     --sge-chart-letivo: var(--aurora-accent);
-    --sge-chart-conselho-classe: #1b5da8;
+    --sge-chart-conselho-classe: var(--aurora-danger);
+    --sge-chart-recesso: #7438a3;
     --aurora-canvas: #fff8fb;
     --aurora-panel: #ffffff;
     --aurora-raised: #fff0f6;
@@ -13,6 +14,10 @@ html[data-theme="instagram-light"] {
     --aurora-strong: #7d1551;
     --aurora-on-accent: #ffffff;
     --aurora-violet: #7438a3;
+    --aurora-info: #375eaa;
+    --aurora-success: #087d70;
+    --aurora-danger: #b32648;
+    --aurora-warning: #8a5800;
     --aurora-glow: var(--aurora-hover);
     --aurora-violet-glow: var(--aurora-hover);
     --aurora-focus: var(--aurora-accent);
@@ -23,7 +28,8 @@ html[data-theme="instagram-light"] {
 [data-theme-swatch="instagram-light"] { background: linear-gradient(135deg, #a3216b 50%, #fff8fb 50%); }
 html[data-theme="instagram-dark"] {
     --sge-chart-letivo: var(--aurora-accent);
-    --sge-chart-conselho-classe: #4a9df4;
+    --sge-chart-conselho-classe: var(--aurora-danger);
+    --sge-chart-recesso: #d6afff;
     --aurora-canvas: #171117;
     --aurora-panel: #241b25;
     --aurora-raised: #302333;
@@ -35,6 +41,10 @@ html[data-theme="instagram-dark"] {
     --aurora-strong: #ffc8e4;
     --aurora-on-accent: #391029;
     --aurora-violet: #d6afff;
+    --aurora-info: #91bdff;
+    --aurora-success: #83dfc9;
+    --aurora-danger: #ffacb8;
+    --aurora-warning: #f0cd89;
     --aurora-glow: var(--aurora-hover);
     --aurora-violet-glow: var(--aurora-hover);
     --aurora-focus: var(--aurora-accent);
@@ -46,7 +56,7 @@ html[data-theme="instagram-dark"] {
 html[data-theme="tiktok-light"] {
     --sge-chart-letivo: var(--aurora-accent);
     --sge-chart-recesso: #7136a7;
-    --sge-chart-conselho-classe: #1b5da8;
+    --sge-chart-conselho-classe: var(--aurora-danger);
     --aurora-canvas: #f5f7f8;
     --aurora-panel: #ffffff;
     --aurora-raised: #eef4f5;
@@ -58,6 +68,10 @@ html[data-theme="tiktok-light"] {
     --aurora-strong: #830832;
     --aurora-on-accent: #ffffff;
     --aurora-violet: #006b72;
+    --aurora-info: #006b72;
+    --aurora-success: #147546;
+    --aurora-danger: #a90e43;
+    --aurora-warning: #785000;
     --aurora-glow: var(--aurora-hover);
     --aurora-violet-glow: var(--aurora-hover);
     --aurora-focus: var(--aurora-accent);
@@ -68,6 +82,7 @@ html[data-theme="tiktok-light"] {
 [data-theme-swatch="tiktok-light"] { background: linear-gradient(135deg, #a90e43 50%, #f5f7f8 50%); }
 html[data-theme="tiktok-dark"] {
     --sge-chart-letivo: var(--aurora-accent);
+    --sge-chart-recesso: #d8acff;
     --aurora-canvas: #090d0f;
     --aurora-panel: #141a1d;
     --aurora-raised: #1d262a;
@@ -79,6 +94,10 @@ html[data-theme="tiktok-dark"] {
     --aurora-strong: #b1fff8;
     --aurora-on-accent: #082a2a;
     --aurora-violet: #ff9ab7;
+    --aurora-info: #66eee5;
+    --aurora-success: #92ddb3;
+    --aurora-danger: #ff9ab7;
+    --aurora-warning: #f0cd89;
     --aurora-glow: var(--aurora-hover);
     --aurora-violet-glow: var(--aurora-hover);
     --aurora-focus: var(--aurora-accent);
@@ -89,7 +108,7 @@ html[data-theme="tiktok-dark"] {
 [data-theme-swatch="tiktok-dark"] { background: linear-gradient(135deg, #66eee5 50%, #090d0f 50%); }
 html[data-theme="gmail-light"] {
     --sge-chart-letivo: var(--aurora-accent);
-    --sge-chart-recesso: #6f55a4;
+    --sge-chart-recesso: #a02722;
     --sge-chart-conselho-classe: var(--aurora-violet);
     --aurora-canvas: #f6f8fc;
     --aurora-panel: #ffffff;
@@ -102,6 +121,10 @@ html[data-theme="gmail-light"] {
     --aurora-strong: #0842a0;
     --aurora-on-accent: #ffffff;
     --aurora-violet: #a02722;
+    --aurora-info: #0b57d0;
+    --aurora-success: #146c2e;
+    --aurora-danger: #b3261e;
+    --aurora-warning: #875900;
     --aurora-glow: var(--aurora-hover);
     --aurora-violet-glow: var(--aurora-hover);
     --aurora-focus: var(--aurora-accent);
@@ -112,7 +135,7 @@ html[data-theme="gmail-light"] {
 [data-theme-swatch="gmail-light"] { background: linear-gradient(135deg, #0b57d0 50%, #f6f8fc 50%); }
 html[data-theme="gmail-dark"] {
     --sge-chart-letivo: var(--aurora-accent);
-    --sge-chart-recesso: #9c71e8;
+    --sge-chart-recesso: #cfbaff;
     --aurora-canvas: #17191d;
     --aurora-panel: #22252b;
     --aurora-raised: #2c3039;
@@ -124,6 +147,10 @@ html[data-theme="gmail-dark"] {
     --aurora-strong: #d3e3fd;
     --aurora-on-accent: #092b60;
     --aurora-violet: #ffb4ab;
+    --aurora-info: #a8c7fa;
+    --aurora-success: #a8dab5;
+    --aurora-danger: #ffb4ab;
+    --aurora-warning: #fdd663;
     --aurora-glow: var(--aurora-hover);
     --aurora-violet-glow: var(--aurora-hover);
     --aurora-focus: var(--aurora-accent);
@@ -134,6 +161,7 @@ html[data-theme="gmail-dark"] {
 [data-theme-swatch="gmail-dark"] { background: linear-gradient(135deg, #a8c7fa 50%, #17191d 50%); }
 html[data-theme="outlook-light"] {
     --sge-chart-letivo: var(--aurora-accent);
+    --sge-chart-recesso: #5b409a;
     --aurora-canvas: #f3f6fa;
     --aurora-panel: #ffffff;
     --aurora-raised: #eaf2fa;
@@ -145,6 +173,10 @@ html[data-theme="outlook-light"] {
     --aurora-strong: #004578;
     --aurora-on-accent: #ffffff;
     --aurora-violet: #5b409a;
+    --aurora-info: #006b83;
+    --aurora-success: #116b50;
+    --aurora-danger: #b3263e;
+    --aurora-warning: #835512;
     --aurora-glow: var(--aurora-hover);
     --aurora-violet-glow: var(--aurora-hover);
     --aurora-focus: var(--aurora-accent);
@@ -155,7 +187,7 @@ html[data-theme="outlook-light"] {
 [data-theme-swatch="outlook-light"] { background: linear-gradient(135deg, #005a9e 50%, #f3f6fa 50%); }
 html[data-theme="outlook-dark"] {
     --sge-chart-letivo: var(--aurora-accent);
-    --sge-chart-recesso: #9c71e8;
+    --sge-chart-recesso: #cfbaff;
     --aurora-canvas: #101b26;
     --aurora-panel: #192b3b;
     --aurora-raised: #223a4e;
@@ -167,6 +199,10 @@ html[data-theme="outlook-dark"] {
     --aurora-strong: #b5dfff;
     --aurora-on-accent: #082c47;
     --aurora-violet: #cfbaff;
+    --aurora-info: #83caff;
+    --aurora-success: #92ddb3;
+    --aurora-danger: #ffacb8;
+    --aurora-warning: #f0cd89;
     --aurora-glow: var(--aurora-hover);
     --aurora-violet-glow: var(--aurora-hover);
     --aurora-focus: var(--aurora-accent);
@@ -188,21 +224,29 @@ html:is([data-theme="instagram-light"], [data-theme="instagram-dark"]) { --brand
 html:is([data-theme="instagram-light"], [data-theme="instagram-dark"]) .topbar.navbar { border-bottom: 3px solid transparent; border-image: linear-gradient(90deg,var(--aurora-violet),var(--aurora-accent),var(--aurora-strong)) 1; }
 html:is([data-theme="instagram-light"], [data-theme="instagram-dark"]) :is(.sge-dashboard-hero, .sge-dashboard-band, .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero, .sge-student-map-hero) { background: linear-gradient(120deg,var(--aurora-panel),var(--aurora-hover)); border-top: 3px solid var(--aurora-accent); }
 html:is([data-theme="instagram-light"], [data-theme="instagram-dark"]) .sidebar-dark .nav-item.active > .nav-link { border-radius: 1rem; box-shadow: inset 4px 0 var(--aurora-accent); }
+html:is([data-theme="instagram-light"], [data-theme="instagram-dark"]) :is(.sge-diary-management-hero, .sge-workflow-card, .sge-status-filter-strip) { border-radius: var(--brand-radius); border-top: 3px solid var(--aurora-violet); background: linear-gradient(120deg, var(--aurora-panel), var(--aurora-raised)); }
+html:is([data-theme="instagram-light"], [data-theme="instagram-dark"]) .card-header { background: linear-gradient(90deg, var(--aurora-raised), var(--aurora-panel)); }
 html:is([data-theme="tiktok-light"], [data-theme="tiktok-dark"]) { --brand-radius: .25rem; --brand-shadow: 3px 3px 0 var(--aurora-border); }
 html:is([data-theme="tiktok-light"], [data-theme="tiktok-dark"]) .topbar.navbar { border-bottom: 3px solid var(--aurora-accent); box-shadow: 0 2px var(--aurora-violet); }
 html:is([data-theme="tiktok-light"], [data-theme="tiktok-dark"]) :is(.sge-dashboard-hero, .sge-dashboard-band, .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero, .sge-student-map-hero) { border-left: 4px solid var(--aurora-accent); border-right: 4px solid var(--aurora-violet); }
 html:is([data-theme="tiktok-light"], [data-theme="tiktok-dark"]) .btn-primary { box-shadow: 2px 2px 0 var(--aurora-violet); border-radius: .25rem; }
+html:is([data-theme="tiktok-light"], [data-theme="tiktok-dark"]) :is(.sge-diary-management-hero, .sge-workflow-card, .sge-status-filter-strip) { border-radius: var(--brand-radius); border-left: 4px solid var(--aurora-accent); border-right: 4px solid var(--aurora-violet); background: var(--aurora-panel); box-shadow: var(--brand-shadow); }
+html:is([data-theme="tiktok-light"], [data-theme="tiktok-dark"]) .card-header { background: var(--aurora-raised); border-left: 3px solid var(--aurora-violet); }
 html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) { --brand-radius: 1.5rem; --brand-shadow: none; }
 html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) .sidebar.bg-gradient-primary, html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) .topbar.navbar { background: var(--aurora-canvas) !important; border: 0; }
 html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) .sidebar-dark .nav-item.active > .nav-link, html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) .sidebar-dark .nav-item .nav-link:is(:hover,:focus) { border-radius: 0 2rem 2rem 0; box-shadow: none; }
 html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) .btn-primary { border-radius: 1.25rem; box-shadow: none; }
-html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) .card-header { background: var(--aurora-panel); }
+html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) .card-header { background: var(--aurora-raised); }
+html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) :is(.sge-diary-management-hero, .sge-workflow-card, .sge-status-filter-strip) { border-radius: var(--brand-radius); background: var(--aurora-panel); box-shadow: none; }
+html:is([data-theme="gmail-light"], [data-theme="gmail-dark"]) .sge-diary-management-metrics div { border-radius: 1.25rem; background: var(--aurora-raised); }
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) { --brand-radius: .3rem; --brand-shadow: 0 2px 6px -3px var(--aurora-muted); }
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar.navbar { background: var(--aurora-accent) !important; border-bottom: 0; }
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar.navbar :is(.nav-link,.nav-link i,.sge-topbar-icon-button,.text-gray-600) { color: var(--aurora-on-accent) !important; }
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar.navbar .sge-topbar-icon-button { background: var(--aurora-strong); }
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .card-header { background: var(--aurora-raised); border-top: 2px solid var(--aurora-accent); }
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .sidebar-dark .nav-item.active > .nav-link { border-radius: 0; box-shadow: inset 4px 0 var(--aurora-accent); }
+html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) :is(.sge-diary-management-hero, .sge-workflow-card, .sge-status-filter-strip) { border-radius: var(--brand-radius); background: var(--aurora-panel); border-top: 2px solid var(--aurora-accent); box-shadow: var(--brand-shadow); }
+html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .sge-diary-management-metrics div { border-radius: var(--brand-radius); border-left: 3px solid var(--aurora-info); }
 
 /* Mobile navigation must remain readable on every topbar, including Outlook blue. */
 html .topbar #sidebarToggleTop {

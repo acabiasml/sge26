@@ -20,6 +20,7 @@ html:is([data-theme="aurora-light"], [data-theme="instagram-light"], [data-theme
     --aurora-strong: #0b514b;
     --aurora-on-accent: #fff;
     --aurora-violet: #6f55a4;
+    --aurora-info: #1b5da8;
     --aurora-success: #21724e;
     --aurora-danger: #b33d52;
     --aurora-warning: #835512;
@@ -32,8 +33,8 @@ html:is([data-theme="aurora-light"], [data-theme="instagram-light"], [data-theme
     --sge-chart-feriado: var(--aurora-warning);
     --sge-chart-recesso: var(--aurora-violet);
     --sge-chart-conselho-classe: var(--aurora-danger);
-    --sge-chart-ferias-finais: #b34c87;
-    --sge-chart-formacao: #1d8490;
+    --sge-chart-ferias-finais: color-mix(in srgb, var(--aurora-danger) 70%, var(--aurora-violet));
+    --sge-chart-formacao: color-mix(in srgb, var(--aurora-info) 60%, var(--aurora-success));
     --sge-chart-outro: var(--aurora-muted);
 }
 html:is([data-theme="aurora-dark"], [data-theme="instagram-dark"], [data-theme="tiktok-dark"], [data-theme="gmail-dark"], [data-theme="outlook-dark"]) {
@@ -49,6 +50,7 @@ html:is([data-theme="aurora-dark"], [data-theme="instagram-dark"], [data-theme="
     --aurora-strong: #b6f3e4;
     --aurora-on-accent: #102c29;
     --aurora-violet: #c3b2f0;
+    --aurora-info: #4a9df4;
     --aurora-success: #92ddb3;
     --aurora-danger: #ffacb8;
     --aurora-warning: #f0cd89;
@@ -57,13 +59,13 @@ html:is([data-theme="aurora-dark"], [data-theme="instagram-dark"], [data-theme="
     --aurora-glow: rgba(53, 174, 153, .09);
     --aurora-violet-glow: rgba(141, 111, 202, .1);
     --sge-chart-letivo: #4a9df4;
-    --sge-chart-fim-de-semana: #58c989;
-    --sge-chart-feriado: #eeb54a;
-    --sge-chart-recesso: #9c71e8;
-    --sge-chart-conselho-classe: #ed6f83;
-    --sge-chart-ferias-finais: #dc70ba;
-    --sge-chart-formacao: #45c7d0;
-    --sge-chart-outro: #aeb8c5;
+    --sge-chart-fim-de-semana: var(--aurora-success);
+    --sge-chart-feriado: var(--aurora-warning);
+    --sge-chart-recesso: #c3b2f0;
+    --sge-chart-conselho-classe: var(--aurora-danger);
+    --sge-chart-ferias-finais: color-mix(in srgb, var(--aurora-danger) 70%, var(--aurora-violet));
+    --sge-chart-formacao: color-mix(in srgb, var(--aurora-info) 60%, var(--aurora-success));
+    --sge-chart-outro: var(--aurora-muted);
 }
 html:is([data-theme="aurora-light"], [data-theme="aurora-dark"], [data-theme="instagram-light"], [data-theme="instagram-dark"], [data-theme="tiktok-light"], [data-theme="tiktok-dark"], [data-theme="gmail-light"], [data-theme="gmail-dark"], [data-theme="outlook-light"], [data-theme="outlook-dark"]) {
     --sge-brown: var(--aurora-accent);
@@ -73,8 +75,8 @@ html:is([data-theme="aurora-light"], [data-theme="aurora-dark"], [data-theme="in
     --sge-orange: var(--aurora-warning);
     --sge-orange-dark: var(--aurora-danger);
     --sge-cream: var(--aurora-hover);
-    --sge-blue: var(--aurora-accent);
-    --sge-blue-dark: var(--aurora-strong);
+    --sge-blue: var(--aurora-info);
+    --sge-blue-dark: var(--aurora-info);
     --sge-paper: var(--aurora-panel);
     --sge-surface: var(--aurora-canvas);
     --sge-surface-soft: var(--aurora-raised);
@@ -363,7 +365,7 @@ html:is([data-theme="aurora-dark"], [data-theme="instagram-dark"], [data-theme="
 html:is([data-theme="aurora-dark"], [data-theme="instagram-dark"], [data-theme="tiktok-dark"], [data-theme="gmail-dark"], [data-theme="outlook-dark"]) :is(.btn-outline-success,.btn-outline-danger,.btn-outline-warning):is(:hover,:focus) { color: var(--aurora-on-accent) !important; }
 html:is([data-theme="aurora-dark"], [data-theme="instagram-dark"], [data-theme="tiktok-dark"], [data-theme="gmail-dark"], [data-theme="outlook-dark"]) .btn-outline-warning { color: var(--aurora-warning) !important; border-color: var(--aurora-warning) !important; }
 html:is([data-theme="aurora-dark"], [data-theme="instagram-dark"], [data-theme="tiktok-dark"], [data-theme="gmail-dark"], [data-theme="outlook-dark"]) .invalid-feedback { color: var(--aurora-danger); }
-html:is([data-theme="aurora-dark"], [data-theme="instagram-dark"], [data-theme="tiktok-dark"], [data-theme="gmail-dark"], [data-theme="outlook-dark"]) .custom-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='10'%3E%3Cpath fill='%23aec3ce' d='M4 0L0 4h8zM4 10L0 6h8z'/%3E%3C/svg%3E"); }
+html:is([data-theme="aurora-dark"], [data-theme="instagram-dark"], [data-theme="tiktok-dark"], [data-theme="gmail-dark"], [data-theme="outlook-dark"]) .custom-select { background-image: none; appearance: auto; }
 html:is([data-theme="aurora-dark"], [data-theme="instagram-dark"], [data-theme="tiktok-dark"], [data-theme="gmail-dark"], [data-theme="outlook-dark"]) .sge-rich-editor { color-scheme: light; background: #fff; color: #213844; }
 html:is([data-theme="aurora-dark"], [data-theme="instagram-dark"], [data-theme="tiktok-dark"], [data-theme="gmail-dark"], [data-theme="outlook-dark"]) .sge-rich-editor * { color: inherit; }
 html:is([data-theme="aurora-dark"], [data-theme="instagram-dark"], [data-theme="tiktok-dark"], [data-theme="gmail-dark"], [data-theme="outlook-dark"]) .sge-maintainer img,

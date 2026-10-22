@@ -53,7 +53,7 @@
             @foreach($quickStatusFilters as $filter)
                 @php($isActive = $filter['key'] === null ? ! request()->filled('status') : request('status') === $filter['key'])
                 @php($query = $filter['key'] === null ? $baseDiaryQuery : array_merge($baseDiaryQuery, ['status' => $filter['key']]))
-                <a class="sge-status-filter-chip {{ $isActive ? 'is-active' : '' }}" href="{{ route('teacher-diaries.index', $query) }}" @if($isActive) aria-current="page" @endif>
+                <a class="sge-status-filter-chip {{ $isActive ? 'is-active' : '' }}" data-status="{{ $filter['key'] ?? 'all' }}" href="{{ route('teacher-diaries.index', $query) }}" @if($isActive) aria-current="page" @endif>
                     <i class="fas {{ $filter['icon'] }}" aria-hidden="true"></i>
                     <span>{{ $filter['label'] }}</span>
                     <strong>{{ $filter['count'] }}</strong>

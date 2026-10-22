@@ -188,7 +188,7 @@ class DashboardController extends Controller
 
     /**
      * @param  array<string, int>  $roleCounts
-     * @return array{labels: list<string>, values: list<int>, colors: list<string>}
+     * @return array{labels: list<string>, values: list<int>, colorVariables: list<string>}
      */
     private function roleChart(array $roleCounts): array
     {
@@ -198,12 +198,12 @@ class DashboardController extends Controller
                 ->values()
                 ->all(),
             'values' => array_values($roleCounts),
-            'colors' => collect($roleCounts)->keys()->map(fn (string $role): string => match ($role) {
-                PersonSchoolRole::ROLE_MANAGER => '#9b59b6',
-                PersonSchoolRole::ROLE_TEACHER => '#009e73',
-                PersonSchoolRole::ROLE_EMPLOYEE => '#d88a00',
-                PersonSchoolRole::ROLE_STUDENT => '#2878c8',
-                default => '#cc5674',
+            'colorVariables' => collect($roleCounts)->keys()->map(fn (string $role): string => match ($role) {
+                PersonSchoolRole::ROLE_MANAGER => '--sge-chart-recesso',
+                PersonSchoolRole::ROLE_TEACHER => '--sge-chart-fim-de-semana',
+                PersonSchoolRole::ROLE_EMPLOYEE => '--sge-chart-feriado',
+                PersonSchoolRole::ROLE_STUDENT => '--sge-chart-letivo',
+                default => '--sge-chart-conselho-classe',
             })->all(),
         ];
     }
