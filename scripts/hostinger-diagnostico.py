@@ -22,10 +22,6 @@ with tempfile.TemporaryDirectory() as directory:
             ('PHP', 'php -r \'echo PHP_VERSION, PHP_EOL;\''),
             ('Botão na chamada', "grep -c 'data-all-present' resources/views/teacher-diaries/attendance.blade.php"),
         ]
-        if os.environ.get('CHECK_STUDENT_814') == 'true':
-            commands.append(('Conferir percurso auditado', 'php scripts/check-student-814-enrollments.php'))
-        if os.environ.get('APPLY_STUDENT_814') == 'true':
-            commands.append(('Registrar transferência auditada', 'php scripts/check-student-814-enrollments.php --apply'))
         if os.environ.get('APPLY_VISIBILITY_MIGRATION') == 'true':
             commands.append((
                 'Aplicar migration de visibilidade',
@@ -49,10 +45,6 @@ with tempfile.TemporaryDirectory() as directory:
             error = stderr.read().decode(errors='replace')
             code = stdout.channel.recv_exit_status()
             print(output, flush=True)
-            if label == 'Conferir percurso auditado' and 'first_year_enrollment_id' not in output:
-                raise RuntimeError('A conferência das matrículas não retornou dados verificáveis.')
-            if label == 'Registrar transferência auditada' and 'APPLIED first_year_transfer_result' not in output:
-                raise RuntimeError('O resultado de transferência não foi confirmado.')
             if label == 'Commit publicado' and output.strip() != os.environ.get('GITHUB_SHA', output.strip()):
                 raise RuntimeError('O commit esperado ainda não foi publicado.')
             if label == 'Migrations' and 'Pending' in output:

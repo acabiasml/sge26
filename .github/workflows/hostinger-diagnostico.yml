@@ -14,14 +14,6 @@ on:
         description: Aplicar somente a migration de proprietário dos documentos privados
         type: boolean
         default: false
-      check_student_814:
-        description: Conferir matrícula transferida de 2026 e saída do 9º ano
-        type: boolean
-        default: false
-      apply_student_814:
-        description: Registrar resultado Transferido na matrícula auditada de 2026
-        type: boolean
-        default: false
 permissions:
   contents: read
 concurrency:
@@ -41,8 +33,6 @@ jobs:
           REFRESH_VIEWS: ${{ inputs.refresh_views }}
           APPLY_VISIBILITY_MIGRATION: ${{ inputs.apply_visibility_migration }}
           APPLY_PRIVATE_OWNER_MIGRATION: ${{ inputs.apply_private_owner_migration }}
-          CHECK_STUDENT_814: ${{ inputs.check_student_814 }}
-          APPLY_STUDENT_814: ${{ inputs.apply_student_814 }}
           HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
         run: python scripts/hostinger-diagnostico.py
