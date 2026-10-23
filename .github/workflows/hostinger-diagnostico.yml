@@ -14,14 +14,6 @@ on:
         description: Aplicar somente a migration de proprietário dos documentos privados
         type: boolean
         default: false
-      audit_academic_years:
-        description: Consultar anos letivos e dias letivos em 2026, sem alterar dados
-        type: boolean
-        default: false
-      close_academic_years_without_2026_days:
-        description: Fechar o ano de 2019 previamente auditado e sem dias letivos em 2026
-        type: boolean
-        default: false
 permissions:
   contents: read
 concurrency:
@@ -41,8 +33,6 @@ jobs:
           REFRESH_VIEWS: ${{ inputs.refresh_views }}
           APPLY_VISIBILITY_MIGRATION: ${{ inputs.apply_visibility_migration }}
           APPLY_PRIVATE_OWNER_MIGRATION: ${{ inputs.apply_private_owner_migration }}
-          AUDIT_ACADEMIC_YEARS: ${{ inputs.audit_academic_years }}
-          CLOSE_ACADEMIC_YEARS_WITHOUT_2026_DAYS: ${{ inputs.close_academic_years_without_2026_days }}
           HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
         run: python scripts/hostinger-diagnostico.py
