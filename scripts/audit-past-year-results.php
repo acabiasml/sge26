@@ -45,6 +45,7 @@ foreach ($years as $year) {
         'reference_year' => $year->reference_year,
         'closed' => $year->isClosed(),
         'enrollments' => $enrollments->count(),
+        'calculated_count' => $enrollments->whereNotNull('final_result_calculated_at')->count(),
         'existing_results' => $enrollments->pluck('final_result_status')->map(fn ($value) => $value ?: 'null')->countBy()->all(),
         'to_calculate' => $missing->count(),
         'predicted_results' => collect($predictions)->countBy()->all(),
