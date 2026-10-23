@@ -493,7 +493,7 @@ class DocumentIssuanceController extends Controller
                 'schoolClass.academicYear.school:id,name',
                 'schoolClass.courses:id,name,stage',
                 'schoolClass:id,academic_year_id,name',
-                'courses:id,name,stage',
+                'courses:id,name,stage,active',
             ])
             ->whereHas('schoolClass.academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
             ->when($this->requiresCurrentEnrollment($type), fn (Builder $query) => $this->scopeCurrentEnrollments($query))
@@ -674,22 +674,7 @@ class DocumentIssuanceController extends Controller
 
     private function isCurrentClass(SchoolClass $class): bool
     {
-        $class->loadMissing('academicYear', 'courses', 'enrollments');
-
-        if (! $class->active) {
-            return false;
-        }
-
-        $year = $class->academicYear;
-        $openYear = $year && $year->active && ! $year->isClosed();
-        $ongoingTechnicalCourse = $class->courses->contains(
-            fn (AcademicCourse $course): bool => $course->active && $course->stage === AcademicCourse::STAGE_TECHNICAL
-        ) && $class->enrollments->contains(
-            fn (StudentEnrollment $enrollment): bool => $enrollment->isActive()
-                && in_array($enrollment->final_result_status, [null, StudentEnrollment::FINAL_PENDING], true)
-        );
-
-        return $openYear || $ongoingTechnicalCourse;
+        return $class->isOperational();
     }
 
     private function wherePersonName(Builder $query, string $term, string $prefix = ''): void
@@ -793,12 +778,12 @@ class DocumentIssuanceController extends Controller
         return SchoolClass::query()
             ->with([
                 'academicYear.school:id,name',
-                'courses:id,name,stage',
+                'courses:id,name,stage,active',
                 'enrollments' => fn ($query) => $query->where('status', StudentEnrollment::STATUS_ENROLLED),
                 'enrollments.student:id,full_name,cpf',
                 'enrollments.student.contacts:id,person_id,relationship_type,cpf',
             ])
-            ->withCount('schedules')
+            ->withCount(['schedules', 'enrollments'])
             ->withCount([
                 'enrollments as active_enrollments_count' => fn (Builder $query) => $query->where('status', StudentEnrollment::STATUS_ENROLLED),
             ])
@@ -816,7 +801,9 @@ class DocumentIssuanceController extends Controller
                 $requiresEnrollments = in_array($type, ['class-report-cards', 'class-grade-mirror', 'class-attendance-certificates'], true);
                 $hasEnrollments = (int) $class->active_enrollments_count > 0;
                 $requiresCurrentClass = $this->requiresCurrentClass($type);
-                $isCurrentClass = ! $requiresCurrentClass || $this->isCurrentClass($class);
+                $isOperational = $class->isOperational();
+                $isCurrentClass = ! $requiresCurrentClass || $isOperational;
+                $isClosedClass = $class->academicYear?->isClosed() && ! $isOperational;
                 $studentDocuments = in_array($type, ['class-report-cards', 'class-grade-mirror', 'class-final-results', 'class-attendance-certificates'], true);
                 $students = $class->enrollments->map->student->filter();
                 $missingIdentityCpf = $studentDocuments && $students->contains(
@@ -833,8 +820,10 @@ class DocumentIssuanceController extends Controller
                     'subtitle' => collect([
                         $class->academicYear?->school?->name,
                         $class->academicYear?->referenceYearsLabel(),
-                        (int) $class->active_enrollments_count.' '.((int) $class->active_enrollments_count === 1 ? __('matrícula ativa') : __('matrículas ativas')),
-                        $class->active ? __('Turma ativa') : __('Turma inativa'),
+                        $isOperational
+                            ? (int) $class->active_enrollments_count.' '.((int) $class->active_enrollments_count === 1 ? __('matrícula ativa') : __('matrículas ativas'))
+                            : (int) $class->enrollments_count.' '.((int) $class->enrollments_count === 1 ? __('matrícula registrada') : __('matrículas registradas')),
+                        $isClosedClass ? __('Turma encerrada') : ($isOperational ? __('Turma ativa') : __('Turma inativa')),
                     ])->filter()->join(' · '),
                     'enabled' => (! $requiresEnrollments || $hasEnrollments) && $isCurrentClass && ! $missingIdentityCpf,
                     'reason' => match (true) {

@@ -48,13 +48,14 @@
                             </div>
                             <div role="group" class="sge-enrollment-year-stats" aria-label="{{ __('screens.year_summary', ['year' => $year->name]) }}">
                                 <span>{{ __('screens.classes_count', ['count' => $year->classes->count()]) }}</span>
-                                <span>{{ __('screens.active_count', ['count' => $year->classes->sum(fn ($class) => $class->enrollments->where('status', \App\Models\StudentEnrollment::STATUS_ENROLLED)->count())]) }}</span>
+                                <span>{{ $year->classes->filter->isOperational()->sum(fn ($class) => $class->enrollments->where('status', \App\Models\StudentEnrollment::STATUS_ENROLLED)->count()) }} {{ __('matrículas em atividade') }}</span>
                             </div>
                         </header>
 
                         <div class="sge-enrollment-class-grid">
                             @foreach ($year->classes->sortBy('name') as $class)
                                 @php($activeEnrollmentCount = $class->enrollments->where('status', \App\Models\StudentEnrollment::STATUS_ENROLLED)->count())
+                                @php($isOperational = $class->isOperational())
                                 <article class="sge-enrollment-class-card">
                                     <div class="sge-enrollment-class-main">
                                         <h4>{{ $class->name }}</h4>
@@ -74,9 +75,9 @@
                                         </div>
                                     </div>
                                     <div class="sge-enrollment-class-side">
-                                        <strong>{{ $activeEnrollmentCount }}</strong>
-                                        <span>{{ __('screens.active_f') }}</span>
-                                        @if ($class->enrollments->count() !== $activeEnrollmentCount)
+                                        <strong>{{ $isOperational ? $activeEnrollmentCount : $class->enrollments->count() }}</strong>
+                                        <span>{{ $isOperational ? __('screens.active_f') : __('matrículas registradas') }}</span>
+                                        @if ($isOperational && $class->enrollments->count() !== $activeEnrollmentCount)
                                             <small>{{ __('screens.in_history', ['count' => $class->enrollments->count()]) }}</small>
                                         @endif
                                         <a class="btn btn-sm btn-primary mt-2" href="{{ route('classes.enrollments.index', $class) }}">

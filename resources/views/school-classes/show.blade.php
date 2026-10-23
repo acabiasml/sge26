@@ -7,6 +7,7 @@
 @php($assignmentGroups = $assignments->groupBy(fn ($assignment) => $assignment->component?->area?->name ?? __('Área não definida')))
 @php($activeAssignments = $assignments->where('active', true)->count())
 @php($activeEnrollmentCount = $class->enrollments->filter->isActive()->count())
+@php($isOperational = $class->isOperational())
 @php($definedTeacherCount = $assignments->whereNotNull('teacher_person_id')->count())
 @php($classStages = $class->courses->reject(fn ($course) => $course->isItineraryMatrix())->map(fn ($course) => __($course->stageLabel()))->filter()->unique()->join(' / '))
 
@@ -61,7 +62,9 @@
                     </div>
 
                     <div role="group" class="sge-class-metrics" aria-label="{{ __('Resumo da turma') }}">
-                        <div><strong>{{ $activeEnrollmentCount }}</strong><span>{{ __('matrículas ativas') }}</span></div>
+                        @if ($isOperational)
+                            <div><strong>{{ $activeEnrollmentCount }}</strong><span>{{ __('matrículas ativas') }}</span></div>
+                        @endif
                         <div><strong>{{ $enrollmentCount }}</strong><span>{{ __('matrículas no total') }}</span></div>
                         <div><strong>{{ $class->courses->count() }}</strong><span>{{ __('matrizes') }}</span></div>
                         <div><strong>{{ $assignments->count() }}</strong><span>{{ __('componentes') }}</span></div>
@@ -70,7 +73,7 @@
                     </div>
 
                     <dl class="sge-inline-definition-list mb-0">
-                        <div><dt>{{ __('Situação') }}</dt><dd>{{ $class->active ? __('Turma ativa') : __('Turma inativa') }}</dd></div>
+                        <div><dt>{{ __('Situação') }}</dt><dd>{{ $academicYear->isClosed() && ! $isOperational ? __('Turma encerrada') : ($isOperational ? __('Turma ativa') : __('Turma inativa')) }}</dd></div>
                         <div><dt>{{ __('Etapa') }}</dt><dd>{{ $classStages ?: __('Não identificada') }}</dd></div>
                         <div><dt>{{ __('Turno') }}</dt><dd>{{ __($class->shift ?: '-') }}</dd></div>
                         <div><dt>{{ __('Vigência acadêmica') }}</dt><dd>{{ $class->startsPeriod?->name ?? __('Período inicial não definido') }} {{ __('até') }} {{ $class->endsPeriod?->name ?? __('período final não definido') }}</dd></div>

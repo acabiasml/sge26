@@ -52,6 +52,7 @@ class AcademicYearController extends Controller
             'days',
             'courses.components.area',
             'courses.classes',
+            'classes.academicYear',
             'classes.courses.components',
             'classes.enrollments',
             'classes.componentAssignments.teacher',

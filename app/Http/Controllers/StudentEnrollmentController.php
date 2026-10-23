@@ -39,6 +39,7 @@ class StudentEnrollmentController extends Controller
                                     ->where('active', true)
                                     ->whereHas('courses')
                                     ->with([
+                                        'academicYear',
                                         'courses' => fn ($courses) => $courses->orderBy('name'),
                                         'enrollments',
                                     ])

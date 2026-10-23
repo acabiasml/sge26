@@ -517,6 +517,72 @@ class DocumentIssuancePanelTest extends TestCase
         $this->assertCount(1, $response->json('targets'));
     }
 
+    public function test_closed_regular_class_is_historical_while_ongoing_technical_class_remains_active(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $student = $this->personWithRole('Estudante de Teste', PersonSchoolRole::ROLE_STUDENT, $school->id);
+        $year = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Ano encerrado',
+            'reference_year' => 2025,
+            'starts_at' => '2025-01-01',
+            'ends_at' => '2025-12-31',
+            'active' => true,
+            'closed_at' => '2025-12-31 18:00:00',
+        ]);
+        $regularClass = $year->classes()->create(['name' => '9º Ano', 'active' => true]);
+        $technicalClass = $year->classes()->create(['name' => 'Técnico em Móveis', 'active' => true]);
+        $regularCourse = $year->courses()->create([
+            'name' => '9º Ano',
+            'stage' => AcademicCourse::STAGE_ELEMENTARY,
+            'modality' => AcademicCourse::MODALITY_REGULAR,
+            'active' => true,
+        ]);
+        $regularCourse->classes()->attach($regularClass);
+        $technicalCourse = $year->courses()->create([
+            'name' => 'Técnico em Móveis',
+            'stage' => AcademicCourse::STAGE_TECHNICAL,
+            'modality' => AcademicCourse::MODALITY_PROFESSIONAL_TECHNOLOGICAL,
+            'active' => true,
+        ]);
+        $technicalCourse->classes()->attach($technicalClass);
+        foreach ([$regularClass, $technicalClass] as $class) {
+            $class->enrollments()->create([
+                'person_id' => $student->id,
+                'enrolled_at' => '2025-02-01',
+                'status' => StudentEnrollment::STATUS_ENROLLED,
+                'type' => StudentEnrollment::TYPE_REGULAR,
+            ]);
+        }
+
+        $archive = $this->actingAs($administrator)->getJson(route('document-issuance.targets', [
+            'type' => 'class-student-contacts',
+            'class_id' => $regularClass->id,
+        ]))->assertOk();
+        $this->assertStringContainsString('1 matrícula registrada', $archive->json('targets.0.subtitle'));
+        $this->assertStringContainsString('Turma encerrada', $archive->json('targets.0.subtitle'));
+        $this->assertStringNotContainsString('matrícula ativa', $archive->json('targets.0.subtitle'));
+
+        $this->actingAs($administrator)->getJson(route('document-issuance.targets', [
+            'type' => 'class-schedule',
+            'class_id' => $regularClass->id,
+        ]))->assertOk()->assertJsonCount(0, 'targets');
+
+        $technical = $this->actingAs($administrator)->getJson(route('document-issuance.targets', [
+            'type' => 'class-schedule',
+            'class_id' => $technicalClass->id,
+        ]))->assertOk()->assertJsonPath('targets.0.id', $technicalClass->id);
+        $this->assertStringContainsString('Turma ativa', $technical->json('targets.0.subtitle'));
+
+        $this->actingAs($administrator)->get(route('academic-years.classes.show', [$year, $regularClass]))
+            ->assertOk()->assertSee('Turma encerrada')->assertDontSee('matrículas ativas');
+        $this->actingAs($administrator)->get(route('academic-years.show', $year))
+            ->assertOk()->assertSee('1/2')->assertSee('Encerrada');
+        $this->actingAs($administrator)->get(route('enrollments.index'))
+            ->assertOk()->assertSee('matrículas registradas');
+    }
+
     public function test_current_enrollment_documents_cannot_be_forced_for_closed_regular_year(): void
     {
         $school = School::query()->create(['name' => 'Escola A', 'active' => true]);

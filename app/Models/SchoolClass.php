@@ -56,6 +56,28 @@ class SchoolClass extends Model
         return $this->belongsTo(AcademicYear::class);
     }
 
+    public function isOperational(): bool
+    {
+        if (! $this->active) {
+            return false;
+        }
+
+        $this->loadMissing('academicYear');
+        $year = $this->academicYear;
+        if ($year && $year->active && ! $year->isClosed()) {
+            return true;
+        }
+
+        $this->loadMissing('courses', 'enrollments');
+
+        return $this->courses->contains(
+            fn (AcademicCourse $course): bool => $course->active && $course->stage === AcademicCourse::STAGE_TECHNICAL
+        ) && $this->enrollments->contains(
+            fn (StudentEnrollment $enrollment): bool => $enrollment->isActive()
+                && in_array($enrollment->final_result_status, [null, StudentEnrollment::FINAL_PENDING], true)
+        );
+    }
+
     public function startsPeriod(): BelongsTo
     {
         return $this->belongsTo(AcademicPeriod::class, 'starts_period_id');

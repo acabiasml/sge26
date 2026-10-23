@@ -53,6 +53,10 @@ class AcademicStructureStatus
      */
     public static function schoolClass(SchoolClass $class): array
     {
+        if ($class->academicYear?->isClosed() && ! $class->isOperational()) {
+            return ['label' => __('Encerrada'), 'tone' => 'secondary', 'description' => __('Turma de ano letivo fechado.')];
+        }
+
         if (! $class->active) {
             return ['label' => __('Inativa'), 'tone' => 'secondary', 'description' => __('Turma fora de uso.')];
         }

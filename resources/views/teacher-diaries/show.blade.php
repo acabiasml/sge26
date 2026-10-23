@@ -50,7 +50,7 @@
                         <dt>{{ __('Situação do período') }}</dt><dd>{{ $period ? ($confirmation?->confirmed ? __('Confirmado') : __('Em lançamento')) : __('Sem período') }}</dd>
                     </dl>
                     <div role="group" class="sge-academic-metrics mt-3 mb-0" aria-label="{{ __('Indicadores do diário no período selecionado') }}">
-                        <div><strong>{{ $enrollments->filter->isActive()->count() }}</strong><span>{{ __('estudantes ativos') }}</span></div>
+                        <div><strong>{{ $schoolClass->isOperational() ? $enrollments->filter->isActive()->count() : $enrollments->count() }}</strong><span>{{ $schoolClass->isOperational() ? __('estudantes ativos') : __('estudantes registrados') }}</span></div>
                         <div><strong>{{ $attendanceRecords->sum('lesson_count') }}</strong><span>{{ __('chamadas') }}</span></div>
                         <div><strong>{{ $contents->count() }}</strong><span>{{ __('conteúdos') }}</span></div>
                         <div><strong>{{ $assessments->count() }}</strong><span>{{ __('avaliações') }}</span></div>

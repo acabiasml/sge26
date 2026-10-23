@@ -6,7 +6,7 @@
 @php($readyCourses = $academicYear->courses->filter->hasMatrixComponents())
 @php($closureErrors = collect($closureIssues)->where('level', 'error'))
 @php($closureWarnings = collect($closureIssues)->where('level', 'warning'))
-@php($activeClasses = $academicYear->classes->where('active', true))
+@php($activeClasses = $academicYear->classes->filter->isOperational())
 @php($enrollmentCount = $academicYear->classes->sum(fn ($class) => $class->enrollments->count()))
 @php($defaultAcademicYearTab = $errors->hasAny(['date', 'date_end', 'type', 'counts_as_school_day', 'title', 'description']) ? 'calendario' : ($errors->hasAny(['approved_at', 'closed_at', 'closure_notes', 'reopen_reason']) ? 'gestao' : 'resumo'))
 
@@ -124,7 +124,7 @@
                         <div><strong>{{ $schoolDays }}/{{ $academicYear->minimum_school_days }}</strong><span>{{ __('dias letivos previstos') }}</span></div>
                         <div><strong>{{ $academicYear->periods->count() }}</strong><span>{{ __('períodos') }}</span></div>
                         <div><strong>{{ $readyCourses->count() }}/{{ $academicYear->courses->count() }}</strong><span>{{ __('matrizes prontas') }}</span></div>
-                        <div><strong>{{ $activeClasses->count() }}/{{ $academicYear->classes->count() }}</strong><span>{{ __('turmas ativas') }}</span></div>
+                        <div><strong>{{ $activeClasses->count() }}/{{ $academicYear->classes->count() }}</strong><span>{{ __('turmas em atividade') }}</span></div>
                         <div><strong>{{ $enrollmentCount }}</strong><span>{{ __('matrículas') }}</span></div>
                         <div><strong>{{ $closureErrors->count() }}</strong><span>{{ __('impedimentos ao fechamento') }}</span></div>
                     </div>
