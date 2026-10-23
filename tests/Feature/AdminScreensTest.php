@@ -6,6 +6,7 @@ use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
 use App\Models\AcademicYear;
 use App\Models\CalendarDay;
+use App\Models\DiaryAssessment;
 use App\Models\IssuedDocument;
 use App\Models\OfficialDocument;
 use App\Models\Person;
@@ -1322,6 +1323,115 @@ class AdminScreensTest extends TestCase
         ]);
     }
 
+    public function test_transferred_student_can_complete_external_years_and_issue_history_with_read_only_system_year(): void
+    {
+        $school = School::query()->create($this->officialSchoolData(['name' => 'Escola Laura Vicuña']));
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $school->id)->person;
+
+        $elementaryYear = $this->activeAcademicYear($school, 'Ensino Fundamental 2025');
+        $elementaryYear->update([
+            'reference_year' => 2025,
+            'starts_at' => '2025-01-20',
+            'ends_at' => '2025-12-18',
+            'closed_at' => '2025-12-20',
+        ]);
+        $elementaryPeriod = $elementaryYear->periods()->create([
+            'name' => '1º Bimestre', 'starts_at' => '2025-02-01', 'ends_at' => '2025-04-30', 'position' => 1,
+        ]);
+        $elementaryCourse = $elementaryYear->courses()->create([
+            'name' => '9º Ano', 'stage' => AcademicCourse::STAGE_ELEMENTARY,
+            'modality' => AcademicCourse::MODALITY_REGULAR, 'class_hour_minutes' => 50, 'active' => true,
+        ]);
+        $elementaryComponent = $elementaryCourse->components()->create([
+            'name' => 'Matemática', 'workload_hours' => 160, 'active' => true,
+        ]);
+        $elementaryClass = $elementaryYear->classes()->create(['name' => '9º Ano A', 'active' => true]);
+        $elementaryClass->courses()->attach($elementaryCourse);
+        $elementaryEnrollment = $elementaryClass->enrollments()->create([
+            'person_id' => $student->id, 'enrolled_at' => '2025-02-01',
+            'status' => StudentEnrollment::STATUS_TRANSFERRED, 'transferred_at' => '2025-11-30',
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $elementaryEnrollment->courses()->attach($elementaryCourse);
+        $assessment = DiaryAssessment::query()->create([
+            'school_class_id' => $elementaryClass->id,
+            'curriculum_component_id' => $elementaryComponent->id,
+            'academic_period_id' => $elementaryPeriod->id,
+            'title' => 'Avaliação de Matemática',
+            'assessment_date' => '2025-03-10',
+        ]);
+        $assessment->results()->create(['student_enrollment_id' => $elementaryEnrollment->id, 'score' => 8]);
+
+        $highYear = $this->activeAcademicYear($school, 'Ensino Médio 2026');
+        $highCourse = $highYear->courses()->create([
+            'name' => '1º Ano', 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
+            'modality' => AcademicCourse::MODALITY_REGULAR, 'class_hour_minutes' => 50, 'active' => true,
+        ]);
+        $highClass = $highYear->classes()->create(['name' => '1º Ano A', 'active' => true]);
+        $highClass->courses()->attach($highCourse);
+        $highEnrollment = $highClass->enrollments()->create([
+            'person_id' => $student->id, 'enrolled_at' => '2026-02-02',
+            'status' => StudentEnrollment::STATUS_TRANSFERRED, 'transferred_at' => '2026-06-10',
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $highEnrollment->courses()->attach($highCourse);
+
+        $this->actingAs($manager)->get(route('student-histories.student', $student))->assertOk()
+            ->assertSee('action="'.route('student-histories.unified', [$student, AcademicCourse::STAGE_ELEMENTARY]).'"', false)
+            ->assertSee('action="'.route('student-histories.unified', [$student, AcademicCourse::STAGE_HIGH_SCHOOL]).'"', false);
+        foreach ([AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL] as $stage) {
+            $this->post(route('student-histories.unified', [$student, $stage]))->assertRedirect();
+        }
+
+        $history = StudentAcademicHistory::query()->where('person_id', $student->id)
+            ->where('education_stage', AcademicCourse::STAGE_ELEMENTARY)->firstOrFail();
+        $systemYear = $history->years()->where('source', 'system')->firstOrFail();
+        $this->assertSame('detailed', $systemYear->transcript_mode);
+        $this->assertDatabaseHas('student_academic_history_records', [
+            'student_academic_history_year_id' => $systemYear->id,
+            'score_label' => '8,00',
+        ]);
+        $this->get(route('people.histories.edit', [$student, $history]))->assertOk()
+            ->assertSee('Séries registradas no sistema')->assertSee('8,00');
+        $highHistory = StudentAcademicHistory::query()->where('person_id', $student->id)
+            ->where('education_stage', AcademicCourse::STAGE_HIGH_SCHOOL)->firstOrFail();
+        $this->get(route('people.histories.edit', [$student, $highHistory]))->assertOk()
+            ->assertSee('value="2º Ano"', false)
+            ->assertSee('Séries registradas no sistema');
+
+        $manualYears = collect(range(1, 8))->map(fn (int $grade): array => [
+            'source' => 'manual', 'year' => (string) (2016 + $grade),
+            'stage' => 'Ensino Fundamental', 'modality' => 'Regular',
+            'grade_phase' => $grade.'º Ano', 'school_name' => 'Escola anterior',
+            'city' => 'Poxoréu', 'state' => 'MT', 'country' => 'Brasil',
+            'transcript_mode' => 'detailed', 'final_result' => 'Aprovado',
+            'workload_hours' => 800,
+        ])->all();
+        $this->put(route('people.histories.update', [$student, $history]), [
+            'school_id' => $school->id, 'title' => $history->title, 'stage' => $history->stage,
+            'legal_basis' => $history->legal_basis, 'issued_place' => $history->issued_place,
+            'issued_date' => $history->issued_date->toDateString(), 'active' => 1,
+            'years' => [array_merge($manualYears[0], ['grade_phase' => '9º Ano'])],
+        ])->assertSessionHasErrors('years.0.grade_phase');
+        $this->assertSame(1, $history->years()->count());
+        $this->put(route('people.histories.update', [$student, $history]), [
+            'school_id' => $school->id, 'title' => $history->title, 'stage' => $history->stage,
+            'legal_basis' => $history->legal_basis, 'issued_place' => $history->issued_place,
+            'issued_date' => $history->issued_date->toDateString(), 'active' => 1,
+            'years' => $manualYears,
+            'components' => [[
+                'formation' => 'Formação Geral Básica', 'knowledge_area' => 'Matemática', 'name' => 'Matemática',
+                'records' => collect(range(1, 8))->map(fn () => ['score_label' => '8,0'])->all(),
+            ]],
+        ])->assertSessionHasNoErrors()->assertRedirect(route('people.histories.show', [$student, $history]));
+
+        $this->assertSame(['1º Ano', '2º Ano', '3º Ano', '4º Ano', '5º Ano', '6º Ano', '7º Ano', '8º Ano', '9º Ano'],
+            $history->fresh('years')->years->pluck('grade_phase')->all());
+        $this->get(route('people.histories.pdf', [$student, $history]))
+            ->assertOk()->assertHeader('content-type', 'application/pdf');
+    }
+
     public function test_student_cannot_start_history_for_a_stage_without_an_enrollment(): void
     {
         $school = School::query()->create(['name' => 'Escola Fundamental', 'active' => true]);
@@ -1351,7 +1461,7 @@ class AdminScreensTest extends TestCase
         $this->actingAs($admin)
             ->get(route('student-histories.student', $student))
             ->assertOk()
-            ->assertSee('Esta etapa será liberada quando houver matrícula do estudante nela.');
+            ->assertSee('Esta etapa será liberada quando houver matrícula do estudante nela, inclusive transferida ou encerrada.');
 
         $this->actingAs($admin)
             ->post(route('student-histories.unified', [$student, AcademicCourse::STAGE_HIGH_SCHOOL]))

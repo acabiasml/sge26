@@ -145,15 +145,21 @@ class StudentReportCardBuilder
             ->keyBy(fn (StudentPeriodConvalidation $convalidation): string => $convalidation->academic_period_id.'-'.$convalidation->curriculum_component_id);
 
         $periodReports = $periods->map(function (AcademicPeriod $period) use ($components, $assessments, $attendance, $justifications, $enrollment, $behaviorGrades, $assignments, $convalidations): array {
+            $enrolledAt = $enrollment->enrolled_at?->toDateString();
+            $endsAt = $enrollment->attendanceEndsAt();
+            $periodWithinEnrollment = (! $enrolledAt || $period->ends_at?->toDateString() >= $enrolledAt)
+                && (! $endsAt || $period->starts_at?->toDateString() <= $endsAt);
             $componentReports = $components
                 ->filter(fn (CurriculumComponent $component): bool => $component->isActiveInPeriod($period))
-                ->map(function (CurriculumComponent $component) use ($period, $assessments, $attendance, $justifications, $enrollment, $assignments, $convalidations): array {
+                ->map(function (CurriculumComponent $component) use ($period, $assessments, $attendance, $justifications, $enrollment, $assignments, $convalidations, $periodWithinEnrollment, $endsAt): array {
                     $componentAssessments = $assessments
                         ->where('academic_period_id', $period->id)
                         ->where('curriculum_component_id', $component->id)
+                        ->filter(fn (DiaryAssessment $assessment): bool => $periodWithinEnrollment
+                            && (! $endsAt || ! $assessment->assessment_date || $assessment->assessment_date->toDateString() <= $endsAt))
                         ->values();
                     $average = $this->gradeCalculator->averages(collect([$enrollment]), $componentAssessments)[$enrollment->id];
-                    $convalidation = $convalidations->get($period->id.'-'.$component->id);
+                    $convalidation = $periodWithinEnrollment ? $convalidations->get($period->id.'-'.$component->id) : null;
 
                     if ($convalidation && ! ($average['complete'] ?? false)) {
                         $average = [

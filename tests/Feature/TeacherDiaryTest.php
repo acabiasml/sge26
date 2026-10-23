@@ -527,10 +527,52 @@ class TeacherDiaryTest extends TestCase
 
         $enrollment->update(['status' => StudentEnrollment::STATUS_TRANSFERRED, 'transferred_at' => '2026-03-12']);
 
+        $validAssessment = DiaryAssessment::query()->create([
+            'school_class_id' => $class->id,
+            'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id,
+            'title' => 'Avaliação antes da transferência',
+            'assessment_date' => '2026-03-10',
+        ]);
+        $validAssessment->results()->create([
+            'student_enrollment_id' => $enrollment->id,
+            'score' => 0,
+        ]);
+
+        $thirdPeriod = $year->periods()->create([
+            'name' => '3º Bimestre',
+            'starts_at' => '2026-07-01',
+            'ends_at' => '2026-09-30',
+            'position' => 3,
+        ]);
+        $laterAssessment = DiaryAssessment::query()->create([
+            'school_class_id' => $class->id,
+            'curriculum_component_id' => $component->id,
+            'academic_period_id' => $thirdPeriod->id,
+            'title' => 'Avaliação após transferência',
+            'assessment_date' => '2026-08-10',
+        ]);
+        $laterAssessment->results()->create([
+            'student_enrollment_id' => $enrollment->id,
+            'score' => 0,
+        ]);
+        $undatedLaterAssessment = DiaryAssessment::query()->create([
+            'school_class_id' => $class->id,
+            'curriculum_component_id' => $component->id,
+            'academic_period_id' => $thirdPeriod->id,
+            'title' => 'Avaliação sem data após transferência',
+        ]);
+        $undatedLaterAssessment->results()->create([
+            'student_enrollment_id' => $enrollment->id,
+            'score' => 0,
+        ]);
+
         $report = app(StudentReportCardBuilder::class)->build($enrollment->fresh());
         $this->assertSame(4, $report['annualAttendance']['lessons']);
         $this->assertSame(3, $report['annualAttendance']['absent']);
         $this->assertSame(25.0, $report['annualAttendance']['percentage']);
+        $this->assertSame(0.0, $report['periodReports']->firstWhere('period.id', $period->id)['components']->first()['average']['value']);
+        $this->assertNull($report['periodReports']->firstWhere('period.id', $thirdPeriod->id)['components']->first()['average']['value']);
 
         $pdfReport = null;
         View::composer('reports.student-individual-record', function ($view) use (&$pdfReport): void {
@@ -539,6 +581,7 @@ class TeacherDiaryTest extends TestCase
         $this->actingAs($manager)->get(route('enrollments.individual-record.pdf', $enrollment))
             ->assertOk()->assertHeader('content-type', 'application/pdf');
         $this->assertSame(3, $pdfReport['annualAttendance']['absent']);
+        $this->assertNull($pdfReport['periodReports']->firstWhere('period.id', $thirdPeriod->id)['components']->first()['average']['value']);
 
         $certificate = app(StudentAttendanceCertificateBuilder::class)->build($enrollment->fresh(), $year->starts_at, $year->ends_at);
         $this->assertSame(4, $certificate['attendance']['lessons']);

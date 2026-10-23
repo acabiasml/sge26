@@ -24,6 +24,11 @@
         'transcript_mode' => 'detailed', 'final_result' => '', 'workload_hours' => '', 'school_days' => '',
         'attendance_label' => '', 'minimum_attendance_percentage' => '', 'notes' => '',
     ])->all();
+    $registeredSystemGrades = $history->years->where('source', 'system')
+        ->map(fn ($year) => app(\App\Support\StudentAcademicHistoryCompleteness::class)->gradeNumber((string) $year->grade_phase, $history->education_stage))
+        ->filter()->all();
+    $firstManualYear = collect($defaultYears)->first(fn ($year, $index) => ! in_array($index + 1, $registeredSystemGrades, true))
+        ?? array_merge($defaultYears[0], ['label' => '', 'grade_phase' => '']);
     $yearsInput = collect(old('years', $history->exists && $editableYears->isNotEmpty()
         ? $editableYears->map(fn ($year) => [
             'label' => $year->label,
@@ -47,7 +52,7 @@
             'minimum_attendance_percentage' => $year->minimum_attendance_percentage,
             'notes' => $year->notes,
         ])->all()
-        : ($manualOnly ? [$defaultYears[0]] : $defaultYears)))->values();
+        : ($manualOnly ? [$firstManualYear] : $defaultYears)))->values();
 
     $componentsInput = collect(old('components', $history->exists && $history->components->isNotEmpty()
         ? $history->components->map(function ($component) use ($editableYears) {

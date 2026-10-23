@@ -36,7 +36,7 @@
             @if($history || $stageIsAvailable)
                 <form method="post" action="{{ route('student-histories.unified', [$person, $stage]) }}" class="mt-3">@csrf<button class="btn btn-primary" type="submit">{{ $history ? __('Atualizar dados das matrículas') : __('Iniciar arquivo desta etapa') }}</button></form>
             @else
-                <p class="text-muted mt-3 mb-0"><i class="fas fa-lock mr-1" aria-hidden="true"></i>{{ __('Esta etapa será liberada quando houver matrícula do estudante nela.') }}</p>
+                <p class="text-muted mt-3 mb-0"><i class="fas fa-lock mr-1" aria-hidden="true"></i>{{ __('Esta etapa será liberada quando houver matrícula do estudante nela, inclusive transferida ou encerrada.') }}</p>
             @endif
         </div>
     </section></div>

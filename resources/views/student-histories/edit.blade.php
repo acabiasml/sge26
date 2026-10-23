@@ -24,4 +24,34 @@
         @method('PUT')
         @include('student-histories._form', ['curriculumOnly' => true, 'manualOnly' => $history->is_unified])
     </form>
+    @if($history->is_unified && $history->years->contains('source', 'system'))
+        <section class="card shadow sge-panel-card mb-4" aria-labelledby="system-years-title">
+            <div class="sge-panel-header">
+                <div>
+                    <h2 id="system-years-title">{{ __('Séries registradas no sistema') }}</h2>
+                    <p>{{ __('Dados calculados automaticamente. A edição deve ser feita na matrícula e nos diários correspondentes.') }}</p>
+                </div>
+            </div>
+            <div class="card-body">
+                @foreach($history->years->where('source', 'system')->sortBy('position') as $year)
+                    <h3 class="h5">{{ $year->grade_phase }} · {{ $year->year }} · {{ $year->school_name }}</h3>
+                    <p>{{ __('Resultado:') }} {{ $year->final_result ?: '-' }} · {{ __('Frequência:') }} {{ $year->attendance_label ?: '-' }}</p>
+                    @if($year->transcript_mode === 'detailed')
+                        <div class="table-responsive mb-3">
+                            <table class="table table-bordered table-sm">
+                                <thead><tr><th scope="col">{{ __('Componente') }}</th><th scope="col">{{ __('Nota calculada') }}</th><th scope="col">{{ __('Faltas') }}</th></tr></thead>
+                                <tbody>
+                                    @forelse($year->records as $record)
+                                        <tr><td>{{ $record->component?->name }}</td><td>{{ $record->score_label ?: '-' }}</td><td>{{ $record->absences ?? '-' }}</td></tr>
+                                    @empty
+                                        <tr><td colspan="3">{{ __('Nenhum resultado calculado para esta série.') }}</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                @endforeach
+            </div>
+        </section>
+    @endif
 @endsection

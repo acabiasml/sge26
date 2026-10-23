@@ -75,12 +75,9 @@ class StudentAcademicHistoryController extends Controller
             ]);
         }
         $schoolId = $person->studentEnrollments()
-            ->where('status', StudentEnrollment::STATUS_ENROLLED)
             ->whereHas('courses', fn ($query) => $query->where('stage', $stage))
             ->whereHas('schoolClass.academicYear', fn ($query) => $query
-                ->whereIn('school_id', $request->user()->isAdministrator() ? School::query()->pluck('id') : $request->user()->manageableSchoolIds())
-                ->where('active', true)
-                ->whereNull('closed_at'))
+                ->whereIn('school_id', $request->user()->isAdministrator() ? School::query()->pluck('id') : $request->user()->manageableSchoolIds()))
             ->with('schoolClass.academicYear')
             ->latest('enrolled_at')
             ->first()
@@ -185,7 +182,7 @@ class StudentAcademicHistoryController extends Controller
 
         return view('student-histories.edit', [
             'person' => $person,
-            'history' => $history->load(['school', 'years.records', 'components.records.year']),
+            'history' => $history->load(['school', 'years.records.component', 'components.records.year']),
             'schools' => $this->schools($request),
             'states' => $this->states(),
         ]);
@@ -356,11 +353,8 @@ class StudentAcademicHistoryController extends Controller
             : $request->user()->manageableSchoolIds();
 
         return $person->studentEnrollments()
-            ->where('status', StudentEnrollment::STATUS_ENROLLED)
             ->whereHas('schoolClass.academicYear', fn ($query) => $query
-                ->whereIn('school_id', $schoolIds)
-                ->where('active', true)
-                ->whereNull('closed_at'))
+                ->whereIn('school_id', $schoolIds))
             ->with('courses:id,stage')
             ->get()
             ->flatMap->courses
@@ -525,6 +519,15 @@ class StudentAcademicHistoryController extends Controller
         );
         if ($routeHistory instanceof StudentAcademicHistory && $routeHistory->is_unified) {
             $stage = $routeHistory->education_stage ?: AcademicCourse::STAGE_ELEMENTARY;
+            $systemGrades = $routeHistory->years()->where('source', 'system')->pluck('grade_phase')
+                ->map(fn (string $grade): ?int => app(StudentAcademicHistoryCompleteness::class)->gradeNumber($grade, $stage))
+                ->filter()->all();
+            foreach ($data['years'] as $index => $year) {
+                $grade = app(StudentAcademicHistoryCompleteness::class)->gradeNumber($year['grade_phase'], $stage);
+                if ($grade !== null && in_array($grade, $systemGrades, true)) {
+                    throw ValidationException::withMessages(["years.{$index}.grade_phase" => __('Esta série já está registrada no sistema e não pode ser lançada manualmente.')]);
+                }
+            }
             $areas = collect(config("curriculum.stages.{$stage}.formations.formacao_geral_basica.areas", []));
             $componentsByArea = $areas->mapWithKeys(fn (array $area): array => [$area['name'] => $area['components'] ?? []]);
             $flexibleFormation = match ($stage) {
