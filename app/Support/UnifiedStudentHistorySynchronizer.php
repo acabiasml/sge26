@@ -377,7 +377,11 @@ class UnifiedStudentHistorySynchronizer
             return $enrollment->finalResultLabel();
         }
 
-        return $hasLaterEnrollment ? 'Aprovado' : 'Cursando';
+        if ($hasLaterEnrollment) {
+            return 'Aprovado';
+        }
+
+        return $enrollment->schoolClass?->academicYear?->isClosed() ? 'Pendente' : 'Cursando';
     }
 
     private function historicalWorkloadHours(CurriculumComponent $component): float

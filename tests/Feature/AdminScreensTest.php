@@ -17,6 +17,7 @@ use App\Models\SchoolClass;
 use App\Models\StudentAcademicHistory;
 use App\Models\StudentEnrollment;
 use App\Models\User;
+use App\Support\UnifiedStudentHistorySynchronizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -1452,6 +1453,55 @@ class AdminScreensTest extends TestCase
             ->assertDontSee('value="9º Ano"', false);
         $this->get(route('people.histories.pdf', [$student, $history]))
             ->assertOk()->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_closed_system_year_shows_recorded_grades_even_when_final_result_is_pending(): void
+    {
+        $school = School::query()->create($this->officialSchoolData(['name' => 'Escola Laura Vicuña']));
+        $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $school->id)->person;
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $year = $this->activeAcademicYear($school, 'Ensino Fundamental 2025');
+        $year->update([
+            'reference_year' => 2025,
+            'starts_at' => '2025-01-20',
+            'ends_at' => '2025-12-18',
+        ]);
+        $period = $year->periods()->create([
+            'name' => '1º Bimestre', 'starts_at' => '2025-02-01', 'ends_at' => '2025-04-30', 'position' => 1,
+        ]);
+        $course = $year->courses()->create([
+            'name' => '9º Ano', 'stage' => AcademicCourse::STAGE_ELEMENTARY,
+            'modality' => AcademicCourse::MODALITY_REGULAR, 'class_hour_minutes' => 50, 'active' => true,
+        ]);
+        $component = $course->components()->create(['name' => 'Matemática', 'workload_hours' => 160, 'active' => true]);
+        $class = $year->classes()->create(['name' => '9º Ano A', 'active' => true]);
+        $class->courses()->attach($course);
+        $enrollment = $class->enrollments()->create([
+            'person_id' => $student->id, 'enrolled_at' => '2025-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED, 'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $enrollment->courses()->attach($course);
+        $assessment = DiaryAssessment::query()->create([
+            'school_class_id' => $class->id,
+            'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id,
+            'title' => 'Avaliação de Matemática',
+            'assessment_date' => '2025-03-10',
+        ]);
+        $assessment->results()->create(['student_enrollment_id' => $enrollment->id, 'score' => 8]);
+
+        $synchronizer = app(UnifiedStudentHistorySynchronizer::class);
+        $history = $synchronizer->synchronize($student, $school->id, $manager->person_id, AcademicCourse::STAGE_ELEMENTARY);
+        $systemYear = $history->years()->where('student_enrollment_id', $enrollment->id)->firstOrFail();
+        $this->assertSame('Cursando', $systemYear->final_result);
+        $this->assertNull($systemYear->records()->firstOrFail()->score_numeric);
+
+        $year->update(['closed_at' => '2025-12-20']);
+        $history = $synchronizer->synchronize($student, $school->id, $manager->person_id, AcademicCourse::STAGE_ELEMENTARY);
+        $systemYear = $history->years()->where('student_enrollment_id', $enrollment->id)->firstOrFail();
+        $this->assertSame('Pendente', $systemYear->final_result);
+        $this->assertSame('8,00', $systemYear->records()->firstOrFail()->score_label);
+        $this->assertNull($enrollment->fresh()->final_result_status);
     }
 
     public function test_student_cannot_start_history_for_a_stage_without_an_enrollment(): void

@@ -18,6 +18,10 @@ on:
         description: Consultar totais de notas do histórico 48 sem expor valores pessoais
         type: boolean
         default: false
+      sync_history_814:
+        description: Sincronizar o 9º ano do histórico 48 após correção e validação
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -38,6 +42,7 @@ jobs:
           APPLY_VISIBILITY_MIGRATION: ${{ inputs.apply_visibility_migration }}
           APPLY_PRIVATE_OWNER_MIGRATION: ${{ inputs.apply_private_owner_migration }}
           AUDIT_HISTORY_814: ${{ inputs.audit_history_814 }}
+          SYNC_HISTORY_814: ${{ inputs.sync_history_814 }}
           HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
         run: python scripts/hostinger-diagnostico.py

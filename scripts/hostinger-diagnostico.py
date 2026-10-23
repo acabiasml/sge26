@@ -24,6 +24,8 @@ with tempfile.TemporaryDirectory() as directory:
         ]
         if os.environ.get('AUDIT_HISTORY_814') == 'true':
             commands.append(('Totais do histórico 48', 'php scripts/audit-history-814.php'))
+        if os.environ.get('SYNC_HISTORY_814') == 'true':
+            commands.append(('Sincronizar histórico 48', 'php scripts/audit-history-814.php --sync'))
         if os.environ.get('APPLY_VISIBILITY_MIGRATION') == 'true':
             commands.append((
                 'Aplicar migration de visibilidade',
@@ -49,6 +51,8 @@ with tempfile.TemporaryDirectory() as directory:
             print(output, flush=True)
             if label == 'Totais do histórico 48' and not output.strip():
                 raise RuntimeError('A consulta do histórico não retornou dados verificáveis.')
+            if label == 'Sincronizar histórico 48' and 'SYNCED history_id=48 enrollment_id=450 scored_components=9' not in output:
+                raise RuntimeError('A sincronização do histórico não foi confirmada.')
             if label == 'Commit publicado' and output.strip() != os.environ.get('GITHUB_SHA', output.strip()):
                 raise RuntimeError('O commit esperado ainda não foi publicado.')
             if label == 'Migrations' and 'Pending' in output:
