@@ -13,6 +13,8 @@
         .signature { margin-top: 42px; width: 100%; }
         .signature td { border: 0; text-align: center; padding-top: 48px; }
         .line { border-top: 1px solid #6B3D2E; display: inline-block; min-width: 230px; padding-top: 5px; }
+        .signature-name { display: block; font-weight: 600; }
+        .signature-role { display: block; margin-top: 2px; }
     </style>
 </head>
 <body>
@@ -72,7 +74,8 @@
     <table class="signature">
         <tr>
             <td><span class="line">Responsável pelo estudante</span></td>
-            <td><span class="line">Secretaria escolar</span></td>
+            @php($secretary = \App\Support\SchoolSignatureStaff::forSchool($academicYear->school, $issuedDocument->issued_at ?? now())['secretário'])
+            <td><span class="line">@if($secretary)<span class="signature-name">{{ $secretary->full_name }}</span>@endif<span class="signature-role">Secretaria escolar</span></span></td>
         </tr>
     </table>
 

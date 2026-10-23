@@ -18,6 +18,8 @@
         .signature { margin-top: 24px; width: 100%; page-break-inside: avoid; }
         .signature td { border: 0; text-align: center; padding-top: 28px; width: 50%; }
         .line { border-top: 1px solid #6b3d2e; display: inline-block; width: 85%; padding-top: 6px; }
+        .signature-name { display: block; font-weight: 600; }
+        .signature-role { display: block; margin-top: 2px; }
         .summary tr, .matrix-summary tr { page-break-inside: avoid; }
         .matrix-summary thead { display: table-header-group; }
         .muted { color: #6d5f5a; }
@@ -113,8 +115,7 @@
 
     <table class="signature">
         <tr>
-            <td><span class="line">Direção escolar</span></td>
-            <td><span class="line">Secretaria escolar</span></td>
+            @include('reports.partials.signature-staff', ['school' => $academicYear->school, 'signatureType' => 'secretarial', 'signatureLineClass' => 'line', 'signatureDate' => $issuedDocument->issued_at ?? now()])
         </tr>
     </table>
 

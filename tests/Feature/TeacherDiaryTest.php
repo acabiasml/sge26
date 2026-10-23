@@ -23,6 +23,7 @@ use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
 use App\Models\StudentEnrollment;
 use App\Models\User;
+use App\Support\PdfLetterhead;
 use App\Support\SchoolClassEnrollmentCourses;
 use App\Support\StudentAttendanceCertificateBuilder;
 use App\Support\StudentReportCardBuilder;
@@ -906,6 +907,11 @@ class TeacherDiaryTest extends TestCase
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-declaracoes@ctjj.org');
+        $manager->person->update(['full_name' => 'Diretora da Escola']);
+        $manager->person->schoolRoles()->firstOrFail()->update(['position' => PersonSchoolRole::POSITION_DIRECTOR]);
+        $secretary = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'secretaria-declaracoes@ctjj.org');
+        $secretary->person->update(['full_name' => 'Secretária da Escola']);
+        $secretary->person->schoolRoles()->firstOrFail()->update(['position' => PersonSchoolRole::POSITION_SECRETARY]);
 
         $this->actingAs($manager)
             ->get(route('enrollments.documents', $enrollment))
@@ -918,6 +924,21 @@ class TeacherDiaryTest extends TestCase
             ->get(route('enrollments.enrollment-declaration.pdf', $enrollment))
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf');
+
+        $issuedDocument = IssuedDocument::query()->where('type', 'student-enrollment-declaration')->latest('id')->firstOrFail();
+        $declaration = view('reports.certificates.declaration', [
+            'academicYear' => $year->load('school'),
+            'class' => $class->load('courses'),
+            'enrollment' => $enrollment->load('student', 'courses'),
+            'issuedDocument' => $issuedDocument,
+            'letterhead' => PdfLetterhead::make($year->school),
+            'title' => 'Declaração de matrícula',
+            'statement' => 'Declaramos a matrícula do estudante.',
+        ])->render();
+        $this->assertStringContainsString('Diretora da Escola', $declaration);
+        $this->assertStringContainsString('Secretária da Escola', $declaration);
+        $this->assertStringContainsString('Direção escolar', $declaration);
+        $this->assertStringContainsString('Secretaria escolar', $declaration);
 
         $this->actingAs($manager)
             ->get(route('enrollments.schooling-declaration.pdf', $enrollment))

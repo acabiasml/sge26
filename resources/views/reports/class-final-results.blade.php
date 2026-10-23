@@ -22,6 +22,8 @@
         .signatures { border-collapse: collapse; margin-top: 48px; width: 100%; }
         .signatures td { border: 0; font-size: 11px; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 310px; padding-top: 6px; }
+        .signature-name { display: block; font-weight: 600; }
+        .signature-role { display: block; margin-top: 2px; }
     </style>
 </head>
 <body>
@@ -116,8 +118,7 @@
 
 <table class="signatures">
     <tr>
-        <td><span class="signature-line">Direção escolar</span></td>
-        <td><span class="signature-line">Secretaria escolar</span></td>
+        @include('reports.partials.signature-staff', ['school' => $academicYear->school, 'signatureType' => 'secretarial', 'signatureDate' => $issuedDocument->issued_at ?? now()])
     </tr>
 </table>
 
