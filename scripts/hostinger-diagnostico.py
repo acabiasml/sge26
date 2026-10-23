@@ -27,6 +27,11 @@ with tempfile.TemporaryDirectory() as directory:
                 'Anos letivos e dias letivos em 2026',
                 'php scripts/audit-academic-years-without-2026-days.php',
             ))
+        if os.environ.get('CLOSE_ACADEMIC_YEARS_WITHOUT_2026_DAYS') == 'true':
+            commands.append((
+                'Fechar ano letivo histórico auditado',
+                'php scripts/close-academic-years-without-2026-days.php',
+            ))
         if os.environ.get('APPLY_VISIBILITY_MIGRATION') == 'true':
             commands.append((
                 'Aplicar migration de visibilidade',
@@ -52,6 +57,8 @@ with tempfile.TemporaryDirectory() as directory:
             print(output, flush=True)
             if label == 'Anos letivos e dias letivos em 2026' and not output.strip():
                 raise RuntimeError('A consulta de anos letivos não retornou dados verificáveis.')
+            if label == 'Fechar ano letivo histórico auditado' and 'CLOSED id=14 school_id=1 year=2019' not in output:
+                raise RuntimeError('O fechamento esperado não foi confirmado.')
             if label == 'Commit publicado' and output.strip() != os.environ.get('GITHUB_SHA', output.strip()):
                 raise RuntimeError('O commit esperado ainda não foi publicado.')
             if label == 'Migrations' and 'Pending' in output:
