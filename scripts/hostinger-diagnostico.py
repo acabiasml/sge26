@@ -22,6 +22,11 @@ with tempfile.TemporaryDirectory() as directory:
             ('PHP', 'php -r \'echo PHP_VERSION, PHP_EOL;\''),
             ('Botão na chamada', "grep -c 'data-all-present' resources/views/teacher-diaries/attendance.blade.php"),
         ]
+        if os.environ.get('AUDIT_ACADEMIC_YEARS') == 'true':
+            commands.append((
+                'Anos letivos e dias letivos em 2026',
+                'php scripts/audit-academic-years-without-2026-days.php',
+            ))
         if os.environ.get('APPLY_VISIBILITY_MIGRATION') == 'true':
             commands.append((
                 'Aplicar migration de visibilidade',
