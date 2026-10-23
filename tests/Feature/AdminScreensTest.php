@@ -1536,7 +1536,11 @@ class AdminScreensTest extends TestCase
         $this->assertNull($enrollment->transferred_at);
         $this->assertSame('2025-12-18', $enrollment->exitDate()?->toDateString());
         $this->actingAs($manager)->get(route('people.student-map.show', $student))
-            ->assertOk()->assertSeeText('Aprovado')->assertSeeText('18/12/2025');
+            ->assertOk()
+            ->assertSee('<span class="badge badge-info">Concluído</span>', false)
+            ->assertSeeText('Aprovado')
+            ->assertSeeText('18/12/2025')
+            ->assertDontSee('Boletim atual');
     }
 
     public function test_student_cannot_start_history_for_a_stage_without_an_enrollment(): void
@@ -1601,6 +1605,7 @@ class AdminScreensTest extends TestCase
         $this->actingAs($studentUser)
             ->get(route('people.student-map.show', $studentUser->person_id))
             ->assertOk()
+            ->assertSee('<span class="badge badge-success">Matriculado</span>', false)
             ->assertSee('Boletim')
             ->assertDontSee('Ficha individual');
     }

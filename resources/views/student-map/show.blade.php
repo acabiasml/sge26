@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @php
-    $activeEnrollments = $enrollments->filter->isActive();
+    $activeEnrollments = $enrollments->filter(fn ($enrollment) => $enrollment->isActive() && ! $enrollment->schoolClass?->academicYear?->isClosed());
     $absenceCount = $attendanceSummary->sum('absent');
     $totalLessons = $attendanceSummary->sum('total');
     $presentLessons = $attendanceSummary->sum('present') + $attendanceSummary->sum('excused');
@@ -149,11 +149,21 @@
                 <div class="card-body">
                     <div class="sge-life-timeline">
                         @forelse ($enrollments as $enrollment)
-                            @php($exitDate = $enrollment->exitDate())
-                            <article class="sge-life-card {{ $enrollment->isActive() ? 'is-active' : '' }}">
+                            @php
+                                $exitDate = $enrollment->exitDate();
+                                $yearClosed = $enrollment->schoolClass?->academicYear?->isClosed() ?? false;
+                                $isCurrent = $enrollment->isActive() && ! $yearClosed;
+                                $hasFinalResult = filled($enrollment->final_result_status)
+                                    && $enrollment->final_result_status !== \App\Models\StudentEnrollment::FINAL_PENDING;
+                                $isConcluded = $enrollment->isActive() && $yearClosed && $hasFinalResult;
+                                $displayStatus = $enrollment->isActive() && $yearClosed
+                                    ? ($isConcluded ? __('Concluído') : __('Ano encerrado'))
+                                    : __($enrollment->statusLabel());
+                            @endphp
+                            <article class="sge-life-card {{ $isCurrent ? 'is-active' : '' }}">
                                 <div class="sge-life-card-status">
                                     <i class="fas fa-graduation-cap" aria-hidden="true"></i>
-                                    <span class="badge badge-{{ $enrollment->isActive() ? 'success' : 'secondary' }}">{{ __($enrollment->statusLabel()) }}</span>
+                                    <span class="badge badge-{{ $isCurrent ? 'success' : ($isConcluded ? 'info' : 'secondary') }}">{{ $displayStatus }}</span>
                                 </div>
                                 <div class="sge-life-card-body">
                                     <div class="d-flex justify-content-between align-items-start flex-wrap">
