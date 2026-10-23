@@ -282,7 +282,7 @@ class TeacherDiaryController extends Controller
             ->get();
 
         $attendanceRecords = DiaryAttendanceRecord::query()
-            ->with(['entries', 'updatedBy'])
+            ->with(['entries.enrollment', 'updatedBy'])
             ->where('school_class_id', $schoolClass->id)
             ->where('curriculum_component_id', $component->id)
             ->when($period, fn (Builder $query) => $query->where('academic_period_id', $period->id))
@@ -1507,9 +1507,12 @@ class TeacherDiaryController extends Controller
     private function attendanceSummary(Collection $records, Collection $justifications): array
     {
         return $records->mapWithKeys(function (DiaryAttendanceRecord $record) use ($justifications): array {
-            $attended = $record->entries->sum('attended_lessons');
-            $lessons = $record->entries->count() * $record->lesson_count;
-            $justified = $record->entries->sum(function ($entry) use ($justifications, $record): int {
+            $entries = $record->entries->filter(
+                fn ($entry): bool => $entry->enrollment?->includesAttendanceDate($record->class_date) ?? false
+            );
+            $attended = $entries->sum('attended_lessons');
+            $lessons = $entries->count() * $record->lesson_count;
+            $justified = $entries->sum(function ($entry) use ($justifications, $record): int {
                 $isJustified = $entry->status === DiaryAttendanceRecord::STATUS_EXCUSED
                     || $justifications
                         ->where('student_enrollment_id', $entry->student_enrollment_id)

@@ -66,13 +66,7 @@ class AcademicYearAttendanceReportPdfController extends Controller
 
         $rows = $enrollments->map(function (StudentEnrollment $enrollment) use ($records, $justifications, $calculator, $startsAt, $endsAt): array {
             $studentStartsAt = max($startsAt, $enrollment->enrolled_at?->toDateString() ?? $startsAt);
-            $studentEndsAt = min(
-                $endsAt,
-                $enrollment->transferred_at?->toDateString()
-                    ?? $enrollment->cancelled_at?->toDateString()
-                    ?? $enrollment->reclassified_at?->toDateString()
-                    ?? $endsAt,
-            );
+            $studentEndsAt = min($endsAt, $enrollment->attendanceEndsAt() ?? $endsAt);
 
             $studentRecords = $records
                 ->where('school_class_id', $enrollment->school_class_id)

@@ -503,7 +503,7 @@ class TeacherDiaryTest extends TestCase
         $this->assertStringContainsString(route('enrollments.individual-record.pdf', $latestEnrollment), $matches[1] ?? '');
     }
 
-    public function test_retroactive_transfer_excludes_attendance_outside_enrollment_dates_from_individual_record_and_student_views(): void
+    public function test_retroactive_transfer_limits_absences_in_attendance_documents_and_student_views(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-ficha-transferida@ctjj.org');
@@ -539,6 +539,34 @@ class TeacherDiaryTest extends TestCase
         $this->actingAs($manager)->get(route('enrollments.individual-record.pdf', $enrollment))
             ->assertOk()->assertHeader('content-type', 'application/pdf');
         $this->assertSame(3, $pdfReport['annualAttendance']['absent']);
+
+        $certificate = app(StudentAttendanceCertificateBuilder::class)->build($enrollment->fresh(), $year->starts_at, $year->ends_at);
+        $this->assertSame(4, $certificate['attendance']['lessons']);
+        $this->assertSame(3, $certificate['attendance']['absent']);
+
+        $annualRows = null;
+        View::composer('reports.academic-year-attendance', function ($view) use (&$annualRows): void {
+            $annualRows = $view->getData()['rows'];
+        });
+        $this->get(route('academic-years.attendance-report.pdf', $year))
+            ->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertSame(4, $annualRows->first()['summary']['lessons']);
+        $this->assertSame(3, $annualRows->first()['summary']['absent']);
+
+        $diaryData = null;
+        View::composer('reports.teacher-diary', function ($view) use (&$diaryData): void {
+            $diaryData = $view->getData();
+        });
+        $this->get(route('teacher-diaries.pdf', [$class, $component, 'period' => $period->id]))
+            ->assertOk()->assertHeader('content-type', 'application/pdf');
+        $diaryHtml = view('reports.teacher-diary', $diaryData)->render();
+        preg_match('/<td class="student-name">.*?<\/tr>/s', $diaryHtml, $diaryRow);
+        $this->assertSame(3, substr_count($diaryRow[0] ?? '', '>F</td>'));
+        $this->assertSame(4, substr_count($diaryRow[0] ?? '', '>-</td>'));
+        $this->assertMatchesRegularExpression('/<td class="center attendance-total">1<\/td>\s*<td class="center attendance-total">3<\/td>/', $diaryRow[0] ?? '');
+
+        $this->get(route('teacher-diaries.show', [$class, $component, 'period' => $period->id]))
+            ->assertOk()->assertViewHas('attendanceSummary', fn ($summary): bool => collect($summary)->sum('absent') === 3);
 
         $this->get(route('people.student-map.show', $enrollment->person_id))
             ->assertOk()

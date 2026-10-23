@@ -125,10 +125,9 @@
                 @forelse($enrollments as $enrollment)
                     @php
                         $enrollmentLocked = ! $enrollment->isActive();
-                        $enrolledAt = $enrollment->enrolled_at?->copy()->startOfDay();
-                        $countableAttendance = $report['attendance']->filter(function ($attendance) use ($enrolledAt) {
-                            return ! $enrolledAt || $attendance->class_date->gte($enrolledAt);
-                        });
+                        $countableAttendance = $report['attendance']->filter(
+                            fn ($attendance) => $enrollment->includesAttendanceDate($attendance->class_date)
+                        );
                         $present = $countableAttendance->sum(function ($attendance) use ($enrollment) {
                             $entry = $attendance->entries->firstWhere('student_enrollment_id', $enrollment->id);
 
@@ -156,8 +155,8 @@
                             @php($attended = (int) ($entry?->attended_lessons ?? 0))
                             @php($lessonPresence = $entry?->lesson_presence ?? [])
                             @php($hasExplicitLesson = array_key_exists($lessonIndex, $lessonPresence))
-                            @php($beforeEnrollment = $enrolledAt && $attendance->class_date->lt($enrolledAt))
-                            @php($lessonWasPresent = $beforeEnrollment ? null : ($hasExplicitLesson ? (bool) $lessonPresence[$lessonIndex] : ($entry ? $lessonIndex < $attended : null)))
+                            @php($withinEnrollment = $enrollment->includesAttendanceDate($attendance->class_date))
+                            @php($lessonWasPresent = ! $withinEnrollment ? null : ($hasExplicitLesson ? (bool) $lessonPresence[$lessonIndex] : ($entry ? $lessonIndex < $attended : null)))
                             <td class="center attendance-mark">{{ $lessonWasPresent === null ? '-' : ($lessonWasPresent ? '*' : 'F') }}</td>
                         @endforeach
                         @if($showAttendanceTotals)

@@ -38,11 +38,7 @@ final class StudentAttendanceCertificateBuilder
             $startsAt->toDateString(),
             $enrollment->enrolled_at?->toDateString() ?? $startsAt->toDateString(),
         );
-        $recordEndsAt = min(array_filter([
-            $endsAt->toDateString(),
-            $enrollment->transferred_at?->toDateString(),
-            $enrollment->cancelled_at?->toDateString(),
-        ]));
+        $recordEndsAt = min($endsAt->toDateString(), $enrollment->attendanceEndsAt() ?? $endsAt->toDateString());
 
         $records = DiaryAttendanceRecord::query()
             ->with(['entries' => fn ($query) => $query->where('student_enrollment_id', $enrollment->id)])
