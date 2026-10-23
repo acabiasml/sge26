@@ -32,6 +32,11 @@ with tempfile.TemporaryDirectory() as directory:
                 'Aplicar migration de proprietário privado',
                 'php artisan migrate --path=database/migrations/2026_10_21_000002_add_private_owner_to_official_documents_table.php --force --no-ansi',
             ))
+        if os.environ.get('APPLY_RECLASSIFICATION_MIGRATION') == 'true':
+            commands.append((
+                'Aplicar migration de resultados das reclassificações',
+                'php artisan migrate --path=database/migrations/2026_10_23_000001_backfill_reclassified_enrollment_results.php --force --no-ansi',
+            ))
         commands.append(('Migrations', 'php artisan migrate:status --no-ansi'))
         if os.environ.get('REFRESH_VIEWS') == 'true':
             commands.append(('Limpar cache das telas', 'php artisan view:clear --no-ansi'))
@@ -45,7 +50,7 @@ with tempfile.TemporaryDirectory() as directory:
             error = stderr.read().decode(errors='replace')
             code = stdout.channel.recv_exit_status()
             print(output, flush=True)
-            if label == 'Commit publicado' and output.strip() != os.environ.get('GITHUB_SHA', output.strip()):
+            if label == 'Commit publicado' and output.strip() != os.environ['EXPECTED_COMMIT']:
                 raise RuntimeError('O commit esperado ainda não foi publicado.')
             if label == 'Migrations' and 'Pending' in output:
                 raise RuntimeError('Há migrations pendentes em produção.')
