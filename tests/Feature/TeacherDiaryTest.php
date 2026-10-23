@@ -476,6 +476,82 @@ class TeacherDiaryTest extends TestCase
         $this->assertSame($manager->person_id, $report['finalResult']['calculated_by']->id);
     }
 
+    public function test_student_life_individual_record_button_uses_latest_enrollment_even_when_transferred(): void
+    {
+        [, $year, $class, , , $oldEnrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-ficha-recente@ctjj.org');
+        $newClass = $year->classes()->create(['name' => '1º Ano B', 'active' => true]);
+        $newClass->courses()->attach($class->courses->pluck('id'));
+        $latestEnrollment = $newClass->enrollments()->create([
+            'person_id' => $oldEnrollment->person_id,
+            'enrolled_at' => '2026-04-01',
+            'transferred_at' => '2026-04-15',
+            'status' => StudentEnrollment::STATUS_TRANSFERRED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $latestEnrollment->courses()->attach($class->courses->pluck('id'));
+
+        $response = $this->actingAs($manager)->get(route('people.student-map.show', $oldEnrollment->person_id))->assertOk();
+        preg_match('/<div class="sge-life-actions">(.*?)<\/div>/s', $response->getContent(), $matches);
+
+        $this->assertStringContainsString(route('enrollments.individual-record.pdf', $latestEnrollment), $matches[1] ?? '');
+        $this->assertStringNotContainsString(route('enrollments.individual-record.pdf', $oldEnrollment), $matches[1] ?? '');
+
+        $oldEnrollment->update(['status' => StudentEnrollment::STATUS_TRANSFERRED, 'transferred_at' => '2026-03-15']);
+        $response = $this->get(route('people.student-map.show', $oldEnrollment->person_id))->assertOk();
+        preg_match('/<div class="sge-life-actions">(.*?)<\/div>/s', $response->getContent(), $matches);
+        $this->assertStringContainsString(route('enrollments.individual-record.pdf', $latestEnrollment), $matches[1] ?? '');
+    }
+
+    public function test_retroactive_transfer_excludes_attendance_outside_enrollment_dates_from_individual_record_and_student_views(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-ficha-transferida@ctjj.org');
+        $enrollment->update(['enrolled_at' => '2026-02-10']);
+
+        foreach (['2026-02-09' => 0, '2026-02-10' => 0, '2026-03-12' => 1, '2026-03-13' => 0] as $classDate => $attendedLessons) {
+            $record = DiaryAttendanceRecord::query()->create([
+                'school_class_id' => $class->id,
+                'curriculum_component_id' => $component->id,
+                'academic_period_id' => $period->id,
+                'teacher_person_id' => $teacher->person_id,
+                'class_date' => $classDate,
+                'lesson_count' => 2,
+            ]);
+            $record->entries()->create([
+                'student_enrollment_id' => $enrollment->id,
+                'status' => $attendedLessons ? DiaryAttendanceRecord::STATUS_PARTIAL : DiaryAttendanceRecord::STATUS_ABSENT,
+                'attended_lessons' => $attendedLessons,
+            ]);
+        }
+
+        $enrollment->update(['status' => StudentEnrollment::STATUS_TRANSFERRED, 'transferred_at' => '2026-03-12']);
+
+        $report = app(StudentReportCardBuilder::class)->build($enrollment->fresh());
+        $this->assertSame(4, $report['annualAttendance']['lessons']);
+        $this->assertSame(3, $report['annualAttendance']['absent']);
+        $this->assertSame(25.0, $report['annualAttendance']['percentage']);
+
+        $pdfReport = null;
+        View::composer('reports.student-individual-record', function ($view) use (&$pdfReport): void {
+            $pdfReport = $view->getData()['report'];
+        });
+        $this->actingAs($manager)->get(route('enrollments.individual-record.pdf', $enrollment))
+            ->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertSame(3, $pdfReport['annualAttendance']['absent']);
+
+        $this->get(route('people.student-map.show', $enrollment->person_id))
+            ->assertOk()
+            ->assertViewHas('attendanceSummary', fn ($summary): bool => $summary->count() === 1
+                && $summary->first()['total'] === 4
+                && $summary->first()['absent'] === 3);
+
+        $student = User::query()->where('person_id', $enrollment->person_id)->firstOrFail();
+        $this->actingAs($student)->get(route('student-diaries.show', [$enrollment, $component]))
+            ->assertOk()->assertViewHas('attendance', fn ($attendance): bool => $attendance->count() === 2);
+        $this->assertDatabaseCount('diary_attendance_entries', 4);
+    }
+
     public function test_report_card_and_individual_record_include_parallel_technical_itinerary_for_the_regular_year(): void
     {
         [, $regularYear, , , , $regularEnrollment] = $this->diaryScenario();

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\Auditable;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -88,6 +89,30 @@ class StudentEnrollment extends Model
             'final_result_calculated_at' => 'datetime',
             'legacy_metadata' => 'array',
         ];
+    }
+
+    public function attendanceEndsAt(): ?string
+    {
+        $dates = array_filter([
+            $this->transferred_at?->toDateString(),
+            $this->cancelled_at?->toDateString(),
+            $this->reclassified_at?->toDateString(),
+        ]);
+
+        return $dates === [] ? null : min($dates);
+    }
+
+    public function includesAttendanceDate(?CarbonInterface $date): bool
+    {
+        if (! $date) {
+            return false;
+        }
+
+        $classDate = $date->toDateString();
+        $endsAt = $this->attendanceEndsAt();
+
+        return (! $this->enrolled_at || $classDate >= $this->enrolled_at->toDateString())
+            && (! $endsAt || $classDate <= $endsAt);
     }
 
     public function schoolClass(): BelongsTo

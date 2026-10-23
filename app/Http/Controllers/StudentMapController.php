@@ -31,7 +31,11 @@ class StudentMapController extends Controller
         ]);
 
         $enrollments = $person->studentEnrollments
-            ->sortByDesc(fn (StudentEnrollment $enrollment) => $enrollment->enrolled_at?->toDateString())
+            ->sortByDesc(fn (StudentEnrollment $enrollment): string => sprintf(
+                '%s-%010d',
+                $enrollment->enrolled_at?->toDateString() ?? '0000-00-00',
+                $enrollment->id,
+            ))
             ->values();
         $enrollmentIds = $enrollments->pluck('id')->all();
 
@@ -60,7 +64,9 @@ class StudentMapController extends Controller
                 'enrollment.attendanceJustifications',
             ])
             ->whereIn('student_enrollment_id', $enrollmentIds)
-            ->get();
+            ->get()
+            ->filter(fn (DiaryAttendanceEntry $entry): bool => $entry->enrollment?->includesAttendanceDate($entry->record?->class_date) ?? false)
+            ->values();
 
         $behaviorGrades = StudentBehaviorGrade::query()
             ->with(['academicPeriod', 'enrollment.schoolClass.academicYear.school.concepts'])

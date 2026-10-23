@@ -73,11 +73,11 @@
                 <a class="btn btn-sm btn-primary" href="{{ route('enrollments.report-card.show', $activeEnrollments->first()) }}">
                     <i class="fas fa-chart-line mr-1" aria-hidden="true"></i>{{ __('Boletim atual') }}
                 </a>
-                @if ($canManagePerson)
-                    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" href="{{ route('enrollments.individual-record.pdf', $activeEnrollments->first()) }}">
-                        <i class="fas fa-file-alt mr-1" aria-hidden="true"></i>{{ __('Ficha individual') }}
-                    </a>
-                @endif
+            @endif
+            @if ($canManagePerson && $enrollments->first())
+                <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" href="{{ route('enrollments.individual-record.pdf', $enrollments->first()) }}">
+                    <i class="fas fa-file-alt mr-1" aria-hidden="true"></i>{{ __('Ficha individual') }}
+                </a>
             @endif
             @if ($canManagePerson)
                 <a class="btn btn-sm btn-outline-primary" href="{{ route('people.histories.create', $person) }}">

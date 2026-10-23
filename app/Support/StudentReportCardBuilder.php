@@ -124,6 +124,8 @@ class StudentReportCardBuilder
             ->whereIn('curriculum_component_id', $componentIds)
             ->whereIn('academic_period_id', $periodIds)
             ->whereHas('entries', fn ($query) => $query->where('student_enrollment_id', $enrollment->id))
+            ->when($enrollment->enrolled_at, fn ($query) => $query->whereDate('class_date', '>=', $enrollment->enrolled_at->toDateString()))
+            ->when($enrollment->attendanceEndsAt(), fn ($query, $endsAt) => $query->whereDate('class_date', '<=', $endsAt))
             ->orderBy('class_date')
             ->get();
 
