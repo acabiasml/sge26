@@ -36,6 +36,7 @@
             <span class="document-footer-issuer">por {{ $issuer }}.</span>
         </div>
     </div>
+    <div class="document-footer-balance" aria-hidden="true"></div>
 </footer>
 <script type="text/php">
     if (isset($pdf, $fontMetrics)) {
