@@ -37,6 +37,14 @@ with tempfile.TemporaryDirectory() as directory:
                 'Aplicar migration de resultados das reclassificações',
                 'php artisan migrate --path=database/migrations/2026_10_23_000001_backfill_reclassified_enrollment_results.php --force --no-ansi',
             ))
+        if os.environ.get('APPLY_SOCIAL_NAME_CLEANUP') == 'true':
+            count_social_names = 'php artisan tinker --execute=\'echo DB::table("people")->whereNotNull("social_name")->count();\''
+            commands.append(('Nomes sociais cadastrados antes da limpeza', count_social_names))
+            commands.append((
+                'Aplicar migration de limpeza dos nomes sociais',
+                'php artisan migrate --path=database/migrations/2026_10_23_000002_clear_existing_social_names.php --force --no-ansi',
+            ))
+            commands.append(('Nomes sociais cadastrados após a limpeza', count_social_names))
         commands.append(('Migrations', 'php artisan migrate:status --no-ansi'))
         if os.environ.get('REFRESH_VIEWS') == 'true':
             commands.append(('Limpar cache das telas', 'php artisan view:clear --no-ansi'))
@@ -54,6 +62,8 @@ with tempfile.TemporaryDirectory() as directory:
                 raise RuntimeError('O commit esperado ainda não foi publicado.')
             if label == 'Migrations' and 'Pending' in output:
                 raise RuntimeError('Há migrations pendentes em produção.')
+            if label == 'Nomes sociais cadastrados após a limpeza' and output.strip() != '0':
+                raise RuntimeError('Ainda há nomes sociais cadastrados em produção.')
             if code:
                 # Do not print application errors, which may contain sensitive values.
                 raise RuntimeError(f'{label}: comando falhou com código {code}')

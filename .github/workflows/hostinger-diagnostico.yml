@@ -18,6 +18,10 @@ on:
         description: Aplicar somente a migration de resultados das matrículas reclassificadas
         type: boolean
         default: false
+      apply_social_name_cleanup:
+        description: Limpar os nomes sociais já cadastrados e conferir o total restante
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -38,6 +42,7 @@ jobs:
           APPLY_VISIBILITY_MIGRATION: ${{ inputs.apply_visibility_migration }}
           APPLY_PRIVATE_OWNER_MIGRATION: ${{ inputs.apply_private_owner_migration }}
           APPLY_RECLASSIFICATION_MIGRATION: ${{ inputs.apply_reclassification_migration }}
+          APPLY_SOCIAL_NAME_CLEANUP: ${{ inputs.apply_social_name_cleanup }}
           EXPECTED_COMMIT: ${{ github.sha }}
           HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}

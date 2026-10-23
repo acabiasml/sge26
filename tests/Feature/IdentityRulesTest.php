@@ -13,6 +13,21 @@ class IdentityRulesTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_existing_social_names_are_cleared_without_changing_legal_names(): void
+    {
+        $first = Person::query()->create(['full_name' => 'Primeira Pessoa', 'social_name' => 'Nome de Uso']);
+        $second = Person::query()->create(['full_name' => 'Segunda Pessoa', 'social_name' => 'Outro Nome']);
+        $withoutSocialName = Person::query()->create(['full_name' => 'Terceira Pessoa']);
+
+        $migration = require database_path('migrations/2026_10_23_000002_clear_existing_social_names.php');
+        $migration->up();
+
+        $this->assertSame(0, Person::query()->whereNotNull('social_name')->count());
+        $this->assertSame('Primeira Pessoa', $first->fresh()->full_name);
+        $this->assertSame('Segunda Pessoa', $second->fresh()->full_name);
+        $this->assertNull($withoutSocialName->fresh()->social_name);
+    }
+
     public function test_administrator_can_store_student_social_program_data(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, email: 'admin.social@ctjj.org');
