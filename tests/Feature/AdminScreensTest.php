@@ -1323,11 +1323,28 @@ class AdminScreensTest extends TestCase
         ]);
     }
 
-    public function test_transferred_student_can_complete_external_years_and_issue_history_with_read_only_system_year(): void
+    public function test_transferred_student_can_complete_external_years_and_issue_history_with_all_system_years_read_only(): void
     {
         $school = School::query()->create($this->officialSchoolData(['name' => 'Escola Laura Vicuña']));
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
         $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $school->id)->person;
+
+        $sixthYear = $this->activeAcademicYear($school, 'Ensino Fundamental 2022');
+        $sixthYear->update([
+            'reference_year' => 2022, 'starts_at' => '2022-01-20',
+            'ends_at' => '2022-12-18', 'closed_at' => '2022-12-20',
+        ]);
+        $sixthCourse = $sixthYear->courses()->create([
+            'name' => '6º Ano', 'stage' => AcademicCourse::STAGE_ELEMENTARY,
+            'modality' => AcademicCourse::MODALITY_REGULAR, 'class_hour_minutes' => 50, 'active' => true,
+        ]);
+        $sixthClass = $sixthYear->classes()->create(['name' => '6º Ano A', 'active' => true]);
+        $sixthClass->courses()->attach($sixthCourse);
+        $sixthEnrollment = $sixthClass->enrollments()->create([
+            'person_id' => $student->id, 'enrolled_at' => '2022-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED, 'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $sixthEnrollment->courses()->attach($sixthCourse);
 
         $elementaryYear = $this->activeAcademicYear($school, 'Ensino Fundamental 2025');
         $elementaryYear->update([
@@ -1386,21 +1403,23 @@ class AdminScreensTest extends TestCase
 
         $history = StudentAcademicHistory::query()->where('person_id', $student->id)
             ->where('education_stage', AcademicCourse::STAGE_ELEMENTARY)->firstOrFail();
-        $systemYear = $history->years()->where('source', 'system')->firstOrFail();
+        $this->assertSame(['6º Ano', '9º Ano'], $history->years()->where('source', 'system')->pluck('grade_phase')->all());
+        $systemYear = $history->years()->where('source', 'system')->where('grade_phase', '9º Ano')->firstOrFail();
         $this->assertSame('detailed', $systemYear->transcript_mode);
         $this->assertDatabaseHas('student_academic_history_records', [
             'student_academic_history_year_id' => $systemYear->id,
             'score_label' => '8,00',
         ]);
         $this->get(route('people.histories.edit', [$student, $history]))->assertOk()
-            ->assertSee('Séries registradas no sistema')->assertSee('8,00');
+            ->assertSee('Séries registradas no sistema')->assertSee('6º Ano · 2022')
+            ->assertSee('9º Ano · 2025')->assertSee('8,00');
         $highHistory = StudentAcademicHistory::query()->where('person_id', $student->id)
             ->where('education_stage', AcademicCourse::STAGE_HIGH_SCHOOL)->firstOrFail();
         $this->get(route('people.histories.edit', [$student, $highHistory]))->assertOk()
             ->assertSee('value="2º Ano"', false)
             ->assertSee('Séries registradas no sistema');
 
-        $manualYears = collect(range(1, 8))->map(fn (int $grade): array => [
+        $manualYears = collect(range(1, 8))->reject(fn (int $grade): bool => $grade === 6)->values()->map(fn (int $grade): array => [
             'source' => 'manual', 'year' => (string) (2016 + $grade),
             'stage' => 'Ensino Fundamental', 'modality' => 'Regular',
             'grade_phase' => $grade.'º Ano', 'school_name' => 'Escola anterior',
@@ -1414,7 +1433,7 @@ class AdminScreensTest extends TestCase
             'issued_date' => $history->issued_date->toDateString(), 'active' => 1,
             'years' => [array_merge($manualYears[0], ['grade_phase' => '9º Ano'])],
         ])->assertSessionHasErrors('years.0.grade_phase');
-        $this->assertSame(1, $history->years()->count());
+        $this->assertSame(2, $history->years()->count());
         $this->put(route('people.histories.update', [$student, $history]), [
             'school_id' => $school->id, 'title' => $history->title, 'stage' => $history->stage,
             'legal_basis' => $history->legal_basis, 'issued_place' => $history->issued_place,
@@ -1422,12 +1441,15 @@ class AdminScreensTest extends TestCase
             'years' => $manualYears,
             'components' => [[
                 'formation' => 'Formação Geral Básica', 'knowledge_area' => 'Matemática', 'name' => 'Matemática',
-                'records' => collect(range(1, 8))->map(fn () => ['score_label' => '8,0'])->all(),
+                'records' => collect($manualYears)->map(fn () => ['score_label' => '8,0'])->all(),
             ]],
         ])->assertSessionHasNoErrors()->assertRedirect(route('people.histories.show', [$student, $history]));
 
         $this->assertSame(['1º Ano', '2º Ano', '3º Ano', '4º Ano', '5º Ano', '6º Ano', '7º Ano', '8º Ano', '9º Ano'],
             $history->fresh('years')->years->pluck('grade_phase')->all());
+        $this->get(route('people.histories.edit', [$student, $history]))->assertOk()
+            ->assertDontSee('value="6º Ano"', false)
+            ->assertDontSee('value="9º Ano"', false);
         $this->get(route('people.histories.pdf', [$student, $history]))
             ->assertOk()->assertHeader('content-type', 'application/pdf');
     }
