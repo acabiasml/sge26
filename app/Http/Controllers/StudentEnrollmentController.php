@@ -25,18 +25,17 @@ class StudentEnrollmentController extends Controller
         abort_unless($request->user()->canManagePeople(), 403);
 
         $schools = School::query()
-            ->where('active', true)
+            ->when(! $request->user()->isAdministrator(), fn (Builder $query) => $query->where('active', true))
             ->when(! $request->user()->isAdministrator(), function ($query) use ($request): void {
                 $query->whereIn('id', $request->user()->manageableSchoolIds());
             })
             ->with([
-                'academicYears' => function ($years): void {
+                'academicYears' => function ($years) use ($request): void {
                     $years
-                        ->where('active', true)
                         ->with([
-                            'classes' => function ($classes): void {
+                            'classes' => function ($classes) use ($request): void {
                                 $classes
-                                    ->where('active', true)
+                                    ->when(! $request->user()->isAdministrator(), fn (Builder $query) => $query->operational())
                                     ->whereHas('courses')
                                     ->with([
                                         'academicYear',

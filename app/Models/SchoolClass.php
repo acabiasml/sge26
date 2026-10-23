@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasTitleCaseAttributes;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -76,6 +77,27 @@ class SchoolClass extends Model
             fn (StudentEnrollment $enrollment): bool => $enrollment->isActive()
                 && in_array($enrollment->final_result_status, [null, StudentEnrollment::FINAL_PENDING], true)
         );
+    }
+
+    public function scopeOperational(Builder $query): Builder
+    {
+        return $query
+            ->where('school_classes.active', true)
+            ->where(function (Builder $context): void {
+                $context
+                    ->whereHas('academicYear', fn (Builder $year) => $year->where('active', true)->whereNull('closed_at'))
+                    ->orWhere(function (Builder $technicalClass): void {
+                        $technicalClass
+                            ->whereHas('courses', fn (Builder $course) => $course
+                                ->where('academic_courses.stage', AcademicCourse::STAGE_TECHNICAL)
+                                ->where('academic_courses.active', true))
+                            ->whereHas('enrollments', fn (Builder $enrollment) => $enrollment
+                                ->where('student_enrollments.status', StudentEnrollment::STATUS_ENROLLED)
+                                ->where(fn (Builder $result) => $result
+                                    ->whereNull('student_enrollments.final_result_status')
+                                    ->orWhere('student_enrollments.final_result_status', StudentEnrollment::FINAL_PENDING)));
+                    });
+            });
     }
 
     public function startsPeriod(): BelongsTo

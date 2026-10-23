@@ -7,7 +7,8 @@
 @php($closureErrors = collect($closureIssues)->where('level', 'error'))
 @php($closureWarnings = collect($closureIssues)->where('level', 'warning'))
 @php($activeClasses = $academicYear->classes->filter->isOperational())
-@php($enrollmentCount = $academicYear->classes->sum(fn ($class) => $class->enrollments->count()))
+@php($visibleClasses = auth()->user()->isAdministrator() ? $academicYear->classes : $activeClasses)
+@php($enrollmentCount = $visibleClasses->sum(fn ($class) => $class->enrollments->count()))
 @php($defaultAcademicYearTab = $errors->hasAny(['date', 'date_end', 'type', 'counts_as_school_day', 'title', 'description']) ? 'calendario' : ($errors->hasAny(['approved_at', 'closed_at', 'closure_notes', 'reopen_reason']) ? 'gestao' : 'resumo'))
 
 @section('title', $academicYear->name)
@@ -105,7 +106,7 @@
         <a href="#section-turmas" class="sge-section-nav-item" data-academic-tab="turmas" role="tab" aria-controls="section-turmas">
             <i class="fas fa-users"></i>
             <span>{{ __('Turmas') }}</span>
-            <small>{{ $academicYear->classes->count() }} {{ __('turmas') }}</small>
+            <small>{{ $visibleClasses->count() }} {{ __('turmas') }}</small>
         </a>
     </nav>
 
@@ -124,7 +125,7 @@
                         <div><strong>{{ $schoolDays }}/{{ $academicYear->minimum_school_days }}</strong><span>{{ __('dias letivos previstos') }}</span></div>
                         <div><strong>{{ $academicYear->periods->count() }}</strong><span>{{ __('períodos') }}</span></div>
                         <div><strong>{{ $readyCourses->count() }}/{{ $academicYear->courses->count() }}</strong><span>{{ __('matrizes prontas') }}</span></div>
-                        <div><strong>{{ $activeClasses->count() }}/{{ $academicYear->classes->count() }}</strong><span>{{ __('turmas em atividade') }}</span></div>
+                        <div><strong>{{ $activeClasses->count() }}@if(auth()->user()->isAdministrator())/{{ $visibleClasses->count() }}@endif</strong><span>{{ __('turmas em atividade') }}</span></div>
                         <div><strong>{{ $enrollmentCount }}</strong><span>{{ __('matrículas') }}</span></div>
                         <div><strong>{{ $closureErrors->count() }}</strong><span>{{ __('impedimentos ao fechamento') }}</span></div>
                     </div>
@@ -156,7 +157,7 @@
                         <dt>{{ __('Calendário') }}</dt>
                         <dd>{{ $academicYear->days->count() }} {{ __('dias cadastrados') }}</dd>
                         <dt>{{ __('Estrutura acadêmica') }}</dt>
-                        <dd>{{ $academicYear->courses->count() }} {{ __('matrizes ·') }} {{ $academicYear->classes->count() }} {{ __('turmas ·') }} {{ $enrollmentCount }} {{ __('matrículas') }}</dd>
+                        <dd>{{ $academicYear->courses->count() }} {{ __('matrizes ·') }} {{ $visibleClasses->count() }} {{ __('turmas ·') }} {{ $enrollmentCount }} {{ __('matrículas') }}</dd>
                         <dt>{{ __('Observações') }}</dt>
                         <dd>{{ $academicYear->notes ?: __('Nenhuma observação cadastrada') }}</dd>
                         @if($academicYear->isClosed())
@@ -354,7 +355,7 @@
                         </div>
                     @endif
 
-                    @forelse ($academicYear->classes->sortBy('name') as $class)
+                    @forelse ($visibleClasses->sortBy('name') as $class)
                         @php($classStatus = \App\Support\AcademicStructureStatus::schoolClass($class))
                         <div class="border rounded px-3 py-2 mb-2 sge-academic-list-item">
                             <div class="d-flex justify-content-between flex-wrap">

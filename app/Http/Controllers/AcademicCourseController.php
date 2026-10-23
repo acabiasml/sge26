@@ -41,6 +41,8 @@ class AcademicCourseController extends Controller
                 'components.area',
                 'components.startsPeriod',
                 'components.endsPeriod',
+                'classes.academicYear',
+                'classes.courses',
                 'classes.enrollments.student',
             ]),
             'structureIssues' => AcademicStructureValidator::forCourse($course),

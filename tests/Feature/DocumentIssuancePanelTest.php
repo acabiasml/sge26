@@ -521,6 +521,7 @@ class DocumentIssuancePanelTest extends TestCase
     {
         $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
         $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
         $student = $this->personWithRole('Estudante de Teste', PersonSchoolRole::ROLE_STUDENT, $school->id);
         $year = AcademicYear::query()->create([
             'school_id' => $school->id,
@@ -531,7 +532,7 @@ class DocumentIssuancePanelTest extends TestCase
             'active' => true,
             'closed_at' => '2025-12-31 18:00:00',
         ]);
-        $regularClass = $year->classes()->create(['name' => '9º Ano', 'active' => true]);
+        $regularClass = $year->classes()->create(['name' => 'Turma regular encerrada', 'active' => true]);
         $technicalClass = $year->classes()->create(['name' => 'Técnico em Móveis', 'active' => true]);
         $regularCourse = $year->courses()->create([
             'name' => '9º Ano',
@@ -580,7 +581,26 @@ class DocumentIssuancePanelTest extends TestCase
         $this->actingAs($administrator)->get(route('academic-years.show', $year))
             ->assertOk()->assertSee('1/2')->assertSee('Encerrada');
         $this->actingAs($administrator)->get(route('enrollments.index'))
-            ->assertOk()->assertSee('matrículas registradas');
+            ->assertOk()->assertSee('matrículas registradas')->assertSee($regularClass->name);
+
+        $this->actingAs($manager)->getJson(route('document-issuance.targets', [
+            'type' => 'class-student-contacts',
+            'class_id' => $regularClass->id,
+        ]))->assertOk()->assertJsonCount(0, 'targets');
+        $this->actingAs($manager)->getJson(route('document-issuance.targets', [
+            'type' => 'class-student-contacts',
+            'class_id' => $technicalClass->id,
+        ]))->assertOk()->assertJsonPath('targets.0.id', $technicalClass->id);
+        $this->actingAs($manager)->get(route('enrollments.index'))
+            ->assertOk()->assertDontSee($regularClass->name)->assertSee($technicalClass->name);
+        $this->actingAs($manager)->get(route('academic-years.show', $year))
+            ->assertOk()->assertDontSee($regularClass->name)->assertSee($technicalClass->name);
+        $this->actingAs($manager)->get(route('academic-years.courses.show', [$year, $regularCourse]))
+            ->assertOk()->assertDontSee($regularClass->name);
+        $this->actingAs($administrator)->get(route('academic-years.courses.show', [$year, $regularCourse]))
+            ->assertOk()->assertSee($regularClass->name);
+        $this->actingAs($manager)->get(route('academic-years.classes.show', [$year, $regularClass]))
+            ->assertOk()->assertSee($regularClass->name);
     }
 
     public function test_current_enrollment_documents_cannot_be_forced_for_closed_regular_year(): void
@@ -618,6 +638,42 @@ class DocumentIssuancePanelTest extends TestCase
             ]))
             ->assertRedirect(route('document-issuance.index'))
             ->assertSessionHasErrors('target_id');
+    }
+
+    public function test_only_administrator_lists_inactive_class_in_open_year(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $year = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Ano em andamento',
+            'reference_year' => 2026,
+            'starts_at' => '2026-01-01',
+            'ends_at' => '2026-12-31',
+            'active' => true,
+        ]);
+        $course = $year->courses()->create([
+            'name' => 'Ensino Fundamental',
+            'stage' => AcademicCourse::STAGE_ELEMENTARY,
+            'active' => true,
+        ]);
+        $class = $year->classes()->create(['name' => 'Turma inativa de teste', 'active' => false]);
+        $course->classes()->attach($class);
+
+        $this->actingAs($manager)->getJson(route('document-issuance.targets', [
+            'type' => 'class-student-contacts',
+            'class_id' => $class->id,
+        ]))->assertOk()->assertJsonCount(0, 'targets');
+        $this->actingAs($manager)->get(route('enrollments.index'))->assertOk()->assertDontSee($class->name);
+        $this->actingAs($manager)->get(route('academic-years.show', $year))->assertOk()->assertDontSee($class->name);
+
+        $this->actingAs($administrator)->getJson(route('document-issuance.targets', [
+            'type' => 'class-student-contacts',
+            'class_id' => $class->id,
+        ]))->assertOk()->assertJsonPath('targets.0.id', $class->id);
+        $this->actingAs($administrator)->get(route('enrollments.index'))->assertOk()->assertSee($class->name);
+        $this->actingAs($administrator)->get(route('academic-years.show', $year))->assertOk()->assertSee($class->name);
     }
 
     public function test_class_academic_documents_redirect_to_their_emitters_with_score_view(): void

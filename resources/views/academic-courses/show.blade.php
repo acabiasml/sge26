@@ -3,7 +3,8 @@
 @php($canChangeAcademicStructure = ! $academicYear->approved_at || auth()->user()->isAdministrator())
 @php($curriculumSuggestionsByComponent = collect($curriculumSuggestions)->keyBy('component'))
 @php($activeComponents = $course->components->where('active', true))
-@php($linkedEnrollmentCount = $course->classes->sum(fn ($class) => $class->enrollments->count()))
+@php($visibleClasses = auth()->user()->isAdministrator() ? $course->classes : $course->classes->filter->isOperational())
+@php($linkedEnrollmentCount = $visibleClasses->sum(fn ($class) => $class->enrollments->count()))
 
 @section('title', __('Matriz - ').$course->name)
 @section('page-title', __('Matriz: ').$course->name)
@@ -42,7 +43,7 @@
                 <div class="card-body">
                     <div class="sge-academic-metrics">
                         <div><strong>{{ $activeComponents->count() }}</strong><span>{{ __('componentes ativos') }}</span></div>
-                        <div><strong>{{ $course->classes->count() }}</strong><span>{{ __('turmas vinculadas') }}</span></div>
+                        <div><strong>{{ $visibleClasses->count() }}</strong><span>{{ __('turmas vinculadas') }}</span></div>
                         <div><strong>{{ $linkedEnrollmentCount }}</strong><span>{{ __('matrículas vinculadas') }}</span></div>
                         <div><strong>{{ $course->formattedCalculatedWorkloadHours() }}h</strong><span>{{ __('carga prevista') }}</span></div>
                     </div>
@@ -77,7 +78,7 @@
                         <dt>{{ __('Formas de carga horária') }}</dt>
                         <dd>{{ $activeComponents->whereNotNull('weekly_lessons')->count() }} {{ __('por aulas semanais ·') }} {{ $activeComponents->whereNotNull('workload_hours')->count() }} {{ __('por carga total') }}</dd>
                         <dt>{{ __('Turmas') }}</dt>
-                        <dd>{{ $course->classes->sortBy('name')->pluck('name')->join(', ') ?: __('Nenhuma turma vinculada') }}</dd>
+                        <dd>{{ $visibleClasses->sortBy('name')->pluck('name')->join(', ') ?: __('Nenhuma turma vinculada') }}</dd>
                         <dt>{{ __('Observações') }}</dt>
                         <dd>{{ $course->notes ?: __('Nenhuma observação cadastrada') }}</dd>
                     </dl>

@@ -296,6 +296,7 @@ class DocumentIssuanceController extends Controller
                 ->get(['id', 'academic_year_id', 'name', 'starts_at', 'ends_at']),
             'classCount' => SchoolClass::query()
                 ->whereHas('academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
+                ->when(! $request->user()->isAdministrator(), fn (Builder $query) => $query->operational())
                 ->count(),
         ]);
     }
@@ -619,29 +620,7 @@ class DocumentIssuanceController extends Controller
 
     private function scopeCurrentClasses(Builder $query): Builder
     {
-        return $query
-            ->where('school_classes.active', true)
-            ->where(function (Builder $context): void {
-                $context
-                    ->whereHas('academicYear', fn (Builder $year) => $this->scopeOpenAcademicYear($year))
-                    ->orWhere(function (Builder $technicalClass): void {
-                        $technicalClass
-                            ->whereHas('courses', function (Builder $course): void {
-                                $course
-                                    ->where('academic_courses.stage', AcademicCourse::STAGE_TECHNICAL)
-                                    ->where('academic_courses.active', true);
-                            })
-                            ->whereHas('enrollments', function (Builder $enrollment): void {
-                                $enrollment
-                                    ->where('student_enrollments.status', StudentEnrollment::STATUS_ENROLLED)
-                                    ->where(function (Builder $result): void {
-                                        $result
-                                            ->whereNull('student_enrollments.final_result_status')
-                                            ->orWhere('student_enrollments.final_result_status', StudentEnrollment::FINAL_PENDING);
-                                    });
-                            });
-                    });
-            });
+        return $query->operational();
     }
 
     private function scopeOpenAcademicYear(Builder $query): Builder
@@ -788,7 +767,7 @@ class DocumentIssuanceController extends Controller
                 'enrollments as active_enrollments_count' => fn (Builder $query) => $query->where('status', StudentEnrollment::STATUS_ENROLLED),
             ])
             ->whereHas('academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
-            ->when($this->requiresCurrentClass($type), fn (Builder $query) => $this->scopeCurrentClasses($query))
+            ->when($this->requiresCurrentClass($type) || ! $request->user()->isAdministrator(), fn (Builder $query) => $this->scopeCurrentClasses($query))
             ->when($request->filled('school_id'), fn (Builder $query) => $query->whereHas('academicYear', fn (Builder $year) => $year->where('school_id', $request->integer('school_id'))))
             ->when($request->filled('reference_year'), fn (Builder $query) => $query->whereHas('academicYear', fn (Builder $year) => $year->where('reference_year', $request->integer('reference_year'))))
             ->when($request->filled('academic_year_id'), fn (Builder $query) => $query->where('academic_year_id', $request->integer('academic_year_id')))
@@ -902,6 +881,8 @@ class DocumentIssuanceController extends Controller
                 'teacher:id,full_name',
             ])
             ->whereHas('schoolClass.academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
+            ->when(! $request->user()->isAdministrator(), fn (Builder $query) => $query
+                ->whereHas('schoolClass', fn (Builder $class) => $class->operational()))
             ->when($this->requiresCurrentDiary($type), function (Builder $query): void {
                 $query
                     ->where('school_class_components.active', true)

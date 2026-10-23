@@ -50,8 +50,8 @@ class TeacherDiaryController extends Controller
             ->with(['component.area', 'component.course.academicYear.school', 'schoolClass'])
             ->where($this->teacherScope($user->person_id))
             ->where('active', true)
-            ->whereHas('schoolClass', fn (Builder $query) => $query->where('active', true))
-            ->whereHas('component.course.academicYear', fn (Builder $query) => $query->whereNotNull('approved_at')->where('active', true))
+            ->whereHas('schoolClass', fn (Builder $query) => $query->operational())
+            ->whereHas('component.course.academicYear', fn (Builder $query) => $query->whereNotNull('approved_at'))
             ->get();
 
         $diaries = $assignments->map(function (SchoolClassComponent $assignment): array {
@@ -89,7 +89,9 @@ class TeacherDiaryController extends Controller
         $years = AcademicYear::query()
             ->with('school')
             ->whereIn('school_id', $schoolIds)
-            ->when(! $user->isAdministrator(), fn (Builder $query) => $query->where('active', true)->whereNotNull('approved_at'))
+            ->when(! $user->isAdministrator(), fn (Builder $query) => $query
+                ->whereNotNull('approved_at')
+                ->whereHas('classes', fn (Builder $class) => $class->operational()))
             ->when($request->filled('school'), fn (Builder $query) => $query->where('school_id', $request->integer('school')))
             ->orderByDesc('starts_at')
             ->get();
@@ -121,7 +123,9 @@ class TeacherDiaryController extends Controller
         ];
 
         if ($academicYear && $period) {
-            $allAssignments = $status->assignments($academicYear, $user->isAdministrator());
+            $allAssignments = $status->assignments($academicYear, $user->isAdministrator())
+                ->filter(fn (SchoolClassComponent $assignment): bool => $user->isAdministrator() || $assignment->schoolClass?->isOperational())
+                ->values();
             $selectedComponent = $allAssignments->pluck('component')->filter()->firstWhere('id', $request->integer('component'));
             $selectedComponentName = $selectedComponent ? mb_strtolower(trim($selectedComponent->name)) : null;
             $alertCounts = DiaryAlert::query()
@@ -132,6 +136,7 @@ class TeacherDiaryController extends Controller
                 ->countBy(fn (DiaryAlert $alert): string => $alert->school_class_id.'-'.$alert->curriculum_component_id);
 
             $summaries = $status->summaries($academicYear, $period, $user->isAdministrator())
+                ->filter(fn (array $summary): bool => $user->isAdministrator() || $summary['assignment']->schoolClass?->isOperational())
                 ->map(function (array $summary) use ($alertCounts): array {
                     $summary['alert_count'] = (int) ($alertCounts->get($summary['assignment']->school_class_id.'-'.$summary['assignment']->curriculum_component_id) ?? 0);
 

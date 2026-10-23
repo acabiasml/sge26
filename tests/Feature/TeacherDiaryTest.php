@@ -28,6 +28,7 @@ use App\Support\StudentAttendanceCertificateBuilder;
 use App\Support\StudentReportCardBuilder;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\View;
 use Tests\TestCase;
 
@@ -123,6 +124,29 @@ class TeacherDiaryTest extends TestCase
             ->assertOk()
             ->assertSee('Meus diários')
             ->assertSee('Meus horários');
+    }
+
+    public function test_only_administrator_lists_diaries_from_closed_classes(): void
+    {
+        [$teacher, $year, $class, $component] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'manager-closed-class@ctjj.org');
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, $year->school_id, 'admin-closed-class@ctjj.org');
+        $year->update(['closed_at' => '2026-12-31 18:00:00']);
+
+        $this->actingAs($teacher)->get(route('teacher-diaries.index'))
+            ->assertOk()->assertDontSee($class->name);
+        $this->actingAs($teacher)->getJson(route('document-issuance.targets', ['type' => 'teacher-diary']))
+            ->assertOk()->assertJsonCount(0, 'targets');
+        $this->actingAs($manager)->get(route('teacher-diaries.index'))
+            ->assertOk()->assertDontSee($class->name);
+        $this->actingAs($manager)->getJson(route('document-issuance.targets', ['type' => 'teacher-diary']))
+            ->assertOk()->assertJsonCount(0, 'targets');
+        $this->actingAs($administrator)->get(route('teacher-diaries.index', [
+            'academic_year' => $year->id,
+            'period' => $year->periods->first()->id,
+        ]))->assertOk()->assertSee($class->name)->assertSee($component->name);
+        $this->actingAs($administrator)->getJson(route('document-issuance.targets', ['type' => 'teacher-diary']))
+            ->assertOk()->assertJsonCount(1, 'targets');
     }
 
     public function test_administrator_can_filter_all_school_years_and_see_inactive_diaries(): void
@@ -1738,13 +1762,13 @@ class TeacherDiaryTest extends TestCase
         $this->actingAs($teacher)->put(route('teacher-diaries.grades.update', [$class, $component]), [
             'academic_period_id' => $period->id, 'scores' => $scores,
         ])->assertSessionHasNoErrors();
-        $before = \Illuminate\Support\Facades\DB::table('diary_assessment_results')->orderBy('id')->get()->toJson();
+        $before = DB::table('diary_assessment_results')->orderBy('id')->get()->toJson();
         $this->assertNotSame('[]', $before);
         $payload['weights'] = [10, 5];
         $this->actingAs($manager)->put($url, $payload)->assertSessionHasNoErrors()
             ->assertSessionMissing('assessment_change_warning')
             ->assertSessionHas('status', 'Avaliações do período configuradas. As notas existentes foram preservadas.');
-        $this->assertSame($before, \Illuminate\Support\Facades\DB::table('diary_assessment_results')->orderBy('id')->get()->toJson());
+        $this->assertSame($before, DB::table('diary_assessment_results')->orderBy('id')->get()->toJson());
         $this->assertSame($assessments->pluck('id')->all(), DiaryAssessment::query()->orderBy('id')->pluck('id')->all());
         $this->assertSame(5, (int) $assessments->last()->fresh()->weight);
         $this->assertSame(5, (int) $period->assessmentRules()->where('position', 2)->firstOrFail()->weight);
