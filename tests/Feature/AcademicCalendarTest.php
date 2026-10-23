@@ -1801,6 +1801,7 @@ class AcademicCalendarTest extends TestCase
             'id' => $enrollment->id,
             'status' => StudentEnrollment::STATUS_TRANSFERRED,
             'transferred_at' => '2026-03-15 00:00:00',
+            'final_result_status' => StudentEnrollment::FINAL_TRANSFERRED,
         ]);
     }
 
@@ -1879,6 +1880,8 @@ class AcademicCalendarTest extends TestCase
             'enrolled_at' => '2026-02-02',
             'transferred_at' => '2026-05-20',
             'status' => StudentEnrollment::STATUS_TRANSFERRED,
+            'final_result_status' => StudentEnrollment::FINAL_TRANSFERRED,
+            'final_result_calculated_at' => now(),
             'type' => StudentEnrollment::TYPE_REGULAR,
         ]);
         $enrollment->courses()->attach($course);
@@ -1894,6 +1897,8 @@ class AcademicCalendarTest extends TestCase
             'status' => StudentEnrollment::STATUS_ENROLLED,
             'transferred_at' => null,
             'transferred_by_person_id' => null,
+            'final_result_status' => null,
+            'final_result_calculated_at' => null,
         ]);
     }
 

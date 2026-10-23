@@ -1505,6 +1505,40 @@ class AdminScreensTest extends TestCase
         $this->assertNull($enrollment->fresh()->final_result_status);
     }
 
+    public function test_school_life_shows_last_school_day_as_exit_for_approved_closed_year(): void
+    {
+        $school = School::query()->create($this->officialSchoolData(['name' => 'Escola Laura Vicuña']));
+        $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $school->id)->person;
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $year = $this->activeAcademicYear($school, 'Ensino Fundamental 2025');
+        $year->update([
+            'reference_year' => 2025,
+            'starts_at' => '2025-01-20',
+            'ends_at' => '2025-12-20',
+            'closed_at' => '2025-12-21',
+        ]);
+        foreach ([['2025-12-17', true], ['2025-12-18', true], ['2025-12-19', false]] as [$date, $isSchoolDay]) {
+            $year->days()->create([
+                'date' => $date,
+                'type' => CalendarDay::TYPE_SCHOOL_DAY,
+                'counts_as_school_day' => $isSchoolDay,
+            ]);
+        }
+        $class = $year->classes()->create(['name' => '9º Ano', 'active' => true]);
+        $enrollment = $class->enrollments()->create([
+            'person_id' => $student->id,
+            'enrolled_at' => '2025-01-20',
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+            'final_result_status' => StudentEnrollment::FINAL_APPROVED,
+        ]);
+
+        $this->assertNull($enrollment->transferred_at);
+        $this->assertSame('2025-12-18', $enrollment->exitDate()?->toDateString());
+        $this->actingAs($manager)->get(route('people.student-map.show', $student))
+            ->assertOk()->assertSeeText('Aprovado')->assertSeeText('18/12/2025');
+    }
+
     public function test_student_cannot_start_history_for_a_stage_without_an_enrollment(): void
     {
         $school = School::query()->create(['name' => 'Escola Fundamental', 'active' => true]);

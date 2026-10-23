@@ -149,6 +149,7 @@
                 <div class="card-body">
                     <div class="sge-life-timeline">
                         @forelse ($enrollments as $enrollment)
+                            @php($exitDate = $enrollment->exitDate())
                             <article class="sge-life-card {{ $enrollment->isActive() ? 'is-active' : '' }}">
                                 <div class="sge-life-card-status">
                                     <i class="fas fa-graduation-cap" aria-hidden="true"></i>
@@ -172,8 +173,8 @@
                                     <div class="sge-student-dates mt-3">
                                         <span><strong>{{ __('Matrícula') }}</strong>{{ $enrollment->enrolled_at?->format('d/m/Y') ?? '-' }}</span>
                                         <span><strong>{{ __('Resultado') }}</strong>{{ __($enrollment->finalResultLabel()) }}</span>
-                                        @if ($enrollment->transferred_at)
-                                            <span><strong>{{ __('Saída') }}</strong>{{ $enrollment->transferred_at->format('d/m/Y') }}</span>
+                                        @if ($exitDate)
+                                            <span><strong>{{ __('Saída') }}</strong>{{ $exitDate->format('d/m/Y') }}</span>
                                         @endif
                                         @if ($enrollment->cancelled_at)
                                             <span><strong>{{ __('Cancelamento') }}</strong>{{ $enrollment->cancelled_at->format('d/m/Y') }}</span>

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\Auditable;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -100,6 +101,26 @@ class StudentEnrollment extends Model
         ]);
 
         return $dates === [] ? null : min($dates);
+    }
+
+    public function exitDate(): ?CarbonInterface
+    {
+        if ($this->transferred_at) {
+            return $this->transferred_at;
+        }
+
+        $academicYear = $this->schoolClass?->academicYear;
+        if ($this->final_result_status !== self::FINAL_APPROVED || ! $academicYear?->isClosed()) {
+            return null;
+        }
+
+        $lastSchoolDay = $academicYear->days()
+            ->where('counts_as_school_day', true)
+            ->when($this->enrolled_at, fn ($query) => $query->whereDate('date', '>=', $this->enrolled_at->toDateString()))
+            ->whereDate('date', '<=', $academicYear->ends_at->toDateString())
+            ->max('date');
+
+        return $lastSchoolDay ? Carbon::parse($lastSchoolDay) : null;
     }
 
     public function includesAttendanceDate(?CarbonInterface $date): bool

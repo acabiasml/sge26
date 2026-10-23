@@ -188,6 +188,10 @@ class StudentEnrollmentController extends Controller
             'status' => StudentEnrollment::STATUS_TRANSFERRED,
             'transferred_at' => $data['transferred_at'],
             'transferred_by_person_id' => $request->user()->person_id,
+            'final_result_status' => StudentEnrollment::FINAL_TRANSFERRED,
+            'final_result_details' => ['reason' => 'Matrícula encerrada por transferência.'],
+            'final_result_calculated_at' => now(),
+            'final_result_calculated_by_person_id' => $request->user()->person_id,
             'notes' => $this->appendNote($enrollment->notes, $data['notes'] ?? null),
         ]);
 
@@ -221,10 +225,15 @@ class StudentEnrollmentController extends Controller
             $data['notes'] ?? null,
         ])->filter()->implode(' '));
 
+        $wasFinalTransfer = $enrollment->final_result_status === StudentEnrollment::FINAL_TRANSFERRED;
         $enrollment->update([
             'status' => StudentEnrollment::STATUS_ENROLLED,
             'transferred_at' => null,
             'transferred_by_person_id' => null,
+            'final_result_status' => $wasFinalTransfer ? null : $enrollment->final_result_status,
+            'final_result_details' => $wasFinalTransfer ? null : $enrollment->final_result_details,
+            'final_result_calculated_at' => $wasFinalTransfer ? null : $enrollment->final_result_calculated_at,
+            'final_result_calculated_by_person_id' => $wasFinalTransfer ? null : $enrollment->final_result_calculated_by_person_id,
             'notes' => $this->appendNote($enrollment->notes, $restorationNote),
         ]);
 
