@@ -1655,6 +1655,15 @@ class AcademicCalendarTest extends TestCase
             ->firstOrFail();
 
         $this->assertSame($enrollment->id, $newEnrollment->reclassified_from_enrollment_id);
+        $this->assertDatabaseHas('student_enrollments', [
+            'id' => $enrollment->id,
+            'status' => StudentEnrollment::STATUS_RECLASSIFIED,
+            'final_result_status' => StudentEnrollment::FINAL_RECLASSIFIED,
+            'final_result_calculated_by_person_id' => $manager->person_id,
+        ]);
+        $this->assertSame('Matrícula encerrada por reclassificação.', $enrollment->fresh()->final_result_details['reason']);
+        $this->assertNotNull($enrollment->fresh()->final_result_calculated_at);
+        $this->assertNull($newEnrollment->final_result_status);
 
         $this->actingAs($manager)
             ->patch(route('enrollments.transfer', $newEnrollment), [
@@ -1680,6 +1689,41 @@ class AcademicCalendarTest extends TestCase
             'person_id' => $student->person_id,
             'school_id' => $year->school_id,
         ]);
+    }
+
+    public function test_reclassification_result_backfill_only_updates_unfinished_historical_results(): void
+    {
+        $year = $this->academicYear();
+        $class = $year->classes()->create(['name' => 'Turma histórica', 'active' => true]);
+        $makeEnrollment = function (string $name, string $status, ?string $result) use ($class): StudentEnrollment {
+            $student = Person::query()->create(['full_name' => $name]);
+
+            return $class->enrollments()->create([
+                'person_id' => $student->id,
+                'enrolled_at' => '2025-02-01',
+                'status' => $status,
+                'type' => StudentEnrollment::TYPE_REGULAR,
+                'final_result_status' => $result,
+            ]);
+        };
+
+        $withoutResult = $makeEnrollment('Reclassificado sem resultado', StudentEnrollment::STATUS_RECLASSIFIED, null);
+        $pending = $makeEnrollment('Reclassificado pendente', StudentEnrollment::STATUS_RECLASSIFIED, StudentEnrollment::FINAL_PENDING);
+        $alreadyFinal = $makeEnrollment('Resultado já registrado', StudentEnrollment::STATUS_RECLASSIFIED, StudentEnrollment::FINAL_APPROVED);
+        $unrelated = $makeEnrollment('Outra matrícula', StudentEnrollment::STATUS_ENROLLED, null);
+
+        $migration = require database_path('migrations/2026_10_23_000001_backfill_reclassified_enrollment_results.php');
+        $migration->up();
+
+        foreach ([$withoutResult, $pending] as $enrollment) {
+            $enrollment->refresh();
+            $this->assertSame(StudentEnrollment::FINAL_RECLASSIFIED, $enrollment->final_result_status);
+            $this->assertSame('Matrícula encerrada por reclassificação.', $enrollment->final_result_details['reason']);
+            $this->assertNotNull($enrollment->final_result_calculated_at);
+            $this->assertNull($enrollment->final_result_calculated_by_person_id);
+        }
+        $this->assertSame(StudentEnrollment::FINAL_APPROVED, $alreadyFinal->fresh()->final_result_status);
+        $this->assertNull($unrelated->fresh()->final_result_status);
     }
 
     public function test_enrollment_cancellation_preserves_history_and_blocks_new_movements(): void

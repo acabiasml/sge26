@@ -318,6 +318,10 @@ class StudentEnrollmentController extends Controller
                 'transferred_by_person_id' => $request->user()->person_id,
                 'reclassified_at' => $data['reclassified_at'],
                 'reclassified_by_person_id' => $request->user()->person_id,
+                'final_result_status' => StudentEnrollment::FINAL_RECLASSIFIED,
+                'final_result_details' => ['reason' => 'Matrícula encerrada por reclassificação.'],
+                'final_result_calculated_at' => now(),
+                'final_result_calculated_by_person_id' => $request->user()->person_id,
                 'notes' => $this->appendNote($enrollment->notes, $data['notes'] ?? null),
             ]);
 
