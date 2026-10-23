@@ -101,77 +101,32 @@
         <input type="hidden" name="issued_date" value="{{ $history->issued_date?->toDateString() }}">
         @if($history->active)<input type="hidden" name="active" value="1">@endif
     @endif
-    @unless($curriculumOnly)
-    <aside class="sge-history-sidebar">
-        <div class="card shadow sge-panel-card mb-4">
-            <div class="sge-panel-header">
+    <div class="sge-history-main" style="grid-column: 1 / -1;">
+        @unless($curriculumOnly)
+            <div class="sge-helper-card mb-4">
+                <i class="fas fa-lightbulb" aria-hidden="true"></i>
                 <div>
-                    <h2>{{ __('Documento') }}</h2>
-                    <p>{{ __('Identificação geral do histórico recebido.') }}</p>
+                    <strong>{{ __('Como preencher') }}</strong>
+                    <p>{{ __('Use uma coluna para cada ano, série, fase ou etapa que aparece no documento recebido. Nos componentes, mantenha os nomes exatamente como vieram da outra escola.') }}</p>
+                    <p>{{ __('Se o documento trouxer apenas AP, conceito global ou etapa sem transcrição, selecione o tipo correspondente na coluna e use uma linha de síntese.') }}</p>
                 </div>
             </div>
-            <div class="card-body">
+            @if($schools->count() === 1)
+                <input type="hidden" name="school_id" value="{{ $schools->first()->id }}">
+                <p class="small text-muted">{{ __('Escola emissora:') }} {{ $schools->first()->name }}</p>
+            @else
                 <div class="form-group">
-                    <label for="title">{{ __('Título') }}</label>
-                    <input id="title" name="title" class="form-control @error('title') is-invalid @enderror" value="{{ old('title', $history->title) }}" required>
-                    @error('title') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
-                </div>
-
-                <div class="form-group">
-                    <label for="stage">{{ __('Etapa') }}</label>
-                    <input id="stage" name="stage" class="form-control" value="{{ old('stage', $history->stage) }}" placeholder="{{ __('Ensino Fundamental, Ensino Médio...') }}" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="school_id">{{ __('Escola relacionada') }}</label>
-                    <select id="school_id" name="school_id" class="form-control" required>
-                        <option value="">{{ __('Sem escola definida') }}</option>
+                    <label for="school_id">{{ __('Escola que emitirá o histórico') }}</label>
+                    <select id="school_id" name="school_id" class="form-control @error('school_id') is-invalid @enderror" required>
+                        <option value="">{{ __('Selecione a escola') }}</option>
                         @foreach($schools as $school)
-                            <option value="{{ $school->id }}" @selected((string) old('school_id', $history->school_id) === (string) $school->id)>{{ $school->name }}</option>
+                            <option value="{{ $school->id }}" @selected((string) old('school_id') === (string) $school->id)>{{ $school->name }}</option>
                         @endforeach
                     </select>
+                    @error('school_id') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
                 </div>
-
-                <div class="form-group">
-                    <label for="legal_basis">{{ __('Fundamento legal') }}</label>
-                    <textarea id="legal_basis" name="legal_basis" class="form-control" rows="3" required>{{ old('legal_basis', $history->legal_basis) }}</textarea>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group col-md-7">
-                        <label for="issued_place">{{ __('Local') }}</label>
-                        <input id="issued_place" name="issued_place" class="form-control" value="{{ old('issued_place', $history->issued_place) }}" required>
-                    </div>
-                    <div class="form-group col-md-5">
-                        <label for="issued_date">{{ __('Data') }}</label>
-                        <input id="issued_date" name="issued_date" type="date" class="form-control" value="{{ old('issued_date', $history->issued_date?->toDateString()) }}" required>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="notes">{{ __('Observações gerais') }}</label>
-                    <textarea id="notes" name="notes" class="form-control" rows="5" placeholder="{{ __('Reclassificação, estudos realizados, observações do documento de origem...') }}">{{ old('notes', $history->notes) }}</textarea>
-                </div>
-
-                <div class="custom-control custom-switch">
-                    <input id="active" name="active" value="1" type="checkbox" class="custom-control-input" @checked(old('active', $history->active ?? true))>
-                    <label class="custom-control-label" for="active">{{ __('Histórico ativo') }}</label>
-                </div>
-            </div>
-        </div>
-
-        <div class="sge-helper-card">
-            <i class="fas fa-lightbulb" aria-hidden="true"></i>
-            <div>
-                <strong>{{ __('Como preencher') }}</strong>
-                <p>{{ __('Use uma coluna para cada ano, série, fase ou etapa que aparece no documento recebido. Nos componentes, mantenha os nomes exatamente como vieram da outra escola.') }}</p>
-                <p>{{ __('Se o documento trouxer apenas AP, conceito global ou etapa sem transcrição, selecione o tipo correspondente na coluna e use uma linha de síntese.') }}</p>
-            </div>
-        </div>
-    </aside>
-    @endunless
-
-    <div class="sge-history-main" @if($curriculumOnly) style="grid-column: 1 / -1;" @endif>
+            @endif
+        @endunless
         <section class="card shadow sge-panel-card mb-4">
             <div class="sge-panel-header">
                 <div>

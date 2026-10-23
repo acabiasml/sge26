@@ -105,10 +105,10 @@ class StudentAcademicHistoryController extends Controller
         $data = $request->validate([
             'school_id' => ['required', 'integer', Rule::exists('schools', 'id')],
             'title' => ['required', 'string', 'max:255'],
-            'legal_basis' => ['required', 'string'],
+            'legal_basis' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
-            'issued_place' => ['required', 'string', 'max:255'],
-            'issued_date' => ['required', 'date'],
+            'issued_place' => ['nullable', 'string', 'max:255'],
+            'issued_date' => ['nullable', 'date'],
             'active' => ['nullable', 'boolean'],
         ]);
         abort_unless($request->user()->canManageSchool((int) $data['school_id']), 403);
@@ -126,11 +126,7 @@ class StudentAcademicHistoryController extends Controller
 
         return view('student-histories.create', [
             'person' => $person,
-            'history' => new StudentAcademicHistory([
-                'title' => 'Histórico escolar',
-                'legal_basis' => 'Lei Federal nº 9.394/1996 (LDB).',
-                'issued_place' => 'Jarudore / Poxoréu-MT',
-            ]),
+            'history' => new StudentAcademicHistory,
             'schools' => $this->schools($request),
             'states' => $this->states(),
         ]);
@@ -140,7 +136,17 @@ class StudentAcademicHistoryController extends Controller
     {
         $this->authorizePerson($request, $person);
 
-        $data = $this->validatedData($request);
+        $data = $this->validatedData($request, creating: true);
+        $school = School::query()->findOrFail($data['history']['school_id']);
+        $data['history'] = array_merge($data['history'], [
+            'title' => 'Histórico escolar',
+            'stage' => Str::limit(collect($data['years'])->pluck('stage')->filter()->unique()->join(', '), 255, ''),
+            'legal_basis' => null,
+            'notes' => null,
+            'issued_place' => collect([$school->city, $school->state])->filter()->join('-') ?: null,
+            'issued_date' => null,
+            'active' => true,
+        ]);
         $history = StudentAcademicHistory::query()->create($data['history'] + [
             'person_id' => $person->id,
             'created_by_person_id' => $request->user()->person_id,
@@ -409,7 +415,7 @@ class StudentAcademicHistoryController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function validatedData(Request $request): array
+    private function validatedData(Request $request, bool $creating = false): array
     {
         $routeHistory = $request->route('history');
         $fixedYearStage = $routeHistory instanceof StudentAcademicHistory && $routeHistory->is_unified
@@ -472,12 +478,12 @@ class StudentAcademicHistoryController extends Controller
 
         $data = $request->validate([
             'school_id' => ['required', 'integer', Rule::exists('schools', 'id')],
-            'title' => ['required', 'string', 'max:255'],
-            'stage' => ['required', 'string', 'max:255'],
-            'legal_basis' => ['required', 'string'],
+            'title' => [$creating ? 'nullable' : 'required', 'string', 'max:255'],
+            'stage' => [$creating ? 'nullable' : 'required', 'string', 'max:255'],
+            'legal_basis' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
-            'issued_place' => ['required', 'string', 'max:255'],
-            'issued_date' => ['required', 'date'],
+            'issued_place' => ['nullable', 'string', 'max:255'],
+            'issued_date' => ['nullable', 'date'],
             'active' => ['nullable', 'boolean'],
             'is_unified' => ['nullable', 'boolean'],
             'years' => ['required', 'array', 'min:1'],
@@ -579,7 +585,7 @@ class StudentAcademicHistoryController extends Controller
         return [
             'history' => [
                 'school_id' => $schoolId,
-                'title' => $data['title'],
+                'title' => $data['title'] ?? null,
                 'stage' => $data['stage'] ?? null,
                 'legal_basis' => $data['legal_basis'] ?? null,
                 'notes' => $data['notes'] ?? null,

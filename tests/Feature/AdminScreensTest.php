@@ -1543,6 +1543,64 @@ class AdminScreensTest extends TestCase
             ->assertDontSee('Boletim atual');
     }
 
+    public function test_new_external_history_needs_only_issuing_school_and_study_years(): void
+    {
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $school = School::query()->create($this->officialSchoolData([
+            'name' => 'Escola Emissora',
+            'city' => 'Poxoréu',
+            'state' => 'MT',
+        ]));
+        $student = Person::query()->create(['full_name' => 'Estudante com histórico externo']);
+
+        $this->actingAs($administrator)->get(route('people.histories.create', $student))
+            ->assertOk()
+            ->assertDontSee('Identificação geral do histórico recebido.')
+            ->assertDontSee('name="legal_basis"', false)
+            ->assertDontSee('Jarudore / Poxoréu-MT');
+
+        $yearData = [
+            'year' => '2015',
+            'stage' => 'Ensino Fundamental',
+            'grade_phase' => '1º Ano',
+            'modality' => 'Regular',
+            'school_name' => 'Escola de origem',
+            'city' => 'Belford Roxo',
+            'state' => 'RJ',
+            'transcript_mode' => 'summary',
+            'final_result' => 'Aprovado',
+            'workload_hours' => '800',
+        ];
+        $this->actingAs($administrator)->post(route('people.histories.store', $student), [
+            'school_id' => $school->id,
+            'legal_basis' => 'Texto enviado fora do formulário',
+            'issued_place' => 'Local inventado',
+            'years' => [$yearData],
+        ])->assertRedirect();
+
+        $history = StudentAcademicHistory::query()->where('person_id', $student->id)->sole();
+        $this->assertSame($school->id, $history->school_id);
+        $this->assertSame('Ensino Fundamental', $history->stage);
+        $this->assertNull($history->legal_basis);
+        $this->assertNull($history->issued_date);
+        $this->assertSame('Poxoréu-Mt', $history->issued_place);
+        $this->assertTrue($history->active);
+
+        $this->actingAs($administrator)->put(route('people.histories.update', [$student, $history]), [
+            'school_id' => $school->id,
+            'title' => $history->title,
+            'stage' => $history->stage,
+            'legal_basis' => '',
+            'issued_place' => '',
+            'issued_date' => '',
+            'active' => 1,
+            'years' => [$yearData],
+        ])->assertRedirect(route('people.histories.show', [$student, $history]));
+
+        $this->assertNull($history->fresh()->legal_basis);
+        $this->assertNull($history->fresh()->issued_place);
+    }
+
     public function test_student_cannot_start_history_for_a_stage_without_an_enrollment(): void
     {
         $school = School::query()->create(['name' => 'Escola Fundamental', 'active' => true]);

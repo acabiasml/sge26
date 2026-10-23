@@ -80,7 +80,7 @@
 
 <div class="section-title">
     Componentes curriculares
-    @if($history->education_stage !== 'tecnico')
+    @if($history->education_stage !== 'tecnico' && filled($history->legal_basis))
         <span class="section-title-reference">Fundamento legal: {{ $history->legal_basis }}</span>
     @endif
 </div>
@@ -154,7 +154,9 @@
 </table>
 
 <p class="center">
-    {{ preg_replace_callback('/-([a-z]{2})$/iu', fn ($match) => '-'.mb_strtoupper($match[1], 'UTF-8'), $history->issued_place ?: 'Jarudore / Poxoréu-MT') }},
+    @if(filled($history->issued_place))
+        {{ preg_replace_callback('/-([a-z]{2})$/iu', fn ($match) => '-'.mb_strtoupper($match[1], 'UTF-8'), $history->issued_place) }},
+    @endif
     {{ ($issuedDocument->issued_at ?? now())->copy()->timezone('America/Cuiaba')->format('d/m/Y') }}.
 </p>
 
