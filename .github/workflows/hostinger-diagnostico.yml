@@ -14,14 +14,6 @@ on:
         description: Aplicar somente a migration de proprietário dos documentos privados
         type: boolean
         default: false
-      audit_past_year_results:
-        description: Auditar resultados finais dos anos sem dias letivos em 2026
-        type: boolean
-        default: false
-      apply_past_year_results:
-        description: Registrar resultados finais de 384 matrículas nos oito anos auditados
-        type: boolean
-        default: false
 permissions:
   contents: read
 concurrency:
@@ -41,8 +33,6 @@ jobs:
           REFRESH_VIEWS: ${{ inputs.refresh_views }}
           APPLY_VISIBILITY_MIGRATION: ${{ inputs.apply_visibility_migration }}
           APPLY_PRIVATE_OWNER_MIGRATION: ${{ inputs.apply_private_owner_migration }}
-          AUDIT_PAST_YEAR_RESULTS: ${{ inputs.audit_past_year_results }}
-          APPLY_PAST_YEAR_RESULTS: ${{ inputs.apply_past_year_results }}
           HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
         run: python scripts/hostinger-diagnostico.py

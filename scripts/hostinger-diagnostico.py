@@ -22,10 +22,6 @@ with tempfile.TemporaryDirectory() as directory:
             ('PHP', 'php -r \'echo PHP_VERSION, PHP_EOL;\''),
             ('Botão na chamada', "grep -c 'data-all-present' resources/views/teacher-diaries/attendance.blade.php"),
         ]
-        if os.environ.get('AUDIT_PAST_YEAR_RESULTS') == 'true':
-            commands.append(('Resultados dos anos históricos', 'php scripts/audit-past-year-results.php'))
-        if os.environ.get('APPLY_PAST_YEAR_RESULTS') == 'true':
-            commands.append(('Registrar resultados históricos', 'php -d memory_limit=1G scripts/apply-past-year-results.php'))
         if os.environ.get('APPLY_VISIBILITY_MIGRATION') == 'true':
             commands.append((
                 'Aplicar migration de visibilidade',
@@ -43,16 +39,12 @@ with tempfile.TemporaryDirectory() as directory:
             print(f'\n--- {label} ---', flush=True)
             _, stdout, stderr = client.exec_command(
                 'cd /home/u810745753/domains/ctjj.org/public_html/sge && ' + command,
-                timeout=240 if label in ('Resultados dos anos históricos', 'Registrar resultados históricos') else 45,
+                timeout=45,
             )
             output = stdout.read().decode(errors='replace')
             error = stderr.read().decode(errors='replace')
             code = stdout.channel.recv_exit_status()
             print(output, flush=True)
-            if label == 'Resultados dos anos históricos' and not output.strip():
-                raise RuntimeError('A auditoria dos resultados não retornou dados verificáveis.')
-            if label == 'Registrar resultados históricos' and output.count('"year_id"') != 8:
-                raise RuntimeError('O registro dos oito anos letivos não foi confirmado.')
             if label == 'Commit publicado' and output.strip() != os.environ.get('GITHUB_SHA', output.strip()):
                 raise RuntimeError('O commit esperado ainda não foi publicado.')
             if label == 'Migrations' and 'Pending' in output:
