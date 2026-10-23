@@ -94,7 +94,6 @@ class ReportExportTest extends TestCase
         $this->assertStringContainsString('Emitido em', $html);
         $this->assertStringContainsString('document-footer-issuance', $html);
         $this->assertStringContainsString('document-footer-text', $html);
-        $this->assertStringContainsString('document-footer-issuer', $html);
         $this->assertStringContainsString('por Sistema.', $html);
     }
 

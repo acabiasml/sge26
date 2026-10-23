@@ -19,24 +19,33 @@
 @endphp
 
 <footer class="document-footer">
-    <div class="document-footer-qr">
-        <img src="{{ $qrCodeDataUri }}" alt="QR Code de validação do documento" />
-    </div>
-    <div class="document-footer-text">
-        @if($contactLine)
-            <div class="document-footer-contact">{{ $contactLine }}.</div>
-        @endif
-        <div class="document-footer-authentication">
-            @if($phoneLine){{ $phoneLine }} | @endif
-            Documento emitido pelo Beabá. Autenticidade: {{ $issuedDocument->verification_code }}.
-        </div>
-        <div class="document-footer-issuance">
-            @if($siteLine){{ $siteLine }} | @endif
-            Emitido em {{ $issuedDocument->issued_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i:s') }} 
-            <span class="document-footer-issuer">por {{ $issuer }}.</span>
-        </div>
-    </div>
-    <div class="document-footer-balance" aria-hidden="true"></div>
+    <table class="document-footer-layout" role="presentation">
+        <colgroup>
+            <col style="width: 79px" />
+            <col />
+            <col style="width: 79px" />
+        </colgroup>
+        <tr>
+            <td class="document-footer-qr">
+                <img src="{{ $qrCodeDataUri }}" alt="QR Code de validação do documento" />
+            </td>
+            <td class="document-footer-text">
+                @if($contactLine)
+                    <div class="document-footer-contact">{{ $contactLine }}.</div>
+                @endif
+                <div class="document-footer-authentication">
+                    @if($phoneLine){{ $phoneLine }} | @endif
+                    Documento emitido pelo Beabá. Autenticidade: {{ $issuedDocument->verification_code }}.
+                </div>
+                <div class="document-footer-issuance">
+                    @if($siteLine){{ $siteLine }} | @endif
+                    Emitido em {{ $issuedDocument->issued_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i:s') }}
+                    por {{ $issuer }}.
+                </div>
+            </td>
+            <td class="document-footer-balance" aria-hidden="true"></td>
+        </tr>
+    </table>
 </footer>
 <script type="text/php">
     if (isset($pdf, $fontMetrics)) {
