@@ -1497,7 +1497,8 @@ class AdminScreensTest extends TestCase
         $this->assertNull($systemYear->records()->firstOrFail()->score_numeric);
 
         $year->update(['closed_at' => '2025-12-20']);
-        $history = $synchronizer->synchronize($student, $school->id, $manager->person_id, AcademicCourse::STAGE_ELEMENTARY);
+        $this->actingAs($manager)->get(route('people.histories.show', [$student, $history]))
+            ->assertOk()->assertSee('8,00')->assertSee('Pendente');
         $systemYear = $history->years()->where('student_enrollment_id', $enrollment->id)->firstOrFail();
         $this->assertSame('Pendente', $systemYear->final_result);
         $this->assertSame('8,00', $systemYear->records()->firstOrFail()->score_label);

@@ -153,9 +153,18 @@ class StudentAcademicHistoryController extends Controller
             ->with('status', __('Histórico escolar cadastrado com sucesso.'));
     }
 
-    public function show(Request $request, Person $person, StudentAcademicHistory $history, StudentAcademicHistoryCompleteness $completeness): View
+    public function show(Request $request, Person $person, StudentAcademicHistory $history, StudentAcademicHistoryCompleteness $completeness, UnifiedStudentHistorySynchronizer $synchronizer): View
     {
         $this->authorizeHistory($request, $person, $history);
+
+        if ($history->is_unified && $history->education_stage) {
+            $history = $synchronizer->synchronize(
+                $person,
+                $history->school_id,
+                $request->user()->person_id,
+                $history->education_stage,
+            );
+        }
 
         $history->load(['school', 'years.records', 'components.records.year']);
 
