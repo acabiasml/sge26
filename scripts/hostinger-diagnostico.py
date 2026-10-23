@@ -50,6 +50,8 @@ with tempfile.TemporaryDirectory() as directory:
             error = stderr.read().decode(errors='replace')
             code = stdout.channel.recv_exit_status()
             print(output, flush=True)
+            if label == 'Anos letivos e dias letivos em 2026' and not output.strip():
+                raise RuntimeError('A consulta de anos letivos não retornou dados verificáveis.')
             if label == 'Commit publicado' and output.strip() != os.environ.get('GITHUB_SHA', output.strip()):
                 raise RuntimeError('O commit esperado ainda não foi publicado.')
             if label == 'Migrations' and 'Pending' in output:
