@@ -5,7 +5,6 @@ namespace App\Providers;
 use App\Models\Announcement;
 use App\Models\DiaryAlert;
 use App\Models\User;
-use App\Http\Middleware\EnforceLoginLifetime;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Event;
@@ -32,7 +31,6 @@ class AppServiceProvider extends ServiceProvider
     {
         Event::listen(Login::class, function (): void {
             session()->forget('announcements_presented');
-            session()->put(EnforceLoginLifetime::SESSION_KEY, now()->timestamp);
         });
 
         $appDir = trim((string) config('app.dir'), '/');

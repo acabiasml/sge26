@@ -65,8 +65,8 @@ with tempfile.TemporaryDirectory() as directory:
             print(output, flush=True)
             if label == 'Commit publicado' and output.strip() != os.environ['EXPECTED_COMMIT']:
                 raise RuntimeError('O commit esperado ainda não foi publicado.')
-            if label == 'Configuração da sessão' and output.strip() != '240 true':
-                raise RuntimeError('A sessão em produção não está limitada a quatro horas e ao navegador aberto.')
+            if label == 'Configuração da sessão' and output.strip() != '120 true':
+                raise RuntimeError('A sessão em produção não está limitada a duas horas de inatividade e ao navegador aberto.')
             if label == 'Migrations' and 'Pending' in output:
                 raise RuntimeError('Há migrations pendentes em produção.')
             if label == 'Nomes sociais cadastrados após a limpeza' and output.strip() != '0':

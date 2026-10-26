@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\User;
-use App\Http\Middleware\EnforceLoginLifetime;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\RedirectResponse;
 use Laravel\Socialite\Contracts\Factory as SocialiteFactory;
@@ -108,7 +107,6 @@ class GoogleLoginTest extends TestCase
 
         $response->assertRedirect(route('profile.edit'));
         $this->assertAuthenticated();
-        $this->assertSame(now()->timestamp, session(EnforceLoginLifetime::SESSION_KEY));
         $this->assertEmpty(User::query()->where('person_id', $person->id)->firstOrFail()->getRememberToken());
         $sessionCookie = collect($response->headers->getCookies())
             ->first(fn ($cookie) => $cookie->getName() === config('session.cookie'));

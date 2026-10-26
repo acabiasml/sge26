@@ -103,9 +103,7 @@ class AdminScreensTest extends TestCase
         $code = $document->issuedDocument->verification_code;
         $school->update(['name' => 'Nome alterado depois da emissão']);
         $this->travel(1)->days();
-        $this->actingAs($manager)
-            ->withSession([\App\Http\Middleware\EnforceLoginLifetime::SESSION_KEY => now()->timestamp])
-            ->get(route('official-documents.reissue', $document))
+        $this->actingAs($manager)->get(route('official-documents.reissue', $document))
             ->assertOk()->assertContent($originalBytes);
         $this->assertDatabaseCount('official_documents', 1);
         $this->assertDatabaseCount('issued_documents', 1);
