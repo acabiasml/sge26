@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AcademicYear;
 use App\Models\AcademicCourse;
+use App\Models\AcademicYear;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\SchoolClass;
@@ -11,9 +11,9 @@ use App\Models\SchoolClassComponent;
 use App\Support\AcademicStructureStatus;
 use App\Support\AcademicStructureValidator;
 use App\Support\SchoolClassEnrollmentCourses;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -47,7 +47,7 @@ class SchoolClassController extends Controller
                 'courses.components',
                 'startsPeriod',
                 'endsPeriod',
-                'enrollments',
+                'enrollments.student',
                 'componentAssignments.component.area',
                 'componentAssignments.component.course',
                 'componentAssignments.teacher',
@@ -224,7 +224,7 @@ class SchoolClassController extends Controller
     }
 
     /**
-     * @param list<int|string> $courseIds
+     * @param  list<int|string>  $courseIds
      */
     private function ensureCoursesMatchStage(AcademicYear $academicYear, array $courseIds, string $stage): void
     {

@@ -3,6 +3,7 @@
 @php($canChangeAcademicStructure = ! $academicYear->approved_at || auth()->user()->isAdministrator())
 @php($canManageTeaching = ! $academicYear->isReadOnly() && auth()->user()->canManageSchool($academicYear->school_id))
 @php($enrollmentCount = $class->enrollments->count())
+@php($enrollmentsByName = $class->enrollments->sortBy(fn ($enrollment) => \Illuminate\Support\Str::ascii(mb_strtolower($enrollment->student?->full_name ?? '')))->values())
 @php($assignments = $class->componentAssignments->sortBy(fn ($assignment) => ($assignment->component?->area?->name ?? '').' '.$assignment->component?->name)->values())
 @php($assignmentGroups = $assignments->groupBy(fn ($assignment) => $assignment->component?->area?->name ?? __('Área não definida')))
 @php($activeAssignments = $assignments->where('active', true)->count())
@@ -82,6 +83,29 @@
                         <div><dt>{{ __('Horários') }}</dt><dd>{{ $class->schedules->count() }} {{ __('versão(ões) cadastrada(s)') }}</dd></div>
                         <div><dt>{{ __('Observações') }}</dt><dd>{{ $class->notes ?: __('Nenhuma observação cadastrada') }}</dd></div>
                     </dl>
+                </div>
+            </section>
+
+            <section class="card shadow mt-4" aria-labelledby="class-students-title">
+                <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap">
+                    <h3 id="class-students-title" class="h6 m-0 font-weight-bold text-primary">{{ __('Estudantes com matrícula na turma') }}</h3>
+                    <a class="btn btn-sm btn-outline-primary mt-2 mt-sm-0" href="{{ route('classes.enrollments.index', $class) }}">{{ __('Ver matrículas') }}</a>
+                </div>
+                <div class="card-body">
+                    @if ($enrollmentsByName->isEmpty())
+                        <p class="mb-0 text-muted">{{ __('Nenhuma matrícula cadastrada nesta turma.') }}</p>
+                    @else
+                        <ol class="row list-unstyled mb-0" aria-label="{{ __('Estudantes em ordem alfabética') }}">
+                            @foreach ($enrollmentsByName as $enrollment)
+                                <li class="col-md-6 mb-2">
+                                    <div class="d-flex align-items-center border rounded p-2 h-100">
+                                        <span class="badge badge-light border mr-2" aria-hidden="true">{{ $loop->iteration }}</span>
+                                        <span>{{ $enrollment->student?->full_name ?? __('Estudante não informado') }}</span>
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ol>
+                    @endif
                 </div>
             </section>
         </div>
