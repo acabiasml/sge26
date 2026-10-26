@@ -141,6 +141,13 @@ class DocumentIssuanceController extends Controller
             'icon' => 'fa-chart-line',
             'score_view' => true,
         ],
+        'student-progress' => [
+            'group' => 'Estudante',
+            'label' => 'Situação de notas e frequência',
+            'description' => 'Mostra pontos ainda necessários por componente e margem estimada de faltas em horas.',
+            'target' => 'enrollment',
+            'icon' => 'fa-chart-bar',
+        ],
         'individual-record' => [
             'group' => 'Estudante',
             'label' => 'Ficha individual',
@@ -946,6 +953,7 @@ class DocumentIssuanceController extends Controller
             'transfer-certificate' => 'enrollments.transfer-certificate.pdf',
             'enrollment-form' => 'enrollments.pdf',
             'report-card' => 'enrollments.report-card.pdf',
+            'student-progress' => 'enrollments.progress.pdf',
             'individual-record' => 'enrollments.individual-record.pdf',
             default => abort(404),
         };

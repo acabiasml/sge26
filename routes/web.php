@@ -240,6 +240,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('matriculas/{enrollment}/atestado-transferencia-pdf', [StudentEnrollmentCertificateController::class, 'transfer'])->name('enrollments.transfer-certificate.pdf');
     Route::get('matriculas/{enrollment}/boletim', [StudentReportCardController::class, 'show'])->name('enrollments.report-card.show');
     Route::get('matriculas/{enrollment}/boletim-pdf', [StudentReportCardController::class, 'pdf'])->name('enrollments.report-card.pdf');
+    Route::get('matriculas/{enrollment}/situacao-academica-pdf', [StudentReportCardController::class, 'progressPdf'])->name('enrollments.progress.pdf');
     Route::get('matriculas/{enrollment}/ficha-individual-pdf', [StudentReportCardController::class, 'individualRecordPdf'])->name('enrollments.individual-record.pdf');
     Route::get('matriculas/{enrollment}/ficha-origem', [StudentPeriodConvalidationController::class, 'sheet'])->name('enrollments.origin-sheet');
     Route::post('matriculas/{enrollment}/ficha-origem', [StudentPeriodConvalidationController::class, 'storeSheet'])->name('enrollments.origin-sheet.store');

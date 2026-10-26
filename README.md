@@ -254,6 +254,7 @@ O sistema emite, entre outros:
 - calendário e matrizes curriculares;
 - ficha de matrícula;
 - boletim escolar e boletins da turma;
+- relatório individual de situação de notas e frequência, com pontos faltantes por componente e estimativa da margem anual de faltas em horas;
 - ficha individual;
 - histórico escolar por etapa;
 - recibo de atividade voluntária, com pessoa, escola emissora, período e valor;
@@ -272,6 +273,8 @@ O sistema emite, entre outros:
 Os PDFs acadêmicos usam a fonte local **Atkinson Hyperlegible Next**, tamanho mínimo de 11px, papel timbrado, espaço para assinaturas e rodapé de autenticação. O rodapé compartilhado mantém o QR Code à esquerda e centraliza as informações institucionais, o código de verificação, a data e o responsável pela emissão.
 
 Na **Central de Emissão**, a escolha do tipo antecede a busca do registro. A busca de pessoas alcança todas as pessoas visíveis para o perfil; a busca de turmas oferece filtros de escola e ano civil na mesma linha. Para perfis não administrativos, as turmas encerradas ou inativas não aparecem como opções de emissão. Os filtros e as opções apresentados dependem do documento escolhido.
+
+O relatório **Situação de notas e frequência** é emitido por matrícula para a gestão da escola e administradores. Ele mostra os lançamentos atuais e os pontos restantes para a meta anual em cada componente. A margem de faltas em horas é uma projeção da carga curricular prevista, descontando faltas justificadas; a frequência mínima é avaliada para a matrícula inteira. Notas parciais e a margem podem mudar com novos lançamentos, e o resultado final registrado continua sendo a referência oficial.
 
 Cada emissão oficial recebe código no formato:
 

@@ -7,6 +7,7 @@ use App\Models\StudentEnrollment;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
 use App\Support\StudentReportCardBuilder;
+use App\Support\StudentProgressSummary;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -75,6 +76,28 @@ class StudentReportCardController extends Controller
         ])->setPaper('a4', 'portrait');
 
         return \App\Support\PdfMetadata::stream($pdf, 'beaba-ficha-individual-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
+    }
+
+    public function progressPdf(Request $request, StudentEnrollment $enrollment, StudentReportCardBuilder $builder, StudentProgressSummary $summary): Response|RedirectResponse
+    {
+        $this->authorizeReportCard($request, $enrollment);
+        abort_unless($request->user()->canManageSchool($enrollment->schoolClass->academicYear->school_id), 403);
+
+        $report = $builder->build($enrollment);
+
+        if ($message = $this->complianceMessage($request, $report)) {
+            return redirect()->route('document-issuance.index')->with('status', $message);
+        }
+
+        $issuedDocument = $this->issuedDocument($request, $enrollment, $report, 'student-progress', 'Situação de notas e frequência');
+        $pdf = Pdf::loadView('reports.student-progress', [
+            'report' => $report,
+            'progress' => $summary->fromReport($report),
+            'issuedDocument' => $issuedDocument,
+            'letterhead' => PdfLetterhead::make($report['academicYear']->school),
+        ])->setPaper('a4', 'portrait');
+
+        return \App\Support\PdfMetadata::stream($pdf, 'beaba-situacao-academica-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     private function authorizeReportCard(Request $request, StudentEnrollment $enrollment): void

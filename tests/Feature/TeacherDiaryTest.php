@@ -1877,6 +1877,34 @@ class TeacherDiaryTest extends TestCase
         ]))->assertRedirect($url);
     }
 
+    public function test_management_can_issue_individual_progress_report_but_teacher_cannot(): void
+    {
+        [$teacher, $year, , , , $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'situacao@ctjj.org');
+        $url = route('enrollments.progress.pdf', $enrollment);
+
+        $this->actingAs($teacher)->get($url)->assertForbidden();
+        $this->getJson(route('document-issuance.targets', ['type' => 'student-progress']))->assertUnprocessable();
+
+        $otherSchool = School::query()->create($this->officialSchoolData(['name' => 'Outra escola']));
+        $otherManager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $otherSchool->id, 'outra-situacao@ctjj.org');
+        $this->actingAs($otherManager)->get($url)->assertForbidden();
+        $this->getJson(route('document-issuance.targets', ['type' => 'student-progress']))
+            ->assertOk()->assertJsonCount(0, 'targets');
+
+        $this->actingAs($manager)->get(route('document-issuance.index'))
+            ->assertOk()->assertSee('value="student-progress"', false);
+        $this->getJson(route('document-issuance.targets', ['type' => 'student-progress']))
+            ->assertOk()->assertJsonPath('targets.0.id', $enrollment->id);
+        $this->get(route('document-issuance.issue', ['type' => 'student-progress', 'target_id' => $enrollment->id]))
+            ->assertRedirect($url);
+        $this->get($url)->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertDatabaseHas('issued_documents', [
+            'type' => 'student-progress', 'person_id' => $enrollment->person_id,
+            'school_id' => $year->school_id,
+        ]);
+    }
+
     public function test_weight_change_preserves_existing_grades_without_delete_confirmation(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();

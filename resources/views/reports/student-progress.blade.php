@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><style>
+@page { size: A4 portrait; margin: 165px 24px 96px; }
+body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; font-size: 11px; color: #111; line-height: 1.25; }
+@include('reports.partials.letterhead-styles')
+.letterhead-repeat { top: -151px; }
+.context { margin: 18px 0 9px; }
+.summary { width: 100%; margin: 8px 0; }
+.summary td { border: .5px solid #999; padding: 5px; vertical-align: top; }
+.summary .label { background: #eee; font-weight: 600; width: 28%; }
+table.components { width: 100%; margin: 9px 0; table-layout: fixed; }
+.components th, .components td { border: .5px solid #888; padding: 5px 4px; vertical-align: top; }
+.components th { background: #eee; text-align: left; }
+.components td.number, .components th.number { text-align: center; }
+.components tr { page-break-inside: avoid; }
+.subtle { color: #444; }
+.note { margin: 8px 0; }
+</style></head><body>
+@include('reports.partials.letterhead', ['title' => 'Situação de notas e frequência', 'showTechnicalRegulation' => false])
+@php
+    $formatPoints = fn ($value) => number_format((float) $value, 1, ',', '.');
+    $formatMinutes = fn ($minutes) => $minutes === null ? '—' : intdiv((int) $minutes, 60).' h '.str_pad((string) ((int) $minutes % 60), 2, '0', STR_PAD_LEFT).' min';
+    $annualAttendance = $progress['attendance'];
+@endphp
+<p class="context"><strong>Estudante:</strong> {{ $report['student']->full_name }}<br>
+<strong>Escola:</strong> {{ $report['academicYear']->school?->name }} · <strong>Turma:</strong> {{ $report['schoolClass']->name }} · <strong>Ano letivo:</strong> {{ $report['academicYear']->referenceYearsLabel() }}<br>
+<strong>Matrícula:</strong> {{ $report['enrollment']->id }} · <strong>Situação registrada:</strong> {{ $report['finalResult']['label'] ?? $report['enrollment']->statusLabel() }}</p>
+<table class="summary">
+<tr><td class="label">Critérios anuais</td><td>{{ $formatPoints($progress['passing_points']) }} pontos por componente · frequência mínima geral de {{ $progress['minimum_attendance'] }}%</td></tr>
+<tr><td class="label">Frequência lançada</td><td>{{ $annualAttendance['percentage'] === null ? 'Sem lançamento' : number_format((float) $annualAttendance['percentage'], 1, ',', '.').'%' }} · {{ $annualAttendance['effective_attended'] }}/{{ $annualAttendance['lessons'] }} aulas com presença efetiva (inclui ausências justificadas)</td></tr>
+<tr><td class="label">Carga horária prevista</td><td>{{ $formatMinutes($progress['planned_minutes']) }}</td></tr>
+<tr><td class="label">Faltas efetivas lançadas</td><td>{{ $formatMinutes($progress['absence_minutes']) }}</td></tr>
+<tr><td class="label">Limite estimado de faltas</td><td>{{ $formatMinutes($progress['absence_limit_minutes']) }}</td></tr>
+<tr><td class="label">Margem estimada para novas faltas</td><td><strong>{{ $formatMinutes($progress['remaining_absence_minutes']) }}</strong>@if($progress['over_absence_limit']) · Limite projetado ultrapassado @endif</td></tr>
+</table>
+<p class="note subtle">A margem em horas é uma projeção baseada na carga horária curricular prevista e na duração da hora-aula de cada curso. Ela pressupõe presença nas demais aulas previstas. A frequência oficial é calculada a partir das aulas lançadas e pode mudar com novos registros, justificativas ou ajustes de calendário. O limite de frequência vale para o conjunto da matrícula, não separadamente para cada componente.</p>
+<table class="components">
+<colgroup><col style="width:31%"><col style="width:11%"><col style="width:12%"><col style="width:15%"><col style="width:13%"><col style="width:18%"></colgroup>
+<thead><tr><th>Componente</th><th class="number">Pontos atuais</th><th class="number">Pontos faltantes</th><th class="number">Períodos completos</th><th class="number">Frequência</th><th class="number">Faltas efetivas</th></tr></thead>
+<tbody>
+@forelse($progress['components'] as $row)
+<tr>
+<td><strong>{{ $row['component']->name }}</strong>@if($row['course']?->name)<br><span class="subtle">{{ $row['course']->name }}</span>@endif</td>
+<td class="number">{{ $row['points'] === null ? '—' : $formatPoints($row['points']) }}</td>
+<td class="number">{{ $formatPoints($row['missing_points']) }}</td>
+<td class="number">{{ $row['complete_periods'] }}/{{ $row['total_periods'] }}</td>
+<td class="number">{{ $row['attendance']['percentage'] === null ? '—' : number_format((float) $row['attendance']['percentage'], 1, ',', '.').'%' }}</td>
+<td class="number">{{ $formatMinutes($row['absence_minutes']) }}</td>
+</tr>
+@empty
+<tr><td colspan="6">Nenhum componente curricular vinculado à matrícula.</td></tr>
+@endforelse
+</tbody></table>
+<p class="note subtle">Pontos faltantes = meta anual menos pontos apurados, com mínimo de zero. Períodos sem notas não contam como nota zero. Médias parciais podem mudar com novos lançamentos ou recuperação; este relatório não substitui o resultado final registrado.</p>
+@include('reports.partials.document-footer')
+</body></html>
