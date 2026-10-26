@@ -35,19 +35,18 @@ table.components { width: 100%; margin: 9px 0; table-layout: fixed; }
 <tr><td class="label">Limite estimado de faltas</td><td>{{ $formatMinutes($progress['absence_limit_minutes']) }}</td></tr>
 <tr><td class="label">Margem estimada para novas faltas</td><td><strong>{{ $formatMinutes($progress['remaining_absence_minutes']) }}</strong>@if($progress['over_absence_limit']) · Limite projetado ultrapassado @endif</td></tr>
 </table>
-<p class="note subtle">A margem usa as faltas efetivas: faltas lançadas menos aulas abonadas por justificativas e atestados cadastrados. A projeção usa a carga horária curricular prevista e a duração da hora-aula de cada curso; pressupõe presença nas demais aulas previstas. A frequência oficial usa as aulas lançadas e pode mudar com novos registros ou ajustes de calendário. O limite de frequência vale para a matrícula inteira, não para cada componente.</p>
+<p class="note subtle">As justificativas e os atestados abrangem os dias letivos informados; o abatimento é mostrado somente no total da matrícula. As horas de falta por componente abaixo são as lançadas antes do abatimento geral. A margem usa as faltas efetivas após esse abatimento. A projeção usa a carga horária curricular prevista e a duração da hora-aula de cada curso; pressupõe presença nas demais aulas previstas. A frequência oficial usa as aulas lançadas e pode mudar com novos registros ou ajustes de calendário.</p>
 <table class="components">
-<colgroup><col style="width:31%"><col style="width:11%"><col style="width:12%"><col style="width:15%"><col style="width:13%"><col style="width:18%"></colgroup>
-<thead><tr><th>Componente</th><th class="number">Pontos atuais</th><th class="number">Pontos faltantes</th><th class="number">Períodos completos</th><th class="number">Frequência</th><th class="number">Faltas após abatimento</th></tr></thead>
+<thead><tr><th width="44%">Componente</th><th class="number" width="9%">Pontos atuais</th><th class="number" width="11%">Pontos faltantes</th><th class="number" width="13%">Períodos completos</th><th class="number" width="10%">Frequência</th><th class="number" width="13%">Horas de falta</th></tr></thead>
 <tbody>
 @forelse($progress['components'] as $row)
 <tr>
-<td><strong>{{ $row['component']->name }}</strong>@if($row['course']?->name)<br><span class="subtle">{{ $row['course']->name }}</span>@endif</td>
+<td width="44%"><strong>{{ $row['component']->name }}</strong>@if($row['course']?->name)<br><span class="subtle">{{ $row['course']->name }}</span>@endif</td>
 <td class="number">{{ $row['points'] === null ? '—' : $formatPoints($row['points']) }}</td>
 <td class="number">{{ $formatPoints($row['missing_points']) }}</td>
 <td class="number">{{ $row['complete_periods'] }}/{{ $row['total_periods'] }}</td>
 <td class="number">{{ $row['attendance']['percentage'] === null ? '—' : number_format((float) $row['attendance']['percentage'], 1, ',', '.').'%' }}</td>
-<td class="number"><strong>{{ $formatMinutes($row['absence_minutes']) }}</strong><br><span class="subtle">Abatidas: {{ $row['justified_absences'] }} aulas · {{ $formatMinutes($row['justified_minutes']) }}</span></td>
+<td class="number">{{ $formatMinutes($row['raw_absence_minutes']) }}</td>
 </tr>
 @empty
 <tr><td colspan="6">Nenhum componente curricular vinculado à matrícula.</td></tr>

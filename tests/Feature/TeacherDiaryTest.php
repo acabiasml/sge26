@@ -1913,6 +1913,7 @@ class TeacherDiaryTest extends TestCase
         $this->assertSame(100, $summary['justified_minutes']);
         $this->assertSame(100, $summary['absence_minutes']);
         $this->assertSame(2300, $summary['remaining_absence_minutes']);
+        $this->assertSame(200, $summary['components'][0]['raw_absence_minutes']);
 
         $this->actingAs($teacher)->get($url)->assertForbidden();
         $this->getJson(route('document-issuance.targets', ['type' => 'student-progress']))->assertUnprocessable();
@@ -1934,6 +1935,56 @@ class TeacherDiaryTest extends TestCase
             'type' => 'student-progress', 'person_id' => $enrollment->person_id,
             'school_id' => $year->school_id,
         ]);
+        $html = view('reports.student-progress', [
+            'report' => $report,
+            'progress' => $summary,
+            'issuedDocument' => IssuedDocument::query()->where('type', 'student-progress')->firstOrFail(),
+            'letterhead' => PdfLetterhead::make($year->school),
+        ])->render();
+        $this->assertStringContainsString('Horas de falta', $html);
+        $this->assertStringContainsString('3 h 20 min', $html);
+        $this->assertStringNotContainsString('Abatidas:', $html);
+    }
+
+    public function test_one_justified_school_day_is_abated_from_overall_absences_across_components(): void
+    {
+        [, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $second = $component->course->components()->create([
+            'name' => 'Biologia', 'workload_hours' => 80, 'active' => true,
+        ]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'atestados@ctjj.org');
+
+        foreach ([$component, $second] as $subject) {
+            $record = DiaryAttendanceRecord::query()->create([
+                'school_class_id' => $class->id,
+                'curriculum_component_id' => $subject->id,
+                'academic_period_id' => $period->id,
+                'class_date' => '2026-03-11',
+                'lesson_count' => 2,
+            ]);
+            $record->entries()->create([
+                'student_enrollment_id' => $enrollment->id,
+                'status' => DiaryAttendanceRecord::STATUS_ABSENT,
+                'attended_lessons' => 0,
+            ]);
+        }
+        DiaryAttendanceJustification::query()->create([
+            'student_enrollment_id' => $enrollment->id,
+            'starts_at' => '2026-03-11',
+            'ends_at' => '2026-03-11',
+            'reason' => 'Atestado médico',
+            'granted_by_person_id' => $manager->person_id,
+        ]);
+
+        $summary = app(\App\Support\StudentProgressSummary::class)->fromReport(
+            app(StudentReportCardBuilder::class)->build($enrollment->fresh())
+        );
+
+        $this->assertSame(4, $summary['raw_absences']);
+        $this->assertSame(4, $summary['justified_absences']);
+        $this->assertSame(200, $summary['justified_minutes']);
+        $this->assertSame(0, $summary['absence_minutes']);
+        $this->assertSame(3600, $summary['remaining_absence_minutes']);
     }
 
     public function test_weight_change_preserves_existing_grades_without_delete_confirmation(): void
