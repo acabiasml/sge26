@@ -97,6 +97,8 @@ O cadastro de pessoa mantém, conforme disponibilidade:
 - contatos e responsáveis;
 - vínculos escolares e suas vigências.
 
+Os nomes sociais que já estavam cadastrados foram limpos por migration; o campo continua disponível para novos cadastros quando necessário.
+
 Escolas possuem dados institucionais, CNPJ, INEP, atos autorizativos, contatos, endereço, logomarca e responsáveis por assinatura.
 
 A central de **Conformidade** reúne bloqueios, avisos e atenções relativos a pessoas, responsáveis, vínculos, escolas, matrículas, estruturas acadêmicas e anos letivos. Documentos oficiais não são emitidos quando faltam dados indispensáveis da pessoa ou da escola, salvo fluxos que prevejam confirmação explícita para determinada pendência.
@@ -164,6 +166,8 @@ Para 200 dias letivos e quatro períodos, uma oferta de dois períodos considera
 
 Turmas podem reunir mais de uma matriz ativa. A atribuição de docentes titulares e substitutos pertence à turma/componente, permitindo equipes diferentes para turmas que usam a mesma matriz.
 
+O resumo da turma mostra os estudantes matriculados, em ordem alfabética, com acesso à listagem completa. Turmas de anos fechados são identificadas como **encerradas**. Nas listagens que permitem consulta histórica, turmas que deixaram de ser operacionais ficam visíveis apenas para a Administração; uma turma técnica com matriz ativa e estudantes ainda em curso continua operacional mesmo quando seu ano letivo de origem está fechado.
+
 Os horários possuem versões com vigência, matriz semanal, intervalos e cores consistentes por docente. Podem ser impressos por turma, ano letivo, professor ou estudante.
 
 ### Matrículas e movimentações
@@ -175,10 +179,14 @@ O módulo de matrículas é independente da tela do ano letivo. Ele suporta:
 - cancelamento e reversão de cancelamento;
 - reclassificação;
 - rematrícula após transferência;
-- convalidação de notas e frequência trazidas de outra escola;
+- transcrição, por escola, período e componente, das médias, aulas e faltas da ficha recebida de outra instituição;
 - ficha de matrícula e central de documentos.
 
 Para nova matrícula, o estudante deve estar ativo, possuir os dados obrigatórios, ter vínculo de estudante na escola e selecionar matriz ativa.
+
+O **atestado de transferência** pode ser emitido antes de efetivar a movimentação; a emissão do PDF não altera a situação da matrícula. Quando a transferência ou a reclassificação é efetivada, o resultado final correspondente é registrado. Uma transferência com data retroativa limita notas e faltas da matrícula antiga até a data de saída, mesmo que existam lançamentos posteriores.
+
+Se o estudante retornar no mesmo ano e série, o boletim, a ficha individual e o atestado de frequência da matrícula nova reúnem os registros anteriores da rede, os resultados transcritos da escola de origem e os lançamentos após o retorno. A ficha externa pode ser cadastrada mesmo para períodos avaliativos anteriores à data da nova matrícula; resultados já registrados na rede não devem ser transcritos novamente. O procedimento para a secretaria, com capturas das telas, está em [Aluno veio de outra escola no meio de um período letivo. O que fazer?](docs/tutorial-aluno-outra-escola.pdf).
 
 ## Diários e frequência
 
@@ -197,11 +205,13 @@ Quando existe horário, as datas seguem os dias e aulas previstos. Sem horário,
 
 Justificativas de ausência, inclusive atestados médicos, são registradas separadamente. As faltas permanecem no registro bruto, enquanto o cálculo de frequência efetiva considera as justificativas conforme a regra acadêmica adotada.
 
+Os resumos e documentos de frequência respeitam o intervalo efetivo de cada matrícula. Faltas recebidas de outra instituição são cadastradas na ficha da escola de origem, sem modificar os diários dos professores.
+
 ## Consolidação e fechamento
 
 Um período somente pode ser consolidado quando os diários obrigatórios estão confirmados e sem pendências. Reaberturas são controladas e exigem justificativa.
 
-O resultado anual considera pontos acumulados, frequência mínima, recuperações aplicadas, situação da matrícula e regras vigentes da escola.
+O resultado anual considera pontos acumulados, frequência mínima, recuperações aplicadas, situação da matrícula e regras vigentes da escola. Resultados de transferência e reclassificação são registrados como **Transferido** e **Reclassificado**; os resultados finais calculados ficam auditáveis. Uma matrícula aprovada de ano já fechado aparece como **Concluído** na Vida escolar, com saída no último dia letivo pertinente.
 
 Antes do fechamento do ano, a conferência verifica calendário aprovado, períodos consolidados, resultados finais, dias letivos, turmas e matrículas. O fechamento bloqueia alterações acadêmicas sensíveis para os demais perfis. A Administração pode reabrir, reativar e corrigir o ano; a reabertura administrativa mantém os demais usuários em consulta.
 
@@ -220,6 +230,8 @@ O histórico unificado é separado por etapa — Fundamental, Médio ou Técnico
 - módulos e cargas horárias de cursos técnicos;
 - atos legais e regularizações da vida escolar.
 
+Na edição do histórico unificado, a secretaria lança séries cursadas em outras instituições sem precisar desfazer uma transferência. Todas as séries cursadas em escolas da rede são sincronizadas a partir das matrículas e exibidas para consulta, sem edição manual de notas, faltas ou resultados. A sincronização também ocorre ao abrir, editar ou emitir o histórico; uma matrícula reclassificada aparece com esse resultado.
+
 Na tabela principal dos históricos da educação básica, **CHC** significa carga horária cursada, com legenda no documento. Anos ainda em andamento não exibem CHC. O Ensino Médio apresenta totais previstos e cursados por formação e por ano, além dos totais gerais. Anos em modo **Global** usam uma coluna unificada. O cabeçalho da matriz curricular se repete somente quando a tabela continua em outra página.
 
 ## Documentos
@@ -232,6 +244,8 @@ Na tabela principal dos históricos da educação básica, **CHC** significa car
 
 Os três mantêm Formação Geral Básica e Itinerário Formativo em blocos próprios, com apenas os períodos correspondentes a cada formação.
 
+A ação **Ficha individual** da Vida escolar usa a matrícula mais recente, mesmo quando ela já foi transferida. A ficha é assinada pela direção e pela secretaria escolar; os nomes vêm dos vínculos da escola, quando cadastrados.
+
 ### Emissões disponíveis
 
 O sistema emite, entre outros:
@@ -242,6 +256,7 @@ O sistema emite, entre outros:
 - boletim escolar e boletins da turma;
 - ficha individual;
 - histórico escolar por etapa;
+- recibo de atividade voluntária, com pessoa, escola emissora, período e valor;
 - diários, listas de chamada e espelho de notas;
 - horários de turma, docente e estudante;
 - atestados de frequência, inclusive mensais e por período;
@@ -254,7 +269,9 @@ O sistema emite, entre outros:
 - documentos oficiais livres, produzidos em editor próprio;
 - relatório de conformidade documental e acadêmica.
 
-Os PDFs acadêmicos usam a fonte local **Atkinson Hyperlegible Next**, tamanho mínimo de 11px, papel timbrado, espaço para assinaturas e rodapé de autenticação.
+Os PDFs acadêmicos usam a fonte local **Atkinson Hyperlegible Next**, tamanho mínimo de 11px, papel timbrado, espaço para assinaturas e rodapé de autenticação. O rodapé compartilhado mantém o QR Code à esquerda e centraliza as informações institucionais, o código de verificação, a data e o responsável pela emissão.
+
+Na **Central de Emissão**, a escolha do tipo antecede a busca do registro. A busca de pessoas alcança todas as pessoas visíveis para o perfil; a busca de turmas oferece filtros de escola e ano civil na mesma linha. Para perfis não administrativos, as turmas encerradas ou inativas não aparecem como opções de emissão. Os filtros e as opções apresentados dependem do documento escolhido.
 
 Cada emissão oficial recebe código no formato:
 
@@ -266,11 +283,18 @@ A consulta pública está disponível em `/documentos/verificar`. O código, a d
 
 No editor de documentos oficiais:
 
+- a nova emissão começa como **privada**, mas a pessoa emissora pode selecionar **pública**;
+- a aba **Públicos** mostra os documentos das escolas visíveis ao usuário; **Meus** reúne seus documentos privados e os públicos que ele emitiu; **Todos** é exclusiva da Administração;
+- documentos anteriores à introdução da visibilidade foram classificados como públicos;
+- somente a Administração muda a visibilidade. Ao tornar um documento privado, ela escolhe explicitamente o usuário proprietário;
+- o proprietário pode excluir seus documentos privados; somente a Administração pode excluir documentos públicos;
 - **Reeditar** reaproveita o conteúdo para uma nova emissão, com outro registro e código;
 - **Reemitir** abre a mesma geração para visualizar ou imprimir novamente, mantendo o código;
-- a lista de documentos emitidos possui paginação.
+- a lista de documentos emitidos possui paginação e mostra código, data e responsável pela emissão.
 
-Detalhes da revisão documental estão em [docs/auditoria-documental-pdfs.md](docs/auditoria-documental-pdfs.md).
+O editor usa Summernote 0.9.1 (MIT), servido localmente em `public/template/vendor/summernote`, sem CDN. Permite tabelas, imagens PNG/JPEG, redimensionamento, descrição alternativa e desfazer/refazer. As imagens são incorporadas ao conteúdo salvo e ao PDF; reemitir mantém o arquivo original. Limites: 1 MB por imagem, 4096 pixels por lado, 8 megapixels e 4 MB de imagens por documento. O servidor valida as imagens e preserva apenas HTML e estilos permitidos, incluindo células mescladas e alinhamentos.
+
+O editor também oferece cores e marca-texto, links clicáveis, tachado, sobrescrito/subscrito, linha horizontal, espaçamento por parágrafo e tamanhos de fonte de 8 a 36. Esses recursos são preservados no HTML salvo e no PDF. Detalhes da revisão documental estão em [docs/auditoria-documental-pdfs.md](docs/auditoria-documental-pdfs.md).
 
 ## Dashboard, comunicação e relatórios
 
@@ -285,12 +309,16 @@ Relatórios administrativos aceitam busca e filtros respeitando o escopo escolar
 ## Acessibilidade e interface
 
 - interface em português do Brasil e italiano, com bandeiras em SVG para exibição consistente entre navegadores;
-- temas beathema, gov.br e Aurora (clara e escura) selecionáveis no ícone de paleta ao lado dos idiomas no menu superior, com preferência salva por usuário;
-- tema gov.br inspirado no Design System de Governo, com fonte Rawline local, navegação clara e foco visível;
+- paletas beathema, gov.br, Aurora, Instagram, TikTok, Gmail e Outlook selecionáveis no ícone de paleta, com preferência salva por usuário;
+- luminosidade clara ou escura determinada automaticamente pela configuração do dispositivo, sem escolha manual; beathema e gov.br usam a base Aurora no modo escuro;
+- identidade visual própria para cada paleta nas telas do sistema; PDFs e documentos de impressão mantêm formatação independente do tema;
+- tema gov.br inspirado no Design System de Governo, com fonte Rawline local e foco visível;
 - fonte local Atkinson Hyperlegible Next, sem dependência de Google Fonts;
 - foco visível e link para pular ao conteúdo;
 - navegação agrupada por contexto;
 - ícones com nomes acessíveis;
+- confirmações de ações e descrição de imagens do editor em modais acessíveis, sem caixas nativas de alerta do navegador;
+- calendário com legenda e distinção visual dos tipos de dia, usando as cores do tema ativo;
 - tabelas responsivas;
 - retorno à lista de Pessoas pela seta no cabeçalho, preservando busca, filtros e página na mesma aba;
 - faixa colorida no topo durante envios de formulários e atualizações do Livewire, incluindo paginação, busca e filtros;
@@ -440,6 +468,12 @@ A branch principal é publicada no GitHub e aciona o deploy automático na Hosti
 
 O código da aplicação Laravel não deve ser editado diretamente no servidor de produção. Mensagens de commit devem ser escritas em português. As regras operacionais completas e a fonte de verdade para agentes estão em [AGENTS.md](AGENTS.md).
 
+### Diagnóstico da Hostinger em redes que bloqueiam SSH
+
+O workflow **Diagnóstico Hostinger** pode ser executado manualmente pela aba Actions ou por `gh workflow run hostinger-diagnostico.yml --ref main`. O runner do GitHub estabelece a conexão SSH; o computador local usa somente HTTPS para acionar e consultar a execução. Por padrão, a operação é somente de leitura: consulta commit, arquivos modificados, PHP, migrations e presença do botão da chamada, além de verificar a resposta HTTP.
+
+As configurações ficam nos GitHub Actions Secrets `HOSTINGER_CONNECTION` (JSON de conexão) e `HOSTINGER_KNOWN_HOSTS` (chaves do servidor previamente verificadas). Nunca colocar esses valores no código. O cliente rejeita servidores com chaves desconhecidas. O workflow só executa na branch `main` e não aceita comandos livres. A opção `refresh_views=true` executa somente `php artisan view:clear` para renovar as telas compiladas, sem alterar dados. As opções `apply_visibility_migration=true`, `apply_private_owner_migration=true`, `apply_reclassification_migration=true` e `apply_social_name_cleanup=true` executam somente as migrations de manutenção correspondentes, depois de confirmar o commit publicado. A última também confere a contagem de nomes sociais antes e depois da limpeza. Use essas opções apenas se o deploy automático tiver deixado a migration específica pendente. Alterações de código e banco continuam seguindo o fluxo de publicação e validação descrito acima.
+
 ### Verificação manual por SSH
 
 Execute no terminal do seu computador:
@@ -470,15 +504,3 @@ A página pública de `ctjj.org` é independente do Laravel, cuja aplicação es
 ## Licença
 
 Este repositório usa a licença MIT. Consulte [LICENSE](LICENSE).
-
-### Editor de documentos em papel timbrado
-
-O editor usa Summernote 0.9.1 (MIT), servido localmente em `public/template/vendor/summernote`, sem CDN. Permite tabelas com inserção e exclusão de linhas/colunas, imagens PNG/JPEG, redimensionamento, descrição alternativa e desfazer/refazer. As imagens são incorporadas ao conteúdo salvo e ao PDF; reemitir mantém o arquivo original. Limites: 1 MB por imagem, 4096 pixels por lado, 8 megapixels e 4 MB de imagens por documento. O servidor valida as imagens e preserva apenas HTML e estilos permitidos, incluindo células mescladas e alinhamentos.
-
-O editor também oferece cores e marca-texto, links clicáveis, tachado, sobrescrito/subscrito, linha horizontal, espaçamento por parágrafo e tamanhos de fonte de 8 a 36. Esses recursos são preservados no HTML salvo e no PDF.
-
-### Diagnóstico da Hostinger em redes que bloqueiam SSH
-
-O workflow **Diagnóstico Hostinger** pode ser executado manualmente pela aba Actions ou por `gh workflow run hostinger-diagnostico.yml --ref main`. O runner do GitHub estabelece a conexão SSH; o computador local usa somente HTTPS para acionar e consultar a execução. Por padrão, a operação é somente de leitura: consulta commit, arquivos modificados, PHP, migrations e presença do botão da chamada, além de verificar a resposta HTTP.
-
-As configurações ficam nos GitHub Actions Secrets `HOSTINGER_CONNECTION` (JSON de conexão) e `HOSTINGER_KNOWN_HOSTS` (chaves do servidor previamente verificadas). Nunca colocar esses valores no código. O cliente rejeita servidores com chaves desconhecidas. O workflow só executa na branch `main` e não aceita comandos livres. A opção `refresh_views=true` executa somente `php artisan view:clear` para renovar as telas compiladas, sem alterar dados. As opções `apply_visibility_migration=true` e `apply_private_owner_migration=true` executam exclusivamente as migrations indicadas de documentos oficiais, depois de confirmar o commit publicado; devem ser usadas apenas quando o deploy automático deixar essas migrations pendentes. Alterações de código e banco continuam seguindo o fluxo de publicação e validação descrito acima.
