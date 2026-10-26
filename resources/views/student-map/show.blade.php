@@ -158,7 +158,7 @@
                                 $isConcluded = $enrollment->isActive() && $yearClosed && $hasFinalResult;
                                 $displayStatus = $enrollment->isActive() && $yearClosed
                                     ? ($isConcluded ? __('Concluído') : __('Ano encerrado'))
-                                    : __($enrollment->statusLabel());
+                                    : ($isCurrent && ! $hasFinalResult ? __('Cursando') : __($enrollment->statusLabel()));
                             @endphp
                             <article class="sge-life-card {{ $isCurrent ? 'is-active' : '' }}">
                                 <div class="sge-life-card-status">

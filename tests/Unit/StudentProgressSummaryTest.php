@@ -32,10 +32,30 @@ class StudentProgressSummaryTest extends TestCase
         $summary = (new StudentProgressSummary)->fromReport($report);
 
         $this->assertSame(2400, $summary['absence_limit_minutes']);
+        $this->assertSame(3, $summary['raw_absences']);
+        $this->assertSame(2, $summary['justified_absences']);
+        $this->assertSame(150, $summary['raw_absence_minutes']);
+        $this->assertSame(100, $summary['justified_minutes']);
         $this->assertSame(50, $summary['absence_minutes']);
         $this->assertSame(2350, $summary['remaining_absence_minutes']);
         $this->assertSame(35.0, $summary['components'][0]['missing_points']);
         $this->assertSame(1, $summary['components'][0]['effective_absences']);
+    }
+
+    public function test_active_enrollment_without_final_result_is_labeled_cursando(): void
+    {
+        $enrollment = new \App\Models\StudentEnrollment(['status' => \App\Models\StudentEnrollment::STATUS_ENROLLED]);
+        $this->assertSame('Cursando', $enrollment->finalResultLabel());
+
+        $enrollment->final_result_status = \App\Models\StudentEnrollment::FINAL_PENDING;
+        $this->assertSame('Cursando', $enrollment->finalResultLabel());
+
+        $enrollment->final_result_status = \App\Models\StudentEnrollment::FINAL_APPROVED;
+        $this->assertSame('Aprovado', $enrollment->finalResultLabel());
+
+        $enrollment->status = \App\Models\StudentEnrollment::STATUS_TRANSFERRED;
+        $enrollment->final_result_status = \App\Models\StudentEnrollment::FINAL_TRANSFERRED;
+        $this->assertSame('Transferido', $enrollment->finalResultLabel());
     }
 
     public function test_it_keeps_ungraded_components_visible_without_calling_them_zero(): void

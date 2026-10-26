@@ -1879,9 +1879,40 @@ class TeacherDiaryTest extends TestCase
 
     public function test_management_can_issue_individual_progress_report_but_teacher_cannot(): void
     {
-        [$teacher, $year, , , , $enrollment] = $this->diaryScenario();
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'situacao@ctjj.org');
         $url = route('enrollments.progress.pdf', $enrollment);
+
+        foreach (['2026-03-11', '2026-03-12'] as $date) {
+            $record = DiaryAttendanceRecord::query()->create([
+                'school_class_id' => $class->id,
+                'curriculum_component_id' => $component->id,
+                'academic_period_id' => $period->id,
+                'class_date' => $date,
+                'lesson_count' => 2,
+            ]);
+            $record->entries()->create([
+                'student_enrollment_id' => $enrollment->id,
+                'status' => DiaryAttendanceRecord::STATUS_ABSENT,
+                'attended_lessons' => 0,
+            ]);
+        }
+        DiaryAttendanceJustification::query()->create([
+            'student_enrollment_id' => $enrollment->id,
+            'starts_at' => '2026-03-11',
+            'ends_at' => '2026-03-11',
+            'reason' => 'Atestado médico',
+            'granted_by_person_id' => $manager->person_id,
+        ]);
+
+        $report = app(StudentReportCardBuilder::class)->build($enrollment->fresh());
+        $summary = app(\App\Support\StudentProgressSummary::class)->fromReport($report);
+        $this->assertSame(4, $summary['raw_absences']);
+        $this->assertSame(2, $summary['justified_absences']);
+        $this->assertSame(200, $summary['raw_absence_minutes']);
+        $this->assertSame(100, $summary['justified_minutes']);
+        $this->assertSame(100, $summary['absence_minutes']);
+        $this->assertSame(2300, $summary['remaining_absence_minutes']);
 
         $this->actingAs($teacher)->get($url)->assertForbidden();
         $this->getJson(route('document-issuance.targets', ['type' => 'student-progress']))->assertUnprocessable();

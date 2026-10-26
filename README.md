@@ -274,7 +274,7 @@ Os PDFs acadêmicos usam a fonte local **Atkinson Hyperlegible Next**, tamanho m
 
 Na **Central de Emissão**, a escolha do tipo antecede a busca do registro. A busca de pessoas alcança todas as pessoas visíveis para o perfil; a busca de turmas oferece filtros de escola e ano civil na mesma linha. Para perfis não administrativos, as turmas encerradas ou inativas não aparecem como opções de emissão. Os filtros e as opções apresentados dependem do documento escolhido.
 
-O relatório **Situação de notas e frequência** é emitido por matrícula para a gestão da escola e administradores. Ele mostra os lançamentos atuais e os pontos restantes para a meta anual em cada componente. A margem de faltas em horas é uma projeção da carga curricular prevista, descontando faltas justificadas; a frequência mínima é avaliada para a matrícula inteira. Notas parciais e a margem podem mudar com novos lançamentos, e o resultado final registrado continua sendo a referência oficial.
+O relatório **Situação de notas e frequência** é emitido por matrícula para a gestão da escola e administradores. Ele mostra os lançamentos atuais e os pontos restantes para a meta anual em cada componente. Discrimina faltas lançadas, aulas abonadas por justificativas e atestados, e faltas efetivas, também em horas. A margem estimada usa as faltas efetivas e a carga curricular prevista; a frequência mínima é avaliada para a matrícula inteira. Notas parciais e a margem podem mudar com novos lançamentos, e o resultado final registrado continua sendo a referência oficial. Enquanto a matrícula estiver ativa e não houver resultado definitivo, a situação apresentada é **Cursando**.
 
 Cada emissão oficial recebe código no formato:
 

@@ -1498,9 +1498,9 @@ class AdminScreensTest extends TestCase
 
         $year->update(['closed_at' => '2025-12-20']);
         $this->actingAs($manager)->get(route('people.histories.show', [$student, $history]))
-            ->assertOk()->assertSee('8,00')->assertSee('Pendente');
+            ->assertOk()->assertSee('8,00')->assertSee('Cursando');
         $systemYear = $history->years()->where('student_enrollment_id', $enrollment->id)->firstOrFail();
-        $this->assertSame('Pendente', $systemYear->final_result);
+        $this->assertSame('Cursando', $systemYear->final_result);
         $this->assertSame('8,00', $systemYear->records()->firstOrFail()->score_label);
         $this->assertNull($enrollment->fresh()->final_result_status);
     }
@@ -1663,7 +1663,7 @@ class AdminScreensTest extends TestCase
         $this->actingAs($studentUser)
             ->get(route('people.student-map.show', $studentUser->person_id))
             ->assertOk()
-            ->assertSee('<span class="badge badge-success">Matriculado</span>', false)
+            ->assertSee('<span class="badge badge-success">Cursando</span>', false)
             ->assertSee('Boletim')
             ->assertDontSee('Ficha individual');
     }

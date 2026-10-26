@@ -218,6 +218,10 @@ class StudentEnrollment extends Model
 
     public function finalResultLabel(): string
     {
+        if ($this->isActive() && in_array($this->final_result_status, [null, self::FINAL_PENDING], true)) {
+            return 'Cursando';
+        }
+
         return self::FINAL_RESULT_LABELS[$this->final_result_status] ?? 'Não calculado';
     }
 

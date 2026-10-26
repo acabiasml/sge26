@@ -120,7 +120,7 @@ class UnifiedStudentHistorySynchronizer
         $isTransferred = $enrollment->status === StudentEnrollment::STATUS_TRANSFERRED;
         $withoutTranscription = $enrollment->status === StudentEnrollment::STATUS_RECLASSIFIED;
         $finalResult = $this->historicalResult($enrollment, $hasLaterEnrollment);
-        $isInProgress = $finalResult === 'Cursando';
+        $isInProgress = $finalResult === 'Cursando' && ! $year->isClosed();
         $yearRow = $history->years()->updateOrCreate(
             ['student_enrollment_id' => $enrollment->id],
             [
@@ -381,7 +381,9 @@ class UnifiedStudentHistorySynchronizer
             return 'Aprovado';
         }
 
-        return $enrollment->schoolClass?->academicYear?->isClosed() ? 'Pendente' : 'Cursando';
+        return $enrollment->isActive()
+            ? $enrollment->finalResultLabel()
+            : 'Pendente';
     }
 
     private function historicalWorkloadHours(CurriculumComponent $component): float

@@ -181,7 +181,7 @@
                                 <span class="badge badge-{{ $finalTone }}">{{ __($enrollment->finalResultLabel()) }}</span>
                                 @if ($enrollment->final_result_calculated_at)
                                     <span class="d-block small text-muted">{{ $enrollment->final_result_calculated_at->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}</span>
-                                @else
+                                @elseif(! $enrollment->isActive())
                                     <span class="d-block small text-muted">{{ __('Ainda não calculado') }}</span>
                                 @endif
                                 @if (($enrollment->final_result_details['reason'] ?? null))

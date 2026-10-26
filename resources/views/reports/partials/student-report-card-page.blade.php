@@ -254,7 +254,7 @@
         <td class="summary-label">Situação da matrícula</td>
         <td>{{ $enrollment->statusLabel() }}</td>
         <td class="summary-label">Resultado final</td>
-        <td>{{ ($finalResult['calculated_at'] ?? null) ? ($finalResult['label'] ?? '-') : 'Ainda não calculado' }}</td>
+        <td>{{ $finalResult['label'] ?? $enrollment->finalResultLabel() }}</td>
     </tr>
 </table>
 

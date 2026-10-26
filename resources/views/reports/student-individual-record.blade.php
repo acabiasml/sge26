@@ -313,7 +313,7 @@
     </tr>
     <tr>
         <td class="label">Resultado final</td>
-        <td>{{ $finalResult['label'] ?? 'Não calculado' }}</td>
+        <td>{{ $finalResult['label'] ?? $enrollment->finalResultLabel() }}</td>
         <td class="label">Registro do resultado</td>
         <td>
             @if($finalResult['calculated_at'] ?? null)
@@ -322,7 +322,7 @@
                     por {{ $finalResult['calculated_by']->full_name }}
                 @endif
             @else
-                Ainda não calculado.
+                {{ $enrollment->isActive() ? 'Cursando' : 'Não calculado' }}
             @endif
         </td>
     </tr>
