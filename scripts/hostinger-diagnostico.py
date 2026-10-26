@@ -20,6 +20,11 @@ with tempfile.TemporaryDirectory() as directory:
             ('Commit publicado', 'git rev-parse HEAD'),
             ('Arquivos modificados', 'git status --short'),
             ('PHP', 'php -r \'echo PHP_VERSION, PHP_EOL;\''),
+            ('Configuração da sessão', 'php -r \'require "vendor/autoload.php"; '
+             '$app = require "bootstrap/app.php"; '
+             '$app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); '
+             'echo config("session.lifetime"), " ", '
+             'config("session.expire_on_close") ? "true" : "false", PHP_EOL;\''),
             ('Botão na chamada', "grep -c 'data-all-present' resources/views/teacher-diaries/attendance.blade.php"),
         ]
         if os.environ.get('APPLY_VISIBILITY_MIGRATION') == 'true':
@@ -60,6 +65,8 @@ with tempfile.TemporaryDirectory() as directory:
             print(output, flush=True)
             if label == 'Commit publicado' and output.strip() != os.environ['EXPECTED_COMMIT']:
                 raise RuntimeError('O commit esperado ainda não foi publicado.')
+            if label == 'Configuração da sessão' and output.strip() != '240 true':
+                raise RuntimeError('A sessão em produção não está limitada a quatro horas e ao navegador aberto.')
             if label == 'Migrations' and 'Pending' in output:
                 raise RuntimeError('Há migrations pendentes em produção.')
             if label == 'Nomes sociais cadastrados após a limpeza' and output.strip() != '0':

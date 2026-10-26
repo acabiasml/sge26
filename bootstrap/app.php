@@ -12,6 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
+            \App\Http\Middleware\EnforceLoginLifetime::class,
             \App\Http\Middleware\SetUserLocale::class,
         ]);
         $middleware->alias([

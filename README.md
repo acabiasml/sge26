@@ -74,6 +74,7 @@ Regras principais:
 
 - não existe autocadastro público;
 - o login usa Google Workspace e restringe o domínio por `GOOGLE_ALLOWED_DOMAIN`;
+- a sessão termina após quatro horas desde o login ou ao fechar o navegador; não há opção de manter o usuário conectado;
 - depois da implantação inicial, somente pessoas previamente autorizadas, ativas e com vínculo vigente acessam o sistema;
 - o primeiro acesso pode criar o registro local de usuário, mas não cria permissão escolar;
 - cadastros incompletos são direcionados para **Meu cadastro**;

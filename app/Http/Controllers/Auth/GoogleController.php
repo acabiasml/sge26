@@ -113,7 +113,7 @@ class GoogleController extends Controller
             'email_verified_at' => $user->email_verified_at ?: now(),
         ])->save();
 
-        Auth::login($user, remember: true);
+        Auth::login($user, remember: false);
 
         if (! $person->hasCompletedProfile()) {
             return redirect()->route('profile.edit');
