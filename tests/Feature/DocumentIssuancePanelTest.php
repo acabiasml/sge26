@@ -76,6 +76,45 @@ class DocumentIssuancePanelTest extends TestCase
         $this->get(route('document-issuance.issue', ['type' => 'listing-people', 'target_id' => 999]))->assertNotFound();
     }
 
+    public function test_transfer_certificate_is_available_before_and_after_transfer_in_issuance_panel(): void
+    {
+        $school = School::query()->create(['name' => 'Escola A', 'active' => true]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $student = $this->personWithRole('Estudante em transferência', PersonSchoolRole::ROLE_STUDENT, $school->id);
+        $year = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Ano letivo 2026',
+            'reference_year' => 2026,
+            'starts_at' => '2026-01-01',
+            'ends_at' => '2026-12-31',
+            'active' => true,
+        ]);
+        $class = $year->classes()->create(['name' => 'Turma A', 'active' => true]);
+        $enrollment = $class->enrollments()->create([
+            'person_id' => $student->id,
+            'enrolled_at' => '2026-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED,
+            'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+
+        $this->actingAs($manager)->getJson(route('document-issuance.targets', [
+            'type' => 'transfer-certificate',
+        ]))->assertOk()->assertJsonPath('targets.0.id', $enrollment->id)
+            ->assertJsonPath('targets.0.enabled', true);
+        $this->get(route('document-issuance.issue', [
+            'type' => 'transfer-certificate',
+            'target_id' => $enrollment->id,
+        ]))->assertRedirect(route('enrollments.transfer-certificate.pdf', $enrollment));
+        $this->assertSame(StudentEnrollment::STATUS_ENROLLED, $enrollment->fresh()->status);
+
+        $enrollment->update(['status' => StudentEnrollment::STATUS_TRANSFERRED, 'transferred_at' => '2026-04-01']);
+
+        $this->getJson(route('document-issuance.targets', [
+            'type' => 'transfer-certificate',
+        ]))->assertOk()->assertJsonPath('targets.0.id', $enrollment->id)
+            ->assertJsonPath('targets.0.enabled', true);
+    }
+
     public function test_individual_matrix_selection_respects_managed_school(): void
     {
         $school = School::query()->create(['name' => 'Escola A', 'active' => true]);

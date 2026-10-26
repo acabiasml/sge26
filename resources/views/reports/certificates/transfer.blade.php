@@ -35,16 +35,21 @@
     <p class="certificate-text">
         Atestamos, para fins de transferência escolar, que <strong>{{ $student?->full_name }}</strong>,
         CPF {{ $student?->cpf ?: '-' }}, filho(a) de {{ $student?->mother_name ?: '-' }},
-        esteve matriculado(a) nesta instituição no ano letivo <strong>{{ $academicYear->referenceYearsLabel() }}</strong>,
+        {{ $enrollment->isActive() ? 'encontra-se matriculado(a)' : 'esteve matriculado(a)' }} nesta instituição no ano letivo <strong>{{ $academicYear->referenceYearsLabel() }}</strong>,
         na turma <strong>{{ $class->name }}</strong>, {{ mb_strtolower($stageHeading) }} <strong>{{ $stages }}</strong>, vinculada à(s) matriz(es)
         <strong>{{ $courses }}</strong>, com matrícula registrada em
         <strong>{{ $enrollment->enrolled_at?->format('d/m/Y') ?? '-' }}</strong>.
     </p>
 
     <p class="certificate-text">
-        A transferência foi registrada em
-        <strong>{{ $enrollment->transferred_at?->format('d/m/Y') }}</strong>.
-        Os registros acadêmicos e de frequência existentes até a data de saída permanecem preservados no Beabá.
+        @if ($enrollment->status === \App\Models\StudentEnrollment::STATUS_TRANSFERRED && $enrollment->transferred_at)
+            A transferência da matrícula foi registrada em
+            <strong>{{ $enrollment->transferred_at->format('d/m/Y') }}</strong>.
+            Os registros acadêmicos e de frequência existentes até a data de saída permanecem preservados no Beabá.
+        @else
+            A emissão deste atestado não altera a situação da matrícula nem efetiva a transferência.
+            Qualquer movimentação deverá ser registrada separadamente.
+        @endif
     </p>
 
     <table class="summary">
@@ -54,8 +59,11 @@
         <tr><th>Turma e etapa</th><td>{{ $classContext }}</td></tr>
         <tr><th>Matriz(es)</th><td>{{ $courses }}</td></tr>
         <tr><th>Data da matrícula</th><td>{{ $enrollment->enrolled_at?->format('d/m/Y') ?? '-' }}</td></tr>
-        <tr><th>Data da transferência</th><td>{{ $enrollment->transferred_at?->format('d/m/Y') ?? '-' }}</td></tr>
-        <tr><th>Registro feito por</th><td>{{ $enrollment->transferredBy?->full_name ?: '-' }}</td></tr>
+        <tr><th>Situação da matrícula</th><td>{{ $enrollment->statusLabel() }}</td></tr>
+        @if ($enrollment->status === \App\Models\StudentEnrollment::STATUS_TRANSFERRED && $enrollment->transferred_at)
+            <tr><th>Data da transferência</th><td>{{ $enrollment->transferred_at->format('d/m/Y') }}</td></tr>
+            <tr><th>Registro feito por</th><td>{{ $enrollment->transferredBy?->full_name ?: '-' }}</td></tr>
+        @endif
         <tr><th>Observações</th><td>{{ $enrollment->notes ?: '-' }}</td></tr>
     </table>
 

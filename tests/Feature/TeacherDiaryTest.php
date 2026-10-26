@@ -974,14 +974,31 @@ class TeacherDiaryTest extends TestCase
         ]);
     }
 
-    public function test_management_can_emit_transfer_certificate_only_after_transfer(): void
+    public function test_management_can_emit_transfer_certificate_without_effecting_transfer(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-atestado-transferencia@ctjj.org');
 
         $this->actingAs($manager)
             ->get(route('enrollments.transfer-certificate.pdf', $enrollment))
-            ->assertRedirect(route('enrollments.documents', $enrollment));
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        $issuedBeforeTransfer = IssuedDocument::query()->where('type', 'student-transfer-certificate')->firstOrFail();
+        $this->assertSame(StudentEnrollment::STATUS_ENROLLED, $enrollment->fresh()->status);
+        $this->assertNull($enrollment->fresh()->transferred_at);
+        $this->assertSame(StudentEnrollment::STATUS_ENROLLED, $issuedBeforeTransfer->payload['enrollment_status']);
+        $this->assertNull($issuedBeforeTransfer->payload['transferred_at']);
+
+        $certificateBeforeTransfer = view('reports.certificates.transfer', [
+            'academicYear' => $year->load('school'),
+            'class' => $class->load('courses'),
+            'enrollment' => $enrollment->fresh()->load('student', 'courses', 'transferredBy'),
+            'issuedDocument' => $issuedBeforeTransfer,
+            'letterhead' => PdfLetterhead::make($year->school),
+        ])->render();
+        $this->assertStringContainsString('não altera a situação da matrícula nem efetiva a transferência', $certificateBeforeTransfer);
+        $this->assertStringNotContainsString('Data da transferência</th>', $certificateBeforeTransfer);
 
         $enrollment->update([
             'status' => StudentEnrollment::STATUS_TRANSFERRED,
@@ -993,6 +1010,10 @@ class TeacherDiaryTest extends TestCase
             ->get(route('enrollments.transfer-certificate.pdf', $enrollment->fresh()))
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf');
+
+        $issuedAfterTransfer = IssuedDocument::query()->where('type', 'student-transfer-certificate')->latest('id')->firstOrFail();
+        $this->assertSame(StudentEnrollment::STATUS_TRANSFERRED, $issuedAfterTransfer->payload['enrollment_status']);
+        $this->assertSame('2026-04-01', $issuedAfterTransfer->payload['transferred_at']);
 
         $this->assertDatabaseHas('issued_documents', [
             'type' => 'student-transfer-certificate',

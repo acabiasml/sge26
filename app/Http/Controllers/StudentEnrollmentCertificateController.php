@@ -9,6 +9,7 @@ use App\Models\SchoolClass;
 use App\Models\StudentEnrollment;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
+use App\Support\PdfMetadata;
 use App\Support\StudentAttendanceCertificateBuilder;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
@@ -136,16 +137,12 @@ class StudentEnrollmentCertificateController extends Controller
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'portrait');
 
-        return \App\Support\PdfMetadata::stream($pdf, 'beaba-atestado-frequencia-'.$scope['filename'].'-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
+        return PdfMetadata::stream($pdf, 'beaba-atestado-frequencia-'.$scope['filename'].'-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     public function transfer(Request $request, StudentEnrollment $enrollment): Response|RedirectResponse
     {
         [$academicYear, $class] = $this->context($request, $enrollment);
-
-        if ($enrollment->status !== StudentEnrollment::STATUS_TRANSFERRED || ! $enrollment->transferred_at) {
-            return $this->blocked($enrollment, __('Atestado de transferência bloqueado: registre a transferência da matrícula antes de emitir o documento.'));
-        }
 
         if ($redirect = $this->complianceRedirect($request, $academicYear, $enrollment)) {
             return $redirect;
@@ -153,6 +150,7 @@ class StudentEnrollmentCertificateController extends Controller
 
         $issuedDocument = $this->issuedDocument($request, $academicYear, $enrollment, 'student-transfer-certificate', [
             'title' => 'Atestado de transferência',
+            'enrollment_status' => $enrollment->status,
             'transferred_at' => $enrollment->transferred_at?->toDateString(),
         ]);
 
@@ -164,7 +162,7 @@ class StudentEnrollmentCertificateController extends Controller
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'portrait');
 
-        return \App\Support\PdfMetadata::stream($pdf, 'beaba-atestado-transferencia-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
+        return PdfMetadata::stream($pdf, 'beaba-atestado-transferencia-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     private function declarationPdf(
@@ -194,7 +192,7 @@ class StudentEnrollmentCertificateController extends Controller
             'statement' => $statement,
         ])->setPaper('a4', 'portrait');
 
-        return \App\Support\PdfMetadata::stream($pdf, 'beaba-'.Str::slug($title).'-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf', $title.' - '.$enrollment->student->full_name.' - Beabá');
+        return PdfMetadata::stream($pdf, 'beaba-'.Str::slug($title).'-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf', $title.' - '.$enrollment->student->full_name.' - Beabá');
     }
 
     /**
@@ -412,11 +410,11 @@ class StudentEnrollmentCertificateController extends Controller
             ],
             [
                 'title' => 'Atestado de transferência',
-                'description' => __('Emitido após registro formal de transferência.'),
+                'description' => __('Pode ser emitido antes ou depois da transferência, sem alterar a matrícula.'),
                 'route' => route('enrollments.transfer-certificate.pdf', $enrollment),
                 'icon' => 'fa-exchange-alt',
-                'enabled' => $enrollment->status === StudentEnrollment::STATUS_TRANSFERRED && $enrollment->transferred_at !== null,
-                'reason' => $enrollment->status === StudentEnrollment::STATUS_TRANSFERRED && $enrollment->transferred_at !== null ? null : __('Registre a transferência antes de emitir.'),
+                'enabled' => true,
+                'reason' => null,
             ],
             [
                 'title' => 'Ficha de matrícula',

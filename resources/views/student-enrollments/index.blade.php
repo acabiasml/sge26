@@ -206,11 +206,9 @@
                                 <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.attendance-certificate.pdf', $enrollment) }}" aria-label="{{ __('Emitir atestado de frequência de') }} {{ $enrollment->student?->full_name }}" title="{{ __('Atestado de frequência') }}">
                                     <i class="fas fa-user-check" aria-hidden="true"></i>
                                 </a>
-                                @if ($enrollment->status === \App\Models\StudentEnrollment::STATUS_TRANSFERRED)
                                     <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.transfer-certificate.pdf', $enrollment) }}" aria-label="{{ __('Emitir atestado de transferência de') }} {{ $enrollment->student?->full_name }}" title="{{ __('Atestado de transferência') }}">
                                         <i class="fas fa-exchange-alt" aria-hidden="true"></i>
                                     </a>
-                                @endif
                                 @if ($canManageEnrollments && ($enrollment->isActive() || in_array($enrollment->status, [\App\Models\StudentEnrollment::STATUS_TRANSFERRED, \App\Models\StudentEnrollment::STATUS_CANCELLED], true)))
                                     <button class="btn btn-sm btn-outline-secondary sge-icon-action" type="button" data-toggle="modal" data-target="#enrollmentMovementModal{{ $enrollment->id }}" aria-label="{{ __('Abrir movimentações da matrícula de') }} {{ $enrollment->student?->full_name }}" title="{{ __('Movimentar matrícula') }}">
                                         <i class="fas fa-random" aria-hidden="true"></i>

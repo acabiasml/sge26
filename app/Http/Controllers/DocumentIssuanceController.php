@@ -122,7 +122,7 @@ class DocumentIssuanceController extends Controller
         'transfer-certificate' => [
             'group' => 'Estudante',
             'label' => 'Atestado de transferência',
-            'description' => 'Disponível após o registro formal da transferência.',
+            'description' => 'Pode ser emitido antes ou depois da transferência, sem alterar a matrícula.',
             'target' => 'enrollment',
             'icon' => 'fa-exchange-alt',
         ],
@@ -555,10 +555,6 @@ class DocumentIssuanceController extends Controller
 
         if ($type === 'completion-declaration' && $enrollment->final_result_status !== StudentEnrollment::FINAL_APPROVED) {
             return [false, __('O resultado final precisa estar aprovado.')];
-        }
-
-        if ($type === 'transfer-certificate' && ($enrollment->status !== StudentEnrollment::STATUS_TRANSFERRED || ! $enrollment->transferred_at)) {
-            return [false, __('A transferência precisa estar registrada.')];
         }
 
         return [true, null];
