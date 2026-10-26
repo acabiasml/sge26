@@ -37,6 +37,94 @@ class TeacherDiaryTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_returning_student_report_combines_prior_enrollment_origin_sheet_and_current_diary(): void
+    {
+        [$teacher, $year, $class, $component, $first, $original] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'retorno@ctjj.org');
+        $second = $year->periods()->create(['name' => '2º Bimestre', 'starts_at' => '2026-04-11', 'ends_at' => '2026-06-30', 'position' => 2]);
+        $third = $year->periods()->create(['name' => '3º Bimestre', 'starts_at' => '2026-07-01', 'ends_at' => '2026-09-30', 'position' => 3]);
+        $fourth = $year->periods()->create(['name' => '4º Bimestre', 'starts_at' => '2026-10-01', 'ends_at' => '2026-12-18', 'position' => 4]);
+
+        $assessment = DiaryAssessment::query()->create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $first->id, 'title' => 'Nota antes da saída', 'assessment_date' => '2026-03-10']);
+        $assessment->results()->create(['student_enrollment_id' => $original->id, 'score' => 8]);
+        $lateAssessment = DiaryAssessment::query()->create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $third->id, 'title' => 'Lançamento indevido após saída', 'assessment_date' => '2026-08-10']);
+        $lateAssessment->results()->create(['student_enrollment_id' => $original->id, 'score' => 0]);
+        $original->update(['status' => StudentEnrollment::STATUS_TRANSFERRED, 'transferred_at' => '2026-04-10']);
+
+        foreach ([['2026-03-11', $first->id, $original->id, 1], ['2026-08-10', $third->id, $original->id, 0]] as [$date, $periodId, $enrollmentId, $attended]) {
+            $record = DiaryAttendanceRecord::query()->create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+                'academic_period_id' => $periodId, 'class_date' => $date, 'lesson_count' => 2]);
+            $record->entries()->create(['student_enrollment_id' => $enrollmentId, 'status' => DiaryAttendanceRecord::STATUS_PARTIAL, 'attended_lessons' => $attended]);
+        }
+
+        $returnClass = $year->classes()->create(['name' => '1º Ano B', 'active' => true]);
+        $returnClass->courses()->attach($component->course);
+        $returned = $returnClass->enrollments()->create(['person_id' => $original->person_id, 'enrolled_at' => '2026-10-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED, 'type' => StudentEnrollment::TYPE_REGULAR]);
+        $returned->courses()->attach($component->course);
+        foreach ([[$second, 7, 20, 2], [$third, 9, 25, 3]] as [$period, $score, $lessons, $absences]) {
+            $returned->periodConvalidations()->create(['academic_period_id' => $period->id, 'curriculum_component_id' => $component->id,
+                'score' => $score, 'attendance_lessons' => $lessons, 'attendance_absences' => $absences,
+                'source_school' => 'Escola fictícia', 'convalidated_at' => '2026-10-01']);
+        }
+        $currentAssessment = DiaryAssessment::query()->create(['school_class_id' => $returnClass->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $fourth->id, 'title' => 'Nota do retorno', 'assessment_date' => '2026-11-10']);
+        $currentAssessment->results()->create(['student_enrollment_id' => $returned->id, 'score' => 6]);
+        $currentRecord = DiaryAttendanceRecord::query()->create(['school_class_id' => $returnClass->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $fourth->id, 'class_date' => '2026-11-10', 'lesson_count' => 2]);
+        $currentRecord->entries()->create(['student_enrollment_id' => $returned->id, 'status' => DiaryAttendanceRecord::STATUS_PARTIAL, 'attended_lessons' => 1]);
+
+        $report = app(StudentReportCardBuilder::class)->build($returned->fresh());
+        $this->assertSame([8.0, 7.0, 9.0, 6.0], $report['periodReports']->map(fn ($period) => $period['components']->first()['average']['value'])->all());
+        $this->assertSame([1, 2, 3, 1], $report['periodReports']->map(fn ($period) => $period['components']->first()['attendance']['absent'])->all());
+        $this->assertSame(7, $report['annualAttendance']['absent']);
+        $this->assertSame(49, $report['annualAttendance']['lessons']);
+        $this->assertSame(30.0, $report['annualComponents']->first()['points']);
+
+        $certificate = app(StudentAttendanceCertificateBuilder::class)->build($returned->fresh(), $year->starts_at, $year->ends_at);
+        $this->assertSame(49, $certificate['attendance']['lessons']);
+        $this->assertSame(7, $certificate['attendance']['absent']);
+        $march = app(StudentAttendanceCertificateBuilder::class)->build($returned->fresh(), CarbonImmutable::parse('2026-03-01'), CarbonImmutable::parse('2026-03-31'));
+        $this->assertSame(2, $march['attendance']['lessons']);
+
+        $this->actingAs($manager)->get(route('enrollments.report-card.show', $returned))->assertOk()->assertSee('Escola fictícia');
+        $this->get(route('enrollments.individual-record.pdf', $returned))->assertOk()->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_returning_student_in_another_network_school_keeps_previous_period_by_series_and_component(): void
+    {
+        [$teacher, $year, $class, $component, $first, $original] = $this->diaryScenario();
+        $assessment = DiaryAssessment::query()->create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $first->id, 'title' => 'Nota da escola anterior', 'assessment_date' => '2026-03-10']);
+        $assessment->results()->create(['student_enrollment_id' => $original->id, 'score' => 8]);
+        $record = DiaryAttendanceRecord::query()->create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $first->id, 'class_date' => '2026-03-11', 'lesson_count' => 2]);
+        $record->entries()->create(['student_enrollment_id' => $original->id, 'status' => DiaryAttendanceRecord::STATUS_PARTIAL, 'attended_lessons' => 1]);
+        $original->update(['status' => StudentEnrollment::STATUS_TRANSFERRED, 'transferred_at' => '2026-04-10']);
+
+        $otherSchool = School::query()->create($this->officialSchoolData(['name' => 'Escola B']));
+        $otherYear = $otherSchool->academicYears()->create(['name' => 'Educação Básica', 'reference_year' => 2026,
+            'starts_at' => '2026-01-20', 'ends_at' => '2026-12-18', 'active' => true]);
+        $otherFirst = $otherYear->periods()->create(['name' => '1º Bimestre', 'starts_at' => '2026-02-01', 'ends_at' => '2026-04-10', 'position' => 1]);
+        $otherCourse = $otherYear->courses()->create(['name' => '1º Ano', 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
+            'status' => 'iniciado', 'class_hour_minutes' => 50, 'active' => true]);
+        $otherComponent = $otherCourse->components()->create(['name' => 'Matemática', 'weekly_lessons' => 5, 'active' => true]);
+        $otherClass = $otherYear->classes()->create(['name' => '1º Ano B', 'active' => true]);
+        $otherClass->courses()->attach($otherCourse);
+        $returned = $otherClass->enrollments()->create(['person_id' => $original->person_id, 'enrolled_at' => '2026-10-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED, 'type' => StudentEnrollment::TYPE_REGULAR]);
+        $returned->courses()->attach($otherCourse);
+
+        $report = app(StudentReportCardBuilder::class)->build($returned->fresh());
+        $this->assertSame(8.0, $report['periodReports']->firstWhere('period.id', $otherFirst->id)['components']->first()['average']['value']);
+        $this->assertSame($otherComponent->id, $report['annualComponents']->first()['component']->id);
+        $this->assertSame(1, $report['annualAttendance']['absent']);
+        $certificate = app(StudentAttendanceCertificateBuilder::class)->build($returned->fresh(), $otherYear->starts_at, $otherYear->ends_at);
+        $this->assertSame(1, $certificate['attendance']['absent']);
+    }
+
     public function test_management_saves_origin_sheet_together_and_reopens_existing_values(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();

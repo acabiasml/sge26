@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Aluno veio de outra escola no meio de um período letivo. O que fazer?</title>
+  <style>
+    @page { size: A4; margin: 15mm 16mm 14mm; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #24324a; font: 11pt/1.48 Arial, sans-serif; }
+    h1 { margin: 0 0 4mm; color: #143f6b; font-size: 25pt; line-height: 1.13; }
+    h2 { margin: 0 0 3mm; color: #143f6b; font-size: 15pt; }
+    h3 { margin: 0 0 1.5mm; font-size: 11.5pt; color: #143f6b; }
+    p { margin: 0 0 3mm; }
+    .eyebrow { color: #166b8c; font-weight: bold; font-size: 9pt; letter-spacing: .07em; text-transform: uppercase; margin-bottom: 4mm; }
+    .lead { font-size: 13pt; line-height: 1.42; margin-bottom: 6mm; }
+    .callout { border-left: 4px solid #1976a4; background: #edf6fa; padding: 4mm 5mm; margin: 5mm 0; border-radius: 0 5px 5px 0; }
+    .step { display: grid; grid-template-columns: 10mm 1fr; gap: 3mm; margin: 0 0 5mm; break-inside: avoid; }
+    .num { display: inline-grid; place-items: center; width: 9mm; height: 9mm; border-radius: 50%; background: #143f6b; color: white; font-weight: bold; }
+    .step p { margin-bottom: 0; }
+    .table { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; font-size: 9.5pt; }
+    .table th, .table td { border: 1px solid #ced8e2; text-align: left; padding: 2.5mm 3mm; vertical-align: top; }
+    .table th { background: #e7f0f6; color: #143f6b; }
+    .screen { width: 144mm; max-width: 100%; margin: 0 auto; border: 1px solid #cbd5dd; border-radius: 5px; display: block; }
+    .caption { font-size: 8.5pt; color: #4d6175; margin: 2mm 0 4mm; }
+    .page { break-after: page; min-height: 255mm; position: relative; }
+    .page:last-child { break-after: auto; }
+    .footer { position: absolute; bottom: 0; width: 100%; border-top: 1px solid #d1dce5; padding-top: 2mm; color: #607285; font-size: 8pt; display: flex; justify-content: space-between; }
+    .compact { font-size: 9.5pt; line-height: 1.38; }
+    ul { margin: 1mm 0 3mm; padding-left: 5mm; }
+    li { margin-bottom: 1.3mm; }
+    strong { color: #173e62; }
+  </style>
+</head>
+<body>
+  <section class="page">
+    <div class="eyebrow">Beabá · Guia para a secretaria escolar</div>
+    <h1>Aluno veio de outra escola no meio de um período letivo. O que fazer?</h1>
+    <p class="lead">Registre a nova matrícula, transcreva os resultados da escola de origem e confira a ficha individual gerada pelo sistema.</p>
+
+    <div class="callout"><strong>Exemplo:</strong> o estudante cursou o 1º bimestre em uma escola da rede, o 2º e o 3º em outra escola e voltou no 4º. O 1º vem da matrícula anterior; o 2º e o 3º são transcritos da ficha recebida; o 4º vem dos diários da matrícula nova.</div>
+
+    <div class="step"><span class="num">1</span><div><h3>Confira a documentação recebida</h3><p>Confirme nome do estudante, ano letivo, série, escola de origem e períodos cursados. Para cada componente, separe a <strong>média</strong>, o número de <strong>aulas</strong>, as <strong>faltas</strong> e as <strong>faltas justificadas</strong>, se houver. Mantenha o documento recebido no arquivo escolar.</p></div></div>
+    <div class="step"><span class="num">2</span><div><h3>Confira a movimentação anterior</h3><p>Se já existia matrícula no Beabá, verifique se a transferência e sua <strong>data efetiva</strong> foram registradas corretamente. Não apague essa matrícula: as notas e faltas lançadas antes da saída serão aproveitadas. Lançamentos posteriores à transferência são ignorados.</p></div></div>
+    <div class="step"><span class="num">3</span><div><h3>Faça a matrícula de entrada</h3><p>Abra <strong>Matrículas</strong>, escolha a turma de destino e a aba <strong>Nova matrícula</strong>. Selecione o <strong>mesmo estudante</strong>, informe a data real de entrada e confira a matriz da série. Se ele nunca estudou na rede, cadastre-o primeiro como pessoa/estudante.</p></div></div>
+
+    <h2>Onde fica cada informação?</h2>
+    <table class="table"><thead><tr><th>Período cursado</th><th>Fonte no Beabá</th></tr></thead><tbody>
+      <tr><td>Antes da transferência, em escola da rede</td><td>Matrícula antiga e diários já registrados</td></tr>
+      <tr><td>Em escola de fora da rede</td><td>Ficha da escola de origem, na matrícula nova</td></tr>
+      <tr><td>Depois do retorno</td><td>Diários dos professores da turma atual</td></tr>
+    </tbody></table>
+    <p class="compact"><strong>Evite duplicidade:</strong> não transcreva na ficha de origem o bimestre que já consta nos diários de uma matrícula da rede. Não use “Justificativas de ausência” para lançar faltas da escola externa.</p>
+    <div class="footer"><span>Guia operacional · dados e nomes das capturas são fictícios</span><span>1 / 3</span></div>
+  </section>
+
+  <section class="page">
+    <div class="eyebrow">Cadastro da ficha recebida</div>
+    <h2>4. Lance notas e faltas da escola de origem</h2>
+    <p class="compact">Na lista da turma, localize a <strong>matrícula nova</strong> e abra <strong>Notas e faltas da escola de origem</strong> (ícone de importação). O mesmo acesso está no boletim, em <strong>Lançar ficha da escola de origem</strong>. Informe a escola e a data do registro; preencha somente as linhas que aparecem na ficha recebida.</p>
+    <img class="screen" src="tutorial-aluno-outra-escola-assets/ficha-origem.png" alt="Tela real de teste da ficha da escola de origem, com 1º e 4º bimestres vazios e 2º e 3º preenchidos">
+    <p class="caption">Captura da tela do sistema em ambiente de teste. Exemplo: 2º bimestre, média 7,0, 20 aulas e 2 faltas; 3º bimestre, média 9,0, 25 aulas e 3 faltas.</p>
+    <p class="compact">A média aceita valores de <strong>0 a 10</strong>. Ao informar faltas, informe também o total de aulas. As faltas justificadas só devem ser preenchidas se constarem no documento recebido. Deixe vazios os bimestres cursados na rede ou ainda não cursados. Clique em <strong>Salvar ficha completa</strong>.</p>
+    <div class="footer"><span>Guia operacional · dados e nomes das capturas são fictícios</span><span>2 / 3</span></div>
+  </section>
+
+  <section class="page">
+    <div class="eyebrow">Conferência e emissão</div>
+    <h2>5. Confira o boletim e emita a ficha individual</h2>
+    <p class="compact">Abra o <strong>Boletim</strong> da matrícula nova. Confira os períodos, a frequência e o resumo anual. Na linha da matrícula ou no cabeçalho do boletim, use <strong>Ficha individual em PDF</strong>. Para conferir apenas a frequência, use <strong>Atestado de frequência</strong>.</p>
+    <img class="screen" src="tutorial-aluno-outra-escola-assets/boletim.png" alt="Tela real de teste do boletim escolar consolidado com resultados externos e frequência anual">
+    <p class="caption">No exemplo, o sistema mostra os registros da escola de origem e soma 7 faltas no ano: 1 antes da saída, 5 na escola externa e 1 após o retorno.</p>
+    <div class="callout compact"><strong>Se algo estiver diferente:</strong> confira a data da transferência anterior, a data da nova matrícula, a série/matriz, o período e as quantidades transcritas. Para corrigir a ficha recebida, volte a <strong>Notas e faltas da escola de origem</strong> e abra a ficha da escola correspondente. Em ano letivo fechado, peça à administração a correção.</div>
+    <p class="compact">Se o estudante passou por <strong>mais de uma escola externa</strong>, use <strong>Nova ficha</strong> para cada escola. Se duas escolas informarem o mesmo componente no mesmo período, procure a gestão antes de registrar: o sistema mantém um resultado por componente e período.</p>
+    <div class="footer"><span>Guia operacional · dados e nomes das capturas são fictícios</span><span>3 / 3</span></div>
+  </section>
+</body>
+</html>

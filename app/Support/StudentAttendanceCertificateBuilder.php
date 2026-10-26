@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
+use App\Models\CurriculumComponent;
 use App\Models\DiaryAttendanceJustification;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\StudentEnrollment;
@@ -13,7 +14,10 @@ use Illuminate\Support\Collection;
 
 final class StudentAttendanceCertificateBuilder
 {
-    public function __construct(private readonly AttendanceSummaryCalculator $attendanceCalculator) {}
+    public function __construct(
+        private readonly AttendanceSummaryCalculator $attendanceCalculator,
+        private readonly StudentEnrollmentContinuity $continuity,
+    ) {}
 
     /**
      * @return array{
@@ -26,6 +30,60 @@ final class StudentAttendanceCertificateBuilder
         CarbonInterface $startsAt,
         CarbonInterface $endsAt,
         ?AcademicPeriod $period = null,
+    ): array {
+        $result = $this->buildEnrollment($enrollment, $startsAt, $endsAt, $period);
+        $enrollment->loadMissing('periodConvalidations.period');
+        $covered = $enrollment->periodConvalidations
+            ->filter(fn (StudentPeriodConvalidation $item): bool => $period
+                ? $item->academic_period_id === $period->id
+                : $item->period->starts_at->toDateString() >= $startsAt->toDateString()
+                    && $item->period->ends_at->toDateString() <= $endsAt->toDateString())
+            ->map(fn (StudentPeriodConvalidation $item): string => $item->period->position.'-'.$item->curriculum_component_id)
+            ->all();
+
+        foreach ($this->continuity->previous($enrollment) as $source) {
+            $source->loadMissing('courses.components.course', 'schoolClass.academicYear.periods');
+            $excluded = $source->schoolClass->academicYear->periods
+                ->flatMap(fn (AcademicPeriod $sourcePeriod) => $source->courses
+                    ->flatMap(fn (AcademicCourse $course) => $course->components
+                        ->filter(fn ($component): bool => in_array(
+                            $sourcePeriod->position.'-'.$this->matchingCurrentComponentId($enrollment, $component),
+                            $covered,
+                            true,
+                        ))
+                        ->map(fn ($component): string => $sourcePeriod->id.'-'.$component->id)))
+                ->all();
+            $prior = $this->buildEnrollment($source, $startsAt, $endsAt, null, $excluded);
+            foreach ($result['matrices'] as $index => $matrix) {
+                $matching = $prior['matrices']->first(fn (array $item): bool => $this->continuity->courseKey($item['course']) === $this->continuity->courseKey($matrix['course']));
+                if ($matching) {
+                    $matrix['attendance'] = $this->attendanceCalculator->aggregate(collect([
+                        $matrix['attendance'], $matching['attendance'],
+                    ]));
+                    $result['matrices']->put($index, $matrix);
+                }
+            }
+        }
+        $result['attendance'] = $this->attendanceCalculator->aggregate($result['matrices']->pluck('attendance'));
+
+        return $result;
+    }
+
+    private function matchingCurrentComponentId(StudentEnrollment $enrollment, CurriculumComponent $sourceComponent): ?int
+    {
+        $enrollment->loadMissing('courses.components.course');
+
+        return $enrollment->courses->flatMap->components
+            ->first(fn ($component): bool => $this->continuity->componentKey($component) === $this->continuity->componentKey($sourceComponent))?->id;
+    }
+
+    /** @param array<int, string> $excluded */
+    private function buildEnrollment(
+        StudentEnrollment $enrollment,
+        CarbonInterface $startsAt,
+        CarbonInterface $endsAt,
+        ?AcademicPeriod $period = null,
+        array $excluded = [],
     ): array {
         $enrollment->loadMissing('courses.components');
         $courses = $enrollment->courses->sortBy('name')->values();
@@ -55,6 +113,13 @@ final class StudentAttendanceCertificateBuilder
             ->when($period, fn ($query) => $query->where('academic_period_id', $period->id))
             ->orderBy('class_date')
             ->get();
+        if ($excluded !== []) {
+            $records = $records->reject(fn (DiaryAttendanceRecord $record): bool => in_array(
+                $record->academic_period_id.'-'.$record->curriculum_component_id,
+                $excluded,
+                true,
+            ))->values();
+        }
 
         $justifications = DiaryAttendanceJustification::query()
             ->where('student_enrollment_id', $enrollment->id)
@@ -75,6 +140,13 @@ final class StudentAttendanceCertificateBuilder
                     ->whereDate('ends_at', '<=', $endsAt->toDateString())),
             )
             ->get();
+        if ($excluded !== []) {
+            $convalidations = $convalidations->reject(fn (StudentPeriodConvalidation $item): bool => in_array(
+                $item->academic_period_id.'-'.$item->curriculum_component_id,
+                $excluded,
+                true,
+            ))->values();
+        }
 
         $matrices = $courses->map(function (AcademicCourse $course) use ($records, $justifications, $convalidations): array {
             $componentIds = $course->components->where('active', true)->pluck('id');

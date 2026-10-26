@@ -2,8 +2,8 @@
 
 namespace App\Support;
 
-use App\Models\AcademicPeriod;
 use App\Models\AcademicCourse;
+use App\Models\AcademicPeriod;
 use App\Models\AcademicYear;
 use App\Models\CurriculumComponent;
 use App\Models\DiaryAssessment;
@@ -21,6 +21,7 @@ class StudentReportCardBuilder
     public function __construct(
         private readonly DiaryGradeCalculator $gradeCalculator,
         private readonly AttendanceSummaryCalculator $attendanceCalculator,
+        private readonly StudentEnrollmentContinuity $continuity,
     ) {}
 
     /**
@@ -29,6 +30,7 @@ class StudentReportCardBuilder
     public function build(StudentEnrollment $enrollment): array
     {
         $report = $this->buildEnrollment($enrollment);
+        $report = $this->includePreviousEnrollments($report);
 
         if (! $report['courses']->contains('stage', AcademicCourse::STAGE_HIGH_SCHOOL)) {
             return $report;
@@ -63,6 +65,62 @@ class StudentReportCardBuilder
         $report['annualAttendance'] = $this->attendanceCalculator->aggregate(
             $report['annualComponents']->pluck('attendance')
         );
+
+        return $report;
+    }
+
+    /**
+     * Reúne resultados de matrículas transferidas no mesmo ano e série. A ficha
+     * recebida na matrícula atual prevalece quando já informa o mesmo período.
+     *
+     * @param  array<string, mixed>  $report
+     * @return array<string, mixed>
+     */
+    private function includePreviousEnrollments(array $report): array
+    {
+        $previous = $this->continuity->previous($report['enrollment']);
+
+        if ($previous->isEmpty()) {
+            return $report;
+        }
+
+        foreach ($previous as $source) {
+            $sourceReport = $this->buildEnrollment($source);
+            foreach ($report['periodReports'] as $periodIndex => $periodReport) {
+                $sourcePeriod = $sourceReport['periodReports']->first(
+                    fn (array $item): bool => (int) $item['period']->position === (int) $periodReport['period']->position
+                );
+                if (! $sourcePeriod) {
+                    continue;
+                }
+
+                $periodReport['behavior'] ??= $sourcePeriod['behavior'];
+
+                foreach ($periodReport['components'] as $componentIndex => $componentReport) {
+                    $prior = $sourcePeriod['components']->first(
+                        fn (array $item): bool => $this->continuity->componentKey($item['component']) === $this->continuity->componentKey($componentReport['component'])
+                    );
+                    if (! $prior || $componentReport['convalidation']) {
+                        continue;
+                    }
+
+                    if (! ($componentReport['average']['complete'] ?? false) && ($prior['average']['complete'] ?? false)) {
+                        $componentReport['average'] = $prior['average'];
+                        $componentReport['assessments'] = $prior['assessments'];
+                        $componentReport['convalidation'] = $prior['convalidation'];
+                    }
+                    $componentReport['attendance'] = $this->attendanceCalculator->aggregate(collect([
+                        $componentReport['attendance'],
+                        $prior['attendance'],
+                    ]));
+                    $periodReport['components'][$componentIndex] = $componentReport;
+                }
+                $report['periodReports'][$periodIndex] = $periodReport;
+            }
+        }
+
+        $report['annualComponents'] = $this->annualComponentSummary($report['annualComponents']->pluck('component'), $report['periodReports']);
+        $report['annualAttendance'] = $this->attendanceCalculator->aggregate($report['annualComponents']->pluck('attendance'));
 
         return $report;
     }
@@ -159,7 +217,7 @@ class StudentReportCardBuilder
                             && (! $endsAt || ! $assessment->assessment_date || $assessment->assessment_date->toDateString() <= $endsAt))
                         ->values();
                     $average = $this->gradeCalculator->averages(collect([$enrollment]), $componentAssessments)[$enrollment->id];
-                    $convalidation = $periodWithinEnrollment ? $convalidations->get($period->id.'-'.$component->id) : null;
+                    $convalidation = $convalidations->get($period->id.'-'.$component->id);
 
                     if ($convalidation && ! ($average['complete'] ?? false)) {
                         $average = [
