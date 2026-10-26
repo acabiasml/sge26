@@ -22,6 +22,10 @@ on:
         description: Limpar os nomes sociais já cadastrados e conferir o total restante
         type: boolean
         default: false
+      invalidate_all_sessions:
+        description: Desconectar todos os usuários e invalidar tokens antigos de login
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -43,6 +47,7 @@ jobs:
           APPLY_PRIVATE_OWNER_MIGRATION: ${{ inputs.apply_private_owner_migration }}
           APPLY_RECLASSIFICATION_MIGRATION: ${{ inputs.apply_reclassification_migration }}
           APPLY_SOCIAL_NAME_CLEANUP: ${{ inputs.apply_social_name_cleanup }}
+          INVALIDATE_ALL_SESSIONS: ${{ inputs.invalidate_all_sessions }}
           EXPECTED_COMMIT: ${{ github.sha }}
           HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}

@@ -50,9 +50,14 @@ with tempfile.TemporaryDirectory() as directory:
                 'php artisan migrate --path=database/migrations/2026_10_23_000002_clear_existing_social_names.php --force --no-ansi',
             ))
             commands.append(('Nomes sociais cadastrados após a limpeza', count_social_names))
-        commands.append(('Migrations', 'php artisan migrate:status --no-ansi'))
         if os.environ.get('REFRESH_VIEWS') == 'true':
             commands.append(('Limpar cache das telas', 'php artisan view:clear --no-ansi'))
+        if os.environ.get('INVALIDATE_ALL_SESSIONS') == 'true':
+            commands.append((
+                'Invalidar todas as sessões',
+                'php artisan sessions:invalidate-all --force --no-ansi',
+            ))
+        commands.append(('Migrations', 'php artisan migrate:status --no-ansi'))
         for label, command in commands:
             print(f'\n--- {label} ---', flush=True)
             _, stdout, stderr = client.exec_command(
