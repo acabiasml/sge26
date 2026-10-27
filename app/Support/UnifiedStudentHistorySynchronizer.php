@@ -118,6 +118,11 @@ class UnifiedStudentHistorySynchronizer
         $attendance = $report['annualAttendance'];
         $percentage = $attendance['percentage'] ?? null;
         $isTransferred = $enrollment->status === StudentEnrollment::STATUS_TRANSFERRED;
+        $transferredBeforeYearEnd = $isTransferred && (
+            ! $enrollment->transferred_at
+            || ! $year->ends_at
+            || $enrollment->transferred_at->lt($year->ends_at)
+        );
         $withoutTranscription = $enrollment->status === StudentEnrollment::STATUS_RECLASSIFIED;
         $finalResult = $this->historicalResult($enrollment, $hasLaterEnrollment);
         $isInProgress = $finalResult === 'Cursando' && ! $year->isClosed();
@@ -215,7 +220,7 @@ class UnifiedStudentHistorySynchronizer
             $modulePeriod = $component->endsPeriod ?: $component->startsPeriod;
             $moduleConcluded = $stage === AcademicCourse::STAGE_TECHNICAL
                 && $modulePeriod?->ends_at?->copy()->endOfDay()->isPast();
-            $score = (! $isInProgress || $moduleConcluded) && $rawScore !== null
+            $score = ! $transferredBeforeYearEnd && (! $isInProgress || $moduleConcluded) && $rawScore !== null
                 ? round($rawScore, $usesLegacyScale ? 0 : 2, PHP_ROUND_HALF_UP)
                 : null;
             $componentAttendance = $componentReport['attendance'];

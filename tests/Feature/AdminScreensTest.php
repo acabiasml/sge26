@@ -1409,11 +1409,14 @@ class AdminScreensTest extends TestCase
         $this->assertSame('detailed', $systemYear->transcript_mode);
         $this->assertDatabaseHas('student_academic_history_records', [
             'student_academic_history_year_id' => $systemYear->id,
-            'score_label' => '8,00',
+            'score_label' => '-',
+            'score_numeric' => null,
         ]);
         $this->get(route('people.histories.edit', [$student, $history]))->assertOk()
             ->assertSee('Séries registradas no sistema')->assertSee('6º Ano · 2022')
-            ->assertSee('9º Ano · 2025')->assertSee('8,00');
+            ->assertSee('9º Ano · 2025')->assertDontSee('8,00');
+        $this->get(route('people.histories.show', [$student, $history]))->assertOk()
+            ->assertSee('Transferido')->assertDontSee('8,00');
         $highHistory = StudentAcademicHistory::query()->where('person_id', $student->id)
             ->where('education_stage', AcademicCourse::STAGE_HIGH_SCHOOL)->firstOrFail();
         $this->get(route('people.histories.edit', [$student, $highHistory]))->assertOk()
@@ -1453,6 +1456,16 @@ class AdminScreensTest extends TestCase
             ->assertDontSee('value="9º Ano"', false);
         $this->get(route('people.histories.pdf', [$student, $history]))
             ->assertOk()->assertHeader('content-type', 'application/pdf');
+
+        $elementaryEnrollment->update(['transferred_at' => '2025-12-18']);
+        app(UnifiedStudentHistorySynchronizer::class)->synchronize(
+            $student, $school->id, $manager->person_id, AcademicCourse::STAGE_ELEMENTARY
+        );
+        $systemYear = $history->years()->where('source', 'system')->where('grade_phase', '9º Ano')->firstOrFail();
+        $this->assertDatabaseHas('student_academic_history_records', [
+            'student_academic_history_year_id' => $systemYear->id,
+            'score_label' => '8,00',
+        ]);
     }
 
     public function test_closed_system_year_shows_recorded_grades_even_when_final_result_is_pending(): void
