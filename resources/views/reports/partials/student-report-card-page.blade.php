@@ -277,6 +277,6 @@
 
 <table class="signatures">
     <tr>
-        @include('reports.partials.signature-staff', ['signatureType' => 'pedagogical', 'signatureDate' => $issuedDocument->issued_at ?? now()])
+        @include('reports.partials.signature-staff', ['school' => $academicYear->school, 'signatureType' => 'secretarial', 'signatureDate' => $issuedDocument->issued_at ?? now()])
     </tr>
 </table>

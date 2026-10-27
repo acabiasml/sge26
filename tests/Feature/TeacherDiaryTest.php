@@ -537,6 +537,49 @@ class TeacherDiaryTest extends TestCase
         ]);
     }
 
+    public function test_individual_and_class_report_cards_use_director_and_secretary_signatures(): void
+    {
+        [, $year, , , , $enrollment] = $this->diaryScenario();
+        $names = [
+            PersonSchoolRole::POSITION_DIRECTOR => 'Helena Albuquerque',
+            PersonSchoolRole::POSITION_SECRETARY => 'Beatriz Ferreira',
+            PersonSchoolRole::POSITION_COORDINATOR => 'Carolina Ribeiro',
+        ];
+        foreach ($names as $position => $name) {
+            $person = Person::query()->create(['full_name' => $name, 'active' => true]);
+            $person->schoolRoles()->create([
+                'school_id' => $year->school_id,
+                'role' => PersonSchoolRole::ROLE_MANAGER,
+                'position' => $position,
+                'active' => true,
+            ]);
+        }
+
+        $report = app(StudentReportCardBuilder::class)->build($enrollment);
+        $document = new IssuedDocument(['issued_at' => now(), 'verification_code' => 'TESTE']);
+        $document->setRelation('issuedBy', null);
+        $data = [
+            'scoreView' => 'numeros',
+            'issuedDocument' => $document,
+            'verificationUrl' => route('documents.verify', 'TESTE'),
+            'letterhead' => PdfLetterhead::make($year->school),
+        ];
+
+        foreach ([
+            ['reports.student-report-card', ['report' => $report]],
+            ['reports.class-report-cards', ['reports' => collect([$report])]],
+        ] as [$template, $reportData]) {
+            $html = View::make($template, $data + $reportData)->render();
+
+            $this->assertStringContainsString('Helena Albuquerque', $html);
+            $this->assertStringContainsString('Beatriz Ferreira', $html);
+            $this->assertStringContainsString('Direção escolar', $html);
+            $this->assertStringContainsString('Secretaria escolar', $html);
+            $this->assertStringNotContainsString('Carolina Ribeiro', $html);
+            $this->assertStringNotContainsString('Coordenação escolar', $html);
+        }
+    }
+
     public function test_associated_matrix_repairs_current_enrollments_without_changing_history(): void
     {
         [, $year, $class, $component, , $enrollment] = $this->diaryScenario();
