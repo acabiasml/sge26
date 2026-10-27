@@ -2,14 +2,20 @@
 
 namespace Tests\Feature;
 
+use App\Models\Person;
+use App\Models\PersonSchoolRole;
+use App\Models\School;
 use App\Models\StudentAcademicHistory;
 use App\Models\StudentAcademicHistoryComponent;
 use App\Models\StudentAcademicHistoryRecord;
 use App\Models\StudentAcademicHistoryYear;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class HistoryMatrixTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_studies_table_uses_remaining_page_space_and_repeats_its_header(): void
     {
         $history = new StudentAcademicHistory(['education_stage' => 'fundamental', 'title' => 'Histórico Escolar']);
@@ -40,6 +46,63 @@ class HistoryMatrixTest extends TestCase
         $this->assertNotNull($matrixPage);
         $this->assertSame($matrixPage, $studiesPage, 'Estudos realizados deve aproveitar o espaço após a matriz.');
         $this->assertGreaterThanOrEqual(2, count($headers));
+    }
+
+    public function test_history_with_nine_years_keeps_signatures_on_the_first_page(): void
+    {
+        $school = School::query()->create(['name' => 'Escola de Jarudore']);
+        foreach ([PersonSchoolRole::POSITION_DIRECTOR => 'Maria Aparecida dos Santos de Oliveira', PersonSchoolRole::POSITION_SECRETARY => 'Maria da Conceição Ferreira de Souza'] as $position => $name) {
+            $staff = Person::query()->create(['full_name' => $name]);
+            PersonSchoolRole::query()->create([
+                'person_id' => $staff->id, 'school_id' => $school->id,
+                'role' => PersonSchoolRole::ROLE_MANAGER, 'position' => $position, 'active' => true,
+            ]);
+        }
+        $history = new StudentAcademicHistory(['education_stage' => 'fundamental', 'title' => 'Histórico escolar']);
+        $history->setRelation('school', $school);
+        $history->setRelation('years', collect(range(1, 9))->map(function (int $number): StudentAcademicHistoryYear {
+            $year = new StudentAcademicHistoryYear([
+                'label' => $number.'º Ano', 'grade_phase' => $number.'º Ano', 'year' => (string) (2016 + $number),
+                'transcript_mode' => 'detailed', 'final_result' => 'Aprovado',
+                'school_name' => 'Escola Laura Vicuña',
+                'city' => 'Poxoréu', 'state' => 'MT', 'country' => 'Brasil',
+            ]);
+            $year->id = $number;
+
+            return $year;
+        }));
+        $history->setRelation('components', collect(range(1, 9))->map(function (int $number): StudentAcademicHistoryComponent {
+            $component = new StudentAcademicHistoryComponent([
+                'name' => 'Componente curricular '.$number,
+                'formation' => $number <= 7 ? 'Formação Geral Básica' : 'Parte Diversificada',
+                'knowledge_area' => $number <= 7 ? 'Linguagens' : 'Área complementar',
+            ]);
+            $component->setRelation('records', collect(range(1, 9))->map(fn (int $year) => new StudentAcademicHistoryRecord([
+                'student_academic_history_year_id' => $year, 'score_label' => '8,00', 'workload_hours' => 80,
+            ])));
+
+            return $component;
+        }));
+        $issued = new \App\Models\IssuedDocument(['issued_at' => now(), 'verification_code' => 'PREVIA']);
+        $issued->setRelation('issuedBy', null);
+        $person = new \App\Models\Person([
+            'full_name' => 'Estudante com histórico de nove anos',
+            'birth_city' => 'Poxoréu', 'birth_state' => 'MT',
+            'mother_name' => 'Nome da mãe', 'father_name' => 'Nome do pai',
+            'address' => 'Rua da Escola', 'number' => '100', 'district' => 'Centro',
+            'city' => 'Poxoréu', 'state' => 'MT',
+        ]);
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.student-academic-history', [
+            'history' => $history, 'person' => $person, 'issuedDocument' => $issued,
+            'verificationUrl' => 'https://ctjj.org/verificar/PREVIA',
+            'letterhead' => [
+                'lines' => ['Centro Técnico Juvenil de Jarudore', 'Certificado CEBAS Educação', 'Escola de Jarudore', 'CNPJ e INEP', 'Autorização da escola'],
+                'footer_lines' => ['Tel.: (66) 3000-0000 | E-mail: escola@example.org | Site: ctjj.org', 'Endereço: Rua da Escola, 100, Poxoréu-MT'],
+            ],
+        ])->setPaper('a4', 'portrait');
+
+        $this->assertStringStartsWith('%PDF-', $pdf->output());
+        $this->assertSame(1, $pdf->getDomPDF()->getCanvas()->get_page_count());
     }
 
     public function test_cycle_heading_breaks_between_phase_and_cycle(): void
