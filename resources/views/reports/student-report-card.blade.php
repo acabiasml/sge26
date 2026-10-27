@@ -34,8 +34,9 @@
         .legend-table th { background: #f3eee9; font-weight: 600; width: 10%; }
         .legend-table td { background: #faf8f6; }
         .legend-table span { display: inline-block; margin-right: 9px; white-space: normal; }
-        .signatures { border-collapse: collapse; margin-top: 6px; page-break-inside: avoid; width: 100%; }
-        .signatures td { border: 0; font-size: 11px; padding-top: 18px; text-align: center; width: 50%; }
+        .signatures { border-collapse: collapse; margin-top: 18px; page-break-inside: avoid; width: 100%; }
+        .signatures.spacious { margin-top: 60px; }
+        .signatures td { border: 0; font-size: 11px; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 285px; padding-top: 3px; }
         .signature-name { display: block; font-weight: 600; }
         .signature-role { display: block; margin-top: 2px; }

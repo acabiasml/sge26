@@ -275,7 +275,7 @@
     @endif
 </table>
 
-<table class="signatures">
+<table class="signatures{{ $annualComponents->count() <= 18 ? ' spacious' : '' }}">
     <tr>
         @include('reports.partials.signature-staff', ['school' => $academicYear->school, 'signatureType' => 'secretarial', 'signatureDate' => $issuedDocument->issued_at ?? now()])
     </tr>

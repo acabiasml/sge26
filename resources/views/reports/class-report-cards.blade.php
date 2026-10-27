@@ -32,6 +32,7 @@
         .concept-legend { margin-top: 4px; }
         .concept-legend span { display: inline-block; margin-right: 9px; white-space: normal; }
         .signatures { border-collapse: collapse; margin-top: 18px; page-break-inside: avoid; width: 100%; }
+        .signatures.spacious { margin-top: 60px; }
         .signatures td { border: 0; font-size: 11px; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 285px; padding-top: 6px; }
         .signature-name { display: block; font-weight: 600; }

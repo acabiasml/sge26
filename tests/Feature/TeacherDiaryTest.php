@@ -651,6 +651,25 @@ class TeacherDiaryTest extends TestCase
             $single->getDomPDF()->getCanvas()->get_page_count(),
             $classPdf->getDomPDF()->getCanvas()->get_page_count(),
         ]);
+
+        $course->components()->whereIn('name', [
+            'Empreendedorismo', 'Estudos Orientados', 'Educação Financeira',
+            'Robótica Educacional', 'Educação Ambiental', 'Produção Textual', 'Práticas de Laboratório',
+        ])->delete();
+        $year->school->concepts()->createMany([
+            ['name' => 'Insuficiente grave', 'abbreviation' => 'IG', 'minimum_score' => 0, 'maximum_score' => 2, 'minimum_inclusive' => true, 'maximum_inclusive' => false, 'sort_order' => 4, 'effective_from' => '2026-01-01'],
+            ['name' => 'Ótimo', 'abbreviation' => 'O', 'minimum_score' => 8, 'maximum_score' => 9, 'minimum_inclusive' => true, 'maximum_inclusive' => false, 'sort_order' => 5, 'effective_from' => '2026-01-01'],
+        ]);
+        $spaciousReport = app(StudentReportCardBuilder::class)->build($enrollment->fresh());
+        $this->assertCount(17, $spaciousReport['annualComponents']);
+        $spaciousHtml = View::make('reports.class-report-cards', $data + ['reports' => collect([$spaciousReport])])->render();
+        $this->assertStringContainsString('class="signatures spacious"', $spaciousHtml);
+        $spaciousPdf = Pdf::loadHTML($spaciousHtml)->setPaper('a4', 'portrait');
+        $this->assertStringStartsWith('%PDF-', $spaciousPdf->output());
+        $this->assertSame(1, $spaciousPdf->getDomPDF()->getCanvas()->get_page_count());
+        $spaciousSingle = Pdf::loadView('reports.student-report-card', $data + ['report' => $spaciousReport])->setPaper('a4', 'portrait');
+        $this->assertStringStartsWith('%PDF-', $spaciousSingle->output());
+        $this->assertSame(1, $spaciousSingle->getDomPDF()->getCanvas()->get_page_count());
     }
 
     public function test_associated_matrix_repairs_current_enrollments_without_changing_history(): void
