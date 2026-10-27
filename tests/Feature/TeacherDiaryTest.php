@@ -580,6 +580,61 @@ class TeacherDiaryTest extends TestCase
         }
     }
 
+    public function test_report_cards_with_full_curriculum_keep_each_student_on_one_page(): void
+    {
+        [, $year, $class, , , $enrollment] = $this->diaryScenario();
+        $course = $class->courses()->firstOrFail();
+        foreach ([
+            ['2º Bimestre', '2026-04-11', '2026-06-30'],
+            ['3º Bimestre', '2026-07-01', '2026-09-30'],
+            ['4º Bimestre', '2026-10-01', '2026-12-18'],
+        ] as $index => [$name, $startsAt, $endsAt]) {
+            $year->periods()->create([
+                'name' => $name, 'starts_at' => $startsAt,
+                'ends_at' => $endsAt, 'position' => $index + 2,
+            ]);
+        }
+        foreach ([
+            'Língua Portuguesa', 'Língua Inglesa', 'Arte', 'Educação Física',
+            'Física', 'Química', 'Biologia', 'História', 'Geografia',
+            'Filosofia', 'Sociologia', 'Projeto de Vida',
+            'Tecnologia e Inovação', 'Educação Financeira', 'Empreendedorismo',
+            'Produção Textual', 'Robótica Educacional', 'Educação Ambiental',
+            'Estudos Orientados', 'Práticas de Laboratório',
+        ] as $name) {
+            $course->components()->create(['name' => $name, 'workload_hours' => 80, 'active' => true]);
+        }
+        foreach ([PersonSchoolRole::POSITION_DIRECTOR => 'Maria Aparecida dos Santos', PersonSchoolRole::POSITION_SECRETARY => 'Ana Cláudia Ferreira de Souza'] as $position => $name) {
+            $person = Person::query()->create(['full_name' => $name, 'active' => true]);
+            $person->schoolRoles()->create([
+                'school_id' => $year->school_id, 'role' => PersonSchoolRole::ROLE_MANAGER,
+                'position' => $position, 'active' => true,
+            ]);
+        }
+
+        $report = app(StudentReportCardBuilder::class)->build($enrollment);
+        $document = new IssuedDocument(['issued_at' => now(), 'verification_code' => 'TESTE']);
+        $document->setRelation('issuedBy', null);
+        $data = [
+            'scoreView' => 'numeros', 'issuedDocument' => $document,
+            'verificationUrl' => route('documents.verify', 'TESTE'),
+            'letterhead' => PdfLetterhead::make($year->school),
+        ];
+
+        $single = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.student-report-card', $data + ['report' => $report])->setPaper('a4', 'portrait');
+        $this->assertStringStartsWith('%PDF-', $single->output());
+
+        $secondReport = $report;
+        $secondReport['student'] = clone $report['student'];
+        $secondReport['student']->full_name = 'Segundo Estudante da Turma';
+        $classPdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.class-report-cards', $data + ['reports' => collect([$report, $secondReport])])->setPaper('a4', 'portrait');
+        $this->assertStringStartsWith('%PDF-', $classPdf->output());
+        $this->assertSame([1, 2], [
+            $single->getDomPDF()->getCanvas()->get_page_count(),
+            $classPdf->getDomPDF()->getCanvas()->get_page_count(),
+        ]);
+    }
+
     public function test_associated_matrix_repairs_current_enrollments_without_changing_history(): void
     {
         [, $year, $class, $component, , $enrollment] = $this->diaryScenario();
