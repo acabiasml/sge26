@@ -14,6 +14,7 @@ use App\Models\DiaryAttendanceJustification;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\DiaryPeriodConfirmation;
 use App\Models\IssuedDocument;
+use App\Models\KnowledgeArea;
 use App\Models\Person;
 use App\Models\PersonContact;
 use App\Models\PersonSchoolRole;
@@ -23,10 +24,13 @@ use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
 use App\Models\StudentEnrollment;
 use App\Models\User;
+use App\Support\CurriculumCatalog;
 use App\Support\PdfLetterhead;
 use App\Support\SchoolClassEnrollmentCourses;
 use App\Support\StudentAttendanceCertificateBuilder;
+use App\Support\StudentProgressSummary;
 use App\Support\StudentReportCardBuilder;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -571,6 +575,7 @@ class TeacherDiaryTest extends TestCase
         ] as [$template, $reportData]) {
             $html = View::make($template, $data + $reportData)->render();
 
+            $this->assertMatchesRegularExpression('/<td class="label">Estudante<\/td>\s*<td>[^<]+<\/td>\s*<td class="label">Nascimento<\/td>/u', $html);
             $this->assertStringContainsString('Helena Albuquerque', $html);
             $this->assertStringContainsString('Beatriz Ferreira', $html);
             $this->assertStringContainsString('Direção escolar', $html);
@@ -584,6 +589,7 @@ class TeacherDiaryTest extends TestCase
     {
         [, $year, $class, , , $enrollment] = $this->diaryScenario();
         $course = $class->courses()->firstOrFail();
+        $enrollment->student->update(['full_name' => 'Maria Eduarda de Oliveira e Albuquerque Ferreira dos Santos']);
         foreach ([
             ['2º Bimestre', '2026-04-11', '2026-06-30'],
             ['3º Bimestre', '2026-07-01', '2026-09-30'],
@@ -604,6 +610,18 @@ class TeacherDiaryTest extends TestCase
         ] as $name) {
             $course->components()->create(['name' => $name, 'workload_hours' => 80, 'active' => true]);
         }
+        $itinerary = KnowledgeArea::query()->firstOrCreate(
+            ['name' => 'Itinerários Formativos'],
+            ['formation' => CurriculumCatalog::FORMATION_ITINERARY, 'active' => true],
+        );
+        foreach (['Laboratório de Leitura', 'Pesquisa Aplicada', 'Iniciação Científica'] as $name) {
+            $course->components()->create(['name' => $name, 'knowledge_area_id' => $itinerary->id, 'workload_hours' => 80, 'active' => true]);
+        }
+        $year->school->concepts()->createMany([
+            ['name' => 'Excelente', 'abbreviation' => 'E', 'minimum_score' => 8, 'maximum_score' => 10, 'minimum_inclusive' => true, 'maximum_inclusive' => true, 'sort_order' => 1, 'effective_from' => '2026-01-01'],
+            ['name' => 'Suficiente', 'abbreviation' => 'S', 'minimum_score' => 6, 'maximum_score' => 8, 'minimum_inclusive' => true, 'maximum_inclusive' => false, 'sort_order' => 2, 'effective_from' => '2026-01-01'],
+            ['name' => 'Insuficiente', 'abbreviation' => 'I', 'minimum_score' => 0, 'maximum_score' => 6, 'minimum_inclusive' => true, 'maximum_inclusive' => false, 'sort_order' => 3, 'effective_from' => '2026-01-01'],
+        ]);
         foreach ([PersonSchoolRole::POSITION_DIRECTOR => 'Maria Aparecida dos Santos', PersonSchoolRole::POSITION_SECRETARY => 'Ana Cláudia Ferreira de Souza'] as $position => $name) {
             $person = Person::query()->create(['full_name' => $name, 'active' => true]);
             $person->schoolRoles()->create([
@@ -621,13 +639,13 @@ class TeacherDiaryTest extends TestCase
             'letterhead' => PdfLetterhead::make($year->school),
         ];
 
-        $single = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.student-report-card', $data + ['report' => $report])->setPaper('a4', 'portrait');
+        $single = Pdf::loadView('reports.student-report-card', $data + ['report' => $report])->setPaper('a4', 'portrait');
         $this->assertStringStartsWith('%PDF-', $single->output());
 
         $secondReport = $report;
         $secondReport['student'] = clone $report['student'];
         $secondReport['student']->full_name = 'Segundo Estudante da Turma';
-        $classPdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.class-report-cards', $data + ['reports' => collect([$report, $secondReport])])->setPaper('a4', 'portrait');
+        $classPdf = Pdf::loadView('reports.class-report-cards', $data + ['reports' => collect([$report, $secondReport])])->setPaper('a4', 'portrait');
         $this->assertStringStartsWith('%PDF-', $classPdf->output());
         $this->assertSame([1, 2], [
             $single->getDomPDF()->getCanvas()->get_page_count(),
@@ -2004,7 +2022,7 @@ class TeacherDiaryTest extends TestCase
         ]);
 
         $report = app(StudentReportCardBuilder::class)->build($enrollment->fresh());
-        $summary = app(\App\Support\StudentProgressSummary::class)->fromReport($report);
+        $summary = app(StudentProgressSummary::class)->fromReport($report);
         $this->assertSame(4, $summary['raw_absences']);
         $this->assertSame(2, $summary['justified_absences']);
         $this->assertSame(200, $summary['raw_absence_minutes']);
@@ -2074,7 +2092,7 @@ class TeacherDiaryTest extends TestCase
             'granted_by_person_id' => $manager->person_id,
         ]);
 
-        $summary = app(\App\Support\StudentProgressSummary::class)->fromReport(
+        $summary = app(StudentProgressSummary::class)->fromReport(
             app(StudentReportCardBuilder::class)->build($enrollment->fresh())
         );
 

@@ -14,10 +14,10 @@
         .section-title { color: #6f3a29; font-size: 11px; font-weight: 600; margin: 4px 0 2px; }
         .meta-table { border-collapse: collapse; margin-bottom: 5px; width: 100%; }
         .meta-table td { border: .45px solid #d8ccc4; padding: 1.5px 3px; vertical-align: top; }
-        .meta-table .label { background: #f3eee9; font-weight: 600; width: 18%; }
+        .meta-table .label { background: #f3eee9; font-weight: 600; }
         .student-identification td { line-height: 1.06; }
         .report-table { border-collapse: collapse; margin: 5px 0; width: 100%; }
-        .report-table th, .report-table td { border: .55px solid #111; padding: 1.8px 2.2px; vertical-align: middle; }
+        .report-table th, .report-table td { border: .55px solid #111; padding: 1px 2.2px; vertical-align: middle; }
         .report-table th { background: #f1ede9; font-size: 11px; font-weight: 600; text-align: center; }
         .report-table td { font-size: 11px; }
         .technical-regulation { margin: 5px 0; padding: 3px 5px; border: .5px solid #d8c8bf; background: #faf8f6; font-size: 11px; line-height: 1.06; page-break-inside: avoid; }
@@ -35,7 +35,7 @@
         .legend-table td { background: #faf8f6; }
         .legend-table span { display: inline-block; margin-right: 9px; white-space: normal; }
         .signatures { border-collapse: collapse; margin-top: 6px; page-break-inside: avoid; width: 100%; }
-        .signatures td { border: 0; font-size: 11px; padding-top: 40px; text-align: center; width: 50%; }
+        .signatures td { border: 0; font-size: 11px; padding-top: 18px; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 285px; padding-top: 3px; }
         .signature-name { display: block; font-weight: 600; }
         .signature-role { display: block; margin-top: 2px; }

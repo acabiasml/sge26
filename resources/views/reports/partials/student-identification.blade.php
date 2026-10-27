@@ -26,11 +26,19 @@
     <div class="section-title">IDENTIFICAÇÃO DO ESTUDANTE</div>
 @endif
 <table class="meta-table student-identification">
-    <tr>
-        <td class="label">Estudante</td>
-        <td colspan="3">{{ $identityStudent->full_name }}</td>
-    </tr>
     @if(($mode ?? 'full') === 'bulletin')
+        <colgroup>
+            <col style="width: 16%">
+            <col style="width: 53%">
+            <col style="width: 16%">
+            <col style="width: 15%">
+        </colgroup>
+        <tr>
+            <td class="label">Estudante</td>
+            <td>{{ $identityStudent->full_name }}</td>
+            <td class="label">Nascimento</td>
+            <td>{{ $identityStudent->birth_date?->format('d/m/Y') ?? '-' }}</td>
+        </tr>
         @if($identityStudent->social_name)
             <tr>
                 <td class="label">Nome social</td>
@@ -43,10 +51,6 @@
             <td class="label">INEP</td>
             <td>{{ $identityStudent->student_inep ?: '-' }}</td>
         </tr>
-        <tr>
-            <td class="label">Nascimento</td>
-            <td colspan="3">{{ $identityStudent->birth_date?->format('d/m/Y') ?? '-' }}</td>
-        </tr>
         @if(isset($academicYear, $schoolClass, $courses))
             <tr>
                 <td class="label">Turma e etapa</td>
@@ -56,6 +60,10 @@
             </tr>
         @endif
     @else
+    <tr>
+        <td class="label">Estudante</td>
+        <td colspan="3">{{ $identityStudent->full_name }}</td>
+    </tr>
     @if($identityStudent->social_name || $identityStudent->legacy_code)
         <tr>
             <td class="label">Nome social</td>
