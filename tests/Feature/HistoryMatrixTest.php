@@ -56,10 +56,10 @@ class HistoryMatrixTest extends TestCase
         $this->assertSame(43, $rows->length);
         foreach ($rows as $index => $row) {
             foreach ($xpath->query('./td[@rowspan]', $row) as $cell) {
-                $this->assertLessThanOrEqual(20 - ($index % 20), (int) $cell->getAttribute('rowspan'));
+                $this->assertLessThanOrEqual(10 - ($index % 10), (int) $cell->getAttribute('rowspan'));
             }
         }
-        $this->assertSame(3, $xpath->query('//table[contains(@class,"sge-history-read-table")]/tbody/tr/td[@data-global-year="1"]')->length);
+        $this->assertSame(5, $xpath->query('//table[contains(@class,"sge-history-read-table")]/tbody/tr/td[@data-global-year="1"]')->length);
     }
 
     public function test_technical_history_repeats_area_on_the_next_table_page(): void
@@ -78,7 +78,8 @@ class HistoryMatrixTest extends TestCase
         @$document->loadHTML('<?xml encoding="UTF-8">'.$html);
         $xpath = new \DOMXPath($document);
         $this->assertSame(21, $xpath->query('//tbody/tr')->length);
-        $this->assertSame(1, $xpath->query('//tbody/tr[1]/td[@rowspan="20"]')->length);
+        $this->assertSame(1, $xpath->query('//tbody/tr[1]/td[@rowspan="10"]')->length);
+        $this->assertSame(1, $xpath->query('//tbody/tr[11]/td[@rowspan="10"]')->length);
         $this->assertSame(1, $xpath->query('//tbody/tr[21]/td[@rowspan="1"]')->length);
     }
 

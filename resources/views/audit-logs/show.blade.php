@@ -38,7 +38,7 @@
     <div class="card shadow mb-4">
         <div class="card-header font-weight-bold">{{ __('screens.what_changed') }}</div>
         <div class="card-body table-responsive">
-            <table class="table" data-sge-client-pagination="20">
+            <table class="table" data-sge-client-pagination="10">
                 <thead>
                     <tr>
                         <th>{{ __('screens.field') }}</th>

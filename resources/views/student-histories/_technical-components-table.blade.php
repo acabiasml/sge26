@@ -6,13 +6,13 @@
 @endphp
 <div class="px-3 pt-3 small text-muted">{{ __('Cada período avaliativo concluído gera sua certificação intermediária. A conclusão de todos os períodos e demais requisitos gera o diploma técnico.') }}</div>
 <div class="table-responsive">
-    <table class="table table-sm table-bordered mb-0 sge-history-read-table" data-sge-client-pagination="20">
+    <table class="table table-sm table-bordered mb-0 sge-history-read-table" data-sge-client-pagination="10">
         <thead><tr><th>{{ __('Área') }}</th><th>{{ __('Componente') }}</th>@foreach($modules as $module)<th class="text-center">{{ \Illuminate\Support\Str::before($module, ' —') }}</th>@endforeach</tr></thead>
         <tbody>
             @forelse($technicalComponents as $component)
                 @php($record = $component->records->firstWhere('student_academic_history_year_id', $historyYear?->id))
                 <tr>
-                    @if($loop->index % 20 === 0)<td rowspan="{{ min(20, $technicalComponents->count() - $loop->index) }}" class="align-middle"><strong>{{ $technicalArea }}</strong></td>@endif
+                    @if($loop->index % 10 === 0)<td rowspan="{{ min(10, $technicalComponents->count() - $loop->index) }}" class="align-middle"><strong>{{ $technicalArea }}</strong></td>@endif
                     <td><strong>{{ $component->name }}</strong></td>
                     @foreach($modules as $module)
                         <td class="text-center">

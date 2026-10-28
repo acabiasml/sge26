@@ -16,8 +16,8 @@ use App\Support\UnifiedStudentHistorySynchronizer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -42,7 +42,7 @@ class StudentAcademicHistoryController extends Controller
             ->withCount(['studentEnrollments' => fn ($query) => $query->whereHas('schoolClass.academicYear', fn ($academicYearQuery) => $academicYearQuery->whereIn('school_id', $schoolIds))])
             ->with(['academicHistories' => fn ($query) => $query->where('is_unified', true)->withCount('years')])
             ->orderBy('full_name')
-            ->paginate(25)
+            ->paginate(10)
             ->withQueryString();
 
         return view('student-histories.index', compact('students', 'schools', 'selectedSchoolId', 'isAdministrator'));

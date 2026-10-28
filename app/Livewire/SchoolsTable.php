@@ -17,6 +17,8 @@ class SchoolsTable extends DataTableComponent
         $this->setAdditionalSelects(['schools.id as id']);
         $this->setDefaultSort('name');
         $this->setOfflineIndicatorDisabled();
+        $this->setPerPageAccepted([10]);
+        $this->setPerPageVisibilityDisabled();
     }
 
     public function builder(): Builder

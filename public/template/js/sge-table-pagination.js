@@ -18,7 +18,7 @@
 
     document.querySelectorAll('table[data-sge-client-pagination]').forEach((table, tableIndex) => {
         const body = table.tBodies[0];
-        const pageSize = Math.max(1, Number.parseInt(table.dataset.sgeClientPagination, 10) || 20);
+        const pageSize = Math.max(1, Number.parseInt(table.dataset.sgeClientPagination, 10) || 10);
 
         if (!body) {
             return;

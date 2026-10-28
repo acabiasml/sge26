@@ -210,7 +210,7 @@
 
                                     <h4 class="h6 font-weight-bold">{{ __('Substituições docentes') }}</h4>
                                     <div class="table-responsive mb-3">
-                                        <table class="table table-sm mb-0" data-sge-client-pagination="20">
+                                        <table class="table table-sm mb-0" data-sge-client-pagination="10">
                                             <thead>
                                                 <tr>
                                                     <th>{{ __('Substituição') }}</th>

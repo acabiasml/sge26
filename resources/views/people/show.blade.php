@@ -138,7 +138,7 @@
             <div class="card shadow mb-4">
                 <div class="card-header font-weight-bold">{{ __('screens.academic_enrollments') }}</div>
                 <div class="table-responsive">
-                    <table class="table mb-0" data-sge-client-pagination="20">
+                    <table class="table mb-0" data-sge-client-pagination="10">
                         <thead>
                             <tr>
                                 <th>{{ __('screens.school_year') }}</th>
@@ -195,7 +195,7 @@
                     </a>
                 </div>
                 <div class="table-responsive">
-                    <table class="table mb-0" data-sge-client-pagination="20">
+                    <table class="table mb-0" data-sge-client-pagination="10">
                         <thead>
                             <tr>
                                 <th>{{ __('screens.document') }}</th>
@@ -252,7 +252,7 @@
             <div class="card shadow mb-4">
                 <div class="card-header font-weight-bold">{{ __('screens.roles_relationships') }}</div>
                 <div class="table-responsive">
-                    <table class="table mb-0" data-sge-client-pagination="20">
+                    <table class="table mb-0" data-sge-client-pagination="10">
                         <thead>
                             <tr>
                                 <th>{{ __('screens.role') }}</th>
@@ -441,7 +441,7 @@
                 </div>
 
                 <div class="table-responsive">
-                    <table id="contacts-table" class="table mb-0" data-sge-client-pagination="20">
+                    <table id="contacts-table" class="table mb-0" data-sge-client-pagination="10">
                         <thead>
                             <tr>
                                 <th>{{ __('screens.name') }}</th>

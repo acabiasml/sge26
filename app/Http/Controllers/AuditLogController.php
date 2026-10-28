@@ -46,7 +46,7 @@ class AuditLogController extends Controller
         $records = AuditLog::query()->with(['actorUser', 'actorPerson', 'school'])
             ->whereBetween('id', [$group->first_id, $group->id])
             ->when(! $request->user()->isAdministrator(), fn ($query) => $query->whereIn('school_id', $request->user()->manageableSchoolIds()))
-            ->orderByDesc('id')->paginate(30);
+            ->orderByDesc('id')->paginate(10);
 
         return view('audit-logs.group', ['group' => $group, 'records' => $records, 'auditTimezone' => $request->user()->auditTimezone()]);
     }

@@ -23,7 +23,7 @@ class AnnouncementController extends Controller
                 ->with('school')
                 ->when(! $request->user()->isAdministrator(), fn (Builder $query) => $query->whereIn('school_id', $request->user()->manageableSchoolIds()))
                 ->latest('starts_at')
-                ->paginate(20),
+                ->paginate(10),
             'schools' => $this->schools($request),
         ]);
     }

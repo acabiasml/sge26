@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CurriculumComponent;
 use App\Models\KnowledgeArea;
 use App\Models\StudentAcademicHistoryComponent;
-use App\Models\CurriculumComponent;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 use App\Support\CurriculumCatalog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class KnowledgeAreaController extends Controller
 {
@@ -34,7 +34,7 @@ class KnowledgeAreaController extends Controller
                 ->where('formation', $filters['formation'] ?? null)
                 ->where('knowledge_area', $filters['area'] ?? null)
                 ->with(['history.student', 'history.school'])->orderBy('student_academic_history_id')->orderBy('name')
-                ->paginate(25)->withQueryString(),
+                ->paginate(10)->withQueryString(),
             'formation' => $filters['formation'] ?? '—',
             'area' => $filters['area'] ?? '—',
         ]);
@@ -62,7 +62,7 @@ class KnowledgeAreaController extends Controller
 
         return view('knowledge-areas.usages', [
             'area' => $area->loadCount('components'),
-            'components' => $area->components()->with('course.academicYear.school')->orderBy('name')->paginate(25),
+            'components' => $area->components()->with('course.academicYear.school')->orderBy('name')->paginate(10),
         ]);
     }
 

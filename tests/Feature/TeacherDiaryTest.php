@@ -2095,8 +2095,12 @@ class TeacherDiaryTest extends TestCase
             ->assertSee('class='.$class->id, false);
         $this->get(route('attendance-justifications.index', $filters + ['page' => 2]))
             ->assertOk()
-            ->assertSee('Justificativa 01')
+            ->assertSee('Justificativa 11')
             ->assertDontSee('Justificativa 21');
+        $this->get(route('attendance-justifications.index', $filters + ['page' => 3]))
+            ->assertOk()
+            ->assertSee('Justificativa 01')
+            ->assertDontSee('Justificativa 11');
     }
 
     public function test_management_can_edit_absence_justification_and_see_its_edit_history(): void

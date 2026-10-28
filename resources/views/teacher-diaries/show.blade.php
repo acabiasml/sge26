@@ -156,7 +156,7 @@
                         @method('PUT')
                         <input type="hidden" name="academic_period_id" value="{{ $period->id }}">
                         <div class="table-responsive">
-                            <table class="table table-sm table-bordered" data-sge-client-pagination="20" style="table-layout:fixed; min-width:{{ 440 + $assessments->count() * 140 }}px">
+                            <table class="table table-sm table-bordered" data-sge-client-pagination="10" style="table-layout:fixed; min-width:{{ 440 + $assessments->count() * 140 }}px">
                                 <colgroup><col style="width:240px">@foreach($assessments as $assessment)<col>@endforeach<col style="width:200px"></colgroup>
                                 <thead>
                                     <tr>

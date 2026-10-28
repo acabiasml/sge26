@@ -33,6 +33,8 @@ class AuditLogsTable extends DataTableComponent
         ]);
         $this->setDefaultSort('created_at', 'desc');
         $this->setOfflineIndicatorDisabled();
+        $this->setPerPageAccepted([10]);
+        $this->setPerPageVisibilityDisabled();
     }
 
     public function builder(): Builder

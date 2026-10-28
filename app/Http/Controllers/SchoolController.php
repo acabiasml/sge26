@@ -21,7 +21,7 @@ class SchoolController extends Controller
             'schools' => School::query()
                 ->when(! $request->user()->isAdministrator(), fn ($query) => $query->whereIn('id', $request->user()->manageableSchoolIds()))
                 ->orderBy('name')
-                ->paginate(15),
+                ->paginate(10),
         ]);
     }
 

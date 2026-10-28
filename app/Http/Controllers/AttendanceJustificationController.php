@@ -62,7 +62,7 @@ class AttendanceJustificationController extends Controller
                     ->when(! $request->user()->isAdministrator(), fn ($classes) => $classes->operational()))
                 ->orderByDesc('starts_at')
                 ->orderByDesc('id')
-                ->paginate(20)
+                ->paginate(10)
                 ->withQueryString()
                 ->fragment('section-registradas')
             : collect();

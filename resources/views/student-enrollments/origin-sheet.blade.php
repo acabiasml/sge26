@@ -43,7 +43,7 @@
         <details class="card shadow mb-3" open>
             <summary class="card-header font-weight-bold">{{ $period->name }}</summary>
             <div class="card-body table-responsive">
-                <table class="table table-sm table-bordered mb-0" data-sge-client-pagination="20">
+                <table class="table table-sm table-bordered mb-0" data-sge-client-pagination="10">
                     <caption class="sr-only">{{ $period->name }} — {{ __('Resultados da escola de origem') }}</caption>
                     <thead><tr><th scope="col">{{ __('Componente') }}</th><th scope="col">{{ __('Média') }}</th><th scope="col">{{ __('Aulas') }}</th><th scope="col">{{ __('Faltas') }}</th><th scope="col">{{ __('Faltas justificadas') }}</th></tr></thead>
                     <tbody>

@@ -31,7 +31,7 @@ class PersonController extends Controller
         }
 
         return view('people.index', [
-            'people' => $query->paginate(15),
+            'people' => $query->paginate(10),
         ]);
     }
 

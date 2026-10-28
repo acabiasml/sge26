@@ -19,6 +19,8 @@ class PeopleTable extends DataTableComponent
         $this->setDefaultSort('full_name');
         $this->setSearchDebounce(250);
         $this->setOfflineIndicatorDisabled();
+        $this->setPerPageAccepted([10]);
+        $this->setPerPageVisibilityDisabled();
     }
 
     public function builder(): Builder

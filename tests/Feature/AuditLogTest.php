@@ -271,8 +271,9 @@ class AuditLogTest extends TestCase
         $this->assertSame(1, $groups->total());
         $this->assertSame(37, (int) $groups->first()->group_count);
         $this->assertSame($first->id, (int) $groups->first()->first_id);
-        $this->actingAs($admin)->get(route('audit-logs.group', $last))->assertOk()->assertViewHas('records', fn ($records) => $records->total() === 37 && $records->count() === 30);
-        $this->get(route('audit-logs.group', [$last, 'page' => 2]))->assertOk()->assertViewHas('records', fn ($records) => $records->count() === 7);
+        $this->actingAs($admin)->get(route('audit-logs.group', $last))->assertOk()->assertViewHas('records', fn ($records) => $records->total() === 37 && $records->count() === 10);
+        $this->get(route('audit-logs.group', [$last, 'page' => 2]))->assertOk()->assertViewHas('records', fn ($records) => $records->count() === 10);
+        $this->get(route('audit-logs.group', [$last, 'page' => 4]))->assertOk()->assertViewHas('records', fn ($records) => $records->count() === 7);
     }
 
     public function test_audit_grouping_respects_actor_action_sequence_time_and_attendance_context(): void
