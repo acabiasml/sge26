@@ -56,6 +56,11 @@ with tempfile.TemporaryDirectory() as directory:
                 'Aplicar migration do histórico das justificativas de ausência',
                 'php artisan migrate --path=database/migrations/2026_10_28_000001_track_attendance_justification_edits.php --force --no-ansi',
             ))
+        if os.environ.get('APPLY_ROLE_VIEW_MIGRATION') == 'true':
+            commands.append((
+                'Aplicar migration da preferência de visão do sistema',
+                'php artisan migrate --path=database/migrations/2026_10_28_000002_add_preferred_role_view_to_users_table.php --force --no-ansi',
+            ))
         if os.environ.get('REFRESH_VIEWS') == 'true':
             commands.append(('Limpar cache das telas', 'php artisan view:clear --no-ansi'))
         if os.environ.get('INVALIDATE_ALL_SESSIONS') == 'true':

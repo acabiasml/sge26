@@ -106,7 +106,7 @@ class StudentMapController extends Controller
             ->limit(12)
             ->get();
 
-        $isOwnStudentMap = $request->user()->person_id === $person->id;
+        $isOwnStudentMap = $request->user()->person_id === $person->id && $request->user()->hasStudentMap();
 
         return view('student-map.show', [
             'person' => $person,
@@ -126,7 +126,7 @@ class StudentMapController extends Controller
     {
         $user = $request->user();
 
-        if ($user->person_id === $person->id) {
+        if ($user->person_id === $person->id && $user->hasStudentMap()) {
             return true;
         }
 

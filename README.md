@@ -82,6 +82,7 @@ Regras principais:
 - dados sensíveis possuem restrições de autoedição;
 - a última Administração ativa não pode ser removida ou desativada;
 - ações de Gestão são limitadas às escolas vinculadas;
+- quando a pessoa possui mais de um papel ativo, o seletor ao lado do tema escolhe a visão persistida do sistema; menus, dados e permissões seguem apenas o papel escolhido. Se esse vínculo perder a vigência, o sistema usa o próximo papel ativo;
 - a Administração pode retirar fechamentos, reativar anos inativos e alterar diários confirmados, matrículas e movimentações; bloqueios por estado acadêmico não impedem essas ações administrativas. As validações de integridade e a auditoria continuam aplicáveis.
 
 O provisionamento de contas Google Workspace é opcional e depende de `GOOGLE_WORKSPACE_ENABLED` e das credenciais administrativas configuradas no ambiente.

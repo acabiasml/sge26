@@ -15,6 +15,7 @@ return [
     'announcements' => 'Recados', 'administration' => 'Administração', 'audit' => 'Auditoria',
     'close_sidebar' => 'Fechar menu lateral', 'topbar' => 'Barra superior',
     'toggle_sidebar' => 'Abrir ou recolher menu lateral', 'language' => 'Idioma da interface',
+    'system_view' => 'Visão do sistema', 'current_view' => 'Visão atual: :role',
     'portuguese' => 'Português do Brasil', 'italian' => 'Italiano',
     'change_to_portuguese' => 'Usar a interface em português do Brasil',
     'change_to_italian' => 'Usar a interface em italiano', 'open_alerts' => 'Abrir alertas',

@@ -46,6 +46,7 @@ class User extends Authenticatable
         'audit_timezone',
         'locale',
         'theme',
+        'preferred_role_view',
         'google_id',
         'avatar',
         'email_verified_at',
@@ -95,14 +96,53 @@ class User extends Authenticatable
 
     public function hasActiveRole(string $role, ?int $schoolId = null): bool
     {
-        if (! $this->person) {
+        if ($this->currentView() !== $role) {
             return false;
         }
 
+        return $schoolId === null || $this->hasActualActiveRole($role, $schoolId);
+    }
+
+    /** @return list<string> */
+    public function availableViews(): array
+    {
+        if (! $this->person) {
+            return [];
+        }
+
+        return $this->person->schoolRoles()
+            ->where('active', true)
+            ->where(function ($query): void {
+                $query->whereNull('started_at')
+                    ->orWhereDate('started_at', '<=', now()->toDateString());
+            })
+            ->where(function ($query): void {
+                $query->whereNull('ended_at')
+                    ->orWhereDate('ended_at', '>=', now()->toDateString());
+            })
+            ->pluck('role')
+            ->unique()
+            ->filter(fn (string $role): bool => isset(PersonSchoolRole::ROLE_PRIORITY[$role]))
+            ->sortByDesc(fn (string $role): int => PersonSchoolRole::ROLE_PRIORITY[$role])
+            ->values()
+            ->all();
+    }
+
+    public function currentView(): ?string
+    {
+        $views = $this->availableViews();
+
+        return in_array($this->preferred_role_view, $views, true)
+            ? $this->preferred_role_view
+            : ($views[0] ?? null);
+    }
+
+    private function hasActualActiveRole(string $role, int $schoolId): bool
+    {
         return $this->person->schoolRoles()
             ->where('role', $role)
+            ->where('school_id', $schoolId)
             ->where('active', true)
-            ->when($schoolId !== null, fn ($query) => $query->where('school_id', $schoolId))
             ->where(function ($query): void {
                 $query->whereNull('started_at')
                     ->orWhereDate('started_at', '<=', now()->toDateString());
@@ -119,7 +159,7 @@ class User extends Authenticatable
      */
     public function manageableSchoolIds(): array
     {
-        if (! $this->person) {
+        if (! $this->person || $this->currentView() !== PersonSchoolRole::ROLE_MANAGER) {
             return [];
         }
 
@@ -149,9 +189,12 @@ class User extends Authenticatable
             return [];
         }
 
+        $view = $this->currentView();
+
         return $this->person->schoolRoles()
             ->where('active', true)
             ->whereNotNull('school_id')
+            ->when($view !== null, fn ($query) => $query->where('role', $view))
             ->where(function ($query): void {
                 $query->whereNull('started_at')
                     ->orWhereDate('started_at', '<=', now()->toDateString());
@@ -205,6 +248,11 @@ class User extends Authenticatable
 
     public function hasTeachingDiaries(): bool
     {
+        $view = $this->currentView();
+        if ($view !== null && $view !== PersonSchoolRole::ROLE_TEACHER) {
+            return false;
+        }
+
         if (! $this->person_id) {
             return false;
         }
@@ -230,6 +278,11 @@ class User extends Authenticatable
 
     public function hasStudentMap(): bool
     {
+        $view = $this->currentView();
+        if ($view !== null && $view !== PersonSchoolRole::ROLE_STUDENT) {
+            return false;
+        }
+
         if (! $this->person_id) {
             return false;
         }
@@ -257,7 +310,9 @@ class User extends Authenticatable
 
     public function activeRoleLabel(): string
     {
-        $role = $this->person?->loadMissing('schoolRoles.school')->primaryActiveRole();
+        $view = $this->currentView();
+        $role = $this->person?->loadMissing('schoolRoles.school')->schoolRoles
+            ->first(fn (PersonSchoolRole $role): bool => $role->role === $view && $role->isActiveForDate());
 
         if (! $role) {
             return __('roles.no_active_role');

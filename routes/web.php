@@ -30,6 +30,7 @@ use App\Http\Controllers\PersonRoleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RecordPdfController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\RoleViewController;
 use App\Http\Controllers\SchoolAcademicYearController;
 use App\Http\Controllers\SchoolClassComponentController;
 use App\Http\Controllers\SchoolClassController;
@@ -68,6 +69,7 @@ Route::get('/dashboard', DashboardController::class)->middleware(['auth', 'profi
 Route::get('/meu-cadastro', [ProfileController::class, 'edit'])->middleware('auth')->name('profile.edit');
 Route::put('/meu-cadastro', [ProfileController::class, 'update'])->middleware('auth')->name('profile.update');
 Route::patch('/tema', [ThemeController::class, 'update'])->middleware('auth')->name('theme.update');
+Route::patch('/visao', [RoleViewController::class, 'update'])->middleware('auth')->name('role-view.update');
 Route::patch('/idioma', [LocaleController::class, 'update'])->middleware('auth')->name('locale.update');
 
 Route::post('recados/{announcement}/visto', [AnnouncementController::class, 'seen'])->middleware('auth')->name('announcements.seen');

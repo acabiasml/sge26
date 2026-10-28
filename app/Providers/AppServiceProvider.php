@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Announcement;
 use App\Models\DiaryAlert;
+use App\Models\PersonSchoolRole;
 use App\Models\User;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Database\Eloquent\Builder;
@@ -87,14 +88,16 @@ class AppServiceProvider extends ServiceProvider
             session(['announcements_presented' => array_values(array_unique(array_merge($shown, $highlighted->modelKeys())))]);
             $view->with('highlightedAnnouncements', $highlighted);
 
-            $diaryAlerts = DiaryAlert::query()
-                ->with(['fromPerson', 'schoolClass', 'component', 'period'])
-                ->where('to_person_id', $user->person_id)
-                ->whereNull('resolved_at')
-                ->whereNull('dismissed_at')
-                ->latest()
-                ->limit(5)
-                ->get();
+            $diaryAlerts = $user->hasActiveRole(PersonSchoolRole::ROLE_TEACHER) || $user->hasTeachingDiaries()
+                ? DiaryAlert::query()
+                    ->with(['fromPerson', 'schoolClass', 'component', 'period'])
+                    ->where('to_person_id', $user->person_id)
+                    ->whereNull('resolved_at')
+                    ->whereNull('dismissed_at')
+                    ->latest()
+                    ->limit(5)
+                    ->get()
+                : collect();
 
             $view->with([
                 'topbarAnnouncements' => $announcements,

@@ -275,6 +275,37 @@
                     </button>
 
                     <ul class="navbar-nav ml-auto">
+                        @php
+                            $availableRoleViews = $currentUser->availableViews();
+                            $currentRoleView = $currentUser->currentView();
+                        @endphp
+                        @if (count($availableRoleViews) > 1)
+                            <li class="nav-item dropdown no-arrow sge-theme-switcher">
+                                <button class="nav-link btn btn-link dropdown-toggle sge-topbar-icon-button" type="button" id="roleViewDropdown"
+                                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                                    aria-label="{{ __('navigation.current_view', ['role' => __('roles.roles.'.$currentRoleView)]) }}"
+                                    title="{{ __('navigation.current_view', ['role' => __('roles.roles.'.$currentRoleView)]) }}">
+                                    <i class="fas fa-user-tag" aria-hidden="true"></i>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-right shadow" aria-labelledby="roleViewDropdown">
+                                    <h2 class="dropdown-header">{{ __('navigation.system_view') }}</h2>
+                                    @foreach ($availableRoleViews as $roleView)
+                                        <form method="POST" action="{{ route('role-view.update') }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="hidden" name="role_view" value="{{ $roleView }}">
+                                            <button type="submit" class="dropdown-item d-flex align-items-center justify-content-between"
+                                                aria-pressed="{{ $currentRoleView === $roleView ? 'true' : 'false' }}">
+                                                <span>{{ __('roles.roles.'.$roleView) }}</span>
+                                                @if ($currentRoleView === $roleView)
+                                                    <i class="fas fa-check ml-3" aria-hidden="true"></i>
+                                                @endif
+                                            </button>
+                                        </form>
+                                    @endforeach
+                                </div>
+                            </li>
+                        @endif
                         <li class="nav-item dropdown no-arrow sge-theme-switcher">
                             <button class="nav-link btn btn-link dropdown-toggle sge-topbar-icon-button" type="button" id="themeDropdown"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="{{ __('theme.label') }}" title="{{ __('theme.label') }}">

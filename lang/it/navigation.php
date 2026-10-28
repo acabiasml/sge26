@@ -34,6 +34,8 @@ return [
     'close_sidebar' => 'Chiudi menu laterale',
     'topbar' => 'Barra superiore',
     'toggle_sidebar' => 'Apri o comprimi il menu laterale',
+    'system_view' => 'Vista del sistema',
+    'current_view' => 'Vista attuale: :role',
     'language' => 'Lingua dell’interfaccia',
     'portuguese' => 'Português do Brasil',
     'italian' => 'Italiano',

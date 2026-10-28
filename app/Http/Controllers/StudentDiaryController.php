@@ -11,6 +11,7 @@ use App\Models\SchoolClassScheduleSlot;
 use App\Models\StudentBehaviorGrade;
 use App\Models\StudentEnrollment;
 use App\Support\PdfLetterhead;
+use App\Support\PdfMetadata;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -21,6 +22,7 @@ class StudentDiaryController extends Controller
 {
     public function index(Request $request): View
     {
+        $this->authorizeStudentView($request);
         $enrollments = StudentEnrollment::query()
             ->with(['schoolClass.academicYear.school', 'schoolClass.courses.components.area'])
             ->where('person_id', $request->user()->person_id)
@@ -31,6 +33,7 @@ class StudentDiaryController extends Controller
 
     public function show(Request $request, StudentEnrollment $enrollment, CurriculumComponent $component): View
     {
+        $this->authorizeStudentView($request);
         abort_unless($enrollment->person_id === $request->user()->person_id, 403);
         $enrollment->load('schoolClass.academicYear.school.concepts', 'schoolClass.courses');
         abort_unless($enrollment->schoolClass->courses->contains('id', $component->academic_course_id), 404);
@@ -58,6 +61,7 @@ class StudentDiaryController extends Controller
 
     public function schedule(Request $request, StudentEnrollment $enrollment): View
     {
+        $this->authorizeStudentView($request);
         $this->authorizeEnrollment($request, $enrollment);
         $enrollment->load([
             'student',
@@ -75,6 +79,7 @@ class StudentDiaryController extends Controller
 
     public function schedulePdf(Request $request, StudentEnrollment $enrollment): Response
     {
+        $this->authorizeStudentView($request);
         $this->authorizeEnrollment($request, $enrollment);
         $enrollment->load([
             'student',
@@ -95,12 +100,17 @@ class StudentDiaryController extends Controller
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'landscape');
 
-        return \App\Support\PdfMetadata::stream($pdf, 'beaba-horario-estudante-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
+        return PdfMetadata::stream($pdf, 'beaba-horario-estudante-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     private function authorizeEnrollment(Request $request, StudentEnrollment $enrollment): void
     {
         abort_unless($enrollment->person_id === $request->user()->person_id, 403);
+    }
+
+    private function authorizeStudentView(Request $request): void
+    {
+        abort_unless($request->user()->hasStudentMap(), 403);
     }
 
     private function issuedScheduleDocument(Request $request, StudentEnrollment $enrollment): IssuedDocument

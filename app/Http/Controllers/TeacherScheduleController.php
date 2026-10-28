@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\IssuedDocument;
+use App\Models\PersonSchoolRole;
 use App\Models\SchoolClassComponent;
 use App\Models\SchoolClassScheduleSlot;
 use App\Support\PdfLetterhead;
+use App\Support\PdfMetadata;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -18,6 +20,7 @@ class TeacherScheduleController extends Controller
 {
     public function index(Request $request): View
     {
+        $this->authorizeTeacherView($request);
         $personId = $request->user()->person_id;
 
         return view('teacher-schedules.index', [
@@ -28,6 +31,7 @@ class TeacherScheduleController extends Controller
 
     public function pdf(Request $request): Response
     {
+        $this->authorizeTeacherView($request);
         $person = $request->user()->person;
         $slots = $this->slotsForTeacher($request->user()->person_id);
         $school = $slots->first()?->schedule?->schoolClass?->academicYear?->school;
@@ -42,7 +46,7 @@ class TeacherScheduleController extends Controller
             'letterhead' => PdfLetterhead::make($school),
         ])->setPaper('a4', 'landscape');
 
-        return \App\Support\PdfMetadata::stream($pdf, 'beaba-meu-horario-'.now()->format('Ymd-His').'.pdf');
+        return PdfMetadata::stream($pdf, 'beaba-meu-horario-'.now()->format('Ymd-His').'.pdf');
     }
 
     private function slotsForTeacher(?int $personId): Collection
@@ -90,6 +94,11 @@ class TeacherScheduleController extends Controller
                 ['schedule.schoolClass.name', 'asc'],
             ])
             ->values();
+    }
+
+    private function authorizeTeacherView(Request $request): void
+    {
+        abort_unless($request->user()->hasActiveRole(PersonSchoolRole::ROLE_TEACHER) || $request->user()->hasTeachingDiaries(), 403);
     }
 
     private function issuedDocument(Request $request, ?int $schoolId, int $slotCount): IssuedDocument

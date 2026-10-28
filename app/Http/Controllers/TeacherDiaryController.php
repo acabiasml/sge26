@@ -14,6 +14,7 @@ use App\Models\DiaryAttendanceRecord;
 use App\Models\DiaryContent;
 use App\Models\DiaryPeriodConfirmation;
 use App\Models\IssuedDocument;
+use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\SchoolAssessmentRule;
 use App\Models\SchoolClass;
@@ -45,6 +46,8 @@ class TeacherDiaryController extends Controller
         if ($user->isAdministrator() || $user->isManager()) {
             return $this->managementIndex($request, new DiaryPeriodStatus);
         }
+
+        abort_unless($user->hasActiveRole(PersonSchoolRole::ROLE_TEACHER) || $user->hasTeachingDiaries(), 403);
 
         $assignments = SchoolClassComponent::query()
             ->with(['component.area', 'component.course.academicYear.school', 'schoolClass'])
@@ -1042,6 +1045,7 @@ class TeacherDiaryController extends Controller
 
     public function dismissAlert(Request $request, DiaryAlert $alert): RedirectResponse
     {
+        abort_unless($request->user()->hasActiveRole(PersonSchoolRole::ROLE_TEACHER) || $request->user()->hasTeachingDiaries(), 403);
         abort_unless($alert->to_person_id === $request->user()->person_id, 403);
 
         $alert->update([
@@ -1070,6 +1074,7 @@ class TeacherDiaryController extends Controller
             return;
         }
 
+        abort_unless($request->user()->hasActiveRole(PersonSchoolRole::ROLE_TEACHER) || $request->user()->hasTeachingDiaries(), 403);
         abort_unless($this->teacherCanAccess($request->user()->person_id, $assignment), 403);
     }
 
