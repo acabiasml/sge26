@@ -18,20 +18,18 @@
 
     document.querySelectorAll('table[data-sge-client-pagination]').forEach((table, tableIndex) => {
         const body = table.tBodies[0];
-        const rows = body ? Array.from(body.rows) : [];
         const pageSize = Math.max(1, Number.parseInt(table.dataset.sgeClientPagination, 10) || 20);
 
-        if (rows.length <= pageSize) {
+        if (!body) {
             return;
         }
 
-        const pageCount = Math.ceil(rows.length / pageSize);
         table.id ||= `sge-paginated-table-${tableIndex + 1}`;
         const tableLabel = table.getAttribute('aria-label')
             || table.querySelector('caption')?.textContent
             || table.closest('.card')?.querySelector('h2, h3')?.textContent;
         const navigation = document.createElement('nav');
-        navigation.className = 'd-flex flex-wrap align-items-center justify-content-between mt-3';
+        navigation.className = 'flex-wrap align-items-center justify-content-between mt-3';
         navigation.setAttribute('aria-label', tableLabel
             ? `${labels.navigation}: ${tableLabel.trim()}`
             : `${labels.navigation} ${tableIndex + 1}`);
@@ -61,19 +59,38 @@
         pageSelect.setAttribute('aria-label', labels.goToPage);
         pageSelect.setAttribute('aria-controls', table.id);
 
-        for (let number = 1; number <= pageCount; number++) {
-            const option = document.createElement('option');
-            option.value = String(number);
-            option.textContent = format(labels.page, { current: number, total: pageCount });
-            pageSelect.appendChild(option);
-        }
-
         controls.append(previous, pageSelect, next);
         navigation.append(status, controls);
         (table.closest('.table-responsive') || table).after(navigation);
 
         let currentPage = 1;
-        const render = () => {
+        let previousPageCount = 0;
+        const render = (showLastPage = false) => {
+            const rows = Array.from(body.rows);
+            const pageCount = Math.ceil(rows.length / pageSize);
+            const hasPages = pageCount > 1;
+            navigation.classList.toggle('d-flex', hasPages);
+            navigation.hidden = !hasPages;
+
+            if (!hasPages) {
+                currentPage = 1;
+                rows.forEach((row) => { row.hidden = false; });
+                previousPageCount = pageCount;
+                return;
+            }
+
+            if (pageCount !== previousPageCount) {
+                pageSelect.replaceChildren();
+                for (let number = 1; number <= pageCount; number++) {
+                    const option = document.createElement('option');
+                    option.value = String(number);
+                    option.textContent = format(labels.page, { current: number, total: pageCount });
+                    pageSelect.appendChild(option);
+                }
+                previousPageCount = pageCount;
+            }
+
+            currentPage = showLastPage ? pageCount : Math.min(currentPage, pageCount);
             const first = (currentPage - 1) * pageSize;
             const last = Math.min(first + pageSize, rows.length);
             rows.forEach((row, index) => { row.hidden = index < first || index >= last; });
@@ -99,5 +116,10 @@
         });
 
         render();
+        new MutationObserver((changes) => {
+            const rowAdded = changes.some((change) => Array.from(change.addedNodes)
+                .some((node) => node.nodeName === 'TR'));
+            render(rowAdded);
+        }).observe(body, { childList: true });
     });
 }());

@@ -263,7 +263,7 @@
                     <span><strong>{{ __('Carga horária e resultado final') }}</strong> {{ __('são informados no cartão do ano; transcrições por componente ficam nos dados complementares.') }}</span>
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-bordered table-sm sge-history-edit-table" id="history-components">
+                    <table class="table table-bordered table-sm sge-history-edit-table" id="history-components" data-sge-client-pagination="20">
                         <thead>
                             <tr>
                                 <th style="min-width: 150px;">{{ __('Formação') }}</th>
@@ -434,11 +434,11 @@ document.addEventListener('DOMContentLoaded', function () {
             rows.forEach(function (row, rowIndex) {
                 const cell = row.querySelectorAll('[data-history-record-cell]')[yearIndex];
                 if (!cell) return;
-                cell.hidden = mode !== 'detailed' && rowIndex > 0;
+                cell.hidden = mode !== 'detailed' && rowIndex % 20 !== 0;
                 cell.style.display = cell.hidden ? 'none' : '';
-                cell.rowSpan = mode !== 'detailed' && rowIndex === 0 ? rows.length : 1;
+                cell.rowSpan = mode !== 'detailed' && !cell.hidden ? Math.min(20, rows.length - rowIndex) : 1;
                 cell.querySelectorAll('.sge-history-record-grid, details').forEach(grid => { grid.hidden = mode !== 'detailed'; grid.style.display = grid.hidden ? 'none' : ''; });
-                if (mode === 'detailed' || rowIndex !== 0) return;
+                if (mode === 'detailed' || cell.hidden) return;
                 const panel = document.createElement('div');
                 panel.dataset.globalEditor = '1';
                 panel.className = 'text-center p-3';

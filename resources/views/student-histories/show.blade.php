@@ -99,7 +99,7 @@
                     @include('student-histories._technical-components-table', ['history' => $history])
                 @else
                 <div class="table-responsive">
-                    <table class="table table-sm table-bordered mb-0 sge-history-read-table">
+                    <table class="table table-sm table-bordered mb-0 sge-history-read-table" data-sge-client-pagination="20">
                         <thead>
                             <tr>
                                 <th>{{ __('Formação') }}</th>
@@ -112,26 +112,29 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @php($firstHistoryRow = true)
+                            @php($historyRowIndex = 0)
                             @forelse($history->components->groupBy(fn ($component) => $component->formation ?: '-') as $formation => $formationComponents)
-                                @php($formationFirst = true)
+                                @php($formationRowIndex = 0)
                                 @foreach($formationComponents->sortBy(fn ($component) => collect([$component->module_label, $component->knowledge_area, $component->position])->filter(fn ($value) => $value !== null)->join('|'))->groupBy(fn ($component) => $component->knowledge_area ?: '-') as $area => $areaComponents)
-                                    @php($areaFirst = true)
+                                    @php($areaRowIndex = 0)
                                     @foreach($areaComponents as $component)
+                                    @php($pageRoom = 20 - ($historyRowIndex % 20))
                                     <tr>
-                                        @if($formationFirst)<td rowspan="{{ $formationComponents->count() }}" class="align-middle"><strong>{{ $formation }}</strong></td>@php($formationFirst = false)@endif
+                                        @if($formationRowIndex === 0 || $historyRowIndex % 20 === 0)<td rowspan="{{ min($formationComponents->count() - $formationRowIndex, $pageRoom) }}" class="align-middle"><strong>{{ $formation }}</strong></td>@endif
                                         <td>{{ $component->module_label ?: '-' }}</td>
-                                        @if($areaFirst)<td rowspan="{{ $areaComponents->count() }}" class="align-middle">{{ $area }}</td>@php($areaFirst = false)@endif
+                                        @if($areaRowIndex === 0 || $historyRowIndex % 20 === 0)<td rowspan="{{ min($areaComponents->count() - $areaRowIndex, $pageRoom) }}" class="align-middle">{{ $area }}</td>@endif
                                         <td><strong>{{ $component->name }}</strong></td>
                                         @foreach($history->years as $year)
                                             @if($year->transcript_mode !== 'detailed')
-                                                @if($firstHistoryRow)<td rowspan="{{ $history->components->count() }}" class="text-center align-middle" data-global-year="{{ $year->id }}"><strong>{{ $year->final_result ?: ($transcriptModeLabels[$year->transcript_mode] ?? '-') }}</strong>@if($year->transcript_mode === 'summary')<span class="d-block small text-muted"><abbr title="{{ __('Carga horária cursada, em horas') }}">CHC</abbr> {{ $year->displaysCompletedWorkload() && $year->workload_hours !== null ? number_format((float) $year->workload_hours, 2, ',', '.') : '-' }}</span>@endif</td>@endif
+                                                @if($historyRowIndex % 20 === 0)<td rowspan="{{ min($history->components->count() - $historyRowIndex, $pageRoom) }}" class="text-center align-middle" data-global-year="{{ $year->id }}"><strong>{{ $year->final_result ?: ($transcriptModeLabels[$year->transcript_mode] ?? '-') }}</strong>@if($year->transcript_mode === 'summary')<span class="d-block small text-muted"><abbr title="{{ __('Carga horária cursada, em horas') }}">CHC</abbr> {{ $year->displaysCompletedWorkload() && $year->workload_hours !== null ? number_format((float) $year->workload_hours, 2, ',', '.') : '-' }}</span>@endif</td>@endif
                                             @else
                                             @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
                                             <td class="text-center">@if($record)<strong>{{ $record->score_label ?: '-' }}</strong><span class="d-block small text-muted"><abbr title="{{ __('Carga horária cursada, em horas') }}">CHC</abbr> {{ $year->displaysCompletedWorkload() && $record->workload_hours !== null ? number_format((float) $record->workload_hours, 2, ',', '.') : '-' }}</span> @else - @endif</td>
                                             @endif
                                         @endforeach
-                                        @php($firstHistoryRow = false)
+                                        @php($historyRowIndex++)
+                                        @php($formationRowIndex++)
+                                        @php($areaRowIndex++)
                                     </tr>
                                     @endforeach
                                 @endforeach
