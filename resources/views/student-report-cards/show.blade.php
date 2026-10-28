@@ -177,7 +177,7 @@
                 <a class="btn btn-primary mb-4" href="{{ route('enrollments.origin-sheet', $enrollment) }}"><i class="fas fa-file-import mr-1" aria-hidden="true"></i>{{ __('Lançar ficha da escola de origem') }}</a>
 
                 <div class="table-responsive">
-                    <table class="table table-sm mb-0">
+                    <table class="table table-sm mb-0" data-sge-client-pagination="20">
                         <thead>
                             <tr>
                                 <th>{{ __('Período') }}</th>
@@ -237,7 +237,7 @@
             </div>
         </div>
         <div class="card-body table-responsive">
-            <table class="table table-sm">
+            <table class="table table-sm" data-sge-client-pagination="20">
                 <thead>
                     <tr>
                         <th>{{ __('Componente') }}</th>

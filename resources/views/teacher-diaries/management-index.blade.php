@@ -179,7 +179,7 @@
                         </summary>
 
                         <div class="table-responsive">
-                            <table class="table table-sm mb-0">
+                            <table class="table table-sm mb-0" data-sge-client-pagination="20">
                                 <thead>
                                     <tr>
                                         <th>{{ __('Componente') }}</th>

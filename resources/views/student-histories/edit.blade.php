@@ -38,7 +38,7 @@
                     <p>{{ __('Resultado:') }} {{ $year->final_result ?: '-' }} · {{ __('Frequência:') }} {{ $year->attendance_label ?: '-' }}</p>
                     @if($year->transcript_mode === 'detailed')
                         <div class="table-responsive mb-3">
-                            <table class="table table-bordered table-sm">
+                            <table class="table table-bordered table-sm" data-sge-client-pagination="20">
                                 <thead><tr><th scope="col">{{ __('Componente') }}</th><th scope="col">{{ __('Nota calculada') }}</th><th scope="col">{{ __('Faltas') }}</th></tr></thead>
                                 <tbody>
                                     @forelse($year->records as $record)

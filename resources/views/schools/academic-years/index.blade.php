@@ -26,7 +26,7 @@
             <h2 class="h6 m-0 font-weight-bold text-primary">{{ $school->name }}</h2>
         </div>
         <div class="card-body table-responsive">
-            <table class="table table-sm mb-0">
+            <table class="table table-sm mb-0" data-sge-client-pagination="20">
                 <thead>
                     <tr>
                         <th>{{ __('screens.name') }}</th>

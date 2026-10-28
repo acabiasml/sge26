@@ -415,6 +415,7 @@
     <script src="{{ asset('vendor/rappasoft/livewire-tables/js/laravel-livewire-tables.min.js') }}"></script>
     <script src="{{ asset('vendor/rappasoft/livewire-tables/js/laravel-livewire-tables-thirdparty.min.js') }}"></script>
     <script src="{{ asset('template/js/sge-loading.js') }}?v={{ filemtime(public_path('template/js/sge-loading.js')) }}" data-loading-label="{{ __('Solicitação em processamento') }}"></script>
+    <script src="{{ asset('template/js/sge-table-pagination.js') }}?v={{ filemtime(public_path('template/js/sge-table-pagination.js')) }}" data-previous="{{ __('Anterior') }}" data-next="{{ __('Próxima') }}" data-go-to-page="{{ __('Ir para página') }}" data-page="{{ __('Página :current de :total') }}" data-range="{{ __('Registros :first–:last de :total') }}" data-navigation="{{ __('Paginação da tabela') }}"></script>
     @livewireScripts(['url' => asset('livewire/livewire.min.js')])
     <script>
         const inputMasks = {

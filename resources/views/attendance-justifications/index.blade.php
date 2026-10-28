@@ -42,7 +42,7 @@
     @if ($school)
         <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="{{ __('Áreas das justificativas') }}" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? 'nova' : 'registradas' }}">
             <a href="#section-nova" class="sge-section-nav-item" data-academic-tab="nova" role="tab"><i class="fas fa-notes-medical"></i><span>{{ __('Nova justificativa') }}</span><small>{{ __('registrar período') }}</small></a>
-            <a href="#section-registradas" class="sge-section-nav-item" data-academic-tab="registradas" role="tab"><i class="fas fa-list"></i><span>{{ __('Registradas') }}</span><small>{{ $justifications->count() }} {{ __('justificativas') }}</small></a>
+            <a href="#section-registradas" class="sge-section-nav-item" data-academic-tab="registradas" role="tab"><i class="fas fa-list"></i><span>{{ __('Registradas') }}</span><small>{{ $justifications->total() }} {{ __('justificativas') }}</small></a>
         </nav>
         <div class="row">
             <div id="section-nova" class="col-12 mb-4" data-academic-panel="nova" role="tabpanel">
@@ -86,6 +86,9 @@
                             </tbody>
                         </table>
                     </div>
+                    @if($justifications->hasPages())
+                        <div class="card-footer">{{ $justifications->links('pagination::bootstrap-4') }}</div>
+                    @endif
                 </section>
             </div>
         </div>

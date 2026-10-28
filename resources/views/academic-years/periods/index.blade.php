@@ -247,7 +247,7 @@
                             <details>
                                 <summary><span><i class="fas fa-list-check" aria-hidden="true"></i>{{ __('Ver diários deste período') }}</span><small>{{ $diarySummaries->count() }} {{ __('registros') }}</small></summary>
                                 <div class="table-responsive mt-3">
-                                    <table class="table table-sm table-bordered mb-0">
+                                    <table class="table table-sm table-bordered mb-0" data-sge-client-pagination="20">
                                         <thead><tr><th>{{ __('Turma') }}</th><th>{{ __('Componente') }}</th><th>{{ __('Docência') }}</th><th>{{ __('Situação') }}</th><th>{{ __('Pendências') }}</th><th>{{ __('Ações') }}</th></tr></thead>
                                         <tbody>
                                             @forelse($diarySummaries as $summary)
@@ -295,7 +295,7 @@
                                         <p class="small text-muted mt-1 mb-0" data-behavior-filter-status role="status" aria-live="polite"></p>
                                     </div>
                                     <div class="table-responsive">
-                                        <table class="table table-sm table-bordered mb-3">
+                                        <table class="table table-sm table-bordered mb-3" data-sge-client-pagination="20">
                                             <thead>
                                                 <tr>
                                                     <th>{{ __('Estudante') }}</th>

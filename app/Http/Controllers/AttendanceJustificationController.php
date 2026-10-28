@@ -61,7 +61,10 @@ class AttendanceJustificationController extends Controller
                     ->when($schoolClass, fn ($classes) => $classes->whereKey($schoolClass->id))
                     ->when(! $request->user()->isAdministrator(), fn ($classes) => $classes->operational()))
                 ->orderByDesc('starts_at')
-                ->get()
+                ->orderByDesc('id')
+                ->paginate(20)
+                ->withQueryString()
+                ->fragment('section-registradas')
             : collect();
 
         return view('attendance-justifications.index', compact('schools', 'school', 'academicYears', 'academicYear', 'classes', 'schoolClass', 'enrollments', 'justifications'));

@@ -2070,6 +2070,35 @@ class TeacherDiaryTest extends TestCase
         ])->assertForbidden();
     }
 
+    public function test_absence_justifications_paginate_without_losing_filters(): void
+    {
+        [, $year, $class, , , $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'paginas-justificativas@ctjj.org');
+
+        for ($day = 1; $day <= 21; $day++) {
+            $date = sprintf('2026-03-%02d', $day);
+            DiaryAttendanceJustification::query()->create([
+                'student_enrollment_id' => $enrollment->id,
+                'starts_at' => $date, 'ends_at' => $date,
+                'reason' => sprintf('Justificativa %02d', $day),
+            ]);
+        }
+
+        $filters = ['school' => $year->school_id, 'year' => $year->id, 'class' => $class->id];
+        $this->actingAs($manager)->get(route('attendance-justifications.index', $filters))
+            ->assertOk()
+            ->assertSee('21 justificativas')
+            ->assertSee('Justificativa 21')
+            ->assertDontSee('Justificativa 01')
+            ->assertSee('page=2', false)
+            ->assertSee('year='.$year->id, false)
+            ->assertSee('class='.$class->id, false);
+        $this->get(route('attendance-justifications.index', $filters + ['page' => 2]))
+            ->assertOk()
+            ->assertSee('Justificativa 01')
+            ->assertDontSee('Justificativa 21');
+    }
+
     public function test_management_can_edit_absence_justification_and_see_its_edit_history(): void
     {
         [$teacher, $year, $class, , , $enrollment] = $this->diaryScenario();

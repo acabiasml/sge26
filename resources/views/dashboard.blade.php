@@ -422,7 +422,7 @@
                         <canvas id="studentsBySchoolChart"></canvas>
                     </div>
                     <div class="table-responsive mt-3">
-                        <table class="table table-sm sge-accessible-chart-table mb-0">
+                        <table class="table table-sm sge-accessible-chart-table mb-0" data-sge-client-pagination="20">
                             <caption class="sr-only">{{ __('dashboard.students_chart_data') }}</caption>
                             <thead>
                                 <tr>

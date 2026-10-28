@@ -135,7 +135,7 @@
             <h2 class="h6 m-0 font-weight-bold text-primary">{{ __('Matrículas') }}</h2>
         </div>
         <div class="card-body table-responsive">
-            <table class="table table-sm">
+            <table class="table table-sm" data-sge-client-pagination="20">
                 <thead>
                     <tr>
                         <th>{{ __('Estudante') }}</th>

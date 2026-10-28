@@ -17,7 +17,7 @@
     <section class="card shadow-sm">
         <div class="card-header d-flex justify-content-between align-items-center"><strong>{{ __('Áreas cadastradas') }}</strong><span class="badge badge-light">{{ $areas->count() }}</span></div>
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0" data-sge-client-pagination="20">
                 <thead><tr><th>{{ __('Área') }}</th><th>{{ __('Formação') }}</th><th class="text-center">{{ __('Componentes vinculados') }}</th><th class="text-right">{{ __('Ações') }}</th></tr></thead>
                 <tbody>@forelse($areas as $area)
                     <tr>
@@ -38,7 +38,7 @@
     <details class="card shadow-sm mt-4">
         <summary class="card-header font-weight-bold">{{ __('Áreas registradas nos históricos') }}</summary>
         <div class="card-body"><p>{{ __('Os históricos preservam as áreas e formações do documento de origem. Esses nomes são independentes do catálogo das matrizes. Consulte os usos para editar o histórico correspondente.') }}</p>
-        <div class="table-responsive"><table class="table"><thead><tr><th>{{ __('Área') }}</th><th>{{ __('Formação') }}</th><th>{{ __('Usos') }}</th></tr></thead><tbody>
+        <div class="table-responsive"><table class="table" data-sge-client-pagination="20"><thead><tr><th>{{ __('Área') }}</th><th>{{ __('Formação') }}</th><th>{{ __('Usos') }}</th></tr></thead><tbody>
         @foreach($historicalAreas as $historicalArea)
             <tr><td>{{ $historicalArea->knowledge_area ?: '—' }}</td><td>{{ $historicalArea->formation ?: '—' }}</td><td><a href="{{ route('knowledge-areas.historical-usages', ['formation' => $historicalArea->formation, 'area' => $historicalArea->knowledge_area]) }}">{{ __('Ver usos') }} ({{ $historicalArea->uses_count }})</a></td></tr>
         @endforeach

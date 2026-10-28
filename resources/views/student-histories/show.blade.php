@@ -147,7 +147,7 @@
                 @if($history->education_stage === 'medio')
                     <div class="table-responsive p-3 border-top">
                         @include('reports.partials.history-annual-formation-workloads', ['annualWorkloadTableClass' => 'table table-sm table-bordered mb-3'])
-                        <table class="table table-sm table-bordered mb-0">
+                        <table class="table table-sm table-bordered mb-0" data-sge-client-pagination="20">
                             <thead><tr><th>{{ __('Formação') }}</th><th>{{ __('Total de horas previstas') }}</th><th>{{ __('Total de horas cursadas') }}</th></tr></thead>
                             <tbody>@foreach($history->formationWorkloadTotals() as $formation => $hours)
                                 <tr><td>{{ __($formation) }}</td><td>{{ $hours['planned'] !== null ? number_format($hours['planned'], 2, ',', '.').'h' : '-' }}</td><td>{{ $hours['completed'] !== null ? number_format($hours['completed'], 2, ',', '.').'h' : '-' }}</td></tr>

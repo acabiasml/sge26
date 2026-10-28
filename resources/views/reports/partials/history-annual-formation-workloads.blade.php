@@ -1,4 +1,4 @@
-<table class="{{ $annualWorkloadTableClass ?? 'history-table workload-totals' }}" data-annual-formation-workloads>
+<table class="{{ $annualWorkloadTableClass ?? 'history-table workload-totals' }}" data-annual-formation-workloads @isset($annualWorkloadTableClass) data-sge-client-pagination="20" @endisset>
     <thead>
         <tr><th rowspan="2">{{ __('Ano / Série') }}</th><th colspan="2" class="center text-center">{{ __('Formação Geral Básica') }}</th><th colspan="2" class="center text-center">{{ __('Itinerário Formativo') }}</th></tr>
         <tr>@foreach(range(1, 2) as $formationIndex)<th class="center text-center">{{ __('Horas previstas') }}</th><th class="center text-center">CHC</th>@endforeach</tr>
