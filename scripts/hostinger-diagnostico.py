@@ -3,8 +3,26 @@ import json
 import os
 import pathlib
 import tempfile
+import time
 
 import paramiko
+
+
+def run_remote(client, command):
+    stdin, stdout, stderr = client.exec_command(
+        'cd /home/u810745753/domains/ctjj.org/public_html/sge && ' + command,
+        timeout=45,
+    )
+    stdin.close()
+    try:
+        output = stdout.read().decode(errors='replace')
+        stderr.read()  # Não publicar erros da aplicação que possam conter dados sensíveis.
+        code = stdout.channel.recv_exit_status()
+        return output, code
+    finally:
+        stdout.close()
+        stderr.close()
+
 
 config = json.loads(os.environ['HOSTINGER_CONNECTION'])
 with tempfile.TemporaryDirectory() as directory:
@@ -69,18 +87,25 @@ with tempfile.TemporaryDirectory() as directory:
                 'php artisan sessions:invalidate-all --force --no-ansi',
             ))
         commands.append(('Migrations', 'php artisan migrate:status --no-ansi'))
-        for label, command in commands:
-            print(f'\n--- {label} ---', flush=True)
-            _, stdout, stderr = client.exec_command(
-                'cd /home/u810745753/domains/ctjj.org/public_html/sge && ' + command,
-                timeout=45,
-            )
-            output = stdout.read().decode(errors='replace')
-            error = stderr.read().decode(errors='replace')
-            code = stdout.channel.recv_exit_status()
+        expected_commit = os.environ['EXPECTED_COMMIT']
+        deadline = time.monotonic() + 180
+        while True:
+            print('\n--- Commit publicado ---', flush=True)
+            output, code = run_remote(client, commands[0][1])
             print(output, flush=True)
-            if label == 'Commit publicado' and output.strip() != os.environ['EXPECTED_COMMIT']:
-                raise RuntimeError('O commit esperado ainda não foi publicado.')
+            if code:
+                raise RuntimeError(f'Commit publicado: comando falhou com código {code}')
+            if output.strip() == expected_commit:
+                break
+            if time.monotonic() >= deadline:
+                raise RuntimeError('O commit esperado não foi publicado após três minutos de espera.')
+            print('Aguardando o deploy automático antes de continuar o diagnóstico.', flush=True)
+            time.sleep(min(10, max(0, deadline - time.monotonic())))
+
+        for label, command in commands[1:]:
+            print(f'\n--- {label} ---', flush=True)
+            output, code = run_remote(client, command)
+            print(output, flush=True)
             if label == 'Configuração da sessão' and output.strip() not in ('120 true database', '120 true file'):
                 raise RuntimeError('A sessão em produção não está limitada a duas horas de inatividade e ao navegador aberto.')
             if label == 'Migrations' and 'Pending' in output:

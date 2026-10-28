@@ -43,7 +43,7 @@ jobs:
   verificar:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v6
       - name: Preparar cliente SSH
