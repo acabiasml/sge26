@@ -12,6 +12,7 @@ use App\Models\PersonContact;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\SchoolClass;
+use App\Models\SchoolClassComponent;
 use App\Models\StudentEnrollment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -247,6 +248,54 @@ class DocumentIssuancePanelTest extends TestCase
             ->assertSee('Seu perfil não possui documentos disponíveis')
             ->assertDontSee('value="report-card"', false)
             ->assertDontSee('Redigir novo documento oficial');
+    }
+
+    public function test_teacher_panel_counts_linked_school_and_only_assigned_classes(): void
+    {
+        $school = School::query()->create(['name' => 'Escola Docente', 'active' => true]);
+        $otherSchool = School::query()->create(['name' => 'Outra Escola', 'active' => true]);
+        $teacher = $this->userWithRole(PersonSchoolRole::ROLE_TEACHER, $school->id);
+        $teacher->person->schoolRoles()->create([
+            'school_id' => $otherSchool->id, 'role' => PersonSchoolRole::ROLE_MANAGER, 'active' => true,
+        ]);
+        $teacher->update(['preferred_role_view' => PersonSchoolRole::ROLE_TEACHER]);
+
+        $this->actingAs($teacher)->get(route('document-issuance.index'))
+            ->assertOk()
+            ->assertSee('1 escola(s) · 0 ano(s) letivo(s) · 0 turma(s) acessíveis');
+
+        $year = AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Ano letivo 2026',
+            'reference_year' => 2026,
+            'starts_at' => '2026-01-01',
+            'ends_at' => '2026-12-31',
+            'active' => true,
+            'approved_at' => now(),
+        ]);
+        $class = $year->classes()->create(['name' => 'Turma atribuída', 'active' => true]);
+        $year->classes()->create(['name' => 'Turma sem atribuição', 'active' => true]);
+        $course = $year->courses()->create(['name' => 'Ensino Fundamental', 'stage' => AcademicCourse::STAGE_ELEMENTARY, 'active' => true]);
+        foreach (['Português', 'Matemática'] as $name) {
+            $component = $course->components()->create(['name' => $name, 'active' => true]);
+            SchoolClassComponent::query()->create([
+                'school_class_id' => $class->id,
+                'curriculum_component_id' => $component->id,
+                'teacher_person_id' => $teacher->person_id,
+                'active' => true,
+            ]);
+        }
+
+        $this->get(route('document-issuance.index'))
+            ->assertOk()
+            ->assertSee('1 escola(s) · 1 ano(s) letivo(s) · 1 turma(s) acessíveis')
+            ->assertSee('<option value="'.$school->id.'">Escola Docente</option>', false)
+            ->assertDontSee('<option value="'.$otherSchool->id.'">Outra Escola</option>', false);
+        $this->getJson(route('document-issuance.targets', ['type' => 'teacher-diary']))
+            ->assertOk()->assertJsonCount(2, 'targets');
+        $this->getJson(route('document-issuance.targets', [
+            'type' => 'teacher-diary', 'school_id' => $otherSchool->id,
+        ]))->assertForbidden();
     }
 
     public function test_attendance_report_selection_preserves_period_scope(): void

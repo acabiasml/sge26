@@ -7,6 +7,7 @@ use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
 use App\Models\AcademicYear;
 use App\Models\Person;
+use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
@@ -284,26 +285,36 @@ class DocumentIssuanceController extends Controller
     public function index(Request $request): View
     {
         $this->authorizeAccess($request);
-        $schoolIds = $request->user()->canManagePeople() ? $this->accessibleSchoolIds($request->user()) : [];
+        $user = $request->user();
+        $isTeacher = $user->currentView() === PersonSchoolRole::ROLE_TEACHER;
+        $schoolIds = $user->canManagePeople() || $isTeacher ? $this->accessibleSchoolIds($user) : [];
+        $teacherClasses = $isTeacher
+            ? SchoolClass::query()->operational()
+                ->whereHas('componentAssignments', fn (Builder $query) => $this->scopeTeacherAssignments($query, $user))
+                ->get(['id', 'academic_year_id'])
+            : collect();
+        $academicYearIds = $isTeacher ? $teacherClasses->pluck('academic_year_id')->unique() : null;
 
         return view('document-issuance.index', [
-            'documentTypes' => collect($this->availableTypes($request->user()))
+            'documentTypes' => collect($this->availableTypes($user))
                 ->reject(fn (array $type): bool => in_array($type['group'], ['Ano letivo', 'Gestão', 'Documentos personalizados', 'Listagens'], true))
                 ->all(),
             'schools' => School::query()->whereKey($schoolIds)->orderBy('name')->get(['id', 'name']),
             'academicYears' => AcademicYear::query()
                 ->whereIn('school_id', $schoolIds)
+                ->when($isTeacher, fn (Builder $query) => $query->whereKey($academicYearIds))
                 ->orderByDesc('reference_year')
                 ->orderBy('name')
                 ->get(['id', 'school_id', 'name', 'reference_year', 'starts_at', 'ends_at']),
             'academicPeriods' => AcademicPeriod::query()
                 ->whereHas('academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
+                ->when($isTeacher, fn (Builder $query) => $query->whereIn('academic_year_id', $academicYearIds))
                 ->orderBy('academic_year_id')
                 ->orderBy('position')
                 ->get(['id', 'academic_year_id', 'name', 'starts_at', 'ends_at']),
-            'classCount' => SchoolClass::query()
+            'classCount' => $isTeacher ? $teacherClasses->count() : SchoolClass::query()
                 ->whereHas('academicYear', fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
-                ->when(! $request->user()->isAdministrator(), fn (Builder $query) => $query->operational())
+                ->when(! $user->isAdministrator(), fn (Builder $query) => $query->operational())
                 ->count(),
         ]);
     }
@@ -448,10 +459,14 @@ class DocumentIssuanceController extends Controller
         }
 
         if (! $user->canManagePeople()) {
-            return SchoolClassComponent::query()->whereHas('schoolClass.academicYear')
+            $assignmentSchoolIds = SchoolClassComponent::query()->whereHas('schoolClass.academicYear')
                 ->where(fn (Builder $query) => $this->scopeTeacherAssignments($query, $user))
                 ->with('schoolClass.academicYear')->get()
                 ->pluck('schoolClass.academicYear.school_id')->unique()->map(fn ($id) => (int) $id)->all();
+
+            return $user->currentView() === PersonSchoolRole::ROLE_TEACHER
+                ? array_values(array_unique([...$user->visibleSchoolIds(), ...$assignmentSchoolIds]))
+                : $assignmentSchoolIds;
         }
 
         return $user->manageableSchoolIds();
