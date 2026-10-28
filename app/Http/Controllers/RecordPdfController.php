@@ -11,6 +11,7 @@ use App\Support\BrazilianMoney;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
 use App\Support\PdfMetadata;
+use App\Support\TeacherAccess;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -109,20 +110,31 @@ class RecordPdfController extends Controller
         abort_unless($this->canSeePerson($request, $person), 403);
 
         $person->load(['schoolRoles.school', 'contacts']);
+        $isTeacher = $request->user()->currentView() === PersonSchoolRole::ROLE_TEACHER;
 
         if (! $person->hasActiveRoleForDate() && ! $person->hasRequiredIdentityForOfficialUse()) {
-            return redirect()->route('people.show', $person)
+            return redirect()->route($isTeacher ? 'document-issuance.index' : 'people.show', $isTeacher ? [] : $person)
                 ->with('status', __('Não é possível emitir documento de pessoa inativa sem CPF.'));
         }
 
-        $school = $this->schoolForPerson($person);
+        $school = $isTeacher
+            ? TeacherAccess::schoolForPerson($request->user(), $person->id)
+            : $this->schoolForPerson($person);
+        if ($isTeacher) {
+            $person->setRelation('schoolRoles', $person->schoolRoles
+                ->filter(fn ($role): bool => $role->school_id === $school?->id)
+                ->values());
+        }
 
         if ($message = OfficialDocumentCompliance::personMessage($person)) {
-            return redirect()->route('people.show', $person)->with('status', $message);
+            return redirect()->route($isTeacher ? 'document-issuance.index' : 'people.show', $isTeacher ? [] : $person)
+                ->with('status', $message);
         }
 
         if ($school && $message = OfficialDocumentCompliance::schoolMessage($school)) {
-            return redirect()->route($request->user()->canManageSchools() ? 'schools.edit' : 'schools.academic-years.index', $school)->with('status', $message);
+            return $isTeacher
+                ? redirect()->route('document-issuance.index')->with('status', $message)
+                : redirect()->route($request->user()->canManageSchools() ? 'schools.edit' : 'schools.academic-years.index', $school)->with('status', $message);
         }
 
         $issuedDocument = $this->issuedDocument($request, 'person-record', __('Ficha da pessoa'), $school?->id, $person->id);
@@ -142,6 +154,10 @@ class RecordPdfController extends Controller
         $user = $request->user();
 
         if ($user->isAdministrator()) {
+            return true;
+        }
+
+        if (TeacherAccess::canSeePerson($user, $person->id)) {
             return true;
         }
 

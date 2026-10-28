@@ -2204,18 +2204,80 @@ class TeacherDiaryTest extends TestCase
         $this->get(route('attendance-justifications.edit', $justification))->assertForbidden();
     }
 
-    public function test_management_can_issue_approval_overview_but_teacher_cannot(): void
+    public function test_teacher_can_issue_approval_overview_only_for_assigned_components(): void
     {
-        [$teacher, $year, $class] = $this->diaryScenario();
+        [$teacher, $year, $class, $component] = $this->diaryScenario();
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'panorama@ctjj.org');
+        $otherComponent = $component->course->components()->create(['name' => 'História', 'active' => true]);
+        $otherTeacher = $this->userWithRole(PersonSchoolRole::ROLE_TEACHER, $year->school_id, 'outro-panorama@ctjj.org');
+        SchoolClassComponent::query()->create([
+            'school_class_id' => $class->id, 'curriculum_component_id' => $otherComponent->id,
+            'teacher_person_id' => $otherTeacher->person_id, 'active' => true,
+        ]);
+        $unassignedClass = $year->classes()->create(['name' => 'Turma não atribuída', 'active' => true]);
         $url = route('classes.approval-overview.pdf', $class);
-        $this->actingAs($teacher)->get($url)->assertForbidden();
+        $componentIds = [];
+        View::composer('reports.class-approval-overview', function ($view) use (&$componentIds): void {
+            $componentIds = $view->getData()['reports']->flatMap(fn (array $report) => $report['annualComponents']->pluck('component.id'))->unique()->values()->all();
+        });
+        $this->actingAs($teacher)->get($url)->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertSame([$component->id], $componentIds);
+        $this->get(route('classes.approval-overview.pdf', $unassignedClass))->assertForbidden();
+        $this->get(route('document-issuance.index'))->assertOk()->assertSee('value="class-approval-overview"', false);
+        $this->getJson(route('document-issuance.targets', ['type' => 'class-approval-overview']))
+            ->assertOk()->assertJsonCount(1, 'targets')->assertJsonPath('targets.0.id', $class->id);
+        $this->get(route('document-issuance.issue', [
+            'type' => 'class-approval-overview', 'target_id' => $unassignedClass->id,
+        ]))->assertNotFound();
         $this->actingAs($manager)->get($url)->assertOk()->assertHeader('content-type', 'application/pdf');
         $this->assertDatabaseHas('issued_documents', ['type' => 'class-approval-overview', 'school_id' => $year->school_id]);
         $this->actingAs($manager)->get(route('document-issuance.index'))->assertOk()->assertSee('value="class-approval-overview"', false);
         $this->actingAs($manager)->get(route('document-issuance.issue', [
             'type' => 'class-approval-overview', 'target_id' => $class->id,
         ]))->assertRedirect($url);
+    }
+
+    public function test_teacher_can_issue_person_record_only_for_self_and_enrolled_students_in_assigned_classes(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $otherStudent = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'fora-da-turma@ctjj.org');
+
+        $this->actingAs($teacher)->get(route('document-issuance.index'))
+            ->assertOk()->assertSee('value="person-record"', false);
+        $targets = $this->getJson(route('document-issuance.targets', ['type' => 'person-record']))
+            ->assertOk();
+        $this->assertEqualsCanonicalizing([$teacher->person_id, $enrollment->person_id],
+            collect($targets->json('targets'))->pluck('id')->all());
+        $this->getJson(route('document-issuance.targets', [
+            'type' => 'person-record', 'school_id' => $year->school_id,
+        ]))->assertOk()->assertJsonCount(2, 'targets');
+
+        $this->get(route('document-issuance.issue', [
+            'type' => 'person-record', 'target_id' => $enrollment->person_id,
+        ]))->assertRedirect(route('people.pdf', $enrollment->person_id));
+        $this->get(route('people.pdf', $enrollment->person_id))
+            ->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->get(route('document-issuance.issue', [
+            'type' => 'person-record', 'target_id' => $otherStudent->person_id,
+        ]))->assertNotFound();
+        $this->get(route('people.pdf', $otherStudent->person_id))->assertForbidden();
+    }
+
+    public function test_teacher_dashboard_summarizes_only_current_diary_assignments(): void
+    {
+        [$teacher, $year, $class, $component] = $this->diaryScenario();
+        $otherComponent = $component->course->components()->create(['name' => 'Português', 'active' => true]);
+        SchoolClassComponent::query()->create([
+            'school_class_id' => $class->id, 'curriculum_component_id' => $otherComponent->id,
+            'teacher_person_id' => $teacher->person_id, 'active' => true,
+        ]);
+        $year->classes()->create(['name' => 'Turma de outro docente', 'active' => true]);
+
+        $this->actingAs($teacher)->get(route('dashboard'))->assertOk()
+            ->assertViewHas('teacherOverview', fn (array $overview): bool => $overview['schools'] === 1 && $overview['classes'] === 1
+                && $overview['components'] === 2 && $overview['students'] === 1)
+            ->assertSee('Meus diários em andamento')
+            ->assertSee(route('teacher-diaries.show', [$class, $component]));
     }
 
     public function test_management_can_issue_individual_progress_report_but_teacher_cannot(): void

@@ -73,8 +73,13 @@ class ItalianInterfaceTest extends TestCase
         $this->actingAs($user)->get(route('document-issuance.index'))
             ->assertOk()
             ->assertSeeText('Centro emissioni')
+            ->assertSeeText('Anno solare')
             ->assertSee('Attesta l’iscrizione attiva dello studente.')
             ->assertSee('value="enrollment-declaration"', false);
+
+        $this->get(route('dashboard'))->assertOk()
+            ->assertSee('11 marzo')
+            ->assertDontSee('11 de marzo');
 
         $response = $this->getJson(route('document-issuance.targets', [
             'type' => 'report-card',

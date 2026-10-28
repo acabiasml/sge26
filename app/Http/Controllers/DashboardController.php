@@ -9,7 +9,9 @@ use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\StudentEnrollment;
+use App\Models\User;
 use App\Support\AcademicCalendarGrid;
+use App\Support\TeacherAccess;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -31,6 +33,9 @@ class DashboardController extends Controller
             ? null
             : ($user->isManager() ? $manageableSchoolIds : $visibleSchoolIds);
         $canManagePeople = $user->canManagePeople();
+        $teacherOverview = $user->currentView() === PersonSchoolRole::ROLE_TEACHER
+            ? $this->teacherOverview($user)
+            : null;
 
         $roleCounts = collect(PersonSchoolRole::ROLE_LABELS)
             ->only([
@@ -60,6 +65,7 @@ class DashboardController extends Controller
             'activeEnrollmentCount' => $canManagePeople ? $this->activeEnrollmentCount($manageableSchoolIds) : 0,
             'activeAcademicYearCount' => $canManagePeople ? $this->activeAcademicYearCount($calendarSchoolIds) : 0,
             'registrationPendingCount' => $canManagePeople ? $this->registrationPendingCount($manageableSchoolIds) : 0,
+            'teacherOverview' => $teacherOverview,
             'monthSchoolDayCount' => $combinedCalendarMonth['school_days_count'],
             'roleCounts' => $roleCounts,
             'roleChart' => $this->roleChart($roleCounts),
@@ -76,6 +82,40 @@ class DashboardController extends Controller
             'calendarPreviousMonth' => $calendarMonth->copy()->subMonth()->gte($calendarMinimumMonth) ? $calendarMonth->copy()->subMonth() : null,
             'calendarNextMonth' => $calendarMonth->copy()->addMonth()->lte($calendarMaximumMonth) ? $calendarMonth->copy()->addMonth() : null,
         ]);
+    }
+
+    /** @return array<string, mixed> */
+    private function teacherOverview(User $user): array
+    {
+        $assignments = TeacherAccess::assignments($user)
+            ->with(['schoolClass.academicYear.school', 'component.course'])
+            ->get()
+            ->sortBy(fn ($assignment): string => ($assignment->schoolClass?->name ?? '').' '.($assignment->component?->name ?? ''))
+            ->values();
+        $classIds = $assignments->pluck('school_class_id')->unique();
+        $studentsByClass = StudentEnrollment::query()
+            ->selectRaw('school_class_id, count(distinct person_id) as total')
+            ->where('status', StudentEnrollment::STATUS_ENROLLED)
+            ->whereIn('school_class_id', $classIds)
+            ->groupBy('school_class_id')
+            ->pluck('total', 'school_class_id');
+
+        return [
+            'schools' => $assignments->pluck('schoolClass.academicYear.school_id')->unique()->count(),
+            'classes' => $classIds->count(),
+            'components' => $assignments->count(),
+            'students' => StudentEnrollment::query()
+                ->where('status', StudentEnrollment::STATUS_ENROLLED)
+                ->whereIn('school_class_id', $classIds)
+                ->distinct('person_id')
+                ->count('person_id'),
+            'assignments' => $assignments->take(6)->map(fn ($assignment): array => [
+                'class' => $assignment->schoolClass,
+                'component' => $assignment->component,
+                'school' => $assignment->schoolClass?->academicYear?->school,
+                'students' => (int) ($studentsByClass[$assignment->school_class_id] ?? 0),
+            ]),
+        ];
     }
 
     /**

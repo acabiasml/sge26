@@ -11,11 +11,14 @@ use App\Models\School;
 use App\Models\SchoolClass;
 use App\Models\StudentEnrollment;
 use App\Support\AcademicContextLabel;
+use App\Support\ClassStudentContacts;
 use App\Support\CurriculumCatalog;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
-use App\Support\StudentReportCardBuilder;
+use App\Support\PdfMetadata;
 use App\Support\StudentAttendanceCertificateBuilder;
+use App\Support\StudentReportCardBuilder;
+use App\Support\TeacherAccess;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -38,8 +41,7 @@ class ClassAcademicDocumentsController extends Controller
         $issuedDocument = $this->issuedDocument($request, $class, 'class-student-contacts',
             'Alunos e responsáveis da turma', $enrollments->count(), '');
         $referenceDate = CarbonImmutable::instance($issuedDocument->issued_at)->setTimezone('America/Cuiaba')->startOfDay();
-        $rows = $enrollments->map(fn (StudentEnrollment $enrollment): array =>
-            \App\Support\ClassStudentContacts::student($enrollment->student, $referenceDate));
+        $rows = $enrollments->map(fn (StudentEnrollment $enrollment): array => ClassStudentContacts::student($enrollment->student, $referenceDate));
 
         $pdf = Pdf::loadView('reports.class-student-contacts', [
             'schoolClass' => $class, 'academicYear' => $academicYear, 'rows' => $rows,
@@ -47,7 +49,7 @@ class ClassAcademicDocumentsController extends Controller
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'portrait');
 
-        return \App\Support\PdfMetadata::stream($pdf, 'beaba-alunos-responsaveis-turma-'.$class->id.'.pdf');
+        return PdfMetadata::stream($pdf, 'beaba-alunos-responsaveis-turma-'.$class->id.'.pdf');
     }
 
     public function attendanceCertificates(Request $request, SchoolClass $class): Response|RedirectResponse
@@ -100,7 +102,7 @@ class ClassAcademicDocumentsController extends Controller
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'portrait');
 
-        return \App\Support\PdfMetadata::stream($pdf, 'beaba-atestados-frequencia-turma-'.$class->id.'-'.$scope['filename'].'-'.now()->format('Ymd-His').'.pdf');
+        return PdfMetadata::stream($pdf, 'beaba-atestados-frequencia-turma-'.$class->id.'-'.$scope['filename'].'-'.now()->format('Ymd-His').'.pdf');
     }
 
     public function reportCards(
@@ -149,23 +151,38 @@ class ClassAcademicDocumentsController extends Controller
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'portrait');
 
-        return \App\Support\PdfMetadata::stream($pdf, 'beaba-boletins-turma-'.$class->id.'-'.now()->format('Ymd-His').'.pdf');
+        return PdfMetadata::stream($pdf, 'beaba-boletins-turma-'.$class->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     public function approvalOverview(Request $request, SchoolClass $class, StudentReportCardBuilder $builder): Response
     {
-        [$academicYear, $enrollments] = $this->classContext($request, $class);
-        $reports = $enrollments->map(fn (StudentEnrollment $enrollment): array => $builder->build($enrollment));
+        [$academicYear, $enrollments] = $this->classContext($request, $class, true);
+        $teacherComponentIds = $request->user()->canManageSchool($academicYear->school_id)
+            ? null
+            : TeacherAccess::assignments($request->user())
+                ->where('school_class_id', $class->id)
+                ->pluck('curriculum_component_id');
+        $reports = $enrollments->map(function (StudentEnrollment $enrollment) use ($builder, $teacherComponentIds): array {
+            $report = $builder->build($enrollment);
+            if ($teacherComponentIds !== null) {
+                $report['annualComponents'] = $report['annualComponents']
+                    ->filter(fn (array $summary): bool => $teacherComponentIds->contains($summary['component']->id))
+                    ->values();
+            }
+
+            return $report;
+        });
         $issuedDocument = $this->issuedDocument($request, $class, 'class-approval-overview',
             'Panorama de aprovação da turma', $enrollments->count(), 'numeros');
         $pdf = Pdf::loadView('reports.class-approval-overview', [
             'schoolClass' => $class, 'academicYear' => $academicYear, 'reports' => $reports,
+            'teacherComponentScope' => $teacherComponentIds !== null,
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'landscape');
 
-        return \App\Support\PdfMetadata::stream($pdf, 'beaba-panorama-turma-'.$class->id.'.pdf');
+        return PdfMetadata::stream($pdf, 'beaba-panorama-turma-'.$class->id.'.pdf');
     }
 
     public function gradeMirror(
@@ -228,19 +245,21 @@ class ClassAcademicDocumentsController extends Controller
             'letterhead' => PdfLetterhead::make($academicYear->school),
         ])->setPaper('a4', 'landscape');
 
-        return \App\Support\PdfMetadata::stream($pdf, 'beaba-espelho-notas-turma-'.$class->id.'-'.now()->format('Ymd-His').'.pdf');
+        return PdfMetadata::stream($pdf, 'beaba-espelho-notas-turma-'.$class->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     /**
      * @return array{0: AcademicYear, 1: Collection<int, StudentEnrollment>}
      */
-    private function classContext(Request $request, SchoolClass $class): array
+    private function classContext(Request $request, SchoolClass $class, bool $allowTeacher = false): array
     {
         $class->load(['academicYear.school', 'courses']);
         $academicYear = $class->academicYear;
 
         abort_unless($academicYear, 404);
-        abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
+        abort_unless($request->user()->canManageSchool($academicYear->school_id)
+            || ($allowTeacher && TeacherAccess::assignments($request->user())
+                ->where('school_class_id', $class->id)->exists()), 403);
 
         $enrollments = StudentEnrollment::query()
             ->with('student.contacts')

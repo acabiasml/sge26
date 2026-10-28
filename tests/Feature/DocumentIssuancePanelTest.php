@@ -40,7 +40,7 @@ class DocumentIssuancePanelTest extends TestCase
         $this->getJson(route('document-issuance.targets', ['type' => 'student-schedule']))->assertOk()->assertJsonCount(1, 'targets')->assertJsonPath('targets.0.id', $enrollments[0]->id);
         $this->get(route('document-issuance.issue', ['type' => 'student-schedule', 'target_id' => $enrollments[0]->id]))->assertRedirect(route('student-diaries.schedule-pdf', $enrollments[0]));
         $this->get(route('document-issuance.issue', ['type' => 'student-schedule', 'target_id' => $enrollments[1]->id]))->assertNotFound();
-        foreach (['report-card', 'individual-record', 'academic-history', 'teacher-diary', 'class-grade-mirror'] as $type) {
+        foreach (['report-card', 'individual-record', 'academic-history', 'teacher-diary', 'class-grade-mirror', 'person-record', 'class-approval-overview'] as $type) {
             $this->getJson(route('document-issuance.targets', ['type' => $type]))->assertUnprocessable();
             $this->getJson(route('document-issuance.issue', ['type' => $type, 'target_id' => $enrollments[0]->id]))->assertUnprocessable();
         }
@@ -245,7 +245,7 @@ class DocumentIssuancePanelTest extends TestCase
         $this->actingAs($teacher)
             ->get(route('document-issuance.index'))
             ->assertOk()
-            ->assertSee('Seu perfil não possui documentos disponíveis')
+            ->assertSee('value="person-record"', false)
             ->assertDontSee('value="report-card"', false)
             ->assertDontSee('Redigir novo documento oficial');
     }

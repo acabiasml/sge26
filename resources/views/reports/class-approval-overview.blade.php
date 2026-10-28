@@ -54,7 +54,7 @@ Frequência mínima: {{ $academicYear->minimum_attendance_percentage }}%.</p>
 </colgroup>
 <thead><tr>
 <th width="30%">Estudante</th>
-<th width="9%">Frequência anual</th>
+<th width="9%">{{ $teacherComponentScope ? 'Frequência no componente' : 'Frequência anual' }}</th>
 @foreach($endedPeriods as $endedPeriod)
 <th width="{{ $periodWidth }}%" title="{{ $endedPeriod->name }}">{{ preg_replace(['/\s+Bimestre$/iu', '/\s+Trimestre$/iu', '/\s+Semestre$/iu'], [' Bim.', ' Trim.', ' Sem.'], $endedPeriod->name) }}</th>
 @endforeach
@@ -69,7 +69,8 @@ Frequência mínima: {{ $academicYear->minimum_attendance_percentage }}%.</p>
     $missing = max(0, $report['passingPoints'] - $summary['points']);
 @endphp
 <tr><td class="student-name">{{ $report['student']->full_name }}</td>
-<td class="number">{{ $report['annualAttendance']['percentage'] === null ? '—' : number_format($report['annualAttendance']['percentage'], 1, ',', '.').'%' }}</td>
+@php $attendance = $teacherComponentScope ? $summary['attendance'] : $report['annualAttendance']; @endphp
+<td class="number">{{ $attendance['percentage'] === null ? '—' : number_format($attendance['percentage'], 1, ',', '.').'%' }}</td>
 @foreach($endedPeriods as $endedPeriod)
 @php
     $periodSummary = $summary['periods']->first(fn ($item) => $item['period']->id === $endedPeriod->id);

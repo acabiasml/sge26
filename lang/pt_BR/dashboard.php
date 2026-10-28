@@ -37,4 +37,12 @@ return [
     'students_chart_data' => 'Dados do gráfico de estudantes por escola', 'school' => 'Escola',
     'no_students_by_school' => 'Ainda não há estudantes vinculados a escolas.', 'combined_calendar' => 'Calendário combinado de :month',
     'calendar_counts' => ':days letivos · :birthdays aniversários', 'birthday_count' => ':count aniversariante(s)',
+    'teacher_metrics' => 'Indicadores da minha docência', 'my_classes' => 'Minhas turmas',
+    'with_assigned_components' => 'Com componentes atribuídos', 'my_components' => 'Meus componentes',
+    'active_diary_assignments' => 'Diários ativos atribuídos', 'my_students' => 'Meus estudantes',
+    'unique_active_students' => 'Pessoas únicas com matrícula ativa', 'my_teaching_schools' => 'Escolas de atuação',
+    'schools_with_active_diaries' => 'Com diários ativos', 'my_current_diaries' => 'Meus diários em andamento',
+    'current_diaries_help' => 'Turmas e componentes atribuídos, com o número atual de estudantes em cada turma.',
+    'view_all_diaries' => 'Ver todos os diários', 'students_in_class' => ':count estudante(s) na turma',
+    'no_current_diaries' => 'Nenhum diário em andamento atribuído a você.',
 ];

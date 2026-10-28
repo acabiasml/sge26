@@ -143,7 +143,7 @@
             <p>{{ $dashboardIntroduction }}</p>
         </div>
         <div role="group" class="sge-dashboard-date" aria-label="{{ __('dashboard.date_brasilia') }}">
-            <span>{{ now('America/Sao_Paulo')->translatedFormat('d \d\e F') }}</span>
+            <span>{{ now('America/Sao_Paulo')->translatedFormat(app()->getLocale() === 'it' ? 'd F' : 'd \d\e F') }}</span>
             <small>{{ now('America/Sao_Paulo')->format('Y') }} · {{ __('dashboard.brasilia_time') }}</small>
         </div>
     </section>
@@ -207,6 +207,59 @@
             </div>
         </section>
     @endcan
+
+    @if($teacherOverview !== null)
+        <section class="sge-dashboard-metrics mb-4" aria-label="{{ __('dashboard.teacher_metrics') }}">
+            <a class="sge-metric-card sge-metric-blue" href="{{ route('teacher-diaries.index') }}">
+                <span class="sge-metric-icon" aria-hidden="true"><i class="fas fa-chalkboard"></i></span>
+                <span class="sge-metric-label">{{ __('dashboard.my_classes') }}</span>
+                <strong>{{ $teacherOverview['classes'] }}</strong>
+                <span class="sge-metric-note">{{ __('dashboard.with_assigned_components') }}</span>
+            </a>
+            <a class="sge-metric-card sge-metric-green" href="{{ route('teacher-diaries.index') }}">
+                <span class="sge-metric-icon" aria-hidden="true"><i class="fas fa-book"></i></span>
+                <span class="sge-metric-label">{{ __('dashboard.my_components') }}</span>
+                <strong>{{ $teacherOverview['components'] }}</strong>
+                <span class="sge-metric-note">{{ __('dashboard.active_diary_assignments') }}</span>
+            </a>
+            <a class="sge-metric-card sge-metric-gold" href="{{ route('teacher-diaries.index') }}">
+                <span class="sge-metric-icon" aria-hidden="true"><i class="fas fa-user-graduate"></i></span>
+                <span class="sge-metric-label">{{ __('dashboard.my_students') }}</span>
+                <strong>{{ $teacherOverview['students'] }}</strong>
+                <span class="sge-metric-note">{{ __('dashboard.unique_active_students') }}</span>
+            </a>
+            <a class="sge-metric-card sge-metric-orange" href="{{ route('teacher-diaries.index') }}">
+                <span class="sge-metric-icon" aria-hidden="true"><i class="fas fa-school"></i></span>
+                <span class="sge-metric-label">{{ __('dashboard.my_teaching_schools') }}</span>
+                <strong>{{ $teacherOverview['schools'] }}</strong>
+                <span class="sge-metric-note">{{ __('dashboard.schools_with_active_diaries') }}</span>
+            </a>
+        </section>
+
+        <section class="card sge-panel-card mb-4" aria-labelledby="teacher-diaries-heading">
+            <div class="card-header sge-panel-header">
+                <div>
+                    <h2 id="teacher-diaries-heading">{{ __('dashboard.my_current_diaries') }}</h2>
+                    <p>{{ __('dashboard.current_diaries_help') }}</p>
+                </div>
+                <a class="btn btn-sm btn-outline-primary" href="{{ route('teacher-diaries.index') }}">{{ __('dashboard.view_all_diaries') }}</a>
+            </div>
+            <div class="card-body">
+                @forelse($teacherOverview['assignments'] as $assignment)
+                    <a class="sge-dashboard-shortcut mb-2" href="{{ route('teacher-diaries.show', [$assignment['class'], $assignment['component']]) }}">
+                        <span class="sge-dashboard-shortcut-icon" aria-hidden="true"><i class="fas fa-book-open"></i></span>
+                        <span class="sge-dashboard-shortcut-copy">
+                            <strong>{{ $assignment['component']->name }} · {{ $assignment['class']->name }}</strong>
+                            <small>{{ $assignment['school']?->name }} · {{ __('dashboard.students_in_class', ['count' => $assignment['students']]) }}</small>
+                        </span>
+                        <i class="fas fa-chevron-right sge-dashboard-shortcut-arrow" aria-hidden="true"></i>
+                    </a>
+                @empty
+                    <p class="text-muted mb-0">{{ __('dashboard.no_current_diaries') }}</p>
+                @endforelse
+            </div>
+        </section>
+    @endif
 
     <div class="row">
         <div class="col-xl-8 mb-4">
