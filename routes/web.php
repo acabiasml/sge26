@@ -4,10 +4,10 @@ use App\Http\Controllers\AcademicCalendarPdfController;
 use App\Http\Controllers\AcademicCourseController;
 use App\Http\Controllers\AcademicMatricesPdfController;
 use App\Http\Controllers\AcademicPeriodController;
+use App\Http\Controllers\AcademicYearAttendanceReportPdfController;
 use App\Http\Controllers\AcademicYearClosureController;
 use App\Http\Controllers\AcademicYearController;
 use App\Http\Controllers\AcademicYearFinalResultsPdfController;
-use App\Http\Controllers\AcademicYearAttendanceReportPdfController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AttendanceJustificationController;
 use App\Http\Controllers\AuditLogController;
@@ -20,12 +20,12 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DataQualityController;
 use App\Http\Controllers\DocumentIssuanceController;
 use App\Http\Controllers\EnrollmentPdfController;
+use App\Http\Controllers\GoogleWorkspaceController;
+use App\Http\Controllers\KnowledgeAreaController;
+use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\OfficialDocumentController;
 use App\Http\Controllers\PersonContactController;
 use App\Http\Controllers\PersonController;
-use App\Http\Controllers\GoogleWorkspaceController;
-use App\Http\Controllers\LocaleController;
-use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\PersonRoleController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RecordPdfController;
@@ -46,6 +46,7 @@ use App\Http\Controllers\StudentPeriodConvalidationController;
 use App\Http\Controllers\StudentReportCardController;
 use App\Http\Controllers\TeacherDiaryController;
 use App\Http\Controllers\TeacherScheduleController;
+use App\Http\Controllers\ThemeController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -152,14 +153,14 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('meu-diario/{enrollment}/horario-pdf', [StudentDiaryController::class, 'schedulePdf'])->name('student-diaries.schedule-pdf');
     Route::get('meu-diario/{enrollment}/{component}', [StudentDiaryController::class, 'show'])->name('student-diaries.show');
 
-    Route::get('areas-curriculares/historicos', [\App\Http\Controllers\KnowledgeAreaController::class, 'historicalUsages'])->name('knowledge-areas.historical-usages');
-    Route::get('areas-curriculares/{area}/usos', [\App\Http\Controllers\KnowledgeAreaController::class, 'usages'])->name('knowledge-areas.usages');
-    Route::delete('areas-curriculares/{area}/componentes/{component}', [\App\Http\Controllers\KnowledgeAreaController::class, 'detach'])->name('knowledge-areas.detach');
-    Route::delete('areas-curriculares/{area}/vinculos', [\App\Http\Controllers\KnowledgeAreaController::class, 'detachAll'])->name('knowledge-areas.detach-all');
-    Route::delete('areas-curriculares/{area}', [\App\Http\Controllers\KnowledgeAreaController::class, 'destroy'])->name('knowledge-areas.destroy');
-    Route::get('areas-curriculares', [\App\Http\Controllers\KnowledgeAreaController::class, 'index'])->name('knowledge-areas.index');
-    Route::post('areas-curriculares', [\App\Http\Controllers\KnowledgeAreaController::class, 'store'])->name('knowledge-areas.store');
-    Route::put('areas-curriculares/{area}', [\App\Http\Controllers\KnowledgeAreaController::class, 'update'])->name('knowledge-areas.update');
+    Route::get('areas-curriculares/historicos', [KnowledgeAreaController::class, 'historicalUsages'])->name('knowledge-areas.historical-usages');
+    Route::get('areas-curriculares/{area}/usos', [KnowledgeAreaController::class, 'usages'])->name('knowledge-areas.usages');
+    Route::delete('areas-curriculares/{area}/componentes/{component}', [KnowledgeAreaController::class, 'detach'])->name('knowledge-areas.detach');
+    Route::delete('areas-curriculares/{area}/vinculos', [KnowledgeAreaController::class, 'detachAll'])->name('knowledge-areas.detach-all');
+    Route::delete('areas-curriculares/{area}', [KnowledgeAreaController::class, 'destroy'])->name('knowledge-areas.destroy');
+    Route::get('areas-curriculares', [KnowledgeAreaController::class, 'index'])->name('knowledge-areas.index');
+    Route::post('areas-curriculares', [KnowledgeAreaController::class, 'store'])->name('knowledge-areas.store');
+    Route::put('areas-curriculares/{area}', [KnowledgeAreaController::class, 'update'])->name('knowledge-areas.update');
 
     Route::resource('anos-letivos', AcademicYearController::class)
         ->parameters(['anos-letivos' => 'academicYear'])
@@ -216,6 +217,8 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('matriculas', [StudentEnrollmentController::class, 'overview'])->name('enrollments.index');
     Route::get('matriculas/justificativas-de-ausencia', [AttendanceJustificationController::class, 'index'])->name('attendance-justifications.index');
     Route::post('matriculas/justificativas-de-ausencia', [AttendanceJustificationController::class, 'store'])->name('attendance-justifications.store');
+    Route::get('matriculas/justificativas-de-ausencia/{justification}/editar', [AttendanceJustificationController::class, 'edit'])->name('attendance-justifications.edit');
+    Route::put('matriculas/justificativas-de-ausencia/{justification}', [AttendanceJustificationController::class, 'update'])->name('attendance-justifications.update');
     Route::delete('matriculas/justificativas-de-ausencia/{justification}', [AttendanceJustificationController::class, 'destroy'])->name('attendance-justifications.destroy');
     Route::get('turmas/{class}/matriculas', [StudentEnrollmentController::class, 'index'])->name('classes.enrollments.index');
     Route::post('turmas/{class}/matriculas', [StudentEnrollmentController::class, 'store'])->name('classes.enrollments.store');

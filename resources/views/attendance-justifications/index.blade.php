@@ -4,19 +4,37 @@
 @section('page-title', __('Justificativas de ausência'))
 
 @section('content')
-    <section class="card shadow mb-4" aria-labelledby="justification-school-title">
-        <div class="card-header py-3"><h2 id="justification-school-title" class="h6 m-0 font-weight-bold text-primary">{{ __('Escola') }}</h2></div>
+    <section class="card shadow mb-4" aria-labelledby="justification-filters-title">
+        <div class="card-header py-3"><h2 id="justification-filters-title" class="h6 m-0 font-weight-bold text-primary">{{ __('Filtros') }}</h2></div>
         <div class="card-body">
             <form method="GET" action="{{ route('attendance-justifications.index') }}" class="row align-items-end">
-                <div class="col-md-6 form-group mb-md-0">
-                    <label for="justification_school">{{ __('Unidade escolar') }}</label>
+                <div class="col-md-3 form-group mb-md-0">
+                    <label for="justification_school">{{ __('Escola') }}</label>
                     <select id="justification_school" name="school" class="form-control" onchange="this.form.submit()">
                         @foreach ($schools as $availableSchool)
                             <option value="{{ $availableSchool->id }}" @selected($school?->id === $availableSchool->id)>{{ $availableSchool->name }}</option>
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-6"><noscript><button class="btn btn-outline-primary" type="submit">{{ __('Aplicar') }}</button></noscript></div>
+                <div class="col-md-3 form-group mb-md-0">
+                    <label for="justification_year">{{ __('Ano letivo') }}</label>
+                    <select id="justification_year" name="year" class="form-control" onchange="this.form.submit()">
+                        <option value="">{{ __('Todos os anos') }}</option>
+                        @foreach ($academicYears as $availableYear)
+                            <option value="{{ $availableYear->id }}" @selected($academicYear?->id === $availableYear->id)>{{ $availableYear->referenceYearsLabel() }} · {{ $availableYear->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3 form-group mb-md-0">
+                    <label for="justification_class">{{ __('Turma') }}</label>
+                    <select id="justification_class" name="class" class="form-control" @disabled(! $academicYear)>
+                        <option value="">{{ __('Todas as turmas') }}</option>
+                        @foreach ($classes as $availableClass)
+                            <option value="{{ $availableClass->id }}" @selected($schoolClass?->id === $availableClass->id)>{{ $availableClass->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3 form-group mb-0"><button class="btn btn-outline-primary" type="submit"><i class="fas fa-filter mr-1" aria-hidden="true"></i>{{ __('Filtrar') }}</button></div>
             </form>
         </div>
     </section>
@@ -32,25 +50,11 @@
                     <div class="card-header py-3"><h2 id="new-justification-title" class="h6 m-0 font-weight-bold text-primary">{{ __('Nova justificativa') }}</h2></div>
                     <div class="card-body">
                         <p class="small text-muted">{{ __('A justificativa é vinculada à matrícula e vale em todos os componentes curriculares do estudante nessa turma.') }}</p>
-                        <form method="POST" action="{{ route('attendance-justifications.store') }}">
-                            @csrf
-                            <div class="form-group">
-                                <label for="justification_enrollment">{{ __('Estudante e turma') }}</label>
-                                <select id="justification_enrollment" name="student_enrollment_id" class="form-control @error('student_enrollment_id') is-invalid @enderror" required>
-                                    <option value="">{{ __('Selecione') }}</option>
-                                    @foreach ($enrollments as $enrollment)
-                                        <option value="{{ $enrollment->id }}" @selected((int) old('student_enrollment_id') === $enrollment->id)>{{ $enrollment->student?->full_name }} · {{ $enrollment->schoolClass?->name }} · {{ $enrollment->schoolClass?->academicYear?->name }}</option>
-                                    @endforeach
-                                </select>
-                                @error('student_enrollment_id')<div class="invalid-feedback">{{ __($message) }}</div>@enderror
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 form-group"><label for="justification_starts_at">{{ __('Início') }}</label><input id="justification_starts_at" name="starts_at" type="date" class="form-control @error('starts_at') is-invalid @enderror" value="{{ old('starts_at') }}" required>@error('starts_at')<div class="invalid-feedback">{{ __($message) }}</div>@enderror</div>
-                                <div class="col-md-6 form-group"><label for="justification_ends_at">{{ __('Fim') }}</label><input id="justification_ends_at" name="ends_at" type="date" class="form-control @error('ends_at') is-invalid @enderror" value="{{ old('ends_at') }}" required>@error('ends_at')<div class="invalid-feedback">{{ __($message) }}</div>@enderror</div>
-                            </div>
-                            <div class="form-group"><label for="justification_reason">{{ __('Motivo') }}</label><textarea id="justification_reason" name="reason" class="form-control @error('reason') is-invalid @enderror" rows="3" required>{{ old('reason') }}</textarea>@error('reason')<div class="invalid-feedback">{{ __($message) }}</div>@enderror</div>
-                            <button class="btn btn-primary" type="submit"><i class="fas fa-notes-medical mr-1" aria-hidden="true"></i>{{ __('Registrar justificativa') }}</button>
-                        </form>
+                        @if($enrollments->isEmpty())
+                            <p class="text-muted mb-0">{{ __('Nenhuma matrícula de ano letivo aberto está disponível para os filtros selecionados.') }}</p>
+                        @else
+                            @include('attendance-justifications.form')
+                        @endif
                     </div>
                 </section>
             </div>
@@ -59,18 +63,25 @@
                     <div class="card-header py-3"><h2 id="justifications-list-title" class="h6 m-0 font-weight-bold text-primary">{{ __('Justificativas registradas') }}</h2></div>
                     <div class="card-body table-responsive">
                         <table class="table table-sm mb-0">
-                            <thead><tr><th>{{ __('Estudante') }}</th><th>{{ __('Período') }}</th><th>{{ __('Motivo') }}</th><th>{{ __('Registrada por') }}</th><th class="text-right">{{ __('Ações') }}</th></tr></thead>
+                            <thead><tr><th>{{ __('Estudante') }}</th><th>{{ __('Período') }}</th><th>{{ __('Motivo') }}</th><th>{{ __('Criada por') }}</th><th>{{ __('Última alteração') }}</th><th>{{ __('Alterações') }}</th><th class="text-right">{{ __('Ações') }}</th></tr></thead>
                             <tbody>
                                 @forelse ($justifications as $justification)
                                     <tr>
-                                        <td>{{ $justification->enrollment?->student?->full_name }}<span class="d-block small text-muted">{{ $justification->enrollment?->schoolClass?->name }}</span></td>
+                                        <td>{{ $justification->enrollment?->student?->full_name }}<span class="d-block small text-muted">{{ $justification->enrollment?->schoolClass?->name }} · {{ $justification->enrollment?->schoolClass?->academicYear?->referenceYearsLabel() }}</span></td>
                                         <td>{{ $justification->starts_at?->format('d/m/Y') }} {{ __('a') }} {{ $justification->ends_at?->format('d/m/Y') }}</td>
                                         <td>{{ $justification->reason }}</td>
-                                        <td>{{ $justification->grantedBy?->full_name ?? __('Sistema') }}</td>
-                                        <td class="text-right"><form class="d-inline" method="POST" action="{{ route('attendance-justifications.destroy', $justification) }}" data-confirm-message="{{ __('Remover esta justificativa?') }}">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="{{ __('Remover justificativa de') }} {{ $justification->enrollment?->student?->full_name }}" title="{{ __('Remover justificativa') }}"><i class="fas fa-trash-alt" aria-hidden="true"></i></button></form></td>
+                                        <td>{{ $justification->grantedBy?->full_name ?? __('Sistema') }}<span class="d-block small text-muted">{{ $justification->created_at?->timezone('America/Cuiaba')->format('d/m/Y H:i') }}</span></td>
+                                        <td>{{ $justification->modification_count ? ($justification->updatedBy?->full_name ?? __('Sistema')) : __('Ainda não alterada') }}@if($justification->modification_count)<span class="d-block small text-muted">{{ $justification->updated_at?->timezone('America/Cuiaba')->format('d/m/Y H:i') }}</span>@endif</td>
+                                        <td>{{ $justification->modification_count }}</td>
+                                        <td class="text-right text-nowrap">
+                                            @unless($justification->enrollment?->schoolClass?->academicYear?->isReadOnly())
+                                                <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('attendance-justifications.edit', $justification) }}" aria-label="{{ __('Editar justificativa de') }} {{ $justification->enrollment?->student?->full_name }}" title="{{ __('Editar justificativa') }}"><i class="fas fa-pen" aria-hidden="true"></i></a>
+                                                <form class="d-inline" method="POST" action="{{ route('attendance-justifications.destroy', $justification) }}" data-confirm-message="{{ __('Remover esta justificativa?') }}">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger sge-icon-action" type="submit" aria-label="{{ __('Remover justificativa de') }} {{ $justification->enrollment?->student?->full_name }}" title="{{ __('Remover justificativa') }}"><i class="fas fa-trash-alt" aria-hidden="true"></i></button></form>
+                                            @endunless
+                                        </td>
                                     </tr>
                                 @empty
-                                    <tr><td colspan="5">{{ __('Nenhuma justificativa registrada para esta escola.') }}</td></tr>
+                                    <tr><td colspan="7">{{ __('Nenhuma justificativa encontrada para os filtros selecionados.') }}</td></tr>
                                 @endforelse
                             </tbody>
                         </table>

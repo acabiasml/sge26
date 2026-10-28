@@ -16,6 +16,8 @@ class DiaryAttendanceJustification extends Model
         'ends_at',
         'reason',
         'granted_by_person_id',
+        'updated_by_person_id',
+        'modification_count',
     ];
 
     protected function casts(): array
@@ -23,6 +25,7 @@ class DiaryAttendanceJustification extends Model
         return [
             'starts_at' => 'date',
             'ends_at' => 'date',
+            'modification_count' => 'integer',
         ];
     }
 
@@ -34,6 +37,11 @@ class DiaryAttendanceJustification extends Model
     public function grantedBy(): BelongsTo
     {
         return $this->belongsTo(Person::class, 'granted_by_person_id');
+    }
+
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(Person::class, 'updated_by_person_id');
     }
 
     public function appliesTo(string $date): bool

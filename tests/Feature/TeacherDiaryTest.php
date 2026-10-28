@@ -1987,7 +1987,7 @@ class TeacherDiaryTest extends TestCase
 
         $this->actingAs($manager)
             ->post(route('attendance-justifications.store'), $payload)
-            ->assertRedirect(route('attendance-justifications.index', ['school' => $year->school_id]));
+            ->assertRedirect(route('attendance-justifications.index', ['school' => $year->school_id, 'year' => $year->id, 'class' => $class->id]));
 
         $this->assertDatabaseHas('diary_attendance_justifications', [
             'student_enrollment_id' => $enrollment->id,
@@ -1996,6 +1996,179 @@ class TeacherDiaryTest extends TestCase
         ]);
 
         $this->assertSame(1, DiaryAttendanceJustification::query()->count());
+    }
+
+    public function test_absence_justifications_filter_by_school_year_and_class(): void
+    {
+        [, $year, $class, , , $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'filtros-justificativas@ctjj.org');
+        $otherClass = $year->classes()->create(['name' => '1º Ano B', 'active' => true]);
+        $otherClass->courses()->attach($class->courses()->firstOrFail());
+        $otherStudent = Person::query()->create(['full_name' => 'Estudante da Turma B', 'active' => true]);
+        $otherEnrollment = $otherClass->enrollments()->create([
+            'person_id' => $otherStudent->id, 'enrolled_at' => '2026-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED, 'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $previousYear = $year->school->academicYears()->create([
+            'name' => 'Ano anterior', 'reference_year' => 2025, 'starts_at' => '2025-01-20',
+            'ends_at' => '2025-12-18', 'active' => true,
+        ]);
+        $previousClass = $previousYear->classes()->create(['name' => 'Turma antiga', 'active' => true]);
+        $previousEnrollment = $previousClass->enrollments()->create([
+            'person_id' => $otherStudent->id, 'enrolled_at' => '2025-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED, 'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        foreach ([
+            [$enrollment, 'Motivo da turma A', '2026-03-10'],
+            [$otherEnrollment, 'Motivo da turma B', '2026-03-11'],
+            [$previousEnrollment, 'Motivo do ano anterior', '2025-03-11'],
+        ] as [$target, $reason, $date]) {
+            DiaryAttendanceJustification::query()->create([
+                'student_enrollment_id' => $target->id, 'starts_at' => $date,
+                'ends_at' => $date, 'reason' => $reason,
+                'granted_by_person_id' => $manager->person_id,
+            ]);
+        }
+
+        $this->actingAs($manager)->get(route('attendance-justifications.index', [
+            'school' => $year->school_id, 'year' => $year->id, 'class' => $class->id,
+        ]))->assertOk()
+            ->assertSee('Motivo da turma A')
+            ->assertDontSee('Motivo da turma B')
+            ->assertDontSee('Motivo do ano anterior')
+            ->assertSee('Criada por')
+            ->assertSee('Última alteração')
+            ->assertSee('Alterações');
+
+        $this->get(route('attendance-justifications.index', [
+            'school' => $year->school_id, 'year' => $year->id,
+        ]))->assertOk()->assertSee('Motivo da turma A')->assertSee('Motivo da turma B')->assertDontSee('Motivo do ano anterior');
+
+        $otherSchool = School::query()->create($this->officialSchoolData(['name' => 'Outra escola']));
+        $otherYear = $otherSchool->academicYears()->create([
+            'name' => 'Ano letivo', 'reference_year' => 2026, 'starts_at' => '2026-01-20',
+            'ends_at' => '2026-12-18', 'active' => true,
+        ]);
+        $unrelatedClass = $otherYear->classes()->create(['name' => 'Turma de outra escola', 'active' => true]);
+        $unrelatedEnrollment = $unrelatedClass->enrollments()->create([
+            'person_id' => $otherStudent->id, 'enrolled_at' => '2026-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED, 'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        DiaryAttendanceJustification::query()->create([
+            'student_enrollment_id' => $unrelatedEnrollment->id, 'starts_at' => '2026-03-10',
+            'ends_at' => '2026-03-10', 'reason' => 'Motivo de outra escola',
+        ]);
+        $this->get(route('attendance-justifications.index', ['school' => $otherSchool->id]))
+            ->assertOk()->assertDontSee('Motivo de outra escola');
+
+        $otherClass->update(['active' => false]);
+        $this->get(route('attendance-justifications.index', ['school' => $year->school_id]))
+            ->assertOk()->assertDontSee('Motivo da turma B');
+        $this->post(route('attendance-justifications.store'), [
+            'student_enrollment_id' => $otherEnrollment->id, 'starts_at' => '2026-03-12',
+            'ends_at' => '2026-03-12', 'reason' => 'Não autorizado',
+        ])->assertForbidden();
+    }
+
+    public function test_management_can_edit_absence_justification_and_see_its_edit_history(): void
+    {
+        [$teacher, $year, $class, , , $enrollment] = $this->diaryScenario();
+        $creator = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'criador-justificativas@ctjj.org');
+        $editor = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'editor-justificativas@ctjj.org');
+        $lastEditor = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'ultimo-editor-justificativas@ctjj.org');
+        $justification = DiaryAttendanceJustification::query()->create([
+            'student_enrollment_id' => $enrollment->id,
+            'starts_at' => '2026-03-10', 'ends_at' => '2026-03-11',
+            'reason' => 'Atestado inicial', 'granted_by_person_id' => $creator->person_id,
+        ]);
+        $payload = [
+            'student_enrollment_id' => $enrollment->id,
+            'starts_at' => '2026-03-11', 'ends_at' => '2026-03-11',
+            'reason' => 'Atestado corrigido',
+        ];
+
+        $this->actingAs($teacher)->get(route('attendance-justifications.edit', $justification))->assertForbidden();
+        $this->put(route('attendance-justifications.update', $justification), $payload)->assertForbidden();
+        $this->actingAs($editor)->get(route('attendance-justifications.edit', $justification))
+            ->assertOk()->assertSee('Atestado inicial');
+        $this->put(route('attendance-justifications.update', $justification), $payload)
+            ->assertRedirect(route('attendance-justifications.index', ['school' => $year->school_id, 'year' => $year->id, 'class' => $class->id]));
+        $this->assertDatabaseHas('diary_attendance_justifications', [
+            'id' => $justification->id, 'reason' => 'Atestado corrigido',
+            'granted_by_person_id' => $creator->person_id,
+            'updated_by_person_id' => $editor->person_id,
+            'modification_count' => 1,
+        ]);
+        $this->put(route('attendance-justifications.update', $justification), $payload)->assertRedirect();
+        $this->assertSame(1, $justification->fresh()->modification_count);
+        $this->actingAs($lastEditor)->put(route('attendance-justifications.update', $justification), array_merge($payload, [
+            'reason' => 'Atestado revisado novamente',
+        ]))->assertRedirect();
+        $this->assertDatabaseHas('diary_attendance_justifications', [
+            'id' => $justification->id, 'modification_count' => 2,
+            'updated_by_person_id' => $lastEditor->person_id,
+        ]);
+        $this->get(route('attendance-justifications.index', ['school' => $year->school_id]))
+            ->assertOk()->assertSee($creator->person->full_name)->assertSee($lastEditor->person->full_name)->assertSee('Atestado revisado novamente');
+
+        $correctStudent = Person::query()->create(['full_name' => 'Estudante correto', 'active' => true]);
+        $correctEnrollment = $class->enrollments()->create([
+            'person_id' => $correctStudent->id, 'enrolled_at' => '2026-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED, 'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $this->put(route('attendance-justifications.update', $justification), array_merge($payload, [
+            'student_enrollment_id' => $correctEnrollment->id,
+            'reason' => 'Atestado vinculado ao estudante correto',
+        ]))->assertRedirect();
+        $this->assertDatabaseHas('diary_attendance_justifications', [
+            'id' => $justification->id, 'student_enrollment_id' => $correctEnrollment->id,
+            'modification_count' => 3, 'granted_by_person_id' => $creator->person_id,
+        ]);
+
+        $otherSchool = School::query()->create($this->officialSchoolData(['name' => 'Escola sem acesso']));
+        $otherYear = $otherSchool->academicYears()->create([
+            'name' => 'Ano letivo', 'reference_year' => 2026, 'starts_at' => '2026-01-20',
+            'ends_at' => '2026-12-18', 'active' => true,
+        ]);
+        $otherClass = $otherYear->classes()->create(['name' => 'Turma alheia', 'active' => true]);
+        $otherEnrollment = $otherClass->enrollments()->create([
+            'person_id' => $enrollment->person_id, 'enrolled_at' => '2026-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED, 'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $this->put(route('attendance-justifications.update', $justification), array_merge($payload, ['student_enrollment_id' => $otherEnrollment->id]))
+            ->assertForbidden();
+        $this->put(route('attendance-justifications.update', $justification), array_merge($payload, ['starts_at' => '2026-01-01']))
+            ->assertSessionHasErrors('starts_at');
+        $this->assertSame(3, $justification->fresh()->modification_count);
+    }
+
+    public function test_only_administrators_can_see_and_edit_closed_year_absence_justifications(): void
+    {
+        [, $year, $class, , , $enrollment] = $this->diaryScenario();
+        $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR, $year->school_id, 'admin-justificativas@ctjj.org');
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-ano-fechado@ctjj.org');
+        $justification = DiaryAttendanceJustification::query()->create([
+            'student_enrollment_id' => $enrollment->id, 'starts_at' => '2026-03-11',
+            'ends_at' => '2026-03-11', 'reason' => 'Atestado de ano encerrado',
+        ]);
+        $year->update(['closed_at' => now(), 'active' => false]);
+        $class->update(['active' => false]);
+
+        $this->actingAs($administrator)->get(route('attendance-justifications.index', [
+            'school' => $year->school_id, 'year' => $year->id, 'class' => $class->id,
+        ]))->assertOk()
+            ->assertSee('Atestado de ano encerrado')
+            ->assertSee(route('attendance-justifications.edit', $justification), false);
+        $this->get(route('attendance-justifications.edit', $justification))->assertOk();
+        $this->put(route('attendance-justifications.update', $justification), [
+            'student_enrollment_id' => $enrollment->id, 'starts_at' => '2026-03-11',
+            'ends_at' => '2026-03-11', 'reason' => 'Correção administrativa',
+        ])->assertRedirect();
+        $this->assertSame(1, $justification->fresh()->modification_count);
+
+        $this->actingAs($manager)->get(route('attendance-justifications.index', ['school' => $year->school_id]))
+            ->assertOk()->assertDontSee('Correção administrativa');
+        $this->get(route('attendance-justifications.edit', $justification))->assertForbidden();
     }
 
     public function test_management_can_issue_approval_overview_but_teacher_cannot(): void

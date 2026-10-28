@@ -2,9 +2,9 @@
 
 namespace App\Support;
 
+use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
 use App\Models\AcademicPeriodDiaryConsolidation;
-use App\Models\AcademicCourse;
 use App\Models\AcademicYear;
 use App\Models\Announcement;
 use App\Models\AuditLog;
@@ -43,6 +43,8 @@ use App\Models\StudentBehaviorGrade;
 use App\Models\StudentEnrollment;
 use App\Models\StudentPeriodConvalidation;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 class AuditLogPresenter
 {
@@ -180,6 +182,7 @@ class AuditLogPresenter
         'frequency_label' => 'Frequência informada',
         'frequency_percentage' => 'Percentual de frequência',
         'full_name' => 'Nome completo',
+        'granted_by_person_id' => 'Justificativa registrada por',
         'grade_phase' => 'Ano/série/etapa',
         'highlight' => 'Destaque',
         'inep' => 'INEP',
@@ -208,6 +211,7 @@ class AuditLogPresenter
         'nis' => 'NIS',
         'receives_federal_aid' => 'Recebe auxílio do Governo Federal',
         'modality' => 'Modalidade',
+        'modification_count' => 'Quantidade de alterações',
         'name' => 'Nome',
         'notes' => 'Observações',
         'number' => 'Número',
@@ -227,6 +231,7 @@ class AuditLogPresenter
         'recovery_replaced_rule_id' => 'Avaliação substituída pela recuperação',
         'recovery_weight' => 'Peso da recuperação',
         'reopen_reason' => 'Motivo da reabertura',
+        'reason' => 'Motivo',
         'reopened_at' => 'Reaberto em',
         'reopened_by_person_id' => 'Reaberto por',
         'relationship_type' => 'Relação',
@@ -287,7 +292,7 @@ class AuditLogPresenter
         return null;
     }
 
-    public static function describe(\Illuminate\Database\Eloquent\Model $record, int $depth = 0): string
+    public static function describe(Model $record, int $depth = 0): string
     {
         $parts = [];
         foreach (['full_name', 'name', 'component_name', 'title'] as $field) {
@@ -320,6 +325,7 @@ class AuditLogPresenter
         if ($field === 'person_id' || str_ends_with($field, '_person_id')) {
             return Person::class;
         }
+
         return match ($field) {
             'academic_year_id' => AcademicYear::class,
             'diary_assessment_id' => DiaryAssessment::class,
@@ -368,7 +374,6 @@ class AuditLogPresenter
             return $label.' — '.$description;
         }
 
-
         if (blank($auditLog->auditable_id)) {
             return $label;
         }
@@ -411,6 +416,7 @@ class AuditLogPresenter
 
         if ($field && is_numeric($value) && ($class = self::referenceClass($field))) {
             $record = $class::query()->find($value);
+
             return $record ? (self::describe($record) ?: self::modelLabel($class).' #'.$value)
                 : __('Registro removido').' ('.__('referência').' '.$value.')';
         }
@@ -461,7 +467,7 @@ class AuditLogPresenter
         }
         if ($field && (str_ends_with($field, '_at') || in_array($field, ['date', 'birth_date', 'issued_date', 'class_date'])) && is_string($value)) {
             try {
-                return \Illuminate\Support\Carbon::parse($value)->format(str_contains($value, ':') ? 'd/m/Y H:i' : 'd/m/Y');
+                return Carbon::parse($value)->format(str_contains($value, ':') ? 'd/m/Y H:i' : 'd/m/Y');
             } catch (\Throwable) {
                 // Preserve a legacy date that cannot be parsed.
             }
