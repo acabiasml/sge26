@@ -31,7 +31,7 @@ return [
     'active_roles_total' => 'Total de :count vínculo(s) ativo(s).', 'no_role_chart' => 'Ainda não há vínculos ativos suficientes para montar o gráfico.',
     'community_composition' => 'Composição da comunidade', 'main_groups' => 'Leitura rápida dos principais grupos.',
     'students' => 'Estudantes', 'teachers' => 'Docência', 'management' => 'Gestão', 'school_staff' => 'Equipe escolar',
-    'month_days' => 'Dias do mês', 'day_type_distribution' => 'Distribuição dos tipos de dia nos calendários visíveis.',
+    'month_days' => 'Dias do mês', 'day_type_distribution' => 'Cada data aparece uma vez. Se alguma escola a considerar letiva, ela entra em Letivo.',
     'no_calendar_days' => 'Ainda não há dias do calendário neste mês.', 'students_by_school' => 'Estudantes por escola',
     'students_by_school_help' => 'Ajuda a enxergar rapidamente a distribuição das matrículas e vínculos de estudantes.',
     'students_chart_data' => 'Dados do gráfico de estudantes por escola', 'school' => 'Escola',

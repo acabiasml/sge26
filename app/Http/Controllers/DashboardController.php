@@ -52,11 +52,7 @@ class DashboardController extends Controller
             $birthdayWeekEndsAt,
         );
         $monthAcademicCalendars = $this->monthAcademicCalendars($calendarSchoolIds, $calendarMonth);
-        $monthSchoolDayCount = $monthAcademicCalendars
-            ->flatMap(fn (AcademicYear $academicYear) => $academicYear->days->where('counts_as_school_day', true))
-            ->map(fn (CalendarDay $day): string => $day->date->toDateString())
-            ->unique()
-            ->count();
+        $combinedCalendarMonth = AcademicCalendarGrid::combinedMonth($monthAcademicCalendars, $birthdays, $calendarMonth);
 
         return view('dashboard', [
             'schoolCount' => $canManagePeople ? $this->schoolCount($manageableSchoolIds) : 0,
@@ -64,18 +60,18 @@ class DashboardController extends Controller
             'activeEnrollmentCount' => $canManagePeople ? $this->activeEnrollmentCount($manageableSchoolIds) : 0,
             'activeAcademicYearCount' => $canManagePeople ? $this->activeAcademicYearCount($calendarSchoolIds) : 0,
             'registrationPendingCount' => $canManagePeople ? $this->registrationPendingCount($manageableSchoolIds) : 0,
-            'monthSchoolDayCount' => $monthSchoolDayCount,
+            'monthSchoolDayCount' => $combinedCalendarMonth['school_days_count'],
             'roleCounts' => $roleCounts,
             'roleChart' => $this->roleChart($roleCounts),
             'studentsBySchoolChart' => $canManagePeople ? $this->studentsBySchoolChart($manageableSchoolIds) : ['labels' => [], 'values' => []],
-            'calendarTypeChart' => $canManagePeople ? $this->calendarTypeChart($monthAcademicCalendars) : ['labels' => [], 'values' => []],
+            'calendarTypeChart' => $canManagePeople ? $this->calendarTypeChart($combinedCalendarMonth) : ['labels' => [], 'values' => []],
             'birthdays' => $birthdays,
             'weekBirthdays' => $weekBirthdays,
             'birthdayWeekStartsAt' => $birthdayWeekStartsAt,
             'birthdayWeekEndsAt' => $birthdayWeekEndsAt,
             'announcements' => $this->announcements($visibleSchoolIds),
             'monthAcademicCalendars' => $monthAcademicCalendars,
-            'combinedCalendarMonth' => AcademicCalendarGrid::combinedMonth($monthAcademicCalendars, $birthdays, $calendarMonth),
+            'combinedCalendarMonth' => $combinedCalendarMonth,
             'calendarMonth' => $calendarMonth,
             'calendarPreviousMonth' => $calendarMonth->copy()->subMonth()->gte($calendarMinimumMonth) ? $calendarMonth->copy()->subMonth() : null,
             'calendarNextMonth' => $calendarMonth->copy()->addMonth()->lte($calendarMaximumMonth) ? $calendarMonth->copy()->addMonth() : null,
@@ -210,7 +206,7 @@ class DashboardController extends Controller
 
     /**
      * @param  list<int>|null  $schoolIds
-     * @return array{types: list<string>, labels: list<string>, values: list<int>}
+     * @return array{labels: list<string>, values: list<int>}
      */
     private function studentsBySchoolChart(?array $schoolIds): array
     {
@@ -232,14 +228,15 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param  Collection<int, AcademicYear>  $academicYears
-     * @return array{labels: list<string>, values: list<int>}
+     * @param  array{weeks: Collection<int, Collection<int, array<string, mixed>>>}  $month
+     * @return array{types: list<string>, labels: list<string>, values: list<int>}
      */
-    private function calendarTypeChart(Collection $academicYears): array
+    private function calendarTypeChart(array $month): array
     {
-        $counts = $academicYears
-            ->flatMap(fn (AcademicYear $academicYear): Collection => $academicYear->days)
-            ->groupBy('type')
+        $counts = $month['weeks']
+            ->flatMap(fn (Collection $week): Collection => $week)
+            ->filter(fn (array $day): bool => $day['in_month'] && $day['day_entries']->isNotEmpty())
+            ->groupBy('primary_type')
             ->map->count()
             ->sortDesc();
 

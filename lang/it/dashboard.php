@@ -37,7 +37,7 @@ return [
     'active_roles_total' => 'Totale di :count rapporto/i attivo/i.', 'no_role_chart' => 'Non ci sono ancora rapporti attivi sufficienti per creare il grafico.',
     'community_composition' => 'Composizione della comunità', 'main_groups' => 'Panoramica dei gruppi principali.',
     'students' => 'Studenti', 'teachers' => 'Docenti', 'management' => 'Direzione', 'school_staff' => 'Personale scolastico',
-    'month_days' => 'Giorni del mese', 'day_type_distribution' => 'Distribuzione dei tipi di giorno nei calendari visibili.',
+    'month_days' => 'Giorni del mese', 'day_type_distribution' => 'Ogni data compare una sola volta. Se una scuola la considera scolastica, viene conteggiata come giorno di scuola.',
     'no_calendar_days' => 'Non ci sono ancora giorni di calendario in questo mese.', 'students_by_school' => 'Studenti per scuola',
     'students_by_school_help' => 'Mostra rapidamente la distribuzione delle iscrizioni e dei rapporti degli studenti.',
     'students_chart_data' => 'Dati del grafico degli studenti per scuola', 'school' => 'Scuola',

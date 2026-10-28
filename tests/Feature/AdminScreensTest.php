@@ -1161,7 +1161,7 @@ class AdminScreensTest extends TestCase
             ->assertSee('Escola Laura Vicuña')
             ->assertSee('Conselho de Classe')
             ->assertSee('background-color: var(--sge-chart-letivo)', false)
-            ->assertSee('background-color: var(--sge-chart-conselho-classe)', false);
+            ->assertDontSee('background-color: var(--sge-chart-conselho-classe)', false);
     }
 
     public function test_dashboard_can_navigate_months_and_does_not_double_count_the_same_school_date(): void
@@ -1189,6 +1189,47 @@ class AdminScreensTest extends TestCase
             ->assertSee(ucfirst($selectedMonth->translatedFormat('F/Y')))
             ->assertSee('1 dia(s) letivo(s)')
             ->assertSee('Dia compartilhado');
+    }
+
+    public function test_dashboard_month_days_chart_uses_the_same_unique_dates_and_school_day_rule_as_calendar(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $firstSchool = School::query()->create(['name' => 'Escola Um', 'active' => true]);
+        $secondSchool = School::query()->create(['name' => 'Escola Dois', 'active' => true]);
+        $firstYear = $this->activeAcademicYear($firstSchool, 'Calendário Um');
+        $secondYear = $this->activeAcademicYear($secondSchool, 'Calendário Dois');
+        $month = now()->copy()->startOfMonth();
+
+        CalendarDay::query()->create([
+            'academic_year_id' => $firstYear->id,
+            'date' => $month->toDateString(),
+            'type' => CalendarDay::TYPE_CLASS_COUNCIL,
+            'counts_as_school_day' => true,
+        ]);
+        CalendarDay::query()->create([
+            'academic_year_id' => $secondYear->id,
+            'date' => $month->toDateString(),
+            'type' => CalendarDay::TYPE_RECESS,
+            'counts_as_school_day' => false,
+        ]);
+        CalendarDay::query()->create([
+            'academic_year_id' => $secondYear->id,
+            'date' => $month->copy()->addDay()->toDateString(),
+            'type' => CalendarDay::TYPE_HOLIDAY,
+            'counts_as_school_day' => false,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('dashboard', ['calendar_month' => $month->format('Y-m')]))
+            ->assertOk()
+            ->assertViewHas('monthSchoolDayCount', 1)
+            ->assertViewHas('calendarTypeChart', function (array $chart): bool {
+                $counts = array_combine($chart['types'], $chart['values']);
+
+                return count($counts) === 2
+                    && ($counts[CalendarDay::TYPE_SCHOOL_DAY] ?? null) === 1
+                    && ($counts[CalendarDay::TYPE_HOLIDAY] ?? null) === 1;
+            });
     }
 
     public function test_imported_external_history_loads_and_preserves_transcribed_data_on_edit(): void
