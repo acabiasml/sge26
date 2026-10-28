@@ -118,7 +118,7 @@ class RecordPdfController extends Controller
         }
 
         $school = $isTeacher
-            ? TeacherAccess::schoolForPerson($request->user(), $person->id)
+            ? TeacherAccess::schoolForTeacher($request->user())
             : $this->schoolForPerson($person);
         if ($isTeacher) {
             $person->setRelation('schoolRoles', $person->schoolRoles

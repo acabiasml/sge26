@@ -704,25 +704,10 @@ class DocumentIssuanceController extends Controller
         return Person::query()
             ->with('schoolRoles')
             ->when($user->currentView() === PersonSchoolRole::ROLE_TEACHER,
-                fn (Builder $query) => $query->where(fn (Builder $people) => $people
-                    ->whereKey($user->person_id)
-                    ->orWhereHas('studentEnrollments', fn (Builder $enrollments) => $enrollments
-                        ->where('status', StudentEnrollment::STATUS_ENROLLED)
-                        ->whereIn('school_class_id', TeacherAccess::classIds($user)))))
+                fn (Builder $query) => $query->whereKey($user->person_id))
             ->when(! $user->isAdministrator() && $user->currentView() !== PersonSchoolRole::ROLE_TEACHER,
                 fn (Builder $query) => $query->whereHas('schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $schoolIds)))
-            ->when($request->filled('school_id'), function (Builder $query) use ($request, $user): void {
-                $schoolId = $request->integer('school_id');
-                $query->where(function (Builder $people) use ($schoolId, $user): void {
-                    $people->whereHas('schoolRoles', fn (Builder $roles) => $roles->where('school_id', $schoolId));
-                    if ($user->currentView() === PersonSchoolRole::ROLE_TEACHER) {
-                        $people->orWhereHas('studentEnrollments', fn (Builder $enrollments) => $enrollments
-                            ->where('status', StudentEnrollment::STATUS_ENROLLED)
-                            ->whereIn('school_class_id', TeacherAccess::classIds($user))
-                            ->whereHas('schoolClass.academicYear', fn (Builder $year) => $year->where('school_id', $schoolId)));
-                    }
-                });
-            })
+            ->when($request->filled('school_id'), fn (Builder $query) => $query->whereHas('schoolRoles', fn (Builder $roles) => $roles->where('school_id', $request->integer('school_id'))))
             ->when($term !== '', function (Builder $query) use ($term): void {
                 $query->where(function (Builder $search) use ($term): void {
                     $this->wherePersonName($search, $term);
@@ -1028,11 +1013,7 @@ class DocumentIssuanceController extends Controller
         $person = Person::query()
             ->whereKey($data['target_id'])
             ->when($user->currentView() === PersonSchoolRole::ROLE_TEACHER,
-                fn (Builder $query) => $query->where(fn (Builder $people) => $people
-                    ->whereKey($user->person_id)
-                    ->orWhereHas('studentEnrollments', fn (Builder $enrollments) => $enrollments
-                        ->where('status', StudentEnrollment::STATUS_ENROLLED)
-                        ->whereIn('school_class_id', TeacherAccess::classIds($user)))))
+                fn (Builder $query) => $query->whereKey($user->person_id))
             ->when(! $user->isAdministrator() && $user->currentView() !== PersonSchoolRole::ROLE_TEACHER,
                 fn (Builder $query) => $query->whereHas('schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $schoolIds)))
             ->firstOrFail();

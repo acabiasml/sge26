@@ -5,7 +5,6 @@ namespace App\Support;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\SchoolClassComponent;
-use App\Models\StudentEnrollment;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -42,24 +41,11 @@ class TeacherAccess
     public static function canSeePerson(User $user, int $personId): bool
     {
         return $user->currentView() === PersonSchoolRole::ROLE_TEACHER
-            && ($user->person_id === $personId || StudentEnrollment::query()
-                ->where('person_id', $personId)
-                ->where('status', StudentEnrollment::STATUS_ENROLLED)
-                ->whereIn('school_class_id', self::classIds($user))
-                ->exists());
+            && $user->person_id === $personId;
     }
 
-    public static function schoolForPerson(User $user, int $personId): ?School
+    public static function schoolForTeacher(User $user): ?School
     {
-        if ($user->person_id === $personId) {
-            return School::query()->whereKey($user->visibleSchoolIds())->orderBy('name')->first();
-        }
-
-        return StudentEnrollment::query()
-            ->with('schoolClass.academicYear.school')
-            ->where('person_id', $personId)
-            ->where('status', StudentEnrollment::STATUS_ENROLLED)
-            ->whereIn('school_class_id', self::classIds($user))
-            ->first()?->schoolClass?->academicYear?->school;
+        return School::query()->whereKey($user->visibleSchoolIds())->orderBy('name')->first();
     }
 }

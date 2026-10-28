@@ -2237,26 +2237,35 @@ class TeacherDiaryTest extends TestCase
         ]))->assertRedirect($url);
     }
 
-    public function test_teacher_can_issue_person_record_only_for_self_and_enrolled_students_in_assigned_classes(): void
+    public function test_teacher_can_issue_only_own_person_record_in_teacher_view(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
         $otherStudent = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'fora-da-turma@ctjj.org');
+        $teacher->person->schoolRoles()->create([
+            'school_id' => $year->school_id,
+            'role' => PersonSchoolRole::ROLE_MANAGER,
+            'active' => true,
+        ]);
+        $teacher->update(['preferred_role_view' => PersonSchoolRole::ROLE_TEACHER]);
 
         $this->actingAs($teacher)->get(route('document-issuance.index'))
             ->assertOk()->assertSee('value="person-record"', false);
-        $targets = $this->getJson(route('document-issuance.targets', ['type' => 'person-record']))
-            ->assertOk();
-        $this->assertEqualsCanonicalizing([$teacher->person_id, $enrollment->person_id],
-            collect($targets->json('targets'))->pluck('id')->all());
+        $this->getJson(route('document-issuance.targets', ['type' => 'person-record']))
+            ->assertOk()->assertJsonCount(1, 'targets')
+            ->assertJsonPath('targets.0.id', $teacher->person_id);
         $this->getJson(route('document-issuance.targets', [
             'type' => 'person-record', 'school_id' => $year->school_id,
-        ]))->assertOk()->assertJsonCount(2, 'targets');
+        ]))->assertOk()->assertJsonCount(1, 'targets');
 
         $this->get(route('document-issuance.issue', [
-            'type' => 'person-record', 'target_id' => $enrollment->person_id,
-        ]))->assertRedirect(route('people.pdf', $enrollment->person_id));
-        $this->get(route('people.pdf', $enrollment->person_id))
+            'type' => 'person-record', 'target_id' => $teacher->person_id,
+        ]))->assertRedirect(route('people.pdf', $teacher->person_id));
+        $this->get(route('people.pdf', $teacher->person_id))
             ->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->get(route('document-issuance.issue', [
+            'type' => 'person-record', 'target_id' => $enrollment->person_id,
+        ]))->assertNotFound();
+        $this->get(route('people.pdf', $enrollment->person_id))->assertForbidden();
         $this->get(route('document-issuance.issue', [
             'type' => 'person-record', 'target_id' => $otherStudent->person_id,
         ]))->assertNotFound();
