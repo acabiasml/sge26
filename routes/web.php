@@ -150,6 +150,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::post('diarios/{schoolClass}/{component}/reabertura', [TeacherDiaryController::class, 'reopenPeriod'])->name('teacher-diaries.confirmation.reopen');
     Route::post('diarios/{schoolClass}/{component}/alertas', [TeacherDiaryController::class, 'storeAlert'])->name('teacher-diaries.alerts.store');
     Route::patch('diarios/alertas/{alert}/dispensar', [TeacherDiaryController::class, 'dismissAlert'])->name('teacher-diaries.alerts.dismiss');
+    Route::delete('diarios/alertas/{alert}', [TeacherDiaryController::class, 'destroyAlert'])->name('teacher-diaries.alerts.destroy');
     Route::get('meu-diario', [StudentDiaryController::class, 'index'])->name('student-diaries.index');
     Route::get('meu-diario/{enrollment}/horario', [StudentDiaryController::class, 'schedule'])->name('student-diaries.schedule');
     Route::get('meu-diario/{enrollment}/horario-pdf', [StudentDiaryController::class, 'schedulePdf'])->name('student-diaries.schedule-pdf');

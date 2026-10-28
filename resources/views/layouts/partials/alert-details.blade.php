@@ -27,6 +27,7 @@
         'alertDate' => $alert->created_at,
         'alertAuthor' => $alert->fromPerson?->full_name,
         'alertUrl' => route('teacher-diaries.show', [$alert->schoolClass, $alert->component, 'period' => $alert->academic_period_id]),
+        'alertSeenUrl' => route('teacher-diaries.alerts.dismiss', $alert),
     ])
 @endforeach
                 @if ($topbarAlertCount === 0)

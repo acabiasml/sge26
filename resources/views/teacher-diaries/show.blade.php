@@ -85,18 +85,35 @@
                 </div>
                 <div class="card-body">
                     @foreach($alerts as $alert)
-                        <div class="alert alert-warning mb-2 d-flex align-items-start justify-content-between flex-wrap">
+                        <div class="alert alert-{{ $alert->dismissed_at ? 'secondary' : 'warning' }} mb-2 d-flex align-items-start justify-content-between flex-wrap">
                             <div class="mr-3">
                                 <strong>{{ $alert->fromPerson?->full_name ?? __('Gestão') }}</strong>
                                 <span class="small text-muted">· {{ $alert->created_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}</span>
+                                @if($alert->dismissed_at)
+                                    <span class="badge badge-secondary ml-2">{{ __('Já visto') }} · {{ $alert->dismissed_at->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}</span>
+                                @else
+                                    <span class="badge badge-warning ml-2">{{ __('Não visto') }}</span>
+                                @endif
+                                @if(auth()->user()->canManageSchool($academicYear->school_id))
+                                    <span class="d-block small text-muted">{{ __('Destinatário:') }} {{ $alert->toPerson?->full_name ?? __('Não definido') }}</span>
+                                @endif
                                 <p class="mb-0 mt-1">{{ $alert->message }}</p>
                             </div>
-                            @if($alert->to_person_id === auth()->user()->person_id)
+                            @if($alert->to_person_id === auth()->user()->person_id && ! $alert->dismissed_at)
                                 <form method="POST" action="{{ route('teacher-diaries.alerts.dismiss', $alert) }}" class="mt-2 mt-md-0">
                                     @csrf
                                     @method('PATCH')
                                     <button class="btn btn-sm btn-outline-warning" type="submit">
-                                        <i class="fas fa-check mr-1" aria-hidden="true"></i>{{ __('Dispensar') }}
+                                        <i class="fas fa-check mr-1" aria-hidden="true"></i>{{ __('Já visto') }}
+                                    </button>
+                                </form>
+                            @endif
+                            @if(auth()->user()->canManageSchool($academicYear->school_id))
+                                <form method="POST" action="{{ route('teacher-diaries.alerts.destroy', $alert) }}" class="mt-2 mt-md-0" data-confirm-message="{{ __('Excluir este alerta do diário? Esta ação é permanente.') }}">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="{{ __('Excluir alerta') }}">
+                                        <i class="fas fa-trash-alt mr-1" aria-hidden="true"></i>{{ __('Excluir') }}
                                     </button>
                                 </form>
                             @endif

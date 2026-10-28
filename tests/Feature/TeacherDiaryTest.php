@@ -358,10 +358,13 @@ class TeacherDiaryTest extends TestCase
             'to_person_id' => $teacher->person_id,
             'message' => 'Confira os lançamentos de frequência desta semana.',
         ]);
+        $alert = DiaryAlert::query()->firstOrFail();
 
         $this->actingAs($teacher)->get(route('profile.edit'))->assertOk()
             ->assertSee('id="diary-alert-', false)
             ->assertSee('Abrir diário')
+            ->assertSee('Já visto')
+            ->assertSee(route('teacher-diaries.alerts.dismiss', $alert))
             ->assertSee($manager->person->full_name)
             ->assertSee('Confira os lançamentos de frequência desta semana.');
         $this->actingAs($manager)->get(route('profile.edit'))->assertOk()
@@ -377,13 +380,19 @@ class TeacherDiaryTest extends TestCase
             ->get(route('teacher-diaries.show', [$class, $component, 'period' => $period->id]))
             ->assertOk()
             ->assertSee('Confira os lançamentos de frequência desta semana.')
-            ->assertSee('Dispensar');
+            ->assertSee('Já visto');
 
-        $alert = DiaryAlert::query()->firstOrFail();
+        $this->actingAs($manager)
+            ->get(route('teacher-diaries.index', ['academic_year' => $year->id, 'period' => $period->id]))
+            ->assertOk()
+            ->assertSee('Alertas deste diário')
+            ->assertSee('Confira os lançamentos de frequência desta semana.')
+            ->assertSee('Não visto');
 
         $this->actingAs($teacher)
             ->patch(route('teacher-diaries.alerts.dismiss', $alert))
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertSessionHas('status', 'Alerta marcado como já visto.');
 
         $this->assertNotNull($alert->fresh()->dismissed_at);
 
@@ -396,6 +405,34 @@ class TeacherDiaryTest extends TestCase
             ->get(route('dashboard'))
             ->assertOk()
             ->assertDontSee('Alerta da gestão em Matemática');
+
+        $this->actingAs($teacher)
+            ->get(route('profile.edit'))
+            ->assertOk()
+            ->assertDontSee('id="diary-alert-', false);
+        $this->delete(route('teacher-diaries.alerts.destroy', $alert))->assertForbidden();
+
+        $this->actingAs($manager)
+            ->get(route('teacher-diaries.show', [$class, $component, 'period' => $period->id]))
+            ->assertOk()
+            ->assertSee('Confira os lançamentos de frequência desta semana.')
+            ->assertSee('Já visto')
+            ->assertSee('Excluir alerta');
+        $this->get(route('teacher-diaries.index', ['academic_year' => $year->id, 'period' => $period->id]))
+            ->assertOk()
+            ->assertSee('Alertas deste diário')
+            ->assertSee('Confira os lançamentos de frequência desta semana.')
+            ->assertSee('Já visto');
+
+        $otherSchool = School::query()->create($this->officialSchoolData(['name' => 'Escola sem acesso ao alerta']));
+        $otherManager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $otherSchool->id, 'outra-gestao-alerta@ctjj.org');
+        $this->actingAs($otherManager)->delete(route('teacher-diaries.alerts.destroy', $alert))->assertForbidden();
+
+        $this->actingAs($manager)->delete(route('teacher-diaries.alerts.destroy', $alert))->assertRedirect();
+        $this->assertDatabaseMissing('diary_alerts', ['id' => $alert->id]);
+        $this->get(route('teacher-diaries.index', ['academic_year' => $year->id, 'period' => $period->id]))
+            ->assertOk()
+            ->assertDontSee('Confira os lançamentos de frequência desta semana.');
     }
 
     public function test_period_cannot_be_configured_without_an_assessment(): void

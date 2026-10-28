@@ -131,17 +131,21 @@ class TeacherDiaryController extends Controller
                 ->values();
             $selectedComponent = $allAssignments->pluck('component')->filter()->firstWhere('id', $request->integer('component'));
             $selectedComponentName = $selectedComponent ? mb_strtolower(trim($selectedComponent->name)) : null;
-            $alertCounts = DiaryAlert::query()
+            $alertsByDiary = DiaryAlert::query()
+                ->with(['fromPerson', 'toPerson'])
                 ->where('academic_period_id', $period->id)
-                ->whereNull('resolved_at')
-                ->whereNull('dismissed_at')
+                ->whereIn('school_class_id', $allAssignments->pluck('school_class_id'))
+                ->latest()
                 ->get()
-                ->countBy(fn (DiaryAlert $alert): string => $alert->school_class_id.'-'.$alert->curriculum_component_id);
+                ->groupBy(fn (DiaryAlert $alert): string => $alert->school_class_id.'-'.$alert->curriculum_component_id);
 
             $summaries = $status->summaries($academicYear, $period, $user->isAdministrator())
                 ->filter(fn (array $summary): bool => $user->isAdministrator() || $summary['assignment']->schoolClass?->isOperational())
-                ->map(function (array $summary) use ($alertCounts): array {
-                    $summary['alert_count'] = (int) ($alertCounts->get($summary['assignment']->school_class_id.'-'.$summary['assignment']->curriculum_component_id) ?? 0);
+                ->map(function (array $summary) use ($alertsByDiary): array {
+                    $summary['alerts'] = $alertsByDiary->get($summary['assignment']->school_class_id.'-'.$summary['assignment']->curriculum_component_id, collect());
+                    $summary['alert_count'] = $summary['alerts']
+                        ->filter(fn (DiaryAlert $alert): bool => $alert->resolved_at === null && $alert->dismissed_at === null)
+                        ->count();
 
                     return $summary;
                 })
@@ -321,14 +325,14 @@ class TeacherDiaryController extends Controller
             ->get();
         $alerts = $period
             ? DiaryAlert::query()
-                ->with('fromPerson')
+                ->with(['fromPerson', 'toPerson'])
                 ->where('school_class_id', $schoolClass->id)
                 ->where('curriculum_component_id', $component->id)
                 ->where('academic_period_id', $period->id)
-                ->whereNull('resolved_at')
-                ->whereNull('dismissed_at')
                 ->when(! $request->user()->canManageSchool($academicYear->school_id), function (Builder $query) use ($request): void {
-                    $query->where('to_person_id', $request->user()->person_id);
+                    $query->where('to_person_id', $request->user()->person_id)
+                        ->whereNull('resolved_at')
+                        ->whereNull('dismissed_at');
                 })
                 ->latest()
                 ->get()
@@ -1048,11 +1052,21 @@ class TeacherDiaryController extends Controller
         abort_unless($request->user()->hasActiveRole(PersonSchoolRole::ROLE_TEACHER) || $request->user()->hasTeachingDiaries(), 403);
         abort_unless($alert->to_person_id === $request->user()->person_id, 403);
 
-        $alert->update([
-            'dismissed_at' => now(),
-        ]);
+        if ($alert->dismissed_at === null) {
+            $alert->update(['dismissed_at' => now()]);
+        }
 
-        return back()->with('status', __('Alerta dispensado.'));
+        return back()->with('status', __('Alerta marcado como já visto.'));
+    }
+
+    public function destroyAlert(Request $request, DiaryAlert $alert): RedirectResponse
+    {
+        $alert->loadMissing('schoolClass.academicYear');
+        abort_unless($request->user()->canManageSchool($alert->schoolClass?->academicYear?->school_id), 403);
+
+        $alert->delete();
+
+        return back()->with('status', __('Alerta excluído.'));
     }
 
     private function authorizeDiaryAccess(Request $request, SchoolClass $schoolClass, CurriculumComponent $component): void

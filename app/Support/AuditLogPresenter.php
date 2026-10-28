@@ -167,7 +167,7 @@ class AuditLogPresenter
         'curriculum_component_id' => 'Componente curricular',
         'date' => 'Data',
         'description' => 'Descrição',
-        'dismissed_at' => 'Dispensado em',
+        'dismissed_at' => 'Visto em',
         'attended_lessons' => 'Aulas com presença',
         'district' => 'Bairro',
         'email' => 'E-mail',

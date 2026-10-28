@@ -236,6 +236,42 @@
                                                 </div>
                                             </td>
                                         </tr>
+                                        @if($summary['alerts']->isNotEmpty())
+                                            <tr>
+                                                <td colspan="7">
+                                                    <details class="py-1" @if(($summary['alert_count'] ?? 0) > 0) open @endif>
+                                                        <summary class="font-weight-bold text-primary">
+                                                            <i class="fas fa-bell mr-1" aria-hidden="true"></i>
+                                                            {{ __('Alertas deste diário') }} ({{ $summary['alerts']->count() }})
+                                                        </summary>
+                                                        @foreach($summary['alerts'] as $alert)
+                                                            <div class="border rounded p-2 mt-2 d-flex align-items-start justify-content-between flex-wrap">
+                                                                <div class="mr-3">
+                                                                    <span class="badge badge-{{ $alert->dismissed_at ? 'secondary' : 'warning' }}">
+                                                                        {{ $alert->dismissed_at ? __('Já visto') : __('Não visto') }}
+                                                                    </span>
+                                                                    <span class="small text-muted ml-2">
+                                                                        {{ $alert->fromPerson?->full_name ?? __('Gestão') }} → {{ $alert->toPerson?->full_name ?? __('Não definido') }}
+                                                                        · {{ $alert->created_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}
+                                                                        @if($alert->dismissed_at)
+                                                                            · {{ __('Visto em:') }} {{ $alert->dismissed_at->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}
+                                                                        @endif
+                                                                    </span>
+                                                                    <p class="mb-0 mt-1">{{ $alert->message }}</p>
+                                                                </div>
+                                                                <form method="POST" action="{{ route('teacher-diaries.alerts.destroy', $alert) }}" data-confirm-message="{{ __('Excluir este alerta do diário? Esta ação é permanente.') }}">
+                                                                    @csrf
+                                                                    @method('DELETE')
+                                                                    <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="{{ __('Excluir alerta') }}">
+                                                                        <i class="fas fa-trash-alt mr-1" aria-hidden="true"></i>{{ __('Excluir') }}
+                                                                    </button>
+                                                                </form>
+                                                            </div>
+                                                        @endforeach
+                                                    </details>
+                                                </td>
+                                            </tr>
+                                        @endif
                                     @endforeach
                                 </tbody>
                             </table>

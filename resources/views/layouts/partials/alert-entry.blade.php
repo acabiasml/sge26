@@ -15,5 +15,12 @@
         </p>
         <div class="sge-alert-full-message">{{ $alertBody }}</div>
         @if ($alertUrl)<a class="btn btn-primary mt-3" href="{{ $alertUrl }}">{{ __('alerts.open_diary') }}</a>@endif
+        @if ($alertSeenUrl ?? null)
+            <form method="POST" action="{{ $alertSeenUrl }}" class="d-inline-block ml-2">
+                @csrf
+                @method('PATCH')
+                <button type="submit" class="btn btn-outline-primary mt-3">{{ __('Já visto') }}</button>
+            </form>
+        @endif
     </div>
 </details>

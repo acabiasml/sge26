@@ -2607,5 +2607,15 @@
     "matrículas em atividade": "iscrizioni attive",
     "matrículas registradas": "iscrizioni registrate",
     "turmas em atividade": "classi attive",
-    "Última alteração": "Ultima modifica"
+    "Última alteração": "Ultima modifica",
+    "Já visto": "Già letto",
+    "Não visto": "Da leggere",
+    "Destinatário:": "Destinatario:",
+    "Visto em:": "Letto il:",
+    "Alertas deste diário": "Avvisi di questo registro",
+    "Excluir este alerta do diário? Esta ação é permanente.": "Eliminare questo avviso dal registro? L’operazione è definitiva.",
+    "Excluir alerta": "Elimina avviso",
+    "Alerta marcado como já visto.": "Avviso segnato come letto.",
+    "Alerta excluído.": "Avviso eliminato.",
+    "Visto em": "Letto il"
 }
