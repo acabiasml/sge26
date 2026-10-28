@@ -51,6 +51,11 @@ with tempfile.TemporaryDirectory() as directory:
                 'php artisan migrate --path=database/migrations/2026_10_23_000002_clear_existing_social_names.php --force --no-ansi',
             ))
             commands.append(('Nomes sociais cadastrados após a limpeza', count_social_names))
+        if os.environ.get('APPLY_ATTENDANCE_JUSTIFICATION_MIGRATION') == 'true':
+            commands.append((
+                'Aplicar migration do histórico das justificativas de ausência',
+                'php artisan migrate --path=database/migrations/2026_10_28_000001_track_attendance_justification_edits.php --force --no-ansi',
+            ))
         if os.environ.get('REFRESH_VIEWS') == 'true':
             commands.append(('Limpar cache das telas', 'php artisan view:clear --no-ansi'))
         if os.environ.get('INVALIDATE_ALL_SESSIONS') == 'true':
