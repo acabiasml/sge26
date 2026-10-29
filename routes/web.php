@@ -100,6 +100,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('historicos-escolares', [StudentAcademicHistoryController::class, 'index'])->name('student-histories.index');
     Route::get('historicos-escolares/{person}', [StudentAcademicHistoryController::class, 'student'])->name('student-histories.student');
     Route::post('historicos-escolares/{person}/{stage}', [StudentAcademicHistoryController::class, 'unified'])->name('student-histories.unified');
+    Route::post('historicos-escolares/{person}/{stage}/aproveitar/{year}', [StudentAcademicHistoryController::class, 'importYear'])->name('student-histories.import-year');
     Route::get('pessoas/{person}/mapa-do-estudante', fn ($person) => redirect()->route('people.student-map.show', $person));
     Route::get('pessoas/{person}/historicos/create', [StudentAcademicHistoryController::class, 'create'])->name('people.histories.create');
     Route::post('pessoas/{person}/historicos', [StudentAcademicHistoryController::class, 'store'])->name('people.histories.store');
@@ -109,6 +110,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::put('pessoas/{person}/historicos/{history}/dados', [StudentAcademicHistoryController::class, 'updateDetails'])->name('people.histories.details.update');
     Route::put('pessoas/{person}/historicos/{history}', [StudentAcademicHistoryController::class, 'update'])->name('people.histories.update');
     Route::delete('pessoas/{person}/historicos/{history}', [StudentAcademicHistoryController::class, 'destroy'])->name('people.histories.destroy');
+    Route::delete('pessoas/{person}/historicos/{history}/anos/{year}', [StudentAcademicHistoryController::class, 'destroyYear'])->name('people.histories.years.destroy');
     Route::get('pessoas/{person}/historicos/{history}/pdf', [StudentAcademicHistoryController::class, 'pdf'])->name('people.histories.pdf');
     Route::post('pessoas/{person}/contatos', [PersonContactController::class, 'store'])->name('people.contacts.store');
     Route::put('pessoas/{person}/contatos/{contact}', [PersonContactController::class, 'update'])->name('people.contacts.update');

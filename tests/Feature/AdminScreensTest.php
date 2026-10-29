@@ -17,11 +17,14 @@ use App\Models\SchoolClass;
 use App\Models\StudentAcademicHistory;
 use App\Models\StudentEnrollment;
 use App\Models\User;
+use App\Support\OfficialDocumentPdf;
 use App\Support\UnifiedStudentHistorySynchronizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class AdminScreensTest extends TestCase
@@ -37,6 +40,7 @@ class AdminScreensTest extends TestCase
         $this->actingAs($admin)->get(route('schools.create'))->assertOk();
         $this->actingAs($admin)->get(route('people.index'))->assertOk();
         $this->actingAs($admin)->get(route('people.create'))->assertOk();
+        $this->actingAs($admin)->get(route('people.create'))->assertSee('Bélgica - Belga');
         $this->actingAs($admin)->get(route('data-quality.index'))->assertOk();
         $this->actingAs($admin)->get(route('official-documents.create'))
             ->assertOk()->assertSee('id="confirmActionModal"', false)
@@ -66,7 +70,7 @@ class AdminScreensTest extends TestCase
 
     public function test_manager_can_emit_official_document_for_managed_school(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('local');
+        Storage::fake('local');
         $school = School::query()->create($this->officialSchoolData(['name' => 'Escola A']));
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id, 'documentos@ctjj.org');
 
@@ -99,7 +103,7 @@ class AdminScreensTest extends TestCase
             'school_id' => $school->id,
         ]);
         $this->assertInstanceOf(IssuedDocument::class, $document->issuedDocument);
-        $originalBytes = \Illuminate\Support\Facades\Storage::disk('local')->get($document->issuedDocument->file_path);
+        $originalBytes = Storage::disk('local')->get($document->issuedDocument->file_path);
         $code = $document->issuedDocument->verification_code;
         $school->update(['name' => 'Nome alterado depois da emissão']);
         $this->travel(1)->days();
@@ -108,18 +112,20 @@ class AdminScreensTest extends TestCase
         $this->assertDatabaseCount('official_documents', 1);
         $this->assertDatabaseCount('issued_documents', 1);
         $this->assertSame($code, $document->issuedDocument->fresh()->verification_code);
-        \Illuminate\Support\Facades\Storage::disk('local')->delete($document->issuedDocument->file_path);
+        Storage::disk('local')->delete($document->issuedDocument->file_path);
         $this->actingAs($manager)->get(route('official-documents.reissue', $document))->assertNotFound();
 
     }
 
     public function test_official_document_retains_table_and_image_when_reedited_and_reissued(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('local');
+        Storage::fake('local');
         $school = School::query()->create($this->officialSchoolData(['name' => 'Escola Imagens']));
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id, 'imagens@ctjj.org');
         $image = imagecreatetruecolor(40, 20);
-        ob_start(); imagepng($image); $src = 'data:image/png;base64,'.base64_encode(ob_get_clean());
+        ob_start();
+        imagepng($image);
+        $src = 'data:image/png;base64,'.base64_encode(ob_get_clean());
         $html = '<table><tbody><tr><td colspan="2">Tabela de teste</td></tr><tr><td>Imagem</td><td><img src="'.$src.'" alt="Exemplo" style="width: 50%"></td></tr></tbody></table>';
         $this->actingAs($manager)->post(route('official-documents.store'), [
             'school_id' => $school->id, 'title' => 'Documento com imagem', 'orientation' => 'portrait', 'line_spacing' => '1.5', 'content_html' => $html,
@@ -129,7 +135,7 @@ class AdminScreensTest extends TestCase
         $this->assertStringContainsString($src, $document->content_html);
         $this->assertStringContainsString('colspan="2"', $document->content_html);
         $this->get(route('official-documents.edit', $document))->assertOk()->assertSee($src, false)->assertSee('summernote-bs4.min.js', false);
-        $bytes = \Illuminate\Support\Facades\Storage::disk('local')->get($document->issuedDocument->file_path);
+        $bytes = Storage::disk('local')->get($document->issuedDocument->file_path);
         $this->get(route('official-documents.reissue', $document))->assertOk()->assertContent($bytes);
     }
 
@@ -141,14 +147,17 @@ class AdminScreensTest extends TestCase
         $issued->setRelation('issuedBy', null);
         foreach (['portrait', 'landscape'] as $orientation) {
             $document->orientation = $orientation;
-            $pdf = app(\App\Support\OfficialDocumentPdf::class)->make([
+            $pdf = app(OfficialDocumentPdf::class)->make([
                 'officialDocument' => $document, 'issuedDocument' => $issued,
                 'verificationUrl' => 'https://ctjj.org/sge/documentos/verificar/PREVIA',
                 'letterhead' => ['lines' => ['Centro Técnico Juvenil de Jarudore', 'Certificação institucional', 'Escola de teste', 'CNPJ e endereço', 'Credenciamento e autorização']],
             ]);
-            $headers = []; $bodies = [];
+            $headers = [];
+            $bodies = [];
             $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame, $canvas) use (&$headers, &$bodies): void {
-                $node = $frame->get_node(); $box = $frame->get_border_box(); $page = $canvas->get_page_number();
+                $node = $frame->get_node();
+                $box = $frame->get_border_box();
+                $page = $canvas->get_page_number();
                 if ($node instanceof \DOMElement && $node->tagName === 'header') {
                     $headers[$page] = $box['y'] + $box['h'];
                 }
@@ -209,11 +218,11 @@ class AdminScreensTest extends TestCase
 
     public function test_legacy_reissue_keeps_original_code_date_and_content(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('local');
+        Storage::fake('local');
         $school = School::query()->create($this->officialSchoolData(['name' => 'Escola A']));
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id, 'legado@ctjj.org');
         $issued = IssuedDocument::query()->create([
-            'uuid' => (string) \Illuminate\Support\Str::uuid(), 'verification_code' => 'BEABA-LEGADO',
+            'uuid' => (string) Str::uuid(), 'verification_code' => 'BEABA-LEGADO',
             'type' => 'official-document', 'school_id' => $school->id, 'issued_by_user_id' => $manager->id, 'person_id' => $manager->person_id,
             'issued_at' => '2026-02-01 12:00:00',
         ]);
@@ -393,7 +402,7 @@ class AdminScreensTest extends TestCase
 
     public function test_private_document_is_saved_with_its_chosen_visibility(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('local');
+        Storage::fake('local');
         $school = School::query()->create($this->officialSchoolData());
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
 
@@ -431,7 +440,7 @@ class AdminScreensTest extends TestCase
 
     public function test_only_author_can_delete_private_document_and_only_admin_can_delete_public_document(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('local');
+        Storage::fake('local');
         $school = School::query()->create(['name' => 'Escola A']);
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
         $teacher = $this->userWithRole(PersonSchoolRole::ROLE_TEACHER, $school->id);
@@ -449,14 +458,14 @@ class AdminScreensTest extends TestCase
         $teacherPrivate = $makeDocument('Documento privado professor', $teacher->id, OfficialDocument::VISIBILITY_PRIVATE);
         $public = $makeDocument('Documento publico gestor', $manager->id, OfficialDocument::VISIBILITY_PUBLIC);
         $issued = IssuedDocument::query()->create([
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'verification_code' => 'BEABA-EXCLUIR',
             'type' => 'official-document', 'person_id' => $manager->person_id,
             'school_id' => $school->id, 'issued_by_user_id' => $manager->id,
             'file_path' => 'issued-documents/teste-exclusao.pdf', 'issued_at' => now(),
         ]);
         $private->update(['issued_document_id' => $issued->id]);
-        \Illuminate\Support\Facades\Storage::disk('local')->put($issued->file_path, '%PDF-teste');
+        Storage::disk('local')->put($issued->file_path, '%PDF-teste');
 
         $this->actingAs($manager)->get(route('official-documents.create', ['visibility' => 'mine']))
             ->assertSee('action="'.route('official-documents.destroy', $private).'"', false)
@@ -471,7 +480,7 @@ class AdminScreensTest extends TestCase
             ->assertRedirect(route('official-documents.create', ['visibility' => 'mine']));
         $this->assertDatabaseMissing('official_documents', ['id' => $private->id]);
         $this->assertDatabaseMissing('issued_documents', ['id' => $issued->id]);
-        \Illuminate\Support\Facades\Storage::disk('local')->assertMissing($issued->file_path);
+        Storage::disk('local')->assertMissing($issued->file_path);
         $this->get(route('documents.verify', $issued->verification_code))->assertNotFound();
 
         $this->actingAs($teacher)->delete(route('official-documents.destroy', $teacherPrivate))
@@ -1267,6 +1276,90 @@ class AdminScreensTest extends TestCase
         $this->assertDatabaseHas('student_academic_history_records', $recordData);
         $this->actingAs($admin)->get(route('people.histories.edit', [$student, $history]))
             ->assertOk()->assertSee('value="Aprovado por conceito"', false)->assertSee('value="817.00"', false);
+    }
+
+    public function test_manager_can_identify_and_reuse_a_separately_registered_school_year(): void
+    {
+        $school = School::query()->create($this->officialSchoolData(['name' => 'Escola A']));
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $school->id)->person;
+        $academicYear = $this->activeAcademicYear($school, 'Fundamental 2026');
+        $course = $academicYear->courses()->create([
+            'name' => '6º Ano', 'stage' => AcademicCourse::STAGE_ELEMENTARY,
+            'modality' => AcademicCourse::MODALITY_REGULAR, 'class_hour_minutes' => 50, 'active' => true,
+        ]);
+        $class = $academicYear->classes()->create(['name' => '6º Ano A', 'active' => true]);
+        $class->courses()->attach($course);
+        $enrollment = $class->enrollments()->create([
+            'person_id' => $student->id, 'enrolled_at' => now()->startOfYear(),
+            'status' => StudentEnrollment::STATUS_ENROLLED, 'type' => StudentEnrollment::TYPE_REGULAR,
+        ]);
+        $enrollment->courses()->attach($course);
+
+        $separate = StudentAcademicHistory::query()->create([
+            'person_id' => $student->id, 'school_id' => $school->id,
+            'title' => 'Histórico recebido', 'stage' => 'Ensino Fundamental', 'active' => true,
+        ]);
+        $year = $separate->years()->create([
+            'position' => 1, 'source' => 'manual', 'label' => '1ª Fase do 1º Ciclo',
+            'grade_phase' => '1ª Fase do 1º Ciclo', 'year' => '2020', 'stage' => 'Ensino Fundamental',
+            'modality' => 'Regular', 'school_name' => 'Escola Externa', 'city' => 'Bruxelas',
+            'state' => 'MT', 'country' => 'Bélgica', 'transcript_mode' => 'summary',
+            'final_result' => 'Aprovado', 'workload_hours' => 700,
+        ]);
+        $component = $separate->components()->create([
+            'position' => 1, 'name' => 'Síntese Global', 'formation' => 'Formação Geral Básica',
+            'knowledge_area' => 'Linguagens',
+        ]);
+        $component->records()->create(['student_academic_history_year_id' => $year->id, 'score_label' => 'AP']);
+
+        $this->actingAs($manager)->get(route('student-histories.student', $student))
+            ->assertOk()->assertSee('Históricos cadastrados separadamente')
+            ->assertSee('700,00 h');
+        $this->actingAs($manager)->get(route('people.histories.edit', [$student, $separate]))
+            ->assertOk()->assertSee('name="years[0][grade_number]"', false);
+
+        $this->actingAs($manager)->put(route('people.histories.update', [$student, $separate]), [
+            'school_id' => $school->id, 'title' => $separate->title, 'stage' => $separate->stage,
+            'active' => 1,
+            'years' => [[
+                'source' => 'manual', 'year' => '2020', 'stage' => 'Ensino Fundamental',
+                'modality' => 'Regular', 'grade_phase' => '1ª Fase do 1º Ciclo', 'grade_number' => 1,
+                'school_name' => 'Escola Externa', 'city' => 'Bruxelas', 'state' => 'MT',
+                'country' => 'Bélgica', 'transcript_mode' => 'summary', 'final_result' => 'Aprovado',
+                'workload_hours' => 800,
+            ]],
+            'components' => [[
+                'name' => 'Síntese Global', 'formation' => 'Formação Geral Básica',
+                'knowledge_area' => 'Linguagens', 'records' => [['score_label' => 'AP']],
+            ]],
+        ])->assertSessionHasNoErrors()->assertRedirect();
+        $year = $separate->years()->firstOrFail();
+        $this->assertSame(1, $year->grade_number);
+        $this->assertSame(800.0, (float) $year->workload_hours);
+
+        $this->actingAs($manager)->post(route('student-histories.import-year', [$student, 'fundamental', $year]))
+            ->assertRedirect();
+        $unified = StudentAcademicHistory::query()->where('person_id', $student->id)->where('is_unified', true)->firstOrFail();
+        $this->assertDatabaseHas('student_academic_history_years', [
+            'student_academic_history_id' => $unified->id,
+            'imported_from_history_year_id' => $year->id,
+            'grade_number' => 1, 'workload_hours' => 800,
+        ]);
+        $this->assertDatabaseHas('student_academic_history_records', ['score_label' => 'AP']);
+        $this->actingAs($manager)->post(route('student-histories.import-year', [$student, 'fundamental', $year]))
+            ->assertRedirect();
+        $this->assertSame(1, $unified->years()->where('imported_from_history_year_id', $year->id)->count());
+
+        $systemYear = $unified->years()->where('source', 'system')->firstOrFail();
+        $this->actingAs($manager)->delete(route('people.histories.years.destroy', [$student, $unified, $systemYear]))
+            ->assertNotFound();
+
+        $imported = $unified->years()->where('imported_from_history_year_id', $year->id)->firstOrFail();
+        $this->actingAs($manager)->delete(route('people.histories.years.destroy', [$student, $unified, $imported]))
+            ->assertRedirect(route('student-histories.student', $student));
+        $this->assertDatabaseMissing('student_academic_history_years', ['id' => $imported->id]);
+        $this->assertDatabaseHas('student_academic_history_years', ['id' => $year->id]);
     }
 
     public function test_technical_enrollment_can_create_an_independent_unified_history(): void

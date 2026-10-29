@@ -45,6 +45,17 @@ class StudentAcademicHistoryCompletenessTest extends TestCase
         $this->assertSame([1, 2], $result['missing_grades']);
     }
 
+    public function test_explicit_grade_identifies_legacy_cycle_label(): void
+    {
+        $history = $this->history(AcademicCourse::STAGE_ELEMENTARY, ['1ª Fase do 1º Ciclo', '6º Ano']);
+        $history->years->first()->grade_number = 1;
+
+        $result = $this->service()->evaluate($history);
+
+        $this->assertSame([1, 6], $result['registered_grades']);
+        $this->assertSame([2, 3, 4, 5], $result['missing_grades']);
+    }
+
     /** @param list<string> $grades */
     private function history(string $stage, array $grades): StudentAcademicHistory
     {

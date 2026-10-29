@@ -13,7 +13,7 @@ class StudentAcademicHistoryCompleteness
     {
         $stage = $history->education_stage;
         $registered = $history->years
-            ->map(fn ($year): ?int => $this->gradeNumber((string) ($year->grade_phase ?: $year->label), $stage))
+            ->map(fn ($year): ?int => $year->grade_number ?: $this->gradeNumber((string) ($year->grade_phase ?: $year->label), $stage))
             ->filter()
             ->unique()
             ->sort()

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasTitleCaseAttributes;
+use App\Support\TextNormalizer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,6 +23,8 @@ class StudentAcademicHistoryYear extends Model
         'stage',
         'modality',
         'grade_phase',
+        'grade_number',
+        'imported_from_history_year_id',
         'school_name',
         'school_authorization',
         'source_document',
@@ -41,6 +44,7 @@ class StudentAcademicHistoryYear extends Model
     {
         return [
             'position' => 'integer',
+            'grade_number' => 'integer',
             'workload_hours' => 'decimal:2',
             'school_days' => 'integer',
             'minimum_attendance_percentage' => 'decimal:2',
@@ -63,7 +67,7 @@ class StudentAcademicHistoryYear extends Model
 
     public function getSchoolNameAttribute(?string $value): ?string
     {
-        return \App\Support\TextNormalizer::schoolAcronym($value);
+        return TextNormalizer::schoolAcronym($value);
     }
 
     public function displaysCompletedWorkload(): bool

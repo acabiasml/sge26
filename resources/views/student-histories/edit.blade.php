@@ -24,6 +24,26 @@
         @method('PUT')
         @include('student-histories._form', ['curriculumOnly' => true, 'manualOnly' => $history->is_unified])
     </form>
+    @if($history->years->contains(fn ($year) => $year->source !== 'system'))
+        <section class="card shadow sge-panel-card mb-4" aria-labelledby="manual-years-title">
+            <div class="sge-panel-header"><div>
+                <h2 id="manual-years-title">{{ __('Remover um ano cadastrado') }}</h2>
+                <p>{{ __('A remoção elimina este ano e suas notas transcritas. Os demais anos são preservados.') }}</p>
+            </div></div>
+            <div class="card-body"><div class="table-responsive"><table class="table table-sm table-bordered" data-sge-client-pagination="10">
+                <thead><tr><th>{{ __('Ano civil') }}</th><th>{{ __('Série/Fase') }}</th><th>{{ __('CH total') }}</th><th>{{ __('Ações') }}</th></tr></thead>
+                <tbody>@foreach($history->years->filter(fn ($year) => $year->source !== 'system') as $year)
+                    <tr><td>{{ $year->year }}</td><td>{{ $year->grade_phase }}</td>
+                        <td>{{ number_format((float) $year->workload_hours, 2, ',', '.') }} h</td>
+                        <td><form method="post" action="{{ route('people.histories.years.destroy', [$person, $history, $year]) }}" data-confirm-message="{{ __('Remover este ano e suas notas transcritas?') }}">
+                            @csrf @method('DELETE')
+                            <button class="btn btn-sm btn-outline-danger" type="submit"><i class="fas fa-trash mr-1" aria-hidden="true"></i>{{ __('Remover ano') }}</button>
+                        </form></td>
+                    </tr>
+                @endforeach</tbody>
+            </table></div></div>
+        </section>
+    @endif
     @if($history->is_unified && $history->years->contains('source', 'system'))
         <section class="card shadow sge-panel-card mb-4" aria-labelledby="system-years-title">
             <div class="sge-panel-header">

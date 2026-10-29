@@ -16,6 +16,12 @@
     <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('student-histories.student', $person) }}" aria-label="{{ __('Voltar aos históricos') }}" title="{{ __('Voltar aos históricos') }}">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
     </a>
+    @unless($history->is_unified)
+        <form class="d-inline" method="post" action="{{ route('people.histories.destroy', [$person, $history]) }}" data-confirm-message="{{ __('Remover este histórico e todos os anos nele cadastrados?') }}">
+            @csrf @method('DELETE')
+            <button class="btn btn-sm btn-outline-danger shadow-sm sge-icon-action" type="submit" aria-label="{{ __('Remover histórico cadastrado separadamente') }}" title="{{ __('Remover histórico') }}"><i class="fas fa-trash" aria-hidden="true"></i></button>
+        </form>
+    @endunless
 @endsection
 
 @section('content')

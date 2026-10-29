@@ -2,7 +2,7 @@
     $curriculumOnly = $curriculumOnly ?? false;
     $manualOnly = $manualOnly ?? false;
     $history->loadMissing(['years.records', 'components.records.year']);
-    $editableYears = $manualOnly ? $history->years->whereIn('source', ['manual', 'external'])->values() : $history->years->values();
+    $editableYears = $manualOnly ? $history->years->filter(fn ($year) => $year->source !== 'system')->values() : $history->years->values();
     $catalogStage = $history->education_stage ?: 'fundamental';
     $bnccAreas = collect(config("curriculum.stages.{$catalogStage}.formations.formacao_geral_basica.areas", []));
     $bnccComponentsByArea = $bnccAreas->mapWithKeys(fn ($area) => [$area['name'] => $area['components'] ?? []]);
@@ -20,7 +20,8 @@
     };
     $defaultYears = collect(range(1, $defaultYearCount))->map(fn ($number) => [
         'label' => $number.'º Ano', 'year' => '', 'stage' => $history->stage ?: '', 'modality' => 'Regular',
-        'grade_phase' => $number.'º Ano', 'school_name' => '', 'city' => '', 'state' => '', 'country' => 'Brasil',
+        'grade_phase' => $number.'º Ano', 'grade_number' => $history->education_stage ? $number : null,
+        'school_name' => '', 'city' => '', 'state' => '', 'country' => 'Brasil',
         'transcript_mode' => 'detailed', 'final_result' => '', 'workload_hours' => '', 'school_days' => '',
         'attendance_label' => '', 'minimum_attendance_percentage' => '', 'notes' => '',
     ])->all();
@@ -38,6 +39,8 @@
             'stage' => $year->stage,
             'modality' => $year->modality,
             'grade_phase' => $year->grade_phase,
+            'grade_number' => $year->grade_number ?: app(\App\Support\StudentAcademicHistoryCompleteness::class)->gradeNumber((string) $year->grade_phase, $history->education_stage ?: match ($year->stage) { 'Ensino Médio' => 'medio', default => 'fundamental' }),
+            'imported_from_history_year_id' => $year->imported_from_history_year_id,
             'school_name' => $year->school_name,
             'school_authorization' => $year->school_authorization,
             'source_document' => $year->source_document,
@@ -143,6 +146,7 @@
                         <article class="sge-history-year-card" data-history-year>
                             <input type="hidden" name="years[{{ $yearIndex }}][source]" value="{{ $year['source'] ?? 'manual' }}">
                             <input type="hidden" name="years[{{ $yearIndex }}][student_enrollment_id]" value="{{ $year['student_enrollment_id'] ?? '' }}">
+                            <input type="hidden" name="years[{{ $yearIndex }}][imported_from_history_year_id]" value="{{ $year['imported_from_history_year_id'] ?? '' }}">
                             <header>
                                 <strong>{{ filled($year['grade_phase'] ?? null) ? $year['grade_phase'] : __('Série/Fase ').$loop->iteration }}</strong>
                                 <button class="btn btn-sm btn-outline-danger sge-icon-action" type="button" data-remove-history-year aria-label="{{ __('Remover esta coluna do histórico') }}" title="{{ __('Remover coluna') }}">
@@ -155,8 +159,18 @@
                                     <input name="years[{{ $yearIndex }}][year]" data-mask="year" inputmode="numeric" autocomplete="off" class="form-control" value="{{ $year['year'] ?? '' }}" required>
                                 </div>
                                 <div class="form-group col-md-8">
-                                    <label>{{ __('Série/Fase') }}</label>
+                                    <label>{{ __('Série/Fase no documento recebido') }}</label>
                                     <input name="years[{{ $yearIndex }}][grade_phase]" class="form-control" value="{{ $year['grade_phase'] ?? '' }}" required>
+                                </div>
+                                <div class="form-group col-md-12">
+                                    <label>{{ __('Ano escolar correspondente') }}</label>
+                                    <select name="years[{{ $yearIndex }}][grade_number]" class="form-control" data-history-grade>
+                                        <option value="">{{ __('Selecione a série exata') }}</option>
+                                        @for($grade = 1; $grade <= 9; $grade++)
+                                            <option value="{{ $grade }}" @selected((int) ($year['grade_number'] ?? 0) === $grade)>{{ $grade }}º {{ __('ano') }}</option>
+                                        @endfor
+                                    </select>
+                                    @error("years.{$yearIndex}.grade_number")<div class="invalid-feedback d-block">{{ __($message) }}</div>@enderror
                                 </div>
                                 <div class="form-group col-md-12">
                                     <label>{{ __('Tipo de transcrição') }}</label>
@@ -172,7 +186,13 @@
                                 @else
                                 <div class="form-group col-md-6">
                                     <label>{{ __('Etapa') }}</label>
-                                    <input name="years[{{ $yearIndex }}][stage]" class="form-control" value="{{ $year['stage'] ?? '' }}" required>
+                                    <select name="years[{{ $yearIndex }}][stage]" class="form-control" data-history-stage required>
+                                        <option value="">{{ __('Selecione') }}</option>
+                                        @foreach(\App\Models\AcademicCourse::STAGE_LABELS as $stageCode => $stageLabel)
+                                            <option value="{{ $stageLabel }}" @selected(($year['stage'] ?? '') === $stageLabel)>{{ __($stageLabel) }}</option>
+                                        @endforeach
+                                        @if(filled($year['stage'] ?? null) && ! in_array($year['stage'], \App\Models\AcademicCourse::STAGE_LABELS, true))<option value="{{ $year['stage'] }}" selected>{{ $year['stage'] }}</option>@endif
+                                    </select>
                                 </div>
                                 @endif
                                 <div class="form-group {{ $manualOnly ? 'col-md-12' : 'col-md-6' }}">
@@ -344,6 +364,21 @@ document.addEventListener('DOMContentLoaded', function () {
     const yearWrapper = document.querySelector('#history-years');
     const table = document.querySelector('#history-components');
     const componentsByArea = @json($bnccComponentsByArea);
+
+    function syncGradeStage(card) {
+        const stage = card.querySelector('[data-history-stage]')?.value || @js(\App\Models\AcademicCourse::STAGE_LABELS[$history->education_stage] ?? '');
+        const grade = card.querySelector('[data-history-grade]');
+        if (!grade) return;
+        const maximum = stage === @js(\App\Models\AcademicCourse::STAGE_LABELS['medio']) ? 3 : 9;
+        const requiresGrade = stage === @js(\App\Models\AcademicCourse::STAGE_LABELS['medio']) || stage === @js(\App\Models\AcademicCourse::STAGE_LABELS['fundamental']);
+        grade.required = requiresGrade;
+        Array.from(grade.options).forEach(option => { if (option.value) option.disabled = Number(option.value) > maximum || !requiresGrade; });
+        if (grade.selectedOptions[0]?.disabled) grade.value = '';
+    }
+    yearWrapper?.querySelectorAll('[data-history-year]').forEach(syncGradeStage);
+    yearWrapper?.addEventListener('change', event => {
+        if (event.target.matches('[data-history-stage]')) syncGradeStage(event.target.closest('[data-history-year]'));
+    });
 
     function refreshCurriculumRow(row, resetComponent) {
         const formation = row.querySelector('[data-history-formation]');
@@ -525,6 +560,8 @@ document.addEventListener('DOMContentLoaded', function () {
         clone.querySelectorAll('select').forEach(function (select) { select.value = ''; });
         const sourceField = clone.querySelector('[name$="[source]"]');
         if (sourceField) sourceField.value = 'manual';
+        const importedField = clone.querySelector('[name$="[imported_from_history_year_id]"]');
+        if (importedField) importedField.value = '';
         const country = clone.querySelector('[name$="[country]"]');
         if (country) country.value = 'Brasil';
         const mode = clone.querySelector('[name$="[transcript_mode]"]');
@@ -532,6 +569,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const modality = clone.querySelector('[name$="[modality]"]');
         if (modality) modality.value = 'Regular';
         yearWrapper.appendChild(clone);
+        syncGradeStage(clone);
         bindRemove(clone);
 
         const header = document.createElement('th');

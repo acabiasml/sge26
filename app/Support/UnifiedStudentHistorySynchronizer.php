@@ -136,6 +136,7 @@ class UnifiedStudentHistorySynchronizer
                 'stage' => AcademicCourse::STAGE_LABELS[$course?->stage] ?? 'Etapa não informada',
                 'modality' => AcademicCourse::MODALITY_LABELS[$course?->modality] ?? 'Regular',
                 'grade_phase' => $course?->name ?: $report['schoolClass']->name,
+                'grade_number' => $this->completeness->gradeNumber($course?->name ?: $report['schoolClass']->name, $stage),
                 'school_name' => $school->name,
                 'school_authorization' => $school->letterhead_text,
                 'city' => $school->city,
@@ -199,13 +200,13 @@ class UnifiedStudentHistorySynchronizer
                 }
             }
             $historyComponent ??= $history->components()->create([
-                    'position' => $history->components()->count() + 1,
-                    'formation' => $formation,
-                    'module_label' => $moduleLabel,
-                    'regulatory_reference' => $technicalCourse?->conciseRegulatoryReference(),
-                    'knowledge_area' => $knowledgeArea,
-                    'name' => $component->name,
-                ]);
+                'position' => $history->components()->count() + 1,
+                'formation' => $formation,
+                'module_label' => $moduleLabel,
+                'regulatory_reference' => $technicalCourse?->conciseRegulatoryReference(),
+                'knowledge_area' => $knowledgeArea,
+                'name' => $component->name,
+            ]);
             $historyComponent->update([
                 'name' => $component->name,
                 'formation' => $formation,
