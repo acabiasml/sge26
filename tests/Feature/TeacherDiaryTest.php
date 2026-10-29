@@ -669,6 +669,17 @@ class TeacherDiaryTest extends TestCase
     public function test_individual_record_keeps_signatures_above_footer_and_hours_follow_relative_attendance(): void
     {
         [, $year, $class, $component, , $enrollment] = $this->diaryScenario();
+        $enrollment->student->update([
+            'full_name' => 'Estudante com Identificação Completa de Demonstração',
+            'legacy_code' => '12345', 'cpf' => '12345678901', 'student_inep' => '177607249507',
+            'birth_date' => '2013-07-25', 'birth_city' => 'Barra do Garças', 'birth_state' => 'MT',
+            'nationality' => 'Brasileira', 'phone' => '(66) 99999-9999', 'nis' => '12345678901',
+            'receives_federal_aid' => true, 'personal_email' => 'estudante@example.org',
+            'institutional_email' => 'estudante.demonstracao@ctjj.org',
+            'mother_name' => 'Nome Completo da Mãe do Estudante', 'father_name' => 'Nome Completo do Pai do Estudante',
+            'address' => 'Rua C9, Qd A-52, Lote 29 Residencial', 'district' => 'Jardim dos Ipês',
+            'city' => 'Barra do Garças', 'state' => 'MT', 'postal_code' => '78696-512',
+        ]);
         $course = $class->courses()->firstOrFail();
         foreach ([2, 3, 4] as $number) {
             $year->periods()->create(['name' => "{$number}º Bimestre", 'position' => $number, 'starts_at' => '2026-04-11', 'ends_at' => '2026-12-18']);
@@ -704,11 +715,16 @@ class TeacherDiaryTest extends TestCase
             'verificationUrl' => route('documents.verify', 'TESTE'), 'letterhead' => PdfLetterhead::make($year->school)];
         $html = View::make('reports.student-individual-record', $data)->render();
         $this->assertStringContainsString('Encerrada · Regular', $html);
+        foreach (['123.456.789-01', '177607249507', '12345', '12345678901', '25/07/2013', 'estudante@example.org', 'estudante.demonstracao@ctjj.org', '78696-512', 'Nome Completo da Mãe do Estudante', 'Nome Completo do Pai do Estudante'] as $value) {
+            $this->assertStringContainsString($value, $html);
+        }
         $this->assertMatchesRegularExpression('/67 h<\/td>\s*<td class="center">67 h<\/td>/', $html);
         $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
         $signatureBottom = 0;
+        $signatureLineTop = INF;
+        $issueDateBottom = 0;
         $footerTop = INF;
-        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame) use (&$signatureBottom, &$footerTop): void {
+        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame) use (&$signatureBottom, &$signatureLineTop, &$issueDateBottom, &$footerTop): void {
             $node = $frame->get_node();
             if (! $node instanceof \DOMElement) {
                 return;
@@ -716,6 +732,12 @@ class TeacherDiaryTest extends TestCase
             $box = $frame->get_border_box();
             if ($node->getAttribute('class') === 'signature-role') {
                 $signatureBottom = max($signatureBottom, $box[1] + $box[3]);
+            }
+            if ($node->getAttribute('class') === 'signature-line') {
+                $signatureLineTop = min($signatureLineTop, $box[1]);
+            }
+            if ($node->getAttribute('class') === 'issue-place-date') {
+                $issueDateBottom = max($issueDateBottom, $box[1] + $box[3]);
             }
             if ($node->getAttribute('class') === 'document-footer') {
                 $footerTop = min($footerTop, $box[1]);
@@ -726,6 +748,7 @@ class TeacherDiaryTest extends TestCase
         $this->assertGreaterThan(0, $signatureBottom);
         $this->assertNotSame(INF, $footerTop);
         $this->assertGreaterThanOrEqual($signatureBottom + 6, $footerTop, 'As assinaturas devem terminar antes do rodapé, com espaço livre.');
+        $this->assertGreaterThanOrEqual($issueDateBottom + 30, $signatureLineTop, 'Deve haver ao menos 40px de espaço livre para assinar.');
     }
 
     public function test_report_cards_with_full_curriculum_keep_each_student_on_one_page(): void

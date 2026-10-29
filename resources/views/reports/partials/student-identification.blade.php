@@ -1,5 +1,6 @@
 @php
     $identityStudent = $student ?? $person;
+    $compactIdentity = ($mode ?? 'full') === 'individual';
     $identityBirthPlace = collect([
         $identityStudent->birth_city ?: ($identityStudent->legacy_metadata['naturalidade'] ?? null),
         mb_strtoupper((string) ($identityStudent->birth_state ?: ($identityStudent->legacy_metadata['naturalidade_uf'] ?? null)), 'UTF-8') ?: null,
@@ -62,9 +63,16 @@
     @else
     <tr>
         <td class="label">Estudante</td>
-        <td colspan="3">{{ $identityStudent->full_name }}</td>
+        <td @unless($compactIdentity) colspan="3" @endunless>{{ $identityStudent->full_name }}</td>
+        @if($compactIdentity)
+            <td class="label">Nascimento</td>
+            <td>{{ $identityStudent->birth_date?->format('d/m/Y') ?? '-' }}</td>
+        @endif
     </tr>
-    @if($identityStudent->social_name || $identityStudent->legacy_code)
+    @if($compactIdentity && $identityStudent->social_name)
+        <tr><td class="label">Nome social</td><td colspan="3">{{ $identityStudent->social_name }}</td></tr>
+    @endif
+    @if(! $compactIdentity && ($identityStudent->social_name || $identityStudent->legacy_code))
         <tr>
             <td class="label">Nome social</td>
             <td>{{ $identityStudent->social_name ?: '-' }}</td>
@@ -87,16 +95,30 @@
         </tr>
     @endif
     <tr>
+        @if($compactIdentity)
+        <td class="label">Naturalidade</td>
+        <td>{{ $identityBirthPlace ?: '-' }}</td>
+        <td class="label">Nacionalidade</td>
+        <td>{{ $identityNationality ?: '-' }}</td>
+        @else
         <td class="label">Nascimento</td>
         <td>{{ $identityStudent->birth_date?->format('d/m/Y') ?? '-' }}</td>
         <td class="label">Naturalidade</td>
         <td>{{ $identityBirthPlace ?: '-' }}</td>
+        @endif
     </tr>
     <tr>
+        @if($compactIdentity)
+        <td class="label">Telefone</td>
+        <td>{{ $identityStudent->phone ?: '-' }}</td>
+        <td class="label">Código da pasta</td>
+        <td>{{ $identityStudent->legacy_code ?: '-' }}</td>
+        @else
         <td class="label">Nacionalidade</td>
         <td>{{ $identityNationality ?: '-' }}</td>
         <td class="label">Telefone</td>
         <td>{{ $identityStudent->phone ?: '-' }}</td>
+        @endif
     </tr>
     @if($identityStudent->personal_email || $identityStudent->institutional_email)
         <tr>
@@ -112,7 +134,7 @@
         <td class="label">Pai</td>
         <td>{{ $identityStudent->father_name ?: '-' }}</td>
     </tr>
-    @if(isset($academicYear, $schoolClass, $courses))
+    @if(! $compactIdentity && isset($academicYear, $schoolClass, $courses))
         <tr>
             <td class="label">Turma e etapa</td>
             <td>{{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $courses) }}</td>

@@ -12,14 +12,14 @@
         .letterhead-logo img { max-width: 66px; max-height: 50px; }
         .document-title { font-size: 14px; margin: 5px 0 0; text-transform: uppercase; }
         .class-line { font-size: 11px; margin: 0 0 7px; text-align: center; white-space: normal; }
-        .section-title { color: #6f3a29; font-size: 11px; font-weight: 600; margin: 4px 0 2px; }
+        .section-title { color: #6f3a29; font-size: 11px; font-weight: 600; margin: 3px 0 2px; }
         .meta-table, .report-table, .summary-table { border-collapse: collapse; width: 100%; }
         .summary-table { page-break-inside: avoid; }
-        .meta-table td, .summary-table td { border: .45px solid #d8ccc4; padding: 2.2px 3.5px; vertical-align: top; }
+        .meta-table td, .summary-table td { border: .45px solid #d8ccc4; padding: 1.5px 3.5px; vertical-align: top; }
         .meta-table .label, .summary-table .label { background: #f3eee9; font-weight: 600; width: 18%; }
         .student-identification td { line-height: 1.06; padding: 1.5px 3px; }
-        .report-table { margin: 6px 0 7px; }
-        .report-table th, .report-table td { border: .55px solid #111; padding: 1.7px 2.2px; vertical-align: middle; }
+        .report-table { margin: 4px 0; }
+        .report-table th, .report-table td { border: .55px solid #111; padding: 1.2px 2.2px; vertical-align: middle; }
         .report-table th { background: #f1ede9; font-size: 11px; font-weight: 600; text-align: center; }
         .report-table td { font-size: 11px; }
         .technical-regulation { margin: 5px 0; padding: 3px 5px; border: .5px solid #d8c8bf; background: #faf8f6; font-size: 11px; line-height: 1.06; page-break-inside: avoid; }
@@ -28,7 +28,7 @@
         .component-cell { width: 20%; word-wrap: break-word; }
         .center { text-align: center; }
         .legend-table { border-collapse: collapse; font-size: 11px; line-height: 1.06; margin-top: 5px; width: 100%; }
-        .legend-table th, .legend-table td { border: .45px solid #d8ccc4; padding: 3px 5px; text-align: left; vertical-align: top; }
+        .legend-table th, .legend-table td { border: .45px solid #d8ccc4; padding: 2px 5px; text-align: left; vertical-align: top; }
         .legend-table th { background: #f3eee9; font-weight: 600; width: 10%; }
         .legend-table td { background: #faf8f6; }
         .legend-table span { display: inline-block; margin-right: 8px; white-space: normal; }
@@ -174,6 +174,7 @@
 ])
 
 @include('reports.partials.student-identification', [
+    'mode' => 'individual',
     'student' => $student,
     'academicYear' => $academicYear,
     'schoolClass' => $schoolClass,
@@ -186,23 +187,17 @@
         <td class="label">Escola</td>
         <td>{{ $school->name }}</td>
         <td class="label">Turma e etapa</td>
-        <td>{{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $courses) }}</td>
+        <td>{{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $courses) }}@if($courses->count() !== 1 || $courses->first()?->name !== $schoolClass->name)<br>Matrizes: {{ $courses->pluck('name')->join(' + ') ?: '-' }}@endif</td>
     </tr>
     <tr>
         <td class="label">Ano letivo</td>
-        <td>{{ $academicYear->referenceYearsLabel() }}</td>
-        <td class="label">Matrizes</td>
-        <td>{{ $courses->pluck('name')->join(' + ') ?: '-' }}</td>
-    </tr>
-    <tr>
+        <td>{{ $academicYear->referenceYearsLabel() }} · {{ $academicYear->starts_at?->format('d/m/Y') ?? '-' }} a {{ $academicYear->ends_at?->format('d/m/Y') ?? '-' }}</td>
         <td class="label">Data da matrícula</td>
         <td>{{ $enrollment->enrolled_at?->format('d/m/Y') ?? '-' }}</td>
-        <td class="label">Situação</td>
-        <td>{{ $enrollment->statusLabel() }} · {{ $enrollment->typeLabel() }}</td>
     </tr>
     <tr>
-        <td class="label">Período do ano letivo</td>
-        <td>{{ $academicYear->starts_at?->format('d/m/Y') ?? '-' }} a {{ $academicYear->ends_at?->format('d/m/Y') ?? '-' }}</td>
+        <td class="label">Situação</td>
+        <td>{{ $enrollment->statusLabel() }} · {{ $enrollment->typeLabel() }}</td>
         <td class="label">Dias letivos</td>
         <td>{{ $academicYear->schoolDayCount() }}</td>
     </tr>
