@@ -8,6 +8,8 @@ return [
     'tiktok_light' => 'TikTok',
     'gmail_light' => 'Gmail',
     'outlook_light' => 'Outlook',
+    'windows' => 'Windows 11',
+    'ubuntu' => 'Ubuntu',
     'label' => 'Interface theme',
     'apply' => 'Apply theme',
     'system_mode' => 'Light or dark according to your device.',

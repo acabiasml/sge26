@@ -1,0 +1,293 @@
+/* Temas das telas, inspirados no Fluent do Windows 11 e no Yaru/GNOME do Ubuntu 26.10.
+ * As paletas definem as cores; os componentes abaixo usam somente seus tokens.
+ * Esta folha não é carregada nos PDFs ou documentos para impressão. */
+html[data-theme="windows-light"] {
+    --aurora-canvas: #edf2fa;
+    --aurora-panel: #ffffff;
+    --aurora-raised: #f4f7fc;
+    --aurora-hover: #dfecfb;
+    --aurora-ink: #1b2534;
+    --aurora-muted: #526176;
+    --aurora-border: #c8d3e2;
+    --aurora-accent: #005fb8;
+    --aurora-strong: #004780;
+    --aurora-on-accent: #ffffff;
+    --aurora-violet: #6549ad;
+    --aurora-info: #005a9e;
+    --aurora-success: #176b3b;
+    --aurora-danger: #b42332;
+    --aurora-warning: #805400;
+    --desktop-chrome: #e4ecf8;
+    --desktop-wallpaper: #bed9fa;
+}
+html[data-theme="windows-dark"] {
+    --aurora-canvas: #161c27;
+    --aurora-panel: #232b38;
+    --aurora-raised: #2b3545;
+    --aurora-hover: #344963;
+    --aurora-ink: #f0f4fc;
+    --aurora-muted: #b6c5db;
+    --aurora-border: #53637c;
+    --aurora-accent: #83c4ff;
+    --aurora-strong: #b9ddff;
+    --aurora-on-accent: #10263d;
+    --aurora-violet: #c9b2ff;
+    --aurora-info: #8dceff;
+    --aurora-success: #8bddad;
+    --aurora-danger: #ffabb5;
+    --aurora-warning: #f3ce8c;
+    --desktop-chrome: #1c2534;
+    --desktop-wallpaper: #153c68;
+}
+html[data-theme="ubuntu-light"] {
+    --aurora-canvas: #f4f1ef;
+    --aurora-panel: #ffffff;
+    --aurora-raised: #f4efec;
+    --aurora-hover: #f9e2d6;
+    --aurora-ink: #2c2626;
+    --aurora-muted: #665958;
+    --aurora-border: #d3c5c1;
+    --aurora-accent: #a83b10;
+    --aurora-strong: #802900;
+    --aurora-on-accent: #ffffff;
+    --aurora-violet: #743b75;
+    --aurora-info: #245da1;
+    --aurora-success: #256630;
+    --aurora-danger: #b12536;
+    --aurora-warning: #805400;
+    --desktop-wallpaper: #e8cbdc;
+    --desktop-nav-bg: #301b32;
+    --desktop-nav-hover: #54334f;
+    --desktop-chrome: #2c272b;
+    --desktop-chrome-ink: #fff5f0;
+    --desktop-nav-accent: #ffb08a;
+}
+html[data-theme="ubuntu-dark"] {
+    --aurora-canvas: #1c191b;
+    --aurora-panel: #2c272b;
+    --aurora-raised: #383136;
+    --aurora-hover: #573c34;
+    --aurora-ink: #faf2ed;
+    --aurora-muted: #cdbcb5;
+    --aurora-border: #705d65;
+    --aurora-accent: #ffb08a;
+    --aurora-strong: #ffd0b8;
+    --aurora-on-accent: #371709;
+    --aurora-violet: #deb3eb;
+    --aurora-info: #9dcaff;
+    --aurora-success: #a3d890;
+    --aurora-danger: #ffadb4;
+    --aurora-warning: #f0cc85;
+    --desktop-wallpaper: #3f213c;
+    --desktop-nav-bg: #221524;
+    --desktop-nav-hover: #493045;
+    --desktop-chrome: #211c20;
+    --desktop-chrome-ink: #fff5f0;
+    --desktop-nav-accent: #ffb08a;
+}
+
+html:is([data-theme-family="windows"], [data-theme-family="ubuntu"]) {
+    --aurora-glow: color-mix(in srgb, var(--aurora-accent) 12%, transparent);
+    --aurora-violet-glow: color-mix(in srgb, var(--aurora-violet) 12%, transparent);
+    --aurora-focus: var(--aurora-accent);
+    --aurora-feature: var(--aurora-panel);
+    --aurora-feature-end: var(--aurora-raised);
+    --aurora-shadow: 0 3px 12px color-mix(in srgb, var(--aurora-ink) 8%, transparent);
+    --sge-chart-letivo: var(--aurora-info);
+    --sge-chart-recesso: var(--aurora-violet);
+    --identity-primary: var(--aurora-accent);
+    --identity-secondary: var(--aurora-violet);
+    --identity-tertiary: var(--aurora-info);
+    --identity-accent-1: var(--aurora-accent);
+    --identity-accent-2: var(--aurora-violet);
+    --identity-accent-3: var(--aurora-info);
+    --identity-accent-4: var(--aurora-success);
+    --identity-frame-background: var(--aurora-panel);
+    --identity-frame-border: var(--aurora-border);
+    --identity-frame-shadow: var(--aurora-shadow);
+}
+
+/* Windows: superfícies Mica, curvas do papel de parede e seleção Fluent. */
+html[data-theme-family="windows"] {
+    --brand-radius: .5rem;
+    --identity-radius: .5rem;
+    --identity-card-corners: .5rem;
+    --identity-button-radius: .3rem;
+    --identity-control-radius: .3rem;
+    --identity-diary-stripe: 3px;
+    --identity-canvas-image: radial-gradient(ellipse at 90% 8%, var(--desktop-wallpaper), transparent 54%),
+        radial-gradient(ellipse at 70% 55%, color-mix(in srgb, var(--identity-secondary) 13%, transparent), transparent 58%),
+        linear-gradient(135deg, var(--sge-surface), var(--desktop-chrome));
+    --aurora-nav-bg: var(--desktop-chrome);
+    --aurora-nav-ink: var(--aurora-ink);
+}
+html[data-theme-family="windows"] .topbar.navbar {
+    background: var(--desktop-chrome) !important;
+    background: color-mix(in srgb, var(--desktop-chrome) 90%, transparent) !important;
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--sge-border);
+}
+html[data-theme-family="windows"] .sidebar.bg-gradient-primary {
+    background: linear-gradient(180deg, var(--desktop-chrome), var(--sge-surface));
+}
+html[data-theme-family="windows"] .sidebar .sidebar-brand { border-bottom: 0; }
+html[data-theme-family="windows"] .sidebar-dark .nav-item.active > .nav-link,
+html[data-theme-family="windows"] .sidebar-dark .nav-item .nav-link:is(:hover, :focus) {
+    border-radius: var(--identity-radius);
+    box-shadow: inset 3px 0 var(--identity-primary);
+}
+html[data-theme-family="windows"] :is(.sge-dashboard-hero, .sge-dashboard-band,
+    .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero,
+    .sge-student-map-hero, .sge-diary-management-hero) {
+    background: linear-gradient(120deg, var(--sge-paper), color-mix(in srgb, var(--desktop-wallpaper) 45%, var(--sge-paper)));
+    color: var(--sge-ink);
+    border: 1px solid var(--sge-border);
+    border-radius: var(--identity-radius);
+    box-shadow: var(--aurora-shadow);
+}
+html[data-theme-family="windows"] .sge-dashboard-shortcut,
+html[data-theme-family="windows"] .sge-section-nav-item:not(.is-active) {
+    border: 1px solid var(--sge-border);
+    border-radius: var(--identity-radius);
+    background: var(--sge-paper);
+    box-shadow: 0 2px 0 color-mix(in srgb, var(--sge-display-accent) 20%, var(--sge-border));
+}
+html[data-theme-family="windows"] .sge-dashboard-shortcut:nth-child(n) .sge-dashboard-shortcut-icon {
+    border-radius: .3rem;
+}
+html[data-theme-family="windows"] :is(.form-control, .custom-select) {
+    border-bottom-width: 2px;
+}
+html[data-theme-family="windows"] :is(.form-control, .custom-select):focus {
+    border-bottom-color: var(--identity-primary);
+}
+
+/* Ubuntu: barra GNOME escura, navegação berinjela e destaque laranja Yaru. */
+html[data-theme-family="ubuntu"] {
+    --brand-radius: .75rem;
+    --identity-radius: .75rem;
+    --identity-card-corners: .9rem;
+    --identity-button-radius: 100em;
+    --identity-control-radius: .5rem;
+    --identity-diary-stripe: .3rem;
+    --identity-canvas-image: radial-gradient(ellipse at 100% 0, var(--desktop-wallpaper), transparent 46%),
+        radial-gradient(ellipse at 0 90%, color-mix(in srgb, var(--identity-primary) 10%, transparent), transparent 55%);
+    --aurora-nav-bg: var(--desktop-nav-bg);
+    --aurora-nav-ink: var(--desktop-chrome-ink);
+    --aurora-nav-active: var(--desktop-nav-hover);
+    --aurora-nav-border: var(--desktop-nav-hover);
+}
+html[data-theme-family="ubuntu"] .topbar.navbar {
+    background: var(--desktop-chrome) !important;
+    border-bottom: 3px solid var(--desktop-nav-accent);
+}
+html[data-theme-family="ubuntu"] .topbar #userDropdown .text-gray-600 {
+    color: var(--desktop-chrome-ink) !important;
+}
+html[data-theme-family="ubuntu"] .topbar .topbar-divider { border-color: var(--desktop-nav-accent); }
+html[data-theme-family="ubuntu"] .sidebar .sidebar-brand {
+    border-bottom: 3px solid var(--desktop-nav-accent);
+    border-radius: 0;
+}
+html[data-theme-family="ubuntu"] .sidebar-dark .nav-item.active > .nav-link,
+html[data-theme-family="ubuntu"] .sidebar-dark .nav-item .nav-link:is(:hover, :focus) {
+    color: var(--desktop-chrome-ink);
+    background: var(--desktop-nav-hover);
+    border-radius: var(--identity-radius);
+    box-shadow: inset 4px 0 var(--desktop-nav-accent);
+}
+html[data-theme-family="ubuntu"] .sidebar-dark .nav-item.active > .nav-link i,
+html[data-theme-family="ubuntu"] .sidebar-dark .nav-item .nav-link:is(:hover, :focus) i,
+html[data-theme-family="ubuntu"] .sidebar-dark .nav-item .nav-link::after {
+    color: var(--desktop-nav-accent);
+}
+html[data-theme-family="ubuntu"] .sidebar :is(.nav-link, .sidebar-brand, .sge-sidebar-close):focus-visible,
+html[data-theme-family="ubuntu"] .topbar :is(.sge-sidebar-toggle, .sge-topbar-icon-button, .sge-language-button, #userDropdown):focus-visible {
+    outline-color: var(--desktop-nav-accent) !important;
+}
+html[data-theme-family="ubuntu"] .sidebar .nav-item .collapse-inner .collapse-item:is(.active, :hover, :focus) {
+    background: var(--aurora-hover);
+    color: var(--aurora-ink);
+}
+html[data-theme-family="ubuntu"] :is(.sge-dashboard-hero, .sge-dashboard-band,
+    .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero,
+    .sge-student-map-hero, .sge-diary-management-hero) {
+    background: linear-gradient(120deg, var(--sge-paper), color-mix(in srgb, var(--desktop-wallpaper) 35%, var(--sge-paper)));
+    color: var(--sge-ink);
+    border: 1px solid var(--sge-border);
+    border-left: .4rem solid var(--identity-primary);
+    border-radius: var(--identity-radius);
+    box-shadow: var(--aurora-shadow);
+}
+html[data-theme-family="ubuntu"] .card-header:not(.bg-primary, .bg-success, .bg-danger) {
+    background: var(--sge-surface-soft);
+    border-bottom: 2px solid color-mix(in srgb, var(--identity-primary) 40%, var(--sge-border));
+}
+html[data-theme-family="ubuntu"] .sge-dashboard-shortcut,
+html[data-theme-family="ubuntu"] .sge-section-nav-item:not(.is-active) {
+    border: 1px solid var(--sge-border);
+    border-left: 3px solid var(--sge-display-accent);
+    border-radius: var(--identity-radius);
+    background: var(--sge-paper);
+}
+html[data-theme-family="ubuntu"] .sge-dashboard-shortcut:nth-child(n) .sge-dashboard-shortcut-icon {
+    border-radius: 50%;
+}
+html[data-theme-family="ubuntu"] .sge-diary-traffic { border-radius: 100em; }
+
+html:is([data-theme-family="windows"], [data-theme-family="ubuntu"]) :is(.dropdown-menu, .modal-content) {
+    border-radius: var(--identity-radius);
+    border: 1px solid var(--sge-border);
+    box-shadow: 0 .5rem 2rem color-mix(in srgb, var(--sge-shadow-ink) 18%, transparent);
+}
+
+/* Inclui as variantes de botões que o Bootstrap ainda colore por conta própria. */
+html:is([data-theme-family="windows"], [data-theme-family="ubuntu"]) .btn {
+    --desktop-button-color: var(--aurora-accent);
+    --desktop-button-ink: var(--aurora-on-accent);
+}
+html:is([data-theme-family="windows"], [data-theme-family="ubuntu"]) :is(.btn-success, .btn-outline-success) { --desktop-button-color: var(--aurora-success); }
+html:is([data-theme-family="windows"], [data-theme-family="ubuntu"]) :is(.btn-danger, .btn-outline-danger) { --desktop-button-color: var(--aurora-danger); }
+html:is([data-theme-family="windows"], [data-theme-family="ubuntu"]) :is(.btn-warning, .btn-outline-warning) { --desktop-button-color: var(--aurora-warning); }
+html:is([data-theme-family="windows"], [data-theme-family="ubuntu"]) :is(.btn-info, .btn-outline-info) { --desktop-button-color: var(--aurora-info); }
+html:is([data-theme-family="windows"], [data-theme-family="ubuntu"]) .btn-outline-secondary {
+    --desktop-button-color: var(--sge-muted);
+    --desktop-button-ink: var(--sge-paper);
+}
+html:is([data-theme-family="windows"], [data-theme-family="ubuntu"]) :is(.btn-dark, .btn-outline-dark, .btn-outline-light) {
+    --desktop-button-color: var(--sge-ink);
+    --desktop-button-ink: var(--sge-paper);
+}
+html:is([data-theme-family="windows"], [data-theme-family="ubuntu"]) :is(.btn-primary, .btn-success, .btn-danger, .btn-warning, .btn-info, .btn-dark) {
+    background: var(--desktop-button-color) !important;
+    border-color: var(--desktop-button-color) !important;
+    color: var(--desktop-button-ink) !important;
+}
+html:is([data-theme-family="windows"], [data-theme-family="ubuntu"]) :is(.btn-secondary, .btn-light) {
+    background: var(--sge-surface-soft);
+    border-color: var(--sge-muted);
+    color: var(--sge-ink);
+}
+html:is([data-theme-family="windows"], [data-theme-family="ubuntu"]) :is(.btn-outline-primary, .btn-outline-secondary, .btn-outline-success, .btn-outline-danger, .btn-outline-warning, .btn-outline-info, .btn-outline-light, .btn-outline-dark) {
+    background: transparent;
+    border-color: var(--desktop-button-color) !important;
+    color: var(--desktop-button-color) !important;
+}
+html:is([data-theme-family="windows"], [data-theme-family="ubuntu"]) :is(.btn-outline-primary, .btn-outline-secondary, .btn-outline-success, .btn-outline-danger, .btn-outline-warning, .btn-outline-info, .btn-outline-light, .btn-outline-dark):is(:hover, :focus, :active) {
+    background: var(--desktop-button-color) !important;
+    color: var(--desktop-button-ink) !important;
+}
+/* Nove temas continuam acessíveis em telas pequenas, inclusive com zoom. */
+.sge-theme-switcher #themeDropdown + .dropdown-menu {
+    max-height: min(38rem, calc(100dvh - 6rem));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+[data-theme-swatch="windows-light"] {
+    border-radius: .15rem;
+    background: linear-gradient(90deg, transparent 44%, var(--sge-paper) 44% 56%, transparent 56%),
+        linear-gradient(0deg, transparent 44%, var(--sge-paper) 44% 56%, transparent 56%), #005fb8;
+}
+[data-theme-swatch="ubuntu-light"] {
+    background: linear-gradient(135deg, #a83b10 50%, #743b75 50%);
+}

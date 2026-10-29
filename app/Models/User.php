@@ -24,6 +24,8 @@ class User extends Authenticatable
         'tiktok-light' => 'theme.tiktok_light',
         'gmail-light' => 'theme.gmail_light',
         'outlook-light' => 'theme.outlook_light',
+        'windows-light' => 'theme.windows',
+        'ubuntu-light' => 'theme.ubuntu',
     ];
 
     public const DEFAULT_AUDIT_TIMEZONE = 'America/Sao_Paulo';

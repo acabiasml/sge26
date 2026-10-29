@@ -33,7 +33,7 @@ class ThemePreferenceTest extends TestCase
                 ->assertSee('sge-system-theme.js')
                 ->assertSee(route('theme.update'), false);
 
-            foreach (['aurora', 'instagram', 'tiktok', 'gmail', 'outlook'] as $family) {
+            foreach (['aurora', 'instagram', 'tiktok', 'gmail', 'outlook', 'windows', 'ubuntu'] as $family) {
                 $response->assertDontSee('value="'.$family.'-dark"', false);
             }
         }
@@ -43,7 +43,7 @@ class ThemePreferenceTest extends TestCase
     {
         $user = User::factory()->create();
 
-        foreach (['aurora', 'instagram', 'tiktok', 'gmail', 'outlook'] as $family) {
+        foreach (['aurora', 'instagram', 'tiktok', 'gmail', 'outlook', 'windows', 'ubuntu'] as $family) {
             $user->update(['theme' => $family.'-dark']);
 
             $this->assertSame($family.'-light', $user->fresh()->interfaceTheme());
@@ -57,7 +57,7 @@ class ThemePreferenceTest extends TestCase
     {
         $user = User::factory()->create(['theme' => 'govbr']);
 
-        foreach (['dark', 'aurora-dark', 'instagram-dark', '', null, ['govbr']] as $theme) {
+        foreach (['dark', 'aurora-dark', 'instagram-dark', 'windows-dark', 'ubuntu-dark', '', null, ['govbr']] as $theme) {
             $this->actingAs($user)->patch(route('theme.update'), ['theme' => $theme])
                 ->assertSessionHasErrors('theme');
             $this->assertSame('govbr', $user->fresh()->theme);

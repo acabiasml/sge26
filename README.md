@@ -318,10 +318,11 @@ Relatórios administrativos aceitam busca e filtros respeitando o escopo escolar
 ## Acessibilidade e interface
 
 - interface em português do Brasil e italiano, com bandeiras em SVG para exibição consistente entre navegadores;
-- paletas beathema, gov.br, Aurora, Instagram, TikTok, Gmail e Outlook selecionáveis no ícone de paleta, com preferência salva por usuário;
+- paletas beathema, gov.br, Aurora, Instagram, TikTok, Gmail, Outlook, Windows 11 e Ubuntu selecionáveis no ícone de paleta, com preferência salva por usuário;
 - luminosidade clara ou escura determinada automaticamente pela configuração do dispositivo, sem escolha manual; beathema e gov.br usam a base Aurora no modo escuro;
 - identidade visual própria em cores, formas, sombras e fundos: Beathema orgânico com curvas e manchas de cor; gov.br plano e institucional; Aurora com luzes difusas e curvas assimétricas; Instagram com molduras em gradiente; TikTok angular com sombras duplas; Gmail suave com cápsulas e faixas de cor; Outlook com painéis retos e linhas de fundo. As variantes claras e escuras preservam a família selecionada; PDFs e documentos de impressão mantêm formatação independente do tema;
 - tema gov.br inspirado no Design System de Governo, com fonte Rawline local e foco visível;
+- Windows 11 inspirado no Fluent, com superfícies Mica, fundos azulados e controles discretamente arredondados; Ubuntu inspirado no Yaru/GNOME do Ubuntu 26.10, com laranja, berinjela, barra escura e botões em cápsula. Ambos acompanham automaticamente o modo claro/escuro do dispositivo;
 - fonte local Atkinson Hyperlegible Next, sem dependência de Google Fonts;
 - foco visível e link para pular ao conteúdo;
 - navegação agrupada por contexto;
