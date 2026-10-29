@@ -171,6 +171,14 @@ with tempfile.TemporaryDirectory() as directory:
             )
             commands.append(('Conferência do resultado da matrícula', 'php artisan tinker --execute=' + shlex.quote(inspection_code)))
         pending_year_id = os.environ.get('PENDING_YEAR_FOR_ENROLLMENT', '').strip()
+        if os.environ.get('INSPECT_ENGLISH_CLOSURES') == 'true':
+            if pending_year_id:
+                raise RuntimeError('Execute apenas um relatório criptografado por diagnóstico.')
+            encrypt_report('{}', os.environ.get('REPORT_PUBLIC_KEY', ''))
+            commands.append((
+                'Pendências de fechamento de Inglês para relatório criptografado',
+                'php artisan tinker --execute=' + shlex.quote('require base_path("scripts/inspect-english-closures.php");'),
+            ))
         if pending_year_id:
             if not pending_year_id.isascii() or not pending_year_id.isdecimal():
                 raise RuntimeError('Informe somente o ID numérico da matrícula que identifica o ano.')
@@ -208,12 +216,13 @@ with tempfile.TemporaryDirectory() as directory:
         for label, command in commands[1:]:
             print(f'\n--- {label} ---', flush=True)
             output, code = run_remote(client, command)
-            if label == 'Resultados pendentes para relatório criptografado':
+            if label in ('Resultados pendentes para relatório criptografado', 'Pendências de fechamento de Inglês para relatório criptografado'):
                 if code:
                     raise RuntimeError('Não foi possível consultar os resultados pendentes.')
                 report = json.loads(output)
                 pathlib.Path('pending-results.encrypted.json').write_text(encrypt_report(output, os.environ['REPORT_PUBLIC_KEY']))
-                print(f'Relatório criptografado gerado: {len(report["students"])} registros. Nenhum nome foi publicado no log.', flush=True)
+                count = len(report.get('students', report.get('diaries', [])))
+                print(f'Relatório criptografado gerado: {count} registros. Nenhum nome foi publicado no log.', flush=True)
             else:
                 print(output, flush=True)
             if label == 'Configuração da sessão' and output.strip() not in ('120 true database', '120 true file'):

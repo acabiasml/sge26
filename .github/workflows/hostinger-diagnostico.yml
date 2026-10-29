@@ -46,6 +46,10 @@ on:
         description: Data (AAAA-MM-DD) para conferir lançamentos de Inglês do 1º ano sem expor dados pessoais
         type: string
         default: ''
+      inspect_english_closures:
+        description: Conferir pendências de fechamento de Inglês e fichas de origem em relatório criptografado
+        type: boolean
+        default: false
       correct_2025_criteria:
         description: Aplicar correção confirmada de 2025 da matrícula 486 (22,5 pontos e 2 dependências)
         type: boolean
@@ -89,6 +93,7 @@ jobs:
           INVALIDATE_ALL_SESSIONS: ${{ inputs.invalidate_all_sessions }}
           INSPECT_ENROLLMENT: ${{ inputs.inspect_enrollment }}
           INSPECT_DIARY_DATE: ${{ inputs.inspect_diary_date }}
+          INSPECT_ENGLISH_CLOSURES: ${{ inputs.inspect_english_closures }}
           CORRECT_2025_CRITERIA: ${{ inputs.correct_2025_criteria }}
           CORRECT_GEOGRAPHY_486: ${{ inputs.correct_geography_486 }}
           PENDING_YEAR_FOR_ENROLLMENT: ${{ inputs.pending_year_for_enrollment }}
@@ -98,7 +103,7 @@ jobs:
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
         run: python scripts/hostinger-diagnostico.py
       - name: Disponibilizar relatório criptografado
-        if: inputs.pending_year_for_enrollment != ''
+        if: inputs.pending_year_for_enrollment != '' || inputs.inspect_english_closures
         uses: actions/upload-artifact@v4
         with:
           name: resultados-pendentes-criptografados

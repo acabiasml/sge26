@@ -169,6 +169,39 @@ class TeacherDiaryTest extends TestCase
         $this->post(route('enrollments.origin-sheet.store', $enrollment), $data)->assertForbidden();
     }
 
+    public function test_english_closure_inspection_matches_origin_records_without_writing_school_records(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-29'));
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $component->update(['name' => 'Língua Inglesa']);
+        $rule = SchoolAssessmentRule::query()->where('academic_period_id', $period->id)->orderBy('position')->firstOrFail();
+        DiaryAssessment::query()->create([
+            'school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id, 'school_assessment_rule_id' => $rule->id,
+            'teacher_person_id' => $teacher->person_id, 'title' => 'Avaliação', 'assessment_date' => '2026-03-11',
+        ]);
+        $enrollment->periodConvalidations()->create([
+            'academic_period_id' => $period->id, 'curriculum_component_id' => $component->id,
+            'score' => 7.5, 'source_school' => 'Escola de origem', 'convalidated_by_person_id' => $teacher->person_id,
+        ]);
+        $auditCount = AuditLog::query()->count();
+        ob_start();
+        try {
+            require base_path('scripts/inspect-english-closures.php');
+            $report = json_decode(ob_get_contents(), true, flags: JSON_THROW_ON_ERROR);
+        } finally {
+            ob_end_clean();
+        }
+        $this->assertCount(1, $report['diaries']);
+        $this->assertSame($enrollment->id, $report['diaries'][0]['missing'][0]['enrollment_id']);
+        $this->assertSame('7.5', $report['diaries'][0]['missing'][0]['origin']['score']);
+        $this->assertSame(1, $report['diaries'][0]['pending']['missing_grades']);
+        $this->assertDatabaseCount('diary_assessment_results', 0);
+        $this->assertDatabaseCount('diary_period_confirmations', 0);
+        $this->assertDatabaseCount('student_period_convalidations', 1);
+        $this->assertSame($auditCount, AuditLog::query()->count());
+    }
+
     public function test_origin_sheet_rejects_foreign_components_and_preserves_other_source_results(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
