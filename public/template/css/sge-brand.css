@@ -316,6 +316,9 @@ a:hover {
 }
 
 .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
     border-bottom: 1px solid var(--sge-border);
     box-shadow: 0 .25rem 1.2rem color-mix(in srgb, var(--sge-shadow-ink) 5%, transparent);
 }
@@ -647,8 +650,11 @@ textarea:focus-visible {
 
 .sge-sidebar-toggle {
     color: var(--sge-brown);
-    min-height: 2.55rem;
-    min-width: 2.55rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    padding: 0;
 }
 
 .sge-sidebar-toggle:hover,
@@ -873,7 +879,7 @@ textarea:focus-visible {
 .sge-language-button.is-active { background: var(--sge-surface-soft, var(--sge-surface)); border-color: var(--sge-brown); opacity: 1; }
 .topbar .sge-topbar-controls .topbar-divider { height: 1.75rem; margin: 0 .25rem; }
 .topbar .sge-topbar-controls #userDropdown { min-width: 2.75rem; min-height: 2.75rem; height: auto; padding: .25rem; }
-.sge-topbar-controls #userDropdown .text-right { max-width: min(24vw, 22rem); }
+.sge-topbar-controls #userDropdown .text-right { max-width: clamp(10rem, calc(100vw - 56rem), 22rem); }
 .sge-topbar-controls #userDropdown .text-right > .d-block { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 @media (max-width: 991.98px) {

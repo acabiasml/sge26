@@ -9,6 +9,7 @@
 
     <title>{{ config('app.name', 'Beabá') }} - @yield('title', __('navigation.home'))</title>
     <script src="{{ asset('template/js/sge-system-theme.js') }}?v={{ filemtime(public_path('template/js/sge-system-theme.js')) }}"></script>
+    <script src="{{ asset('template/js/sge-sidebar.js') }}?v={{ filemtime(public_path('template/js/sge-sidebar.js')) }}"></script>
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
 
@@ -33,12 +34,17 @@
     <a class="sge-skip-link" href="#main-content">{{ __('navigation.skip') }}</a>
     <div id="wrapper">
         <nav class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar" aria-label="{{ __('navigation.main_menu') }}">
-            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ route('dashboard') }}">
-                <div class="sidebar-brand-icon sge-sidebar-brand-mark">
-                    <img class="sge-brand-logo-sm" src="{{ asset('brand/logo.png') }}" alt="{{ config('app.name', 'Beabá') }}">
-                </div>
-                <div class="sidebar-brand-text mx-3">Beabá</div>
-            </a>
+            <div class="sge-sidebar-header">
+                <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ route('dashboard') }}">
+                    <div class="sidebar-brand-icon sge-sidebar-brand-mark">
+                        <img class="sge-brand-logo-sm" src="{{ asset('brand/logo.png') }}" alt="{{ config('app.name', 'Beabá') }}">
+                    </div>
+                    <div class="sidebar-brand-text mx-3">Beabá</div>
+                </a>
+                <button id="sidebarCloseControl" class="btn sge-sidebar-close d-lg-none" type="button" aria-label="{{ __('navigation.close_sidebar') }}" title="{{ __('navigation.close_sidebar') }}">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </div>
 
 
 
@@ -248,7 +254,8 @@
         <div id="content-wrapper" class="d-flex flex-column">
             <div id="content">
                 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top" aria-label="{{ __('navigation.topbar') }}">
-                    <button id="sidebarToggleTop" class="btn btn-link d-lg-none rounded-circle mr-3 sge-sidebar-toggle" type="button" aria-label="{{ __('navigation.toggle_sidebar') }}">
+                    <button id="sidebarToggleControl" class="btn btn-link rounded-circle mr-3 sge-sidebar-toggle" type="button" aria-label="{{ __('navigation.toggle_sidebar') }}" aria-controls="accordionSidebar"
+                        data-open-label="{{ __('navigation.open_sidebar') }}" data-close-label="{{ __('navigation.close_sidebar') }}">
                         <i class="fa fa-bars" aria-hidden="true"></i>
                     </button>
 
@@ -695,73 +702,6 @@
 
         document.querySelectorAll('.nav-item.active > .nav-link, .collapse-item.active').forEach((link) => {
             link.setAttribute('aria-current', 'page');
-        });
-
-        const mobileMenuButton = document.getElementById('sidebarToggleTop');
-        const mobileMenuBackdrop = document.querySelector('.sge-sidebar-backdrop');
-        const sidebar = document.getElementById('accordionSidebar');
-
-        const setMobileMenuOpen = (open) => {
-            const isMobileViewport = window.matchMedia('(max-width: 991.98px)').matches;
-
-            if (!open && isMobileViewport && sidebar?.contains(document.activeElement)) {
-                mobileMenuButton?.focus();
-            }
-
-            document.body.classList.toggle('sge-mobile-menu-open', open);
-            mobileMenuButton?.setAttribute('aria-expanded', open ? 'true' : 'false');
-            sidebar?.toggleAttribute('inert', isMobileViewport && !open);
-
-            if (mobileMenuBackdrop) {
-                mobileMenuBackdrop.hidden = !open;
-            }
-
-            if (open && isMobileViewport) {
-                window.requestAnimationFrame(() => {
-                    sidebar?.querySelector('.nav-link[href]')?.focus();
-                });
-            }
-        };
-
-        mobileMenuButton?.setAttribute('aria-controls', 'accordionSidebar');
-        mobileMenuButton?.setAttribute('aria-expanded', 'false');
-        mobileMenuButton?.addEventListener('click', () => {
-            setMobileMenuOpen(!document.body.classList.contains('sge-mobile-menu-open'));
-        });
-        mobileMenuBackdrop?.addEventListener('click', () => setMobileMenuOpen(false));
-        sidebar?.querySelectorAll('a[href]').forEach((link) => {
-            if (link.getAttribute('href')?.startsWith('#')) {
-                return;
-            }
-
-            link.addEventListener('click', () => {
-                if (window.matchMedia('(max-width: 991.98px)').matches) {
-                    setMobileMenuOpen(false);
-                }
-            });
-        });
-
-        const mobileViewport = window.matchMedia('(max-width: 991.98px)');
-        const handleMobileViewportChange = (event) => {
-            // Clear the legacy compact sidebar state when crossing the drawer breakpoint.
-            sidebar?.classList.remove('toggled');
-            document.body.classList.remove('sidebar-toggled');
-            setMobileMenuOpen(false);
-        };
-
-        if (typeof mobileViewport.addEventListener === 'function') {
-            mobileViewport.addEventListener('change', handleMobileViewportChange);
-        } else {
-            mobileViewport.addListener(handleMobileViewportChange);
-        }
-
-        setMobileMenuOpen(false);
-
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && document.body.classList.contains('sge-mobile-menu-open')) {
-                setMobileMenuOpen(false);
-                mobileMenuButton?.focus();
-            }
         });
 
         let nextTableHintId = 0;

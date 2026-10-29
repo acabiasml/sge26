@@ -32,6 +32,7 @@ return [
     'administration' => 'Amministrazione',
     'audit' => 'Audit',
     'close_sidebar' => 'Chiudi menu laterale',
+    'open_sidebar' => 'Apri menu laterale',
     'topbar' => 'Barra superiore',
     'toggle_sidebar' => 'Apri o comprimi il menu laterale',
     'system_view' => 'Vista del sistema',

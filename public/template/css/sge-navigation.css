@@ -1,4 +1,10 @@
 /* Use one full-width navigation layout at every breakpoint, including legacy toggled state. */
+#wrapper #content-wrapper {
+    min-width: 0;
+    overflow-x: clip;
+    overflow-y: visible;
+}
+#main-content { scroll-margin-top: 5.5rem; }
 #accordionSidebar,
 #accordionSidebar.toggled {
     box-sizing: border-box;
@@ -48,11 +54,26 @@
     margin: .25rem .5rem .6rem;
 }
 #accordionSidebar .collapse-inner .collapse-item { white-space: normal; }
+.sge-sidebar-header { position: relative; }
+.sge-sidebar-close {
+    position: absolute;
+    top: .75rem;
+    right: .5rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    background: var(--sge-paper);
+    color: var(--identity-primary, var(--sge-brown));
+    z-index: 1;
+}
 @media (min-width: 992px) {
     #accordionSidebar,
     #accordionSidebar.toggled { width: 17rem !important; }
+    html[data-sidebar-collapsed] #accordionSidebar { display: none; }
 }
 @media (max-width: 991.98px) {
     #accordionSidebar,
     #accordionSidebar.toggled { width: min(18rem, 88vw) !important; }
+    .sge-sidebar-header { position: sticky; top: 0; background: inherit; z-index: 1; }
+    #accordionSidebar .sidebar-brand { padding-right: 3.5rem; }
 }

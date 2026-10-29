@@ -13,7 +13,7 @@ return [
     'issuance_center' => 'Central de emissão', 'document_editor' => 'Editor de documentos',
     'verify_authenticity' => 'Verificar autenticidade', 'communication' => 'Comunicação',
     'announcements' => 'Recados', 'administration' => 'Administração', 'audit' => 'Auditoria',
-    'close_sidebar' => 'Fechar menu lateral', 'topbar' => 'Barra superior',
+    'close_sidebar' => 'Fechar menu lateral', 'open_sidebar' => 'Abrir menu lateral', 'topbar' => 'Barra superior',
     'toggle_sidebar' => 'Abrir ou recolher menu lateral', 'language' => 'Idioma da interface',
     'system_view' => 'Visão do sistema', 'current_view' => 'Visão atual: :role',
     'portuguese' => 'Português do Brasil', 'italian' => 'Italiano',
