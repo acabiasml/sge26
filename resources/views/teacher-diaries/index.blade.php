@@ -74,7 +74,7 @@
 
             <div data-diary-list>
             @forelse ($diaries as $diary)
-                <article class="sge-diary-list-card"
+                <article class="sge-diary-list-card sge-diary-progress-card"
                     data-diary-item
                     data-school="{{ $diary['academicYear']->school_id }}"
                     data-year="{{ $diary['academicYear']->id }}"
@@ -96,6 +96,7 @@
                             <i class="fas fa-clipboard-list" aria-hidden="true"></i>
                         </a>
                     </div>
+                    @include('teacher-diaries.partials.list-summary', ['diary' => $diary])
                 </article>
             @empty
                 <div class="sge-empty-state">

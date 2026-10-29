@@ -74,7 +74,7 @@ class DiaryPeriodStatus
      * @param  Collection<int, StudentEnrollment>  $enrollments
      * @param  Collection<int, DiaryAssessment>  $assessments
      */
-    public function missingGrades(Collection $enrollments, Collection $assessments): int
+    public function missingGrades(Collection $enrollments, Collection $assessments, ?Collection $originGrades = null): int
     {
         $regularAssessments = $assessments->where('is_recovery', false);
         if ($enrollments->isEmpty() || $regularAssessments->isEmpty()) {
@@ -82,13 +82,13 @@ class DiaryPeriodStatus
         }
 
         // A ficha de origem registra a nota do período, sem criar avaliações fictícias no diário.
-        $originGrades = StudentPeriodConvalidation::query()
+        $originGrades ??= StudentPeriodConvalidation::query()
             ->whereIn('student_enrollment_id', $enrollments->pluck('id'))
             ->whereIn('academic_period_id', $regularAssessments->pluck('academic_period_id')->unique())
             ->whereIn('curriculum_component_id', $regularAssessments->pluck('curriculum_component_id')->unique())
             ->whereNotNull('score')
-            ->get(['student_enrollment_id', 'academic_period_id', 'curriculum_component_id'])
-            ->keyBy(fn (StudentPeriodConvalidation $record): string => $record->student_enrollment_id.'-'.$record->academic_period_id.'-'.$record->curriculum_component_id);
+            ->get(['student_enrollment_id', 'academic_period_id', 'curriculum_component_id']);
+        $originGrades = $originGrades->keyBy(fn (StudentPeriodConvalidation $record): string => $record->student_enrollment_id.'-'.$record->academic_period_id.'-'.$record->curriculum_component_id);
 
         return $regularAssessments->sum(function (DiaryAssessment $assessment) use ($enrollments, $originGrades): int {
             return $enrollments->filter(fn (StudentEnrollment $enrollment): bool => ! $originGrades->has($enrollment->id.'-'.$assessment->academic_period_id.'-'.$assessment->curriculum_component_id)

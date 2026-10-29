@@ -201,6 +201,8 @@ Os diários são gerados por turma e componente. Docentes podem:
 - confirmar o diário ao concluir o período;
 - imprimir diário e lista de chamada.
 
+Na lista **Meus diários**, cada componente mostra barras de conteúdo e frequência com aulas registradas, total previsto e percentual. A previsão considera o horário e o calendário letivo; sem horário, usa uma estimativa pela carga horária da matriz e pela duração da aula. Um conteúdo cobre as aulas daquele dia, conforme o horário ou a frequência registrada. As cores acompanham o tema, e os valores permanecem legíveis sem depender das cores. A contagem de inconsistências separa dias com frequência sem conteúdo, conteúdo sem frequência e notas pendentes de períodos encerrados, com atalhos para os bimestres. Notas da ficha de origem são reconhecidas, e avaliações de períodos ainda em andamento não geram essa pendência na lista.
+
 Gestão e Administração podem acompanhar pendências, enviar alertas, corrigir registros, reabrir diários e consolidar períodos. A Administração visualiza anos letivos de todas as escolas, inclusive inativos, com filtro por ano. O filtro de componente reúne nomes iguais e encontra os diários correspondentes nas diferentes turmas. Frequência sem conteúdo, ou conteúdo sem frequência, é sinalizada como inconsistência.
 
 Quando existe horário, as datas seguem os dias e aulas previstos. Sem horário, permanece disponível a seleção manual, necessária em ofertas técnicas e especiais. Para docentes, o lançamento fora do intervalo do período é bloqueado por padrão e depende da liberação da Gestão no próprio período. A Administração possui permissão de alteração independentemente desses bloqueios de estado acadêmico.

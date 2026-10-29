@@ -21,6 +21,7 @@ use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
 use App\Models\StudentEnrollment;
 use App\Support\DiaryGradeCalculator;
+use App\Support\DiaryListSummary;
 use App\Support\DiaryPeriodStatus;
 use App\Support\PdfLetterhead;
 use App\Support\PdfMetadata;
@@ -57,13 +58,15 @@ class TeacherDiaryController extends Controller
             ->whereHas('component.course.academicYear', fn (Builder $query) => $query->whereNotNull('approved_at'))
             ->get();
 
-        $diaries = $assignments->map(function (SchoolClassComponent $assignment): array {
+        $summaries = app(DiaryListSummary::class)->forAssignments($assignments);
+        $diaries = $assignments->map(function (SchoolClassComponent $assignment) use ($summaries): array {
             return [
                 'assignment' => $assignment,
                 'component' => $assignment->component,
                 'class' => $assignment->schoolClass,
                 'course' => $assignment->component->course,
                 'academicYear' => $assignment->component->course->academicYear,
+                'summary' => $summaries->get($assignment->id),
             ];
         })->sortBy([
             ['academicYear.school.name', 'asc'],

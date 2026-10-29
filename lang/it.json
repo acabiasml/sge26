@@ -2665,5 +2665,20 @@
     "Cadastre o limite de componentes em dependência da escola para concluir o resultado por pontos.": "Indica il limite di discipline con debiti formativi della scuola per completare l'esito in base ai voti.",
     "Lançamentos existentes fora do horário atual também aparecem para conferência. Para excluir uma frequência, selecione 0 aulas no dia e salve.": "Sono visibili anche gli inserimenti esistenti al di fuori dell'orario attuale per consentirne la verifica. Per eliminare un registro delle presenze, seleziona 0 lezioni per quel giorno e salva.",
     "Lançamentos existentes fora do horário atual também aparecem para conferência.": "Sono visibili anche gli inserimenti esistenti al di fuori dell'orario attuale per consentirne la verifica.",
-    "Fora do horário atual": "Fuori dall'orario attuale"
+    "Fora do horário atual": "Fuori dall'orario attuale",
+    "Acompanhamento dos lançamentos": "Monitoraggio delle registrazioni",
+    "Total do diário": "Totale del registro",
+    "Previsão pelo horário e calendário letivo": "Previsione basata sull'orario e sul calendario scolastico",
+    "Previsão estimada pela carga horária da matriz": "Previsione stimata dal monte ore del piano di studi",
+    "Previsão de aulas não definida": "Numero di lezioni previste non definito",
+    ":registered aulas registradas; previsão indisponível.": ":registered lezioni registrate; previsione non disponibile.",
+    ":registered de :planned aulas previstas; :percent.": ":registered di :planned lezioni previste; :percent.",
+    "aulas": "lezioni",
+    "Acima do previsto": "Oltre il previsto",
+    "Inconsistências": "Incongruenze",
+    "Conteúdo considera as aulas do horário ou da frequência registrada no dia. Notas pendentes são contadas apenas nos períodos encerrados.": "I contenuti considerano le lezioni dell'orario o delle presenze registrate nel giorno. I voti mancanti sono conteggiati soltanto per i periodi conclusi.",
+    "Dias com frequência sem conteúdo": "Giorni con presenze ma senza contenuti",
+    "Dias com conteúdo sem frequência": "Giorni con contenuti ma senza presenze",
+    "Notas pendentes em períodos encerrados": "Voti mancanti nei periodi conclusi",
+    "Ver pendências": "Vedi elementi mancanti"
 }
