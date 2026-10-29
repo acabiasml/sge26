@@ -248,29 +248,38 @@ html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .sidebar-dark
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) :is(.sge-diary-management-hero, .sge-workflow-card, .sge-status-filter-strip) { border-radius: var(--brand-radius); background: var(--aurora-panel); border-top: 2px solid var(--aurora-accent); box-shadow: var(--brand-shadow); }
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .sge-diary-management-metrics div { border-radius: var(--brand-radius); border-left: 3px solid var(--aurora-info); }
 
-/* Mobile navigation must remain readable on every topbar, including Outlook blue. */
-html .topbar #sidebarToggleTop {
+/* Keep the menu control recognizable on every topbar, on desktop and mobile. */
+html .topbar .sge-sidebar-toggle {
     color: var(--sge-text) !important;
     background: var(--sge-paper) !important;
     border: 1px solid var(--sge-muted);
     min-width: 44px;
     min-height: 44px;
     flex-shrink: 0;
+    border-radius: var(--brand-radius, .5rem);
 }
-html .topbar #sidebarToggleTop i { color: inherit !important; }
-html .topbar #sidebarToggleTop:is(:hover, :focus, :active) {
+html .topbar .sge-sidebar-toggle i { color: inherit !important; }
+html .topbar .sge-sidebar-toggle:is(:hover, :focus, :active) {
     color: var(--sge-text) !important;
-    background: var(--sge-surface-soft) !important;
+    background: var(--sge-surface-soft, var(--sge-surface)) !important;
     border-color: currentColor;
 }
-html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar #sidebarToggleTop {
+html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar .sge-sidebar-toggle {
     color: var(--aurora-on-accent) !important;
     background: var(--aurora-strong) !important;
     border-color: var(--aurora-on-accent);
 }
-html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar #sidebarToggleTop:is(:hover, :focus, :active) {
+html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar .sge-sidebar-toggle:is(:hover, :focus, :active) {
     background: var(--aurora-accent) !important;
 }
-html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar #sidebarToggleTop:focus-visible {
+html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .topbar .sge-sidebar-toggle:focus-visible {
     outline-color: var(--aurora-on-accent) !important;
+}
+
+@media (min-width: 1200px) {
+    html .topbar .sge-sidebar-toggle {
+        width: auto;
+        padding-inline: .75rem;
+        gap: .5rem;
+    }
 }

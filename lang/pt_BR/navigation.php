@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'home' => 'Início', 'skip' => 'Ir para o conteúdo', 'main_menu' => 'Menu principal',
+    'home' => 'Início', 'skip' => 'Ir para o conteúdo', 'main_menu' => 'Menu principal', 'menu' => 'Menu',
     'my_space' => 'Meu espaço', 'my_area' => 'Minha área', 'my_profile' => 'Meu cadastro',
     'school_calendar' => 'Calendário escolar', 'my_schedules' => 'Meus horários', 'my_diary' => 'Meu diário',
     'my_school_life' => 'Minha vida escolar', 'school_management' => 'Gestão escolar',

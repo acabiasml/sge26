@@ -4,6 +4,7 @@ return [
     'home' => 'Inizio',
     'skip' => 'Vai al contenuto',
     'main_menu' => 'Menu principale',
+    'menu' => 'Menu',
     'my_space' => 'Il mio spazio',
     'my_area' => 'La mia area',
     'my_profile' => 'Il mio profilo',
