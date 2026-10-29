@@ -38,6 +38,10 @@ on:
         description: Desconectar todos os usuários e invalidar tokens antigos de login
         type: boolean
         default: false
+      inspect_enrollment:
+        description: ID da matrícula para conferir o resultado e os critérios sem alterar dados
+        type: string
+        default: ''
 permissions:
   contents: read
 concurrency:
@@ -63,6 +67,7 @@ jobs:
           APPLY_ROLE_VIEW_MIGRATION: ${{ inputs.apply_role_view_migration }}
           APPLY_HISTORY_GRADE_MIGRATION: ${{ inputs.apply_history_grade_migration }}
           INVALIDATE_ALL_SESSIONS: ${{ inputs.invalidate_all_sessions }}
+          INSPECT_ENROLLMENT: ${{ inputs.inspect_enrollment }}
           EXPECTED_COMMIT: ${{ github.sha }}
           HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}

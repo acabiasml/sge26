@@ -2,6 +2,7 @@
 import json
 import os
 import pathlib
+import shlex
 import tempfile
 import time
 
@@ -91,6 +92,27 @@ with tempfile.TemporaryDirectory() as directory:
                 'Invalidar todas as sessões',
                 'php artisan sessions:invalidate-all --force --no-ansi',
             ))
+        inspection_id = os.environ.get('INSPECT_ENROLLMENT', '').strip()
+        if inspection_id:
+            if not inspection_id.isascii() or not inspection_id.isdecimal():
+                raise RuntimeError('Informe somente o ID numérico da matrícula para diagnóstico.')
+            inspection_code = (
+                f'$e = App\\Models\\StudentEnrollment::with("schoolClass.academicYear.school.academicCriteria")->findOrFail({int(inspection_id)}); '
+                '$y = $e->schoolClass->academicYear; $s = $y->school; '
+                '$r = app(App\\Support\\StudentFinalResultCalculator::class)->calculate($e); '
+                'echo json_encode(["enrollment_id" => $e->id, "closed" => $y->isClosed(), '
+                '"year_end" => $y->ends_at?->toDateString(), '
+                '"school_limit" => $s->dependency_component_limit, '
+                '"applicable_limit" => $s->dependencyComponentLimitForDate($y->ends_at), '
+                '"criteria" => $s->academicCriteria->map(fn ($c) => ["from" => $c->effective_from->toDateString(), "limit" => $c->dependency_component_limit])->all(), '
+                '"recorded_status" => $e->final_result_status, '
+                '"recorded_limit" => $e->final_result_details["dependency_component_limit"] ?? null, '
+                '"recorded_failed_count" => count($e->final_result_details["failed_components"] ?? []), '
+                '"calculated_status" => $r["status"], '
+                '"calculated_failed_count" => count($r["details"]["failed_components"] ?? []), '
+                '"passing_points" => $y->passing_points], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);'
+            )
+            commands.append(('Conferência do resultado da matrícula', 'php artisan tinker --execute=' + shlex.quote(inspection_code)))
         commands.append(('Migrations', 'php artisan migrate:status --no-ansi'))
         expected_commit = os.environ['EXPECTED_COMMIT']
         deadline = time.monotonic() + 180
