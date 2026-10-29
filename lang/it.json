@@ -2662,5 +2662,8 @@
     "A carga horária total e o resultado final ficam nos dados do ano. Use os campos abaixo para transcrever as notas do documento recebido.": "Il monte ore totale e l'esito finale si trovano nei dati dell'anno. Usa i campi sottostanti per trascrivere i voti del documento ricevuto.",
     "As alterações de todos os anos são salvas juntas.": "Le modifiche di tutti gli anni vengono salvate insieme.",
     "Informe 0 quando não houver dependência permitida. Em branco significa critério ainda não informado, e não zero.": "Indica 0 se non sono ammessi debiti formativi. Un campo vuoto significa criterio non ancora indicato, non zero.",
-    "Cadastre o limite de componentes em dependência da escola para concluir o resultado por pontos.": "Indica il limite di discipline con debiti formativi della scuola per completare l'esito in base ai voti."
+    "Cadastre o limite de componentes em dependência da escola para concluir o resultado por pontos.": "Indica il limite di discipline con debiti formativi della scuola per completare l'esito in base ai voti.",
+    "Lançamentos existentes fora do horário atual também aparecem para conferência. Para excluir uma frequência, selecione 0 aulas no dia e salve.": "Sono visibili anche gli inserimenti esistenti al di fuori dell'orario attuale per consentirne la verifica. Per eliminare un registro delle presenze, seleziona 0 lezioni per quel giorno e salva.",
+    "Lançamentos existentes fora do horário atual também aparecem para conferência.": "Sono visibili anche gli inserimenti esistenti al di fuori dell'orario attuale per consentirne la verifica.",
+    "Fora do horário atual": "Fuori dall'orario attuale"
 }

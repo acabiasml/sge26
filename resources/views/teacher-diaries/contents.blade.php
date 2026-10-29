@@ -23,6 +23,7 @@
         <div class="card-body">
             @if($usesScheduledDiary)
                 <p class="mb-0 small text-muted">{{ __('Os dias abaixo são gerados automaticamente a partir do horário da turma e do calendário letivo. Registre um único conteúdo para cada data em que este componente está previsto.') }}</p>
+                <p class="small text-muted mt-2 mb-0">{{ __('Lançamentos existentes fora do horário atual também aparecem para conferência.') }}</p>
             @else
                 <form method="GET" action="{{ route('teacher-diaries.contents', [$schoolClass, $component]) }}" class="row align-items-end"><input type="hidden" name="period" value="{{ $period->id }}"><input type="hidden" name="dates" value="{{ implode(',', $selectedDates) }}"><div class="col-md-5 form-group mb-md-0"><label for="content_add_date">{{ __('Dia letivo') }}</label><input id="content_add_date" name="add_date" type="date" min="{{ $diaryStartsAt->toDateString() }}" max="{{ $diaryEndsAt->toDateString() }}" class="form-control"></div><div class="col-md-7 form-group mb-0"><button class="btn btn-outline-primary" type="submit"><i class="fas fa-plus mr-1" aria-hidden="true"></i>{{ __('Adicionar dia à lista') }}</button></div></form><p class="small text-muted mb-0 mt-3">{{ __('Esta turma não possui horário para este componente. Adicione apenas os dias letivos que deseja registrar.') }}</p>
                 @if($period->allow_diary_entries_outside_period)<p class="small text-info mb-0 mt-2"><i class="fas fa-info-circle mr-1" aria-hidden="true"></i>{{ __('A gestão autorizou lançamentos em dias letivos fora das datas deste período.') }}</p>@endif
@@ -47,6 +48,7 @@
                         <div class="sge-diary-content-date"><strong>{{ $day->date->format('d/m') }}</strong><span>{{ $day->date->translatedFormat('D') }}</span></div>
                         <div class="flex-grow-1">
                             <label class="sr-only" for="content_{{ $date }}">{{ __('Conteúdo de') }} {{ $day->date->format('d/m/Y') }}</label>
+                            @if($day->outside_current_schedule)<p class="small text-warning mb-1">{{ __('Fora do horário atual') }}</p>@endif
                             <textarea id="content_{{ $date }}" name="contents[{{ $date }}]" rows="2" class="form-control" placeholder="{{ __('Conteúdo ministrado neste dia') }}">{{ old('contents.'.$date, $content?->content) }}</textarea>
                             <div class="d-flex justify-content-between align-items-center flex-wrap mt-1 small text-muted">
                                 <span>@if($hasAttendance)<i class="fas fa-clipboard-check text-success" aria-hidden="true"></i> {{ __('Frequência lançada') }} @else <i class="fas fa-exclamation-circle text-warning" aria-hidden="true"></i> {{ __('Frequência pendente') }} @endif</span>

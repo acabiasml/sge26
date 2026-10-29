@@ -1395,7 +1395,7 @@ class TeacherDiaryController extends Controller
             ->whereDate('date', '>=', $allowedStartsAt->toDateString())->whereDate('date', '<=', $allowedEndsAt->toDateString())
             ->where('counts_as_school_day', true)->orderBy('date')->get();
 
-        return $calendarDays->filter(function (CalendarDay $day) use ($schedules, $assignment): bool {
+        $scheduledDays = $calendarDays->filter(function (CalendarDay $day) use ($schedules, $assignment): bool {
             $date = $day->date->toDateString();
             $lessonCount = $schedules->sum(function ($schedule) use ($date, $day, $assignment): int {
                 if ($schedule->starts_at->toDateString() > $date || ($schedule->ends_at && $schedule->ends_at->toDateString() < $date)) {
@@ -1411,7 +1411,31 @@ class TeacherDiaryController extends Controller
             $day->setAttribute('scheduled_lessons', $lessonCount);
 
             return $lessonCount > 0;
-        })->values();
+        })->keyBy(fn (CalendarDay $day): string => $day->date->toDateString());
+
+        // Um lançamento salvo continua acessível mesmo após mudanças no horário ou calendário.
+        $attendance = DiaryAttendanceRecord::query()
+            ->where('school_class_id', $schoolClass->id)
+            ->where('curriculum_component_id', $assignment->curriculum_component_id)
+            ->where('academic_period_id', $period->id)
+            ->get();
+        $contents = DiaryContent::query()
+            ->where('school_class_id', $schoolClass->id)
+            ->where('curriculum_component_id', $assignment->curriculum_component_id)
+            ->where('academic_period_id', $period->id)
+            ->get();
+        foreach ($attendance->concat($contents) as $record) {
+            $date = $record->class_date->toDateString();
+            if (! $scheduledDays->has($date)) {
+                $day = new CalendarDay(['academic_year_id' => $academicYear->id, 'date' => $date]);
+                $day->setAttribute('outside_current_schedule', true);
+                $scheduledDays->put($date, $day);
+            }
+            $day = $scheduledDays->get($date);
+            $day->setAttribute('scheduled_lessons', max((int) $day->scheduled_lessons, (int) ($record->lesson_count ?? 0), 1));
+        }
+
+        return $scheduledDays->sortKeys()->values();
     }
 
     /** @return array{0: Collection<int, CalendarDay>, 1: int, 2: int} */
@@ -1421,6 +1445,10 @@ class TeacherDiaryController extends Controller
         $totalPages = max(1, (int) ceil($scheduledDays->count() / $perPage));
         $todayIndex = $scheduledDays->search(fn (CalendarDay $day): bool => $day->date->toDateString() >= now()->toDateString());
         $defaultPage = $todayIndex === false ? 1 : ((int) floor($todayIndex / $perPage) + 1);
+        $focusedIndex = $scheduledDays->search(fn (CalendarDay $day): bool => $day->date->toDateString() === $request->input('focus_date'));
+        if ($focusedIndex !== false) {
+            $defaultPage = (int) floor($focusedIndex / $perPage) + 1;
+        }
         $page = min($totalPages, max(1, $request->integer('page', $defaultPage)));
 
         return [collect($scheduledDays->forPage($page, $perPage)->values()->all()), $page, $totalPages];

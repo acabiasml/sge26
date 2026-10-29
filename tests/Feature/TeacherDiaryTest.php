@@ -14,6 +14,7 @@ use App\Models\DiaryAssessment;
 use App\Models\DiaryAssessmentResult;
 use App\Models\DiaryAttendanceJustification;
 use App\Models\DiaryAttendanceRecord;
+use App\Models\DiaryContent;
 use App\Models\DiaryPeriodConfirmation;
 use App\Models\IssuedDocument;
 use App\Models\KnowledgeArea;
@@ -28,6 +29,7 @@ use App\Models\StudentEnrollment;
 use App\Models\User;
 use App\Support\AttendanceSummaryCalculator;
 use App\Support\CurriculumCatalog;
+use App\Support\DiaryPeriodStatus;
 use App\Support\PdfLetterhead;
 use App\Support\SchoolClassEnrollmentCourses;
 use App\Support\StudentAttendanceCertificateBuilder;
@@ -2141,6 +2143,88 @@ class TeacherDiaryTest extends TestCase
                 'attendance' => ['2026-03-12' => [$enrollment->id => [1 => '1']]],
             ])
             ->assertSessionHasErrors('scheduled_dates');
+    }
+
+    public function test_saved_attendance_outside_current_schedule_remains_visible_and_can_be_completed_or_deleted(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        for ($day = CarbonImmutable::parse('2026-02-04'); $day->lte('2026-04-08'); $day = $day->addWeek()) {
+            $year->days()->firstOrCreate(['date' => $day->startOfDay()], ['type' => CalendarDay::TYPE_SCHOOL_DAY, 'counts_as_school_day' => true]);
+        }
+        $date = '2026-04-09'; // Quinta-feira: o horário atual prevê somente quarta-feira.
+        $year->days()->create(['date' => $date, 'type' => CalendarDay::TYPE_SCHOOL_DAY, 'counts_as_school_day' => true]);
+        $record = DiaryAttendanceRecord::query()->create([
+            'school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id, 'teacher_person_id' => $teacher->person_id,
+            'class_date' => $date, 'lesson_count' => 2,
+        ]);
+        $entry = $record->entries()->create(['student_enrollment_id' => $enrollment->id, 'status' => 'presente', 'attended_lessons' => 2, 'lesson_presence' => [true, true]]);
+        $assignment = SchoolClassComponent::query()->where('school_class_id', $class->id)->firstOrFail();
+        $this->assertSame([$date], app(DiaryPeriodStatus::class)->pending($assignment, $period)['attendance_without_content']);
+
+        $this->actingAs($teacher)->get(route('teacher-diaries.show', [$class, $component, 'period' => $period->id]))
+            ->assertOk()->assertSee('09/04/2026')->assertSee('focus_date=2026-04-09', false);
+        $parameters = [$class, $component, 'period' => $period->id, 'focus_date' => $date];
+        $this->get(route('teacher-diaries.attendance', $parameters))
+            ->assertOk()->assertViewHas('page', 2)->assertSee('Fora do horário atual')
+            ->assertSee('name="lesson_counts['.$date.']"', false)
+            ->assertViewHas('records', fn ($records) => $records->get($date)?->lesson_count === 2);
+        $this->get(route('teacher-diaries.contents', $parameters))
+            ->assertOk()->assertViewHas('page', 2)->assertSee('name="contents['.$date.']"', false);
+
+        $this->put(route('teacher-diaries.contents.update', [$class, $component]), [
+            'academic_period_id' => $period->id, 'page' => 2, 'selected_dates' => [$date],
+            'contents' => [$date => 'Conteúdo da aula já realizada.'],
+        ])->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertSame([], app(DiaryPeriodStatus::class)->pending($assignment, $period)['attendance_without_content']);
+
+        $this->put(route('teacher-diaries.contents.update', [$class, $component]), [
+            'academic_period_id' => $period->id, 'page' => 2, 'selected_dates' => [$date], 'delete_dates' => [$date],
+        ])->assertSessionHasNoErrors()->assertRedirect();
+        $this->put(route('teacher-diaries.attendance.batch-update', [$class, $component]), [
+            'academic_period_id' => $period->id, 'page' => 2, 'scheduled_dates' => [$date], 'lesson_counts' => [$date => 0],
+        ])->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertModelMissing($record);
+        $this->assertModelMissing($entry);
+        $pending = app(DiaryPeriodStatus::class)->pending($assignment, $period);
+        $this->assertSame([], $pending['attendance_without_content']);
+        $this->assertSame([], $pending['content_without_attendance']);
+        $this->get(route('teacher-diaries.contents', $parameters))->assertOk()->assertDontSee('name="contents['.$date.']"', false);
+    }
+
+    public function test_existing_contents_remain_accessible_after_calendar_changes_without_allowing_unrecorded_dates(): void
+    {
+        [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        // O conteúdo existe, mas a data já não está no calendário nem no horário.
+        $date = '2026-03-12';
+        DiaryContent::query()->create([
+            'school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id, 'class_date' => $date, 'content' => 'Aula registrada anteriormente.',
+        ]);
+        $otherPeriod = $year->periods()->create(['name' => '2º Bimestre', 'starts_at' => '2026-04-11', 'ends_at' => '2026-06-30', 'position' => 2]);
+        DiaryContent::query()->create([
+            'school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $otherPeriod->id, 'class_date' => '2026-05-07', 'content' => 'Outro bimestre.',
+        ]);
+        $parameters = [$class, $component, 'period' => $period->id, 'page' => 1];
+        $this->actingAs($teacher)->get(route('teacher-diaries.contents', $parameters))
+            ->assertOk()->assertSee('Aula registrada anteriormente.')->assertDontSee('Outro bimestre.');
+        $this->get(route('teacher-diaries.attendance', $parameters))
+            ->assertOk()->assertSee('name="lesson_counts['.$date.']"', false)
+            ->assertDontSee('name="lesson_counts[2026-05-07]"', false);
+        $this->put(route('teacher-diaries.attendance.batch-update', [$class, $component]), [
+            'academic_period_id' => $period->id, 'scheduled_dates' => [$date], 'lesson_counts' => [$date => 1],
+        ])->assertSessionHasNoErrors()->assertRedirect();
+        $this->put(route('teacher-diaries.contents.update', [$class, $component]), [
+            'academic_period_id' => $period->id, 'selected_dates' => [$date, '2026-03-13', '2026-05-07'],
+            'contents' => [$date => 'Conteúdo corrigido.', '2026-03-13' => 'Data não permitida.', '2026-05-07' => 'Outro período não pode ser alterado.'],
+        ])->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertDatabaseHas('diary_contents', ['class_date' => $date.' 00:00:00', 'content' => 'Conteúdo corrigido.']);
+        $this->assertDatabaseMissing('diary_contents', ['class_date' => '2026-03-13 00:00:00']);
+        $this->assertDatabaseHas('diary_contents', ['academic_period_id' => $otherPeriod->id, 'content' => 'Outro bimestre.']);
+        $this->put(route('teacher-diaries.attendance.batch-update', [$class, $component]), [
+            'academic_period_id' => $period->id, 'scheduled_dates' => ['2026-03-13'], 'lesson_counts' => ['2026-03-13' => 1],
+        ])->assertSessionHasErrors('scheduled_dates');
     }
 
     public function test_diary_without_a_class_schedule_keeps_manual_date_selection(): void

@@ -137,6 +137,16 @@
                         <div><strong>{{ count($diaryPending['content_without_attendance']) }}</strong><span>{{ __('dias com conteúdo sem frequência') }}</span></div>
                         <div><strong>{{ $diaryPending['missing_grades'] }}</strong><span>{{ __('notas pendentes') }}</span></div>
                     </div>
+                    @if($diaryPending['attendance_without_content'] !== [] || $diaryPending['content_without_attendance'] !== [])
+                        <div class="mt-3 mb-3">
+                            @foreach($diaryPending['attendance_without_content'] as $pendingDate)
+                                <div class="mb-2"><span class="small mr-2">{{ \Carbon\Carbon::parse($pendingDate)->format('d/m/Y') }} · {{ __('Conteúdo pendente') }}</span><a class="btn btn-sm btn-outline-primary" href="{{ route('teacher-diaries.contents', [$schoolClass, $component, 'period' => $period->id, 'focus_date' => $pendingDate]) }}">{{ __('Conteúdos') }}</a> <a class="btn btn-sm btn-outline-secondary" href="{{ route('teacher-diaries.attendance', [$schoolClass, $component, 'period' => $period->id, 'focus_date' => $pendingDate, 'starts_at' => $pendingDate, 'ends_at' => $pendingDate]) }}">{{ __('Frequência') }}</a></div>
+                            @endforeach
+                            @foreach($diaryPending['content_without_attendance'] as $pendingDate)
+                                <div class="mb-2"><span class="small mr-2">{{ \Carbon\Carbon::parse($pendingDate)->format('d/m/Y') }} · {{ __('Frequência pendente') }}</span><a class="btn btn-sm btn-outline-primary" href="{{ route('teacher-diaries.contents', [$schoolClass, $component, 'period' => $period->id, 'focus_date' => $pendingDate]) }}">{{ __('Conteúdos') }}</a> <a class="btn btn-sm btn-outline-secondary" href="{{ route('teacher-diaries.attendance', [$schoolClass, $component, 'period' => $period->id, 'focus_date' => $pendingDate, 'starts_at' => $pendingDate, 'ends_at' => $pendingDate]) }}">{{ __('Frequência') }}</a></div>
+                            @endforeach
+                        </div>
+                    @endif
                     <p class="small text-muted mb-3">{{ __('A confirmação fica disponível a partir do último dia do período, quando não houver pendências de conteúdo, frequência ou notas.') }}</p>
                     <form method="POST" action="{{ route('teacher-diaries.confirmation.confirm', [$schoolClass, $component]) }}">@csrf<input type="hidden" name="academic_period_id" value="{{ $period->id }}"><button class="btn btn-success" type="submit" @disabled(! $canConfirmPeriod || $diaryPending['attendance_without_content'] !== [] || $diaryPending['content_without_attendance'] !== [] || $diaryPending['missing_grades'] > 0)><i class="fas fa-check mr-1" aria-hidden="true"></i>{{ __('Confirmar lançamentos') }}</button></form>
                     @if(! $canConfirmPeriod)<p class="small text-muted mt-2 mb-0">{{ __('A confirmação será liberada em') }} {{ $period->ends_at->format('d/m/Y') }}.</p>@endif
