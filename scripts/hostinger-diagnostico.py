@@ -223,6 +223,12 @@ with tempfile.TemporaryDirectory() as directory:
                 pathlib.Path('pending-results.encrypted.json').write_text(encrypt_report(output, os.environ['REPORT_PUBLIC_KEY']))
                 count = len(report.get('students', report.get('diaries', [])))
                 print(f'Relatório criptografado gerado: {count} registros. Nenhum nome foi publicado no log.', flush=True)
+            elif label == 'Conferência dos lançamentos do diário sem dados pessoais':
+                try:
+                    report = json.loads(output)
+                except json.JSONDecodeError:
+                    raise RuntimeError('A conferência do diário falhou na aplicação; a saída foi omitida para proteger dados pessoais.') from None
+                print(json.dumps(report, ensure_ascii=False, indent=2), flush=True)
             else:
                 print(output, flush=True)
             if label == 'Configuração da sessão' and output.strip() not in ('120 true database', '120 true file'):

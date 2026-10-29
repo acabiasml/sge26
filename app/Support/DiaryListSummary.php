@@ -86,8 +86,8 @@ class DiaryListSummary
             $recordsByDate = $records->keyBy(fn ($record) => $record->class_date->toDateString());
             $contentLessons = $dayContents->sum(fn ($record) => $recordsByDate->get($record->class_date->toDateString())?->lesson_count ?? $plannedByDate->get($record->class_date->toDateString(), 0));
             $periodIssues = $periods->map(function (AcademicPeriod $period) use ($class, $records, $dayContents, $assessments, $key, $originGrades): array {
-                $attendanceDates = $records->where('academic_period_id', $period->id)->map(fn ($record) => $record->class_date->toDateString())->unique();
-                $contentDates = $dayContents->where('academic_period_id', $period->id)->map(fn ($record) => $record->class_date->toDateString())->unique();
+                $attendanceDates = $records->where('academic_period_id', $period->id)->toBase()->map(fn ($record) => $record->class_date->toDateString())->unique();
+                $contentDates = $dayContents->where('academic_period_id', $period->id)->toBase()->map(fn ($record) => $record->class_date->toDateString())->unique();
                 $missingGrades = $period->ends_at->copy()->startOfDay()->lte(now()->startOfDay())
                     ? $this->status->missingGrades($class->enrollments->filter->isActive(), $assessments->get($key, collect())->where('academic_period_id', $period->id), $originGrades)
                     : 0;

@@ -352,6 +352,23 @@ class TeacherDiaryTest extends TestCase
             ->assertSee('Incongruenze: 2')->assertSee('lezioni', false)->assertDontSee('Ver pendências');
     }
 
+    public function test_diary_list_handles_only_attendance_or_only_contents_in_a_period(): void
+    {
+        [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $record = DiaryAttendanceRecord::query()->create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => '2026-03-11', 'lesson_count' => 1]);
+        $response = $this->actingAs($teacher)->get(route('teacher-diaries.index'))->assertOk()->assertSee('Inconsistências: 1');
+        $summary = $response->viewData('diaries')->sole()['summary'];
+        $this->assertSame(1, $summary['issues']['attendance_without_content']);
+        $this->assertSame(0, $summary['content']['registered']);
+        $record->delete();
+        DiaryContent::query()->create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => '2026-03-11', 'content' => 'Conteúdo sem frequência ainda.']);
+        $response = $this->get(route('teacher-diaries.index'))->assertOk()->assertSee('Inconsistências: 1');
+        $summary = $response->viewData('diaries')->sole()['summary'];
+        $this->assertSame(1, $summary['issues']['content_without_attendance']);
+        $this->assertSame(0, $summary['attendance']['registered']);
+        $this->assertSame(1, $summary['content']['registered']);
+    }
+
     public function test_diary_list_uses_matrix_without_schedule_and_does_not_invent_unknown_percentages(): void
     {
         [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
