@@ -26,28 +26,6 @@
     <link href="{{ asset('template/css/sge-alerts.css') }}?v={{ filemtime(public_path('template/css/sge-alerts.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-system-theme.css') }}?v={{ filemtime(public_path('template/css/sge-system-theme.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-theme-identities.css') }}?v={{ filemtime(public_path('template/css/sge-theme-identities.css')) }}" rel="stylesheet">
-    <style>
-        .sge-theme-switcher { display: flex; align-items: center; }
-        .topbar .sge-theme-switcher .nav-link {
-            width: 2.4rem; height: 2.4rem; padding: 0; border: 0; border-radius: .45rem;
-            color: var(--sge-brown) !important; background: var(--sge-surface);
-        }
-        .topbar .sge-theme-switcher .nav-link i { color: inherit !important; }
-        .sge-theme-switcher .dropdown-header { color: var(--sge-muted); }
-        .sge-language-switcher { align-items: center; display: flex; gap: .15rem; padding: 0 .35rem; }
-        .sge-language-switcher form { display: flex; margin: 0; }
-        .sge-language-button {
-            align-items: center; background: transparent; border: 1px solid transparent; border-radius: .45rem;
-            cursor: pointer; display: inline-flex; font-size: 1.35rem; height: 2.4rem; justify-content: center;
-            line-height: 1; opacity: .58; padding: .25rem .35rem;
-            transition: background-color .15s ease, border-color .15s ease, opacity .15s ease;
-        }
-        .sge-language-button:hover, .sge-language-button:focus {
-            background: var(--sge-cream); border-color: var(--sge-border); opacity: 1; outline: none;
-        }
-        .sge-language-button:focus-visible { box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--sge-brown) 22%, transparent); }
-        .sge-language-button.is-active { background: var(--sge-surface-soft, var(--sge-surface)); border-color: var(--sge-brown); opacity: 1; }
-    </style>
     @livewireStyles
 </head>
 
@@ -274,7 +252,7 @@
                         <i class="fa fa-bars" aria-hidden="true"></i>
                     </button>
 
-                    <ul class="navbar-nav ml-auto">
+                    <ul class="navbar-nav ml-auto sge-topbar-controls">
                         @php
                             $availableRoleViews = $currentUser->availableViews();
                             $currentRoleView = $currentUser->currentView();
@@ -348,7 +326,7 @@
                                 </form>
                             @endforeach
                         </li>
-                        <li class="nav-item mx-1">
+                        <li class="nav-item">
                             <a class="nav-link sge-topbar-icon-button" href="#alertsCenter" id="alertsDropdown" role="button"
                                 data-toggle="modal" aria-haspopup="dialog" aria-controls="alertsCenter" aria-label="{{ __('navigation.open_alerts') }}" title="{{ __('navigation.alerts') }}">
                                 <i class="fas fa-bell fa-fw" aria-hidden="true"></i>
@@ -366,7 +344,7 @@
                                 @else
                                     <span class="sge-user-initial mr-2">{{ mb_substr(auth()->user()->name, 0, 1) }}</span>
                                 @endif
-                                <span class="mr-2 d-none d-lg-inline text-gray-600 small text-right">
+                                <span class="mr-2 d-none d-lg-inline text-gray-600 small text-right" title="{{ auth()->user()->name }} · {{ auth()->user()->activeRoleLabel() }}">
                                     <span class="d-block">{{ auth()->user()->name }}</span>
                                     <span class="d-block text-xs">{{ auth()->user()->activeRoleLabel() }}</span>
                                 </span>
