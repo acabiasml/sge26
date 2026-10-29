@@ -41,7 +41,8 @@
             const hadMenuFocus = sidebar.contains(document.activeElement);
             content?.removeAttribute('inert');
             if (restoreFocus || (!desktop.matches && !open && hadMenuFocus) || (desktop.matches && !open && document.activeElement === close)) {
-                toggle.focus();
+                const focusTarget = desktop.matches ? document.getElementById('main-content') : toggle;
+                focusTarget?.focus({ preventScroll: true });
             }
             root.toggleAttribute('data-sidebar-collapsed', desktopCollapsed);
             root.toggleAttribute('data-sidebar-expanded', desktop.matches && open);
@@ -57,10 +58,8 @@
                     || (panel.classList.contains('collapsing') && control.getAttribute('aria-expanded') === 'true');
                 control.setAttribute('aria-expanded', String(!compact && expanded));
             });
-            toggle.setAttribute('aria-expanded', String(open));
-            const label = desktop.matches
-                ? (open ? toggle.dataset.collapseLabel : toggle.dataset.expandLabel)
-                : (open ? toggle.dataset.closeLabel : toggle.dataset.openLabel);
+            toggle.setAttribute('aria-expanded', String(!desktop.matches && open));
+            const label = !desktop.matches && open ? toggle.dataset.closeLabel : toggle.dataset.openLabel;
             toggle.setAttribute('aria-label', label);
             toggle.title = label;
             if (close) {
@@ -86,14 +85,9 @@
             render({ restoreFocus });
         };
         toggle.addEventListener('click', () => {
-            if (desktop.matches) {
-                desktopCollapsed = !desktopCollapsed;
-                previewDismissed = desktopCollapsed;
-                savePreference();
-            } else {
-                mobileOpen = !mobileOpen;
-            }
-            render({ focusMenu: !desktop.matches && mobileOpen });
+            if (desktop.matches) return;
+            mobileOpen = !mobileOpen;
+            render({ focusMenu: mobileOpen });
         });
         close?.addEventListener('click', closeMenu);
         backdrop?.addEventListener('click', closeMenu);

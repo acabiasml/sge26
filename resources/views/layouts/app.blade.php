@@ -260,11 +260,10 @@
         <div id="content-wrapper" class="d-flex flex-column">
             <div id="content">
                 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top" aria-label="{{ __('navigation.topbar') }}">
-                    <button id="sidebarToggleControl" class="btn btn-link mr-3 sge-sidebar-toggle" type="button" aria-label="{{ __('navigation.toggle_sidebar') }}" aria-controls="accordionSidebar"
+                    <button id="sidebarToggleControl" class="btn btn-link mr-3 sge-sidebar-toggle d-lg-none" type="button" aria-label="{{ __('navigation.open_sidebar') }}" aria-controls="accordionSidebar"
                         data-open-label="{{ __('navigation.open_sidebar') }}" data-close-label="{{ __('navigation.close_sidebar') }}"
-                        data-expand-label="{{ __('navigation.expand_sidebar') }}" data-collapse-label="{{ __('navigation.collapse_sidebar') }}">
+                        data-collapse-label="{{ __('navigation.collapse_sidebar') }}">
                         <i class="fa fa-bars" aria-hidden="true"></i>
-                        <span class="d-none d-xl-inline">{{ __('navigation.menu') }}</span>
                     </button>
 
                     <ul class="navbar-nav ml-auto sge-topbar-controls">

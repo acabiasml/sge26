@@ -326,7 +326,7 @@ Relatórios administrativos aceitam busca e filtros respeitando o escopo escolar
 - fonte local Atkinson Hyperlegible Next, sem dependência de Google Fonts;
 - foco visível e link para pular ao conteúdo;
 - navegação agrupada por contexto;
-- menu lateral compacto por padrão no computador, com logo e ícones centralizados em uma faixa; revela os textos ao passar o ponteiro ou navegar pelo teclado, sobrepondo o conteúdo sem mudar sua largura. O botão fixo no topo permite manter o menu expandido, e a preferência é preservada neste navegador. No celular, o painel tem botão de fechar, fechamento por Escape e navegação pelo teclado restrita ao menu aberto;
+- menu lateral compacto por padrão no computador, com logo e ícones centralizados em uma faixa; revela os textos ao passar o ponteiro ou navegar pelo teclado, sobrepondo o conteúdo sem mudar sua largura. O botão no topo aparece apenas no celular, como ícone para abrir o painel, que tem botão de fechar, fechamento por Escape e navegação pelo teclado restrita ao menu aberto;
 - ícones com nomes acessíveis;
 - confirmações de ações e descrição de imagens do editor em modais acessíveis, sem caixas nativas de alerta do navegador;
 - calendário com legenda e distinção visual dos tipos de dia, usando as cores do tema ativo;
