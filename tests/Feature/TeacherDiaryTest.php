@@ -195,11 +195,73 @@ class TeacherDiaryTest extends TestCase
         $this->assertCount(1, $report['diaries']);
         $this->assertSame($enrollment->id, $report['diaries'][0]['missing'][0]['enrollment_id']);
         $this->assertSame('7.5', $report['diaries'][0]['missing'][0]['origin']['score']);
-        $this->assertSame(1, $report['diaries'][0]['pending']['missing_grades']);
+        $this->assertSame(0, $report['diaries'][0]['pending']['missing_grades']);
         $this->assertDatabaseCount('diary_assessment_results', 0);
         $this->assertDatabaseCount('diary_period_confirmations', 0);
         $this->assertDatabaseCount('student_period_convalidations', 1);
         $this->assertSame($auditCount, AuditLog::query()->count());
+    }
+
+    public function test_diary_closure_accepts_origin_grades_including_zero_and_keeps_real_pendencies(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-29'));
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'origin-closure-manager@ctjj.org');
+        $this->actingAs($manager)->put(route('academic-years.periods.assessment-rules.update', [$year, $period]), [
+            'assessment_count' => 2, 'weights' => [1, 1], 'recovery_mode' => AcademicPeriod::RECOVERY_NONE,
+        ])->assertSessionHasNoErrors();
+        $assessments = DiaryAssessment::query()->where('is_recovery', false)->get();
+        $this->assertCount(2, $assessments);
+        $others = collect();
+        foreach (['zero-origin', 'missing-origin'] as $key) {
+            $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, $key.'@ctjj.org');
+            $other = $class->enrollments()->create(['person_id' => $student->person_id, 'enrolled_at' => '2026-02-01', 'status' => StudentEnrollment::STATUS_ENROLLED, 'type' => StudentEnrollment::TYPE_REGULAR]);
+            $other->courses()->attach($component->academic_course_id);
+            $others->put($key, $other);
+        }
+        foreach ([[$enrollment, 7.5], [$others['zero-origin'], 0]] as [$studentEnrollment, $score]) {
+            $studentEnrollment->periodConvalidations()->create([
+                'academic_period_id' => $period->id, 'curriculum_component_id' => $component->id,
+                'score' => $score, 'source_school' => 'Escola de origem', 'convalidated_by_person_id' => $manager->person_id,
+            ]);
+        }
+        $otherComponent = $component->course->components()->create(['name' => 'Outro componente', 'active' => true]);
+        $otherPeriod = $year->periods()->create(['name' => '2º Bimestre', 'starts_at' => '2026-04-11', 'ends_at' => '2026-06-30', 'position' => 2]);
+        foreach ([[$period->id, $otherComponent->id], [$otherPeriod->id, $component->id]] as [$periodId, $componentId]) {
+            $others['missing-origin']->periodConvalidations()->create(['academic_period_id' => $periodId, 'curriculum_component_id' => $componentId, 'score' => 9]);
+        }
+        $assignment = SchoolClassComponent::query()->where('school_class_id', $class->id)->where('curriculum_component_id', $component->id)->firstOrFail();
+        $this->assertSame(2, app(DiaryPeriodStatus::class)->pending($assignment, $period)['missing_grades']);
+        $parameters = [$class, $component, 'period' => $period->id];
+        $this->actingAs($teacher)->get(route('teacher-diaries.show', $parameters))
+            ->assertOk()->assertViewHas('diaryPending', fn ($pending) => $pending['missing_grades'] === 2);
+        $this->post(route('teacher-diaries.confirmation.confirm', [$class, $component]), ['academic_period_id' => $period->id])
+            ->assertSessionHasErrors('academic_period_id');
+        foreach ($assessments as $assessment) {
+            $assessment->results()->create(['student_enrollment_id' => $others['missing-origin']->id, 'score' => 8]);
+        }
+        $record = DiaryAttendanceRecord::query()->create([
+            'school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id, 'class_date' => '2026-03-11', 'lesson_count' => 1,
+        ]);
+        $pending = app(DiaryPeriodStatus::class)->pending($assignment, $period);
+        $this->assertSame(0, $pending['missing_grades']);
+        $this->assertSame(['2026-03-11'], $pending['attendance_without_content']);
+        $this->post(route('teacher-diaries.confirmation.confirm', [$class, $component]), ['academic_period_id' => $period->id])
+            ->assertSessionHasErrors('academic_period_id');
+        $this->put(route('teacher-diaries.contents.update', [$class, $component]), [
+            'academic_period_id' => $period->id, 'selected_dates' => ['2026-03-11'], 'contents' => ['2026-03-11' => 'Conteúdo ministrado.'],
+        ])->assertSessionHasNoErrors();
+        $this->get(route('teacher-diaries.show', $parameters))
+            ->assertOk()->assertViewHas('diaryPending', fn ($pending) => $pending['missing_grades'] === 0);
+        $this->assertFalse(app(DiaryPeriodStatus::class)->pending($assignment, $period)['is_pending']);
+        $this->post(route('teacher-diaries.confirmation.confirm', [$class, $component]), ['academic_period_id' => $period->id])
+            ->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertDatabaseHas('diary_period_confirmations', ['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'confirmed' => true]);
+        $this->assertDatabaseCount('diary_assessment_results', 2);
+        $this->assertSame('7.5', $enrollment->periodConvalidations()->sole()->score);
+        $this->assertSame('0.0', $others['zero-origin']->periodConvalidations()->sole()->score);
+        $this->assertModelExists($record);
     }
 
     public function test_origin_sheet_rejects_foreign_components_and_preserves_other_source_results(): void

@@ -1233,10 +1233,7 @@ class TeacherDiaryController extends Controller
         $activeEnrollments = $enrollments->filter->isActive()->values();
         $attendanceDates = collect($attendance->map(fn (DiaryAttendanceRecord $record): string => $record->class_date->toDateString())->all())->unique()->sort()->values();
         $contentDates = collect($contents->map(fn (DiaryContent $content): string => $content->class_date->toDateString())->all())->unique()->sort()->values();
-        $regularAssessments = $assessments->where('is_recovery', false);
-        $missingGrades = $regularAssessments->sum(function (DiaryAssessment $assessment) use ($activeEnrollments): int {
-            return $activeEnrollments->filter(fn (StudentEnrollment $enrollment): bool => $assessment->results->firstWhere('student_enrollment_id', $enrollment->id)?->score === null)->count();
-        });
+        $missingGrades = app(DiaryPeriodStatus::class)->missingGrades($activeEnrollments, $assessments);
 
         return [
             'attendance_without_content' => $attendanceDates->diff($contentDates)->all(),
