@@ -68,7 +68,10 @@ class StudentAcademicHistory extends Model
                     }
                     $planned = ($planned ?? 0) + (float) $record->workload_hours;
                     if ($year->displaysCompletedWorkload()) {
-                        $completed = ($completed ?? 0) + (float) $record->workload_hours;
+                        $hours = $record->completedWorkloadHours($year);
+                        if ($hours !== null) {
+                            $completed = ($completed ?? 0) + $hours;
+                        }
                     }
                 }
             }

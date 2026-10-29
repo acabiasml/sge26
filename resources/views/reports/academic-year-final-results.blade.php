@@ -115,7 +115,7 @@
                                 <br><span class="muted">{{ $enrollment->finalResultCalculatedBy->full_name }}</span>
                             @endif
                         @else
-                            {{ $enrollment->isActive() ? 'Cursando' : 'Não calculado' }}
+                            {{ $enrollment->finalResultLabel() }}
                         @endif
                     </td>
                     <td>{{ $enrollment->final_result_details['reason'] ?? '-' }}</td>

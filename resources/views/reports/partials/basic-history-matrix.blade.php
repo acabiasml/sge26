@@ -95,7 +95,7 @@
                 @else
                     @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
                     <td class="center score-cell" style="width:{{ $unitWidth }}%">{{ $record?->score_label ?: '-' }}</td>
-                    <td class="center score-cell" style="width:{{ $unitWidth }}%">{{ $year->displaysCompletedWorkload() && $record?->workload_hours !== null ? number_format((float) $record->workload_hours, 0, ',', '') : '-' }}</td>
+                    <td class="center score-cell" style="width:{{ $unitWidth }}%">{{ $year->displaysCompletedWorkload() && $record?->completedWorkloadHours($year) !== null ? number_format((float) $record->completedWorkloadHours($year), 0, ',', '') : '-' }}</td>
                 @endif
             @endforeach
         </tr>
@@ -103,8 +103,8 @@
         @if($lastMatrixSection)
         <tr><td colspan="3"><strong>Carga horária cursada total (h)</strong></td>
             @foreach($history->years as $year)
-                @php($total = $year->workload_hours ?? $history->components->sum(fn ($component) => (float) ($component->records->firstWhere('student_academic_history_year_id', $year->id)?->workload_hours ?? 0)))
-                <td colspan="{{ $year->transcript_mode === 'detailed' ? 2 : 1 }}" class="center"><strong>{{ $year->displaysCompletedWorkload() ? number_format((float) $total, 0, ',', '.') : '-' }}</strong></td>
+                @php($total = $year->completedWorkloadHours() ?? ($year->source !== 'system' ? $history->components->sum(fn ($component) => (float) ($component->records->firstWhere('student_academic_history_year_id', $year->id)?->completedWorkloadHours($year) ?? 0)) : null))
+                <td colspan="{{ $year->transcript_mode === 'detailed' ? 2 : 1 }}" class="center"><strong>{{ $year->displaysCompletedWorkload() && $total !== null ? number_format((float) $total, 0, ',', '.') : '-' }}</strong></td>
             @endforeach
         </tr>
         @endif

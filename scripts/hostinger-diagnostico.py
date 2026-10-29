@@ -92,6 +92,11 @@ with tempfile.TemporaryDirectory() as directory:
                 'Invalidar todas as sessões',
                 'php artisan sessions:invalidate-all --force --no-ansi',
             ))
+        if os.environ.get('CORRECT_2025_CRITERIA') == 'true':
+            commands.append((
+                'Corrigir critérios confirmados do ano de 2025 da matrícula 486',
+                'php artisan academic-years:correct-criteria 486 --passing-points=22.5 --dependency-limit=2 --apply --no-ansi',
+            ))
         inspection_id = os.environ.get('INSPECT_ENROLLMENT', '').strip()
         if inspection_id:
             if not inspection_id.isascii() or not inspection_id.isdecimal():

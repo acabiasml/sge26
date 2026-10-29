@@ -78,6 +78,17 @@ class StudentAcademicHistoryYear extends Model
             ], true);
     }
 
+    public function completedWorkloadHours(): ?float
+    {
+        if ($this->source !== 'system') {
+            return $this->workload_hours !== null ? (float) $this->workload_hours : null;
+        }
+
+        $hours = $this->records->map(fn ($record) => $record->completedWorkloadHours($this))->filter(fn ($value) => $value !== null);
+
+        return $hours->isEmpty() ? null : round($hours->sum(), 2);
+    }
+
     public function history(): BelongsTo
     {
         return $this->belongsTo(StudentAcademicHistory::class, 'student_academic_history_id');

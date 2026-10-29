@@ -133,7 +133,7 @@ class School extends Model
             ->sortByDesc(fn (SchoolAcademicCriteria $item): string => $item->effective_from->toDateString())
             ->first();
 
-        return $current?->dependency_component_limit ?? $this->dependency_component_limit;
+        return $current ? $current->dependency_component_limit : $this->dependency_component_limit;
     }
 
     public function logoUrl(): ?string

@@ -42,6 +42,10 @@ on:
         description: ID da matrícula para conferir o resultado e os critérios sem alterar dados
         type: string
         default: ''
+      correct_2025_criteria:
+        description: Aplicar correção confirmada de 2025 da matrícula 486 (22,5 pontos e 2 dependências)
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -68,6 +72,7 @@ jobs:
           APPLY_HISTORY_GRADE_MIGRATION: ${{ inputs.apply_history_grade_migration }}
           INVALIDATE_ALL_SESSIONS: ${{ inputs.invalidate_all_sessions }}
           INSPECT_ENROLLMENT: ${{ inputs.inspect_enrollment }}
+          CORRECT_2025_CRITERIA: ${{ inputs.correct_2025_criteria }}
           EXPECTED_COMMIT: ${{ github.sha }}
           HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}

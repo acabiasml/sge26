@@ -4,32 +4,43 @@ namespace App\Models;
 
 use App\Models\Concerns\Auditable;
 use Carbon\CarbonInterface;
-use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 class StudentEnrollment extends Model
 {
     use Auditable, HasFactory;
 
     public const STATUS_ENROLLED = 'matriculado';
+
     public const STATUS_TRANSFERRED = 'transferido';
+
     public const STATUS_RECLASSIFIED = 'reclassificado';
+
     public const STATUS_CANCELLED = 'cancelado';
 
     public const TYPE_REGULAR = 'regular';
+
     public const TYPE_LISTENER = 'ouvinte';
 
     public const FINAL_PENDING = 'pendente';
+
     public const FINAL_APPROVED = 'aprovado';
+
     public const FINAL_DEPENDENCY = 'dependencia';
+
     public const FINAL_RETAINED_POINTS = 'retido_por_pontos';
+
     public const FINAL_RETAINED_ATTENDANCE = 'retido_por_frequencia';
+
     public const FINAL_TRANSFERRED = 'transferido';
+
     public const FINAL_RECLASSIFIED = 'reclassificado';
+
     public const FINAL_CANCELLED = 'cancelado';
 
     public const STATUS_LABELS = [
@@ -208,6 +219,10 @@ class StudentEnrollment extends Model
 
     public function statusLabel(): string
     {
+        if ($this->isActive() && $this->academicYearIsClosed()) {
+            return 'Encerrada';
+        }
+
         return self::STATUS_LABELS[$this->status] ?? $this->status;
     }
 
@@ -218,7 +233,7 @@ class StudentEnrollment extends Model
 
     public function finalResultLabel(): string
     {
-        if ($this->isActive() && in_array($this->final_result_status, [null, self::FINAL_PENDING], true)) {
+        if ($this->isActive() && ! $this->academicYearIsClosed() && in_array($this->final_result_status, [null, self::FINAL_PENDING], true)) {
             return 'Cursando';
         }
 
@@ -228,5 +243,14 @@ class StudentEnrollment extends Model
     public function isActive(): bool
     {
         return $this->status === self::STATUS_ENROLLED;
+    }
+
+    private function academicYearIsClosed(): bool
+    {
+        if (! $this->school_class_id && ! $this->relationLoaded('schoolClass')) {
+            return false;
+        }
+
+        return $this->schoolClass?->academicYear?->isClosed() ?? false;
     }
 }

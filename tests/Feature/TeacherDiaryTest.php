@@ -24,6 +24,7 @@ use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
 use App\Models\StudentEnrollment;
 use App\Models\User;
+use App\Support\AttendanceSummaryCalculator;
 use App\Support\CurriculumCatalog;
 use App\Support\PdfLetterhead;
 use App\Support\SchoolClassEnrollmentCourses;
@@ -620,6 +621,111 @@ class TeacherDiaryTest extends TestCase
             $this->assertStringNotContainsString('Carolina Ribeiro', $html);
             $this->assertStringNotContainsString('Coordenação escolar', $html);
         }
+    }
+
+    public function test_confirmed_year_criteria_recalculate_saved_results_without_reopening_the_year(): void
+    {
+        [, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $course = $class->courses()->firstOrFail();
+        foreach ([2, 3, 4] as $number) {
+            $year->periods()->create([
+                'name' => "{$number}º Bimestre", 'position' => $number,
+                'starts_at' => '2026-04-11', 'ends_at' => '2026-12-18',
+            ]);
+        }
+        $components = collect([$component]);
+        foreach (['História', 'Língua Inglesa'] as $name) {
+            $components->push($course->components()->create(['name' => $name, 'workload_hours' => 80, 'active' => true]));
+        }
+        $scores = [[5, 5, 5, 6], [5.5, 5.5, 5.5, 6], [5, 6, 6, 6]];
+        foreach ($components as $index => $item) {
+            foreach ($year->periods()->orderBy('position')->get() as $position => $evaluationPeriod) {
+                $enrollment->periodConvalidations()->create([
+                    'academic_period_id' => $evaluationPeriod->id, 'curriculum_component_id' => $item->id,
+                    'score' => $scores[$index][$position], 'source_school' => 'Escola anterior',
+                    'attendance_lessons' => 20, 'attendance_absences' => 1,
+                ]);
+            }
+        }
+        $year->update(['closed_at' => now(), 'passing_points' => 24]);
+        $enrollment->update(['final_result_status' => StudentEnrollment::FINAL_RETAINED_POINTS, 'final_result_calculated_at' => now()]);
+        $closedAt = $year->closed_at;
+        $this->artisan('academic-years:correct-criteria', [
+            'enrollment' => $enrollment->id, '--passing-points' => '22.5', '--dependency-limit' => '2',
+        ])->assertSuccessful();
+        $this->assertSame(24.0, (float) $year->fresh()->passing_points);
+
+        $this->artisan('academic-years:correct-criteria', [
+            'enrollment' => $enrollment->id, '--passing-points' => '22.5', '--dependency-limit' => '2', '--apply' => true,
+        ])->assertSuccessful();
+        $this->assertSame(22.5, (float) $year->fresh()->passing_points);
+        $this->assertTrue($closedAt->equalTo($year->fresh()->closed_at));
+        $this->assertSame(2, $year->school->fresh()->dependencyComponentLimitForDate($year->ends_at));
+        $this->assertSame(StudentEnrollment::FINAL_DEPENDENCY, $enrollment->fresh()->final_result_status);
+        $this->assertCount(1, $enrollment->fresh()->final_result_details['failed_components']);
+        $this->assertSame(12, $enrollment->periodConvalidations()->count());
+    }
+
+    public function test_individual_record_keeps_signatures_above_footer_and_hours_follow_relative_attendance(): void
+    {
+        [, $year, $class, $component, , $enrollment] = $this->diaryScenario();
+        $course = $class->courses()->firstOrFail();
+        foreach ([2, 3, 4] as $number) {
+            $year->periods()->create(['name' => "{$number}º Bimestre", 'position' => $number, 'starts_at' => '2026-04-11', 'ends_at' => '2026-12-18']);
+        }
+        foreach (['Ciências', 'Geografia', 'História', 'Ensino Religioso', 'Arte', 'Educação Física', 'Língua Inglesa', 'Língua Portuguesa'] as $name) {
+            $course->components()->create(['name' => $name, 'workload_hours' => 67, 'active' => true]);
+        }
+        foreach ([PersonSchoolRole::POSITION_DIRECTOR => 'Thelma Vieira Arrais', PersonSchoolRole::POSITION_SECRETARY => 'Erika Thayellen de Sousa Miranda'] as $position => $name) {
+            $person = Person::query()->create(['full_name' => $name]);
+            $person->schoolRoles()->create(['school_id' => $year->school_id, 'role' => PersonSchoolRole::ROLE_MANAGER, 'position' => $position, 'active' => true]);
+        }
+        $year->school->concepts()->createMany([
+            ['name' => 'Bom', 'abbreviation' => 'B', 'minimum_score' => 8, 'maximum_score' => 10, 'effective_from' => '2025-01-01'],
+            ['name' => 'Suficiente', 'abbreviation' => 'S', 'minimum_score' => 6, 'maximum_score' => 8, 'effective_from' => '2025-01-01'],
+            ['name' => 'Insuficiente', 'abbreviation' => 'I', 'minimum_score' => 3.5, 'maximum_score' => 6, 'effective_from' => '2025-01-01'],
+            ['name' => 'Insuficiente Grave', 'abbreviation' => 'IG', 'minimum_score' => 2, 'maximum_score' => 3.5, 'effective_from' => '2025-01-01'],
+            ['name' => 'Insuficiente Gravíssimo', 'abbreviation' => 'IGV', 'minimum_score' => 0, 'maximum_score' => 2, 'effective_from' => '2025-01-01'],
+        ]);
+        $year->update(['closed_at' => now()]);
+        $enrollment->update([
+            'final_result_status' => StudentEnrollment::FINAL_DEPENDENCY, 'final_result_calculated_at' => now(),
+            'final_result_details' => ['reason' => 'Estudante ficou abaixo da pontuação mínima dentro do limite de dependência da escola.'],
+        ]);
+        $report = app(StudentReportCardBuilder::class)->build($enrollment);
+        $report['annualComponents'] = $report['annualComponents']->map(function ($summary) {
+            $summary['attendance'] = app(AttendanceSummaryCalculator::class)->fromTotals(8, 8, 0);
+
+            return $summary;
+        });
+        $document = new IssuedDocument(['issued_at' => now(), 'verification_code' => 'TESTE']);
+        $document->setRelation('issuedBy', null);
+        $data = ['report' => $report, 'scoreView' => 'numeros', 'issuedDocument' => $document,
+            'verificationUrl' => route('documents.verify', 'TESTE'), 'letterhead' => PdfLetterhead::make($year->school)];
+        $html = View::make('reports.student-individual-record', $data)->render();
+        $this->assertStringContainsString('Encerrada · Regular', $html);
+        $this->assertMatchesRegularExpression('/67 h<\/td>\s*<td class="center">67 h<\/td>/', $html);
+        $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
+        $signatureBottom = 0;
+        $footerTop = INF;
+        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame) use (&$signatureBottom, &$footerTop): void {
+            $node = $frame->get_node();
+            if (! $node instanceof \DOMElement) {
+                return;
+            }
+            $box = $frame->get_border_box();
+            if ($node->getAttribute('class') === 'signature-role') {
+                $signatureBottom = max($signatureBottom, $box[1] + $box[3]);
+            }
+            if ($node->getAttribute('class') === 'document-footer') {
+                $footerTop = min($footerTop, $box[1]);
+            }
+        }]]);
+        $this->assertStringStartsWith('%PDF-', $pdf->output());
+        $this->assertSame(1, $pdf->getDomPDF()->getCanvas()->get_page_count());
+        $this->assertGreaterThan(0, $signatureBottom);
+        $this->assertNotSame(INF, $footerTop);
+        $this->assertGreaterThanOrEqual($signatureBottom + 6, $footerTop, 'As assinaturas devem terminar antes do rodapé, com espaço livre.');
     }
 
     public function test_report_cards_with_full_curriculum_keep_each_student_on_one_page(): void

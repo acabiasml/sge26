@@ -106,11 +106,11 @@
         ])
         ->values();
     $plannedHoursTotal = $annualComponents->sum(fn (array $summary): float => $summary['component']->calculatedWorkloadHours($summary['component']->course ?? $courses->first()));
-    $completedHoursTotal = $annualComponents->sum(function (array $summary) use ($courses): float {
+    $completedWorkload = app(\App\Support\AttendanceSummaryCalculator::class);
+    $completedHoursTotal = $annualComponents->sum(function (array $summary) use ($courses, $completedWorkload): float {
         $course = $summary['component']->course ?? $courses->first();
-        $minutes = (int) ($course?->class_hour_minutes ?? 0);
 
-        return round(((int) ($summary['attendance']['lessons'] ?? 0) * $minutes) / 60, 2);
+        return $completedWorkload->completedWorkloadHours($summary['component']->calculatedWorkloadHours($course), $summary['attendance']) ?? 0;
     });
     $conceptLegend = $school?->conceptsForDate($academicYear->ends_at ?? now()) ?? collect();
     $issuedAt = ($issuedDocument->issued_at ?? now('America/Cuiaba'))->timezone('America/Cuiaba');
@@ -188,7 +188,7 @@
                         $component = $summary['component'];
                         $course = $component->course ?? $courses->first();
                         $plannedHours = $component->calculatedWorkloadHours($course);
-                        $completedHours = round(((int) ($summary['attendance']['lessons'] ?? 0) * (int) ($course?->class_hour_minutes ?? 0)) / 60, 2);
+                        $completedHours = $completedWorkload->completedWorkloadHours($plannedHours, $summary['attendance']);
                     @endphp
                     <tr>
                         @if($formationGroup['formation'] !== CurriculumCatalog::FORMATION_ITINERARY && $loop->first)

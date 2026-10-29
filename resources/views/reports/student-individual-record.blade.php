@@ -3,9 +3,10 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { size: A4 portrait; margin: 150px 24px 96px; }
+        @page { size: A4 portrait; margin: 150px 24px 110px; }
         body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 11px; line-height: 1.06; }
         @include('reports.partials.letterhead-styles')
+        .document-footer { bottom: -78px !important; }
         .letterhead-line, .document-title, .document-meta, .document-footer { line-height: 1.06; }
         .letterhead { margin-bottom: 2px; padding-bottom: 5px; }
         .letterhead-logo img { max-width: 66px; max-height: 50px; }
@@ -31,10 +32,10 @@
         .legend-table th { background: #f3eee9; font-weight: 600; width: 10%; }
         .legend-table td { background: #faf8f6; }
         .legend-table span { display: inline-block; margin-right: 8px; white-space: normal; }
-        .document-closing { min-height: 96px; page-break-inside: avoid; }
+        .document-closing { padding-bottom: 12px; page-break-inside: avoid; }
         .issue-place-date { margin: 9px 0 0; text-align: center; }
         .signatures { border-collapse: collapse; margin-top: 6px; page-break-inside: avoid; width: 100%; }
-        .signatures td { border: 0; font-size: 11px; padding-top: 54px; text-align: center; width: 50%; }
+        .signatures td { border: 0; font-size: 11px; padding-top: 48px; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 285px; padding-top: 6px; }
         .signature-name { display: block; font-weight: 600; }
         .signature-role { display: block; margin-top: 2px; }
@@ -144,10 +145,11 @@
         ])
         ->values();
     $plannedHoursTotal = $annualComponents->sum(fn (array $summary): float => $summary['component']->calculatedWorkloadHours($summary['component']->course ?? $courses->first()));
-    $completedHoursTotal = $annualComponents->sum(function (array $summary) use ($courses): float {
+    $completedWorkload = app(\App\Support\AttendanceSummaryCalculator::class);
+    $completedHoursTotal = $annualComponents->sum(function (array $summary) use ($courses, $completedWorkload): float {
         $course = $summary['component']->course ?? $courses->first();
 
-        return round(((int) ($summary['attendance']['lessons'] ?? 0) * (int) ($course?->class_hour_minutes ?? 0)) / 60, 2);
+        return $completedWorkload->completedWorkloadHours($summary['component']->calculatedWorkloadHours($course), $summary['attendance']) ?? 0;
     });
     $conceptLegend = $school?->conceptsForDate($academicYear->ends_at ?? now()) ?? collect();
     $issuedAt = ($issuedDocument->issued_at ?? now('America/Cuiaba'))->timezone('America/Cuiaba');
@@ -255,7 +257,7 @@
                         $component = $summary['component'];
                         $course = $component->course ?? $courses->first();
                         $plannedHours = $component->calculatedWorkloadHours($course);
-                        $completedHours = round(((int) ($summary['attendance']['lessons'] ?? 0) * (int) ($course?->class_hour_minutes ?? 0)) / 60, 2);
+                        $completedHours = $completedWorkload->completedWorkloadHours($plannedHours, $summary['attendance']);
                     @endphp
                     <tr>
                         @if($formationGroup['formation'] !== CurriculumCatalog::FORMATION_ITINERARY && $loop->first)
@@ -322,7 +324,7 @@
                     por {{ $finalResult['calculated_by']->full_name }}
                 @endif
             @else
-                {{ $enrollment->isActive() ? 'Cursando' : 'Não calculado' }}
+                {{ $enrollment->finalResultLabel() }}
             @endif
         </td>
     </tr>

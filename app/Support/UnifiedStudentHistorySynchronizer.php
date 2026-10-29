@@ -144,9 +144,7 @@ class UnifiedStudentHistorySynchronizer
                 'country' => 'Brasil',
                 'transcript_mode' => $withoutTranscription ? 'no_transcription' : 'detailed',
                 'final_result' => $finalResult,
-                'workload_hours' => $withoutTranscription ? 0 : ($isTransferred
-                    ? $this->attendedWorkloadHours($attendance, $year->class_hour_minutes)
-                    : $historyComponents->sum(fn (array $item) => $this->historicalWorkloadHours($item['component']))),
+                'workload_hours' => $withoutTranscription ? 0 : $historyComponents->sum(fn (array $item) => $this->historicalWorkloadHours($item['component'])),
                 'school_days' => $isTransferred
                     ? $year->days()->where('counts_as_school_day', true)
                         ->when($enrollment->enrolled_at, fn ($query) => $query->whereDate('date', '>=', $enrollment->enrolled_at->toDateString()))
@@ -234,9 +232,7 @@ class UnifiedStudentHistorySynchronizer
                     'score_numeric' => $score,
                     'workload_hours' => $stage === AcademicCourse::STAGE_TECHNICAL && $isInProgress && ! $moduleConcluded
                         ? null
-                        : ($isTransferred
-                            ? $this->attendedWorkloadHours($componentAttendance, $year->class_hour_minutes)
-                            : $this->historicalWorkloadHours($component)),
+                        : $this->historicalWorkloadHours($component),
                     'frequency_label' => $componentPercentage !== null ? number_format((float) $componentPercentage, 2, ',', '.').'%' : null,
                     'frequency_percentage' => $componentPercentage,
                     'absences' => $componentAttendance['absent'] ?? null,
@@ -395,14 +391,5 @@ class UnifiedStudentHistorySynchronizer
     private function historicalWorkloadHours(CurriculumComponent $component): float
     {
         return $component->calculatedWorkloadHours();
-    }
-
-    private function attendedWorkloadHours(array $attendance, ?int $classHourMinutes): ?float
-    {
-        $lessons = (int) ($attendance['lessons'] ?? 0);
-
-        return $lessons > 0 && $classHourMinutes
-            ? round($lessons * $classHourMinutes / 60, 2)
-            : null;
     }
 }

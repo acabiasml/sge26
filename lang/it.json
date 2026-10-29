@@ -2660,5 +2660,7 @@
     "Abra para revisar as notas de cada ano ou incluir componentes.": "Apri per controllare i voti di ogni anno o aggiungere discipline.",
     "Mostrar notas de": "Mostra i voti di",
     "A carga horária total e o resultado final ficam nos dados do ano. Use os campos abaixo para transcrever as notas do documento recebido.": "Il monte ore totale e l'esito finale si trovano nei dati dell'anno. Usa i campi sottostanti per trascrivere i voti del documento ricevuto.",
-    "As alterações de todos os anos são salvas juntas.": "Le modifiche di tutti gli anni vengono salvate insieme."
+    "As alterações de todos os anos são salvas juntas.": "Le modifiche di tutti gli anni vengono salvate insieme.",
+    "Informe 0 quando não houver dependência permitida. Em branco significa critério ainda não informado, e não zero.": "Indica 0 se non sono ammessi debiti formativi. Un campo vuoto significa criterio non ancora indicato, non zero.",
+    "Cadastre o limite de componentes em dependência da escola para concluir o resultado por pontos.": "Indica il limite di discipline con debiti formativi della scuola per completare l'esito in base ai voti."
 }

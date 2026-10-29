@@ -8,6 +8,14 @@ use Illuminate\Support\Collection;
 
 final class AttendanceSummaryCalculator
 {
+    /** A proporção de frequência aplica-se à carga prevista, independentemente do volume de aulas lançado. */
+    public function completedWorkloadHours(float $plannedHours, array $attendance): ?float
+    {
+        $percentage = $attendance['percentage'] ?? null;
+
+        return $percentage === null ? null : round(max(0, $plannedHours) * max(0, min(100, (float) $percentage)) / 100, 2);
+    }
+
     /**
      * @param  Collection<int, DiaryAttendanceRecord>  $records
      * @param  Collection<int, DiaryAttendanceJustification>  $justifications

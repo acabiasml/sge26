@@ -1645,9 +1645,9 @@ class AdminScreensTest extends TestCase
 
         $year->update(['closed_at' => '2025-12-20']);
         $this->actingAs($manager)->get(route('people.histories.show', [$student, $history]))
-            ->assertOk()->assertSee('8,00')->assertSee('Cursando');
+            ->assertOk()->assertSee('8,00')->assertSee('Não Calculado');
         $systemYear = $history->years()->where('student_enrollment_id', $enrollment->id)->firstOrFail();
-        $this->assertSame('Cursando', $systemYear->final_result);
+        $this->assertSame('Não Calculado', $systemYear->final_result);
         $this->assertSame('8,00', $systemYear->records()->firstOrFail()->score_label);
         $this->assertNull($enrollment->fresh()->final_result_status);
     }

@@ -162,9 +162,11 @@
                                 inputmode="numeric"
                                 autocomplete="off"
                                 class="form-control @error('dependency_component_limit') is-invalid @enderror"
+                                aria-describedby="dependency-limit-help"
                                 value="{{ old('dependency_component_limit', $school->dependencyComponentLimitForDate()) }}"
                             >
                             @error('dependency_component_limit') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
+                            <small id="dependency-limit-help" class="form-text text-muted">{{ __('Informe 0 quando não houver dependência permitida. Em branco significa critério ainda não informado, e não zero.') }}</small>
                         </div>
 
                         <button class="btn btn-primary" type="submit">

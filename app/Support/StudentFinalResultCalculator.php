@@ -6,9 +6,7 @@ use App\Models\StudentEnrollment;
 
 class StudentFinalResultCalculator
 {
-    public function __construct(private readonly StudentReportCardBuilder $reportCardBuilder)
-    {
-    }
+    public function __construct(private readonly StudentReportCardBuilder $reportCardBuilder) {}
 
     /**
      * @return array{status: string, details: array<string, mixed>}
@@ -34,7 +32,7 @@ class StudentFinalResultCalculator
         $school = $academicYear->school;
         $passingPoints = (float) $report['passingPoints'];
         $minimumAttendance = (int) $report['minimumAttendance'];
-        $dependencyLimit = $school?->dependencyComponentLimitForDate($academicYear->ends_at) ?? 0;
+        $dependencyLimit = $school?->dependencyComponentLimitForDate($academicYear->ends_at);
 
         $incompleteComponents = $report['annualComponents']
             ->filter(fn (array $summary): bool => (int) ($summary['complete_periods'] ?? 0) < (int) ($summary['total_periods'] ?? 0))
@@ -90,6 +88,20 @@ class StudentFinalResultCalculator
             ];
         }
 
+        if ($dependencyLimit === null) {
+            return [
+                'status' => StudentEnrollment::FINAL_PENDING,
+                'details' => [
+                    'reason' => 'Cadastre o limite de componentes em dependência da escola para concluir o resultado por pontos.',
+                    'attendance_percentage' => $attendancePercentage,
+                    'failed_components' => $failedByPoints->all(),
+                    'passing_points' => $passingPoints,
+                    'minimum_attendance_percentage' => $minimumAttendance,
+                    'dependency_component_limit' => null,
+                ],
+            ];
+        }
+
         if ($dependencyLimit > 0 && $failedByPoints->count() <= $dependencyLimit) {
             return [
                 'status' => StudentEnrollment::FINAL_DEPENDENCY,
@@ -129,7 +141,7 @@ class StudentFinalResultCalculator
     }
 
     /**
-     * @param array<string, mixed> $summary
+     * @param  array<string, mixed>  $summary
      * @return array{name: string, points: float, passing_points: float}
      */
     private function componentSummary(array $summary, float $passingPoints): array

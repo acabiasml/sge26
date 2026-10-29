@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\AttendanceSummaryCalculator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -35,6 +36,19 @@ class StudentAcademicHistoryRecord extends Model
     public function component(): BelongsTo
     {
         return $this->belongsTo(StudentAcademicHistoryComponent::class, 'student_academic_history_component_id');
+    }
+
+    public function completedWorkloadHours(?StudentAcademicHistoryYear $year = null): ?float
+    {
+        if ($this->workload_hours === null) {
+            return null;
+        }
+
+        $year ??= $this->year;
+
+        return $year?->source === 'system'
+            ? app(AttendanceSummaryCalculator::class)->completedWorkloadHours((float) $this->workload_hours, ['percentage' => $this->frequency_percentage])
+            : (float) $this->workload_hours;
     }
 
     public function year(): BelongsTo
