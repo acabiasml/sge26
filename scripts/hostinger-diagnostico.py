@@ -116,6 +116,11 @@ with tempfile.TemporaryDirectory() as directory:
                 'Corrigir critérios confirmados do ano de 2025 da matrícula 486',
                 'php artisan academic-years:correct-criteria 486 --passing-points=22.5 --dependency-limit=2 --apply --no-ansi',
             ))
+        if os.environ.get('CORRECT_GEOGRAPHY_486') == 'true':
+            commands.append((
+                'Corrigir nota importada de Geografia da matrícula 486 conforme solicitação',
+                'php artisan diaries:correct-imported-grade 486 Geografia 4 6 --expected=4 --apply --no-ansi',
+            ))
         inspection_id = os.environ.get('INSPECT_ENROLLMENT', '').strip()
         if inspection_id:
             if not inspection_id.isascii() or not inspection_id.isdecimal():

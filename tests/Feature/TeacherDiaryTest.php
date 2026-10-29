@@ -6,10 +6,12 @@ use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
 use App\Models\AcademicPeriodDiaryConsolidation;
 use App\Models\AcademicYear;
+use App\Models\AuditLog;
 use App\Models\CalendarDay;
 use App\Models\CurriculumComponent;
 use App\Models\DiaryAlert;
 use App\Models\DiaryAssessment;
+use App\Models\DiaryAssessmentResult;
 use App\Models\DiaryAttendanceJustification;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\DiaryPeriodConfirmation;
@@ -664,6 +666,57 @@ class TeacherDiaryTest extends TestCase
         $this->assertSame(StudentEnrollment::FINAL_DEPENDENCY, $enrollment->fresh()->final_result_status);
         $this->assertCount(1, $enrollment->fresh()->final_result_details['failed_components']);
         $this->assertSame(12, $enrollment->periodConvalidations()->count());
+    }
+
+    public function test_imported_period_grade_correction_updates_only_target_result_and_recalculates_closed_enrollment(): void
+    {
+        [, $year, $class, $component, $firstPeriod, $enrollment] = $this->diaryScenario();
+        $component->update(['name' => 'Geografia']);
+        $year->school->update(['dependency_component_limit' => 2]);
+        foreach ([['2026-04-11', '2026-06-30'], ['2026-07-01', '2026-09-30'], ['2026-10-01', '2026-12-18']] as $index => [$start, $end]) {
+            $year->periods()->create(['name' => ($index + 2).'º Bimestre', 'position' => $index + 2, 'starts_at' => $start, 'ends_at' => $end]);
+        }
+        $year->update(['passing_points' => 22.5, 'closed_at' => now()]);
+        $closedAt = $year->closed_at;
+        $scores = [6, 5, 6, 4];
+        $target = null;
+        foreach ($year->periods()->orderBy('position')->get() as $index => $period) {
+            $assessment = DiaryAssessment::query()->create([
+                'school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+                'academic_period_id' => $period->id, 'is_recovery' => false, 'title' => 'Nota importada',
+                'weight' => 10, 'maximum_score' => 10, 'legacy_source' => 'fixture', 'legacy_id' => 100 + $index,
+            ]);
+            $result = $assessment->results()->create(['student_enrollment_id' => $enrollment->id, 'score' => $scores[$index]]);
+            if ($index === 3) {
+                $target = $result;
+            }
+        }
+        $attendance = DiaryAttendanceRecord::query()->create([
+            'school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $firstPeriod->id, 'class_date' => '2026-03-10', 'lesson_count' => 1,
+        ]);
+        $attendance->entries()->create(['student_enrollment_id' => $enrollment->id, 'status' => DiaryAttendanceRecord::STATUS_PRESENT, 'attended_lessons' => 1]);
+        $otherPerson = Person::query()->create(['full_name' => 'Outro estudante']);
+        $other = $class->enrollments()->create(['person_id' => $otherPerson->id, 'status' => StudentEnrollment::STATUS_ENROLLED, 'type' => StudentEnrollment::TYPE_REGULAR]);
+        $otherResult = $target->assessment->results()->create(['student_enrollment_id' => $other->id, 'score' => 4]);
+        $enrollment->update(['final_result_status' => StudentEnrollment::FINAL_DEPENDENCY, 'final_result_calculated_at' => now()]);
+
+        $arguments = ['enrollment' => $enrollment->id, 'component' => 'Geografia', 'period' => 4, 'score' => 6, '--expected' => '4'];
+        $this->artisan('diaries:correct-imported-grade', $arguments)->assertSuccessful();
+        $this->assertSame(4.0, (float) $target->fresh()->score);
+        $this->artisan('diaries:correct-imported-grade', $arguments + ['--apply' => true])->assertSuccessful();
+        $this->assertSame(6.0, (float) $target->fresh()->score);
+        $this->assertSame(4.0, (float) $otherResult->fresh()->score);
+        $this->assertSame(StudentEnrollment::FINAL_APPROVED, $enrollment->fresh()->final_result_status);
+        $this->assertTrue($closedAt->equalTo($year->fresh()->closed_at));
+        $report = app(StudentReportCardBuilder::class)->build($enrollment->fresh());
+        $this->assertSame([6.0, 5.0, 6.0, 6.0], $report['annualComponents']->first()['periods']->map(fn ($item) => (float) $item['average']['value'])->all());
+        $this->assertSame(23.0, (float) $report['annualComponents']->first()['points']);
+        $audit = AuditLog::query()->where('auditable_type', DiaryAssessmentResult::class)->where('auditable_id', $target->id)->where('action', 'updated')->latest('id')->firstOrFail();
+        $this->assertSame(4.0, (float) $audit->old_values['score']);
+        $this->assertSame(6.0, (float) $audit->new_values['score']);
+        $this->artisan('diaries:correct-imported-grade', $arguments + ['--apply' => true])->assertFailed();
+        $this->assertSame(6.0, (float) $target->fresh()->score);
     }
 
     public function test_individual_record_keeps_signatures_above_footer_and_hours_follow_relative_attendance(): void
