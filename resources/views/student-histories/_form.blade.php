@@ -130,39 +130,42 @@
                 </div>
             @endif
         @endunless
-        <section class="card shadow sge-panel-card mb-4">
+        <section class="card shadow sge-panel-card mb-4 sge-history-editor-section">
             <div class="sge-panel-header">
                 <div>
-                    <h2>{{ $manualOnly ? __('Séries cursadas fora do sistema') : __('Anos, séries ou fases') }}</h2>
-                    <p>{{ $manualOnly ? __('Cadastre somente anos realizados em outras instituições.') : __('Cada cartão abaixo vira uma coluna na tabela do histórico.') }}</p>
+                    <h2>{{ __('1. Anos cursados') }}</h2>
+                    <p>{{ $manualOnly ? __('Abra um ano para conferir as informações da escola de origem.') : __('Abra um ano por vez para revisar a série e os dados da escola de origem.') }}</p>
                 </div>
                 <button class="btn btn-sm btn-outline-primary" type="button" data-add-history-year>
-                    <i class="fas fa-plus mr-1" aria-hidden="true"></i>{{ __('Adicionar série/fase') }}
+                    <i class="fas fa-plus mr-1" aria-hidden="true"></i>{{ __('Adicionar ano') }}
                 </button>
             </div>
             <div class="card-body">
-                <div id="history-years" class="sge-history-year-grid">
+                <div id="history-years" class="sge-history-year-grid" aria-label="{{ __('Anos cadastrados') }}">
                     @foreach($yearsInput as $yearIndex => $year)
-                        <article class="sge-history-year-card" data-history-year>
+                        <details class="sge-history-year-card" data-history-year name="history-year" @if($loop->first) open @endif>
+                            <summary class="sge-history-year-summary">
+                                <span class="sge-history-year-index" aria-hidden="true">{{ str_pad((string) ($yearIndex + 1), 2, '0', STR_PAD_LEFT) }}</span>
+                                <span class="sge-history-year-summary-text">
+                                    <strong>{{ filled($year['grade_phase'] ?? null) ? $year['grade_phase'] : __('Ano ').($yearIndex + 1) }}</strong>
+                                    <small data-history-year-preview>{{ collect([$year['year'] ?? null, $year['school_name'] ?? null, filled($year['workload_hours'] ?? null) ? ($year['workload_hours'].' h') : null])->filter()->join(' · ') ?: __('Preencha os dados deste ano') }}</small>
+                                </span>
+                                <i class="fas fa-chevron-down sge-history-year-chevron" aria-hidden="true"></i>
+                            </summary>
+                            <div class="sge-history-year-body">
                             <input type="hidden" name="years[{{ $yearIndex }}][source]" value="{{ $year['source'] ?? 'manual' }}">
                             <input type="hidden" name="years[{{ $yearIndex }}][student_enrollment_id]" value="{{ $year['student_enrollment_id'] ?? '' }}">
                             <input type="hidden" name="years[{{ $yearIndex }}][imported_from_history_year_id]" value="{{ $year['imported_from_history_year_id'] ?? '' }}">
-                            <header>
-                                <strong>{{ filled($year['grade_phase'] ?? null) ? $year['grade_phase'] : __('Série/Fase ').$loop->iteration }}</strong>
-                                <button class="btn btn-sm btn-outline-danger sge-icon-action" type="button" data-remove-history-year aria-label="{{ __('Remover esta coluna do histórico') }}" title="{{ __('Remover coluna') }}">
-                                    <i class="fas fa-trash" aria-hidden="true"></i>
-                                </button>
-                            </header>
                             <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label>{{ __('Ano') }}</label>
+                                <div class="form-group col-md-3">
+                                    <label>{{ __('Ano civil') }}</label>
                                     <input name="years[{{ $yearIndex }}][year]" data-mask="year" inputmode="numeric" autocomplete="off" class="form-control" value="{{ $year['year'] ?? '' }}" required>
                                 </div>
-                                <div class="form-group col-md-8">
+                                <div class="form-group col-md-6">
                                     <label>{{ __('Série/Fase no documento recebido') }}</label>
                                     <input name="years[{{ $yearIndex }}][grade_phase]" class="form-control" value="{{ $year['grade_phase'] ?? '' }}" required>
                                 </div>
-                                <div class="form-group col-md-12">
+                                <div class="form-group col-md-3">
                                     <label>{{ __('Ano escolar correspondente') }}</label>
                                     <select name="years[{{ $yearIndex }}][grade_number]" class="form-control" data-history-grade>
                                         <option value="">{{ __('Selecione a série exata') }}</option>
@@ -172,7 +175,7 @@
                                     </select>
                                     @error("years.{$yearIndex}.grade_number")<div class="invalid-feedback d-block">{{ __($message) }}</div>@enderror
                                 </div>
-                                <div class="form-group col-md-12">
+                                <div class="form-group {{ $manualOnly ? 'col-md-6' : 'col-md-12' }}">
                                     <label>{{ __('Tipo de transcrição') }}</label>
                                     @php($transcriptMode = $year['transcript_mode'] ?? 'detailed')
                                     <select name="years[{{ $yearIndex }}][transcript_mode]" class="form-control" required>
@@ -195,7 +198,7 @@
                                     </select>
                                 </div>
                                 @endif
-                                <div class="form-group {{ $manualOnly ? 'col-md-12' : 'col-md-6' }}">
+                                <div class="form-group col-md-6">
                                     <label>{{ __('Modalidade') }}</label>
                                     @php($selectedModality = $year['modality'] ?? '')
                                     <select name="years[{{ $yearIndex }}][modality]" class="form-control" required>
@@ -208,19 +211,11 @@
                                     <label>{{ __('Escola onde cursou') }}</label>
                                     <input name="years[{{ $yearIndex }}][school_name]" class="form-control" value="{{ $year['school_name'] ?? '' }}" required>
                                 </div>
-                                <div class="form-group col-md-7">
-                                    <label>{{ __('Ato autorizativo/credenciamento') }}</label>
-                                    <textarea name="years[{{ $yearIndex }}][school_authorization]" class="form-control" rows="2" placeholder="{{ __('Ato, resolução, portaria ou credenciamento da escola') }}">{{ $year['school_authorization'] ?? '' }}</textarea>
-                                </div>
-                                <div class="form-group col-md-5">
-                                    <label>{{ __('Documento de origem') }}</label>
-                                    <input name="years[{{ $yearIndex }}][source_document]" class="form-control" value="{{ $year['source_document'] ?? '' }}" placeholder="{{ __('Ex.: Histórico nº 123/2025') }}">
-                                </div>
-                                <div class="form-group col-md-4">
+                                <div class="form-group col-md-6">
                                     <label>{{ __('Cidade') }}</label>
                                     <input name="years[{{ $yearIndex }}][city]" class="form-control" value="{{ $year['city'] ?? '' }}" required>
                                 </div>
-                                <div class="form-group col-md-3">
+                                <div class="form-group col-md-2">
                                     <label>{{ __('UF') }}</label>
                                     <select name="years[{{ $yearIndex }}][state]" class="form-control" required>
                                         <option value=""></option>
@@ -229,13 +224,29 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="form-group col-md-5">
+                                <div class="form-group col-md-4">
                                     <label>{{ __('País') }}</label>
                                     <input name="years[{{ $yearIndex }}][country]" class="form-control" value="{{ $year['country'] ?? 'Brasil' }}" required>
                                 </div>
                                 <div class="form-group col-md-4">
-                                    <label>{{ __('CH total') }}</label>
+                                    <label>{{ __('Carga horária total (h)') }}</label>
                                     <input name="years[{{ $yearIndex }}][workload_hours]" data-mask="decimal" inputmode="decimal" class="form-control" value="{{ $year['workload_hours'] ?? '' }}" required>
+                                </div>
+                                <div class="form-group col-md-8">
+                                    <label>{{ __('Resultado final nesta escola/ano') }}</label>
+                                    <input name="years[{{ $yearIndex }}][final_result]" class="form-control" value="{{ $year['final_result'] ?? '' }}" required>
+                                </div>
+                            </div>
+                            <details class="sge-history-year-extra">
+                                <summary><i class="fas fa-sliders-h mr-2" aria-hidden="true"></i>{{ __('Informações complementares do ano') }}</summary>
+                                <div class="form-row pt-3">
+                                <div class="form-group col-md-7">
+                                    <label>{{ __('Ato autorizativo/credenciamento') }}</label>
+                                    <textarea name="years[{{ $yearIndex }}][school_authorization]" class="form-control" rows="2" placeholder="{{ __('Ato, resolução, portaria ou credenciamento da escola') }}">{{ $year['school_authorization'] ?? '' }}</textarea>
+                                </div>
+                                <div class="form-group col-md-5">
+                                    <label>{{ __('Documento de origem') }}</label>
+                                    <input name="years[{{ $yearIndex }}][source_document]" class="form-control" value="{{ $year['source_document'] ?? '' }}" placeholder="{{ __('Ex.: Histórico nº 123/2025') }}">
                                 </div>
                                 <div class="form-group col-md-4">
                                     <label>{{ __('Dias letivos') }}</label>
@@ -249,10 +260,6 @@
                                     </div>
                                 </div>
                                 <div class="form-group col-md-12">
-                                    <label>{{ __('Resultado final nesta escola/ano') }}</label>
-                                    <input name="years[{{ $yearIndex }}][final_result]" class="form-control" value="{{ $year['final_result'] ?? '' }}" required>
-                                </div>
-                                <div class="form-group col-md-12">
                                     <label>{{ __('Frequência geral ou observação de frequência') }}</label>
                                     <input name="years[{{ $yearIndex }}][attendance_label]" class="form-control" value="{{ $year['attendance_label'] ?? '' }}" placeholder="{{ __('Ex.: 92%, frequência suficiente, etapa sem informação') }}">
                                 </div>
@@ -261,27 +268,39 @@
                                     <textarea name="years[{{ $yearIndex }}][notes]" class="form-control" rows="2" placeholder="{{ __('Reclassificação, etapa sem transcrição, aproveitamento global...') }}">{{ $year['notes'] ?? '' }}</textarea>
                                 </div>
                             </div>
-                        </article>
+                            </details>
+                            <div class="sge-history-year-actions">
+                                <button class="btn btn-sm btn-outline-danger" type="button" data-remove-history-year><i class="fas fa-trash mr-1" aria-hidden="true"></i>{{ __('Remover este ano do formulário') }}</button>
+                            </div>
+                            </div>
+                        </details>
                     @endforeach
                 </div>
             </div>
         </section>
 
-        <section class="card shadow sge-panel-card mb-4">
-            <div class="sge-panel-header">
+        <details class="card shadow sge-panel-card mb-4 sge-history-components-panel" data-history-components-panel @unless($history->exists) open @endunless>
+            <summary class="sge-panel-header sge-history-section-summary">
                 <div>
-                    <h2>{{ __('Componentes e resultados') }}{{ $manualOnly ? __(' externos') : '' }}</h2>
-                    <p>{{ __('Notas, conceitos, frequência, carga horária e resultado final conforme o documento da outra instituição.') }}</p>
+                    <h2>{{ __('2. Notas e componentes') }}</h2>
+                    <p>{{ __('Abra para revisar as notas de cada ano ou incluir componentes.') }}</p>
                 </div>
+                <i class="fas fa-chevron-down sge-history-year-chevron" aria-hidden="true"></i>
+            </summary>
+            <div class="card-body">
+                <div class="sge-history-matrix-toolbar">
+                    <div class="form-group mb-0">
+                        <label for="history-score-year">{{ __('Mostrar notas de') }}</label>
+                        <select id="history-score-year" class="form-control" aria-controls="history-components">
+                            @foreach($yearsInput as $yearIndex => $year)<option value="{{ $yearIndex }}">{{ ($year['grade_phase'] ?? '') ?: __('Ano ').($yearIndex + 1) }}</option>@endforeach
+                            <option value="all">{{ __('Todos os anos') }}</option>
+                        </select>
+                    </div>
                 <button class="btn btn-sm btn-outline-primary" type="button" data-add-history-component>
                     <i class="fas fa-plus mr-1" aria-hidden="true"></i>{{ __('Adicionar componente') }}
                 </button>
-            </div>
-            <div class="card-body">
-                <div class="sge-history-table-hint">
-                    <span><strong>{{ __('Nota/conceito') }}</strong> {{ __('é informada por componente.') }}</span>
-                    <span><strong>{{ __('Carga horária e resultado final') }}</strong> {{ __('são informados no cartão do ano; transcrições por componente ficam nos dados complementares.') }}</span>
                 </div>
+                <p class="small text-muted">{{ __('A carga horária total e o resultado final ficam nos dados do ano. Use os campos abaixo para transcrever as notas do documento recebido.') }}</p>
                 <div class="table-responsive">
                     <table class="table table-bordered table-sm sge-history-edit-table" id="history-components" data-sge-client-pagination="10">
                         <thead>
@@ -290,7 +309,7 @@
                                 <th style="min-width: 150px;">{{ __('Área') }}</th>
                                 <th style="min-width: 180px;">{{ __('Componente') }}</th>
                                 @foreach($yearsInput as $year)
-                                    <th style="min-width: 230px;">{{ filled($year['grade_phase'] ?? null) ? $year['grade_phase'] : __('Série/Fase ').$loop->iteration }}</th>
+                                    <th style="min-width: 200px;" data-history-record-heading>{{ filled($year['grade_phase'] ?? null) ? $year['grade_phase'] : __('Ano ').$loop->iteration }}</th>
                                 @endforeach
                                 <th class="text-right">{{ __('Ações') }}</th>
                             </tr>
@@ -348,11 +367,12 @@
                     </table>
                 </div>
             </div>
-        </section>
+        </details>
     </div>
 </section>
 
-<div class="d-flex justify-content-end mb-4">
+<div class="sge-history-save-bar mb-4">
+    <span class="text-muted">{{ __('As alterações de todos os anos são salvas juntas.') }}</span>
     <button class="btn btn-primary" type="submit">
         <i class="fas fa-save mr-1" aria-hidden="true"></i>{{ $history->exists ? __('Salvar histórico') : __('Cadastrar histórico') }}
     </button>
@@ -363,7 +383,54 @@
 document.addEventListener('DOMContentLoaded', function () {
     const yearWrapper = document.querySelector('#history-years');
     const table = document.querySelector('#history-components');
+    const scoreYear = document.querySelector('#history-score-year');
+    const form = yearWrapper?.closest('form');
     const componentsByArea = @json($bnccComponentsByArea);
+
+    function labelFields(scope) {
+        scope.querySelectorAll('.form-group').forEach(group => {
+            const label = group.querySelector('label');
+            const field = group.querySelector('input:not([type="hidden"]), select, textarea');
+            if (!label || !field) return;
+            field.id = 'history-' + field.name.replace(/[^a-zA-Z0-9]+/g, '-');
+            label.htmlFor = field.id;
+        });
+    }
+    labelFields(yearWrapper);
+
+    // Reveal collapsed fields before the browser moves focus to a validation error.
+    let invalidFocusScheduled = false;
+    let presentingInvalidField = false;
+    form?.addEventListener('invalid', event => {
+        if (presentingInvalidField) return;
+        event.preventDefault();
+        if (invalidFocusScheduled) return;
+        invalidFocusScheduled = true;
+        requestAnimationFrame(() => {
+            invalidFocusScheduled = false;
+            const field = event.target;
+            const cell = field.closest('[data-history-record-cell]');
+            if (cell && scoreYear) {
+                scoreYear.value = String(Array.from(cell.parentElement.querySelectorAll('[data-history-record-cell]')).indexOf(cell));
+                refreshTranscriptModes();
+            }
+            const row = field.closest('[data-history-component]');
+            if (row?.hidden) {
+                const pageSelect = document.querySelector('nav select[aria-controls="history-components"]');
+                if (pageSelect) {
+                    pageSelect.value = String(Math.floor(Array.from(row.parentElement.children).indexOf(row) / 10) + 1);
+                    pageSelect.dispatchEvent(new Event('change'));
+                }
+            }
+            for (let parent = field.parentElement; parent; parent = parent.parentElement) {
+                if (parent.tagName === 'DETAILS') parent.open = true;
+            }
+            field.focus();
+            presentingInvalidField = true;
+            field.reportValidity();
+            presentingInvalidField = false;
+        });
+    }, true);
 
     function syncGradeStage(card) {
         const stage = card.querySelector('[data-history-stage]')?.value || @js(\App\Models\AcademicCourse::STAGE_LABELS[$history->education_stage] ?? '');
@@ -446,18 +513,33 @@ document.addEventListener('DOMContentLoaded', function () {
 
         refreshYearLabels();
         refreshTranscriptModes();
+        labelFields(yearWrapper);
+        yearWrapper.querySelectorAll('[data-remove-history-year]').forEach(button => {
+            button.disabled = yearWrapper.querySelectorAll('[data-history-year]').length <= 1;
+        });
     }
 
     function refreshYearLabels() {
         if (!yearWrapper || !table) return;
 
+        const selectedYear = scoreYear?.value || '0';
+        scoreYear?.replaceChildren();
         yearWrapper.querySelectorAll('[data-history-year]').forEach(function (card, yearIndex) {
             const seriesField = card.querySelector('[name$="[grade_phase]"]');
             const label = seriesField?.value.trim() || @js(__('Série/Fase ')) + (yearIndex + 1);
-            card.querySelector('header strong').textContent = label;
+            card.querySelector('.sge-history-year-summary strong').textContent = label;
+            card.querySelector('.sge-history-year-index').textContent = String(yearIndex + 1).padStart(2, '0');
+            const preview = ['year', 'school_name', 'workload_hours'].map(name => {
+                const value = card.querySelector(`[name$="[${name}]"]`)?.value.trim();
+                return value ? value + (name === 'workload_hours' ? ' h' : '') : '';
+            }).filter(Boolean).join(' · ');
+            card.querySelector('[data-history-year-preview]').textContent = preview || @js(__('Preencha os dados deste ano'));
+            scoreYear?.add(new Option(label, String(yearIndex)));
             const tableHeader = table.querySelector('thead tr')?.children[yearIndex + 3];
             if (tableHeader) tableHeader.textContent = label;
         });
+        scoreYear?.add(new Option(@js(__('Todos os anos')), 'all'));
+        if (scoreYear) scoreYear.value = Array.from(scoreYear.options).some(option => option.value === selectedYear) ? selectedYear : '0';
     }
 
     function refreshTranscriptModes() {
@@ -466,10 +548,13 @@ document.addEventListener('DOMContentLoaded', function () {
         table.querySelectorAll('[data-global-editor]').forEach(panel => panel.remove());
         yearWrapper.querySelectorAll('[data-history-year]').forEach(function (card, yearIndex) {
             const mode = card.querySelector('[name$="[transcript_mode]"]')?.value || 'detailed';
+            const visibleYear = !scoreYear || scoreYear.value === 'all' || scoreYear.value === String(yearIndex);
+            const heading = table.querySelector('thead tr')?.children[yearIndex + 3];
+            if (heading) heading.hidden = !visibleYear;
             rows.forEach(function (row, rowIndex) {
                 const cell = row.querySelectorAll('[data-history-record-cell]')[yearIndex];
                 if (!cell) return;
-                cell.hidden = mode !== 'detailed' && rowIndex % 10 !== 0;
+                cell.hidden = !visibleYear || (mode !== 'detailed' && rowIndex % 10 !== 0);
                 cell.style.display = cell.hidden ? 'none' : '';
                 cell.rowSpan = mode !== 'detailed' && !cell.hidden ? Math.min(10, rows.length - rowIndex) : 1;
                 cell.querySelectorAll('.sge-history-record-grid, details').forEach(grid => { grid.hidden = mode !== 'detailed'; grid.style.display = grid.hidden ? 'none' : ''; });
@@ -489,7 +574,12 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    refreshTranscriptModes();
+    scoreYear?.addEventListener('change', refreshTranscriptModes);
+    yearWrapper?.addEventListener('toggle', event => {
+        if (!event.target.matches('[data-history-year]') || !event.target.open || !scoreYear) return;
+        scoreYear.value = String(Array.from(yearWrapper.querySelectorAll('[data-history-year]')).indexOf(event.target));
+        refreshTranscriptModes();
+    }, true);
     yearWrapper?.addEventListener('change', refreshTranscriptModes);
 
     function bindRemove(scope) {
@@ -529,7 +619,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     bindRemove(document);
     yearWrapper?.addEventListener('input', function (event) {
-        if (event.target.matches('[name$="[grade_phase]"]')) refreshYearLabels();
+        refreshYearLabels();
     });
 
     document.querySelector('[data-add-history-component]')?.addEventListener('click', function () {
@@ -539,6 +629,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const next = tbody.querySelectorAll('[data-history-component]').length;
         const clone = source.cloneNode(true);
+        clone.querySelectorAll('[data-bound]').forEach(button => { delete button.dataset.bound; });
         clone.innerHTML = replaceGroupIndex(clone.innerHTML, 'components', next);
         clone.querySelectorAll('input').forEach(function (input) { input.value = ''; });
         clone.querySelectorAll('textarea').forEach(function (textarea) { textarea.value = ''; });
@@ -546,6 +637,7 @@ document.addEventListener('DOMContentLoaded', function () {
         refreshCurriculumRow(clone, true);
         bindRemove(clone);
         renumberYears();
+        clone.querySelector('select, input:not([type="hidden"])')?.focus();
     });
 
     document.querySelector('[data-add-history-year]')?.addEventListener('click', function () {
@@ -554,6 +646,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const next = yearWrapper.querySelectorAll('[data-history-year]').length;
         const clone = source.cloneNode(true);
+        clone.querySelectorAll('[data-bound]').forEach(button => { delete button.dataset.bound; });
         clone.innerHTML = replaceGroupIndex(clone.innerHTML, 'years', next);
         clone.querySelectorAll('input').forEach(function (input) { input.value = ''; });
         clone.querySelectorAll('textarea').forEach(function (textarea) { textarea.value = ''; });
@@ -569,11 +662,14 @@ document.addEventListener('DOMContentLoaded', function () {
         const modality = clone.querySelector('[name$="[modality]"]');
         if (modality) modality.value = 'Regular';
         yearWrapper.appendChild(clone);
+        clone.querySelectorAll('details').forEach(details => { details.open = false; });
+        clone.open = true;
         syncGradeStage(clone);
         bindRemove(clone);
 
         const header = document.createElement('th');
-        header.style.minWidth = '230px';
+        header.style.minWidth = '200px';
+        header.setAttribute('data-history-record-heading', '');
         header.textContent = @js(__('Série/Fase ')) + (next + 1);
         table.querySelector('thead tr').insertBefore(header, table.querySelector('thead tr th:last-child'));
 
@@ -588,7 +684,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         renumberYears();
+        clone.querySelector('input:not([type="hidden"])')?.focus();
     });
+    renumberYears();
+    const firstServerError = @json($errors->keys())[0];
+    if (firstServerError && form) {
+        const fieldName = firstServerError.replace(/\.([^.]*)/g, '[$1]');
+        form.elements.namedItem(fieldName)?.dispatchEvent(new Event('invalid', { cancelable: true }));
+    }
 });
 </script>
 @endpush

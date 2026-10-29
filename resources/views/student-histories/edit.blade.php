@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', $history->is_unified ? __('Séries cursadas em outras escolas') : __('Matriz curricular do histórico'))
-@section('page-title', $history->is_unified ? __('Séries cursadas em outras escolas') : __('Matriz curricular do histórico'))
+@section('title', __('Editar histórico'))
+@section('page-title', __('Editar histórico'))
 
 @section('page-actions')
     <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.histories.pdf', [$person, $history]) }}" aria-label="{{ __('Emitir histórico em PDF') }}" title="{{ __('Histórico em PDF') }}">
@@ -13,11 +13,12 @@
 @endsection
 
 @section('content')
+    <div class="sge-history-editor-context mb-4">
+        <div><span class="sge-page-kicker">{{ $history->stage ?: __('Histórico escolar') }}</span><h2>{{ $person->full_name }}</h2></div>
+        <p>{{ __('Confira os anos cursados e abra as notas quando precisar.') }}</p>
+    </div>
     @if($history->is_unified)
-        <div class="alert alert-info">
-            <strong>{{ __('Os dados das nossas escolas são automáticos e não podem ser alterados aqui.') }}</strong>
-            {{ __('Esta tela cadastra somente séries cursadas em outras instituições. Matrículas, notas, frequência, faltas, resultados e cargas horárias internas vêm diretamente do sistema.') }}
-        </div>
+        <p class="text-muted mb-4"><i class="fas fa-lock mr-1" aria-hidden="true"></i>{{ __('Edite aqui os anos de outras escolas. Os anos das nossas escolas são calculados pelo sistema e aparecem para consulta ao final.') }}</p>
     @endif
     <form method="POST" action="{{ route('people.histories.update', [$person, $history]) }}">
         @csrf
@@ -25,11 +26,11 @@
         @include('student-histories._form', ['curriculumOnly' => true, 'manualOnly' => $history->is_unified])
     </form>
     @if($history->years->contains(fn ($year) => $year->source !== 'system'))
-        <section class="card shadow sge-panel-card mb-4" aria-labelledby="manual-years-title">
-            <div class="sge-panel-header"><div>
+        <details class="card shadow sge-panel-card mb-4" aria-labelledby="manual-years-title">
+            <summary class="sge-panel-header sge-history-section-summary"><div>
                 <h2 id="manual-years-title">{{ __('Remover um ano cadastrado') }}</h2>
                 <p>{{ __('A remoção elimina este ano e suas notas transcritas. Os demais anos são preservados.') }}</p>
-            </div></div>
+            </div><i class="fas fa-chevron-down sge-history-year-chevron" aria-hidden="true"></i></summary>
             <div class="card-body"><div class="table-responsive"><table class="table table-sm table-bordered" data-sge-client-pagination="10">
                 <thead><tr><th>{{ __('Ano civil') }}</th><th>{{ __('Série/Fase') }}</th><th>{{ __('CH total') }}</th><th>{{ __('Ações') }}</th></tr></thead>
                 <tbody>@foreach($history->years->filter(fn ($year) => $year->source !== 'system') as $year)
@@ -42,16 +43,17 @@
                     </tr>
                 @endforeach</tbody>
             </table></div></div>
-        </section>
+        </details>
     @endif
     @if($history->is_unified && $history->years->contains('source', 'system'))
-        <section class="card shadow sge-panel-card mb-4" aria-labelledby="system-years-title">
-            <div class="sge-panel-header">
+        <details class="card shadow sge-panel-card mb-4" aria-labelledby="system-years-title">
+            <summary class="sge-panel-header sge-history-section-summary">
                 <div>
                     <h2 id="system-years-title">{{ __('Séries registradas no sistema') }}</h2>
                     <p>{{ __('Dados calculados automaticamente. A edição deve ser feita na matrícula e nos diários correspondentes.') }}</p>
                 </div>
-            </div>
+                <i class="fas fa-chevron-down sge-history-year-chevron" aria-hidden="true"></i>
+            </summary>
             <div class="card-body">
                 @foreach($history->years->where('source', 'system')->sortBy('position') as $year)
                     <h3 class="h5">{{ $year->grade_phase }} · {{ $year->year }} · {{ $year->school_name }}</h3>
@@ -72,6 +74,6 @@
                     @endif
                 @endforeach
             </div>
-        </section>
+        </details>
     @endif
 @endsection

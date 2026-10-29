@@ -1945,21 +1945,76 @@ pre {
 .sge-history-year-grid {
     display: grid;
     gap: .9rem;
-    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .sge-history-year-card {
     background: var(--sge-paper);
     border: 1px solid var(--sge-border);
     border-radius: .85rem;
-    padding: 1rem;
+    padding: 0;
 }
 
-.sge-history-year-card header {
+.sge-history-year-summary {
     align-items: center;
     display: flex;
-    justify-content: space-between;
-    margin-bottom: .7rem;
+    cursor: pointer;
+    gap: 1rem;
+    list-style: none;
+    min-height: 4.5rem;
+    padding: 1rem 1.25rem;
+}
+
+.sge-history-year-summary::-webkit-details-marker,
+.sge-history-section-summary::-webkit-details-marker { display: none; }
+.sge-history-editor-section > .sge-panel-header { align-items: center; flex-wrap: wrap; gap: .75rem; }
+.sge-history-editor-section > .sge-panel-header > div { flex: 1 1 18rem; }
+.sge-history-editor-section > .sge-panel-header > .btn { flex: 0 0 auto; white-space: nowrap; }
+
+.sge-history-year-summary:focus-visible,
+.sge-history-section-summary:focus-visible,
+.sge-history-year-extra > summary:focus-visible {
+    outline: 3px solid var(--sge-blue);
+    outline-offset: 3px;
+    border-radius: .75rem;
+}
+
+.sge-history-year-index {
+    align-items: center;
+    background: color-mix(in srgb, var(--sge-blue) 12%, transparent);
+    border-radius: .7rem;
+    color: var(--sge-blue-dark);
+    display: inline-flex;
+    flex: 0 0 2.5rem;
+    font-weight: 800;
+    height: 2.5rem;
+    justify-content: center;
+}
+
+.sge-history-year-summary-text { flex: 1; min-width: 0; }
+.sge-history-year-summary-text strong { color: var(--sge-ink); display: block; }
+.sge-history-year-summary-text small { color: var(--sge-muted); display: block; overflow-wrap: anywhere; }
+.sge-history-year-chevron { color: var(--sge-muted); flex-shrink: 0; }
+details[open] > summary > .sge-history-year-chevron { transform: rotate(180deg); }
+.sge-history-year-card[open] { border-color: var(--sge-blue); }
+.sge-history-year-body { border-top: 1px solid var(--sge-border); padding: 1.25rem; }
+.sge-history-year-extra { border-top: 1px solid var(--sge-border); margin-top: .25rem; padding-top: 1rem; }
+.sge-history-year-extra > summary { color: var(--sge-ink); cursor: pointer; font-weight: 700; }
+.sge-history-year-actions { display: flex; justify-content: flex-end; margin-top: 1rem; }
+.sge-history-section-summary { cursor: pointer; list-style: none; }
+details.sge-panel-card { display: block; }
+.sge-history-matrix-toolbar { align-items: flex-end; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; margin-bottom: 1rem; }
+.sge-history-matrix-toolbar .form-group { flex: 0 1 22rem; }
+.sge-history-save-bar { align-items: center; border-top: 1px solid var(--sge-border); display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; padding-top: 1.25rem; }
+.sge-history-editor-context h2 { color: var(--sge-ink); font-size: 1.4rem; margin: .25rem 0; }
+.sge-history-editor-context p { color: var(--sge-muted); margin: .5rem 0 0; }
+.sge-history-edit-table .sge-history-record-grid { grid-template-columns: minmax(0, 1fr); }
+
+@media (max-width: 575.98px) {
+    .sge-history-year-summary { gap: .65rem; padding: .85rem; }
+    .sge-history-year-body { padding: 1rem; }
+    .sge-history-matrix-toolbar .form-group { flex-basis: 100%; }
+    .sge-history-save-bar .btn { width: 100%; }
 }
 
 .sge-history-table-hint {
