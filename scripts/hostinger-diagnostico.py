@@ -1,5 +1,6 @@
 """Production verification over SSH, with explicitly requested migrations."""
 import json
+import base64
 import os
 import pathlib
 import shlex
@@ -7,6 +8,24 @@ import tempfile
 import time
 
 import paramiko
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+
+def encrypt_report(output, public_key_text):
+    public_key = serialization.load_pem_public_key(base64.b64decode(public_key_text, validate=True))
+    if not isinstance(public_key, rsa.RSAPublicKey) or public_key.key_size < 2048:
+        raise RuntimeError('Use uma chave pública RSA temporária de pelo menos 2048 bits.')
+    key = AESGCM.generate_key(bit_length=256)
+    nonce = os.urandom(12)
+    ciphertext = AESGCM(key).encrypt(nonce, output.encode(), None)
+    encrypted_key = public_key.encrypt(key, padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))
+    return json.dumps({
+        'key': base64.b64encode(encrypted_key).decode(),
+        'nonce': base64.b64encode(nonce).decode(),
+        'ciphertext': base64.b64encode(ciphertext).decode(),
+    })
 
 
 def run_remote(client, command):
@@ -118,6 +137,25 @@ with tempfile.TemporaryDirectory() as directory:
                 '"passing_points" => $y->passing_points], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);'
             )
             commands.append(('Conferência do resultado da matrícula', 'php artisan tinker --execute=' + shlex.quote(inspection_code)))
+        pending_year_id = os.environ.get('PENDING_YEAR_FOR_ENROLLMENT', '').strip()
+        if pending_year_id:
+            if not pending_year_id.isascii() or not pending_year_id.isdecimal():
+                raise RuntimeError('Informe somente o ID numérico da matrícula que identifica o ano.')
+            # Validate the encryption key before retrieving any student information.
+            encrypt_report('{}', os.environ.get('REPORT_PUBLIC_KEY', ''))
+            pending_code = (
+                f'$e = App\\Models\\StudentEnrollment::with("schoolClass.academicYear")->findOrFail({int(pending_year_id)}); '
+                '$year = $e->schoolClass->academic_year_id; '
+                '$rows = App\\Models\\StudentEnrollment::with(["student:id,full_name", "schoolClass:id,name"])->whereHas("schoolClass", fn ($q) => $q->where("academic_year_id", $year))'
+                '->where("status", App\\Models\\StudentEnrollment::STATUS_ENROLLED)->where("final_result_status", App\\Models\\StudentEnrollment::FINAL_PENDING)->get()'
+                '->sortBy(fn ($item) => $item->student->full_name)->values()->map(fn ($item) => ['
+                '"enrollment_id" => $item->id, "student" => $item->student->full_name, "class" => $item->schoolClass->name, '
+                '"reason" => $item->final_result_details["reason"] ?? null, '
+                '"missing_attendance" => $item->final_result_details["missing_attendance"] ?? false, '
+                '"pending_components" => array_column($item->final_result_details["pending_components"] ?? [], "name")]); '
+                'echo json_encode(["academic_year_id" => $year, "students" => $rows], JSON_UNESCAPED_UNICODE);'
+            )
+            commands.append(('Resultados pendentes para relatório criptografado', 'php artisan tinker --execute=' + shlex.quote(pending_code)))
         commands.append(('Migrations', 'php artisan migrate:status --no-ansi'))
         expected_commit = os.environ['EXPECTED_COMMIT']
         deadline = time.monotonic() + 180
@@ -137,7 +175,14 @@ with tempfile.TemporaryDirectory() as directory:
         for label, command in commands[1:]:
             print(f'\n--- {label} ---', flush=True)
             output, code = run_remote(client, command)
-            print(output, flush=True)
+            if label == 'Resultados pendentes para relatório criptografado':
+                if code:
+                    raise RuntimeError('Não foi possível consultar os resultados pendentes.')
+                report = json.loads(output)
+                pathlib.Path('pending-results.encrypted.json').write_text(encrypt_report(output, os.environ['REPORT_PUBLIC_KEY']))
+                print(f'Relatório criptografado gerado: {len(report["students"])} registros. Nenhum nome foi publicado no log.', flush=True)
+            else:
+                print(output, flush=True)
             if label == 'Configuração da sessão' and output.strip() not in ('120 true database', '120 true file'):
                 raise RuntimeError('A sessão em produção não está limitada a duas horas de inatividade e ao navegador aberto.')
             if label == 'Migrations' and 'Pending' in output:

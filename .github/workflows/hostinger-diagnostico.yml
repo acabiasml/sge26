@@ -46,6 +46,14 @@ on:
         description: Aplicar correção confirmada de 2025 da matrícula 486 (22,5 pontos e 2 dependências)
         type: boolean
         default: false
+      pending_year_for_enrollment:
+        description: Matrícula que identifica o ano para consulta dos resultados pendentes
+        type: string
+        default: ''
+      report_public_key:
+        description: Chave pública temporária em base64 para criptografar o relatório restrito
+        type: string
+        default: ''
 permissions:
   contents: read
 concurrency:
@@ -73,9 +81,19 @@ jobs:
           INVALIDATE_ALL_SESSIONS: ${{ inputs.invalidate_all_sessions }}
           INSPECT_ENROLLMENT: ${{ inputs.inspect_enrollment }}
           CORRECT_2025_CRITERIA: ${{ inputs.correct_2025_criteria }}
+          PENDING_YEAR_FOR_ENROLLMENT: ${{ inputs.pending_year_for_enrollment }}
+          REPORT_PUBLIC_KEY: ${{ inputs.report_public_key }}
           EXPECTED_COMMIT: ${{ github.sha }}
           HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
         run: python scripts/hostinger-diagnostico.py
+      - name: Disponibilizar relatório criptografado
+        if: inputs.pending_year_for_enrollment != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultados-pendentes-criptografados
+          path: pending-results.encrypted.json
+          retention-days: 1
+          if-no-files-found: error
       - name: Verificar resposta HTTP
         run: curl --fail --silent --show-error --location --max-time 30 --output /dev/null https://ctjj.org/sge/
