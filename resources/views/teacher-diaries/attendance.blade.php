@@ -41,7 +41,8 @@
                         <span class="sr-only" role="status" aria-live="polite" data-all-present-status></span>
                     </div>
                     <div class="table-responsive sge-attendance-sheet-wrap">
-                        <table class="table table-bordered table-sm sge-attendance-sheet" data-sge-client-pagination="10">
+                        {{-- A chamada exibe todos os estudantes da turma, sem paginação de linhas. --}}
+                        <table class="table table-bordered table-sm sge-attendance-sheet">
                             <thead><tr>
                                 <th scope="col" class="sge-attendance-student-column">{{ __('Estudante') }}</th>
                                 @foreach ($days as $day)

@@ -3730,7 +3730,6 @@ textarea:focus-visible {
 }
 
 .sge-attendance-sheet-wrap {
-    max-height: 68vh;
     overflow: auto;
 }
 
