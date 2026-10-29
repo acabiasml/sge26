@@ -352,6 +352,76 @@ class TeacherDiaryTest extends TestCase
             ->assertSee('Incongruenze: 2')->assertSee('lezioni', false)->assertDontSee('Ver pendências');
     }
 
+    public function test_diary_delay_grows_towards_class_deadline_and_zero_records_are_not_shown_as_healthy(): void
+    {
+        [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $class->update(['ends_period_id' => $period->id]);
+        $this->travelTo(CarbonImmutable::parse('2026-01-31'));
+        $response = $this->actingAs($teacher)->get(route('teacher-diaries.index'))->assertOk()->assertSee('Sem aulas previstas até hoje');
+        $this->assertSame(0, $response->viewData('diaries')->sole()['summary']['timeliness']['urgency']);
+        $this->travelTo(CarbonImmutable::parse('2026-03-12'));
+        $response = $this->get(route('teacher-diaries.index'))->assertOk()->assertSee('Lançamentos em atraso');
+        $middle = $response->viewData('diaries')->sole()['summary']['timeliness']['urgency'];
+        $this->travelTo(CarbonImmutable::parse('2026-04-09'));
+        $response = $this->get(route('teacher-diaries.index'))->assertOk()->assertSee('Atraso crítico nos lançamentos')
+            ->assertSee('Nenhum lançamento de conteúdo ou frequência.')->assertSee('Encerramento previsto: 10/04/2026');
+        $summary = $response->viewData('diaries')->sole()['summary'];
+        $this->assertSame(0, $summary['issue_count']);
+        $this->assertGreaterThan($middle, $summary['timeliness']['urgency']);
+        $this->assertGreaterThanOrEqual(65, $summary['timeliness']['urgency']);
+        $this->assertSame(1, $summary['timeliness']['content']['missing']);
+        $document = new \DOMDocument;
+        @$document->loadHTML('<?xml encoding="utf-8" ?>'.$response->getContent());
+        $issues = (new \DOMXPath($document))->query('//details[contains(@class, "sge-diary-issues")]/summary')->item(0);
+        $this->assertStringNotContainsString('text-success', $issues->getAttribute('class'));
+        DiaryAttendanceRecord::query()->create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => '2026-03-11', 'lesson_count' => 1]);
+        DiaryContent::query()->create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => '2026-03-11', 'content' => 'Aula em dia.']);
+        $response = $this->get(route('teacher-diaries.index'))->assertOk()->assertSee('Lançamentos em dia')->assertDontSee('Atraso crítico nos lançamentos');
+        $this->assertSame(0, $response->viewData('diaries')->sole()['summary']['timeliness']['urgency']);
+    }
+
+    public function test_matrix_delay_uses_class_end_and_remains_critical_after_deadline_even_with_one_missing_lesson(): void
+    {
+        [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $year->periods()->create(['name' => 'Segundo período', 'starts_at' => '2026-04-11', 'ends_at' => '2026-12-18', 'position' => 2]);
+        $class->update(['ends_period_id' => $period->id]);
+        $class->schedules()->get()->each->delete();
+        $year->days()->delete();
+        $component->update(['workload_hours' => 50]);
+        $this->travelTo(CarbonImmutable::parse('2026-04-11'));
+        $response = $this->actingAs($teacher)->get(route('teacher-diaries.index'))->assertOk()->assertSee('Atraso crítico nos lançamentos');
+        $summary = $response->viewData('diaries')->sole()['summary'];
+        $this->assertSame(30, $summary['planned']);
+        $this->assertSame(30, $summary['timeliness']['expected_today']);
+        $this->assertSame('2026-04-10', $summary['timeliness']['ends_at']);
+        $this->assertSame(100, $summary['timeliness']['urgency']);
+        foreach ([['2026-03-11', 15], ['2026-03-12', 14]] as [$date, $count]) {
+            DiaryAttendanceRecord::query()->create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => $date, 'lesson_count' => $count]);
+            DiaryContent::query()->create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => $date, 'content' => 'Conteúdo quase concluído.']);
+        }
+        $response = $this->get(route('teacher-diaries.index'))->assertOk();
+        $pace = $response->viewData('diaries')->sole()['summary']['timeliness'];
+        $this->assertSame(1, $pace['content']['missing']);
+        $this->assertSame(100, $pace['urgency']);
+    }
+
+    public function test_future_entries_do_not_hide_today_delay_and_calendar_days_drive_matrix_estimate(): void
+    {
+        [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $class->schedules()->get()->each->delete();
+        $component->update(['workload_hours' => 5]);
+        $year->days()->create(['date' => '2026-04-09', 'type' => CalendarDay::TYPE_SCHOOL_DAY, 'counts_as_school_day' => true]);
+        $this->travelTo(CarbonImmutable::parse('2026-03-15'));
+        DiaryAttendanceRecord::query()->create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => '2026-04-09', 'lesson_count' => 6]);
+        DiaryContent::query()->create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => '2026-04-09', 'content' => 'Conteúdo futuro.']);
+        $response = $this->actingAs($teacher)->get(route('teacher-diaries.index'))->assertOk();
+        $summary = $response->viewData('diaries')->sole()['summary'];
+        $this->assertSame(100.0, $summary['attendance']['percentage']);
+        $this->assertSame(3, $summary['timeliness']['expected_today']);
+        $this->assertSame(3, $summary['timeliness']['attendance']['missing']);
+        $this->assertGreaterThan(0, $summary['timeliness']['urgency']);
+    }
+
     public function test_diary_list_handles_only_attendance_or_only_contents_in_a_period(): void
     {
         [$teacher, $year, $class, $component, $period] = $this->diaryScenario();

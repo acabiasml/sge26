@@ -2680,5 +2680,15 @@
     "Dias com frequência sem conteúdo": "Giorni con presenze ma senza contenuti",
     "Dias com conteúdo sem frequência": "Giorni con contenuti ma senza presenze",
     "Notas pendentes em períodos encerrados": "Voti mancanti nei periodi conclusi",
-    "Ver pendências": "Vedi elementi mancanti"
+    "Ver pendências": "Vedi elementi mancanti",
+    "Previsão indisponível": "Previsione non disponibile",
+    "Sem aulas previstas até hoje": "Nessuna lezione prevista fino a oggi",
+    "Atraso crítico nos lançamentos": "Ritardo critico nelle registrazioni",
+    "Lançamentos em atraso": "Registrazioni in ritardo",
+    "Lançamentos em dia": "Registrazioni aggiornate",
+    "Encerramento previsto: :date": "Conclusione prevista: :date",
+    "Até hoje: :count aulas previstas": "Fino a oggi: :count lezioni previste",
+    "Nenhum lançamento de conteúdo ou frequência.": "Nessuna registrazione di contenuti o presenze.",
+    ":count aulas por registrar até hoje": ":count lezioni da registrare fino a oggi",
+    "O atraso considera as aulas previstas até hoje e o prazo de encerramento. As inconsistências comparam os registros existentes.": "Il ritardo considera le lezioni previste fino a oggi e la data di conclusione. Le incongruenze confrontano le registrazioni esistenti."
 }

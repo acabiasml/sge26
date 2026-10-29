@@ -4832,6 +4832,37 @@ textarea:focus-visible {
     grid-template-columns: minmax(0, 1fr) auto;
 }
 
+.sge-diary-progress-card,
+.sge-diary-progress-metric {
+    --sge-diary-alert-base: var(--sge-blue);
+    --sge-diary-alert-warning: var(--aurora-warning, var(--sge-orange));
+    --sge-diary-alert-danger: var(--aurora-danger, var(--sge-chart-conselho-classe));
+    --sge-diary-state-color: color-mix(in srgb, color-mix(in srgb, var(--sge-diary-alert-base), var(--sge-diary-alert-warning) var(--sge-diary-warning-strength, 0%)), var(--sge-diary-alert-danger) var(--sge-diary-danger-strength, 0%));
+}
+
+.sge-diary-delayed {
+    border-color: var(--sge-diary-state-color);
+    border-left: .4rem solid var(--sge-diary-state-color);
+    background: linear-gradient(110deg, color-mix(in srgb, var(--sge-diary-state-color) var(--sge-diary-tint), var(--sge-paper)), var(--sge-paper) 75%);
+}
+
+.sge-diary-deadline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .45rem 1rem;
+    padding: .75rem;
+    border: 1px solid var(--sge-diary-state-color);
+    border-radius: .6rem;
+    background: color-mix(in srgb, var(--sge-diary-state-color) var(--sge-diary-tint), var(--sge-paper));
+    color: var(--sge-ink);
+}
+
+.sge-diary-no-entries {
+    flex-basis: 100%;
+    font-weight: 600;
+}
+
 .sge-diary-overview {
     grid-column: 1 / -1;
     min-width: 0;
@@ -4855,6 +4886,20 @@ textarea:focus-visible {
 
 .sge-diary-progress-metric {
     --sge-diary-progress-color: var(--sge-blue);
+    --sge-diary-alert-base: var(--sge-diary-progress-color);
+    padding: .75rem;
+    border: 1px solid color-mix(in srgb, var(--sge-diary-state-color) 65%, var(--sge-border));
+    border-radius: .65rem;
+    background: linear-gradient(125deg, color-mix(in srgb, var(--sge-diary-state-color) var(--sge-diary-tint), var(--sge-paper)), var(--sge-paper));
+}
+
+.sge-diary-metric-delayed {
+    box-shadow: inset .25rem 0 0 var(--sge-diary-state-color);
+}
+
+.sge-diary-pace-note {
+    margin-top: .4rem;
+    color: var(--sge-ink);
 }
 
 .sge-diary-progress-attendance {
@@ -4867,24 +4912,24 @@ textarea:focus-visible {
     width: 100%;
     height: .85rem;
     margin: .4rem 0;
-    border: 1px solid var(--sge-border);
+    border: 1px solid var(--sge-diary-state-color);
     border-radius: 1rem;
     overflow: hidden;
     background: var(--sge-surface);
-    color: var(--sge-diary-progress-color);
+    color: var(--sge-diary-state-color);
 }
 
 .sge-diary-progress-metric progress::-webkit-progress-bar {
-    background: var(--sge-surface);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--sge-diary-state-color) var(--sge-diary-tint), var(--sge-paper)), var(--sge-surface));
 }
 
 .sge-diary-progress-metric progress::-webkit-progress-value {
-    background: var(--sge-diary-progress-color);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--sge-diary-state-color) 80%, var(--sge-blue)), var(--sge-diary-state-color));
     border-radius: 1rem;
 }
 
 .sge-diary-progress-metric progress::-moz-progress-bar {
-    background: var(--sge-diary-progress-color);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--sge-diary-state-color) 80%, var(--sge-blue)), var(--sge-diary-state-color));
     border-radius: 1rem;
 }
 

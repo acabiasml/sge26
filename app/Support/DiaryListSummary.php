@@ -6,6 +6,7 @@ use App\Models\AcademicPeriod;
 use App\Models\DiaryAssessment;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\DiaryContent;
+use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
 use App\Models\StudentPeriodConvalidation;
 use Illuminate\Database\Eloquent\Builder;
@@ -29,7 +30,7 @@ class DiaryListSummary
             'component.startsPeriod', 'component.endsPeriod',
             'component.course.startsPeriod', 'component.course.endsPeriod',
             'component.course.academicYear.periods', 'component.course.academicYear.days',
-            'schoolClass.startsPeriod', 'schoolClass.endsPeriod',
+            'schoolClass.startsPeriod', 'schoolClass.endsPeriod', 'schoolClass.academicYear',
             'schoolClass.schedules.slots', 'schoolClass.enrollments',
         ]);
         $attendance = $this->forDiaries(DiaryAttendanceRecord::query(), $assignments)->get()->groupBy(fn ($record) => $this->key($record));
@@ -85,6 +86,24 @@ class DiaryListSummary
             }
             $recordsByDate = $records->keyBy(fn ($record) => $record->class_date->toDateString());
             $contentLessons = $dayContents->sum(fn ($record) => $recordsByDate->get($record->class_date->toDateString())?->lesson_count ?? $plannedByDate->get($record->class_date->toDateString(), 0));
+            $timeline = $this->timeline($periods, $class);
+            $today = now()->toDateString();
+            $schoolDays = $year->days->where('counts_as_school_day', true)->filter(fn ($day) => $periods->contains(fn (AcademicPeriod $period) => $day->date->betweenIncluded($period->starts_at, $period->ends_at))
+            );
+            $dueFraction = $schoolDays->isNotEmpty()
+                ? $schoolDays->filter(fn ($day) => $day->date->toDateString() <= $today)->count() / $schoolDays->count()
+                : $timeline['elapsed_fraction'];
+            $expectedToday = $source === 'schedule'
+                ? (int) $plannedByDate->filter(fn ($lessons, $date) => $date <= $today)->sum()
+                : ($planned === null ? null : (int) floor($planned * $dueFraction));
+            if ($timeline['overdue'] && $planned !== null) {
+                $expectedToday = $planned;
+            }
+            $attendanceToday = (int) $records->filter(fn ($record) => $record->class_date->toDateString() <= $today)->sum('lesson_count');
+            $contentToday = (int) $dayContents->filter(fn ($record) => $record->class_date->toDateString() <= $today)
+                ->sum(fn ($record) => $recordsByDate->get($record->class_date->toDateString())?->lesson_count ?? $plannedByDate->get($record->class_date->toDateString(), 0));
+            $contentPace = $this->pace($contentToday, $expectedToday, $timeline);
+            $attendancePace = $this->pace($attendanceToday, $expectedToday, $timeline);
             $periodIssues = $periods->map(function (AcademicPeriod $period) use ($class, $records, $dayContents, $assessments, $key, $originGrades): array {
                 $attendanceDates = $records->where('academic_period_id', $period->id)->toBase()->map(fn ($record) => $record->class_date->toDateString())->unique();
                 $contentDates = $dayContents->where('academic_period_id', $period->id)->toBase()->map(fn ($record) => $record->class_date->toDateString())->unique();
@@ -111,6 +130,13 @@ class DiaryListSummary
                 'attendance' => $this->progress((int) $records->sum('lesson_count'), $planned),
                 'issues' => $issues, 'issue_count' => array_sum($issues),
                 'periods' => $periodIssues,
+                'timeliness' => [
+                    'starts_at' => $timeline['starts_at'], 'ends_at' => $timeline['ends_at'],
+                    'expected_today' => $expectedToday,
+                    'expected_percentage' => $planned > 0 && $expectedToday !== null ? round($expectedToday * 100 / $planned, 1) : null,
+                    'content' => $contentPace, 'attendance' => $attendancePace,
+                    'urgency' => max($contentPace['urgency'], $attendancePace['urgency']),
+                ],
             ]];
         });
     }
@@ -118,6 +144,43 @@ class DiaryListSummary
     private function progress(int $registered, ?int $planned): array
     {
         return ['registered' => $registered, 'percentage' => $planned > 0 ? round($registered * 100 / $planned, 1) : null];
+    }
+
+    private function timeline(Collection $periods, SchoolClass $class): array
+    {
+        $start = ($periods->sortBy('starts_at')->first()?->starts_at ?? $class->starts_at)?->copy()->startOfDay();
+        $end = ($periods->sortByDesc('ends_at')->first()?->ends_at ?? $class->ends_at)?->copy()->startOfDay();
+        if ($class->starts_at && (! $start || $class->starts_at->gt($start))) {
+            $start = $class->starts_at->copy()->startOfDay();
+        }
+        if ($class->ends_at && (! $end || $class->ends_at->lt($end))) {
+            $end = $class->ends_at->copy()->startOfDay();
+        }
+        $today = now()->startOfDay();
+        $valid = $start && $end && $end->gte($start);
+        $elapsed = $valid ? max(0, min(1, ($start->diffInDays($today, false) + 1) / ($start->diffInDays($end) + 1))) : 0;
+
+        return [
+            'starts_at' => $start?->toDateString(), 'ends_at' => $end?->toDateString(),
+            'elapsed_fraction' => $elapsed, 'overdue' => $valid && $today->gt($end),
+        ];
+    }
+
+    private function pace(int $registeredToday, ?int $expectedToday, array $timeline): array
+    {
+        $missing = $expectedToday === null ? null : max(0, $expectedToday - $registeredToday);
+        $urgency = 0;
+        if ($missing > 0) {
+            $urgency = (int) round($missing / $expectedToday * $timeline['elapsed_fraction'] * 100);
+            if ($timeline['elapsed_fraction'] >= .9) {
+                $urgency = max(50, $urgency);
+            }
+            if ($timeline['overdue']) {
+                $urgency = 100;
+            }
+        }
+
+        return ['missing' => $missing, 'urgency' => $urgency];
     }
 
     private function forDiaries(Builder $query, Collection $assignments): Builder

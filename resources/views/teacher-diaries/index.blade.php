@@ -74,7 +74,10 @@
 
             <div data-diary-list>
             @forelse ($diaries as $diary)
-                <article class="sge-diary-list-card sge-diary-progress-card"
+                @php($urgency = $diary['summary']['timeliness']['urgency'])
+                @php($hasDelay = $diary['summary']['timeliness']['content']['missing'] > 0 || $diary['summary']['timeliness']['attendance']['missing'] > 0)
+                <article class="sge-diary-list-card sge-diary-progress-card {{ $hasDelay ? 'sge-diary-delayed' : '' }}"
+                    style="--sge-diary-warning-strength: {{ min(100, $urgency * 2) }}%; --sge-diary-danger-strength: {{ max(0, ($urgency - 50) * 2) }}%; --sge-diary-tint: {{ 3 + round($urgency * .25) }}%;"
                     data-diary-item
                     data-school="{{ $diary['academicYear']->school_id }}"
                     data-year="{{ $diary['academicYear']->id }}"

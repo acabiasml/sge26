@@ -44,6 +44,7 @@ foreach ($assignments as $assignment) {
                 'planned' => $overview['planned'], 'source' => $overview['source'],
                 'content' => $overview['content'], 'attendance' => $overview['attendance'],
                 'issues' => $overview['issues'], 'issue_count' => $overview['issue_count'],
+                'timeliness' => $overview['timeliness'],
             ],
         ];
     }
