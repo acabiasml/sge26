@@ -380,6 +380,39 @@ class TeacherDiaryTest extends TestCase
         $this->assertSame(0, $response->viewData('diaries')->sole()['summary']['timeliness']['urgency']);
     }
 
+    public function test_diary_list_uses_accessible_traffic_lights_and_keeps_explanations_collapsed(): void
+    {
+        [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $this->travelTo(CarbonImmutable::parse('2026-04-09'));
+        $response = $this->actingAs($teacher)->get(route('teacher-diaries.index'))->assertOk();
+        $document = new \DOMDocument;
+        @$document->loadHTML('<?xml encoding="utf-8" ?>'.$response->getContent());
+        $xpath = new \DOMXPath($document);
+        $details = $xpath->query('//details[contains(@class, "sge-diary-issues")]')->item(0);
+        $this->assertFalse($details->hasAttribute('open'));
+        $this->assertSame(0, $xpath->query('//div[contains(@class, "sge-diary-overview")]//p[not(ancestor::details)]')->length);
+        $signals = $xpath->query('//span[contains(@class, "sge-diary-traffic") and @role="img"]');
+        $this->assertSame(1, $signals->length);
+        $this->assertSame('critical', $signals->item(0)->getAttribute('data-state'));
+        $this->assertSame('Atraso crítico nos lançamentos', $signals->item(0)->getAttribute('aria-label'));
+        $this->assertSame(3, $xpath->query('.//span[contains(@class, "sge-diary-light")]', $signals->item(0))->length);
+        $active = $xpath->query('.//span[contains(@class, "is-active")]', $signals->item(0));
+        $this->assertSame(1, $active->length);
+        $this->assertStringContainsString('sge-diary-light-critical', $active->item(0)->getAttribute('class'));
+        foreach ($document->getElementsByTagName('progress') as $progress) {
+            $this->assertStringContainsString('Atraso crítico nos lançamentos', $progress->getAttribute('aria-valuetext'));
+            $this->assertStringContainsString('aulas por registrar até hoje', $progress->getAttribute('aria-valuetext'));
+        }
+        DiaryAttendanceRecord::query()->create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => '2026-03-11', 'lesson_count' => 1]);
+        DiaryContent::query()->create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => '2026-03-11', 'content' => 'Conteúdo em dia.']);
+        $response = $this->get(route('teacher-diaries.index'))->assertOk();
+        $document = new \DOMDocument;
+        @$document->loadHTML('<?xml encoding="utf-8" ?>'.$response->getContent());
+        $active = (new \DOMXPath($document))->query('//span[contains(@class, "sge-diary-light") and contains(@class, "is-active")]');
+        $this->assertSame(1, $active->length);
+        $this->assertStringContainsString('sge-diary-light-success', $active->item(0)->getAttribute('class'));
+    }
+
     public function test_matrix_delay_uses_class_end_and_remains_critical_after_deadline_even_with_one_missing_lesson(): void
     {
         [$teacher, $year, $class, $component, $period] = $this->diaryScenario();

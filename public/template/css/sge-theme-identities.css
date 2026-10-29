@@ -329,3 +329,151 @@ html[data-theme-family] .sge-section-nav-item:focus-visible {
     outline: 3px solid var(--identity-primary);
     outline-offset: 2px;
 }
+
+/* Formas, fundos e materiais próprios de cada família, também no modo automático escuro. */
+html[data-theme-family] {
+    --identity-card-corners: var(--identity-radius);
+    --identity-button-radius: var(--identity-radius);
+    --identity-control-radius: var(--identity-radius);
+    --identity-frame-border: var(--sge-border);
+    --identity-frame-background: var(--sge-paper);
+    --identity-frame-shadow: var(--sge-shadow-sm);
+    --identity-canvas-image: none;
+    --identity-diary-stripe: .25rem;
+}
+html[data-theme-family="govbr"] {
+    --identity-card-corners: .15rem;
+    --identity-button-radius: 100em;
+    --identity-control-radius: .2rem;
+    --identity-frame-shadow: none;
+    --identity-canvas-image: linear-gradient(180deg, color-mix(in srgb, var(--identity-primary) 12%, var(--sge-surface)), var(--sge-surface) 18rem);
+}
+html[data-theme-family="instagram"] {
+    --identity-card-corners: 1.65rem;
+    --identity-diary-stripe: 2px;
+    --identity-button-radius: 100em;
+    --identity-control-radius: .9rem;
+    --identity-frame-border: transparent;
+    --identity-frame-background: linear-gradient(var(--sge-paper), var(--sge-paper)) padding-box, linear-gradient(125deg, var(--identity-secondary), var(--identity-primary), var(--identity-tertiary)) border-box;
+    --identity-frame-shadow: 0 .45rem 1.8rem color-mix(in srgb, var(--identity-primary) 13%, transparent);
+    --identity-canvas-image: radial-gradient(ellipse at 90% 8%, color-mix(in srgb, var(--identity-primary) 16%, transparent), transparent 48%), radial-gradient(ellipse at 8% 65%, color-mix(in srgb, var(--identity-tertiary) 13%, transparent), transparent 42%);
+}
+html[data-theme-family="tiktok"] {
+    --identity-card-corners: .1rem;
+    --identity-button-radius: .1rem;
+    --identity-control-radius: .1rem;
+    --identity-frame-shadow: 3px 3px 0 color-mix(in srgb, var(--identity-secondary) 65%, var(--sge-border)), -2px -2px 0 color-mix(in srgb, var(--identity-primary) 40%, var(--sge-border));
+    --identity-canvas-image: repeating-linear-gradient(135deg, transparent 0 4rem, color-mix(in srgb, var(--identity-secondary) 6%, transparent) 4rem 4.12rem, transparent 4.12rem 8rem);
+}
+html[data-theme-family="gmail"] {
+    --identity-card-corners: 1.1rem;
+    --identity-diary-stripe: 0;
+    --identity-button-radius: 1.5rem;
+    --identity-control-radius: 1.5rem;
+    --identity-frame-border: transparent;
+    --identity-frame-shadow: none;
+    --identity-canvas-image: linear-gradient(90deg, color-mix(in srgb, var(--identity-primary) 8%, var(--sge-surface)) 0 5rem, transparent 5rem);
+}
+html[data-theme-family="outlook"] {
+    --identity-card-corners: 0;
+    --identity-diary-stripe: .4rem;
+    --identity-button-radius: .2rem;
+    --identity-control-radius: .15rem;
+    --identity-frame-shadow: 0 2px 0 color-mix(in srgb, var(--identity-primary) 22%, var(--sge-border));
+    --identity-canvas-image: repeating-linear-gradient(0deg, transparent 0 3rem, color-mix(in srgb, var(--identity-primary) 7%, transparent) 3rem calc(3rem + 1px));
+}
+html[data-theme-family="aurora"] {
+    --identity-card-corners: 1.5rem .4rem 1.5rem .4rem;
+    --identity-button-radius: .8rem .3rem .8rem .3rem;
+    --identity-control-radius: .7rem .25rem .7rem .25rem;
+    --identity-frame-shadow: 0 .45rem 1.5rem color-mix(in srgb, var(--identity-secondary) 13%, transparent);
+    --identity-canvas-image: radial-gradient(ellipse at 8% 0, color-mix(in srgb, var(--identity-primary) 17%, transparent), transparent 48%), radial-gradient(ellipse at 100% 35%, color-mix(in srgb, var(--identity-secondary) 20%, transparent), transparent 50%), radial-gradient(ellipse at 35% 95%, color-mix(in srgb, var(--identity-tertiary) 12%, transparent), transparent 45%);
+}
+html[data-theme-family="beaba"] {
+    --identity-card-corners: 1.5rem .65rem 1.8rem .65rem;
+    --identity-button-radius: .85rem .35rem .85rem .35rem;
+    --identity-control-radius: .7rem;
+    --identity-frame-shadow: 0 .35rem 1.25rem color-mix(in srgb, var(--identity-secondary) 10%, transparent);
+    --identity-canvas-image: radial-gradient(ellipse at 4% 10%, color-mix(in srgb, var(--identity-secondary) 15%, transparent), transparent 42%), radial-gradient(ellipse at 95% 35%, color-mix(in srgb, var(--identity-accent-4) 13%, transparent), transparent 43%), radial-gradient(ellipse at 45% 95%, color-mix(in srgb, var(--identity-tertiary) 12%, transparent), transparent 45%);
+}
+
+html[data-theme][data-theme-family] #wrapper #content-wrapper {
+    background-color: var(--sge-surface);
+    background-image: var(--identity-canvas-image);
+}
+html[data-theme][data-theme-family] :is(.card, .sge-workflow-card, .sge-diary-progress-card):not(.bg-primary, .bg-success, .bg-danger, .bg-warning, .bg-info) {
+    border-radius: var(--identity-card-corners);
+    border-color: var(--identity-frame-border);
+    background: var(--identity-frame-background);
+    box-shadow: var(--identity-frame-shadow) !important;
+}
+html[data-theme][data-theme-family] .card-header:first-child {
+    border-top-left-radius: inherit;
+    border-top-right-radius: inherit;
+}
+html[data-theme][data-theme-family] :is(.btn, .sge-section-nav-item) { border-radius: var(--identity-button-radius); }
+html[data-theme][data-theme-family] :is(.form-control, .custom-select) { border-radius: var(--identity-control-radius); }
+html[data-theme][data-theme-family] .sge-diary-progress-card { border-inline-start: var(--identity-diary-stripe) solid var(--identity-primary); }
+html[data-theme][data-theme-family] .sge-diary-progress-label strong > i { color: var(--sge-diary-progress-color); }
+
+html[data-theme-family="govbr"] .topbar.navbar {
+    background: var(--identity-primary) !important;
+    border-bottom: .25rem solid var(--identity-secondary);
+}
+html[data-theme-family="govbr"] .topbar #userDropdown .text-gray-600 { color: var(--sge-on-accent) !important; }
+html[data-theme-family="govbr"] .topbar .sge-sidebar-toggle { background: var(--sge-paper); color: var(--identity-primary); }
+html[data-theme-family="govbr"] .card-header:not(.bg-primary, .bg-success, .bg-danger) {
+    background: color-mix(in srgb, var(--identity-primary) 9%, var(--sge-paper));
+    border-inline-start: .3rem solid var(--identity-secondary);
+}
+
+html[data-theme-family="instagram"] .sidebar .sidebar-brand { border-bottom: 4px solid var(--identity-secondary); }
+html[data-theme-family="instagram"] .card-header:not(.bg-primary, .bg-success, .bg-danger) {
+    background: linear-gradient(110deg, color-mix(in srgb, var(--identity-secondary) 10%, var(--sge-paper)), color-mix(in srgb, var(--identity-primary) 12%, var(--sge-paper)), color-mix(in srgb, var(--identity-tertiary) 9%, var(--sge-paper)));
+}
+html[data-theme-family="instagram"] .sge-diary-progress-card { border-inline-start-width: 2px; }
+html[data-theme-family="instagram"] .sge-diary-traffic { border-radius: 100em; }
+
+html[data-theme-family="tiktok"] .topbar.navbar {
+    background: var(--identity-nav-bg) !important;
+    border-bottom: 3px solid var(--identity-secondary);
+    box-shadow: 0 3px 0 var(--identity-primary);
+}
+html[data-theme-family="tiktok"] .topbar #userDropdown .text-gray-600 { color: var(--identity-nav-ink) !important; }
+html[data-theme-family="tiktok"] .topbar .sge-sidebar-toggle { background: var(--sge-paper); color: var(--identity-primary); }
+html[data-theme-family="tiktok"] .card-header:not(.bg-primary, .bg-success, .bg-danger) {
+    border-inline-end: 4px solid var(--identity-primary);
+    border-inline-start: 4px solid var(--identity-secondary);
+    background: var(--sge-paper);
+}
+html[data-theme][data-theme-family="tiktok"] .sge-diary-progress-card { border-inline-end: 3px solid var(--identity-secondary); }
+
+html[data-theme-family="gmail"] .card-header:not(.bg-primary, .bg-success, .bg-danger) {
+    background: linear-gradient(90deg, var(--identity-primary) 0 25%, var(--identity-secondary) 25% 50%, var(--aurora-warning) 50% 75%, var(--identity-tertiary) 75%) bottom / 100% 3px no-repeat, var(--sge-paper);
+    border: 0;
+}
+html[data-theme][data-theme-family="gmail"] .sge-diary-progress-card { border-inline-start: 0; border-bottom: 1px solid var(--sge-border); }
+html[data-theme-family="gmail"] .sidebar .nav-item.active > .nav-link { background: var(--aurora-hover); }
+
+html[data-theme-family="outlook"] .card-header:not(.bg-primary, .bg-success, .bg-danger) {
+    background: color-mix(in srgb, var(--identity-primary) 12%, var(--sge-paper));
+    border: 0;
+    border-bottom: 2px solid var(--identity-primary);
+}
+html[data-theme-family="outlook"] .sge-diary-progress-card { border-inline-start-width: .4rem; }
+html[data-theme-family="outlook"] .sge-diary-traffic { border-radius: 0; }
+
+html[data-theme-family="aurora"] .card-header:not(.bg-primary, .bg-success, .bg-danger) {
+    background: linear-gradient(110deg, color-mix(in srgb, var(--identity-primary) 10%, var(--sge-paper)), color-mix(in srgb, var(--identity-secondary) 10%, var(--sge-paper)));
+}
+html[data-theme-family="aurora"] .topbar.navbar { border-bottom: 3px solid var(--identity-secondary); }
+
+html[data-theme="beaba"][data-theme-family="beaba"] .sidebar.bg-gradient-primary {
+    background: radial-gradient(ellipse at 0 25%, color-mix(in srgb, var(--sge-green) 65%, transparent), transparent 75%), linear-gradient(165deg, var(--sge-brown-dark), color-mix(in srgb, var(--sge-brown-dark) 80%, var(--sge-green))) !important;
+}
+html[data-theme-family="beaba"] .card-header:not(.bg-primary, .bg-success, .bg-danger) {
+    background: linear-gradient(100deg, color-mix(in srgb, var(--identity-secondary) 13%, var(--sge-paper)), color-mix(in srgb, var(--identity-accent-4) 10%, var(--sge-paper)));
+    border-bottom: 2px solid var(--identity-secondary);
+}
+html[data-theme-family="beaba"] .sge-diary-progress-card:nth-child(3n + 2) { border-inline-start-color: var(--identity-tertiary); }
+html[data-theme-family="beaba"] .sge-diary-progress-card:nth-child(3n) { border-inline-start-color: var(--identity-accent-4); }

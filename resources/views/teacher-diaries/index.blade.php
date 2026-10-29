@@ -74,10 +74,7 @@
 
             <div data-diary-list>
             @forelse ($diaries as $diary)
-                @php($urgency = $diary['summary']['timeliness']['urgency'])
-                @php($hasDelay = $diary['summary']['timeliness']['content']['missing'] > 0 || $diary['summary']['timeliness']['attendance']['missing'] > 0)
-                <article class="sge-diary-list-card sge-diary-progress-card {{ $hasDelay ? 'sge-diary-delayed' : '' }}"
-                    style="--sge-diary-warning-strength: {{ min(100, $urgency * 2) }}%; --sge-diary-danger-strength: {{ max(0, ($urgency - 50) * 2) }}%; --sge-diary-tint: {{ 3 + round($urgency * .25) }}%;"
+                <article class="sge-diary-list-card sge-diary-progress-card"
                     data-diary-item
                     data-school="{{ $diary['academicYear']->school_id }}"
                     data-year="{{ $diary['academicYear']->id }}"
@@ -85,8 +82,7 @@
                     data-search="{{ Illuminate\Support\Str::lower(Illuminate\Support\Str::ascii($diary['component']->name.' '.$diary['class']->name.' '.$diary['academicYear']->name.' '.($diary['academicYear']->school?->name ?? '').' '.($diary['component']->area?->name ?? ''))) }}">
                     <div class="sge-diary-list-main">
                         <h3><a href="{{ route('teacher-diaries.show', [$diary['class'], $diary['component']]) }}">{{ $diary['component']->name }}</a></h3>
-                        <p>{{ $diary['class']->name }} · {{ $diary['academicYear']->school?->name }}</p>
-                        <small>{{ $diary['academicYear']->name }} · {{ $diary['course']->name }} · {{ $diary['component']->area?->name ?? __('Área não definida') }}</small>
+                        <p>{{ $diary['class']->name }} · {{ $diary['academicYear']->school?->name }} · {{ $diary['academicYear']->reference_year }}</p>
                     </div>
                     <div role="group" class="sge-diary-list-actions" aria-label="{{ __('Ações do diário de') }} {{ $diary['component']->name }}">
                         <a class="btn btn-primary btn-sm sge-icon-action" href="{{ route('teacher-diaries.show', [$diary['class'], $diary['component']]) }}" aria-label="{{ __('Abrir diário de') }} {{ $diary['component']->name }} {{ __('da turma') }} {{ $diary['class']->name }}" title="{{ __('Abrir diário') }}">
@@ -134,6 +130,7 @@
             const clear = filters.querySelector('[data-diary-clear]');
             const count = document.getElementById('diary-results-count');
             const noResults = document.querySelector('[data-diary-no-results]');
+            const countLabel = @json(__('diário(s)'));
             const normalize = (value) => String(value || '')
                 .normalize('NFD')
                 .replace(/[\u0300-\u036f]/g, '')
@@ -154,7 +151,7 @@
                 });
 
                 if (count) {
-                    count.textContent = `${visible} diário(s)`;
+                    count.textContent = `${visible} ${countLabel}`;
                 }
 
                 noResults?.classList.toggle('d-none', visible !== 0);

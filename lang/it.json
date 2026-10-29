@@ -2690,5 +2690,10 @@
     "Até hoje: :count aulas previstas": "Fino a oggi: :count lezioni previste",
     "Nenhum lançamento de conteúdo ou frequência.": "Nessuna registrazione di contenuti o presenze.",
     ":count aulas por registrar até hoje": ":count lezioni da registrare fino a oggi",
-    "O atraso considera as aulas previstas até hoje e o prazo de encerramento. As inconsistências comparam os registros existentes.": "Il ritardo considera le lezioni previste fino a oggi e la data di conclusione. Le incongruenze confrontano le registrazioni esistenti."
+    "O atraso considera as aulas previstas até hoje e o prazo de encerramento. As inconsistências comparam os registros existentes.": "Il ritardo considera le lezioni previste fino a oggi e la data di conclusione. Le incongruenze confrontano le registrazioni esistenti.",
+    "Em dia": "Aggiornato",
+    "Atenção": "Attenzione",
+    "Crítico": "Critico",
+    "Sem previsão": "Previsione assente",
+    "Detalhes e pendências": "Dettagli ed elementi mancanti"
 }
