@@ -3,6 +3,7 @@ import json
 import base64
 import os
 import pathlib
+import datetime
 import shlex
 import tempfile
 import time
@@ -122,6 +123,15 @@ with tempfile.TemporaryDirectory() as directory:
                 'php artisan diaries:correct-imported-grade 486 Geografia 4 6 --expected=4 --apply --no-ansi',
             ))
         inspection_id = os.environ.get('INSPECT_ENROLLMENT', '').strip()
+        diary_date = os.environ.get('INSPECT_DIARY_DATE', '').strip()
+        if diary_date:
+            if datetime.date.fromisoformat(diary_date).isoformat() != diary_date:
+                raise RuntimeError('Informe a data do diário no formato AAAA-MM-DD.')
+            diary_code = (
+                f'$date = "{diary_date}"; '
+                'require base_path("scripts/inspect-diary-date.php");'
+            )
+            commands.append(('Conferência dos lançamentos do diário sem dados pessoais', 'php artisan tinker --execute=' + shlex.quote(diary_code)))
         if inspection_id:
             if not inspection_id.isascii() or not inspection_id.isdecimal():
                 raise RuntimeError('Informe somente o ID numérico da matrícula para diagnóstico.')

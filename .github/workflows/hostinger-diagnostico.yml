@@ -42,6 +42,10 @@ on:
         description: ID da matrícula para conferir o resultado e os critérios sem alterar dados
         type: string
         default: ''
+      inspect_diary_date:
+        description: Data (AAAA-MM-DD) para conferir lançamentos de Inglês do 1º ano sem expor dados pessoais
+        type: string
+        default: ''
       correct_2025_criteria:
         description: Aplicar correção confirmada de 2025 da matrícula 486 (22,5 pontos e 2 dependências)
         type: boolean
@@ -84,6 +88,7 @@ jobs:
           APPLY_HISTORY_GRADE_MIGRATION: ${{ inputs.apply_history_grade_migration }}
           INVALIDATE_ALL_SESSIONS: ${{ inputs.invalidate_all_sessions }}
           INSPECT_ENROLLMENT: ${{ inputs.inspect_enrollment }}
+          INSPECT_DIARY_DATE: ${{ inputs.inspect_diary_date }}
           CORRECT_2025_CRITERIA: ${{ inputs.correct_2025_criteria }}
           CORRECT_GEOGRAPHY_486: ${{ inputs.correct_geography_486 }}
           PENDING_YEAR_FOR_ENROLLMENT: ${{ inputs.pending_year_for_enrollment }}
