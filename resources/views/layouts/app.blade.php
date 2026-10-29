@@ -34,6 +34,7 @@
 <body id="page-top">
     <a class="sge-skip-link" href="#main-content">{{ __('navigation.skip') }}</a>
     <div id="wrapper">
+        <div class="sge-sidebar-shell">
         <nav class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar" aria-label="{{ __('navigation.main_menu') }}">
             <div class="sge-sidebar-header">
                 <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ route('dashboard') }}">
@@ -42,13 +43,14 @@
                     </div>
                     <div class="sidebar-brand-text mx-3">Beabá</div>
                 </a>
-                <button id="sidebarCloseControl" class="btn sge-sidebar-close d-lg-none" type="button" aria-label="{{ __('navigation.close_sidebar') }}" title="{{ __('navigation.close_sidebar') }}">
-                    <i class="fas fa-times" aria-hidden="true"></i>
+                <button id="sidebarCloseControl" class="btn sge-sidebar-close" type="button" aria-label="{{ __('navigation.close_sidebar') }}" title="{{ __('navigation.close_sidebar') }}">
+                    <i class="fas fa-times d-lg-none" aria-hidden="true"></i>
+                    <i class="fas fa-angle-left d-none d-lg-inline" aria-hidden="true"></i>
                 </button>
             </div>
 
-
-
+            <div class="sge-sidebar-items">
+            <div class="sge-sidebar-links">
             @php
                 $currentUser = auth()->user();
                 $canManageSchools = $currentUser->canManageSchools();
@@ -248,7 +250,10 @@
             @endif
 
             <hr class="sidebar-divider d-none d-md-block">
+            </div>
+            </div>
         </nav>
+        </div>
 
         <button class="sge-sidebar-backdrop d-lg-none" type="button" aria-label="{{ __('navigation.close_sidebar') }}" hidden></button>
 
@@ -256,7 +261,8 @@
             <div id="content">
                 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top" aria-label="{{ __('navigation.topbar') }}">
                     <button id="sidebarToggleControl" class="btn btn-link mr-3 sge-sidebar-toggle" type="button" aria-label="{{ __('navigation.toggle_sidebar') }}" aria-controls="accordionSidebar"
-                        data-open-label="{{ __('navigation.open_sidebar') }}" data-close-label="{{ __('navigation.close_sidebar') }}">
+                        data-open-label="{{ __('navigation.open_sidebar') }}" data-close-label="{{ __('navigation.close_sidebar') }}"
+                        data-expand-label="{{ __('navigation.expand_sidebar') }}" data-collapse-label="{{ __('navigation.collapse_sidebar') }}">
                         <i class="fa fa-bars" aria-hidden="true"></i>
                         <span class="d-none d-xl-inline">{{ __('navigation.menu') }}</span>
                     </button>

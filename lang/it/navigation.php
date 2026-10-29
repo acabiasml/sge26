@@ -34,6 +34,8 @@ return [
     'audit' => 'Audit',
     'close_sidebar' => 'Chiudi menu laterale',
     'open_sidebar' => 'Apri menu laterale',
+    'collapse_sidebar' => 'Comprimi il menu laterale',
+    'expand_sidebar' => 'Espandi il menu laterale',
     'topbar' => 'Barra superiore',
     'toggle_sidebar' => 'Apri o comprimi il menu laterale',
     'system_view' => 'Vista del sistema',
