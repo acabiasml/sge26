@@ -30,6 +30,10 @@ on:
         description: Aplicar somente a migration de preferência da visão do sistema
         type: boolean
         default: false
+      apply_history_grade_migration:
+        description: Aplicar somente a migration de identificação dos anos do histórico escolar
+        type: boolean
+        default: false
       invalidate_all_sessions:
         description: Desconectar todos os usuários e invalidar tokens antigos de login
         type: boolean
@@ -57,6 +61,7 @@ jobs:
           APPLY_SOCIAL_NAME_CLEANUP: ${{ inputs.apply_social_name_cleanup }}
           APPLY_ATTENDANCE_JUSTIFICATION_MIGRATION: ${{ inputs.apply_attendance_justification_migration }}
           APPLY_ROLE_VIEW_MIGRATION: ${{ inputs.apply_role_view_migration }}
+          APPLY_HISTORY_GRADE_MIGRATION: ${{ inputs.apply_history_grade_migration }}
           INVALIDATE_ALL_SESSIONS: ${{ inputs.invalidate_all_sessions }}
           EXPECTED_COMMIT: ${{ github.sha }}
           HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}

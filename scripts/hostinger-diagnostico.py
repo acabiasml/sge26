@@ -79,6 +79,11 @@ with tempfile.TemporaryDirectory() as directory:
                 'Aplicar migration da preferência de visão do sistema',
                 'php artisan migrate --path=database/migrations/2026_10_28_000002_add_preferred_role_view_to_users_table.php --force --no-ansi',
             ))
+        if os.environ.get('APPLY_HISTORY_GRADE_MIGRATION') == 'true':
+            commands.append((
+                'Aplicar migration da identificação dos anos do histórico escolar',
+                'php artisan migrate --path=database/migrations/2026_10_29_000001_add_grade_identity_to_history_years.php --force --no-ansi',
+            ))
         if os.environ.get('REFRESH_VIEWS') == 'true':
             commands.append(('Limpar cache das telas', 'php artisan view:clear --no-ansi'))
         if os.environ.get('INVALIDATE_ALL_SESSIONS') == 'true':
