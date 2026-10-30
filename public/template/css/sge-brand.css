@@ -461,6 +461,38 @@ strong {
 .sge-livewire-table-card .table-responsive {
     position: relative;
     z-index: 1;
+    max-width: 100%;
+    overflow-x: auto;
+    touch-action: pan-x pan-y;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+.sge-livewire-table-card .lwt-bootstrap {
+    --lwt-panel: var(--sge-paper);
+    --lwt-surface: var(--sge-paper);
+    --lwt-surface-solid: var(--sge-paper);
+    --lwt-text: var(--sge-text);
+    --lwt-muted: var(--sge-muted);
+    --lwt-border: var(--sge-border);
+    --lwt-border-strong: var(--sge-border);
+    --lwt-accent: var(--sge-brown);
+    --lwt-accent-2: var(--sge-brown-soft);
+}
+
+.sge-livewire-table-card .lwt-toolbar__group--left {
+    flex: 1 1 24rem;
+}
+
+.sge-livewire-table-card .lwt-search {
+    min-width: min(100%, 14rem);
+    flex-basis: 14rem;
+}
+
+.sge-livewire-table-card .lwt-btn,
+.sge-livewire-table-card .lwt-search__input,
+.sge-livewire-table-card .lwt-search__clear {
+    min-height: 2.75rem;
 }
 
 .sge-livewire-table-card .btn-group,
