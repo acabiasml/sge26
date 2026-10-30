@@ -80,6 +80,28 @@
     color: var(--identity-primary, var(--sge-brown));
     z-index: 1;
 }
+
+/* A marca ocupa uma faixa contínua, sem caixa ou efeitos sobre a imagem. */
+#accordionSidebar .sge-sidebar-header {
+    width: calc(100% + 1rem) !important;
+    margin-inline: -.5rem;
+    margin-top: -.7rem;
+    padding: .7rem .5rem 0;
+    background: #fffaf1;
+}
+#accordionSidebar .sge-sidebar-header .sidebar-brand {
+    color: #6b3d2e;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    margin-bottom: 0;
+}
+#accordionSidebar .sge-sidebar-close {
+    background: transparent;
+    color: #6b3d2e;
+    box-shadow: none;
+}
 @media (min-width: 992px) {
     .sge-sidebar-shell {
         width: 17rem;
@@ -114,8 +136,8 @@
     html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar,
     html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar.toggled { width: 5rem !important; }
     html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar .sidebar-brand {
-        justify-content: flex-start !important;
-        padding-right: .3125rem;
+        justify-content: center !important;
+        padding-inline: 0;
     }
     html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar .sidebar-brand-text,
     html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar .nav-item > .nav-link span {
@@ -156,6 +178,11 @@
     .sge-sidebar-shell { width: 0; flex: 0 0 0; }
     #accordionSidebar,
     #accordionSidebar.toggled { width: min(18rem, 88vw) !important; }
-    .sge-sidebar-header { position: sticky; top: 0; background: inherit; z-index: 1; }
+    .sge-sidebar-header { position: sticky; top: 0; z-index: 1; }
+    #accordionSidebar .sge-sidebar-header {
+        width: calc(100% + .7rem) !important;
+        margin-inline: -.35rem;
+        padding-inline: .35rem;
+    }
     #accordionSidebar .sidebar-brand { padding-right: 3.5rem; }
 }

@@ -2919,7 +2919,7 @@ a.sge-stat-card:focus {
 
 .sge-sidebar-brand-mark {
     width: 56px;
-    height: 56px;
+    height: 64px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -2929,7 +2929,7 @@ a.sge-stat-card:focus {
 .sge-sidebar-brand-mark img {
     display: block;
     width: auto !important;
-    height: 56px;
+    height: 64px;
     max-width: 100%;
     max-height: none;
     object-fit: contain;
