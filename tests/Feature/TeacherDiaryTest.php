@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\DiaryAlertManager;
 use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
 use App\Models\AcademicPeriodDiaryConsolidation;
@@ -41,6 +42,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\View;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class TeacherDiaryTest extends TestCase
@@ -702,9 +704,11 @@ class TeacherDiaryTest extends TestCase
         $this->actingAs($manager)
             ->get(route('teacher-diaries.index', ['academic_year' => $year->id, 'period' => $period->id]))
             ->assertOk()
-            ->assertSee('Alertas deste diário')
-            ->assertSee('Confira os lançamentos de frequência desta semana.')
-            ->assertSee('Não visto');
+            ->assertSee('Gerenciar alertas')
+            ->assertDontSee('Confira os lançamentos de frequência desta semana.');
+        Livewire::test(DiaryAlertManager::class)
+            ->call('open', $class->id, $component->id, $period->id)
+            ->assertSee('Confira os lançamentos de frequência desta semana.')->assertSee('Não visto');
 
         $this->actingAs($teacher)
             ->patch(route('teacher-diaries.alerts.dismiss', $alert))
@@ -732,14 +736,15 @@ class TeacherDiaryTest extends TestCase
         $this->actingAs($manager)
             ->get(route('teacher-diaries.show', [$class, $component, 'period' => $period->id]))
             ->assertOk()
-            ->assertSee('Confira os lançamentos de frequência desta semana.')
-            ->assertSee('Já visto')
-            ->assertSee('Excluir alerta');
+            ->assertSee('Gerenciar alertas')
+            ->assertDontSee('Confira os lançamentos de frequência desta semana.');
         $this->get(route('teacher-diaries.index', ['academic_year' => $year->id, 'period' => $period->id]))
             ->assertOk()
-            ->assertSee('Alertas deste diário')
-            ->assertSee('Confira os lançamentos de frequência desta semana.')
-            ->assertSee('Já visto');
+            ->assertSee('Gerenciar alertas')
+            ->assertDontSee('Confira os lançamentos de frequência desta semana.');
+        Livewire::test(DiaryAlertManager::class)
+            ->call('open', $class->id, $component->id, $period->id)
+            ->assertSee('Confira os lançamentos de frequência desta semana.')->assertSee('Já visto');
 
         $otherSchool = School::query()->create($this->officialSchoolData(['name' => 'Escola sem acesso ao alerta']));
         $otherManager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $otherSchool->id, 'outra-gestao-alerta@ctjj.org');

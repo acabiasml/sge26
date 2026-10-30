@@ -1072,7 +1072,7 @@ class TeacherDiaryController extends Controller
     public function destroyAlert(Request $request, DiaryAlert $alert): RedirectResponse
     {
         $alert->loadMissing('schoolClass.academicYear');
-        abort_unless($request->user()->canManageSchool($alert->schoolClass?->academicYear?->school_id), 403);
+        abort_unless($alert->canBeManagedBy($request->user()), 403);
 
         $alert->delete();
 

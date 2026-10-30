@@ -270,9 +270,9 @@
                     </div>
                     <div class="d-flex align-items-center flex-wrap justify-content-end">
                         @if ($canChooseScoreView)
-                            <div class="btn-group btn-group-sm mr-2" role="group" aria-label="{{ __('Forma de visualização das notas') }}">
-                                <a class="btn btn-{{ $scoreView === 'numeros' ? 'primary' : 'outline-primary' }}" href="{{ route('people.student-map.show', ['person' => $person] + array_merge(request()->except('notas'), ['notas' => 'numeros'])) }}">{{ __('Números') }}</a>
-                                <a class="btn btn-{{ $scoreView === 'conceitos' ? 'primary' : 'outline-primary' }}" href="{{ route('people.student-map.show', ['person' => $person] + array_merge(request()->except('notas'), ['notas' => 'conceitos'])) }}">{{ __('Conceitos') }}</a>
+                            <div class="sge-score-view-switch mr-2" role="group" aria-label="{{ __('Forma de visualização das notas') }}">
+                                <a class="btn btn-sm btn-{{ $scoreView === 'numeros' ? 'primary' : 'outline-primary' }}" @if($scoreView === 'numeros') aria-current="page" @endif href="{{ route('people.student-map.show', ['person' => $person] + array_merge(request()->except('notas'), ['notas' => 'numeros'])) }}">{{ __('Números') }}</a>
+                                <a class="btn btn-sm btn-{{ $scoreView === 'conceitos' ? 'primary' : 'outline-primary' }}" @if($scoreView === 'conceitos') aria-current="page" @endif href="{{ route('people.student-map.show', ['person' => $person] + array_merge(request()->except('notas'), ['notas' => 'conceitos'])) }}">{{ __('Conceitos') }}</a>
                             </div>
                         @endif
                         <span class="badge badge-light">{{ $assessmentResults->count() }} {{ __('lançamento(s)') }}</span>

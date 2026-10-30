@@ -2707,5 +2707,14 @@
     "Editar cópia de :title": "Modifica una copia di :title",
     "Editar cópia do documento": "Modifica copia del documento",
     "Dados do histórico": "Dati dello storico",
-    "Emitir documento": "Emetti documento"
+    "Emitir documento": "Emetti documento",
+    "Alertas do diário": "Avvisi del registro",
+    "Alertas deste período": "Avvisi di questo periodo",
+    "Editar alerta": "Modifica avviso",
+    "Novo alerta": "Nuovo avviso",
+    "Nenhum alerta neste diário e período.": "Nessun avviso per questo registro e periodo.",
+    "Gerenciar alertas": "Gestisci avvisi",
+    "Gerenciar alertas de": "Gestisci avvisi di",
+    "Alerta atualizado.": "Avviso aggiornato.",
+    "Defina a docência deste diário antes de enviar um alerta.": "Assegna un docente a questo registro prima di inviare un avviso."
 }

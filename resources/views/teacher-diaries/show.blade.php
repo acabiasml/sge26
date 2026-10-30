@@ -78,11 +78,15 @@
 
     @if ($period)
         <div id="section-situacao" data-academic-panel="situacao" role="tabpanel">
-        @if(($alerts ?? collect())->isNotEmpty())
+        @if(($alerts ?? collect())->isNotEmpty() || $canManageDiary)
             <section class="card shadow mb-4 border-left-warning" aria-labelledby="diary-alerts-title">
-                <div class="card-header py-3">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h2 id="diary-alerts-title" class="h6 m-0 font-weight-bold text-primary">{{ __('Alertas da gestão') }}</h2>
+                    @if($canManageDiary)
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-diary-alert-manager data-school-class="{{ $schoolClass->id }}" data-component="{{ $component->id }}" data-period="{{ $period->id }}">{{ __('Gerenciar alertas') }}</button>
+                    @endif
                 </div>
+                @unless($canManageDiary)
                 <div class="card-body">
                     @foreach($alerts as $alert)
                         <div class="alert alert-{{ $alert->dismissed_at ? 'secondary' : 'warning' }} mb-2 d-flex align-items-start justify-content-between flex-wrap">
@@ -108,18 +112,11 @@
                                     </button>
                                 </form>
                             @endif
-                            @if(auth()->user()->canManageSchool($academicYear->school_id))
-                                <form method="POST" action="{{ route('teacher-diaries.alerts.destroy', $alert) }}" class="mt-2 mt-md-0" data-confirm-message="{{ __('Excluir este alerta do diário? Esta ação é permanente.') }}">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="{{ __('Excluir alerta') }}">
-                                        <i class="fas fa-trash-alt mr-1" aria-hidden="true"></i>{{ __('Excluir') }}
-                                    </button>
-                                </form>
-                            @endif
+
                         </div>
                     @endforeach
                 </div>
+                @endunless
             </section>
         @endif
         @php($canConfirmPeriod = now()->startOfDay()->gte($period->ends_at->copy()->startOfDay()))

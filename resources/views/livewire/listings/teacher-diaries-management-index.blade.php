@@ -161,7 +161,7 @@
             <div class="card-body">
                 @forelse($groupedClasses as $group)
                     @php($class = $group['class'])
-                    <details class="sge-diary-class-group" @if($group['stats']['pending'] > 0 || $listingRequest->filled('class')) open @endif>
+                    <details wire:ignore.self wire:key="diary-class-{{ $class->id }}-{{ $period->id }}-{{ $listingRequest->input('class', 'all') }}" class="sge-diary-class-group" @if($group['stats']['pending'] > 0 || $listingRequest->filled('class')) open @endif>
                         <summary>
                             <span class="sge-diary-class-title">
                                 <strong>{{ $class?->name }}</strong>
@@ -218,57 +218,12 @@
                                                     <a target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm sge-icon-action" href="{{ route('teacher-diaries.attendance-sheet.pdf', [$assignment->schoolClass, $assignment->component]) }}" aria-label="{{ __('Imprimir lista de chamada de') }} {{ $assignment->component?->name }}" title="{{ __('Lista de chamada') }}">
                                                         <i class="fas fa-clipboard-list" aria-hidden="true"></i>
                                                     </a>
-                                                    <details class="sge-inline-alert-form">
-                                                        <summary class="btn btn-outline-warning btn-sm sge-icon-action" aria-label="{{ __('Enviar alerta para') }} {{ $assignment->teacher?->full_name ?? __('docência não definida') }}" title="{{ __('Enviar alerta') }}">
-                                                            <i class="fas fa-bell" aria-hidden="true"></i>
-                                                        </summary>
-                                                        <form method="POST" action="{{ route('teacher-diaries.alerts.store', [$assignment->schoolClass, $assignment->component]) }}">
-                                                            @csrf
-                                                            <input type="hidden" name="academic_period_id" value="{{ $period->id }}">
-                                                            <label class="sr-only" for="alert_message_{{ $assignment->id }}">{{ __('Mensagem do alerta') }}</label>
-                                                            <textarea id="alert_message_{{ $assignment->id }}" name="message" class="form-control form-control-sm" rows="3" placeholder="{{ __('Explique o que precisa ser corrigido ou lançado.') }}" required></textarea>
-                                                            <button class="btn btn-warning btn-sm mt-2" type="submit">{{ __('Enviar alerta') }}</button>
-                                                        </form>
-                                                    </details>
+                                                    <button type="button" class="btn btn-outline-warning btn-sm sge-icon-action" data-diary-alert-manager data-school-class="{{ $assignment->school_class_id }}" data-component="{{ $assignment->curriculum_component_id }}" data-period="{{ $period->id }}" aria-label="{{ __('Gerenciar alertas de') }} {{ $assignment->component?->name }}" title="{{ __('Gerenciar alertas') }}">
+                                                        <i class="fas fa-bell" aria-hidden="true"></i>
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
-                                        @if($summary['alerts']->isNotEmpty())
-                                            <tr>
-                                                <td colspan="7">
-                                                    <details class="py-1" @if(($summary['alert_count'] ?? 0) > 0) open @endif>
-                                                        <summary class="font-weight-bold text-primary">
-                                                            <i class="fas fa-bell mr-1" aria-hidden="true"></i>
-                                                            {{ __('Alertas deste diário') }} ({{ $summary['alerts']->count() }})
-                                                        </summary>
-                                                        @foreach($summary['alerts'] as $alert)
-                                                            <div class="border rounded p-2 mt-2 d-flex align-items-start justify-content-between flex-wrap">
-                                                                <div class="mr-3">
-                                                                    <span class="badge badge-{{ $alert->dismissed_at ? 'secondary' : 'warning' }}">
-                                                                        {{ $alert->dismissed_at ? __('Já visto') : __('Não visto') }}
-                                                                    </span>
-                                                                    <span class="small text-muted ml-2">
-                                                                        {{ $alert->fromPerson?->full_name ?? __('Gestão') }} → {{ $alert->toPerson?->full_name ?? __('Não definido') }}
-                                                                        · {{ $alert->created_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}
-                                                                        @if($alert->dismissed_at)
-                                                                            · {{ __('Visto em:') }} {{ $alert->dismissed_at->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}
-                                                                        @endif
-                                                                    </span>
-                                                                    <p class="mb-0 mt-1">{{ $alert->message }}</p>
-                                                                </div>
-                                                                <form method="POST" action="{{ route('teacher-diaries.alerts.destroy', $alert) }}" data-confirm-message="{{ __('Excluir este alerta do diário? Esta ação é permanente.') }}">
-                                                                    @csrf
-                                                                    @method('DELETE')
-                                                                    <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="{{ __('Excluir alerta') }}">
-                                                                        <i class="fas fa-trash-alt mr-1" aria-hidden="true"></i>{{ __('Excluir') }}
-                                                                    </button>
-                                                                </form>
-                                                            </div>
-                                                        @endforeach
-                                                    </details>
-                                                </td>
-                                            </tr>
-                                        @endif
                                     @endforeach
                                 </tbody>
                             </table>

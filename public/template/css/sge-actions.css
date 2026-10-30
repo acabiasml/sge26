@@ -1,0 +1,24 @@
+/* A célula cresce para as ações; a tabela continua rolável em telas menores. */
+table .sge-action-buttons {
+    flex-wrap: nowrap;
+    width: max-content;
+    min-width: max-content;
+    white-space: nowrap;
+}
+table td:last-child:has(.sge-action-buttons) {
+    width: 1%;
+    white-space: nowrap;
+}
+table .sge-action-buttons > .btn,
+table .sge-action-buttons > form { flex-shrink: 0; }
+
+.sge-score-view-switch {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    gap: .35rem;
+}
+.sge-score-view-switch > .btn { min-height: 2.75rem; }
+.sge-managed-alert-message { white-space: pre-wrap; overflow-wrap: anywhere; }
+.sge-diary-alert-manager .modal-content { background: var(--sge-paper); color: var(--sge-ink); }

@@ -28,6 +28,7 @@
     <link href="{{ asset('template/css/sge-theme-identities.css') }}?v={{ filemtime(public_path('template/css/sge-theme-identities.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-desktop-themes.css') }}?v={{ filemtime(public_path('template/css/sge-desktop-themes.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-section-tabs.css') }}?v={{ filemtime(public_path('template/css/sge-section-tabs.css')) }}" rel="stylesheet">
+    <link href="{{ asset('template/css/sge-actions.css') }}?v={{ filemtime(public_path('template/css/sge-actions.css')) }}" rel="stylesheet">
     @livewireStyles
 </head>
 
@@ -442,10 +443,12 @@
     @include('layouts.partials.alert-details')
     @include('layouts.partials.highlighted-announcements')
     @include('layouts.partials.confirm-action')
+    <livewire:diary-alert-manager />
 
     <script src="{{ asset('template/vendor/jquery/jquery.min.js') }}"></script>
     <script src="{{ asset('template/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ asset('template/js/sge-confirm-modal.js') }}?v={{ filemtime(public_path('template/js/sge-confirm-modal.js')) }}"></script>
+    <script src="{{ asset('template/js/sge-diary-alerts.js') }}?v={{ filemtime(public_path('template/js/sge-diary-alerts.js')) }}"></script>
     <script src="{{ asset('template/vendor/jquery-easing/jquery.easing.min.js') }}"></script>
     <script src="{{ asset('template/js/sb-admin-2.min.js') }}"></script>
     @include('layouts.partials.table-scripts')

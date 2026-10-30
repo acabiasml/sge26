@@ -61,9 +61,9 @@
 
 @section('page-actions')
     @if ($canChooseScoreView)
-        <div class="btn-group btn-group-sm" role="group" aria-label="{{ __('Forma de visualização das notas') }}">
-            <a class="btn btn-{{ $scoreView === 'numeros' ? 'primary' : 'outline-primary' }}" href="{{ route('enrollments.report-card.show', ['enrollment' => $enrollment, 'notas' => 'numeros']) }}">{{ __('Números') }}</a>
-            <a class="btn btn-{{ $scoreView === 'conceitos' ? 'primary' : 'outline-primary' }}" href="{{ route('enrollments.report-card.show', ['enrollment' => $enrollment, 'notas' => 'conceitos']) }}">{{ __('Conceitos') }}</a>
+        <div class="sge-score-view-switch" role="group" aria-label="{{ __('Forma de visualização das notas') }}">
+            <a class="btn btn-sm btn-{{ $scoreView === 'numeros' ? 'primary' : 'outline-primary' }}" @if($scoreView === 'numeros') aria-current="page" @endif href="{{ route('enrollments.report-card.show', ['enrollment' => $enrollment, 'notas' => 'numeros']) }}">{{ __('Números') }}</a>
+            <a class="btn btn-sm btn-{{ $scoreView === 'conceitos' ? 'primary' : 'outline-primary' }}" @if($scoreView === 'conceitos') aria-current="page" @endif href="{{ route('enrollments.report-card.show', ['enrollment' => $enrollment, 'notas' => 'conceitos']) }}">{{ __('Conceitos') }}</a>
         </div>
     @endif
     @if(auth()->user()->canManageSchool($academicYear->school_id))

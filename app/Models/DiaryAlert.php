@@ -35,6 +35,15 @@ class DiaryAlert extends Model
         return $this->belongsTo(SchoolClass::class);
     }
 
+    public function canBeManagedBy(User $user): bool
+    {
+        $schoolId = $this->schoolClass?->academicYear?->school_id;
+
+        return $schoolId !== null && $user->person_id !== null
+            && (int) $this->from_person_id === (int) $user->person_id
+            && $user->canManageSchool($schoolId);
+    }
+
     public function component(): BelongsTo
     {
         return $this->belongsTo(CurriculumComponent::class, 'curriculum_component_id');
