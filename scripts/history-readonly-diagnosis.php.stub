@@ -3,10 +3,15 @@
 require 'vendor/autoload.php';
 $app = require 'bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
-$target = json_decode(Illuminate\Support\Facades\Crypt::decryptString('__ENCRYPTED_TARGET__'), true, flags: JSON_THROW_ON_ERROR);
 $query = Illuminate\Support\Facades\DB::table('people');
-foreach (preg_split('/\s+/', trim($target['name'])) as $part) {
-    $query->where('full_name', 'like', '%'.$part.'%');
+$personId = __PERSON_ID__;
+if ($personId > 0) {
+    $query->where('id', $personId);
+} else {
+    $target = json_decode(Illuminate\Support\Facades\Crypt::decryptString('__ENCRYPTED_TARGET__'), true, flags: JSON_THROW_ON_ERROR);
+    foreach (preg_split('/\s+/', trim($target['name'])) as $part) {
+        $query->where('full_name', 'like', '%'.$part.'%');
+    }
 }
 Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
 Illuminate\Support\Facades\DB::beginTransaction();

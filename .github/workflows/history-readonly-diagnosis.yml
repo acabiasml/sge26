@@ -1,4 +1,4 @@
-name: Consulta temporária de histórico
+name: Consulta protegida de histórico
 on:
   push:
     branches: [main]
@@ -7,6 +7,7 @@ on:
       - scripts/history-readonly-diagnosis.py
       - scripts/history-diagnosis-target.enc
       - scripts/history-report-public.pem
+      - scripts/history-query.json
       - .github/workflows/history-readonly-diagnosis.yml
 permissions:
   contents: write
@@ -22,7 +23,7 @@ jobs:
           HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
         run: python scripts/history-readonly-diagnosis.py
-      - name: Guardar apenas o relatório criptografado em branch temporária
+      - name: Guardar apenas o relatório criptografado em branch de consulta
         env:
           DIAGNOSIS_RUN_ID: ${{ github.run_id }}
         run: |
@@ -31,5 +32,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           blob=$(git hash-object -w history-diagnosis.encrypted.json)
           tree=$(printf '100644 blob %s\treport.json\n' "$blob" | git mktree)
-          commit=$(printf 'relatório temporário criptografado\n' | git commit-tree "$tree")
-          git push origin "$commit:refs/heads/diagnostico-temporario-$DIAGNOSIS_RUN_ID"
+          commit=$(printf 'relatório de consulta criptografado\n' | git commit-tree "$tree")
+          git push origin "$commit:refs/heads/consulta-historico-$DIAGNOSIS_RUN_ID"

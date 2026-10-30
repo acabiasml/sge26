@@ -1,4 +1,4 @@
-"""Temporary, narrowly scoped production read; only encrypted output leaves SSH."""
+"""Narrowly scoped production read; only encrypted output leaves SSH."""
 import base64
 import json
 import os
@@ -13,6 +13,11 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 def main():
     source = pathlib.Path('scripts/history-readonly-diagnosis.php.stub').read_text()
+    config = pathlib.Path('scripts/history-query.json')
+    person_id = json.loads(config.read_text())['person_id'] if config.exists() else 0
+    if type(person_id) is not int or person_id < 0:
+        raise ValueError('Identificador de pessoa inválido.')
+    source = source.replace('__PERSON_ID__', str(person_id))
     source = source.replace('__ENCRYPTED_TARGET__', pathlib.Path('scripts/history-diagnosis-target.enc').read_text().strip())
     with tempfile.TemporaryDirectory() as directory:
         hosts = pathlib.Path(directory) / 'known_hosts'

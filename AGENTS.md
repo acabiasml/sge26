@@ -1,5 +1,11 @@
 # Instruções operacionais do projeto
 
+## Consultas de dados em produção
+
+- Quando SSH/MySQL não estiverem acessíveis no ambiente local, use o workflow **Consulta protegida de histórico**, conforme [docs/consulta-producao.md](docs/consulta-producao.md).
+- Preserve esse caminho reutilizável de consulta pelo GitHub Actions. Mantenha os resultados criptografados e as chaves privadas somente fora do repositório.
+- Consultas de diagnóstico não autorizam alterações nos registros do estudante. Diferencie o estado efetivamente consultado de hipóteses reproduzidas em teste.
+
 ## Fluxo obrigatório para qualquer mudança de código
 
 - Toda alteração de código deve ser feita com confirmação explícita do objetivo, do escopo e do impacto esperado.
