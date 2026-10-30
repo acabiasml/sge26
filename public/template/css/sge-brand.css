@@ -2918,37 +2918,21 @@ a.sge-stat-card:focus {
 }
 
 .sge-sidebar-brand-mark {
-    position: relative;
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    flex: 0 0 48px;
+    flex: 0 0 56px;
 }
 
 .sge-sidebar-brand-mark img {
     display: block;
     width: auto !important;
-    height: 48px;
+    height: 56px;
     max-width: 100%;
     max-height: none;
     object-fit: contain;
-}
-
-@supports (mask-image: url('../../brand/logo.png')) or (-webkit-mask-image: url('../../brand/logo.png')) {
-    .sge-sidebar-brand-mark::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background-color: currentColor;
-        -webkit-mask: url('../../brand/logo.png') center / contain no-repeat;
-        mask: url('../../brand/logo.png') center / contain no-repeat;
-    }
-
-    .sge-sidebar-brand-mark img {
-        opacity: 0;
-    }
 }
 
 .sge-login-card {
