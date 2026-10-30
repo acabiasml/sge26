@@ -35,6 +35,7 @@ use App\Support\SchoolClassEnrollmentCourses;
 use App\Support\StudentAttendanceCertificateBuilder;
 use App\Support\StudentProgressSummary;
 use App\Support\StudentReportCardBuilder;
+use App\Support\UnifiedStudentHistorySynchronizer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -1071,7 +1072,7 @@ class TeacherDiaryTest extends TestCase
         ]);
         $report = app(StudentReportCardBuilder::class)->build($enrollment);
         $report['annualComponents'] = $report['annualComponents']->map(function ($summary) {
-            $summary['attendance'] = app(AttendanceSummaryCalculator::class)->fromTotals(8, 8, 0);
+            $summary['attendance'] = app(AttendanceSummaryCalculator::class)->fromTotals(8, 8, 0) + ['diary_attended_minutes' => 400];
 
             return $summary;
         });
@@ -1084,7 +1085,7 @@ class TeacherDiaryTest extends TestCase
         foreach (['123.456.789-01', '177607249507', '12345', '12345678901', '25/07/2013', 'estudante@example.org', 'estudante.demonstracao@ctjj.org', '78696-512', 'Nome Completo da Mãe do Estudante', 'Nome Completo do Pai do Estudante'] as $value) {
             $this->assertStringContainsString($value, $html);
         }
-        $this->assertMatchesRegularExpression('/67 h<\/td>\s*<td class="center">67 h<\/td>/', $html);
+        $this->assertMatchesRegularExpression('/67 h<\/td>\s*<td class="center">6,67 h<\/td>/', $html);
         $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
         $signatureBottom = 0;
         $signatureLineTop = INF;
@@ -3449,6 +3450,43 @@ class TeacherDiaryTest extends TestCase
             'class_date' => $outsideDate.' 00:00:00',
             'content' => 'Revisão do conteúdo do período.',
         ]);
+    }
+
+    public function test_completed_workload_is_recorded_presence_and_is_synchronized_to_history(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario(['closed_at' => now()]);
+        foreach ([['2026-03-11', 3, 2, 'parcial'], ['2026-03-12', 2, 0, 'justificada'], ['2026-03-13', 1, 0, 'falta']] as [$date, $lessons, $present, $status]) {
+            $record = DiaryAttendanceRecord::create([
+                'school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+                'academic_period_id' => $period->id, 'teacher_person_id' => $teacher->person_id,
+                'class_date' => $date, 'lesson_count' => $lessons,
+            ]);
+            $record->entries()->create(['student_enrollment_id' => $enrollment->id, 'status' => $status, 'attended_lessons' => $present]);
+        }
+        $report = app(StudentReportCardBuilder::class)->build($enrollment);
+        $attendance = $report['annualComponents']->first()['attendance'];
+        $this->assertSame(66.7, $attendance['percentage']);
+        $this->assertSame(100, $attendance['diary_attended_minutes']);
+        $this->assertSame(1.67, app(AttendanceSummaryCalculator::class)->completedWorkloadHours($attendance));
+
+        $history = app(UnifiedStudentHistorySynchronizer::class)->synchronize(
+            $enrollment->student, $year->school_id, $teacher->person_id, AcademicCourse::STAGE_HIGH_SCHOOL,
+        );
+        $historyYear = $history->years()->where('source', 'system')->firstOrFail();
+        $historyRecord = $historyYear->records()->firstOrFail();
+        $this->assertSame('160.00', $historyRecord->workload_hours);
+        $this->assertSame('1.67', $historyRecord->completed_workload_hours);
+        $this->assertSame(1.67, $historyRecord->completedWorkloadHours($historyYear));
+        $this->assertSame(1.67, $historyYear->completedWorkloadHours());
+
+        $document = new IssuedDocument(['issued_at' => now(), 'verification_code' => 'TESTE']);
+        $document->setRelation('issuedBy', null);
+        $data = ['report' => $report, 'scoreView' => 'numeros', 'issuedDocument' => $document,
+            'verificationUrl' => route('documents.verify', 'TESTE'), 'letterhead' => PdfLetterhead::make($year->school)];
+        foreach (['reports.student-individual-record', 'reports.student-report-card'] as $view) {
+            $html = View::make($view, $data)->render();
+            $this->assertMatchesRegularExpression('/160 h<\/td>\s*<td class="center">1,67 h<\/td>/', $html);
+        }
     }
 
     /**

@@ -233,7 +233,7 @@ class StudentReportCardBuilder
                         ->where('academic_period_id', $period->id)
                         ->where('curriculum_component_id', $component->id)
                         ->values();
-                    $attendanceSummary = $this->attendanceCalculator->summarize($componentAttendance, $justifications);
+                    $attendanceSummary = $this->attendanceCalculator->summarize($componentAttendance, $justifications, (int) $component->course?->class_hour_minutes);
 
                     if ($convalidation && (int) ($convalidation->attendance_lessons ?? 0) > 0) {
                         $attendanceSummary = $this->attendanceCalculator->aggregate(collect([

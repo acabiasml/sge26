@@ -235,6 +235,9 @@ class UnifiedStudentHistorySynchronizer
                     'workload_hours' => $stage === AcademicCourse::STAGE_TECHNICAL && $isInProgress && ! $moduleConcluded
                         ? null
                         : $this->historicalWorkloadHours($component),
+                    'completed_workload_hours' => $stage === AcademicCourse::STAGE_TECHNICAL && $isInProgress && ! $moduleConcluded
+                        ? null
+                        : app(AttendanceSummaryCalculator::class)->completedWorkloadHours($componentAttendance),
                     'frequency_label' => $componentPercentage !== null ? number_format((float) $componentPercentage, 2, ',', '.').'%' : null,
                     'frequency_percentage' => $componentPercentage,
                     'absences' => $componentAttendance['absent'] ?? null,

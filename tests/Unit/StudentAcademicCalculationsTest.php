@@ -4,6 +4,8 @@ namespace Tests\Unit;
 
 use App\Models\AcademicYear;
 use App\Models\CurriculumComponent;
+use App\Models\DiaryAttendanceEntry;
+use App\Models\DiaryAttendanceRecord;
 use App\Models\School;
 use App\Models\SchoolClass;
 use App\Models\StudentAcademicHistoryRecord;
@@ -16,18 +18,41 @@ use Tests\TestCase;
 
 class StudentAcademicCalculationsTest extends TestCase
 {
-    public function test_completed_hours_apply_relative_attendance_to_planned_hours(): void
+    public function test_completed_hours_use_only_recorded_presences_in_real_hours(): void
     {
         $calculator = new AttendanceSummaryCalculator;
-        $this->assertSame(67.0, $calculator->completedWorkloadHours(67, $calculator->fromTotals(8, 8, 0)));
-        $this->assertSame(60.9, $calculator->completedWorkloadHours(67, ['percentage' => 90.9]));
-        $this->assertSame(144.0, $calculator->completedWorkloadHours(160, $calculator->fromTotals(10, 7, 2)));
-        $this->assertSame(0.0, $calculator->completedWorkloadHours(160, ['percentage' => 0]));
-        $this->assertNull($calculator->completedWorkloadHours(160, ['percentage' => null]));
+        $record = new DiaryAttendanceRecord(['class_date' => '2026-03-11', 'lesson_count' => 8]);
+        $record->setRelation('entries', collect([new DiaryAttendanceEntry(['status' => 'presente', 'attended_lessons' => 8])]));
+        $summary = $calculator->summarize(collect([$record]), collect(), 50);
+        $this->assertSame(100.0, $summary['percentage']);
+        $this->assertSame(6.67, $calculator->completedWorkloadHours($summary));
+        $this->assertNull($calculator->completedWorkloadHours(['percentage' => 100]));
+        $this->assertSame(0.0, $calculator->completedWorkloadHours($calculator->summarize(collect(), collect(), 50)));
+        $this->assertNull($calculator->completedWorkloadHours($calculator->summarize(collect([$record]), collect(), 0)));
 
-        $record = new StudentAcademicHistoryRecord(['workload_hours' => 160, 'frequency_percentage' => 90]);
-        $this->assertSame(144.0, $record->completedWorkloadHours(new StudentAcademicHistoryYear(['source' => 'system'])));
+        $record->entries->first()->fill(['status' => 'justificada', 'attended_lessons' => 2]);
+        $summary = $calculator->summarize(collect([$record]), collect(), 50);
+        $this->assertSame(100.0, $summary['percentage']);
+        $this->assertSame(1.67, $calculator->completedWorkloadHours($summary));
+        $record->entries->first()->attended_lessons = 0;
+        $this->assertSame(0.0, $calculator->completedWorkloadHours($calculator->summarize(collect([$record]), collect(), 50)));
+
+        $record = new StudentAcademicHistoryRecord(['workload_hours' => 160, 'frequency_percentage' => 90, 'completed_workload_hours' => 1.67]);
+        $this->assertSame(1.67, $record->completedWorkloadHours(new StudentAcademicHistoryYear(['source' => 'system'])));
         $this->assertSame(160.0, $record->completedWorkloadHours(new StudentAcademicHistoryYear(['source' => 'external'])));
+    }
+
+    public function test_attendance_aggregation_keeps_original_diary_minutes_separate_from_imported_attendance(): void
+    {
+        $calculator = new AttendanceSummaryCalculator;
+        $summary = $calculator->aggregate(collect([
+            $calculator->fromTotals(1, 1, 0) + ['diary_attended_minutes' => 40],
+            $calculator->fromTotals(2, 2, 0) + ['diary_attended_minutes' => 100],
+            $calculator->fromTotals(200, 200, 0),
+        ]));
+        $this->assertSame(100.0, $summary['percentage']);
+        $this->assertSame(140, $summary['diary_attended_minutes']);
+        $this->assertSame(2.33, $calculator->completedWorkloadHours($summary));
     }
 
     public function test_closed_enrollment_does_not_display_as_enrolled_or_in_progress(): void

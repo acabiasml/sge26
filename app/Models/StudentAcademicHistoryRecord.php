@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Support\AttendanceSummaryCalculator;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +16,7 @@ class StudentAcademicHistoryRecord extends Model
         'score_label',
         'score_numeric',
         'workload_hours',
+        'completed_workload_hours',
         'frequency_label',
         'frequency_percentage',
         'absences',
@@ -28,6 +28,7 @@ class StudentAcademicHistoryRecord extends Model
         return [
             'score_numeric' => 'decimal:2',
             'workload_hours' => 'decimal:2',
+            'completed_workload_hours' => 'decimal:2',
             'frequency_percentage' => 'decimal:2',
             'absences' => 'integer',
         ];
@@ -40,15 +41,11 @@ class StudentAcademicHistoryRecord extends Model
 
     public function completedWorkloadHours(?StudentAcademicHistoryYear $year = null): ?float
     {
-        if ($this->workload_hours === null) {
-            return null;
-        }
-
         $year ??= $this->year;
 
         return $year?->source === 'system'
-            ? app(AttendanceSummaryCalculator::class)->completedWorkloadHours((float) $this->workload_hours, ['percentage' => $this->frequency_percentage])
-            : (float) $this->workload_hours;
+            ? ($this->completed_workload_hours !== null ? (float) $this->completed_workload_hours : null)
+            : ($this->workload_hours !== null ? (float) $this->workload_hours : null);
     }
 
     public function year(): BelongsTo
