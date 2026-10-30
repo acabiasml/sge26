@@ -81,26 +81,33 @@
     z-index: 1;
 }
 
-/* A marca ocupa uma faixa contínua, sem caixa ou efeitos sobre a imagem. */
-#accordionSidebar .sge-sidebar-header {
-    width: calc(100% + 1rem) !important;
-    margin-inline: -.5rem;
-    margin-top: -.7rem;
-    padding: .7rem .5rem 0;
-    background: #fffaf1;
-}
 #accordionSidebar .sge-sidebar-header .sidebar-brand {
-    color: #6b3d2e;
+    min-height: 4.5rem;
     background: transparent;
     border: 0;
     border-radius: 0;
     box-shadow: none;
     margin-bottom: 0;
 }
-#accordionSidebar .sge-sidebar-close {
-    background: transparent;
-    color: #6b3d2e;
-    box-shadow: none;
+.sge-page-brand {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    min-width: 0;
+}
+.sge-page-brand > img {
+    display: block;
+    width: auto;
+    height: 4.75rem;
+    flex-shrink: 0;
+    object-fit: contain;
+}
+.sge-page-brand .sge-page-kicker {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+html[data-theme$="-dark"] .sge-page-brand > img {
+    filter: brightness(1.6);
 }
 @media (min-width: 992px) {
     .sge-sidebar-shell {
@@ -179,10 +186,9 @@
     #accordionSidebar,
     #accordionSidebar.toggled { width: min(18rem, 88vw) !important; }
     .sge-sidebar-header { position: sticky; top: 0; z-index: 1; }
-    #accordionSidebar .sge-sidebar-header {
-        width: calc(100% + .7rem) !important;
-        margin-inline: -.35rem;
-        padding-inline: .35rem;
-    }
     #accordionSidebar .sidebar-brand { padding-right: 3.5rem; }
+}
+@media (max-width: 575.98px) {
+    .sge-page-brand { gap: .9rem; }
+    .sge-page-brand > img { height: 4rem; }
 }

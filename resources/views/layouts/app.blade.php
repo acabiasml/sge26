@@ -38,9 +38,6 @@
         <nav class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar" aria-label="{{ __('navigation.main_menu') }}">
             <div class="sge-sidebar-header">
                 <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ route('dashboard') }}">
-                    <div class="sidebar-brand-icon sge-sidebar-brand-mark">
-                        <img class="sge-brand-logo-sm" src="{{ asset('brand/logo.png') }}" width="642" height="840" alt="{{ config('app.name', 'Beabá') }}" decoding="async">
-                    </div>
                     <div class="sidebar-brand-text mx-3">Beabá</div>
                 </a>
                 <button id="sidebarCloseControl" class="btn sge-sidebar-close" type="button" aria-label="{{ __('navigation.close_sidebar') }}" title="{{ __('navigation.close_sidebar') }}">
@@ -396,9 +393,12 @@
 
                 <main id="main-content" class="container-fluid" tabindex="-1">
                     <div class="sge-page-header d-sm-flex align-items-center justify-content-between mb-4">
-                        <div>
+                        <div class="sge-page-brand">
+                            <img src="{{ asset('brand/logo.png') }}" width="642" height="840" alt="" decoding="async">
+                            <div>
                             <div class="sge-page-kicker">Beabá</div>
                             <h1 class="h3 mb-0 text-gray-800">@yield('page-title', __('navigation.home'))</h1>
+                            </div>
                         </div>
                         <div class="d-flex align-items-center sge-page-actions">
                             @yield('page-actions')
