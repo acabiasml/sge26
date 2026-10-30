@@ -61,6 +61,7 @@ class DashboardShortcuts
                     'url' => route('academic-years.periods.index', $year), 'icon' => 'fa-calendar-check',
                     'label' => __('Períodos').' · '.$year->school->name,
                     'description' => $year->name.' · '.$year->referenceYearsLabel(),
+                    'context' => $year->name.' · '.$year->referenceYearsLabel(),
                 ]);
         }
 

@@ -24,10 +24,7 @@
     <section class="sge-document-hub-hero mb-4" aria-labelledby="document-hub-title">
         <div>
             <span class="sge-eyebrow">{{ __('Documentos oficiais') }}</span>
-            <h2 id="document-hub-title">{{ __('Encontre e emita sem percorrer todo o sistema') }}</h2>
-            <p>
-                {{ __('Escolha o documento e localize a pessoa, matrícula, turma ou ano letivo. A emissão mantém o papel timbrado correspondente, o código de autenticidade e as regras de acesso da escola.') }}
-            </p>
+            <h2 id="document-hub-title">{{ __('Emitir documento') }}</h2>
         </div>
         <div role="group" class="sge-document-hub-summary" aria-label="{{ __('Resumo da central') }}">
             <strong>{{ $typeCount }}</strong>

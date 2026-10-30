@@ -8,7 +8,7 @@
                             <a class="nav-link {{ $tab === 'all' ? 'active' : '' }}" wire:click.prevent="selectFilter('visibility', 'all')" href="{{ route('official-documents.create', ['visibility' => 'all']) }}" @if ($tab === 'all') aria-current="page" @endif>{{ __('Todos') }}</a>
                         @endif
                     </nav>
-                    <p class="small text-muted">{{ __('Reeditar cria uma nova emissão; reemitir abre o PDF original.') }}</p>
+
                     <ul class="list-unstyled mb-2">
                     @forelse ($recentDocuments as $document)
                         <li class="border-bottom pb-3 mb-3">
@@ -30,13 +30,13 @@
                             @endif
                             <div class="sge-action-buttons justify-content-start sge-official-actions" role="group" aria-label="{{ __('Ações para :title', ['title' => $document->title]) }}">
                                 @if ($document->issuedDocument)
-                                    <a class="btn btn-sm btn-outline-secondary" href="{{ route('official-documents.reissue', $document) }}" target="_blank" rel="noopener" aria-label="{{ __('Reemitir PDF de :title em nova aba', ['title' => $document->title]) }}" title="{{ __('Reemitir PDF') }}">
-                                        <i class="fas fa-print" aria-hidden="true"></i> {{ __('Reemitir') }}
+                                    <a class="btn btn-sm btn-outline-secondary" href="{{ route('official-documents.reissue', $document) }}" target="_blank" rel="noopener" aria-label="{{ __('Abrir PDF de :title em nova aba', ['title' => $document->title]) }}" title="{{ __('Abrir PDF') }}">
+                                        <i class="fas fa-print" aria-hidden="true"></i> {{ __('Abrir PDF') }}
                                     </a>
                                 @endif
                                 @if (auth()->user()->canManageSchool($document->school_id))
-                                    <a class="btn btn-sm btn-outline-primary" href="{{ route('official-documents.edit', $document) }}" aria-label="{{ __('Reeditar :title', ['title' => $document->title]) }}" title="{{ __('Reeditar') }}">
-                                        <i class="fas fa-edit" aria-hidden="true"></i> {{ __('Reeditar') }}
+                                    <a class="btn btn-sm btn-outline-primary" href="{{ route('official-documents.edit', $document) }}" aria-label="{{ __('Editar cópia de :title', ['title' => $document->title]) }}" title="{{ __('Editar cópia') }}">
+                                        <i class="fas fa-edit" aria-hidden="true"></i> {{ __('Editar cópia') }}
                                     </a>
                                 @endif
                                 @if (auth()->user()->isAdministrator())

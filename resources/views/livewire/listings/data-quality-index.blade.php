@@ -67,7 +67,7 @@
         <div>
             <span class="sge-eyebrow">Beabá</span>
             <h2 id="quality-title">{{ __('screens.compliance_center') }}</h2>
-            <p>{{ __('screens.compliance_intro') }}</p>
+
         </div>
         <div class="sge-quality-actions">
             <a target="_blank" rel="noopener" class="btn btn-outline-primary" href="{{ route('data-quality.pdf', $filterQuery) }}">
@@ -101,7 +101,7 @@
         <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
             <div class="mb-3 mb-lg-0">
                 <h2 class="h5 font-weight-bold text-gray-900 mb-1">{{ __('screens.review_filters') }}</h2>
-                <p class="text-gray-700 mb-0">{{ __('screens.review_scope_help') }}</p>
+
             </div>
 
             <form wire:submit="applyFilters" method="GET" action="{{ route('data-quality.index') }}" class="form-inline" aria-label="{{ __('screens.compliance_filters') }}">
@@ -148,7 +148,7 @@
         <div class="d-flex justify-content-between align-items-end flex-wrap mb-3">
             <div>
                 <h2 id="workflow-title" class="h5 font-weight-bold text-gray-900 mb-1">{{ __('screens.tracked_workflows') }}</h2>
-                <p class="text-gray-700 mb-0">{{ __('screens.workflow_help') }}</p>
+
             </div>
         </div>
         <div class="sge-workflow-grid">
@@ -157,7 +157,6 @@
                     <span class="sge-workflow-icon"><i class="fas {{ $workflow['icon'] }}" aria-hidden="true"></i></span>
                     <span>
                         <strong>{{ __($workflow['title']) }}</strong>
-                        <small>{{ __($workflow['description']) }}</small>
                     </span>
                     <em>{{ number_format($workflow['count'], 0, ',', '.') }}</em>
                 </a>

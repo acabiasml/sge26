@@ -77,9 +77,9 @@
     </div>
 
     <nav class="sge-section-nav mb-4" aria-label="{{ __('Seções da conferência de fechamento') }}" role="tablist" data-section-tabs data-default-tab="conferencia">
-        <a class="sge-section-nav-item" href="#section-conferencia" data-academic-tab="conferencia" role="tab"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>{{ __('Conferência') }}</span><small>{{ __('pendências do fechamento') }}</small></a>
-        <a class="sge-section-nav-item" href="#section-periodos" data-academic-tab="periodos" role="tab"><i class="fas fa-calendar-alt" aria-hidden="true"></i><span>{{ __('Períodos') }}</span><small>{{ __('consolidação avaliativa') }}</small></a>
-        <a class="sge-section-nav-item" href="#section-turmas" data-academic-tab="turmas" role="tab"><i class="fas fa-users" aria-hidden="true"></i><span>{{ __('Turmas e resultados') }}</span><small>{{ __('situação final') }}</small></a>
+        <a class="sge-section-nav-item" href="#section-conferencia" data-academic-tab="conferencia" role="tab"><i class="fas fa-clipboard-check" aria-hidden="true"></i><span>{{ __('Conferência') }}</span></a>
+        <a class="sge-section-nav-item" href="#section-periodos" data-academic-tab="periodos" role="tab"><i class="fas fa-calendar-alt" aria-hidden="true"></i><span>{{ __('Períodos') }}</span></a>
+        <a class="sge-section-nav-item" href="#section-turmas" data-academic-tab="turmas" role="tab"><i class="fas fa-users" aria-hidden="true"></i><span>{{ __('Turmas e resultados') }}</span></a>
     </nav>
 
     <div id="section-conferencia" role="tabpanel" data-academic-panel="conferencia">

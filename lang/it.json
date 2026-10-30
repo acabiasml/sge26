@@ -2699,5 +2699,13 @@
     "Detalhes e pendências": "Dettagli ed elementi mancanti",
     "Pesquisar nesta listagem": "Cerca in questo elenco",
     "Digite para pesquisar": "Digita per cercare",
-    "Pesquisando…": "Ricerca in corso…"
+    "Pesquisando…": "Ricerca in corso…",
+    "Ajuda do editor": "Guida dell’editor",
+    "Abrir PDF": "Apri PDF",
+    "Abrir PDF de :title em nova aba": "Apri il PDF di :title in una nuova scheda",
+    "Editar cópia": "Modifica copia",
+    "Editar cópia de :title": "Modifica una copia di :title",
+    "Editar cópia do documento": "Modifica copia del documento",
+    "Dados do histórico": "Dati dello storico",
+    "Emitir documento": "Emetti documento"
 }

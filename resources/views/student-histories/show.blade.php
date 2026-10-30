@@ -89,7 +89,7 @@
 
     <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="{{ __('Áreas do histórico escolar') }}" role="tablist" data-section-tabs>
         <a href="#section-componentes" class="sge-section-nav-item" data-academic-tab="componentes" role="tab"><i class="fas fa-book-open"></i><span>{{ __('Componentes') }}</span><small>{{ $history->components->count() }} {{ __('linhas') }}</small></a>
-        <a href="#section-informacoes" class="sge-section-nav-item" data-academic-tab="informacoes" role="tab"><i class="fas fa-file-alt"></i><span>{{ __('Informações') }}</span><small>{{ __('dados e estudos realizados') }}</small></a>
+        <a href="#section-informacoes" class="sge-section-nav-item" data-academic-tab="informacoes" role="tab"><i class="fas fa-file-alt"></i><span>{{ __('Dados do histórico') }}</span></a>
     </nav>
 
     <div class="row">
@@ -98,7 +98,7 @@
                 <div class="sge-panel-header">
                     <div>
                         <h2>{{ __('Componentes curriculares') }}</h2>
-                        <p>{{ __('Resultado preservado conforme o documento recebido da escola de origem.') }}</p>
+
                     </div>
                 </div>
                 @if($history->education_stage === \App\Models\AcademicCourse::STAGE_TECHNICAL)
@@ -172,7 +172,7 @@
                 <div class="sge-panel-header">
                     <div>
                         <h2>{{ __('Dados gerais') }}</h2>
-                        <p>{{ __('Informações usadas na emissão do documento.') }}</p>
+
                     </div>
                 </div>
                 <div class="card-body">
@@ -191,7 +191,7 @@
                 <div class="sge-panel-header">
                     <div>
                         <h2>{{ __('Estudos realizados') }}</h2>
-                        <p>{{ __('Origem de cada coluna do histórico.') }}</p>
+
                     </div>
                 </div>
                 <div class="card-body">

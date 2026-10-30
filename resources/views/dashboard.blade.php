@@ -43,7 +43,6 @@
                     'url' => route('people.index'),
                 ],
         ];
-        $dashboardIntroduction = __('dashboard.manager_intro');
     } elseif ($dashboardUser->hasActiveRole(\App\Models\PersonSchoolRole::ROLE_TEACHER) || $dashboardUser->hasTeachingDiaries()) {
         $dashboardShortcuts = [
             [
@@ -71,7 +70,6 @@
                 'url' => route('dashboard').'#calendar-heading',
             ],
         ];
-        $dashboardIntroduction = __('dashboard.teacher_intro');
     } elseif ($dashboardUser->hasStudentMap()) {
         $dashboardShortcuts = [
             [
@@ -99,7 +97,6 @@
                 'url' => route('dashboard').'#calendar-heading',
             ],
         ];
-        $dashboardIntroduction = __('dashboard.student_intro');
     } else {
         $dashboardShortcuts = [
             [
@@ -115,7 +112,6 @@
                 'url' => route('dashboard').'#calendar-heading',
             ],
         ];
-        $dashboardIntroduction = __('dashboard.other_intro');
     }
 
     $studentCount = $roleCounts[\App\Models\PersonSchoolRole::ROLE_STUDENT] ?? 0;
@@ -140,7 +136,6 @@
         <div class="sge-dashboard-hero-content">
             <div class="sge-page-kicker">{{ __('dashboard.tracking_panel') }}</div>
             <h2 id="dashboard-title">{{ __('dashboard.hello', ['name' => $dashboardFirstName]) }}</h2>
-            <p>{{ $dashboardIntroduction }}</p>
         </div>
         <div role="group" class="sge-dashboard-date" aria-label="{{ __('dashboard.date_brasilia') }}">
             <span>{{ now('America/Sao_Paulo')->translatedFormat(app()->getLocale() === 'it' ? 'd F' : 'd \d\e F') }}</span>
@@ -150,9 +145,8 @@
 
     <div class="mb-3">
         <h2 id="dashboard-quick-access-title" class="h5 mb-1">{{ __('Acesso rápido') }}</h2>
-        <p id="dashboard-quick-access-description" class="small text-muted mb-0">{{ __('Atalhos atualizados automaticamente conforme suas ações recentes e os serviços mais usados pelo seu perfil.') }}</p>
     </div>
-    <nav class="sge-dashboard-shortcuts mb-4" aria-labelledby="dashboard-quick-access-title" aria-describedby="dashboard-quick-access-description">
+    <nav class="sge-dashboard-shortcuts mb-4" aria-labelledby="dashboard-quick-access-title">
         @foreach ($dashboardShortcuts as $shortcut)
             <a class="sge-dashboard-shortcut" href="{{ $shortcut['url'] }}">
                 <span class="sge-dashboard-shortcut-icon" aria-hidden="true">
@@ -160,7 +154,7 @@
                 </span>
                 <span class="sge-dashboard-shortcut-copy">
                     <strong>{{ $shortcut['label'] }}</strong>
-                    <small>{{ $shortcut['description'] }}</small>
+                    @if(!empty($shortcut['context']))<small>{{ $shortcut['context'] }}</small>@endif
                 </span>
                 <i class="fas fa-chevron-right sge-dashboard-shortcut-arrow" aria-hidden="true"></i>
             </a>
@@ -240,7 +234,7 @@
             <div class="card-header sge-panel-header">
                 <div>
                     <h2 id="teacher-diaries-heading">{{ __('dashboard.my_current_diaries') }}</h2>
-                    <p>{{ __('dashboard.current_diaries_help') }}</p>
+
                 </div>
                 <a class="btn btn-sm btn-outline-primary" href="{{ route('teacher-diaries.index') }}">{{ __('dashboard.view_all_diaries') }}</a>
             </div>
@@ -466,7 +460,7 @@
             <div class="card-header sge-panel-header">
                 <div>
                     <h2 id="students-school-heading">{{ __('dashboard.students_by_school') }}</h2>
-                    <p>{{ __('dashboard.students_by_school_help') }}</p>
+
                 </div>
             </div>
             <div class="card-body">

@@ -23,7 +23,7 @@
 
 @section('content')
     <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="{{ __('Áreas do diário') }}" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() && $period ? 'notas' : 'resumo' }}">
-        <a href="#section-resumo" class="sge-section-nav-item" data-academic-tab="resumo" role="tab"><i class="fas fa-clipboard-list"></i><span>{{ __('Resumo') }}</span><small>{{ __('turma e período') }}</small></a>
+        <a href="#section-resumo" class="sge-section-nav-item" data-academic-tab="resumo" role="tab"><i class="fas fa-clipboard-list"></i><span>{{ __('Resumo') }}</span></a>
         @if($period)
             <a href="#section-situacao" class="sge-section-nav-item" data-academic-tab="situacao" role="tab"><i class="fas fa-check-circle"></i><span>{{ __('Situação') }}</span><small>{{ $confirmation?->confirmed ? __('confirmado') : __('em lançamento') }}</small></a>
             <a href="#section-frequencia" class="sge-section-nav-item" data-academic-tab="frequencia" role="tab"><i class="fas fa-clipboard-check"></i><span>{{ __('Frequência') }}</span><small>{{ $attendanceRecords->sum('lesson_count') }} {{ __('chamadas') }}</small></a>

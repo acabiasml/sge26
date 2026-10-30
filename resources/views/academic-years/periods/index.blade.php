@@ -16,9 +16,9 @@
     @php($behaviorClasses = $behaviorEnrollments->pluck('schoolClass')->filter()->unique('id')->sortBy(fn ($class) => mb_strtolower(\Illuminate\Support\Str::ascii($class->name))))
 
     <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="{{ __('Áreas dos períodos avaliativos') }}" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? 'novo' : 'periodos' }}">
-        <a href="#section-contexto" class="sge-section-nav-item" data-academic-tab="contexto" role="tab"><i class="fas fa-info-circle"></i><span>{{ __('Contexto') }}</span><small>{{ $periods->count() }} {{ __('períodos') }}</small></a>
-        <a href="#section-novo" class="sge-section-nav-item" data-academic-tab="novo" role="tab"><i class="fas fa-plus-circle"></i><span>{{ __('Novo período') }}</span><small>{{ __('datas e dias letivos') }}</small></a>
-        <a href="#section-periodos" class="sge-section-nav-item" data-academic-tab="periodos" role="tab"><i class="fas fa-layer-group"></i><span>{{ __('Períodos') }}</span><small>{{ __('avaliações e fechamento') }}</small></a>
+        <a href="#section-contexto" class="sge-section-nav-item" data-academic-tab="contexto" role="tab"><i class="fas fa-info-circle"></i><span>{{ __('Dados do ano letivo') }}</span><small>{{ $periods->count() }} {{ __('períodos') }}</small></a>
+        <a href="#section-novo" class="sge-section-nav-item" data-academic-tab="novo" role="tab"><i class="fas fa-plus-circle"></i><span>{{ __('Novo período') }}</span></a>
+        <a href="#section-periodos" class="sge-section-nav-item" data-academic-tab="periodos" role="tab"><i class="fas fa-layer-group"></i><span>{{ __('Períodos') }}</span></a>
     </nav>
 
     <div class="row">
@@ -35,7 +35,7 @@
                         <div><strong>{{ $periods->sum(fn ($period) => $period->assessmentRules->count()) }}</strong><span>{{ __('regras de avaliação') }}</span></div>
                         <div><strong>{{ $periods->filter(fn ($period) => $period->diaryConsolidation?->consolidated)->count() }}/{{ $periods->count() }}</strong><span>{{ __('períodos consolidados') }}</span></div>
                     </div>
-                    <p class="small mb-0">{{ __('Cada período reúne as datas letivas, as regras de avaliação e o fechamento dos diários.') }}</p>
+
                 </div>
             </section>
         </div>

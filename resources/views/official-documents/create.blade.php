@@ -9,7 +9,7 @@
         <div class="col-xl-8 mb-4">
             <div class="card shadow">
                 <div class="card-header py-3">
-                    <h2 class="h6 m-0 font-weight-bold text-primary">{{ $sourceDocument ? __('Reeditar documento em papel timbrado') : __('Novo documento em papel timbrado') }}</h2>
+                    <h2 class="h6 m-0 font-weight-bold text-primary">{{ $sourceDocument ? __('Editar cópia do documento') : __('Novo documento em papel timbrado') }}</h2>
                 </div>
                 <div class="card-body">
                     @if ($sourceDocument)
@@ -67,7 +67,10 @@
 
                         <div class="form-group">
                             <label for="content_html">{{ __('Conteúdo') }}</label>
-                            <p id="editor-help" class="small text-muted">{{ __('Insira tabelas e imagens pela barra de ferramentas. Clique numa tabela para editar linhas e colunas; clique numa imagem para redimensionar ou remover.') }}</p>
+                            <details class="small mb-2">
+                                <summary class="text-primary">{{ __('Ajuda do editor') }}</summary>
+                                <p id="editor-help" class="text-muted mt-2">{{ __('Insira tabelas e imagens pela barra de ferramentas. Clique numa tabela para editar linhas e colunas; clique numa imagem para redimensionar ou remover.') }}</p>
+                            </details>
                             <textarea id="content_html" name="content_html" class="form-control" aria-describedby="editor-help" aria-label="{{ __('Formatação do conteúdo') }}">{{ $editorContent }}</textarea>
                             <p id="editor-feedback" class="small text-danger mt-2" role="alert" hidden></p>
                             @error('content_html') <div class="invalid-feedback d-block">{{ __($message) }}</div> @enderror

@@ -4,7 +4,7 @@
     <div>
         <div class="sge-page-kicker">{{ __('screens.school_life') }}</div>
         <h1 class="h3 mb-0 text-gray-800">{{ __('screens.school_histories') }}</h1>
-        <p class="mb-0 text-muted">{{ __('screens.history_intro') }}</p>
+
     </div>
 </div>
 <div class="card shadow mb-4"><div class="card-body">

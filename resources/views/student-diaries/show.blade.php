@@ -33,7 +33,7 @@
     </section>
 
     <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="{{ __('Áreas do diário do estudante') }}" role="tablist" data-section-tabs>
-        <a href="#section-conceitos" class="sge-section-nav-item" data-academic-tab="conceitos" role="tab"><i class="fas fa-star-half-alt"></i><span>{{ __('Conceitos') }}</span><small>{{ __('notas e comportamento') }}</small></a>
+        <a href="#section-conceitos" class="sge-section-nav-item" data-academic-tab="conceitos" role="tab"><i class="fas fa-star-half-alt"></i><span>{{ __('Conceitos') }}</span></a>
         <a href="#section-frequencia" class="sge-section-nav-item" data-academic-tab="frequencia" role="tab"><i class="fas fa-clipboard-check"></i><span>{{ __('Frequência') }}</span><small>{{ $attendance->count() }} {{ __('chamadas') }}</small></a>
         <a href="#section-conteudos" class="sge-section-nav-item" data-academic-tab="conteudos" role="tab"><i class="fas fa-book"></i><span>{{ __('Conteúdos') }}</span><small>{{ $contents->count() }} {{ __('registros') }}</small></a>
     </nav>

@@ -34,8 +34,8 @@
         <div class="alert alert-info" role="status">{{ __('Consulta de matrículas de turma ou ano letivo encerrado/inativo. Novas matrículas e movimentações não estão disponíveis.') }}</div>
     @endunless
     <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="{{ __('Áreas das matrículas') }}" role="tablist" data-section-tabs data-default-tab="{{ $canManageEnrollments && $errors->any() ? 'nova' : 'matriculas' }}">
-        <a href="#section-contexto" class="sge-section-nav-item" data-academic-tab="contexto" role="tab"><i class="fas fa-info-circle"></i><span>{{ __('Contexto') }}</span><small>{{ __('turma e matrizes') }}</small></a>
-        @if($canManageEnrollments)<a href="#section-nova" class="sge-section-nav-item" data-academic-tab="nova" role="tab"><i class="fas fa-user-plus"></i><span>{{ __('Nova matrícula') }}</span><small>{{ __('incluir estudante') }}</small></a>@endif
+        <a href="#section-contexto" class="sge-section-nav-item" data-academic-tab="contexto" role="tab"><i class="fas fa-info-circle"></i><span>{{ __('Contexto') }}</span></a>
+        @if($canManageEnrollments)<a href="#section-nova" class="sge-section-nav-item" data-academic-tab="nova" role="tab"><i class="fas fa-user-plus"></i><span>{{ __('Nova matrícula') }}</span></a>@endif
         <a href="#section-matriculas" class="sge-section-nav-item" data-academic-tab="matriculas" role="tab"><i class="fas fa-user-graduate"></i><span>{{ __('Matrículas') }}</span><small>{{ $class->enrollments->count() }} {{ __('estudantes') }}</small></a>
     </nav>
 

@@ -17,7 +17,7 @@
                 <div class="card-body">
                     <div class="sge-context-school-mark"><i class="fas fa-school" aria-hidden="true"></i></div>
                     <h3 class="h6 font-weight-bold mb-1">{{ $academicYear->school?->name }}</h3>
-                    <p class="small text-muted mb-4">{{ __('screens.calendar_scope_help') }}</p>
+
                     <dl class="mb-0">
                         <dt>{{ __('screens.current_period') }}</dt>
                         <dd>{{ $academicYear->starts_at?->format('d/m/Y') }} {{ __('a') }} {{ $academicYear->ends_at?->format('d/m/Y') }}</dd>
@@ -33,7 +33,7 @@
             <section class="card shadow sge-academic-edit-card" aria-labelledby="academic-edit-title">
                 <div class="card-header py-3"><h2 id="academic-edit-title" class="h6 m-0 font-weight-bold text-primary">{{ __('screens.school_year_data') }}</h2></div>
                 <div class="card-body">
-                    <p class="text-muted mb-4">{{ __('screens.school_year_edit_help') }}</p>
+
                     <form method="POST" action="{{ route('academic-years.update', $academicYear) }}">
                         @include('academic-years._form', ['school' => $academicYear->school])
                     </form>

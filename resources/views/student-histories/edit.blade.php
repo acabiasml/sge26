@@ -15,7 +15,7 @@
 @section('content')
     <div class="sge-history-editor-context mb-4">
         <div><span class="sge-page-kicker">{{ $history->stage ?: __('Histórico escolar') }}</span><h2>{{ $person->full_name }}</h2></div>
-        <p>{{ __('Confira os anos cursados e abra as notas quando precisar.') }}</p>
+
     </div>
     @if($history->is_unified)
         <p class="text-muted mb-4"><i class="fas fa-lock mr-1" aria-hidden="true"></i>{{ __('Edite aqui os anos de outras escolas. Os anos das nossas escolas são calculados pelo sistema e aparecem para consulta ao final.') }}</p>

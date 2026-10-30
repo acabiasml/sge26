@@ -24,8 +24,8 @@
 
 @section('content')
     <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="{{ __('Áreas do componente curricular') }}" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? 'edicao' : 'resumo' }}">
-        <a href="#section-resumo" class="sge-section-nav-item" data-academic-tab="resumo" role="tab"><i class="fas fa-clipboard-list"></i><span>{{ __('Resumo') }}</span><small>{{ __('dados do componente') }}</small></a>
-        <a href="#section-edicao" class="sge-section-nav-item" data-academic-tab="edicao" role="tab"><i class="fas fa-pen"></i><span>{{ __('Edição') }}</span><small>{{ __('configuração curricular') }}</small></a>
+        <a href="#section-resumo" class="sge-section-nav-item" data-academic-tab="resumo" role="tab"><i class="fas fa-clipboard-list"></i><span>{{ __('Resumo') }}</span></a>
+        <a href="#section-edicao" class="sge-section-nav-item" data-academic-tab="edicao" role="tab"><i class="fas fa-pen"></i><span>{{ __('Edição') }}</span></a>
     </nav>
 
     <div class="row">

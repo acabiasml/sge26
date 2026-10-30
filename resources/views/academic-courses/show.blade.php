@@ -29,8 +29,8 @@
     <x-structure-validation :issues="$structureIssues" title="{{ __('Validação da matriz') }}" empty="{{ __('Matriz sem inconsistências estruturais.') }}" />
 
     <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="{{ __('Áreas da matriz curricular') }}" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? 'adicionar' : 'resumo' }}">
-        <a href="#section-resumo" class="sge-section-nav-item" data-academic-tab="resumo" role="tab"><i class="fas fa-clipboard-list"></i><span>{{ __('Resumo') }}</span><small>{{ __('dados da matriz') }}</small></a>
-        <a href="#section-adicionar" class="sge-section-nav-item" data-academic-tab="adicionar" role="tab"><i class="fas fa-plus-circle"></i><span>{{ __('Adicionar') }}</span><small>{{ __('novo componente') }}</small></a>
+        <a href="#section-resumo" class="sge-section-nav-item" data-academic-tab="resumo" role="tab"><i class="fas fa-clipboard-list"></i><span>{{ __('Resumo') }}</span></a>
+        <a href="#section-adicionar" class="sge-section-nav-item" data-academic-tab="adicionar" role="tab"><i class="fas fa-plus-circle"></i><span>{{ __('Adicionar') }}</span></a>
         <a href="#section-componentes" class="sge-section-nav-item" data-academic-tab="componentes" role="tab"><i class="fas fa-book-open"></i><span>{{ __('Componentes') }}</span><small>{{ $course->components->count() }} {{ __('cadastrados') }}</small></a>
     </nav>
 

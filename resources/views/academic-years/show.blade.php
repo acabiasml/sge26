@@ -91,7 +91,7 @@
         <a href="#section-gestao" class="sge-section-nav-item" data-academic-tab="gestao" role="tab" aria-controls="section-gestao">
             <i class="fas fa-tasks"></i>
             <span>{{ __('Gestão') }}</span>
-            <small>{{ __('períodos e fechamento') }}</small>
+
         </a>
         <a href="#section-calendario" class="sge-section-nav-item" data-academic-tab="calendario" role="tab" aria-controls="section-calendario">
             <i class="fas fa-calendar-alt"></i>
@@ -176,9 +176,9 @@
             <div class="card shadow">
                 <div class="card-header py-3"><h2 class="h6 m-0 font-weight-bold text-primary">{{ __('Gestão acadêmica') }}</h2></div>
                 <div class="card-body sge-academic-actions">
-                    <div><i class="fas fa-layer-group" aria-hidden="true"></i><h3 class="h6">{{ __('Períodos avaliativos') }}</h3><p>{{ __('Cadastre períodos, defina avaliações e configure a recuperação em um espaço próprio.') }}</p><a class="btn btn-primary" href="{{ route('academic-years.periods.index', $academicYear) }}">{{ __('Gerenciar períodos') }}</a></div>
-                    <div><i class="fas fa-book-open" aria-hidden="true"></i><h3 class="h6">{{ __('Matrizes e turmas') }}</h3><p>{{ __('Continue a organização curricular e as turmas vinculadas a este calendário logo abaixo.') }}</p><a class="btn btn-outline-primary" href="#section-matrizes">{{ __('Ver matrizes') }}</a></div>
-                    <div><i class="fas fa-clipboard-check" aria-hidden="true"></i><h3 class="h6">{{ __('Fechamento anual') }}</h3><p>{{ __('Confira consolidações, resultados finais e documentos antes de fechar o ano letivo.') }}</p><a class="btn btn-outline-primary" href="{{ route('academic-years.closure', $academicYear) }}">{{ __('Conferir fechamento') }}</a></div>
+                    <div><i class="fas fa-layer-group" aria-hidden="true"></i><h3 class="h6">{{ __('Períodos avaliativos') }}</h3><a class="btn btn-primary" href="{{ route('academic-years.periods.index', $academicYear) }}">{{ __('Gerenciar períodos') }}</a></div>
+                    <div><i class="fas fa-book-open" aria-hidden="true"></i><h3 class="h6">{{ __('Matrizes e turmas') }}</h3><a class="btn btn-outline-primary" href="#section-matrizes">{{ __('Ver matrizes') }}</a></div>
+                    <div><i class="fas fa-clipboard-check" aria-hidden="true"></i><h3 class="h6">{{ __('Fechamento anual') }}</h3><a class="btn btn-outline-primary" href="{{ route('academic-years.closure', $academicYear) }}">{{ __('Conferir fechamento') }}</a></div>
                 </div>
                 <div class="card-body border-top">
                     @if (! $academicYear->approved_at)

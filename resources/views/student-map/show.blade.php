@@ -133,7 +133,7 @@
         <a href="#section-frequencia" class="sge-section-nav-item" data-academic-tab="frequencia" role="tab"><i class="fas fa-calendar-check"></i><span>{{ __('Frequência') }}</span><small>{{ $absenceCount }} {{ __('faltas') }}</small></a>
         <a href="#section-contatos" class="sge-section-nav-item" data-academic-tab="contatos" role="tab"><i class="fas fa-user-shield"></i><span>{{ __('Contatos') }}</span><small>{{ $person->contacts->count() }} {{ __('registros') }}</small></a>
         <a href="#section-documentos" class="sge-section-nav-item" data-academic-tab="documentos" role="tab"><i class="fas fa-file-signature"></i><span>{{ __('Documentos') }}</span><small>{{ $documents->count() }} {{ __('emitidos') }}</small></a>
-        @if($canManagePerson)<a href="#section-auditoria" class="sge-section-nav-item" data-academic-tab="auditoria" role="tab"><i class="fas fa-history"></i><span>{{ __('Auditoria') }}</span><small>{{ __('movimentações') }}</small></a>@endif
+        @if($canManagePerson)<a href="#section-auditoria" class="sge-section-nav-item" data-academic-tab="auditoria" role="tab"><i class="fas fa-history"></i><span>{{ __('Auditoria') }}</span></a>@endif
     </nav>
 
     <div class="row">

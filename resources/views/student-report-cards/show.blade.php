@@ -150,7 +150,7 @@
             <div class="sge-panel-header">
                 <div>
                     <h2 id="concept-legend-title">{{ __('Legenda dos conceitos') }}</h2>
-                    <p>{{ __('Referência utilizada para converter notas numéricas em conceitos no boletim.') }}</p>
+
                 </div>
             </div>
             <div class="card-body">
@@ -173,7 +173,7 @@
                 <span class="badge badge-light">{{ $convalidations->count() }} {{ __('registro(s)') }}</span>
             </div>
             <div class="card-body">
-                <p>{{ __('Informe a escola uma única vez e preencha os componentes e períodos da ficha recebida.') }}</p>
+
                 <a class="btn btn-primary mb-4" href="{{ route('enrollments.origin-sheet', $enrollment) }}"><i class="fas fa-file-import mr-1" aria-hidden="true"></i>{{ __('Lançar ficha da escola de origem') }}</a>
 
                 <div class="table-responsive">

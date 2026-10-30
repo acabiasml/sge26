@@ -1,7 +1,7 @@
 <div>
     @include('livewire.listings.search')
 
-    <p class="text-muted">{{ __('Organize as áreas, defina sua formação e acompanhe os componentes vinculados em todas as escolas.') }}</p>
+
     <details wire:ignore class="card shadow-sm mb-4" @if($errors->any()) open @endif>
         <summary class="card-header font-weight-bold"><i class="fas fa-plus mr-2" aria-hidden="true"></i>{{ __('Nova área') }}</summary>
         <form class="card-body" method="POST" action="{{ route('knowledge-areas.store') }}">

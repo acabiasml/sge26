@@ -107,14 +107,13 @@
     @endif
     <div class="sge-history-main" style="grid-column: 1 / -1;">
         @unless($curriculumOnly)
-            <div class="sge-helper-card mb-4">
-                <i class="fas fa-lightbulb" aria-hidden="true"></i>
-                <div>
-                    <strong>{{ __('Como preencher') }}</strong>
+            <details class="small mb-4">
+                <summary class="text-primary">{{ __('Como preencher') }}</summary>
+                <div class="text-muted mt-2">
                     <p>{{ __('Use uma coluna para cada ano, série, fase ou etapa que aparece no documento recebido. Nos componentes, mantenha os nomes exatamente como vieram da outra escola.') }}</p>
                     <p>{{ __('Se o documento trouxer apenas AP, conceito global ou etapa sem transcrição, selecione o tipo correspondente na coluna e use uma linha de síntese.') }}</p>
                 </div>
-            </div>
+            </details>
             @if($schools->count() === 1)
                 <input type="hidden" name="school_id" value="{{ $schools->first()->id }}">
                 <p class="small text-muted">{{ __('Escola emissora:') }} {{ $schools->first()->name }}</p>
@@ -285,7 +284,7 @@
             <summary class="sge-panel-header sge-history-section-summary">
                 <div>
                     <h2>{{ __('2. Notas e componentes') }}</h2>
-                    <p>{{ __('Abra para revisar as notas de cada ano ou incluir componentes.') }}</p>
+
                 </div>
                 <i class="fas fa-chevron-down sge-history-year-chevron" aria-hidden="true"></i>
             </summary>

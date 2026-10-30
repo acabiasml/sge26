@@ -5,7 +5,7 @@
         <div>
             <div class="sge-page-kicker">{{ __('screens.academic_routine') }}</div>
             <h2 id="enrollment-overview-title">{{ __('screens.choose_class') }}</h2>
-            <p>{{ __('screens.enrollment_intro') }}</p>
+
         </div>
         <a class="btn btn-primary" href="{{ route('people.index') }}">
             <i class="fas fa-user-plus mr-1" aria-hidden="true"></i>

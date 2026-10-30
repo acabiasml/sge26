@@ -27,8 +27,8 @@
     </section>
 
     <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="{{ __('Áreas dos documentos da matrícula') }}" role="tablist" data-section-tabs>
-        <a href="#section-conferencia" class="sge-section-nav-item" data-academic-tab="conferencia" role="tab"><i class="fas fa-clipboard-check"></i><span>{{ __('Conferência') }}</span><small>{{ __('dados obrigatórios') }}</small></a>
-        <a href="#section-documentos" class="sge-section-nav-item" data-academic-tab="documentos" role="tab"><i class="fas fa-file-alt"></i><span>{{ __('Documentos') }}</span><small>{{ __('opções disponíveis') }}</small></a>
+        <a href="#section-conferencia" class="sge-section-nav-item" data-academic-tab="conferencia" role="tab"><i class="fas fa-clipboard-check"></i><span>{{ __('Conferência') }}</span></a>
+        <a href="#section-documentos" class="sge-section-nav-item" data-academic-tab="documentos" role="tab"><i class="fas fa-file-alt"></i><span>{{ __('Documentos') }}</span></a>
     </nav>
 
     <div class="row">

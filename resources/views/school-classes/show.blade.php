@@ -45,7 +45,7 @@
 
     <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="{{ __('Áreas da turma') }}" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? 'docencias' : 'resumo' }}">
         <a href="#section-resumo" class="sge-section-nav-item" data-academic-tab="resumo" role="tab"><i class="fas fa-clipboard-list"></i><span>{{ __('Resumo') }}</span><small>{{ $enrollmentCount }} {{ __('matrículas') }}</small></a>
-        <a href="#section-acoes" class="sge-section-nav-item" data-academic-tab="acoes" role="tab"><i class="fas fa-bolt"></i><span>{{ __('Ações') }}</span><small>{{ __('matrículas e horários') }}</small></a>
+        <a href="#section-acoes" class="sge-section-nav-item" data-academic-tab="acoes" role="tab"><i class="fas fa-bolt"></i><span>{{ __('Ações') }}</span></a>
         <a href="#section-docencias" class="sge-section-nav-item" data-academic-tab="docencias" role="tab"><i class="fas fa-chalkboard-teacher"></i><span>{{ __('Docências') }}</span><small>{{ $assignments->count() }} {{ __('componentes') }}</small></a>
     </nav>
 

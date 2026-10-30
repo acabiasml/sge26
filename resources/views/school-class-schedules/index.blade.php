@@ -16,8 +16,8 @@
 
 @section('content')
     <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="{{ __('Áreas do horário da turma') }}" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? ($schedule ? 'grade' : 'nova') : ($schedule ? 'grade' : 'contexto') }}">
-        <a href="#section-contexto" class="sge-section-nav-item" data-academic-tab="contexto" role="tab"><i class="fas fa-info-circle"></i><span>{{ __('Contexto') }}</span><small>{{ __('turma e matrizes') }}</small></a>
-        <a href="#section-nova" class="sge-section-nav-item" data-academic-tab="nova" role="tab"><i class="fas fa-plus-circle"></i><span>{{ __('Nova versão') }}</span><small>{{ __('vigência do horário') }}</small></a>
+        <a href="#section-contexto" class="sge-section-nav-item" data-academic-tab="contexto" role="tab"><i class="fas fa-info-circle"></i><span>{{ __('Contexto') }}</span></a>
+        <a href="#section-nova" class="sge-section-nav-item" data-academic-tab="nova" role="tab"><i class="fas fa-plus-circle"></i><span>{{ __('Nova versão') }}</span></a>
         <a href="#section-versoes" class="sge-section-nav-item" data-academic-tab="versoes" role="tab"><i class="fas fa-history"></i><span>{{ __('Versões') }}</span><small>{{ $schedules->count() }} {{ __('cadastradas') }}</small></a>
         @if($schedule)<a href="#section-grade" class="sge-section-nav-item" data-academic-tab="grade" role="tab"><i class="fas fa-calendar-week"></i><span>{{ __('Grade semanal') }}</span><small>{{ $schedule->name }}</small></a>@endif
     </nav>
