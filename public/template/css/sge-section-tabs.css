@@ -37,3 +37,18 @@ html[data-theme] .sge-academic-tabs .sge-section-nav-item:focus-visible {
     outline: 2px solid var(--sge-brown);
     outline-offset: 2px;
 }
+
+/* Fundo e texto formam um par em todos os estados, inclusive após hover/foco. */
+html[data-theme] .sge-academic-tabs .sge-section-nav-item:nth-child(n) {
+    background: var(--sge-paper);
+    color: var(--sge-ink);
+}
+
+html[data-theme] .sge-academic-tabs .sge-section-nav-item:nth-child(n):is(:hover, :focus, .is-active) {
+    background: color-mix(in srgb, var(--sge-brown) 12%, var(--sge-paper));
+    color: var(--sge-ink);
+}
+
+html[data-theme] .sge-academic-tabs .sge-section-nav-item:nth-child(n) :is(i, span, strong, small) {
+    color: inherit;
+}
