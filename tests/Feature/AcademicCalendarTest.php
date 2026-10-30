@@ -43,6 +43,7 @@ class AcademicCalendarTest extends TestCase
         \App\Models\AuditLog::query()->create(['actor_user_id' => $manager->id, 'actor_role' => PersonSchoolRole::ROLE_MANAGER,
             'auditable_type' => StudentEnrollment::class, 'auditable_id' => 1, 'action' => 'created', 'school_id' => $year->school_id]);
         $shortcuts = collect(\App\Support\DashboardShortcuts::make($manager, $defaults));
+        $this->assertCount(4, $shortcuts);
         $this->assertSame(route('academic-years.periods.index', $year), $shortcuts[0]['url']);
         $this->assertSame(route('enrollments.index'), $shortcuts[1]['url']);
         $this->assertFalse($shortcuts->contains('url', route('academic-years.periods.index', $otherYear)));

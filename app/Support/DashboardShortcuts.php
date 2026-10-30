@@ -64,6 +64,6 @@ class DashboardShortcuts
                 ]);
         }
 
-        return $periods->concat($ranked)->values()->all();
+        return $periods->concat($ranked)->take(4)->values()->all();
     }
 }
