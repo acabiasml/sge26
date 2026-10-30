@@ -23,7 +23,12 @@
     <form method="POST" action="{{ route('people.histories.update', [$person, $history]) }}">
         @csrf
         @method('PUT')
+        <input type="hidden" name="history_version" value="{{ old('history_version', $historyVersion) }}">
+        @foreach(old('removed_year_ids', []) as $removedYearId)
+            <input type="hidden" name="removed_year_ids[]" value="{{ $removedYearId }}">
+        @endforeach
         @include('student-histories._form', ['curriculumOnly' => true, 'manualOnly' => $history->is_unified])
+        <input type="hidden" name="history_payload_complete" value="1">
     </form>
     @if($history->years->contains(fn ($year) => $year->source !== 'system'))
         <details class="card shadow sge-panel-card mb-4" aria-labelledby="manual-years-title">

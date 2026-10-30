@@ -42,6 +42,8 @@ class UnifiedStudentHistorySynchronizer
                 ],
             );
 
+            $history = StudentAcademicHistory::query()->whereKey($history->id)->lockForUpdate()->firstOrFail();
+
             $allEnrollments = StudentEnrollment::query()
                 ->where('person_id', $student->id)
                 ->with([

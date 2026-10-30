@@ -13,6 +13,7 @@ use App\Support\BrazilianStates;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
 use App\Support\StudentAcademicHistoryCompleteness;
+use App\Support\StudentHistoryEditGuard;
 use App\Support\UnifiedStudentHistorySynchronizer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
@@ -120,6 +121,7 @@ class StudentAcademicHistoryController extends Controller
         }
 
         DB::transaction(function () use ($year, $history, $gradeNumber): void {
+            StudentAcademicHistory::query()->whereKey($history->id)->lockForUpdate()->firstOrFail();
             if ($history->years()->where('imported_from_history_year_id', $year->id)->exists()) {
                 return;
             }
@@ -259,6 +261,7 @@ class StudentAcademicHistoryController extends Controller
         return view('student-histories.edit', [
             'person' => $person,
             'history' => $history->load(['school', 'years.records.component', 'components.records.year']),
+            'historyVersion' => app(StudentHistoryEditGuard::class)->version($history),
             'schools' => $this->schools($request),
             'states' => $this->states(),
         ]);
@@ -268,8 +271,17 @@ class StudentAcademicHistoryController extends Controller
     {
         $this->authorizeHistory($request, $person, $history);
 
-        $data = $this->validatedData($request);
-        DB::transaction(function () use ($history, $data, $request, $person, $synchronizer): void {
+        DB::transaction(function () use ($history, $request, $person, $synchronizer): void {
+            StudentAcademicHistory::query()->whereKey($history->id)->lockForUpdate()->firstOrFail();
+            $history->refresh();
+            $guard = app(StudentHistoryEditGuard::class);
+            $guard->assertCurrent($history, $request->input('history_version'));
+            $request->validate(['history_payload_complete' => ['required', Rule::in(['1'])]], [
+                'history_payload_complete.required' => __('O formulário chegou incompleto. Nenhum dado foi salvo. Reabra o histórico e tente novamente.'),
+                'history_payload_complete.in' => __('O formulário chegou incompleto. Nenhum dado foi salvo. Reabra o histórico e tente novamente.'),
+            ]);
+            $data = $this->validatedData($request);
+            $guard->assertYearsRetained($history, $data['years'], $data['removed_year_ids']);
             $history->update($data['history'] + [
                 'updated_by_person_id' => $request->user()->person_id,
             ]);
@@ -316,7 +328,8 @@ class StudentAcademicHistoryController extends Controller
         abort_unless($year->student_academic_history_id === $history->id && $year->source !== 'system', 404);
 
         DB::transaction(function () use ($history, $year): void {
-            $year->delete();
+            StudentAcademicHistory::query()->whereKey($history->id)->lockForUpdate()->firstOrFail();
+            $history->years()->findOrFail($year->id)->delete();
             $history->components()->whereDoesntHave('records')->delete();
             if (! $history->is_unified && ! $history->years()->exists()) {
                 $history->delete();
@@ -570,6 +583,9 @@ class StudentAcademicHistoryController extends Controller
             'active' => ['nullable', 'boolean'],
             'is_unified' => ['nullable', 'boolean'],
             'years' => ['required', 'array', 'min:1'],
+            'years.*.id' => ['nullable', 'integer', 'distinct'],
+            'removed_year_ids' => ['nullable', 'array'],
+            'removed_year_ids.*' => ['required', 'integer', 'distinct'],
             'years.*.label' => ['required', 'string', 'max:255'],
             'years.*.source' => ['nullable', Rule::in(['manual', 'external', 'system'])],
             'years.*.student_enrollment_id' => ['nullable', 'integer', Rule::exists('student_enrollments', 'id')],
@@ -694,6 +710,7 @@ class StudentAcademicHistoryController extends Controller
                 'is_unified' => $routeHistory instanceof StudentAcademicHistory && $routeHistory->is_unified,
             ],
             'years' => $data['years'],
+            'removed_year_ids' => $data['removed_year_ids'] ?? [],
             'components' => $this->mergeEquivalentComponents($data['components'] ?? []),
         ];
     }
@@ -731,14 +748,23 @@ class StudentAcademicHistoryController extends Controller
      */
     private function syncRows(StudentAcademicHistory $history, array $data): void
     {
-        $history->years()->delete();
+        foreach ($data['removed_year_ids'] ?? [] as $id) {
+            $history->years()->findOrFail($id)->delete();
+        }
         $history->components()->delete();
 
         $yearsByIndex = [];
         foreach (array_values($data['years']) as $index => $yearData) {
-            $yearsByIndex[$index] = $history->years()->create($yearData + [
-                'position' => $index + 1,
-            ]);
+            $id = $yearData['id'] ?? null;
+            unset($yearData['id']);
+            $yearData['position'] = $index + 1;
+            if ($id) {
+                $year = $history->years()->findOrFail($id);
+                $year->update($yearData);
+                $yearsByIndex[$index] = $year;
+            } else {
+                $yearsByIndex[$index] = $history->years()->create($yearData);
+            }
         }
 
         foreach (array_values($data['components']) as $componentIndex => $componentData) {

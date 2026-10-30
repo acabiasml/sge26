@@ -32,6 +32,7 @@
         ?? array_merge($defaultYears[0], ['label' => '', 'grade_phase' => '']);
     $yearsInput = collect(old('years', $history->exists && $editableYears->isNotEmpty()
         ? $editableYears->map(fn ($year) => [
+            'id' => $year->id,
             'label' => $year->label,
             'source' => $year->source,
             'student_enrollment_id' => $year->student_enrollment_id,
@@ -153,6 +154,7 @@
                                 <i class="fas fa-chevron-down sge-history-year-chevron" aria-hidden="true"></i>
                             </summary>
                             <div class="sge-history-year-body">
+                            <input type="hidden" name="years[{{ $yearIndex }}][id]" value="{{ $year['id'] ?? '' }}">
                             <input type="hidden" name="years[{{ $yearIndex }}][source]" value="{{ $year['source'] ?? 'manual' }}">
                             <input type="hidden" name="years[{{ $yearIndex }}][student_enrollment_id]" value="{{ $year['student_enrollment_id'] ?? '' }}">
                             <input type="hidden" name="years[{{ $yearIndex }}][imported_from_history_year_id]" value="{{ $year['imported_from_history_year_id'] ?? '' }}">
@@ -602,17 +604,33 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!yearWrapper || !table || yearWrapper.children.length <= 1) return;
 
                 const card = button.closest('[data-history-year]');
-                const index = Array.from(yearWrapper.querySelectorAll('[data-history-year]')).indexOf(card);
-                card.remove();
+                const savedId = card.querySelector('[name$="[id]"]')?.value;
+                const remove = () => {
+                    if (!card.isConnected) return;
+                    if (savedId) {
+                        const removed = document.createElement('input');
+                        removed.type = 'hidden';
+                        removed.name = 'removed_year_ids[]';
+                        removed.value = savedId;
+                        form.appendChild(removed);
+                    }
+                    const index = Array.from(yearWrapper.querySelectorAll('[data-history-year]')).indexOf(card);
+                    card.remove();
 
-                const header = table.querySelector('thead tr')?.children[index + 3];
-                header?.remove();
+                    const header = table.querySelector('thead tr')?.children[index + 3];
+                    header?.remove();
 
-                table.querySelectorAll('tbody tr').forEach(function (row) {
-                    row.children[index + 3]?.remove();
-                });
+                    table.querySelectorAll('tbody tr').forEach(function (row) {
+                        row.children[index + 3]?.remove();
+                    });
 
-                renumberYears();
+                    renumberYears();
+                };
+                if (savedId) {
+                    window.sgeConfirmAction?.(@js(__('Remover este ano e suas notas transcritas ao salvar o histórico?')), remove, button);
+                } else {
+                    remove();
+                }
             });
         });
     }

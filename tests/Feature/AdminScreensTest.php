@@ -18,6 +18,7 @@ use App\Models\StudentAcademicHistory;
 use App\Models\StudentEnrollment;
 use App\Models\User;
 use App\Support\OfficialDocumentPdf;
+use App\Support\StudentHistoryEditGuard;
 use App\Support\UnifiedStudentHistorySynchronizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -1266,7 +1267,10 @@ class AdminScreensTest extends TestCase
             ->assertOk()->assertSee('value="2014"', false)->assertSee('value="AP"', false)
             ->assertSee('Síntese Global do Documento de Origem')->assertSee('value="817.00"', false);
         $recordData['score_label'] = 'Aprovado por conceito';
+        $yearData['id'] = $year->id;
         $this->actingAs($admin)->put(route('people.histories.update', [$student, $history]), [
+            'history_version' => app(StudentHistoryEditGuard::class)->version($history->fresh()),
+            'history_payload_complete' => '1',
             'school_id' => $school->id, 'title' => $history->title, 'stage' => $history->stage,
             'legal_basis' => $history->legal_basis, 'issued_place' => $history->issued_place,
             'issued_date' => '2026-01-01', 'active' => 1,
@@ -1320,9 +1324,12 @@ class AdminScreensTest extends TestCase
             ->assertOk()->assertSee('name="years[0][grade_number]"', false);
 
         $this->actingAs($manager)->put(route('people.histories.update', [$student, $separate]), [
+            'history_version' => app(StudentHistoryEditGuard::class)->version($separate->fresh()),
+            'history_payload_complete' => '1',
             'school_id' => $school->id, 'title' => $separate->title, 'stage' => $separate->stage,
             'active' => 1,
             'years' => [[
+                'id' => $separate->years()->sole()->id,
                 'source' => 'manual', 'year' => '2020', 'stage' => 'Ensino Fundamental',
                 'modality' => 'Regular', 'grade_phase' => '1ª Fase do 1º Ciclo', 'grade_number' => 1,
                 'school_name' => 'Escola Externa', 'city' => 'Bruxelas', 'state' => 'MT',
@@ -1415,6 +1422,8 @@ class AdminScreensTest extends TestCase
 
         $this->actingAs($admin)
             ->put(route('people.histories.update', [$student, $history]), [
+                'history_version' => app(StudentHistoryEditGuard::class)->version($history->fresh()),
+                'history_payload_complete' => '1',
                 'school_id' => $school->id,
                 'title' => $history->title,
                 'stage' => $history->stage,
@@ -1566,6 +1575,8 @@ class AdminScreensTest extends TestCase
             'workload_hours' => 800,
         ])->all();
         $this->put(route('people.histories.update', [$student, $history]), [
+            'history_version' => app(StudentHistoryEditGuard::class)->version($history->fresh()),
+            'history_payload_complete' => '1',
             'school_id' => $school->id, 'title' => $history->title, 'stage' => $history->stage,
             'legal_basis' => $history->legal_basis, 'issued_place' => $history->issued_place,
             'issued_date' => $history->issued_date->toDateString(), 'active' => 1,
@@ -1573,6 +1584,8 @@ class AdminScreensTest extends TestCase
         ])->assertSessionHasErrors('years.0.grade_phase');
         $this->assertSame(2, $history->years()->count());
         $this->put(route('people.histories.update', [$student, $history]), [
+            'history_version' => app(StudentHistoryEditGuard::class)->version($history->fresh()),
+            'history_payload_complete' => '1',
             'school_id' => $school->id, 'title' => $history->title, 'stage' => $history->stage,
             'legal_basis' => $history->legal_basis, 'issued_place' => $history->issued_place,
             'issued_date' => $history->issued_date->toDateString(), 'active' => 1,
@@ -1733,7 +1746,10 @@ class AdminScreensTest extends TestCase
         $this->assertSame('Poxoréu-Mt', $history->issued_place);
         $this->assertTrue($history->active);
 
+        $yearData['id'] = $history->years()->sole()->id;
         $this->actingAs($administrator)->put(route('people.histories.update', [$student, $history]), [
+            'history_version' => app(StudentHistoryEditGuard::class)->version($history->fresh()),
+            'history_payload_complete' => '1',
             'school_id' => $school->id,
             'title' => $history->title,
             'stage' => $history->stage,

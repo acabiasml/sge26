@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasTitleCaseAttributes;
 use App\Support\TextNormalizer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,7 +12,22 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StudentAcademicHistoryYear extends Model
 {
+    use Auditable {
+        writeAuditLog as protected writeYearAuditLog;
+    }
     use HasFactory, HasTitleCaseAttributes;
+
+    protected function writeAuditLog(string $action): void
+    {
+        if ($this->source !== 'system') {
+            $this->writeYearAuditLog($action);
+        }
+    }
+
+    protected function auditSchoolId(): ?int
+    {
+        return $this->history?->school_id;
+    }
 
     protected $fillable = [
         'student_academic_history_id',
