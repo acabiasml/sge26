@@ -25,7 +25,6 @@ html[data-theme="instagram-light"] {
     --aurora-feature-end: var(--aurora-raised);
     --aurora-shadow: none;
 }
-[data-theme-swatch="instagram-light"] { background: linear-gradient(135deg, #a3216b 50%, #fff8fb 50%); }
 html[data-theme="instagram-dark"] {
     --sge-chart-letivo: var(--aurora-accent);
     --sge-chart-conselho-classe: var(--aurora-danger);
@@ -52,7 +51,6 @@ html[data-theme="instagram-dark"] {
     --aurora-feature-end: var(--aurora-raised);
     --aurora-shadow: none;
 }
-[data-theme-swatch="instagram-dark"] { background: linear-gradient(135deg, #ff9dd0 50%, #171117 50%); }
 html[data-theme="tiktok-light"] {
     --sge-chart-letivo: var(--aurora-accent);
     --sge-chart-recesso: #7136a7;
@@ -79,7 +77,6 @@ html[data-theme="tiktok-light"] {
     --aurora-feature-end: var(--aurora-raised);
     --aurora-shadow: none;
 }
-[data-theme-swatch="tiktok-light"] { background: linear-gradient(135deg, #a90e43 50%, #f5f7f8 50%); }
 html[data-theme="tiktok-dark"] {
     --sge-chart-letivo: var(--aurora-accent);
     --sge-chart-recesso: #d8acff;
@@ -105,7 +102,6 @@ html[data-theme="tiktok-dark"] {
     --aurora-feature-end: var(--aurora-raised);
     --aurora-shadow: none;
 }
-[data-theme-swatch="tiktok-dark"] { background: linear-gradient(135deg, #66eee5 50%, #090d0f 50%); }
 html[data-theme="gmail-light"] {
     --sge-chart-letivo: var(--aurora-accent);
     --sge-chart-recesso: #a02722;
@@ -132,7 +128,6 @@ html[data-theme="gmail-light"] {
     --aurora-feature-end: var(--aurora-raised);
     --aurora-shadow: none;
 }
-[data-theme-swatch="gmail-light"] { background: linear-gradient(135deg, #0b57d0 50%, #f6f8fc 50%); }
 html[data-theme="gmail-dark"] {
     --sge-chart-letivo: var(--aurora-accent);
     --sge-chart-recesso: #cfbaff;
@@ -158,7 +153,6 @@ html[data-theme="gmail-dark"] {
     --aurora-feature-end: var(--aurora-raised);
     --aurora-shadow: none;
 }
-[data-theme-swatch="gmail-dark"] { background: linear-gradient(135deg, #a8c7fa 50%, #17191d 50%); }
 html[data-theme="outlook-light"] {
     --sge-chart-letivo: var(--aurora-accent);
     --sge-chart-recesso: #5b409a;
@@ -184,7 +178,6 @@ html[data-theme="outlook-light"] {
     --aurora-feature-end: var(--aurora-raised);
     --aurora-shadow: none;
 }
-[data-theme-swatch="outlook-light"] { background: linear-gradient(135deg, #005a9e 50%, #f3f6fa 50%); }
 html[data-theme="outlook-dark"] {
     --sge-chart-letivo: var(--aurora-accent);
     --sge-chart-recesso: #cfbaff;
@@ -210,7 +203,6 @@ html[data-theme="outlook-dark"] {
     --aurora-feature-end: var(--aurora-raised);
     --aurora-shadow: none;
 }
-[data-theme-swatch="outlook-dark"] { background: linear-gradient(135deg, #83caff 50%, #101b26 50%); }
 html:is([data-theme="instagram-light"], [data-theme="instagram-dark"], [data-theme="tiktok-light"], [data-theme="tiktok-dark"], [data-theme="gmail-light"], [data-theme="gmail-dark"], [data-theme="outlook-light"], [data-theme="outlook-dark"]) :is(.sge-dashboard-hero, .sge-dashboard-band, .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero, .sge-student-map-hero) { background: var(--aurora-panel); color: var(--aurora-ink); border: 1px solid var(--aurora-border); border-radius: var(--brand-radius); box-shadow: var(--brand-shadow); }
 html:is([data-theme="instagram-light"], [data-theme="instagram-dark"], [data-theme="tiktok-light"], [data-theme="tiktok-dark"], [data-theme="gmail-light"], [data-theme="gmail-dark"], [data-theme="outlook-light"], [data-theme="outlook-dark"]) :is(.sge-dashboard-hero, .sge-dashboard-band, .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero, .sge-student-map-hero) :is(h2,h3) { color: var(--aurora-ink); }
 html:is([data-theme="instagram-light"], [data-theme="instagram-dark"], [data-theme="tiktok-light"], [data-theme="tiktok-dark"], [data-theme="gmail-light"], [data-theme="gmail-dark"], [data-theme="outlook-light"], [data-theme="outlook-dark"]) :is(.sge-dashboard-hero, .sge-dashboard-band, .sge-document-hub-hero, .sge-quality-hero, .sge-concept-hero, .sge-student-map-hero) :is(p,.sge-eyebrow,.sge-page-kicker) { color: var(--aurora-muted); }
@@ -247,6 +239,37 @@ html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .card-header 
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .sidebar-dark .nav-item.active > .nav-link { border-radius: 0; box-shadow: inset 4px 0 var(--aurora-accent); }
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) :is(.sge-diary-management-hero, .sge-workflow-card, .sge-status-filter-strip) { border-radius: var(--brand-radius); background: var(--aurora-panel); border-top: 2px solid var(--aurora-accent); box-shadow: var(--brand-shadow); }
 html:is([data-theme="outlook-light"], [data-theme="outlook-dark"]) .sge-diary-management-metrics div { border-radius: var(--brand-radius); border-left: 3px solid var(--aurora-info); }
+
+/* Ícones das paletas: cor de identificação própria e variante legível no escuro. */
+.sge-theme-option .sge-theme-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.125rem;
+    height: 1.125rem;
+    flex: 0 0 1.125rem;
+    font-size: 1.125rem;
+    line-height: 1;
+    color: var(--sge-theme-icon-color, var(--sge-text));
+}
+[data-theme-icon="beaba"] { --sge-theme-icon-color: #6b3d2e; }
+[data-theme-icon="govbr"] { --sge-theme-icon-color: #1351b4; }
+[data-theme-icon="aurora-light"] { --sge-theme-icon-color: #146f64; }
+[data-theme-icon="instagram-light"] { --sge-theme-icon-color: #a3216b; }
+[data-theme-icon="tiktok-light"] { --sge-theme-icon-color: #a90e43; }
+[data-theme-icon="gmail-light"] { --sge-theme-icon-color: #b3261e; }
+[data-theme-icon="outlook-light"] { --sge-theme-icon-color: #005a9e; }
+[data-theme-icon="windows-light"] { --sge-theme-icon-color: #005fb8; }
+[data-theme-icon="ubuntu-light"] { --sge-theme-icon-color: #a83b10; }
+html[data-theme$="-dark"] [data-theme-icon="beaba"] { --sge-theme-icon-color: #e8bd82; }
+html[data-theme$="-dark"] [data-theme-icon="govbr"] { --sge-theme-icon-color: #a9cbff; }
+html[data-theme$="-dark"] [data-theme-icon="aurora-light"] { --sge-theme-icon-color: #83dfc9; }
+html[data-theme$="-dark"] [data-theme-icon="instagram-light"] { --sge-theme-icon-color: #ff9dd0; }
+html[data-theme$="-dark"] [data-theme-icon="tiktok-light"] { --sge-theme-icon-color: #66eee5; }
+html[data-theme$="-dark"] [data-theme-icon="gmail-light"] { --sge-theme-icon-color: #ffb4ab; }
+html[data-theme$="-dark"] [data-theme-icon="outlook-light"] { --sge-theme-icon-color: #83caff; }
+html[data-theme$="-dark"] [data-theme-icon="windows-light"] { --sge-theme-icon-color: #83c4ff; }
+html[data-theme$="-dark"] [data-theme-icon="ubuntu-light"] { --sge-theme-icon-color: #ffb08a; }
 
 /* Keep the menu control recognizable on every topbar, on desktop and mobile. */
 html .topbar .sge-sidebar-toggle {

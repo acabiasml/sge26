@@ -2,11 +2,6 @@
  * Novas famílias recebem os mesmos componentes sem listas duplicadas de temas. */
 /* Aurora: luminous jade, ink-blue navigation and warm violet details. */
 .sge-theme-option { display: inline-flex; align-items: center; gap: .65rem; }
-.sge-theme-swatch { width: 1.05rem; height: 1.05rem; border-radius: 50%; border: 1px solid rgba(128,128,128,.4); flex: 0 0 auto; }
-[data-theme-swatch="beaba"] { background: linear-gradient(135deg, #6b3d2e 50%, #f1e6b2 50%); }
-[data-theme-swatch="govbr"] { background: linear-gradient(135deg, #1351b4 50%, #fff 50%); }
-[data-theme-swatch="aurora-light"] { background: linear-gradient(135deg, #167c70 50%, #edf6f4 50%); }
-[data-theme-swatch="aurora-dark"] { background: linear-gradient(135deg, #83dfc9 50%, #101e2b 50%); }
 
 html[data-theme$="-light"] {
     color-scheme: light;

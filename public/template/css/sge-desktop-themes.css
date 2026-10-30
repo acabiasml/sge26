@@ -283,11 +283,3 @@ html:is([data-theme-family="windows"], [data-theme-family="ubuntu"]) :is(.btn-ou
     overflow-y: auto;
     overscroll-behavior: contain;
 }
-[data-theme-swatch="windows-light"] {
-    border-radius: .15rem;
-    background: linear-gradient(90deg, transparent 44%, var(--sge-paper) 44% 56%, transparent 56%),
-        linear-gradient(0deg, transparent 44%, var(--sge-paper) 44% 56%, transparent 56%), #005fb8;
-}
-[data-theme-swatch="ubuntu-light"] {
-    background: linear-gradient(135deg, #a83b10 50%, #743b75 50%);
-}

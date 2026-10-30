@@ -306,6 +306,19 @@
                             <div class="dropdown-menu dropdown-menu-right shadow" aria-labelledby="themeDropdown">
                                 <h2 class="dropdown-header">{{ __('theme.label') }}</h2>
                                 <p class="dropdown-header text-wrap mb-0">{{ __('theme.system_mode') }}</p>
+                                @php
+                                    $themeIcons = [
+                                        'beaba' => 'fas fa-book-open',
+                                        'govbr' => 'fas fa-landmark',
+                                        'aurora-light' => 'fas fa-sun',
+                                        'instagram-light' => 'fab fa-instagram',
+                                        'tiktok-light' => 'fab fa-tiktok',
+                                        'gmail-light' => 'fab fa-google',
+                                        'outlook-light' => 'fas fa-envelope-open-text',
+                                        'windows-light' => 'fab fa-microsoft',
+                                        'ubuntu-light' => 'fab fa-ubuntu',
+                                    ];
+                                @endphp
                                 @foreach (\App\Models\User::INTERFACE_THEMES as $theme => $themeLabel)
                                     <form method="POST" action="{{ route('theme.update') }}">
                                         @csrf
@@ -313,7 +326,7 @@
                                         <input type="hidden" name="theme" value="{{ $theme }}">
                                         <button type="submit" class="dropdown-item d-flex align-items-center justify-content-between"
                                             aria-pressed="{{ auth()->user()->interfaceTheme() === $theme ? 'true' : 'false' }}">
-                                            <span class="sge-theme-option"><span class="sge-theme-swatch" data-theme-swatch="{{ $theme }}" aria-hidden="true"></span>{{ __($themeLabel) }}</span>
+                                            <span class="sge-theme-option"><i class="sge-theme-icon {{ $themeIcons[$theme] ?? 'fas fa-palette' }}" data-theme-icon="{{ $theme }}" aria-hidden="true"></i>{{ __($themeLabel) }}</span>
                                             @if (auth()->user()->interfaceTheme() === $theme)
                                                 <i class="fas fa-check ml-3" aria-hidden="true"></i>
                                             @endif

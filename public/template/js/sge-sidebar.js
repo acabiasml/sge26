@@ -20,8 +20,14 @@
         const desktop = window.matchMedia('(min-width: 992px)');
         let mobileOpen = false;
         let pointerInside = false;
+        let pointerOverSidebar = false;
         let focusInside = false;
         let previewDismissed = false;
+        let hoverTimer;
+        const cancelHover = () => {
+            window.clearTimeout(hoverTimer);
+            hoverTimer = undefined;
+        };
         const submenus = Array.from(sidebar.querySelectorAll('[data-toggle="collapse"][data-target]'))
             .map((control) => ({ control, panel: document.querySelector(control.dataset.target) }))
             .filter(({ panel }) => panel);
@@ -73,6 +79,7 @@
             }
         };
         const closeMenu = ({ restoreFocus = true } = {}) => {
+            cancelHover();
             if (desktop.matches) {
                 desktopCollapsed = true;
                 previewDismissed = true;
@@ -93,17 +100,30 @@
         backdrop?.addEventListener('click', closeMenu);
         sidebar.addEventListener('pointerenter', (event) => {
             if (!desktop.matches || event.pointerType === 'touch') return;
-            pointerInside = true;
-            previewDismissed = false;
-            render();
+            pointerOverSidebar = true;
+            cancelHover();
+            const reveal = () => {
+                pointerInside = true;
+                previewDismissed = false;
+                render();
+            };
+            if (root.hasAttribute('data-sidebar-expanded')) reveal();
+            else hoverTimer = window.setTimeout(reveal, 180);
         });
         sidebar.addEventListener('pointerleave', () => {
-            pointerInside = false;
-            if (!focusInside) previewDismissed = false;
-            render();
+            pointerOverSidebar = false;
+            cancelHover();
+            if (!desktop.matches) return;
+            hoverTimer = window.setTimeout(() => {
+                pointerInside = false;
+                if (!focusInside) previewDismissed = false;
+                render();
+            }, 120);
         });
         sidebar.addEventListener('focusin', () => {
             if (!desktop.matches) return;
+            cancelHover();
+            pointerInside = pointerOverSidebar;
             focusInside = true;
             previewDismissed = false;
             render();
@@ -120,8 +140,10 @@
             });
         });
         const viewportChanged = () => {
+            cancelHover();
             mobileOpen = false;
             pointerInside = false;
+            pointerOverSidebar = false;
             focusInside = desktop.matches && sidebar.contains(document.activeElement);
             previewDismissed = false;
             sidebar.classList.remove('toggled');
@@ -132,6 +154,7 @@
         else desktop.addListener(viewportChanged);
 
         document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') cancelHover();
             if (event.key === 'Escape' && (desktop.matches
                 ? root.hasAttribute('data-sidebar-expanded') && (desktopCollapsed || sidebar.contains(document.activeElement))
                 : mobileOpen)) {

@@ -318,7 +318,7 @@ Relatórios administrativos aceitam busca e filtros respeitando o escopo escolar
 ## Acessibilidade e interface
 
 - interface em português do Brasil e italiano, com bandeiras em SVG para exibição consistente entre navegadores;
-- paletas beathema, gov.br, Aurora, Instagram, TikTok, Gmail, Outlook, Windows 11 e Ubuntu selecionáveis no ícone de paleta, com preferência salva por usuário;
+- paletas beathema, gov.br, Aurora, Instagram, TikTok, Gmail, Outlook, Windows 11 e Ubuntu selecionáveis no ícone de paleta, com símbolos próprios para identificar cada opção e preferência salva por usuário;
 - luminosidade clara ou escura determinada automaticamente pela configuração do dispositivo, sem escolha manual; beathema e gov.br usam a base Aurora no modo escuro;
 - identidade visual própria em cores, formas, sombras e fundos: Beathema orgânico com curvas e manchas de cor; gov.br plano e institucional; Aurora com luzes difusas e curvas assimétricas; Instagram com molduras em gradiente; TikTok angular com sombras duplas; Gmail suave com cápsulas e faixas de cor; Outlook com painéis retos e linhas de fundo. As variantes claras e escuras preservam a família selecionada; PDFs e documentos de impressão mantêm formatação independente do tema;
 - tema gov.br inspirado no Design System de Governo, com fonte Rawline local e foco visível;
@@ -326,7 +326,7 @@ Relatórios administrativos aceitam busca e filtros respeitando o escopo escolar
 - fonte local Atkinson Hyperlegible Next, sem dependência de Google Fonts;
 - foco visível e link para pular ao conteúdo;
 - navegação agrupada por contexto;
-- menu lateral compacto por padrão no computador, com logo e ícones centralizados em uma faixa; revela os textos ao passar o ponteiro ou navegar pelo teclado, sobrepondo o conteúdo sem mudar sua largura. O botão no topo aparece apenas no celular, como ícone para abrir o painel, que tem botão de fechar, fechamento por Escape e navegação pelo teclado restrita ao menu aberto;
+- menu lateral compacto por padrão no computador, com logo e ícones centralizados em uma faixa; revela os textos ao passar o ponteiro ou navegar pelo teclado, sobrepondo o conteúdo sem mudar sua largura. A passagem do mouse tem um breve intervalo para evitar aberturas acidentais e uma transição suave, desativada quando o dispositivo solicita movimento reduzido. O botão no topo aparece apenas no celular, como ícone para abrir o painel, que tem botão de fechar, fechamento por Escape e navegação pelo teclado restrita ao menu aberto;
 - ícones com nomes acessíveis;
 - confirmações de ações e descrição de imagens do editor em modais acessíveis, sem caixas nativas de alerta do navegador;
 - calendário com legenda e distinção visual dos tipos de dia, usando as cores do tema ativo;

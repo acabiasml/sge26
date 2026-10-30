@@ -92,9 +92,18 @@
         width: 17rem !important;
         padding-inline: .5rem;
         z-index: 1030;
+        transition: width .26s cubic-bezier(.2, .8, .2, 1);
     }
+    #accordionSidebar .sge-sidebar-header { width: 16rem; }
     #accordionSidebar .sge-sidebar-links { margin-block: auto; }
-    #accordionSidebar .sidebar-brand { padding-inline: .3125rem 3.5rem; }
+    #accordionSidebar .sidebar-brand { padding-inline: .3125rem 3.5rem; overflow: hidden; }
+    #accordionSidebar .sidebar-brand-text,
+    #accordionSidebar .nav-item > .nav-link span {
+        white-space: nowrap;
+        transition: opacity .18s ease;
+    }
+    #accordionSidebar .nav-item > .nav-link { overflow: hidden; }
+    #accordionSidebar .nav-item :is(.collapse, .collapsing) { width: 15rem; }
     #accordionSidebar .sge-sidebar-close { top: 1.5rem; }
     #accordionSidebar .nav-item > .nav-link { padding-inline: 1.375rem 1rem; min-height: 3.125rem; }
     #accordionSidebar .sidebar-heading { white-space: nowrap; width: 16rem; }
@@ -105,7 +114,7 @@
     html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar,
     html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar.toggled { width: 5rem !important; }
     html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar .sidebar-brand {
-        justify-content: center !important;
+        justify-content: flex-start !important;
         padding-right: .3125rem;
     }
     html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar .sidebar-brand-text,
@@ -119,6 +128,7 @@
         clip: rect(0, 0, 0, 0);
         clip-path: inset(50%);
         white-space: nowrap;
+        opacity: 0;
     }
     html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar .nav-item > .nav-link {
         justify-content: center;
@@ -132,6 +142,14 @@
     }
     html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar .sidebar-heading {
         visibility: hidden;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    #accordionSidebar,
+    #accordionSidebar.toggled,
+    #accordionSidebar .sidebar-brand-text,
+    #accordionSidebar .nav-item > .nav-link span {
+        transition: none !important;
     }
 }
 @media (max-width: 991.98px) {
