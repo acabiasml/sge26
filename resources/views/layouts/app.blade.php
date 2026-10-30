@@ -448,6 +448,7 @@
     <script src="{{ asset('template/vendor/jquery-easing/jquery.easing.min.js') }}"></script>
     <script src="{{ asset('template/js/sb-admin-2.min.js') }}"></script>
     @include('layouts.partials.table-scripts')
+    <script src="{{ asset('template/js/sge-table-drag.js') }}?v={{ filemtime(public_path('template/js/sge-table-drag.js')) }}"></script>
     <script src="{{ asset('template/js/sge-loading.js') }}?v={{ filemtime(public_path('template/js/sge-loading.js')) }}" data-loading-label="{{ __('Solicitação em processamento') }}"></script>
     <script src="{{ asset('template/js/sge-table-pagination.js') }}?v={{ filemtime(public_path('template/js/sge-table-pagination.js')) }}" data-previous="{{ __('Anterior') }}" data-next="{{ __('Próxima') }}" data-go-to-page="{{ __('Ir para página') }}" data-page="{{ __('Página :current de :total') }}" data-range="{{ __('Registros :first–:last de :total') }}" data-navigation="{{ __('Paginação da tabela') }}"></script>
     @livewireScripts(['url' => asset(config('app.debug') ? 'livewire/livewire.js' : 'livewire/livewire.min.js')])
@@ -746,7 +747,7 @@
                     hint.className = 'sge-table-scroll-hint';
                     hint.dataset.tableScrollHint = '';
                     hint.innerHTML = '<i class="fas fa-arrows-alt-h" aria-hidden="true"></i><span></span>';
-                    hint.querySelector('span').textContent = @js(__('Deslize ou use as setas para ver todas as colunas.'));
+                    hint.querySelector('span').textContent = @js(__('Deslize, arraste com o mouse ou use as setas para ver todas as colunas.'));
                     container.before(hint);
                 } else if (!needsHorizontalScroll && currentHint) {
                     currentHint.remove();

@@ -832,9 +832,16 @@ textarea:focus-visible {
 }
 
 .table-responsive.sge-has-horizontal-scroll {
+    cursor: grab;
     padding-bottom: .45rem;
     scrollbar-color: var(--sge-blue) var(--sge-border);
     scrollbar-width: thin;
+}
+
+.table-responsive.sge-table-dragging,
+.table-responsive.sge-table-dragging * {
+    cursor: grabbing !important;
+    user-select: none;
 }
 
 .table-responsive.sge-has-horizontal-scroll::-webkit-scrollbar {
