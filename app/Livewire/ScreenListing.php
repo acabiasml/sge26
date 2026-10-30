@@ -30,6 +30,9 @@ class ScreenListing extends Component
     #[Url(as: 'f', except: [])]
     public array $filters = [];
 
+    #[Url(as: 'turma', except: '')]
+    public string $diaryClassTab = '';
+
     protected $paginationTheme = 'bootstrap';
 
     private const SOURCES = [
@@ -82,8 +85,15 @@ class ScreenListing extends Component
     #[On('diary-alerts-changed')]
     public function refreshDiaryAlerts(): void {}
 
+    public function selectDiaryClass(int $id): void
+    {
+        abort_unless($this->screen === 'diaries', 404);
+        $this->diaryClassTab = (string) $id;
+    }
+
     public function clearFilters(): void
     {
+        $this->diaryClassTab = '';
         // Historical-use identity and document visibility are context, not search terms.
         foreach ($this->filters as $key => $value) {
             if (! in_array($key, ['formation', 'area', 'visibility'], true)) {
@@ -127,6 +137,15 @@ class ScreenListing extends Component
         $data = $source->getData();
         $data['listingRequest'] = $listingRequest;
         $data['listingScreen'] = $this->screen;
+        if ($this->screen === 'diaries' && isset($data['groupedClasses'])) {
+            // Os selects precisam refletir o contexto efetivo, inclusive o período padrão.
+            $this->filters['academic_year'] = (string) ($data['academicYear']?->id ?? '');
+            $this->filters['period'] = (string) ($data['period']?->id ?? '');
+            $classes = $data['groupedClasses']->map(fn ($group): string => (string) $group['class']->id);
+            if (! $classes->contains($this->diaryClassTab)) {
+                $this->diaryClassTab = $classes->first() ?? '';
+            }
+        }
         if (isset($data['diaries'])) {
             $data['availableDiaries'] = $data['diaries'];
             $data['diaries'] = $data['diaries']->filter(fn ($diary) => (empty($this->filters['school']) || (string) $diary['academicYear']->school_id === (string) $this->filters['school'])

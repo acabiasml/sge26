@@ -10,7 +10,6 @@
     @endif
 
 </div>
-    @include('livewire.listings.search')
 
     @php
         $baseDiaryQuery = $listingRequest->except('status', 'page');
@@ -60,12 +59,39 @@
     @endif
 
     <section class="card shadow mb-4" aria-labelledby="diary-filter-title">
-        <div class="card-header py-3">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
             <h2 id="diary-filter-title" class="h6 m-0 font-weight-bold text-primary">{{ __('Filtros') }}</h2>
+            <button type="button" class="btn btn-sm btn-outline-secondary" wire:click="clearFilters">{{ __('Limpar') }}</button>
         </div>
         <div class="card-body">
-            <form wire:submit="applyFilters" method="GET" action="{{ route('teacher-diaries.index') }}" class="sge-diary-filter-grid">
-                <div class="form-group">
+            <form wire:submit="applyFilters" method="GET" action="{{ route('teacher-diaries.index') }}">
+                <div class="sge-diary-basic-filters">
+                    <div class="form-group mb-0">
+                        <label for="diary-search">{{ __('Pesquisar') }}</label>
+                        <input id="diary-search" name="q" type="search" wire:model.live.debounce.350ms="filters.q" class="form-control" placeholder="{{ __('Digite para pesquisar') }}">
+                    </div>
+<div class="form-group">
+                    <label for="academic_year">{{ __('Ano letivo') }}</label>
+                    <select id="academic_year" wire:model.live="filters.academic_year" name="academic_year" class="custom-select">
+                        @foreach($years as $year)
+                            <option value="{{ $year->id }}" @selected($academicYear?->id === $year->id)>{{ $year->reference_year }} · {{ $year->school?->name }} · {{ $year->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+<div class="form-group">
+                    <label for="period">{{ __('Período avaliativo') }}</label>
+                    <select id="period" wire:model.live="filters.period" name="period" class="custom-select">
+                        @foreach($periods as $availablePeriod)
+                            <option value="{{ $availablePeriod->id }}" @selected($period?->id === $availablePeriod->id)>{{ $availablePeriod->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                </div>
+                @php($extraFiltersActive = collect(['school', 'year', 'status', 'class', 'component', 'teacher'])->filter(fn ($key) => $listingRequest->filled($key))->count())
+                <details wire:ignore.self wire:key="diary-extra-filters-{{ $academicYear?->id ?? 'none' }}" class="sge-diary-extra-filters mt-3" @if($extraFiltersActive) open @endif>
+                    <summary class="text-primary">{{ __('Mais filtros') }} @if($extraFiltersActive)<span class="badge badge-light">{{ $extraFiltersActive }}</span>@endif</summary>
+                    <div class="sge-diary-filter-grid mt-3">
+<div class="form-group">
                     <label for="school">{{ __('Escola') }}</label>
                     <select id="school" wire:model.live="filters.school" name="school" class="custom-select">
                         <option value="">{{ __('Todas disponíveis') }}</option>
@@ -74,30 +100,14 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="form-group">
+<div class="form-group">
                     <label for="year">{{ __('Ano') }}</label>
                     <select id="year" wire:model.live="filters.year" name="year" class="custom-select">
                         <option value="">{{ __('Todos') }}</option>
                         @foreach($referenceYears as $referenceYear)<option value="{{ $referenceYear }}" @selected((string) $listingRequest->input('year') === (string) $referenceYear)>{{ $referenceYear }}</option>@endforeach
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="academic_year">{{ __('Ano letivo') }}</label>
-                    <select id="academic_year" wire:model.live="filters.academic_year" name="academic_year" class="custom-select">
-                        @foreach($years as $year)
-                            <option value="{{ $year->id }}" @selected($academicYear?->id === $year->id)>{{ $year->reference_year }} · {{ $year->school?->name }} · {{ $year->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="period">{{ __('Período avaliativo') }}</label>
-                    <select id="period" wire:model.live="filters.period" name="period" class="custom-select">
-                        @foreach($periods as $availablePeriod)
-                            <option value="{{ $availablePeriod->id }}" @selected($period?->id === $availablePeriod->id)>{{ $availablePeriod->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="form-group">
+<div class="form-group">
                     <label for="status">{{ __('Situação') }}</label>
                     <select id="status" wire:model.live="filters.status" name="status" class="custom-select">
                         <option value="">{{ __('Todas') }}</option>
@@ -106,7 +116,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="form-group">
+<div class="form-group">
                     <label for="class">{{ __('Turma') }}</label>
                     <select id="class" wire:model.live="filters.class" name="class" class="custom-select">
                         <option value="">{{ __('Todas') }}</option>
@@ -115,7 +125,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="form-group">
+<div class="form-group">
                     <label for="component">{{ __('Componente') }}</label>
                     <select id="component" wire:model.live="filters.component" name="component" class="custom-select">
                         <option value="">{{ __('Todos') }}</option>
@@ -124,7 +134,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="form-group">
+<div class="form-group">
                     <label for="teacher">{{ __('Docência') }}</label>
                     <select id="teacher" wire:model.live="filters.teacher" name="teacher" class="custom-select">
                         <option value="">{{ __('Todas') }}</option>
@@ -133,12 +143,9 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="form-group sge-diary-filter-actions">
-                    <button class="btn btn-primary" type="submit">
-                        <i class="fas fa-filter mr-1" aria-hidden="true"></i> {{ __('Filtrar') }}
-                    </button>
-                    <a class="btn btn-outline-secondary" wire:click.prevent="clearFilters" href="{{ route('teacher-diaries.index') }}">{{ __('Limpar') }}</a>
-                </div>
+                        <div class="form-group sge-diary-filter-actions"><button class="btn btn-primary" type="submit">{{ __('Filtrar') }}</button></div>
+                    </div>
+                </details>
             </form>
         </div>
     </section>
@@ -159,10 +166,22 @@
                 <span class="badge badge-light">{{ $groupedClasses->count() }} {{ __('turma(s)') }}</span>
             </div>
             <div class="card-body">
+                @if($groupedClasses->isNotEmpty())
+                    <nav class="sge-section-nav sge-academic-tabs sge-diary-class-tabs mb-3" role="tablist" aria-label="{{ __('Turmas') }}" data-diary-class-tabs>
+                        @foreach($groupedClasses as $classGroup)
+                            @php($tabClass = $classGroup['class'])
+                            @php($selected = $diaryClassTab === (string) $tabClass->id)
+                            <button type="button" wire:key="class-tab-{{ $tabClass->id }}" wire:click="selectDiaryClass({{ $tabClass->id }})" id="diary-class-tab-{{ $tabClass->id }}" role="tab" aria-controls="diary-class-panel-{{ $tabClass->id }}" aria-selected="{{ $selected ? 'true' : 'false' }}" tabindex="{{ $selected ? '0' : '-1' }}" class="sge-section-nav-item {{ $selected ? 'is-active' : '' }}">
+                                <span>{{ $tabClass->name }}</span>
+                                <small class="sge-diary-class-tab-meta">{{ $classGroup['stats']['total'] }} {{ __('diário(s)') }} · {{ $classGroup['stats']['pending'] }} {{ __('pendente(s)') }}</small>
+                            </button>
+                        @endforeach
+                    </nav>
+                @endif
                 @forelse($groupedClasses as $group)
                     @php($class = $group['class'])
-                    <details wire:ignore.self wire:key="diary-class-{{ $class->id }}-{{ $period->id }}-{{ $listingRequest->input('class', 'all') }}" class="sge-diary-class-group" @if($group['stats']['pending'] > 0 || $listingRequest->filled('class')) open @endif>
-                        <summary>
+                    <section wire:key="diary-class-panel-{{ $class->id }}-{{ $period->id }}" id="diary-class-panel-{{ $class->id }}" class="sge-diary-class-group sge-diary-class-panel" role="tabpanel" aria-labelledby="diary-class-tab-{{ $class->id }}" tabindex="0" @if($diaryClassTab !== (string) $class->id) hidden @endif>
+                        <div class="sge-diary-class-header">
                             <span class="sge-diary-class-title">
                                 <strong>{{ $class?->name }}</strong>
                                 <small>{{ $group['stats']['total'] }} {{ __('diário(s)') }}</small>
@@ -173,7 +192,7 @@
                                 @if($group['stats']['reopened'] > 0)<span class="badge badge-info">{{ $group['stats']['reopened'] }} {{ __('reaberto(s)') }}</span>@endif
                                 @if($group['stats']['confirmed'] > 0)<span class="badge badge-success">{{ $group['stats']['confirmed'] }} {{ __('confirmado(s)') }}</span>@endif
                             </span>
-                        </summary>
+                        </div>
 
                         <div class="table-responsive">
                             <table class="table table-sm mb-0">
@@ -228,7 +247,7 @@
                                 </tbody>
                             </table>
                         </div>
-                    </details>
+                    </section>
                 @empty
                     <div class="sge-empty-state">
                         <i class="fas fa-filter" aria-hidden="true"></i>

@@ -449,6 +449,7 @@
     <script src="{{ asset('template/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ asset('template/js/sge-confirm-modal.js') }}?v={{ filemtime(public_path('template/js/sge-confirm-modal.js')) }}"></script>
     <script src="{{ asset('template/js/sge-diary-alerts.js') }}?v={{ filemtime(public_path('template/js/sge-diary-alerts.js')) }}"></script>
+    <script src="{{ asset('template/js/sge-diary-tabs.js') }}?v={{ filemtime(public_path('template/js/sge-diary-tabs.js')) }}"></script>
     <script src="{{ asset('template/vendor/jquery-easing/jquery.easing.min.js') }}"></script>
     <script src="{{ asset('template/js/sb-admin-2.min.js') }}"></script>
     @include('layouts.partials.table-scripts')

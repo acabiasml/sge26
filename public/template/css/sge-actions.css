@@ -22,3 +22,27 @@ table .sge-action-buttons > form { flex-shrink: 0; }
 .sge-score-view-switch > .btn { min-height: 2.75rem; }
 .sge-managed-alert-message { white-space: pre-wrap; overflow-wrap: anywhere; }
 .sge-diary-alert-manager .modal-content { background: var(--sge-paper); color: var(--sge-ink); }
+
+.sge-diary-basic-filters {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+    gap: .85rem;
+}
+.sge-diary-basic-filters .form-group { margin-bottom: 0; }
+.sge-diary-class-tabs .sge-section-nav-item { text-align: left; }
+.sge-diary-class-tabs .sge-diary-class-tab-meta { font-weight: 400; }
+.sge-diary-class-panel[hidden] { display: none !important; }
+.sge-diary-class-panel + .sge-diary-class-panel { margin-top: 0; }
+.sge-diary-class-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .5rem;
+    padding: .75rem 1rem;
+    border-bottom: 1px solid var(--sge-border);
+}
+@media (max-width: 767.98px) {
+    .sge-diary-basic-filters { grid-template-columns: 1fr; }
+}

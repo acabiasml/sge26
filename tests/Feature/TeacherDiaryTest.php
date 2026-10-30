@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\DiaryAlertManager;
+use App\Livewire\ScreenListing;
 use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
 use App\Models\AcademicPeriodDiaryConsolidation;
@@ -40,6 +41,7 @@ use App\Support\UnifiedStudentHistorySynchronizer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\View;
 use Livewire\Livewire;
@@ -3492,6 +3494,27 @@ class TeacherDiaryTest extends TestCase
             $html = View::make($view, $data)->render();
             $this->assertMatchesRegularExpression('/160 h<\/td>\s*<td class="center">1,67 h<\/td>/', $html);
         }
+    }
+
+    public function test_management_class_tabs_keep_selection_and_follow_the_effective_period(): void
+    {
+        $this->travelTo(Carbon::parse('2026-10-30'));
+        [$teacher, $year, $class, $component] = $this->diaryScenario();
+        $current = $year->periods()->create(['name' => 'Período atual', 'position' => 2, 'starts_at' => '2026-10-01', 'ends_at' => '2026-12-18']);
+        $otherClass = $year->classes()->create(['name' => 'Turma Alternativa', 'active' => true]);
+        $otherClass->courses()->attach($component->academic_course_id);
+        SchoolClassComponent::create(['school_class_id' => $otherClass->id, 'curriculum_component_id' => $component->id, 'teacher_person_id' => $teacher->person_id, 'active' => true]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'abas@ctjj.org');
+        $this->actingAs($manager);
+        $screen = Livewire::withQueryParams(['academic_year' => $year->id])->test(ScreenListing::class, ['screen' => 'diaries'])
+            ->assertSet('filters.academic_year', (string) $year->id)->assertSet('filters.period', (string) $current->id)
+            ->assertSet('diaryClassTab', (string) $class->id)
+            ->call('selectDiaryClass', $otherClass->id)->assertSet('diaryClassTab', (string) $otherClass->id)
+            ->call('refreshDiaryAlerts')->assertSet('diaryClassTab', (string) $otherClass->id);
+        $screen->set('filters.q', $class->name)->assertSet('diaryClassTab', (string) $class->id)
+            ->set('filters.q', 'Sem resultados possíveis')->assertSet('diaryClassTab', '')
+            ->set('filters.q', '')->assertSet('diaryClassTab', (string) $class->id)
+            ->set('diaryClassTab', '999999')->assertSet('diaryClassTab', (string) $class->id);
     }
 
     /**
