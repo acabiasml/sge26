@@ -1,5 +1,8 @@
 name: Diagnóstico Hostinger
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       refresh_views:
@@ -103,7 +106,7 @@ jobs:
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
         run: python scripts/hostinger-diagnostico.py
       - name: Disponibilizar relatório criptografado
-        if: inputs.pending_year_for_enrollment != '' || inputs.inspect_english_closures
+        if: github.event_name == 'workflow_dispatch' && (inputs.pending_year_for_enrollment != '' || inputs.inspect_english_closures)
         uses: actions/upload-artifact@v4
         with:
           name: resultados-pendentes-criptografados
