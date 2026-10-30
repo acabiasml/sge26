@@ -16,8 +16,7 @@
     <link href="{{ asset('template/vendor/fontawesome-free/css/all.min.css') }}" rel="stylesheet" type="text/css">
     <link rel="preload" href="{{ asset('template/fonts/atkinson-hyperlegible-next/atkinson-hyperlegible-next-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link href="{{ asset('template/css/sb-admin-2.min.css') }}" rel="stylesheet">
-    @rappasoftTableStyles
-    @rappasoftTableThirdPartyStyles
+    @include('layouts.partials.table-styles')
     <link href="{{ asset('template/css/sge-brand.css') }}?v={{ filemtime(public_path('template/css/sge-brand.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-govbr.css') }}?v={{ filemtime(public_path('template/css/sge-govbr.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-aurora.css') }}?v={{ filemtime(public_path('template/css/sge-aurora.css')) }}" rel="stylesheet">
@@ -448,11 +447,10 @@
     <script src="{{ asset('template/js/sge-confirm-modal.js') }}?v={{ filemtime(public_path('template/js/sge-confirm-modal.js')) }}"></script>
     <script src="{{ asset('template/vendor/jquery-easing/jquery.easing.min.js') }}"></script>
     <script src="{{ asset('template/js/sb-admin-2.min.js') }}"></script>
-    @rappasoftTableScripts
-    @rappasoftTableThirdPartyScripts
+    @include('layouts.partials.table-scripts')
     <script src="{{ asset('template/js/sge-loading.js') }}?v={{ filemtime(public_path('template/js/sge-loading.js')) }}" data-loading-label="{{ __('Solicitação em processamento') }}"></script>
     <script src="{{ asset('template/js/sge-table-pagination.js') }}?v={{ filemtime(public_path('template/js/sge-table-pagination.js')) }}" data-previous="{{ __('Anterior') }}" data-next="{{ __('Próxima') }}" data-go-to-page="{{ __('Ir para página') }}" data-page="{{ __('Página :current de :total') }}" data-range="{{ __('Registros :first–:last de :total') }}" data-navigation="{{ __('Paginação da tabela') }}"></script>
-    @livewireScripts
+    @livewireScripts(['url' => asset(config('app.debug') ? 'livewire/livewire.js' : 'livewire/livewire.min.js')])
     <script>
         const inputMasks = {
             cpf(value) {

@@ -124,5 +124,8 @@ jobs:
               --output "$RUNNER_TEMP/$asset"
           done
           grep -q 'lwt-toolbar' "$RUNNER_TEMP/core.min.css"
-          curl --fail --silent --show-error --location --max-time 30 \
-            --output /dev/null https://ctjj.org/sge/livewire/livewire.js
+          if ! curl --fail --silent --location --max-time 30 \
+            --output /dev/null https://ctjj.org/sge/livewire/livewire.js; then
+            curl --fail --silent --show-error --location --max-time 30 \
+              --output /dev/null https://ctjj.org/sge/livewire/livewire.min.js
+          fi

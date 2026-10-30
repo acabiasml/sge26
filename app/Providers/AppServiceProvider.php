@@ -41,8 +41,6 @@ class AppServiceProvider extends ServiceProvider
         }
 
         if ($appDir !== '') {
-            Livewire::setScriptRoute(fn ($handle) => Route::get($appDir.'/livewire/livewire.js', $handle)
-                ->name('app.livewire.script'));
             Livewire::setUpdateRoute(fn ($handle) => Route::post($appDir.'/livewire/update', $handle)
                 ->middleware('web')
                 ->name('app.livewire.update'));
