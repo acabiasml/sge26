@@ -32,7 +32,7 @@ O Centro Técnico Juvenil de Jarudore é a mantenedora, e a Operação Mato Gros
 ## Stack
 
 - PHP 8.4;
-- Laravel 12;
+- Laravel 13;
 - Livewire 3 e Rappasoft Laravel Livewire Tables;
 - Laravel Socialite para autenticação Google;
 - integração REST com o Google Workspace Admin SDK para provisionamento opcional de contas;
@@ -41,7 +41,7 @@ O Centro Técnico Juvenil de Jarudore é a mantenedora, e a Operação Mato Gros
 - Bootstrap 4/SB Admin 2 e estilos próprios na interface administrativa;
 - Tailwind CSS 4 e Vite 7 no pipeline de assets;
 - SQLite como padrão local e banco configurável por ambiente;
-- PHPUnit 11.
+- PHPUnit 12.
 
 ## Modelo de domínio
 
