@@ -21,6 +21,7 @@ class AnnouncementController extends Controller
         return view('announcements.index', [
             'announcements' => Announcement::query()
                 ->with('school')
+                ->when($request->filled('q'), fn (Builder $query) => $query->where('title', 'like', '%'.trim((string) $request->input('q')).'%'))
                 ->when(! $request->user()->isAdministrator(), fn (Builder $query) => $query->whereIn('school_id', $request->user()->manageableSchoolIds()))
                 ->latest('starts_at')
                 ->paginate(10),

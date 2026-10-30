@@ -31,6 +31,9 @@ class KnowledgeAreaController extends Controller
 
         return view('knowledge-areas.historical-usages', [
             'components' => StudentAcademicHistoryComponent::query()
+                ->when($request->filled('q'), fn ($query) => $query->where(fn ($search) => $search
+                    ->where('name', 'like', '%'.trim((string) $request->input('q')).'%')
+                    ->orWhereHas('history.student', fn ($student) => $student->where('full_name', 'like', '%'.trim((string) $request->input('q')).'%'))))
                 ->where('formation', $filters['formation'] ?? null)
                 ->where('knowledge_area', $filters['area'] ?? null)
                 ->with(['history.student', 'history.school'])->orderBy('student_academic_history_id')->orderBy('name')
@@ -62,7 +65,9 @@ class KnowledgeAreaController extends Controller
 
         return view('knowledge-areas.usages', [
             'area' => $area->loadCount('components'),
-            'components' => $area->components()->with('course.academicYear.school')->orderBy('name')->paginate(10),
+            'components' => $area->components()->with('course.academicYear.school')
+                ->when($request->filled('q'), fn ($query) => $query->where('name', 'like', '%'.trim((string) $request->input('q')).'%'))
+                ->orderBy('name')->paginate(10),
         ]);
     }
 

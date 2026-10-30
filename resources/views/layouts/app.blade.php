@@ -836,7 +836,6 @@
                 tabList.dataset.sectionTabsReady = '1';
                 const tabs = [...tabList.querySelectorAll('[data-academic-tab]')];
                 const container = tabList.parentElement;
-                const panels = [...container.querySelectorAll('[data-academic-panel]')];
                 const scrollHint = document.createElement('div');
                 scrollHint.className = 'sge-tabs-scroll-hint';
                 scrollHint.setAttribute('role', 'status');
@@ -858,6 +857,7 @@
                 };
 
                 const activate = (name, updateHash = false) => {
+                    const panels = [...container.querySelectorAll('[data-academic-panel]')];
                     const selected = names.includes(name) ? name : defaultName;
 
                     tabs.forEach((tab) => {
@@ -911,6 +911,13 @@
         };
 
         initializeSectionTabs();
+
+        document.addEventListener('livewire:init', () => {
+            Livewire.hook('morphed', () => {
+                initializeSectionTabs();
+                window.dispatchEvent(new Event('hashchange'));
+            });
+        });
 
         window.addEventListener('pageshow', () => resetSubmitLoading());
     </script>

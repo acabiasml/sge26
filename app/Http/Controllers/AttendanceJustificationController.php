@@ -54,6 +54,7 @@ class AttendanceJustificationController extends Controller
             : collect();
         $justifications = $school
             ? DiaryAttendanceJustification::query()
+                ->when($request->filled('q'), fn ($query) => $query->whereHas('enrollment.student', fn ($student) => $student->where('full_name', 'like', '%'.trim((string) $request->input('q')).'%')))
                 ->with(['enrollment.student', 'enrollment.schoolClass.academicYear', 'grantedBy', 'updatedBy'])
                 ->whereHas('enrollment.schoolClass', fn ($query) => $query
                     ->whereHas('academicYear', fn ($years) => $years->where('school_id', $school->id))

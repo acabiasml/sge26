@@ -7,15 +7,18 @@ use App\Models\OfficialDocument;
 use App\Models\School;
 use App\Models\User;
 use App\Support\OfficialDocumentCompliance;
+use App\Support\OfficialDocumentContent;
+use App\Support\OfficialDocumentPdf;
 use App\Support\PdfLetterhead;
 use App\Support\PdfMetadata;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 
 class OfficialDocumentController extends Controller
@@ -28,6 +31,15 @@ class OfficialDocumentController extends Controller
                 && $this->canView($request, $document), 403);
         }
 
+        return response()->view('official-documents.create', $this->listing($request)->getData() + [
+            'sourceDocument' => $document,
+            'editorContent' => $this->sanitizeContent((string) $request->old('content_html', $document?->content_html ?? '')),
+            'schools' => $request->user()->canManagePeople() ? $this->availableSchools($request) : collect(),
+        ]);
+    }
+
+    public function listing(Request $request): View
+    {
         $user = $request->user();
         $tab = $request->query('visibility', 'public');
         $tab = $tab === 'private' ? 'mine' : $tab;
@@ -35,12 +47,10 @@ class OfficialDocumentController extends Controller
         abort_if($tab === 'all' && ! $user->isAdministrator(), 403);
         $visibleSchoolIds = $user->visibleSchoolIds();
 
-        return response()->view('official-documents.create', [
-            'sourceDocument' => $document,
-            'editorContent' => $this->sanitizeContent((string) $request->old('content_html', $document?->content_html ?? '')),
-            'schools' => $user->canManagePeople() ? $this->availableSchools($request) : collect(),
+        return view('official-documents.create', [
             'tab' => $tab,
             'recentDocuments' => OfficialDocument::query()
+                ->when($request->filled('q'), fn ($query) => $query->where('title', 'like', '%'.trim((string) $request->input('q')).'%'))
                 ->with(['school', 'issuedDocument.issuedBy.person', 'createdBy.person', 'privateOwner.person'])
                 ->when($tab === 'public', function ($query) use ($user, $visibleSchoolIds): void {
                     $query->where('visibility', OfficialDocument::VISIBILITY_PUBLIC)
@@ -128,7 +138,7 @@ class OfficialDocumentController extends Controller
         });
     }
 
-    public function updateVisibility(Request $request, OfficialDocument $document): \Illuminate\Http\RedirectResponse
+    public function updateVisibility(Request $request, OfficialDocument $document): RedirectResponse
     {
         abort_unless($request->user()->isAdministrator(), 403);
 
@@ -168,7 +178,7 @@ class OfficialDocumentController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, OfficialDocument $document): \Illuminate\Http\RedirectResponse
+    public function destroy(Request $request, OfficialDocument $document): RedirectResponse
     {
         $tab = DB::transaction(function () use ($request, $document): string {
             $document = OfficialDocument::query()->lockForUpdate()->findOrFail($document->id);
@@ -214,7 +224,7 @@ class OfficialDocumentController extends Controller
             abort_unless($disk->exists($issued->file_path), 404);
             $bytes = $disk->get($issued->file_path);
         } else {
-            $pdf = app(\App\Support\OfficialDocumentPdf::class)->make([
+            $pdf = app(OfficialDocumentPdf::class)->make([
                 'officialDocument' => $document->load('school'),
                 'issuedDocument' => $issued,
                 'verificationUrl' => route('documents.verify', $issued->verification_code),
@@ -269,7 +279,7 @@ class OfficialDocumentController extends Controller
 
     private function sanitizeContent(string $html): string
     {
-        return app(\App\Support\OfficialDocumentContent::class)->sanitize($html);
+        return app(OfficialDocumentContent::class)->sanitize($html);
     }
 
     private function availableSchools(Request $request)

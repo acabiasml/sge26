@@ -19,8 +19,8 @@ class SummaryCoverageTest extends TestCase
             'student-report-cards/show.blade.php' => ['Matrícula', 'Resultado final'],
             'academic-years/periods/index.blade.php' => ['regras de avaliação', 'períodos consolidados'],
             'document-issuance/index.blade.php' => ['ano(s) letivo(s)', 'turma(s) acessíveis'],
-            'teacher-diaries/management-index.blade.php' => ['reabertos'],
-            'data-quality/index.blade.php' => ["__('screens.total_under_review')"],
+            'livewire/listings/teacher-diaries-management-index.blade.php' => ['reabertos'],
+            'livewire/listings/data-quality-index.blade.php' => ["__('screens.total_under_review')"],
             'schools/concepts/index.blade.php' => ['conceitos vigentes', 'dependência permitida', 'registros históricos'],
         ];
 

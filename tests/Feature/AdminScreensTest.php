@@ -264,7 +264,7 @@ class AdminScreensTest extends TestCase
         }
         $this->actingAs($manager)->get(route('official-documents.create'))
             ->assertOk()->assertSee('Documento Número 6')->assertDontSee('Documento Número 1')
-            ->assertSee('page=2', false)->assertSee('target="_blank"', false);
+            ->assertSee('nextPage', false)->assertSee('target="_blank"', false);
         $this->actingAs($manager)->get(route('official-documents.create', ['page' => 2]))
             ->assertOk()->assertSee('Documento Número 1')->assertDontSee('Documento Número 6');
     }

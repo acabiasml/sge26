@@ -156,6 +156,13 @@ class TeacherDiaryController extends Controller
                     /** @var SchoolClassComponent $assignment */
                     $assignment = $summary['assignment'];
 
+                    if ($request->filled('q')) {
+                        $text = $assignment->schoolClass?->name.' '.$assignment->component?->name.' '.$assignment->teacher?->full_name;
+                        if (! str_contains(mb_strtolower($text), mb_strtolower(trim((string) $request->input('q'))))) {
+                            return false;
+                        }
+                    }
+
                     if ($request->filled('class') && $assignment->school_class_id !== $request->integer('class')) {
                         return false;
                     }

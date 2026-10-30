@@ -2704,9 +2704,9 @@ class TeacherDiaryTest extends TestCase
             ->assertSee('21 justificativas')
             ->assertSee('Justificativa 21')
             ->assertDontSee('Justificativa 01')
-            ->assertSee('page=2', false)
-            ->assertSee('year='.$year->id, false)
-            ->assertSee('class='.$class->id, false);
+            ->assertSee('nextPage', false)
+            ->assertSee('wire:model.live="filters.year"', false)
+            ->assertSee('wire:model.live="filters.class"', false);
         $this->get(route('attendance-justifications.index', $filters + ['page' => 2]))
             ->assertOk()
             ->assertSee('Justificativa 11')
