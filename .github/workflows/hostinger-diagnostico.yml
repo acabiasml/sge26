@@ -115,3 +115,14 @@ jobs:
           if-no-files-found: error
       - name: Verificar resposta HTTP
         run: curl --fail --silent --show-error --location --max-time 30 --output /dev/null https://ctjj.org/sge/
+      - name: Verificar arquivos atuais das tabelas
+        run: |
+          set -euo pipefail
+          for asset in core.min.css core.min.js thirdparty.css thirdparty.min.js; do
+            curl --fail --silent --show-error --location --max-time 30 \
+              "https://ctjj.org/sge/rappasoft/laravel-livewire-tables/$asset" \
+              --output "$RUNNER_TEMP/$asset"
+          done
+          grep -q 'lwt-toolbar' "$RUNNER_TEMP/core.min.css"
+          curl --fail --silent --show-error --location --max-time 30 \
+            --output /dev/null https://ctjj.org/sge/livewire/livewire.js
