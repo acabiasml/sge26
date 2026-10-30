@@ -1,0 +1,28 @@
+<?php
+
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$target = json_decode(Illuminate\Support\Facades\Crypt::decryptString('__ENCRYPTED_TARGET__'), true, flags: JSON_THROW_ON_ERROR);
+$query = Illuminate\Support\Facades\DB::table('people');
+foreach (preg_split('/\s+/', trim($target['name'])) as $part) {
+    $query->where('full_name', 'like', '%'.$part.'%');
+}
+Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $people = $query->get(['id', 'full_name']);
+    if ($people->count() !== 1) {
+        echo json_encode(['matched_people' => $people->count()], JSON_THROW_ON_ERROR);
+        return;
+    }
+    $person = $people->first();
+    $histories = Illuminate\Support\Facades\DB::table('student_academic_histories')->where('person_id', $person->id)->get();
+    $ids = $histories->pluck('id');
+    $years = Illuminate\Support\Facades\DB::table('student_academic_history_years')->whereIn('student_academic_history_id', $ids)->orderBy('student_academic_history_id')->orderBy('position')->get();
+    $records = Illuminate\Support\Facades\DB::table('student_academic_history_records')->whereIn('student_academic_history_year_id', $years->pluck('id'))->selectRaw('student_academic_history_year_id, COUNT(*) AS record_count')->groupBy('student_academic_history_year_id')->get();
+    $audits = Illuminate\Support\Facades\DB::table('audit_logs')->where('auditable_type', App\Models\StudentAcademicHistory::class)->whereIn('auditable_id', $ids)->orderByDesc('id')->limit(60)->get(['id', 'auditable_id', 'action', 'actor_role', 'old_values', 'new_values', 'created_at']);
+    echo json_encode(['matched_people' => 1, 'person' => $person, 'histories' => $histories, 'years' => $years, 'record_counts' => $records, 'audits' => $audits], JSON_THROW_ON_ERROR);
+} finally {
+    Illuminate\Support\Facades\DB::rollBack();
+}

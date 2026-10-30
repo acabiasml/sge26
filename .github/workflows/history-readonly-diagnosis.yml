@@ -1,0 +1,35 @@
+name: Consulta temporária de histórico
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/history-readonly-diagnosis.php.stub
+      - scripts/history-readonly-diagnosis.py
+      - scripts/history-diagnosis-target.enc
+      - scripts/history-report-public.pem
+      - .github/workflows/history-readonly-diagnosis.yml
+permissions:
+  contents: write
+jobs:
+  consultar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - run: python -m pip install 'paramiko==3.5.1'
+      - name: Consultar em transação somente de leitura
+        env:
+          HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}
+          HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
+        run: python scripts/history-readonly-diagnosis.py
+      - name: Guardar apenas o relatório criptografado em branch temporária
+        env:
+          DIAGNOSIS_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          blob=$(git hash-object -w history-diagnosis.encrypted.json)
+          tree=$(printf '100644 blob %s\treport.json\n' "$blob" | git mktree)
+          commit=$(printf 'relatório temporário criptografado\n' | git commit-tree "$tree")
+          git push origin "$commit:refs/heads/diagnostico-temporario-$DIAGNOSIS_RUN_ID"
