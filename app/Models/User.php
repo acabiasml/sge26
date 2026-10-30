@@ -18,15 +18,15 @@ class User extends Authenticatable
     use Auditable, HasFactory, HasTitleCaseAttributes, Notifiable;
 
     public const INTERFACE_THEMES = [
-        'beaba' => 'theme.beathema',
-        'govbr' => 'theme.govbr',
         'aurora-light' => 'theme.aurora_light',
-        'instagram-light' => 'theme.instagram_light',
-        'tiktok-light' => 'theme.tiktok_light',
+        'beaba' => 'theme.beathema',
         'gmail-light' => 'theme.gmail_light',
+        'govbr' => 'theme.govbr',
+        'instagram-light' => 'theme.instagram_light',
         'outlook-light' => 'theme.outlook_light',
-        'windows-light' => 'theme.windows',
+        'tiktok-light' => 'theme.tiktok_light',
         'ubuntu-light' => 'theme.ubuntu',
+        'windows-light' => 'theme.windows',
     ];
 
     public const DEFAULT_AUDIT_TIMEZONE = 'America/Sao_Paulo';
