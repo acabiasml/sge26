@@ -373,7 +373,7 @@
                                 @endif
                                 <span class="mr-2 d-none d-lg-inline text-gray-600 small text-right" title="{{ auth()->user()->name }} · {{ auth()->user()->activeRoleLabel() }}">
                                     <span class="d-block">{{ auth()->user()->name }}</span>
-                                    <span class="d-block text-xs">{{ auth()->user()->activeRoleLabel() }}</span>
+                                    <span class="d-block text-xs">{{ auth()->user()->activeRoleLabel(abbreviateSchool: true) }}</span>
                                 </span>
                             </a>
                             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">

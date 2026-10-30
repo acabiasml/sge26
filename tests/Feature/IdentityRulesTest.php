@@ -511,6 +511,7 @@ class IdentityRulesTest extends TestCase
         ]);
 
         $this->assertStringStartsWith('Docência / Escola A', $user->refresh()->activeRoleLabel());
+        $this->assertStringStartsWith('Docência / EA', $user->activeRoleLabel(abbreviateSchool: true));
     }
 
     private function userWithRole(string $role, ?int $schoolId = null, string $email = 'usuario@ctjj.org'): User

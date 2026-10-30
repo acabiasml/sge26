@@ -477,3 +477,27 @@ html[data-theme-family="beaba"] .card-header:not(.bg-primary, .bg-success, .bg-d
 }
 html[data-theme-family="beaba"] .sge-diary-progress-card:nth-child(3n + 2) { border-inline-start-color: var(--identity-tertiary); }
 html[data-theme-family="beaba"] .sge-diary-progress-card:nth-child(3n) { border-inline-start-color: var(--identity-accent-4); }
+
+/* O próprio estado do semáforo define o fundo, sem duplicar seu cálculo. */
+html[data-theme][data-theme-family] .sge-diary-progress-card:has(> [data-diary-state]) {
+    --sge-diary-state-color: var(--sge-muted);
+    --sge-diary-state-tint: 6%;
+    --identity-frame-background: color-mix(in srgb, var(--sge-diary-state-color) var(--sge-diary-state-tint), var(--sge-paper));
+    --identity-frame-border: color-mix(in srgb, var(--sge-diary-state-color) 55%, var(--sge-border));
+    border-inline-start-color: var(--sge-diary-state-color);
+}
+html[data-theme][data-theme-family] .sge-diary-progress-card:has(> [data-diary-state="success"]) {
+    --sge-diary-state-color: var(--aurora-success, var(--sge-green));
+    --sge-diary-state-tint: 18%;
+}
+html[data-theme][data-theme-family] .sge-diary-progress-card:has(> [data-diary-state="warning"]) {
+    --sge-diary-state-color: var(--aurora-warning, var(--sge-orange));
+    --sge-diary-state-tint: 18%;
+}
+html[data-theme][data-theme-family] .sge-diary-progress-card:has(> [data-diary-state="critical"]) {
+    --sge-diary-state-color: var(--aurora-danger, var(--sge-orange-dark));
+    --sge-diary-state-tint: 22%;
+}
+html[data-theme][data-theme-family] .sge-diary-progress-card:has(> [data-diary-state]) :is(
+    .sge-diary-list-main p, .sge-diary-list-main small, .sge-diary-compact-status time, .sge-diary-pending-icon
+) { color: var(--sge-text); }

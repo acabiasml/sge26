@@ -11,6 +11,16 @@ use PHPUnit\Framework\TestCase;
 
 class TextNormalizerTest extends TestCase
 {
+    public function test_initials_ignore_connectors_and_handle_accents_and_punctuation(): void
+    {
+        $this->assertSame('CTJJ', TextNormalizer::initials('Centro Técnico Juvenil de Jarudore'));
+        $this->assertSame('LPSFA', TextNormalizer::initials('Liceu Pedagógico São Francisco de Assis'));
+        $this->assertSame('ELV', TextNormalizer::initials('Escola Laura Vicuña'));
+        $this->assertSame('EÁSJ', TextNormalizer::initials('  Escola — Águas de São-João  '));
+        $this->assertSame('D', TextNormalizer::initials('de'));
+        $this->assertSame('', TextNormalizer::initials(null));
+    }
+
     public function test_school_acronyms_are_uppercase_in_existing_histories_and_when_saved(): void
     {
         foreach (['Emef Vila Paulista' => 'EMEF Vila Paulista', 'Emref São Domingos Sávio' => 'EMREF São Domingos Sávio', 'Ee Maria Silva' => 'EE Maria Silva'] as $input => $expected) {

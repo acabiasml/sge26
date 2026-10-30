@@ -56,6 +56,18 @@ class TextNormalizer
             fn ($match) => $match[1].mb_strtoupper($match[2], 'UTF-8'), $value);
     }
 
+    public static function initials(?string $value): string
+    {
+        preg_match_all('/[\p{L}\p{N}]+/u', $value ?? '', $matches);
+        $words = array_filter($matches[0], fn (string $word): bool =>
+            ! in_array(mb_strtolower($word, 'UTF-8'), self::LOWERCASE_PARTICLES, true));
+
+        return mb_strtoupper(implode('', array_map(
+            fn (string $word): string => mb_substr($word, 0, 1, 'UTF-8'),
+            $words ?: $matches[0],
+        )), 'UTF-8');
+    }
+
     public static function titleCase(?string $value): ?string
     {
         return self::normalizeTitleCase($value, false);

@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasTitleCaseAttributes;
+use App\Support\TextNormalizer;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -310,7 +311,7 @@ class User extends Authenticatable
             : self::DEFAULT_AUDIT_TIMEZONE;
     }
 
-    public function activeRoleLabel(): string
+    public function activeRoleLabel(bool $abbreviateSchool = false): string
     {
         $view = $this->currentView();
         $role = $this->person?->loadMissing('schoolRoles.school')->schoolRoles
@@ -320,8 +321,12 @@ class User extends Authenticatable
             return __('roles.no_active_role');
         }
 
+        $schoolLabel = $role->school
+            ? ($abbreviateSchool ? TextNormalizer::initials($role->school->name) : $role->school->name)
+            : __('roles.global');
+
         return $role->label()
-            .($role->school ? ' / '.$role->school->name : ' / '.__('roles.global'))
+            .' / '.$schoolLabel
             .($role->started_at ? ' ('.$role->started_at->format('d/m/Y').')' : '');
     }
 }
