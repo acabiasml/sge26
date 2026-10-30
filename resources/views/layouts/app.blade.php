@@ -27,6 +27,7 @@
     <link href="{{ asset('template/css/sge-system-theme.css') }}?v={{ filemtime(public_path('template/css/sge-system-theme.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-theme-identities.css') }}?v={{ filemtime(public_path('template/css/sge-theme-identities.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-desktop-themes.css') }}?v={{ filemtime(public_path('template/css/sge-desktop-themes.css')) }}" rel="stylesheet">
+    <link href="{{ asset('template/css/sge-section-tabs.css') }}?v={{ filemtime(public_path('template/css/sge-section-tabs.css')) }}" rel="stylesheet">
     @livewireStyles
 </head>
 

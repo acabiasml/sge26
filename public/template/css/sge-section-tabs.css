@@ -1,0 +1,39 @@
+/* A seleção e os temas mudam o destaque, sem alterar a geometria das abas. */
+html[data-theme] .sge-section-nav.sge-academic-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: .625rem;
+    max-width: 100%;
+    margin-inline: 0;
+    padding: .5rem;
+    overflow-x: auto;
+    background: transparent;
+    border: 0;
+    scroll-padding-inline: .5rem;
+    -webkit-overflow-scrolling: touch;
+}
+
+html[data-theme][data-theme-family] .sge-academic-tabs .sge-section-nav-item,
+html[data-theme] .sge-academic-tabs .sge-section-nav-item {
+    flex: 0 0 auto;
+    min-width: min(12rem, 70vw);
+    max-width: min(22rem, 80vw);
+    min-height: 4.5rem;
+    padding: .75rem 1rem;
+    border: 1px solid var(--sge-border);
+    border-radius: .75rem;
+    box-shadow: none;
+    transform: none;
+    white-space: normal;
+}
+
+html[data-theme][data-theme-family] .sge-academic-tabs .sge-section-nav-item.is-active,
+html[data-theme] .sge-academic-tabs .sge-section-nav-item.is-active {
+    border-color: var(--sge-brown);
+    box-shadow: inset 0 -3px var(--sge-brown);
+}
+
+html[data-theme] .sge-academic-tabs .sge-section-nav-item:focus-visible {
+    outline: 2px solid var(--sge-brown);
+    outline-offset: 2px;
+}
