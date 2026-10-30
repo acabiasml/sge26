@@ -39,7 +39,7 @@
             <div class="sge-sidebar-header">
                 <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ route('dashboard') }}">
                     <div class="sidebar-brand-icon sge-sidebar-brand-mark">
-                        <img class="sge-brand-logo-sm" src="{{ asset('brand/logo.png') }}" alt="{{ config('app.name', 'Beabá') }}">
+                        <img class="sge-brand-logo-sm" src="{{ asset('brand/logo.png') }}" width="642" height="840" alt="{{ config('app.name', 'Beabá') }}" decoding="async">
                     </div>
                     <div class="sidebar-brand-text mx-3">Beabá</div>
                 </a>

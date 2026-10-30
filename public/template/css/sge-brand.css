@@ -2918,23 +2918,37 @@ a.sge-stat-card:focus {
 }
 
 .sge-sidebar-brand-mark {
-    width: 56px;
-    height: 56px;
+    position: relative;
+    width: 48px;
+    height: 48px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    flex: 0 0 56px;
+    flex: 0 0 48px;
 }
 
 .sge-sidebar-brand-mark img {
-    width: 48px !important;
-    max-height: 48px;
-    height: auto;
+    display: block;
+    width: auto !important;
+    height: 48px;
+    max-width: 100%;
+    max-height: none;
     object-fit: contain;
-    filter:
-        drop-shadow(0 0 1px color-mix(in srgb, var(--sge-paper) 95%, transparent))
-        drop-shadow(0 0 5px color-mix(in srgb, var(--sge-paper) 70%, transparent))
-        drop-shadow(0 .25rem .45rem color-mix(in srgb, var(--sge-ink) 32%, transparent));
+}
+
+@supports (mask-image: url('../../brand/logo.png')) or (-webkit-mask-image: url('../../brand/logo.png')) {
+    .sge-sidebar-brand-mark::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-color: currentColor;
+        -webkit-mask: url('../../brand/logo.png') center / contain no-repeat;
+        mask: url('../../brand/logo.png') center / contain no-repeat;
+    }
+
+    .sge-sidebar-brand-mark img {
+        opacity: 0;
+    }
 }
 
 .sge-login-card {
@@ -3331,7 +3345,7 @@ a.sge-stat-card:focus {
 
 .sidebar .sidebar-brand:hover,
 .sidebar .sidebar-brand:focus {
-    background: color-mix(in srgb, var(--sge-paper) 8%, transparent);
+    background: transparent;
 }
 
 .sidebar .sidebar-brand-text {
@@ -3598,20 +3612,6 @@ textarea:focus-visible {
 .sidebar .nav-item .collapsing .collapse-inner .collapse-item.active {
     background: color-mix(in srgb, var(--sge-cream) 18%, transparent);
     color: var(--sge-on-accent);
-}
-
-.sge-sidebar-brand-mark {
-    width: 54px;
-    height: 54px;
-    flex-basis: 54px;
-    border-radius: .85rem;
-    background: color-mix(in srgb, var(--sge-paper) 10%, transparent);
-    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--sge-paper) 14%, transparent);
-}
-
-.sge-sidebar-brand-mark img {
-    width: 42px !important;
-    max-height: 42px;
 }
 
 @media (max-width: 991.98px) {
