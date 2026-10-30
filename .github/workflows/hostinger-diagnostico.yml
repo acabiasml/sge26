@@ -124,6 +124,10 @@ jobs:
               --output "$RUNNER_TEMP/$asset"
           done
           grep -q 'lwt-toolbar' "$RUNNER_TEMP/core.min.css"
+          curl --fail --silent --show-error --location --max-time 30 \
+            https://ctjj.org/sge/template/js/sge-table-drag.js \
+            --output "$RUNNER_TEMP/sge-table-drag.js"
+          cmp public/template/js/sge-table-drag.js "$RUNNER_TEMP/sge-table-drag.js"
           if ! curl --fail --silent --location --max-time 30 \
             --output /dev/null https://ctjj.org/sge/livewire/livewire.js; then
             curl --fail --silent --show-error --location --max-time 30 \
