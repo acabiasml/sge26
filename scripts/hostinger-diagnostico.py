@@ -197,6 +197,9 @@ with tempfile.TemporaryDirectory() as directory:
                 'echo json_encode(["academic_year_id" => $year, "students" => $rows], JSON_UNESCAPED_UNICODE);'
             )
             commands.append(('Resultados pendentes para relatório criptografado', 'php artisan tinker --execute=' + shlex.quote(pending_code)))
+        # Migração aditiva desta entrega; não executa migrations alheias nem recalcula registros.
+        commands.append(('Conferir coluna de carga cursada',
+                         'php artisan migrate --path=database/migrations/2026_10_30_000001_add_completed_workload_to_history_records.php --force --no-ansi'))
         commands.append(('Migrations', 'php artisan migrate:status --no-ansi'))
         expected_commit = os.environ['EXPECTED_COMMIT']
         deadline = time.monotonic() + 180
