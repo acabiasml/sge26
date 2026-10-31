@@ -54,8 +54,16 @@
                     pending.delete(element);
                 }
             };
-            succeed(done);
-            fail(done);
+            const feedback = (failed) => {
+                done();
+                const status = element.querySelector('[data-listing-status]');
+                const error = status?.querySelector('[data-listing-error]');
+                const result = status?.querySelector('[data-listing-result]');
+                if (error) error.hidden = !failed;
+                if (result) result.hidden = failed;
+            };
+            succeed(() => feedback(false));
+            fail(() => feedback(true));
         });
     };
     if (window.Livewire) register();

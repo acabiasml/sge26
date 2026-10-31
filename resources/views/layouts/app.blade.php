@@ -427,8 +427,10 @@
                             <strong>{{ __('navigation.validation_failed') }}</strong>
                             <span>{{ __('navigation.check_fields') }}</span>
                             <ul class="mb-0 mt-2 pl-4">
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ __($error) }}</li>
+                                @foreach ($errors->getMessages() as $field => $messages)
+                                    @foreach ($messages as $error)
+                                        <li><span data-validation-field="{{ $field }}">{{ __($error) }}</span></li>
+                                    @endforeach
                                 @endforeach
                             </ul>
                         </div>
@@ -926,6 +928,7 @@
 
         window.addEventListener('pageshow', () => resetSubmitLoading());
     </script>
+    <script src="{{ asset('template/js/sge-form-accessibility.js') }}?v={{ filemtime(public_path('template/js/sge-form-accessibility.js')) }}"></script>
     @stack('scripts')
 </body>
 

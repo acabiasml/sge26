@@ -18,7 +18,7 @@
 
 <body class="bg-gradient-primary sge-login-page">
 
-    <div class="container">
+    <main class="container">
         <div class="row justify-content-center">
             <div class="col-xl-10 col-lg-12 col-md-9">
                 <div class="card o-hidden border-0 shadow-lg sge-login-card">
@@ -80,7 +80,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
     <script src="{{ asset('template/vendor/jquery/jquery.min.js') }}"></script>
     <script src="{{ asset('template/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>

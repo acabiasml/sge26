@@ -97,6 +97,33 @@
     </div>
 
     @if (auth()->user()->canManagePeople())
+        <div class="modal fade" id="insertTableModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="insertTableTitle" aria-describedby="insertTableHelp">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <form id="insertTableForm" data-no-loading="true">
+                        <div class="modal-header">
+                            <h2 class="modal-title h5" id="insertTableTitle">{{ __('Inserir tabela') }}</h2>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="{{ __('Fechar') }}"><span aria-hidden="true">&times;</span></button>
+                        </div>
+                        <div class="modal-body">
+                            <p id="insertTableHelp">{{ __('Informe de 1 a 10 linhas e colunas.') }}</p>
+                            <div class="form-group">
+                                <label for="tableRows">{{ __('Linhas') }}</label>
+                                <input id="tableRows" type="number" class="form-control" min="1" max="10" value="2" required aria-describedby="insertTableHelp">
+                            </div>
+                            <div class="form-group">
+                                <label for="tableColumns">{{ __('Colunas') }}</label>
+                                <input id="tableColumns" type="number" class="form-control" min="1" max="10" value="2" required aria-describedby="insertTableHelp">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">{{ __('Cancelar') }}</button>
+                            <button type="submit" class="btn btn-primary">{{ __('Inserir tabela') }}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
         <div class="modal fade" id="imageDescriptionModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="imageDescriptionTitle" aria-describedby="imageDescriptionHelp">
             <div class="modal-dialog modal-dialog-centered" role="document">
                 <div class="modal-content">
@@ -106,6 +133,10 @@
                             <button type="button" class="close" data-dismiss="modal" aria-label="{{ __('Fechar') }}"><span aria-hidden="true">&times;</span></button>
                         </div>
                         <div class="modal-body">
+                            <div class="form-group">
+                                <label for="imageDescriptionTarget">{{ __('Imagem') }}</label>
+                                <select id="imageDescriptionTarget" class="form-control"></select>
+                            </div>
                             <label for="imageDescriptionInput">{{ __('Descrição da imagem') }}</label>
                             <input id="imageDescriptionInput" class="form-control" maxlength="500" aria-describedby="imageDescriptionHelp">
                             <p class="small text-muted mt-2 mb-0" id="imageDescriptionHelp">{{ __('Descreva a imagem para quem usa leitor de tela. Deixe vazio se ela for decorativa.') }}</p>
@@ -138,6 +169,10 @@
             fontUnit: @js(__('Unidade do tamanho da fonte')),
             imageDescription: @js(__('Descrição da imagem')),
             resizeEditor: @js(__('Redimensionar área de edição')),
+            insertTable: @js(__('Inserir tabela')),
+            imageOption: @js(__('Imagem :number: :description')),
+            decorativeImage: @js(__('Sem descrição (decorativa)')),
+            noImages: @js(__('Insira uma imagem antes de editar sua descrição.')),
         };
     </script>
     <script src="{{ asset('template/js/sge-document-editor.js') }}?v={{ filemtime(public_path('template/js/sge-document-editor.js')) }}"></script>

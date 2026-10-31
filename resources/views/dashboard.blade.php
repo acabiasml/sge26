@@ -304,16 +304,18 @@
                                     <h3 id="birthdays-heading">{{ __('dashboard.week_birthdays') }}</h3>
                                     <span>{{ $birthdayWeekStartsAt->format('d/m') }} {{ __('a') }} {{ $birthdayWeekEndsAt->format('d/m') }}</span>
                                 </div>
+                                @if ($weekBirthdays->isNotEmpty())
                                 <div class="sge-birthday-list" role="list" aria-label="{{ __('dashboard.birthdays_between', ['start' => $birthdayWeekStartsAt->format('d/m'), 'end' => $birthdayWeekEndsAt->format('d/m')]) }}">
-                                @forelse ($weekBirthdays as $person)
+                                @foreach ($weekBirthdays as $person)
                                     <div class="sge-mini-row" role="listitem">
                                         <span>{{ $person->birth_date?->format('d/m') }}</span>
                                         <strong>{{ $person->social_name ?: $person->full_name }}</strong>
                                     </div>
-                                @empty
-                                    <p class="text-muted mb-0">{{ __('dashboard.no_week_birthday') }}</p>
-                                @endforelse
+                                @endforeach
                                 </div>
+                                @else
+                                    <p class="text-muted mb-0">{{ __('dashboard.no_week_birthday') }}</p>
+                                @endif
                             </section>
                         </div>
                     @else

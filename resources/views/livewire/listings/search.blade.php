@@ -5,4 +5,4 @@
     </div>
     <div class="col-md-4"><button type="button" class="btn btn-outline-secondary" wire:click="clearFilters">{{ __('Limpar') }}</button></div>
 </div>
-<div wire:loading.delay role="status" class="small text-muted mb-2">{{ __('Pesquisando…') }}</div>
+@include('livewire.listings.status')

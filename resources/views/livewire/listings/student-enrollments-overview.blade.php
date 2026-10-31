@@ -53,7 +53,7 @@
                     </nav>
                 @endif
                 @forelse ($yearsWithClasses as $year)
-                    <article wire:key="enrollment-year-panel-{{ $year->id }}" id="enrollment-year-panel-{{ $year->id }}" class="sge-enrollment-year sge-enrollment-tab-panel" role="tabpanel" aria-labelledby="enrollment-year-tab-{{ $year->id }}" tabindex="0" @if ($enrollmentYearTab !== (string) $year->id) hidden @endif>
+                    <section wire:key="enrollment-year-panel-{{ $year->id }}" id="enrollment-year-panel-{{ $year->id }}" class="sge-enrollment-year sge-enrollment-tab-panel" role="tabpanel" aria-labelledby="enrollment-year-tab-{{ $year->id }}" tabindex="0" @if ($enrollmentYearTab !== (string) $year->id) hidden @endif>
                         <header class="sge-enrollment-year-header">
                             <div>
                                 <span class="sge-page-kicker">{{ __('screens.school_year') }}</span>
@@ -102,7 +102,7 @@
                                 </article>
                             @endforeach
                         </div>
-                    </article>
+                    </section>
                 @empty
                     <div class="sge-empty-state">
                         <i class="fas fa-users" aria-hidden="true"></i>

@@ -209,6 +209,17 @@ class ScreenListing extends Component
             }
         }
 
+        $results = $data['listingRows'] ?? match ($this->screen) {
+            'documents' => $data['recentDocuments'],
+            'announcements' => $data['announcements'],
+            'justifications' => $data['justifications'],
+            'histories' => $data['students'],
+            'area-usages', 'historical-usages' => $data['components'],
+            'teacher-schedules' => $data['slots'],
+            default => null,
+        };
+        $data['listingResultCount'] = $results instanceof LengthAwarePaginator ? $results->total() : $results?->count();
+
         return view('livewire.listings.'.str_replace('.', '-', $source->name()), $data);
     }
 

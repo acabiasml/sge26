@@ -77,11 +77,15 @@ class ReactiveListingsTest extends TestCase
         foreach (range(1, 11) as $number) {
             KnowledgeArea::create(['name' => sprintf('Área %02d', $number), 'formation' => 'Formação Geral Básica']);
         }
+        $total = KnowledgeArea::count();
         Livewire::test(ScreenListing::class, ['screen' => 'knowledge-areas'])
+            ->assertSee('data-listing-status', false)->assertSee('Pesquisa concluída: '.$total.' resultado(s).')
             ->assertSee('Área 01')->assertDontSee('Área 11')
             ->call('gotoPage', 2)->assertSee('Área 11')
             ->set('filters.q', 'Área 03')->assertSet('paginators.page', 1)
-            ->assertSee('Área 03')->assertDontSee('Área 11');
+            ->assertSee('Área 03')->assertDontSee('Área 11')
+            ->assertSee('Pesquisa por “Área 03”: 1 resultado(s).')
+            ->set('filters.q', 'Inexistente')->assertSee('Pesquisa por “Inexistente”: 0 resultado(s).');
     }
 
     public function test_announcements_are_searched_before_pagination(): void

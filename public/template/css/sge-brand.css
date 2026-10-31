@@ -1134,7 +1134,9 @@ button.sge-calendar-day:focus {
 
 .sge-calendar-day.is-outside-month,
 .sge-calendar-day.is-outside-year {
-    opacity: .38;
+    background: var(--sge-surface);
+    border-style: dashed;
+    color: var(--sge-ink);
 }
 
 .sge-calendar-month-combined {
