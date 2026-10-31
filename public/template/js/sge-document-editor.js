@@ -72,7 +72,8 @@
         fontSizeUnits: ['pt'],
         toolbar: [
             ['history', ['undo', 'redo']], ['style', ['style']],
-            ['font', ['fontname', 'fontsize', 'fontsizeunit', 'bold', 'italic', 'underline', 'clear']],
+            ['typeface', ['fontname', 'fontsize', 'fontsizeunit']],
+            ['font', ['bold', 'italic', 'underline', 'clear']],
             ['effects', ['strikethrough', 'superscript', 'subscript']],
             ['color', ['color']],
             ['paragraph', ['ul', 'ol', 'paragraph', 'height']], ['insert', ['table', 'picture', 'link', 'hr']],

@@ -1,6 +1,6 @@
 <div>
-@include('livewire.listings.search')
                 <div class="card-body">
+                    @include('livewire.listings.search')
                     <nav class="nav nav-pills sge-official-tabs mb-3" aria-label="{{ __('Filtrar emitidos') }}">
                         <a class="nav-link {{ $tab === 'public' ? 'active' : '' }}" wire:click.prevent="selectFilter('visibility', 'public')" href="{{ route('official-documents.create', ['visibility' => 'public']) }}" @if ($tab === 'public') aria-current="page" @endif>{{ __('Públicos') }}</a>
                         <a class="nav-link {{ $tab === 'mine' ? 'active' : '' }}" wire:click.prevent="selectFilter('visibility', 'mine')" href="{{ route('official-documents.create', ['visibility' => 'mine']) }}" @if ($tab === 'mine') aria-current="page" @endif>{{ __('Meus') }}</a>

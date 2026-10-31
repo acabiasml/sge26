@@ -1,7 +1,32 @@
 /* The editable page uses paper colors so contrast and PDF output agree. */
 .note-editor.note-frame { border: 1px solid var(--sge-border, #c5c5c5); border-radius: .5rem; }
 .note-editor .note-editing-area .note-editable { background: #fff; color: #2f241f; font-family: 'Atkinson Hyperlegible Next', sans-serif; font-size: 12pt; }
-.note-editor .note-toolbar { background: var(--sge-surface, #f7f7f7); border-bottom: 1px solid var(--sge-border, #ccc); }
+.note-editor .note-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem .65rem;
+    padding: .65rem;
+    background: var(--sge-surface, #f7f7f7);
+    border-bottom: 1px solid var(--sge-border, #ccc);
+}
+.note-editor .note-toolbar > .note-btn-group {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .2rem;
+    max-width: 100%;
+    margin: 0;
+}
+/* Theme button shapes must not split the editor's compact controls. */
+html[data-theme][data-theme-family] .note-editor .note-toolbar .note-btn {
+    flex: 0 0 auto;
+    min-height: 2.25rem;
+    margin: 0;
+    padding: .4rem .55rem;
+    border-radius: .35rem;
+    box-shadow: none;
+}
 .note-editor .note-editable table { width: 100%; border-collapse: collapse; }
 .note-editor .note-editable td, .note-editor .note-editable th { border: 1px solid #bdb5ae; padding: 6px; }
 .note-editor .note-editable img { max-width: 100%; height: auto; }
@@ -14,3 +39,14 @@
 .note-editor .note-btn { min-height: 32px; }
 
 .note-editor .note-editing-area .note-editable table, .note-editor .note-editing-area .note-editable td, .note-editor .note-editing-area .note-editable th { background: #fff !important; color: #2f241f !important; }
+
+@media (max-width: 575.98px) {
+    /* Stack the two palettes instead of letting Summernote's fixed width overflow. */
+    .note-editor .note-toolbar .note-color .note-dropdown-menu {
+        min-width: 0;
+        width: 180px;
+        max-width: calc(100vw - 2rem);
+        max-height: 70vh;
+        overflow: auto;
+    }
+}
