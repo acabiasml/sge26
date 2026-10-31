@@ -1,3 +1,15 @@
+/* Mantém o campo e sua ação próximos, sem colunas vazias entre eles. */
+.sge-listing-search {
+    display: flex;
+    align-items: flex-end;
+    gap: .5rem;
+    width: 100%;
+    max-width: 28rem;
+}
+.sge-listing-search-field { flex: 1 1 0; min-width: 0; }
+.sge-listing-search > .btn { flex: 0 0 auto; min-height: 2.75rem; }
+.sge-listing-search .form-control[type="search"] { max-width: none; }
+
 /* A célula cresce para as ações; a tabela continua rolável em telas menores. */
 table .sge-action-buttons {
     flex-wrap: nowrap;
