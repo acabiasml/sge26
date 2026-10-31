@@ -33,6 +33,12 @@ class ScreenListing extends Component
     #[Url(as: 'turma', except: '')]
     public string $diaryClassTab = '';
 
+    #[Url(as: 'escola', except: '')]
+    public string $enrollmentSchoolTab = '';
+
+    #[Url(as: 'ano', except: '')]
+    public string $enrollmentYearTab = '';
+
     protected $paginationTheme = 'bootstrap';
 
     private const SOURCES = [
@@ -94,6 +100,8 @@ class ScreenListing extends Component
     public function clearFilters(): void
     {
         $this->diaryClassTab = '';
+        $this->enrollmentSchoolTab = '';
+        $this->enrollmentYearTab = '';
         // Historical-use identity and document visibility are context, not search terms.
         foreach ($this->filters as $key => $value) {
             if (! in_array($key, ['formation', 'area', 'visibility'], true)) {
@@ -108,6 +116,21 @@ class ScreenListing extends Component
         abort_unless(in_array($key, self::SOURCES[$this->screen][2], true), 422);
         $this->filters[$key] = $value;
         $this->updatedFilters($value, $key);
+    }
+
+    public function selectEnrollmentSchool(int $id): void
+    {
+        abort_unless($this->screen === 'enrollment-overview', 404);
+        if ($this->enrollmentSchoolTab !== (string) $id) {
+            $this->enrollmentSchoolTab = (string) $id;
+            $this->enrollmentYearTab = '';
+        }
+    }
+
+    public function selectEnrollmentYear(int $id): void
+    {
+        abort_unless($this->screen === 'enrollment-overview', 404);
+        $this->enrollmentYearTab = (string) $id;
     }
 
     public function render(): View
@@ -172,6 +195,17 @@ class ScreenListing extends Component
             $data['listingRows'] = $pages;
             if ($collectionKey) {
                 $data[$collectionKey] = $pages;
+            }
+        }
+
+        if ($this->screen === 'enrollment-overview') {
+            $schools = $data['schools']->getCollection();
+            $school = $schools->first(fn ($school) => (string) $school->id === $this->enrollmentSchoolTab)
+                ?? $schools->first();
+            $this->enrollmentSchoolTab = (string) ($school?->id ?? '');
+            $years = $school?->academicYears->filter(fn ($year) => $year->classes->isNotEmpty()) ?? collect();
+            if (! $years->contains(fn ($year) => (string) $year->id === $this->enrollmentYearTab)) {
+                $this->enrollmentYearTab = (string) ($years->first()?->id ?? '');
             }
         }
 

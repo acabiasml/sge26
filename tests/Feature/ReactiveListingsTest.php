@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\ScreenListing;
+use App\Models\AcademicCourse;
 use App\Models\AcademicYear;
 use App\Models\Announcement;
 use App\Models\KnowledgeArea;
@@ -126,5 +127,70 @@ class ReactiveListingsTest extends TestCase
         $this->user(PersonSchoolRole::ROLE_MANAGER, $school);
         Livewire::test(ScreenListing::class, ['screen' => 'documents'])
             ->call('selectFilter', 'visibility', 'all')->assertForbidden();
+    }
+
+    private function enrollmentYear(School $school, int $number, string $className): AcademicYear
+    {
+        $year = $school->academicYears()->create([
+            'name' => 'Ano '.$number, 'reference_year' => $number,
+            'starts_at' => $number.'-01-01', 'ends_at' => $number.'-12-31', 'active' => true,
+        ]);
+        $course = $year->courses()->create(['name' => 'Matriz de teste', 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL, 'active' => true]);
+        $class = $year->classes()->create(['name' => $className, 'active' => true]);
+        $class->courses()->attach($course);
+
+        return $year;
+    }
+
+    public function test_enrollment_tabs_restore_url_selection_and_follow_search_results(): void
+    {
+        $this->user();
+        $first = School::create(['name' => 'Escola Alfa', 'active' => true]);
+        $second = School::create(['name' => 'Escola Beta', 'active' => true]);
+        $current = $this->enrollmentYear($first, 2026, 'Turma Atual');
+        $old = $this->enrollmentYear($first, 2025, 'Turma Antiga');
+        $other = $this->enrollmentYear($second, 2026, 'Turma Alternativa');
+
+        $screen = Livewire::withQueryParams(['escola' => (string) $first->id, 'ano' => (string) $old->id])
+            ->test(ScreenListing::class, ['screen' => 'enrollment-overview'])
+            ->assertSet('enrollmentSchoolTab', (string) $first->id)->assertSet('enrollmentYearTab', (string) $old->id)
+            ->call('selectEnrollmentSchool', $first->id)->assertSet('enrollmentYearTab', (string) $old->id)
+            ->call('selectEnrollmentYear', $current->id)->assertSet('enrollmentYearTab', (string) $current->id)
+            ->call('selectEnrollmentSchool', $second->id)->assertSet('enrollmentYearTab', (string) $other->id)
+            ->call('selectEnrollmentYear', $old->id)->assertSet('enrollmentYearTab', (string) $other->id);
+
+        $screen->set('filters.q', 'Turma Antiga')
+            ->assertSet('enrollmentSchoolTab', (string) $first->id)->assertSet('enrollmentYearTab', (string) $old->id)
+            ->assertDontSee('Turma Atual')->assertDontSee('Turma Alternativa')
+            ->set('filters.q', 'Sem resultados possíveis')->assertSet('enrollmentSchoolTab', '')->assertSet('enrollmentYearTab', '')
+            ->assertDontSee('role="tabpanel"', false)
+            ->call('clearFilters')->assertSet('enrollmentSchoolTab', (string) $first->id)->assertSet('enrollmentYearTab', (string) $current->id);
+    }
+
+    public function test_enrollment_tabs_cannot_reveal_another_schools_data(): void
+    {
+        $school = School::create(['name' => 'Escola Permitida', 'active' => true]);
+        $other = School::create(['name' => 'Escola Restrita', 'active' => true]);
+        $year = $this->enrollmentYear($school, 2026, 'Turma Permitida');
+        $otherYear = $this->enrollmentYear($other, 2026, 'Turma Restrita');
+        $this->user(PersonSchoolRole::ROLE_MANAGER, $school);
+
+        Livewire::withQueryParams(['escola' => (string) $other->id, 'ano' => (string) $otherYear->id])
+            ->test(ScreenListing::class, ['screen' => 'enrollment-overview'])
+            ->assertSet('enrollmentSchoolTab', (string) $school->id)->assertSet('enrollmentYearTab', (string) $year->id)
+            ->call('selectEnrollmentSchool', $other->id)->assertSet('enrollmentSchoolTab', (string) $school->id)
+            ->call('selectEnrollmentYear', $otherYear->id)->assertSet('enrollmentYearTab', (string) $year->id)
+            ->assertDontSee('Escola Restrita')->assertDontSee('Turma Restrita');
+    }
+
+    public function test_enrollment_school_pagination_selects_a_visible_tab_without_years(): void
+    {
+        $this->user();
+        $schools = collect(range(1, 11))->map(fn ($number) => School::create(['name' => sprintf('Escola %02d', $number)]));
+        Livewire::test(ScreenListing::class, ['screen' => 'enrollment-overview'])
+            ->assertSet('enrollmentSchoolTab', (string) $schools->first()->id)->assertSet('enrollmentYearTab', '')
+            ->call('gotoPage', 2)->assertSet('enrollmentSchoolTab', (string) $schools->last()->id)->assertSet('enrollmentYearTab', '')
+            ->assertSee('Escola 11')->assertDontSee('Escola 01')
+            ->call('selectEnrollmentSchool', 999999)->assertSet('enrollmentSchoolTab', (string) $schools->last()->id);
     }
 }

@@ -13,10 +13,22 @@
         </a>
     </section>
 
+    @if ($schools->isNotEmpty())
+        <nav class="sge-section-nav sge-academic-tabs sge-enrollment-tabs mb-3" role="tablist" aria-label="{{ __('Escolas') }}" data-enrollment-tabs>
+            @foreach ($schools as $school)
+                @php($selected = $enrollmentSchoolTab === (string) $school->id)
+                <button type="button" wire:key="enrollment-school-tab-{{ $school->id }}" wire:click="selectEnrollmentSchool({{ $school->id }})" id="enrollment-school-tab-{{ $school->id }}" role="tab" aria-controls="enrollment-school-panel-{{ $school->id }}" aria-selected="{{ $selected ? 'true' : 'false' }}" tabindex="{{ $selected ? '0' : '-1' }}" class="sge-section-nav-item {{ $selected ? 'is-active' : '' }}">
+                    <span>{{ $school->name }}</span>
+                    <small>{{ __('screens.classes_count', ['count' => $school->academicYears->flatMap->classes->count()]) }}</small>
+                </button>
+            @endforeach
+        </nav>
+    @endif
+
     @forelse ($schools as $school)
         @php($yearsWithClasses = $school->academicYears->filter(fn ($year) => $year->classes->isNotEmpty()))
 
-        <section class="card shadow mb-4" aria-labelledby="school-enrollments-{{ $school->id }}">
+        <section wire:key="enrollment-school-panel-{{ $school->id }}" id="enrollment-school-panel-{{ $school->id }}" class="card shadow mb-4 sge-enrollment-tab-panel" role="tabpanel" aria-labelledby="enrollment-school-tab-{{ $school->id }}" tabindex="0" @if ($enrollmentSchoolTab !== (string) $school->id) hidden @endif>
             <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap">
                 <div>
                     <h2 id="school-enrollments-{{ $school->id }}" class="h5 mb-1 text-primary font-weight-bold">{{ $school->name }}</h2>
@@ -29,8 +41,19 @@
                 </a>
             </div>
             <div class="card-body">
+                @if ($yearsWithClasses->isNotEmpty())
+                    <nav class="sge-section-nav sge-academic-tabs sge-enrollment-tabs mb-3" role="tablist" aria-label="{{ __('screens.school_years') }}" data-enrollment-tabs>
+                        @foreach ($yearsWithClasses as $year)
+                            @php($selected = $enrollmentYearTab === (string) $year->id)
+                            <button type="button" wire:key="enrollment-year-tab-{{ $year->id }}" wire:click="selectEnrollmentYear({{ $year->id }})" id="enrollment-year-tab-{{ $year->id }}" role="tab" aria-controls="enrollment-year-panel-{{ $year->id }}" aria-selected="{{ $selected ? 'true' : 'false' }}" tabindex="{{ $selected ? '0' : '-1' }}" class="sge-section-nav-item {{ $selected ? 'is-active' : '' }}">
+                                <span>{{ $year->name }}</span>
+                                <small>{{ $year->reference_year }} · {{ __('screens.classes_count', ['count' => $year->classes->count()]) }}</small>
+                            </button>
+                        @endforeach
+                    </nav>
+                @endif
                 @forelse ($yearsWithClasses as $year)
-                    <article class="sge-enrollment-year">
+                    <article wire:key="enrollment-year-panel-{{ $year->id }}" id="enrollment-year-panel-{{ $year->id }}" class="sge-enrollment-year sge-enrollment-tab-panel" role="tabpanel" aria-labelledby="enrollment-year-tab-{{ $year->id }}" tabindex="0" @if ($enrollmentYearTab !== (string) $year->id) hidden @endif>
                         <header class="sge-enrollment-year-header">
                             <div>
                                 <span class="sge-page-kicker">{{ __('screens.school_year') }}</span>
