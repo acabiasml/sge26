@@ -36,6 +36,7 @@ table .sge-action-buttons > form { flex-shrink: 0; }
 .sge-enrollment-tabs small { font-weight: 400; }
 .sge-enrollment-tab-panel[hidden] { display: none !important; }
 .sge-enrollment-year.sge-enrollment-tab-panel { border-top: 0; margin-top: 0; padding-top: 0; }
+.sge-enrollment-tab-panel .sge-enrollment-class-grid { grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr)); }
 .sge-diary-class-panel[hidden] { display: none !important; }
 .sge-diary-class-panel + .sge-diary-class-panel { margin-top: 0; }
 .sge-diary-class-header {
