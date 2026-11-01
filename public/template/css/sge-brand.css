@@ -489,6 +489,12 @@ strong {
     flex-basis: 14rem;
 }
 
+@media (max-width: 767.98px) {
+    .sge-livewire-table-card .lwt-toolbar__group--left {
+        flex: 0 1 auto;
+    }
+}
+
 .sge-livewire-table-card .lwt-btn,
 .sge-livewire-table-card .lwt-search__input,
 .sge-livewire-table-card .lwt-search__clear {
