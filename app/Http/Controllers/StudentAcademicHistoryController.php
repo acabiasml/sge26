@@ -13,6 +13,7 @@ use App\Support\BrazilianStates;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
 use App\Support\StudentAcademicHistoryCompleteness;
+use App\Support\StudentHistoryConsolidator;
 use App\Support\StudentHistoryEditGuard;
 use App\Support\UnifiedStudentHistorySynchronizer;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -54,6 +55,8 @@ class StudentAcademicHistoryController extends Controller
     {
         $this->authorizeEnrolledStudent($request, $person);
 
+        $this->synchronizeExistingHistories($request, $person);
+
         $visibleSchoolIds = $request->user()->manageableSchoolIds();
         $person->load(['academicHistories' => fn ($query) => $query
             ->when(! $request->user()->isAdministrator(), fn ($query) => $query->where(function ($query) use ($visibleSchoolIds): void {
@@ -65,7 +68,7 @@ class StudentAcademicHistoryController extends Controller
         return view('student-histories.student', [
             'person' => $person,
             'historyCompleteness' => $unifiedHistories->mapWithKeys(fn ($history) => [$history->id => $completeness->evaluate($history)]),
-            'separateHistories' => $person->academicHistories->where('is_unified', false),
+            'separateHistories' => $person->academicHistories->where('is_unified', false)->filter(fn ($history) => $history->years->isNotEmpty()),
             'availableHistoryStages' => $this->availableHistoryStages($request, $person),
         ]);
     }
@@ -91,6 +94,10 @@ class StudentAcademicHistoryController extends Controller
             ->latest('enrolled_at')
             ->first()
             ?->schoolClass->academicYear->school_id;
+        $schoolId ??= $person->academicHistories()->where('is_unified', true)->where('education_stage', $stage)
+            ->when(! $request->user()->isAdministrator(), fn ($query) => $query->whereIn('school_id', $request->user()->manageableSchoolIds()))
+            ->value('school_id');
+        abort_unless($schoolId, 404);
         $history = $synchronizer->synchronize($person, $schoolId, $request->user()->person_id, $stage);
 
         return redirect()->route('people.histories.show', [$person, $history])
@@ -100,60 +107,23 @@ class StudentAcademicHistoryController extends Controller
     public function importYear(Request $request, Person $person, string $stage, StudentAcademicHistoryYear $year, UnifiedStudentHistorySynchronizer $synchronizer): RedirectResponse
     {
         $this->authorizeEnrolledStudent($request, $person);
-        abort_unless(in_array($stage, $this->availableHistoryStages($request, $person), true), 404);
         $source = $year->history;
-        abort_unless($source && $source->person_id === $person->id && ! $source->is_unified, 404);
+        abort_unless($source && $source->person_id === $person->id, 404);
         $this->authorizeHistory($request, $person, $source);
-        $gradeNumber = $year->grade_number ?: app(StudentAcademicHistoryCompleteness::class)->gradeNumber((string) $year->grade_phase, $stage);
-        abort_unless($gradeNumber && $year->stage === (AcademicCourse::STAGE_LABELS[$stage] ?? null), 422,
-            __('Indique a etapa e o ano escolar exatos no histórico separado antes de aproveitá-lo.'));
-
-        $schoolId = $person->studentEnrollments()
-            ->whereHas('courses', fn ($query) => $query->where('stage', $stage))
-            ->whereHas('schoolClass.academicYear', fn ($query) => $query->whereIn('school_id', $request->user()->isAdministrator() ? School::query()->pluck('id') : $request->user()->manageableSchoolIds()))
-            ->with('schoolClass.academicYear')->latest('enrolled_at')->first()?->schoolClass?->academicYear?->school_id;
-        abort_unless($schoolId, 404);
-        $history = $synchronizer->synchronize($person, $schoolId, $request->user()->person_id, $stage);
-        if ($history->years->contains(fn ($existing) => ($existing->grade_number ?: app(StudentAcademicHistoryCompleteness::class)->gradeNumber((string) $existing->grade_phase, $stage)) === $gradeNumber
-            || $existing->imported_from_history_year_id === $year->id)) {
-            return redirect()->route('student-histories.student', $person)
-                ->with('status', __('Esta série já consta no histórico unificado. Confira os anos antes de aproveitar novamente.'));
-        }
-
-        DB::transaction(function () use ($year, $history, $gradeNumber): void {
-            StudentAcademicHistory::query()->whereKey($history->id)->lockForUpdate()->firstOrFail();
-            if ($history->years()->where('imported_from_history_year_id', $year->id)->exists()) {
-                return;
-            }
-            $copy = $history->years()->create(collect($year->getAttributes())
-                ->except(['id', 'student_academic_history_id', 'created_at', 'updated_at', 'student_enrollment_id'])
-                ->merge(['position' => $history->years()->count() + 1, 'source' => 'external', 'grade_number' => $gradeNumber, 'imported_from_history_year_id' => $year->id])
-                ->all());
-            $year->load('records.component');
-            foreach ($year->records as $record) {
-                $original = $record->component;
-                $component = $history->components()->firstOrCreate([
-                    'name' => $original->name,
-                    'formation' => $original->formation,
-                    'knowledge_area' => $original->knowledge_area,
-                    'module_label' => $original->module_label,
-                ], [
-                    'position' => $history->components()->count() + 1,
-                    'regulatory_reference' => $original->regulatory_reference,
-                ]);
-                $component->records()->create(collect($record->getAttributes())
-                    ->except(['id', 'student_academic_history_component_id', 'student_academic_history_year_id', 'created_at', 'updated_at'])
-                    ->merge(['student_academic_history_year_id' => $copy->id])->all());
-            }
-        });
+        abort_unless(in_array($stage, [AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL, AcademicCourse::STAGE_TECHNICAL], true)
+            && $year->stage === AcademicCourse::STAGE_LABELS[$stage], 422);
+        $history = $synchronizer->synchronize($person, $source->school_id, $request->user()->person_id, $stage);
 
         return redirect()->route('people.histories.show', [$person, $history])
-            ->with('status', __('Ano incorporado ao histórico unificado. Confira a série e a carga horária antes de emitir.'));
+            ->with('status', __('Lançamentos incorporados ao histórico único da etapa.'));
     }
 
-    public function editDetails(Request $request, Person $person, StudentAcademicHistory $history): View
+    public function editDetails(Request $request, Person $person, StudentAcademicHistory $history): View|RedirectResponse
     {
         $this->authorizeHistory($request, $person, $history);
+        if (! $history->is_unified && ($canonical = $this->canonicalHistory($request, $person, $history, app(UnifiedStudentHistorySynchronizer::class)))) {
+            return redirect()->route('people.histories.details.edit', [$person, $canonical]);
+        }
 
         return view('student-histories.edit-details', [
             'person' => $person,
@@ -165,6 +135,9 @@ class StudentAcademicHistoryController extends Controller
     public function updateDetails(Request $request, Person $person, StudentAcademicHistory $history): RedirectResponse
     {
         $this->authorizeHistory($request, $person, $history);
+        if (! $history->is_unified && ! $history->active) {
+            throw ValidationException::withMessages(['history' => __('Este documento foi incorporado ao histórico da etapa. Edite os dados no documento único.')]);
+        }
         $data = $request->validate([
             'school_id' => ['required', 'integer', Rule::exists('schools', 'id')],
             'title' => ['required', 'string', 'max:255'],
@@ -195,36 +168,53 @@ class StudentAcademicHistoryController extends Controller
         ]);
     }
 
-    public function store(Request $request, Person $person): RedirectResponse
+    public function store(Request $request, Person $person, UnifiedStudentHistorySynchronizer $synchronizer): RedirectResponse
     {
         $this->authorizePerson($request, $person);
-
         $data = $this->validatedData($request, creating: true);
-        $school = School::query()->findOrFail($data['history']['school_id']);
-        $data['history'] = array_merge($data['history'], [
-            'title' => 'Histórico escolar',
-            'stage' => Str::limit(collect($data['years'])->pluck('stage')->filter()->unique()->join(', '), 255, ''),
-            'legal_basis' => null,
-            'notes' => null,
-            'issued_place' => collect([$school->city, $school->state])->filter()->join('-') ?: null,
-            'issued_date' => null,
-            'active' => true,
-        ]);
-        $history = StudentAcademicHistory::query()->create($data['history'] + [
-            'person_id' => $person->id,
-            'created_by_person_id' => $request->user()->person_id,
-            'updated_by_person_id' => $request->user()->person_id,
-        ]);
+        $histories = DB::transaction(function () use ($request, $person, $data, $synchronizer) {
+            $histories = collect();
+            foreach (collect($data['years'])->groupBy('stage', preserveKeys: true) as $label => $years) {
+                $stage = array_search($label, AcademicCourse::STAGE_LABELS, true);
+                if (! $stage || $stage === AcademicCourse::STAGE_OTHER) {
+                    throw ValidationException::withMessages(['years' => __('Identifique a etapa escolar de cada ano antes de salvar.')]);
+                }
+                $history = $synchronizer->synchronize($person, $data['history']['school_id'], $request->user()->person_id, $stage);
+                foreach ($years as $index => $yearData) {
+                    unset($yearData['id']);
+                    $year = $history->years()->create(array_merge($yearData, [
+                        'position' => $history->years()->count() + 1,
+                        'source' => 'external', 'student_enrollment_id' => null,
+                    ]));
+                    foreach ($data['components'] as $componentData) {
+                        $record = $componentData['records'][$index] ?? [];
+                        if (collect($record)->filter(fn ($value) => filled($value))->isEmpty()) {
+                            continue;
+                        }
+                        unset($componentData['records']);
+                        $component = $history->components()->firstOrCreate($componentData, ['position' => $history->components()->count() + 1]);
+                        $component->records()->create($record + ['student_academic_history_year_id' => $year->id]);
+                    }
+                }
+                $histories->push($history);
+            }
 
-        $this->syncRows($history, $data);
+            return $histories;
+        });
 
-        return redirect()->route('people.histories.show', [$person, $history])
-            ->with('status', __('Histórico escolar cadastrado com sucesso.'));
+        return $histories->count() === 1
+            ? redirect()->route('people.histories.show', [$person, $histories->first()])->with('status', __('Anos incorporados ao histórico único da etapa.'))
+            : redirect()->route('student-histories.student', $person)->with('status', __('Anos incorporados aos históricos das etapas correspondentes.'));
     }
 
-    public function show(Request $request, Person $person, StudentAcademicHistory $history, StudentAcademicHistoryCompleteness $completeness, UnifiedStudentHistorySynchronizer $synchronizer): View
+    public function show(Request $request, Person $person, StudentAcademicHistory $history, StudentAcademicHistoryCompleteness $completeness, UnifiedStudentHistorySynchronizer $synchronizer): View|RedirectResponse
     {
         $this->authorizeHistory($request, $person, $history);
+        if (! $history->is_unified) {
+            if ($canonical = $this->canonicalHistory($request, $person, $history, $synchronizer)) {
+                return redirect()->route('people.histories.show', [$person, $canonical]);
+            }
+        }
 
         if ($history->is_unified && $history->education_stage) {
             $history = $synchronizer->synchronize(
@@ -245,9 +235,14 @@ class StudentAcademicHistoryController extends Controller
         ]);
     }
 
-    public function edit(Request $request, Person $person, StudentAcademicHistory $history, UnifiedStudentHistorySynchronizer $synchronizer): View
+    public function edit(Request $request, Person $person, StudentAcademicHistory $history, UnifiedStudentHistorySynchronizer $synchronizer): View|RedirectResponse
     {
         $this->authorizeHistory($request, $person, $history);
+        if (! $history->is_unified) {
+            if ($canonical = $this->canonicalHistory($request, $person, $history, $synchronizer)) {
+                return redirect()->route('people.histories.edit', [$person, $canonical]);
+            }
+        }
 
         if ($history->is_unified && $history->education_stage) {
             $history = $synchronizer->synchronize(
@@ -270,6 +265,10 @@ class StudentAcademicHistoryController extends Controller
     public function update(Request $request, Person $person, StudentAcademicHistory $history, UnifiedStudentHistorySynchronizer $synchronizer): RedirectResponse
     {
         $this->authorizeHistory($request, $person, $history);
+
+        if (! $history->is_unified && ! $history->active) {
+            throw ValidationException::withMessages(['history' => __('Este documento foi incorporado ao histórico da etapa. Reabra o cadastro para editar o documento único.')]);
+        }
 
         DB::transaction(function () use ($history, $request, $person, $synchronizer): void {
             StudentAcademicHistory::query()->whereKey($history->id)->lockForUpdate()->firstOrFail();
@@ -343,6 +342,14 @@ class StudentAcademicHistoryController extends Controller
     public function pdf(Request $request, Person $person, StudentAcademicHistory $history, UnifiedStudentHistorySynchronizer $synchronizer, StudentAcademicHistoryCompleteness $completeness): Response|RedirectResponse
     {
         $this->authorizeHistory($request, $person, $history);
+        if (! $history->is_unified) {
+            if ($canonical = $this->canonicalHistory($request, $person, $history, $synchronizer)) {
+                return redirect()->route('people.histories.pdf', [$person, $canonical]);
+            }
+
+            return redirect()->route('student-histories.student', $person)
+                ->with('status', __('Identifique a etapa dos lançamentos antes de emitir o histórico.'));
+        }
 
         if ($history->is_unified && $history->education_stage) {
             $history = $synchronizer->synchronize(
@@ -433,6 +440,24 @@ class StudentAcademicHistoryController extends Controller
             ->values();
     }
 
+    private function canonicalHistory(Request $request, Person $person, StudentAcademicHistory $source, UnifiedStudentHistorySynchronizer $synchronizer): ?StudentAcademicHistory
+    {
+        $stage = app(StudentHistoryConsolidator::class)->stage($source);
+        if (! $stage || ! $source->school_id || $stage === AcademicCourse::STAGE_OTHER) {
+            return null;
+        }
+
+        return $synchronizer->synchronize($person, $source->school_id, $request->user()->person_id, $stage);
+    }
+
+    private function synchronizeExistingHistories(Request $request, Person $person): void
+    {
+        app(UnifiedStudentHistorySynchronizer::class)->synchronizeExisting(
+            $person, $request->user()->person_id,
+            $request->user()->isAdministrator() ? null : $request->user()->manageableSchoolIds(),
+        );
+    }
+
     private function authorizePerson(Request $request, Person $person): void
     {
         abort_unless($request->user()->canManagePeople(), 403);
@@ -446,7 +471,8 @@ class StudentAcademicHistoryController extends Controller
     {
         $this->authorizePerson($request, $person);
         $schoolIds = $request->user()->isAdministrator() ? School::query()->pluck('id')->all() : $request->user()->manageableSchoolIds();
-        abort_unless($person->studentEnrollments()->whereHas('schoolClass.academicYear', fn ($query) => $query->whereIn('school_id', $schoolIds))->exists(), 404);
+        abort_unless($person->studentEnrollments()->whereHas('schoolClass.academicYear', fn ($query) => $query->whereIn('school_id', $schoolIds))->exists()
+            || $person->academicHistories()->whereIn('school_id', $schoolIds)->exists(), 404);
     }
 
     /**
@@ -458,7 +484,7 @@ class StudentAcademicHistoryController extends Controller
             ? School::query()->pluck('id')->all()
             : $request->user()->manageableSchoolIds();
 
-        return $person->studentEnrollments()
+        $stages = $person->studentEnrollments()
             ->whereHas('schoolClass.academicYear', fn ($query) => $query
                 ->whereIn('school_id', $schoolIds))
             ->with('courses:id,stage')
@@ -473,6 +499,10 @@ class StudentAcademicHistoryController extends Controller
             ->unique()
             ->values()
             ->all();
+
+        return collect($stages)->merge($person->academicHistories()
+            ->where('is_unified', true)->whereIn('school_id', $schoolIds)->pluck('education_stage'))
+            ->filter()->unique()->values()->all();
     }
 
     private function authorizeHistory(Request $request, Person $person, StudentAcademicHistory $history): void

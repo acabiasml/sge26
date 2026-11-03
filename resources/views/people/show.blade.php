@@ -189,8 +189,8 @@
 
             <div class="card shadow mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span class="font-weight-bold">{{ __('screens.school_histories') }}</span>
-                    <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.histories.create', $person) }}" aria-label="{{ __('screens.register_history', ['name' => $person->full_name]) }}" title="{{ __('screens.new_history') }}">
+                    <a class="font-weight-bold" href="{{ route('student-histories.student', $person) }}">{{ __('screens.school_histories') }}</a>
+                    <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('student-histories.student', $person) }}" aria-label="{{ __('screens.register_history', ['name' => $person->full_name]) }}" title="{{ __('screens.new_history') }}">
                         <i class="fas fa-plus" aria-hidden="true"></i>
                     </a>
                 </div>
@@ -204,7 +204,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse ($person->academicHistories as $history)
+                            @forelse ($person->academicHistories->where('is_unified', true) as $history)
                                 <tr>
                                     <td>
                                         {{ $history->title }}

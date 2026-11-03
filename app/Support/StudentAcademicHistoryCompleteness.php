@@ -12,6 +12,29 @@ class StudentAcademicHistoryCompleteness
     public function evaluate(StudentAcademicHistory $history, ?int $targetGrade = null): array
     {
         $stage = $history->education_stage;
+        if ($history->is_unified && ($history->years->isEmpty()
+            || (in_array($stage, [AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL], true)
+                && $history->years->contains(fn ($year) => ! ($year->grade_number ?: $this->gradeNumber((string) ($year->grade_phase ?: $year->label), $stage)))))) {
+            return array_merge($this->result($stage, $targetGrade, [], []), [
+                'complete' => false,
+                'message' => 'Cadastre os anos e identifique a série correspondente de cada lançamento antes da emissão.',
+            ]);
+        }
+
+        if ($history->is_unified && in_array($stage, [AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL], true)) {
+            $duplicates = $history->years->filter(fn ($year) => filled($year->year) && filled($year->school_name))
+                ->groupBy(function ($year) use ($stage): string {
+                    $grade = $year->grade_number ?: $this->gradeNumber((string) $year->grade_phase, $stage);
+
+                    return $year->year.'|'.($grade ?: $year->grade_phase).'|'.Str::of($year->school_name)->ascii()->lower()->squish();
+                })->filter(fn ($years) => $years->count() > 1);
+            if ($duplicates->isNotEmpty()) {
+                return array_merge($this->result($stage, $targetGrade, [], []), [
+                    'complete' => false,
+                    'message' => 'Há lançamentos da mesma série, ano civil e escola em fontes diferentes. Revise os dados no histórico único antes da emissão; nenhuma informação foi descartada.',
+                ]);
+            }
+        }
         $registered = $history->years
             ->map(fn ($year): ?int => $year->grade_number ?: $this->gradeNumber((string) ($year->grade_phase ?: $year->label), $stage))
             ->filter()

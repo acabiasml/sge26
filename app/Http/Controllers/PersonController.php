@@ -6,6 +6,7 @@ use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Support\BrazilianStates;
+use App\Support\UnifiedStudentHistorySynchronizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -73,6 +74,13 @@ class PersonController extends Controller
     public function show(Request $request, Person $person): View
     {
         abort_unless($this->canSeePerson($request, $person), 403);
+
+        if ($request->user()->canManagePeople()) {
+            app(UnifiedStudentHistorySynchronizer::class)->synchronizeExisting(
+                $person, $request->user()->person_id,
+                $request->user()->isAdministrator() ? null : $request->user()->manageableSchoolIds(),
+            );
+        }
 
         return view('people.show', [
             'person' => $person->load([

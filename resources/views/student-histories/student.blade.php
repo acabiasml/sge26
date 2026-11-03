@@ -4,6 +4,7 @@
 @section('page-title', __('Históricos escolares'))
 
 @section('page-actions')
+    <a class="btn btn-sm btn-outline-primary" href="{{ route('people.histories.create', $person) }}">{{ __('Adicionar anos externos') }}</a>
     <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('student-histories.index') }}" aria-label="{{ __('Voltar aos históricos escolares') }}" title="{{ __('Voltar aos históricos') }}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
 @endsection
 
@@ -45,8 +46,8 @@
 @if($separateHistories->isNotEmpty())
 <section class="card shadow sge-panel-card mt-4" aria-labelledby="separate-histories-title">
     <div class="sge-panel-header"><div>
-        <h2 id="separate-histories-title">{{ __('Históricos cadastrados separadamente') }}</h2>
-        <p>{{ __('Os anos lançados antes do histórico unificado estão aqui. Revise a etapa, a série e a carga horária; depois aproveite cada ano na etapa correspondente.') }}</p>
+        <h2 id="separate-histories-title">{{ __('Lançamentos que precisam de identificação da etapa') }}</h2>
+        <p>{{ __('Identifique a etapa de cada ano para incorporar os dados ao documento único correspondente. A emissão fica disponível apenas no histórico da etapa.') }}</p>
     </div></div>
     <div class="card-body">
         @foreach($separateHistories as $separateHistory)

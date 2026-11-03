@@ -82,18 +82,45 @@ class UnifiedStudentHistorySynchronizer
                     $technicalSources,
                 );
             }
+            app(StudentHistoryConsolidator::class)->consolidate($history);
             $this->reorderYears($history, $stage);
             $history->components()->whereDoesntHave('records')->delete();
+            $technicalLegalBasis = $technicalCourses->map->regulatoryReference()->filter()->unique()->join(' ');
+            $legalBasis = $history->legal_basis;
+            if ($stage === AcademicCourse::STAGE_TECHNICAL && filled($technicalLegalBasis)
+                && ! str_contains((string) $legalBasis, $technicalLegalBasis)) {
+                $legalBasis = collect([$legalBasis, $technicalLegalBasis])->filter()->join(' ');
+            }
             $history->update([
                 'updated_by_person_id' => $personId,
                 'issued_place' => $this->issuedPlace($school),
-                'legal_basis' => $stage === AcademicCourse::STAGE_TECHNICAL
-                    ? $technicalCourses->map->regulatoryReference()->filter()->unique()->join(' ')
-                    : $history->legal_basis,
+                'legal_basis' => $legalBasis,
             ]);
 
             return $history->fresh(['years.records', 'components.records.year']);
         });
+    }
+
+    public function synchronizeExisting(Person $student, int $personId, ?array $schoolIds = null): void
+    {
+        $histories = $student->academicHistories()
+            ->when($schoolIds !== null, fn ($query) => $query->whereIn('school_id', $schoolIds))
+            ->with('years')->get();
+        $processed = [];
+        foreach ($histories as $history) {
+            $stages = $history->years->pluck('stage')
+                ->map(fn ($label) => array_search($label, AcademicCourse::STAGE_LABELS, true))
+                ->push(app(StudentHistoryConsolidator::class)->stage($history))
+                ->filter(fn ($stage) => in_array($stage, [AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL, AcademicCourse::STAGE_TECHNICAL], true))
+                ->unique();
+            foreach ($stages as $stage) {
+                $key = $history->school_id.':'.$stage;
+                if ($history->school_id && ! isset($processed[$key])) {
+                    $this->synchronize($student, $history->school_id, $personId, $stage);
+                    $processed[$key] = true;
+                }
+            }
+        }
     }
 
     private function issuedPlace(School $school): string

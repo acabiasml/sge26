@@ -4,7 +4,7 @@
 @section('page-title', $history->title)
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action {{ ! $historyCompleteness['complete'] ? 'disabled' : '' }}" @if($historyCompleteness['complete']) href="{{ route('people.histories.pdf', [$person, $history]) }}" target="_blank" @else aria-disabled="true" @endif aria-label="{{ __('Emitir histórico em PDF') }}" title="{{ $historyCompleteness['complete'] ? __('Histórico em PDF') : $historyCompleteness['message'] }}">
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action {{ (! $history->is_unified || ! $historyCompleteness['complete']) ? 'disabled' : '' }}" @if($history->is_unified && $historyCompleteness['complete']) href="{{ route('people.histories.pdf', [$person, $history]) }}" target="_blank" @else aria-disabled="true" @endif aria-label="{{ __('Emitir histórico em PDF') }}" title="{{ $historyCompleteness['complete'] ? __('Histórico em PDF') : $historyCompleteness['message'] }}">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
     <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.histories.details.edit', [$person, $history]) }}" aria-label="{{ __('Editar dados gerais do histórico') }}" title="{{ __('Dados gerais') }}">
@@ -26,7 +26,7 @@
 
 @section('content')
     <p class="small text-muted"><strong>CHC</strong> — {{ __('Carga horária cursada, em horas') }}.</p>
-    @if(! $historyCompleteness['complete'])
+    @if((! $history->is_unified || ! $historyCompleteness['complete']))
         <div class="alert alert-danger"><strong>{{ __('Emissão bloqueada.') }}</strong> {{ $historyCompleteness['message'] }}</div>
     @endif
     @php($transcriptModeLabels = ['detailed' => __('Detalhada'), 'summary' => __('Global/AP'), 'no_transcription' => __('Sem transcrição')])

@@ -1317,9 +1317,12 @@ class AdminScreensTest extends TestCase
         ]);
         $component->records()->create(['student_academic_history_year_id' => $year->id, 'score_label' => 'AP']);
 
-        $this->actingAs($manager)->get(route('student-histories.student', $student))
-            ->assertOk()->assertSee('Históricos cadastrados separadamente')
-            ->assertSee('700,00 h');
+        $this->actingAs($manager)->get(route('student-histories.student', $student))->assertOk();
+        $archived = $separate;
+        $separate = StudentAcademicHistory::query()->where('person_id', $student->id)->where('is_unified', true)->sole();
+        $this->assertDatabaseHas('student_academic_history_years', ['id' => $year->id, 'student_academic_history_id' => $separate->id, 'workload_hours' => 700]);
+        $this->actingAs($manager)->get(route('people.histories.edit', [$student, $archived]))
+            ->assertRedirect(route('people.histories.edit', [$student, $separate]));
         $this->actingAs($manager)->get(route('people.histories.edit', [$student, $separate]))
             ->assertOk()->assertSee('name="years[0][grade_number]"', false);
 
@@ -1329,8 +1332,8 @@ class AdminScreensTest extends TestCase
             'school_id' => $school->id, 'title' => $separate->title, 'stage' => $separate->stage,
             'active' => 1,
             'years' => [[
-                'id' => $separate->years()->sole()->id,
-                'source' => 'manual', 'year' => '2020', 'stage' => 'Ensino Fundamental',
+                'id' => $year->id,
+                'source' => 'external', 'year' => '2020', 'stage' => 'Ensino Fundamental',
                 'modality' => 'Regular', 'grade_phase' => '1ª Fase do 1º Ciclo', 'grade_number' => 1,
                 'school_name' => 'Escola Externa', 'city' => 'Bruxelas', 'state' => 'MT',
                 'country' => 'Bélgica', 'transcript_mode' => 'summary', 'final_result' => 'Aprovado',
@@ -1341,7 +1344,7 @@ class AdminScreensTest extends TestCase
                 'knowledge_area' => 'Linguagens', 'records' => [['score_label' => 'AP']],
             ]],
         ])->assertSessionHasNoErrors()->assertRedirect();
-        $year = $separate->years()->firstOrFail();
+        $year = $separate->years()->where('source', 'external')->sole();
         $this->assertSame(1, $year->grade_number);
         $this->assertSame(800.0, (float) $year->workload_hours);
 
@@ -1350,23 +1353,23 @@ class AdminScreensTest extends TestCase
         $unified = StudentAcademicHistory::query()->where('person_id', $student->id)->where('is_unified', true)->firstOrFail();
         $this->assertDatabaseHas('student_academic_history_years', [
             'student_academic_history_id' => $unified->id,
-            'imported_from_history_year_id' => $year->id,
+            'id' => $year->id,
             'grade_number' => 1, 'workload_hours' => 800,
         ]);
         $this->assertDatabaseHas('student_academic_history_records', ['score_label' => 'AP']);
         $this->actingAs($manager)->post(route('student-histories.import-year', [$student, 'fundamental', $year]))
             ->assertRedirect();
-        $this->assertSame(1, $unified->years()->where('imported_from_history_year_id', $year->id)->count());
+        $this->assertSame(1, $unified->years()->whereKey($year->id)->count());
 
         $systemYear = $unified->years()->where('source', 'system')->firstOrFail();
         $this->actingAs($manager)->delete(route('people.histories.years.destroy', [$student, $unified, $systemYear]))
             ->assertNotFound();
 
-        $imported = $unified->years()->where('imported_from_history_year_id', $year->id)->firstOrFail();
+        $imported = $unified->years()->whereKey($year->id)->firstOrFail();
         $this->actingAs($manager)->delete(route('people.histories.years.destroy', [$student, $unified, $imported]))
             ->assertRedirect(route('student-histories.student', $student));
         $this->assertDatabaseMissing('student_academic_history_years', ['id' => $imported->id]);
-        $this->assertDatabaseHas('student_academic_history_years', ['id' => $year->id]);
+        $this->assertFalse($archived->fresh()->active);
     }
 
     public function test_technical_enrollment_can_create_an_independent_unified_history(): void
@@ -1741,8 +1744,10 @@ class AdminScreensTest extends TestCase
         $history = StudentAcademicHistory::query()->where('person_id', $student->id)->sole();
         $this->assertSame($school->id, $history->school_id);
         $this->assertSame('Ensino Fundamental', $history->stage);
-        $this->assertNull($history->legal_basis);
-        $this->assertNull($history->issued_date);
+        $this->assertTrue($history->is_unified);
+        $this->assertSame('fundamental', $history->education_stage);
+        $this->assertStringNotContainsString('Texto enviado fora do formulário', $history->legal_basis);
+        $this->assertNotNull($history->issued_date);
         $this->assertSame('Poxoréu-Mt', $history->issued_place);
         $this->assertTrue($history->active);
 
@@ -1761,7 +1766,7 @@ class AdminScreensTest extends TestCase
         ])->assertRedirect(route('people.histories.show', [$student, $history]));
 
         $this->assertNull($history->fresh()->legal_basis);
-        $this->assertNull($history->fresh()->issued_place);
+        $this->assertSame('Poxoréu-Mt', $history->fresh()->issued_place);
     }
 
     public function test_student_cannot_start_history_for_a_stage_without_an_enrollment(): void

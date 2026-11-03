@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', __('Novo histórico escolar'))
-@section('page-title', __('Novo histórico escolar'))
+@section('title', __('Adicionar anos externos ao histórico'))
+@section('page-title', __('Adicionar anos externos ao histórico'))
 
 @section('page-actions')
     <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('people.show', $person) }}" aria-label="{{ __('Voltar ao cadastro') }}" title="{{ __('Voltar ao cadastro') }}">
@@ -11,7 +11,7 @@
 
 @section('content')
     <div class="alert alert-info">
-        {{ __('Cadastre o histórico exatamente como veio da escola de origem. Os nomes de componentes, cargas horárias, conceitos e resultados são livres.') }}
+        {{ __('Transcreva os anos conforme o documento da escola de origem. Os dados serão acrescentados ao histórico único de cada etapa, junto às matrículas registradas no sistema.') }}
     </div>
 
     <form method="POST" action="{{ route('people.histories.store', $person) }}">

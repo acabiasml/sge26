@@ -31,7 +31,7 @@ class HistorySaveProtectionTest extends TestCase
         $school = School::query()->create(['name' => 'Escola de teste', 'city' => 'Poxoréu', 'state' => 'MT', 'active' => true]);
         $history = StudentAcademicHistory::query()->create([
             'person_id' => $student->id, 'school_id' => $school->id, 'title' => 'Histórico escolar',
-            'stage' => 'Ensino Fundamental', 'education_stage' => 'fundamental', 'is_unified' => false, 'active' => true,
+            'stage' => 'Ensino Fundamental', 'education_stage' => 'fundamental', 'is_unified' => true, 'active' => true,
         ]);
         $year = $history->years()->create($this->year(1) + ['position' => 1]);
         $component = $history->components()->create(['name' => 'Matemática', 'formation' => 'Formação Geral Básica', 'knowledge_area' => 'Matemática', 'position' => 1]);

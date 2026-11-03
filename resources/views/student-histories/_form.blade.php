@@ -375,7 +375,7 @@
 <div class="sge-history-save-bar mb-4">
     <span class="text-muted">{{ __('As alterações de todos os anos são salvas juntas.') }}</span>
     <button class="btn btn-primary" type="submit">
-        <i class="fas fa-save mr-1" aria-hidden="true"></i>{{ $history->exists ? __('Salvar histórico') : __('Cadastrar histórico') }}
+        <i class="fas fa-save mr-1" aria-hidden="true"></i>{{ $history->exists ? __('Salvar histórico') : __('Adicionar ao histórico da etapa') }}
     </button>
 </div>
 
