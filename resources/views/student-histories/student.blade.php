@@ -4,7 +4,7 @@
 @section('page-title', __('Históricos escolares'))
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-primary" href="{{ route('people.histories.create', $person) }}">{{ __('Adicionar anos externos') }}</a>
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.histories.create', $person) }}" aria-label="{{ __('Adicionar anos externos') }}" title="{{ __('Adicionar anos externos') }}"><i class="fas fa-plus" aria-hidden="true"></i></a>
     <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('student-histories.index') }}" aria-label="{{ __('Voltar aos históricos escolares') }}" title="{{ __('Voltar aos históricos') }}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
 @endsection
 

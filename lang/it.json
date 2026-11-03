@@ -2726,5 +2726,18 @@
     "Insira uma imagem antes de editar sua descrição.": "Inserisci un'immagine prima di modificarne la descrizione.",
     "Pesquisa por “:query”: :count resultado(s).": "Ricerca di “:query”: :count risultato/i.",
     "Pesquisa concluída: :count resultado(s).": "Ricerca completata: :count risultato/i.",
-    "Não foi possível atualizar a listagem. Tente novamente.": "Impossibile aggiornare l'elenco. Riprova."
+    "Não foi possível atualizar a listagem. Tente novamente.": "Impossibile aggiornare l'elenco. Riprova.",
+    "Adicionar anos externos": "Aggiungi anni scolastici esterni",
+    "Adicionar anos externos ao histórico": "Aggiungi anni esterni alla carriera scolastica",
+    "Adicionar ao histórico da etapa": "Aggiungi alla carriera della fase",
+    "Transcreva os anos conforme o documento da escola de origem. Os dados serão acrescentados ao histórico único de cada etapa, junto às matrículas registradas no sistema.": "Trascrivi gli anni secondo il documento della scuola di origine. I dati saranno aggiunti alla carriera unica di ciascuna fase, insieme alle iscrizioni registrate nel sistema.",
+    "Lançamentos que precisam de identificação da etapa": "Registrazioni che richiedono l’identificazione della fase",
+    "Identifique a etapa de cada ano para incorporar os dados ao documento único correspondente. A emissão fica disponível apenas no histórico da etapa.": "Identifica la fase di ogni anno per incorporare i dati nel documento unico corrispondente. L’emissione è disponibile solo nella carriera della fase.",
+    "Anos incorporados ao histórico único da etapa.": "Anni incorporati nella carriera unica della fase.",
+    "Anos incorporados aos históricos das etapas correspondentes.": "Anni incorporati nelle carriere delle rispettive fasi.",
+    "Lançamentos incorporados ao histórico único da etapa.": "Registrazioni incorporate nella carriera unica della fase.",
+    "Identifique a etapa escolar de cada ano antes de salvar.": "Identifica la fase scolastica di ogni anno prima di salvare.",
+    "Este documento foi incorporado ao histórico da etapa. Edite os dados no documento único.": "Questo documento è stato incorporato nella carriera della fase. Modifica i dati nel documento unico.",
+    "Este documento foi incorporado ao histórico da etapa. Reabra o cadastro para editar o documento único.": "Questo documento è stato incorporato nella carriera della fase. Riapri la scheda per modificare il documento unico.",
+    "Identifique a etapa dos lançamentos antes de emitir o histórico.": "Identifica la fase delle registrazioni prima di emettere la carriera scolastica."
 }
