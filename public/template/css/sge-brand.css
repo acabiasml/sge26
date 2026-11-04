@@ -25,6 +25,8 @@
     --sge-blue: #4A86A0;
     --sge-blue-dark: #37677d;
     --sge-paper: #fffaf1;
+    /* Base da marca: mantém a logo original legível, inclusive nos temas escuros. */
+    --sge-logo-surface: #fffaf1;
     --sge-surface: #f8f5ef;
     --sge-ink: #2f241f;
     --sge-text: #4f4650;

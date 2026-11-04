@@ -258,11 +258,17 @@
         <div id="content-wrapper" class="d-flex flex-column">
             <div id="content">
                 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top" aria-label="{{ __('navigation.topbar') }}">
-                    <button id="sidebarToggleControl" class="btn btn-link mr-3 sge-sidebar-toggle d-lg-none" type="button" aria-label="{{ __('navigation.open_sidebar') }}" aria-controls="accordionSidebar"
-                        data-open-label="{{ __('navigation.open_sidebar') }}" data-close-label="{{ __('navigation.close_sidebar') }}"
-                        data-collapse-label="{{ __('navigation.collapse_sidebar') }}">
-                        <i class="fa fa-bars" aria-hidden="true"></i>
-                    </button>
+                    <div class="sge-topbar-start">
+                        <button id="sidebarToggleControl" class="btn btn-link sge-sidebar-toggle d-lg-none" type="button" aria-label="{{ __('navigation.open_sidebar') }}" aria-controls="accordionSidebar"
+                            data-open-label="{{ __('navigation.open_sidebar') }}" data-close-label="{{ __('navigation.close_sidebar') }}"
+                            data-collapse-label="{{ __('navigation.collapse_sidebar') }}">
+                            <i class="fa fa-bars" aria-hidden="true"></i>
+                        </button>
+                        <a class="sge-topbar-brand" href="{{ route('dashboard') }}" title="Beabá · {{ __('navigation.home') }}">
+                            <img src="{{ asset('brand/logo.png') }}" width="642" height="840" alt="Beabá" decoding="async">
+                            <span class="sr-only"> · {{ __('navigation.home') }}</span>
+                        </a>
+                    </div>
 
                     <ul class="navbar-nav ml-auto sge-topbar-controls">
                         @php
@@ -394,12 +400,8 @@
 
                 <main id="main-content" class="container-fluid" tabindex="-1">
                     <div class="sge-page-header d-sm-flex align-items-center justify-content-between mb-4">
-                        <div class="sge-page-brand">
-                            <img src="{{ asset('brand/logo.png') }}" width="642" height="840" alt="" decoding="async">
-                            <div>
-                            <div class="sge-page-kicker">Beabá</div>
+                        <div class="sge-page-heading">
                             <h1 class="h3 mb-0 text-gray-800">@yield('page-title', __('navigation.home'))</h1>
-                            </div>
                         </div>
                         <div class="d-flex align-items-center sge-page-actions">
                             @yield('page-actions')
