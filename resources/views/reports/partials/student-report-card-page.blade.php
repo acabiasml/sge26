@@ -202,8 +202,8 @@
                             <td class="center">{{ $periodComponent ? (int) ($periodComponent['attendance']['absent'] ?? 0) : '-' }}</td>
                         @endforeach
                         <td class="center">{{ (int) ($summary['attendance']['absent'] ?? 0) }}</td>
-                        <td class="center">{{ $formatHoursWithUnit($plannedHours) }}</td>
-                        <td class="center">{{ $formatHoursWithUnit($completedHours) }}</td>
+                        <td class="center">{{ $formatHours($plannedHours) }}</td>
+                        <td class="center">{{ $formatHours($completedHours) }}</td>
                     </tr>
                 @endforeach
             @endforeach

@@ -19,7 +19,7 @@
             @endforeach
         </tr>
         <tr>
-            @foreach($modules as $module)<th class="center">N</th><th class="center">CHC</th>@endforeach
+            @foreach($modules as $module)<th class="center">N</th><th class="center">CHC (h)</th>@endforeach
         </tr>
     </thead>
     <tbody>
@@ -31,7 +31,7 @@
                 @foreach($modules as $module)
                     @if($component->module_label === $module)
                         <td class="center score-cell">{{ $record?->score_label ?: '-' }}</td>
-                        <td class="center score-cell">{{ $record?->completedWorkloadHours($historyYear) !== null ? number_format((float) $record->completedWorkloadHours($historyYear), 0, ',', '.').'h' : '-' }}</td>
+                        <td class="center score-cell">{{ $record?->completedWorkloadHours($historyYear) !== null ? number_format((float) $record->completedWorkloadHours($historyYear), 0, ',', '.') : '-' }}</td>
                     @else
                         <td class="center">-</td><td class="center">-</td>
                     @endif
@@ -45,13 +45,13 @@
             <td colspan="3"><strong>Carga horária cursada por período avaliativo</strong></td>
             @foreach($modules as $module)
                 @php($moduleHours = $technicalComponents->where('module_label', $module)->sum(fn ($component) => (float) ($component->records->firstWhere('student_academic_history_year_id', $historyYear?->id)?->completedWorkloadHours($historyYear) ?? 0)))
-                <td class="center">-</td><td class="center"><strong>{{ $moduleHours > 0 ? number_format($moduleHours, 0, ',', '.').'h' : '-' }}</strong></td>
+                <td class="center">-</td><td class="center"><strong>{{ $moduleHours > 0 ? number_format($moduleHours, 0, ',', '.') : '-' }}</strong></td>
             @endforeach
         </tr>
         <tr>
             @php($completedTechnicalHours = $technicalComponents->sum(fn ($component) => (float) ($component->records->firstWhere('student_academic_history_year_id', $historyYear?->id)?->completedWorkloadHours($historyYear) ?? 0)))
-            <td colspan="3"><strong>Carga horária total cursada</strong></td>
-            <td colspan="{{ max(1, 2 * $modules->count()) }}" class="center"><strong>{{ number_format($completedTechnicalHours, 0, ',', '.').'h' }}</strong></td>
+            <td colspan="3"><strong>Carga horária total cursada (h)</strong></td>
+            <td colspan="{{ max(1, 2 * $modules->count()) }}" class="center"><strong>{{ number_format($completedTechnicalHours, 0, ',', '.') }}</strong></td>
         </tr>
     </tfoot>
     @endif

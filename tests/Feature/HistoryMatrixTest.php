@@ -291,10 +291,10 @@ class HistoryMatrixTest extends TestCase
         $annual = view('reports.partials.history-annual-formation-workloads', compact('history'))->render();
         $this->assertStringContainsString('data-workload-year="1"', $annual);
         $this->assertStringContainsString('data-workload-year="2"', $annual);
-        $this->assertStringContainsString('800,00h', $annual);
-        $this->assertStringContainsString('200,00h', $annual);
-        $this->assertSame(1, substr_count($annual, '850,00h'));
-        $this->assertSame(1, substr_count($annual, '250,00h'));
+        $this->assertStringContainsString('800,00', $annual);
+        $this->assertStringContainsString('200,00', $annual);
+        $this->assertSame(1, substr_count($annual, '850,00'));
+        $this->assertSame(1, substr_count($annual, '250,00'));
         $html = view('reports.partials.basic-history-matrix', compact('history'))->render();
         $this->assertStringContainsString('Carga horária cursada', $html);
         $this->assertStringContainsString('formation-cell', $html);
@@ -303,8 +303,8 @@ class HistoryMatrixTest extends TestCase
         $this->assertStringNotContainsString('97', $html);
         $this->assertStringNotContainsString('F%', $html);
         $totals = view('reports.partials.history-formation-workloads', compact('history'))->render();
-        $this->assertStringContainsString('1.650,00h', $totals);
-        $this->assertStringContainsString('800,00h', $totals);
+        $this->assertStringContainsString('1.650,00', $totals);
+        $this->assertStringContainsString('800,00', $totals);
         $finished->final_result = 'Cursando';
         $this->assertNull($history->formationWorkloadTotals()['Formação Geral Básica']['completed']);
     }

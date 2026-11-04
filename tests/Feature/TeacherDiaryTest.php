@@ -1110,7 +1110,7 @@ class TeacherDiaryTest extends TestCase
         foreach (['123.456.789-01', '177607249507', '12345', '12345678901', '25/07/2013', 'estudante@example.org', 'estudante.demonstracao@ctjj.org', '78696-512', 'Nome Completo da Mãe do Estudante', 'Nome Completo do Pai do Estudante'] as $value) {
             $this->assertStringContainsString($value, $html);
         }
-        $this->assertMatchesRegularExpression('/67 h<\/td>\s*<td[^>]*>6,67 h<\/td>/', $html);
+        $this->assertMatchesRegularExpression('/>67<\/td>\s*<td[^>]*>6,67<\/td>/', $html);
         $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
         $signatureBottom = 0;
         $signatureLineTop = INF;
@@ -1127,7 +1127,7 @@ class TeacherDiaryTest extends TestCase
             if ($node->getAttribute('class') === 'report-table') {
                 $tableRight = max($tableRight, $box[0] + $box[2]);
             }
-            if ($node->tagName === 'td' && preg_match('/^\d[\d.,]* h$/u', trim($node->textContent))) {
+            if ($node->tagName === 'td' && in_array('hours-cell', explode(' ', $node->getAttribute('class')), true)) {
                 $lines = array_filter($frame->get_line_boxes(), fn ($line): bool => trim(implode('', array_map(
                     fn ($textFrame): string => $textFrame->get_node()->textContent,
                     $line->get_frames(),
@@ -1152,7 +1152,8 @@ class TeacherDiaryTest extends TestCase
         $this->assertSame(1, $pdf->getDomPDF()->getCanvas()->get_page_count());
         $this->assertCount(18, $hourCells);
         foreach ($hourCells as $cell) {
-            $this->assertSame(1, $cell['lines'], 'O valor e a unidade devem permanecer juntos: '.$cell['text']);
+            $this->assertMatchesRegularExpression('/^\d[\d.,]*$/u', $cell['text']);
+            $this->assertSame(1, $cell['lines'], 'A carga horária deve ocupar uma única linha: '.$cell['text']);
             $this->assertLessThanOrEqual($cell['cell_width'], $cell['line_width'], 'A carga horária deve caber na coluna.');
         }
         $this->assertLessThanOrEqual($pdf->getDomPDF()->getCanvas()->get_width() - 18 + 1, $tableRight);
@@ -3529,7 +3530,7 @@ class TeacherDiaryTest extends TestCase
             'verificationUrl' => route('documents.verify', 'TESTE'), 'letterhead' => PdfLetterhead::make($year->school)];
         foreach (['reports.student-individual-record', 'reports.student-report-card'] as $view) {
             $html = View::make($view, $data)->render();
-            $this->assertMatchesRegularExpression('/160 h<\/td>\s*<td[^>]*>1,67 h<\/td>/', $html);
+            $this->assertMatchesRegularExpression('/>160<\/td>\s*<td[^>]*>1,67<\/td>/', $html);
         }
     }
 

@@ -269,8 +269,8 @@
                         <td class="center">{{ $formatHours($summary['points'] ?? 0) }}</td>
                         <td class="center">{{ (int) ($summary['attendance']['absent'] ?? 0) }}</td>
                         <td class="center">{{ $summary['attendance']['percentage'] !== null ? number_format((float) $summary['attendance']['percentage'], 1, ',', '.').'%' : '-' }}</td>
-                        <td class="center hours-cell">{{ $formatHoursWithUnit($plannedHours) }}</td>
-                        <td class="center hours-cell">{{ $formatHoursWithUnit($completedHours) }}</td>
+                        <td class="center hours-cell">{{ $formatHours($plannedHours) }}</td>
+                        <td class="center hours-cell">{{ $formatHours($completedHours) }}</td>
                     </tr>
                 @endforeach
             @endforeach

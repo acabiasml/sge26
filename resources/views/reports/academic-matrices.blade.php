@@ -74,7 +74,7 @@
                         <th rowspan="2">Componente curricular</th>
                         <th colspan="{{ $matrixGroup['courses']->count() }}">
                             @if($matrixGroup['value_mode'] === 'hours')
-                                Carga horária total por matriz
+                                Carga horária total por matriz (h)
                             @elseif($matrixGroup['value_mode'] === 'weekly')
                                 Aulas semanais por matriz
                             @else
@@ -106,9 +106,9 @@
                                             @if(!array_key_exists($course->id, $component['uses_total_workload']))
                                                 -
                                             @elseif($usesHours)
-                                                {{ number_format((float) $component['workload_hours'][$course->id], 2, ',', '.') }} h
+                                                {{ number_format((float) $component['workload_hours'][$course->id], 2, ',', '.') }}@if($matrixGroup['value_mode'] !== 'hours') h @endif
                                             @else
-                                                {{ (int) $component['weekly_lessons'][$course->id] }} aula(s)/sem.
+                                                {{ (int) $component['weekly_lessons'][$course->id] }}@if($matrixGroup['value_mode'] !== 'weekly') aula(s)/sem. @endif
                                             @endif
                                         </td>
                                     @endforeach
@@ -121,9 +121,9 @@
                         @foreach ($matrixGroup['courses'] as $course)
                             <td class="center-cell">
                                 @if($matrixGroup['value_mode'] === 'weekly')
-                                    {{ $matrixGroup['total_weekly_lessons'][$course->id] ?? 0 }} aula(s)/sem.
+                                    {{ $matrixGroup['total_weekly_lessons'][$course->id] ?? 0 }}
                                 @else
-                                    {{ $matrixGroup['total_hours'][$course->id] ?? $course->formattedCalculatedWorkloadHours() }} h
+                                    {{ $matrixGroup['total_hours'][$course->id] ?? $course->formattedCalculatedWorkloadHours() }}@if($matrixGroup['value_mode'] !== 'hours') h @endif
                                 @endif
                             </td>
                         @endforeach
@@ -156,8 +156,8 @@
                         <th>Matriz</th>
                         <th>Etapa</th>
                         <th>Modalidade</th>
-                        <th>Hora-aula</th>
-                        <th>Carga horária calculada</th>
+                        <th>Hora-aula (min)</th>
+                        <th>Carga horária calculada (h)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -166,8 +166,8 @@
                             <td>{{ $course->name }}</td>
                             <td>{{ $course->stageLabel() }}</td>
                             <td>{{ $course->modalityLabel() }}</td>
-                            <td>{{ $course->class_hour_minutes }} minutos</td>
-                            <td>{{ $matrixGroup['total_hours'][$course->id] ?? $course->formattedCalculatedWorkloadHours() }} h</td>
+                            <td>{{ $course->class_hour_minutes }}</td>
+                            <td>{{ $matrixGroup['total_hours'][$course->id] ?? $course->formattedCalculatedWorkloadHours() }}</td>
                         </tr>
                     @endforeach
                 </tbody>
