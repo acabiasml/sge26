@@ -1040,7 +1040,13 @@ class TeacherDiaryTest extends TestCase
         $this->assertSame(6.0, (float) $target->fresh()->score);
     }
 
-    public function test_individual_record_keeps_signatures_above_footer_and_hours_follow_relative_attendance(): void
+    public static function individualRecordScoreViews(): array
+    {
+        return ['notas' => ['numeros'], 'conceitos' => ['conceitos']];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('individualRecordScoreViews')]
+    public function test_individual_record_keeps_signatures_above_footer_and_hours_follow_relative_attendance(string $scoreView): void
     {
         [, $year, $class, $component, , $enrollment] = $this->diaryScenario();
         $enrollment->student->update([
@@ -1061,6 +1067,10 @@ class TeacherDiaryTest extends TestCase
         foreach (['Ciências', 'Geografia', 'História', 'Ensino Religioso', 'Arte', 'Educação Física', 'Língua Inglesa', 'Língua Portuguesa'] as $name) {
             $course->components()->create(['name' => $name, 'workload_hours' => 67, 'active' => true]);
         }
+        $area = KnowledgeArea::query()->create(['name' => 'Linguagens e suas Tecnologias', 'formation' => CurriculumCatalog::FORMATION_FGB]);
+        $course->components()->update(['knowledge_area_id' => $area->id]);
+        $mathArea = KnowledgeArea::query()->create(['name' => 'Matemática e suas Tecnologias', 'formation' => CurriculumCatalog::FORMATION_FGB]);
+        $component->update(['knowledge_area_id' => $mathArea->id, 'workload_hours' => 166.67]);
         foreach ([PersonSchoolRole::POSITION_DIRECTOR => 'Thelma Vieira Arrais', PersonSchoolRole::POSITION_SECRETARY => 'Erika Thayellen de Sousa Miranda'] as $position => $name) {
             $person = Person::query()->create(['full_name' => $name]);
             $person->schoolRoles()->create(['school_id' => $year->school_id, 'role' => PersonSchoolRole::ROLE_MANAGER, 'position' => $position, 'active' => true]);
@@ -1078,32 +1088,53 @@ class TeacherDiaryTest extends TestCase
             'final_result_details' => ['reason' => 'Estudante ficou abaixo da pontuação mínima dentro do limite de dependência da escola.'],
         ]);
         $report = app(StudentReportCardBuilder::class)->build($enrollment);
-        $report['annualComponents'] = $report['annualComponents']->map(function ($summary) {
-            $summary['attendance'] = app(AttendanceSummaryCalculator::class)->fromTotals(8, 8, 0) + ['diary_attended_minutes' => 400];
+        $report['annualComponents'] = $report['annualComponents']->map(function ($summary) use ($component) {
+            $summary['points'] = 22.5;
+            $summary['attendance'] = app(AttendanceSummaryCalculator::class)->fromTotals(200, 190, 0)
+                + ['diary_attended_minutes' => $summary['component']->is($component) ? 9500 : 400];
+            $summary['periods'] = $summary['periods']->map(function ($periodSummary) {
+                $periodSummary['average']['value'] = 1.5;
+                $periodSummary['attendance']['absent'] = 15;
+
+                return $periodSummary;
+            });
 
             return $summary;
         });
         $document = new IssuedDocument(['issued_at' => now(), 'verification_code' => 'TESTE']);
         $document->setRelation('issuedBy', null);
-        $data = ['report' => $report, 'scoreView' => 'numeros', 'issuedDocument' => $document,
+        $data = ['report' => $report, 'scoreView' => $scoreView, 'issuedDocument' => $document,
             'verificationUrl' => route('documents.verify', 'TESTE'), 'letterhead' => PdfLetterhead::make($year->school)];
         $html = View::make('reports.student-individual-record', $data)->render();
         $this->assertStringContainsString('Encerrada · Regular', $html);
         foreach (['123.456.789-01', '177607249507', '12345', '12345678901', '25/07/2013', 'estudante@example.org', 'estudante.demonstracao@ctjj.org', '78696-512', 'Nome Completo da Mãe do Estudante', 'Nome Completo do Pai do Estudante'] as $value) {
             $this->assertStringContainsString($value, $html);
         }
-        $this->assertMatchesRegularExpression('/67 h<\/td>\s*<td class="center">6,67 h<\/td>/', $html);
+        $this->assertMatchesRegularExpression('/67 h<\/td>\s*<td[^>]*>6,67 h<\/td>/', $html);
         $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
         $signatureBottom = 0;
         $signatureLineTop = INF;
         $issueDateBottom = 0;
         $footerTop = INF;
-        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame) use (&$signatureBottom, &$signatureLineTop, &$issueDateBottom, &$footerTop): void {
+        $hourCells = [];
+        $tableRight = 0;
+        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame) use (&$signatureBottom, &$signatureLineTop, &$issueDateBottom, &$footerTop, &$hourCells, &$tableRight): void {
             $node = $frame->get_node();
             if (! $node instanceof \DOMElement) {
                 return;
             }
             $box = $frame->get_border_box();
+            if ($node->getAttribute('class') === 'report-table') {
+                $tableRight = max($tableRight, $box[0] + $box[2]);
+            }
+            if ($node->tagName === 'td' && preg_match('/^\d[\d.,]* h$/u', trim($node->textContent))) {
+                $lines = array_filter($frame->get_line_boxes(), fn ($line): bool => trim(implode('', array_map(
+                    fn ($textFrame): string => $textFrame->get_node()->textContent,
+                    $line->get_frames(),
+                ))) !== '');
+                $hourCells[] = ['text' => trim($node->textContent), 'lines' => count($lines),
+                    'line_width' => max(array_map(fn ($line): float => $line->w, $lines)), 'cell_width' => $box[2]];
+            }
             if ($node->getAttribute('class') === 'signature-role') {
                 $signatureBottom = max($signatureBottom, $box[1] + $box[3]);
             }
@@ -1119,6 +1150,12 @@ class TeacherDiaryTest extends TestCase
         }]]);
         $this->assertStringStartsWith('%PDF-', $pdf->output());
         $this->assertSame(1, $pdf->getDomPDF()->getCanvas()->get_page_count());
+        $this->assertCount(18, $hourCells);
+        foreach ($hourCells as $cell) {
+            $this->assertSame(1, $cell['lines'], 'O valor e a unidade devem permanecer juntos: '.$cell['text']);
+            $this->assertLessThanOrEqual($cell['cell_width'], $cell['line_width'], 'A carga horária deve caber na coluna.');
+        }
+        $this->assertLessThanOrEqual($pdf->getDomPDF()->getCanvas()->get_width() - 18 + 1, $tableRight);
         $this->assertGreaterThan(0, $signatureBottom);
         $this->assertNotSame(INF, $footerTop);
         $this->assertGreaterThanOrEqual($signatureBottom + 6, $footerTop, 'As assinaturas devem terminar antes do rodapé, com espaço livre.');
@@ -3492,7 +3529,7 @@ class TeacherDiaryTest extends TestCase
             'verificationUrl' => route('documents.verify', 'TESTE'), 'letterhead' => PdfLetterhead::make($year->school)];
         foreach (['reports.student-individual-record', 'reports.student-report-card'] as $view) {
             $html = View::make($view, $data)->render();
-            $this->assertMatchesRegularExpression('/160 h<\/td>\s*<td class="center">1,67 h<\/td>/', $html);
+            $this->assertMatchesRegularExpression('/160 h<\/td>\s*<td[^>]*>1,67 h<\/td>/', $html);
         }
     }
 

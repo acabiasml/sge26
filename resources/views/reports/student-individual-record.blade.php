@@ -22,6 +22,7 @@
         .report-table th, .report-table td { border: .55px solid #111; padding: 1.2px 2.2px; vertical-align: middle; }
         .report-table th { background: #f1ede9; font-size: 11px; font-weight: 600; text-align: center; }
         .report-table td { font-size: 11px; }
+        .report-table .hours-cell { white-space: nowrap; word-wrap: normal; }
         .technical-regulation { margin: 5px 0; padding: 3px 5px; border: .5px solid #d8c8bf; background: #faf8f6; font-size: 11px; line-height: 1.06; page-break-inside: avoid; }
         .area-cell { font-size: 11px; text-align: center; width: 22%; word-wrap: break-word; }
         .formation-area-label { display: block; font-size: 11px; font-weight: 600; margin-top: 3px; }
@@ -268,8 +269,8 @@
                         <td class="center">{{ $formatHours($summary['points'] ?? 0) }}</td>
                         <td class="center">{{ (int) ($summary['attendance']['absent'] ?? 0) }}</td>
                         <td class="center">{{ $summary['attendance']['percentage'] !== null ? number_format((float) $summary['attendance']['percentage'], 1, ',', '.').'%' : '-' }}</td>
-                        <td class="center">{{ $formatHoursWithUnit($plannedHours) }}</td>
-                        <td class="center">{{ $formatHoursWithUnit($completedHours) }}</td>
+                        <td class="center hours-cell">{{ $formatHoursWithUnit($plannedHours) }}</td>
+                        <td class="center hours-cell">{{ $formatHoursWithUnit($completedHours) }}</td>
                     </tr>
                 @endforeach
             @endforeach
