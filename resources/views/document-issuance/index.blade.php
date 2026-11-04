@@ -21,17 +21,10 @@
         $typeCount = count($documentTypes);
     @endphp
 
-    <section class="sge-document-hub-hero mb-4" aria-labelledby="document-hub-title">
-        <div>
-            <span class="sge-eyebrow">{{ __('Documentos oficiais') }}</span>
-            <h2 id="document-hub-title">{{ __('Emitir documento') }}</h2>
-        </div>
-        <div role="group" class="sge-document-hub-summary" aria-label="{{ __('Resumo da central') }}">
-            <strong>{{ $typeCount }}</strong>
-            <span>{{ __('tipos disponíveis') }}</span>
-            <small>{{ $schools->count() }} {{ __('escola(s) ·') }} {{ $academicYears->count() }} {{ __('ano(s) letivo(s) ·') }} {{ $classCount }} {{ __('turma(s) acessíveis') }}</small>
-        </div>
-    </section>
+    <div role="group" class="sge-document-hub-context mb-3" aria-label="{{ __('Resumo da central') }}">
+        <span><strong>{{ $typeCount }}</strong> {{ __('tipos disponíveis') }}</span>
+        <span>{{ $schools->count() }} {{ __('escola(s) ·') }} {{ $academicYears->count() }} {{ __('ano(s) letivo(s) ·') }} {{ $classCount }} {{ __('turma(s) acessíveis') }}</span>
+    </div>
 
     @if ($errors->any())
         <div class="alert alert-danger" role="alert">

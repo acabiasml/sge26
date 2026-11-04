@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.app', ['pageHeaderInContent' => true])
 
 @section('title', __('Acompanhamento dos diários'))
 @section('page-title', __('Acompanhamento dos diários'))

@@ -1,13 +1,6 @@
 <div>
     @include('livewire.listings.status')
 
-<div class="d-sm-flex align-items-center justify-content-between mb-4">
-    <div>
-        <div class="sge-page-kicker">{{ __('screens.school_life') }}</div>
-        <h1 class="h3 mb-0 text-gray-800">{{ __('screens.school_histories') }}</h1>
-
-    </div>
-</div>
 <div class="card shadow mb-4"><div class="card-body">
     <form wire:submit="applyFilters" method="get" class="form-row align-items-end mb-4">
         <div class="form-group {{ $isAdministrator ? 'col-md-5' : 'col-md-8' }} mb-md-0"><label for="q">{{ __('screens.student') }}</label><input id="q" wire:model.live.debounce.350ms="filters.q" name="q" class="form-control" value="{{ $listingRequest->input('q') }}" placeholder="{{ __('screens.student_placeholder') }}"></div>

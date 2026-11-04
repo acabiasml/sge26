@@ -1,11 +1,8 @@
 <div>
 
-    <section class="card shadow mb-4" aria-labelledby="diaries-title">
-        <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap">
-            <h2 id="diaries-title" class="h6 m-0 font-weight-bold text-primary">{{ $isManagement ? __('Diários disponíveis para gestão') : __('Diários disponíveis') }}</h2>
-            <span id="diary-results-count" class="badge badge-light" aria-live="polite">{{ $diaries->count() }} {{ __('diário(s)') }}</span>
-        </div>
+    <section class="card shadow mb-4" aria-label="{{ __('Diários') }}">
         <div class="card-body">
+            <p id="diary-results-count" class="small text-muted text-right mb-3" aria-live="polite">{{ $diaries->count() }} {{ __('diário(s)') }}</p>
             @if (! $isManagement && ($availableDiaries ?? $diaries)->count() > 1)
                 @php
                     $diarySchools = ($availableDiaries ?? $diaries)->map(fn (array $diary) => $diary['academicYear']->school)->filter()->unique('id')->sortBy('name')->values();
@@ -68,7 +65,7 @@
                     data-class="{{ $diary['class']->id }}"
                     data-search="{{ Illuminate\Support\Str::lower(Illuminate\Support\Str::ascii($diary['component']->name.' '.$diary['class']->name.' '.$diary['academicYear']->name.' '.($diary['academicYear']->school?->name ?? '').' '.($diary['component']->area?->name ?? ''))) }}">
                     <div class="sge-diary-list-main">
-                        <h3><a href="{{ route('teacher-diaries.show', [$diary['class'], $diary['component']]) }}">{{ $diary['component']->name }}</a></h3>
+                        <h2><a href="{{ route('teacher-diaries.show', [$diary['class'], $diary['component']]) }}">{{ $diary['component']->name }}</a></h2>
                         <p>{{ $diary['class']->name }} · {{ $diary['academicYear']->school?->name }} · {{ $diary['academicYear']->reference_year }}</p>
                     </div>
                     <div role="group" class="sge-diary-list-actions" aria-label="{{ __('Ações do diário de') }} {{ $diary['component']->name }}">
@@ -87,7 +84,7 @@
             @empty
                 <div class="sge-empty-state">
                     <i class="fas fa-book-open" aria-hidden="true"></i>
-                    <h3>{{ __('Nenhum diário disponível') }}</h3>
+                    <h2 class="h5">{{ __('Nenhum diário disponível') }}</h2>
                     <p>{{ __('Os diários aparecem quando o ano letivo está aprovado e a docência está vinculada a uma turma e a um componente curricular.') }}</p>
                 </div>
             @endforelse
@@ -95,7 +92,7 @@
 
             <div class="sge-empty-state d-none" data-diary-no-results role="status">
                 <i class="fas fa-search" aria-hidden="true"></i>
-                <h3>{{ __('Nenhum diário encontrado') }}</h3>
+                <h2 class="h5">{{ __('Nenhum diário encontrado') }}</h2>
                 <p>{{ __('Altere os filtros ou limpe a busca para ver os demais diários.') }}</p>
             </div>
         </div>

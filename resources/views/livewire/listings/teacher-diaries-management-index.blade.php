@@ -1,15 +1,16 @@
 <div>
-<div class="d-flex justify-content-end mb-3 sge-action-buttons">
-    @if($academicYear)
-        <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.periods.index', $academicYear) }}" aria-label="{{ __('Gerenciar períodos avaliativos') }}" title="{{ __('Gerenciar períodos avaliativos') }}">
-            <i class="fas fa-sliders-h" aria-hidden="true"></i>
-        </a>
-        <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.schedules-pdf', $academicYear) }}" aria-label="{{ __('Imprimir horários das turmas') }}" title="{{ __('Imprimir horários das turmas') }}">
-            <i class="fas fa-calendar-week" aria-hidden="true"></i>
-        </a>
-    @endif
-
-</div>
+    <x-page-header :title="__('Acompanhamento dos diários')">
+        <x-slot name="actions">
+            @if($academicYear)
+                <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.periods.index', $academicYear) }}" aria-label="{{ __('Gerenciar períodos avaliativos') }}" title="{{ __('Gerenciar períodos avaliativos') }}">
+                    <i class="fas fa-sliders-h" aria-hidden="true"></i>
+                </a>
+                <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.schedules-pdf', $academicYear) }}" aria-label="{{ __('Imprimir horários das turmas') }}" title="{{ __('Imprimir horários das turmas') }}">
+                    <i class="fas fa-calendar-week" aria-hidden="true"></i>
+                </a>
+            @endif
+        </x-slot>
+    </x-page-header>
 
     @php
         $baseDiaryQuery = $listingRequest->except('status', 'page');

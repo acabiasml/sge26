@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.app', ['pageHeaderInContent' => true])
 
 @section('title', __('navigation.compliance'))
 @section('page-title', __('screens.document_academic_compliance'))

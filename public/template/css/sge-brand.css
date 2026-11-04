@@ -4907,7 +4907,7 @@ textarea:focus-visible {
     min-width: 0;
 }
 
-.sge-diary-list-main h3 {
+.sge-diary-list-main h2 {
     margin: 0 0 .2rem;
     color: var(--sge-ink);
     font-size: 1rem;
@@ -6415,13 +6415,13 @@ textarea:focus-visible {
     font-weight: 600;
 }
 
-.sge-diary-list-main h3 a {
+.sge-diary-list-main h2 a {
     color: var(--sge-ink);
     text-decoration: none;
 }
 
-.sge-diary-list-main h3 a:hover,
-.sge-diary-list-main h3 a:focus {
+.sge-diary-list-main h2 a:hover,
+.sge-diary-list-main h2 a:focus {
     color: var(--sge-brown);
     text-decoration: underline;
 }
@@ -6443,7 +6443,7 @@ textarea:focus-visible {
     margin-bottom: .75rem;
 }
 
-.sge-empty-state h3 {
+.sge-empty-state :is(h2, h3) {
     color: var(--sge-ink);
     font-size: 1.05rem;
     font-weight: 700;

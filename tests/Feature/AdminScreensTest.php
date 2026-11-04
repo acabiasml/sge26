@@ -1025,7 +1025,8 @@ class AdminScreensTest extends TestCase
         $this->actingAs($admin)
             ->get(route('data-quality.index', ['school_id' => $school->id, 'severity' => 'danger']))
             ->assertOk()
-            ->assertSee('Central única de conformidade')
+            ->assertSee('Conformidade documental e acadêmica')
+            ->assertDontSee('Central única de conformidade')
             ->assertSee('Pessoa Sem CPF')
             ->assertSee('PDF da conferência');
 

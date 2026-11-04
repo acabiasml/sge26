@@ -63,13 +63,8 @@
         ]);
     @endphp
 
-    <section class="sge-quality-hero mb-4" aria-labelledby="quality-title">
-        <div>
-            <span class="sge-eyebrow">Beabá</span>
-            <h2 id="quality-title">{{ __('screens.compliance_center') }}</h2>
-
-        </div>
-        <div class="sge-quality-actions">
+    <x-page-header :title="__('screens.document_academic_compliance')">
+        <x-slot name="actions">
             <a target="_blank" rel="noopener" class="btn btn-outline-primary" href="{{ route('data-quality.pdf', $filterQuery) }}">
                 <i class="fas fa-file-pdf" aria-hidden="true"></i>
                 <span>{{ __('screens.compliance_pdf') }}</span>
@@ -78,8 +73,8 @@
                 <i class="fas fa-lock" aria-hidden="true"></i>
                 <span>{{ __('screens.view_blocks') }}</span>
             </a>
-        </div>
-    </section>
+        </x-slot>
+    </x-page-header>
 
     <div role="group" class="sge-quality-summary mb-4" aria-label="{{ __('screens.compliance_summary') }}">
         <article>

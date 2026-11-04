@@ -399,14 +399,12 @@
                 </nav>
 
                 <main id="main-content" class="container-fluid" tabindex="-1">
-                    <div class="sge-page-header d-sm-flex align-items-center justify-content-between mb-4">
-                        <div class="sge-page-heading">
-                            <h1 class="h3 mb-0 text-gray-800">@yield('page-title', __('navigation.home'))</h1>
-                        </div>
-                        <div class="d-flex align-items-center sge-page-actions">
-                            @yield('page-actions')
-                        </div>
-                    </div>
+                    @unless ($pageHeaderInContent ?? false)
+                        <x-page-header>
+                            <x-slot name="title">@yield('page-title', __('navigation.home'))</x-slot>
+                            <x-slot name="actions">@yield('page-actions')</x-slot>
+                        </x-page-header>
+                    @endunless
 
                     @if (session('status'))
                         <div class="alert alert-success" role="status" aria-live="polite">
