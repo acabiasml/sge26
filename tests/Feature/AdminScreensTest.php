@@ -294,7 +294,7 @@ class AdminScreensTest extends TestCase
         $this->actingAs($teacher)->get(route('official-documents.create'))
             ->assertOk()->assertSee('Publico Escola A')->assertDontSee('Publico Escola B')
             ->assertDontSee('Privado Gestor')->assertDontSee('Novo documento em papel timbrado')
-            ->assertSee('>Públicos</a>', false)->assertSee('>Meus</a>', false)
+            ->assertSee('Públicos')->assertSee('Meus')
             ->assertSee('aria-current="page"', false)
             ->assertDontSee('visibility=all', false);
         $this->actingAs($teacher)->get(route('official-documents.create', ['visibility' => 'mine']))

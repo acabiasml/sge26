@@ -1,15 +1,31 @@
 <div>
                 <div class="card-body">
-                    @include('livewire.listings.search')
-                    <nav class="nav nav-pills sge-official-tabs mb-3" aria-label="{{ __('Filtrar emitidos') }}">
-                        <a class="nav-link {{ $tab === 'public' ? 'active' : '' }}" wire:click.prevent="selectFilter('visibility', 'public')" href="{{ route('official-documents.create', ['visibility' => 'public']) }}" @if ($tab === 'public') aria-current="page" @endif>{{ __('Públicos') }}</a>
-                        <a class="nav-link {{ $tab === 'mine' ? 'active' : '' }}" wire:click.prevent="selectFilter('visibility', 'mine')" href="{{ route('official-documents.create', ['visibility' => 'mine']) }}" @if ($tab === 'mine') aria-current="page" @endif>{{ __('Meus') }}</a>
-                        @if (auth()->user()->isAdministrator())
-                            <a class="nav-link {{ $tab === 'all' ? 'active' : '' }}" wire:click.prevent="selectFilter('visibility', 'all')" href="{{ route('official-documents.create', ['visibility' => 'all']) }}" @if ($tab === 'all') aria-current="page" @endif>{{ __('Todos') }}</a>
-                        @endif
+                    @php
+                        $documentScopes = [
+                            'public' => ['label' => __('Públicos'), 'icon' => 'fa-globe-americas', 'hint' => __('Públicos das escolas às quais você tem acesso.')],
+                            'mine' => ['label' => __('Meus'), 'icon' => 'fa-user', 'hint' => __('Seus públicos e os privados sob sua responsabilidade.')],
+                        ];
+                        if (auth()->user()->isAdministrator()) {
+                            $documentScopes['all'] = ['label' => __('Todos'), 'icon' => 'fa-layer-group', 'hint' => __('Todos os públicos e privados. Visão exclusiva da administração.')];
+                        }
+                    @endphp
+                    <nav class="sge-official-tabs {{ count($documentScopes) === 3 ? 'has-all' : '' }}" aria-label="{{ __('Filtrar emitidos') }}">
+                        @foreach ($documentScopes as $scope => $scopeInfo)
+                            <a class="sge-official-tab {{ $tab === $scope ? 'is-active' : '' }}"
+                                wire:click.prevent="selectFilter('visibility', '{{ $scope }}')"
+                                href="{{ route('official-documents.create', ['visibility' => $scope]) }}"
+                                aria-controls="official-document-results" aria-label="{{ $scopeInfo['label'] }}: {{ $scopeInfo['hint'] }}"
+                                @if ($tab === $scope) aria-current="page" @endif>
+                                <i class="fas {{ $scopeInfo['icon'] }}" aria-hidden="true"></i>
+                                <span>{{ $scopeInfo['label'] }}</span>
+                                @if ($tab === $scope)<i class="fas fa-check sge-official-tab-check" aria-hidden="true"></i>@endif
+                            </a>
+                        @endforeach
                     </nav>
+                    <p class="sge-official-scope-hint" role="status" aria-live="polite" aria-atomic="true">{{ $documentScopes[$tab]['hint'] }}</p>
+                    @include('livewire.listings.search')
 
-                    <ul class="list-unstyled mb-2">
+                    <ul id="official-document-results" class="list-unstyled mb-2">
                     @forelse ($recentDocuments as $document)
                         <li class="border-bottom pb-3 mb-3">
                             <h3 class="h6 font-weight-bold mb-1">{{ $document->title }}</h3>
