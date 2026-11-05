@@ -98,6 +98,26 @@ class HistorySaveProtectionTest extends TestCase
         }
     }
 
+    public function test_history_editor_keeps_years_collapsed_and_each_year_has_named_field_groups(): void
+    {
+        $history = $this->history();
+        $history->years()->create($this->year(2) + ['position' => 2]);
+        $response = $this->get(route('people.histories.edit', [$history->person_id, $history]))->assertOk();
+        $document = new \DOMDocument;
+        @$document->loadHTML('<?xml encoding="UTF-8">'.$response->getContent());
+        $xpath = new \DOMXPath($document);
+        $cards = $xpath->query('//details[@data-history-year]');
+        $this->assertSame(2, $cards->length);
+        $this->assertSame(0, $xpath->query('//details[@data-history-year and @open]')->length);
+        foreach ($cards as $index => $card) {
+            $this->assertSame(3, $xpath->query('.//fieldset/legend', $card)->length);
+            $this->assertSame(1, $xpath->query('.//input[@name="years['.$index.'][year]"]', $card)->length);
+            $this->assertSame(1, $xpath->query('.//input[@name="years['.$index.'][school_name]"]', $card)->length);
+            $this->assertSame(1, $xpath->query('.//input[@name="years['.$index.'][workload_hours]"]', $card)->length);
+        }
+        $response->assertSee('Anos cursados')->assertSee('Notas e componentes')->assertDontSee('1. Anos cursados')->assertDontSee('2. Notas e componentes');
+    }
+
     public function test_new_year_is_added_without_replacing_existing_year_or_its_grade(): void
     {
         $history = $this->history();

@@ -1,3 +1,7 @@
+@push('styles')
+    <link href="{{ asset('template/css/sge-history-editor.css') }}?v={{ filemtime(public_path('template/css/sge-history-editor.css')) }}" rel="stylesheet">
+@endpush
+
 @php
     $curriculumOnly = $curriculumOnly ?? false;
     $manualOnly = $manualOnly ?? false;
@@ -133,7 +137,7 @@
         <section class="card shadow sge-panel-card mb-4 sge-history-editor-section">
             <div class="sge-panel-header">
                 <div>
-                    <h2>{{ __('1. Anos cursados') }}</h2>
+                    <h2>{{ __('Anos cursados') }}</h2>
                     <p>{{ $manualOnly ? __('Abra um ano para conferir as informações da escola de origem.') : __('Abra um ano por vez para revisar a série e os dados da escola de origem.') }}</p>
                 </div>
                 <button class="btn btn-sm btn-outline-primary" type="button" data-add-history-year>
@@ -143,9 +147,9 @@
             <div class="card-body">
                 <div id="history-years" class="sge-history-year-grid" aria-label="{{ __('Anos cadastrados') }}">
                     @foreach($yearsInput as $yearIndex => $year)
-                        <details class="sge-history-year-card" data-history-year name="history-year" @if($loop->first) open @endif>
+                        <details class="sge-history-year-card" data-history-year name="history-year">
                             <summary class="sge-history-year-summary">
-                                <span class="sge-history-year-index" aria-hidden="true">{{ str_pad((string) ($yearIndex + 1), 2, '0', STR_PAD_LEFT) }}</span>
+                                <span class="sge-history-year-marker" aria-hidden="true"><i class="fas fa-calendar-alt"></i></span>
                                 <span class="sge-history-year-summary-text">
                                     <strong>{{ filled($year['grade_phase'] ?? null) ? $year['grade_phase'] : __('Ano ').($yearIndex + 1) }}</strong>
                                     <small data-history-year-preview>{{ collect([$year['year'] ?? null, $year['school_name'] ?? null, filled($year['workload_hours'] ?? null) ? ($year['workload_hours'].' h') : null])->filter()->join(' · ') ?: __('Preencha os dados deste ano') }}</small>
@@ -157,6 +161,8 @@
                             <input type="hidden" name="years[{{ $yearIndex }}][source]" value="{{ $year['source'] ?? 'manual' }}">
                             <input type="hidden" name="years[{{ $yearIndex }}][student_enrollment_id]" value="{{ $year['student_enrollment_id'] ?? '' }}">
                             <input type="hidden" name="years[{{ $yearIndex }}][imported_from_history_year_id]" value="{{ $year['imported_from_history_year_id'] ?? '' }}">
+                            <fieldset class="sge-history-year-fields">
+                                <legend>{{ __('Identificação do ano') }}</legend>
                             <div class="form-row">
                                 <div class="form-group col-md-3">
                                     <label>{{ __('Ano civil') }}</label>
@@ -208,6 +214,11 @@
                                         @if($selectedModality && ! in_array($selectedModality, $modalityOptions, true))<option value="{{ $selectedModality }}" selected>{{ $selectedModality }}</option>@endif
                                     </select>
                                 </div>
+                            </div>
+                            </fieldset>
+                            <fieldset class="sge-history-year-fields">
+                                <legend>{{ __('Escola de origem') }}</legend>
+                            <div class="form-row">
                                 <div class="form-group col-md-12">
                                     <label>{{ __('Escola onde cursou') }}</label>
                                     <input name="years[{{ $yearIndex }}][school_name]" class="form-control" value="{{ $year['school_name'] ?? '' }}" required>
@@ -229,6 +240,11 @@
                                     <label>{{ __('País') }}</label>
                                     <input name="years[{{ $yearIndex }}][country]" class="form-control" value="{{ $year['country'] ?? 'Brasil' }}" required>
                                 </div>
+                            </div>
+                            </fieldset>
+                            <fieldset class="sge-history-year-fields">
+                                <legend>{{ __('Carga horária e resultado') }}</legend>
+                            <div class="form-row">
                                 <div class="form-group col-md-4">
                                     <label>{{ __('Carga horária total (h)') }}</label>
                                     <input name="years[{{ $yearIndex }}][workload_hours]" data-mask="decimal" inputmode="decimal" class="form-control" value="{{ $year['workload_hours'] ?? '' }}" required>
@@ -238,6 +254,7 @@
                                     <input name="years[{{ $yearIndex }}][final_result]" class="form-control" value="{{ $year['final_result'] ?? '' }}" required>
                                 </div>
                             </div>
+                            </fieldset>
                             <details class="sge-history-year-extra">
                                 <summary><i class="fas fa-sliders-h mr-2" aria-hidden="true"></i>{{ __('Informações complementares do ano') }}</summary>
                                 <div class="form-row pt-3">
@@ -283,7 +300,7 @@
         <details class="card shadow sge-panel-card mb-4 sge-history-components-panel" data-history-components-panel @unless($history->exists) open @endunless>
             <summary class="sge-panel-header sge-history-section-summary">
                 <div>
-                    <h2>{{ __('2. Notas e componentes') }}</h2>
+                    <h2>{{ __('Notas e componentes') }}</h2>
 
                 </div>
                 <i class="fas fa-chevron-down sge-history-year-chevron" aria-hidden="true"></i>
@@ -529,7 +546,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const seriesField = card.querySelector('[name$="[grade_phase]"]');
             const label = seriesField?.value.trim() || @js(__('Série/Fase ')) + (yearIndex + 1);
             card.querySelector('.sge-history-year-summary strong').textContent = label;
-            card.querySelector('.sge-history-year-index').textContent = String(yearIndex + 1).padStart(2, '0');
             const preview = ['year', 'school_name', 'workload_hours'].map(name => {
                 const value = card.querySelector(`[name$="[${name}]"]`)?.value.trim();
                 return value ? value + (name === 'workload_hours' ? ' h' : '') : '';

@@ -1,0 +1,50 @@
+/* As cores identificam os cadastros; os nomes das séries continuam explícitos. */
+.sge-history-year-grid { gap: 1.25rem; }
+.sge-history-year-card { --history-year-accent: var(--sge-blue); }
+html[data-theme] .sge-history-workspace .sge-history-year-card {
+    border: 1px solid color-mix(in srgb, var(--history-year-accent) 50%, var(--sge-border));
+    border-inline-start: 6px solid var(--history-year-accent);
+    border-radius: var(--identity-radius, .85rem);
+    overflow: hidden;
+    box-shadow: 0 .2rem .6rem color-mix(in srgb, var(--sge-ink) 6%, transparent);
+}
+.sge-history-year-card:nth-child(4n + 2) { --history-year-accent: var(--sge-green); }
+.sge-history-year-card:nth-child(4n + 3) { --history-year-accent: var(--sge-orange); }
+.sge-history-year-card:nth-child(4n + 4) { --history-year-accent: var(--sge-brown); }
+html[data-theme] .sge-history-workspace .sge-history-year-card[open] { border-color: var(--history-year-accent); }
+.sge-history-year-card > .sge-history-year-summary {
+    background: linear-gradient(110deg,
+        color-mix(in srgb, var(--history-year-accent) 16%, var(--sge-paper)),
+        color-mix(in srgb, var(--history-year-accent) 5%, var(--sge-paper)));
+    color: var(--sge-ink);
+}
+.sge-history-year-summary .sge-history-year-marker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 2.75rem;
+    min-height: 2.75rem;
+    border-radius: var(--identity-button-radius, .7rem);
+    background: color-mix(in srgb, var(--history-year-accent) 20%, var(--sge-paper));
+    color: var(--sge-ink);
+}
+.sge-history-year-summary-text strong { font-size: 1.1rem; }
+.sge-history-year-summary-text small { margin-top: .25rem; color: var(--sge-text); }
+.sge-history-year-card .sge-history-year-body {
+    border-top-color: color-mix(in srgb, var(--history-year-accent) 40%, var(--sge-border));
+    background: var(--sge-paper);
+}
+.sge-history-year-fields { min-width: 0; margin: 0 0 1.25rem; padding: 0; border: 0; }
+.sge-history-year-fields + .sge-history-year-fields {
+    padding-top: 1rem;
+    border-top: 1px solid var(--sge-border);
+}
+.sge-history-year-fields > legend {
+    width: auto;
+    margin: 0 0 .75rem;
+    padding: 0;
+    color: var(--sge-ink);
+    font-size: 1rem;
+    font-weight: 700;
+}
+.sge-history-year-fields .form-row > .form-group:last-child { margin-bottom: 0; }
