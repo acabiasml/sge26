@@ -26,8 +26,10 @@ try {
     $ids = $histories->pluck('id');
     $years = Illuminate\Support\Facades\DB::table('student_academic_history_years')->whereIn('student_academic_history_id', $ids)->orderBy('student_academic_history_id')->orderBy('position')->get();
     $records = Illuminate\Support\Facades\DB::table('student_academic_history_records')->whereIn('student_academic_history_year_id', $years->pluck('id'))->selectRaw('student_academic_history_year_id, COUNT(*) AS record_count')->groupBy('student_academic_history_year_id')->get();
+    $components = Illuminate\Support\Facades\DB::table('student_academic_history_components')->whereIn('student_academic_history_id', $ids)->orderBy('id')->get(['id', 'student_academic_history_id', 'position', 'formation', 'knowledge_area', 'name']);
+    $componentRecords = Illuminate\Support\Facades\DB::table('student_academic_history_records')->whereIn('student_academic_history_component_id', $components->pluck('id'))->orderBy('id')->get(['id', 'student_academic_history_component_id', 'student_academic_history_year_id', 'score_label', 'workload_hours', 'result', 'created_at', 'updated_at']);
     $audits = Illuminate\Support\Facades\DB::table('audit_logs')->where('auditable_type', App\Models\StudentAcademicHistory::class)->whereIn('auditable_id', $ids)->orderByDesc('id')->limit(60)->get(['id', 'auditable_id', 'action', 'actor_role', 'old_values', 'new_values', 'created_at']);
-    echo json_encode(['matched_people' => 1, 'person' => $person, 'histories' => $histories, 'years' => $years, 'record_counts' => $records, 'audits' => $audits], JSON_THROW_ON_ERROR);
+    echo json_encode(['matched_people' => 1, 'person' => $person, 'histories' => $histories, 'years' => $years, 'record_counts' => $records, 'components' => $components, 'component_records' => $componentRecords, 'audits' => $audits], JSON_THROW_ON_ERROR);
 } finally {
     Illuminate\Support\Facades\DB::rollBack();
 }
