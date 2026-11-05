@@ -20,7 +20,7 @@ class HistoryMatrixTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_history_screen_keeps_merged_cells_inside_each_table_page(): void
+    public function test_history_screen_merges_formations_areas_and_global_results_across_all_rows(): void
     {
         $this->actingAs(User::factory()->create());
         view()->share('errors', new ViewErrorBag);
@@ -29,14 +29,20 @@ class HistoryMatrixTest extends TestCase
         $history->setRelation('school', null);
         $year = new StudentAcademicHistoryYear(['label' => '9º Ano', 'transcript_mode' => 'summary', 'final_result' => 'Aprovado']);
         $year->id = 1;
-        $history->setRelation('years', collect([$year]));
+        $detailed = new StudentAcademicHistoryYear(['label' => '8º Ano', 'transcript_mode' => 'detailed']);
+        $detailed->id = 2;
+        $untranscribed = new StudentAcademicHistoryYear(['label' => '7º Ano', 'transcript_mode' => 'no_transcription', 'final_result' => 'Classificação']);
+        $untranscribed->id = 3;
+        $history->setRelation('years', collect([$year, $detailed, $untranscribed]));
         $history->setRelation('components', collect(range(1, 43))->map(function (int $number): StudentAcademicHistoryComponent {
             $component = new StudentAcademicHistoryComponent([
                 'name' => 'Componente '.$number,
                 'formation' => $number <= 35 ? 'Formação Geral Básica' : 'Parte Diversificada',
                 'knowledge_area' => $number <= 25 ? 'Linguagens' : 'Matemática',
             ]);
-            $component->setRelation('records', collect());
+            $component->setRelation('records', collect([new StudentAcademicHistoryRecord([
+                'student_academic_history_year_id' => 2, 'score_label' => '8,5', 'workload_hours' => 80,
+            ])]));
 
             return $component;
         }));
@@ -54,12 +60,17 @@ class HistoryMatrixTest extends TestCase
         $xpath = new \DOMXPath($document);
         $rows = $xpath->query('//table[contains(@class,"sge-history-read-table")]/tbody/tr');
         $this->assertSame(43, $rows->length);
-        foreach ($rows as $index => $row) {
-            foreach ($xpath->query('./td[@rowspan]', $row) as $cell) {
-                $this->assertLessThanOrEqual(10 - ($index % 10), (int) $cell->getAttribute('rowspan'));
-            }
-        }
-        $this->assertSame(5, $xpath->query('//table[contains(@class,"sge-history-read-table")]/tbody/tr/td[@data-global-year="1"]')->length);
+        $table = $xpath->query('//table[contains(@class,"sge-history-read-table")]')->item(0);
+        $this->assertFalse($table->hasAttribute('data-sge-client-pagination'));
+        $this->assertSame(1, $xpath->query('.//td[@rowspan="35"]/strong[text()="Formação Geral Básica"]', $table)->length);
+        $this->assertSame(1, $xpath->query('.//td[@rowspan="8"]/strong[text()="Parte Diversificada"]', $table)->length);
+        $this->assertSame(1, $xpath->query('.//td[@rowspan="25" and text()="Linguagens"]', $table)->length);
+        $this->assertSame(1, $xpath->query('.//td[@rowspan="10" and text()="Matemática"]', $table)->length);
+        $this->assertSame(1, $xpath->query('.//td[@rowspan="8" and text()="Matemática"]', $table)->length);
+        $this->assertSame(1, $xpath->query('.//td[@data-global-year="1" and @rowspan="43"]/strong[text()="Aprovado"]', $table)->length);
+        $this->assertSame(1, $xpath->query('.//td[@data-global-year="3" and @rowspan="43"]/strong[text()="Classificação"]', $table)->length);
+        $this->assertSame(2, $xpath->query('.//td[@data-global-year]', $table)->length);
+        $this->assertSame(43, $xpath->query('.//td/strong[text()="8,5"]', $table)->length);
     }
 
     public function test_technical_history_repeats_area_on_the_next_table_page(): void

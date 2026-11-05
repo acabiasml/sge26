@@ -124,15 +124,14 @@
                                 @foreach($formationComponents->sortBy(fn ($component) => collect([$component->module_label, $component->knowledge_area, $component->position])->filter(fn ($value) => $value !== null)->join('|'))->groupBy(fn ($component) => $component->knowledge_area ?: '-') as $area => $areaComponents)
                                     @php($areaRowIndex = 0)
                                     @foreach($areaComponents as $component)
-                                    @php($pageRoom = 10 - ($historyRowIndex % 10))
                                     <tr>
-                                        @if($formationRowIndex === 0 || $historyRowIndex % 10 === 0)<td rowspan="{{ min($formationComponents->count() - $formationRowIndex, $pageRoom) }}" class="align-middle"><strong>{{ $formation }}</strong></td>@endif
+                                        @if($formationRowIndex === 0)<td rowspan="{{ $formationComponents->count() }}" class="align-middle"><strong>{{ $formation }}</strong></td>@endif
                                         <td>{{ $component->module_label ?: '-' }}</td>
-                                        @if($areaRowIndex === 0 || $historyRowIndex % 10 === 0)<td rowspan="{{ min($areaComponents->count() - $areaRowIndex, $pageRoom) }}" class="align-middle">{{ $area }}</td>@endif
+                                        @if($areaRowIndex === 0)<td rowspan="{{ $areaComponents->count() }}" class="align-middle">{{ $area }}</td>@endif
                                         <td><strong>{{ $component->name }}</strong></td>
                                         @foreach($history->years as $year)
                                             @if($year->transcript_mode !== 'detailed')
-                                                @if($historyRowIndex % 10 === 0)<td rowspan="{{ min($history->components->count() - $historyRowIndex, $pageRoom) }}" class="text-center align-middle" data-global-year="{{ $year->id }}"><strong>{{ $year->final_result ?: ($transcriptModeLabels[$year->transcript_mode] ?? '-') }}</strong>@if($year->transcript_mode === 'summary')<span class="d-block small text-muted"><abbr title="{{ __('Carga horária cursada, em horas') }}">CHC</abbr> {{ $year->displaysCompletedWorkload() && $year->completedWorkloadHours() !== null ? number_format((float) $year->completedWorkloadHours(), 2, ',', '.') : '-' }}</span>@endif</td>@endif
+                                                @if($historyRowIndex === 0)<td rowspan="{{ $history->components->count() }}" class="text-center align-middle" data-global-year="{{ $year->id }}"><strong>{{ $year->final_result ?: ($transcriptModeLabels[$year->transcript_mode] ?? '-') }}</strong>@if($year->transcript_mode === 'summary')<span class="d-block small text-muted"><abbr title="{{ __('Carga horária cursada, em horas') }}">CHC</abbr> {{ $year->displaysCompletedWorkload() && $year->completedWorkloadHours() !== null ? number_format((float) $year->completedWorkloadHours(), 2, ',', '.') : '-' }}</span>@endif</td>@endif
                                             @else
                                             @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
                                             <td class="text-center">@if($record)<strong>{{ $record->score_label ?: '-' }}</strong><span class="d-block small text-muted"><abbr title="{{ __('Carga horária cursada, em horas') }}">CHC</abbr> {{ $year->displaysCompletedWorkload() && $record->completedWorkloadHours($year) !== null ? number_format((float) $record->completedWorkloadHours($year), 2, ',', '.') : '-' }}</span> @else - @endif</td>
