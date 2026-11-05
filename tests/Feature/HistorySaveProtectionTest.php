@@ -110,12 +110,119 @@ class HistorySaveProtectionTest extends TestCase
         $this->assertSame(2, $cards->length);
         $this->assertSame(0, $xpath->query('//details[@data-history-year and @open]')->length);
         foreach ($cards as $index => $card) {
-            $this->assertSame(3, $xpath->query('.//fieldset/legend', $card)->length);
+            $this->assertSame(4, $xpath->query('.//fieldset/legend', $card)->length);
+            $this->assertSame(1, $xpath->query('.//table[@data-sge-client-pagination]', $card)->length);
             $this->assertSame(1, $xpath->query('.//input[@name="years['.$index.'][year]"]', $card)->length);
             $this->assertSame(1, $xpath->query('.//input[@name="years['.$index.'][school_name]"]', $card)->length);
             $this->assertSame(1, $xpath->query('.//input[@name="years['.$index.'][workload_hours]"]', $card)->length);
         }
         $response->assertSee('Anos cursados')->assertSee('Notas e componentes')->assertDontSee('1. Anos cursados')->assertDontSee('2. Notas e componentes');
+    }
+
+    public function test_component_without_grade_survives_saving_and_reopening_a_global_three_four_year(): void
+    {
+        $history = $this->history();
+        $first = $history->years()->sole();
+        $years = [$this->year(1) + ['id' => $first->id]];
+        foreach ([2, 3, 4] as $grade) {
+            $data = $this->year($grade);
+            if ($grade === 4) {
+                $data = array_merge($data, ['label' => '3º/4º Ano', 'grade_phase' => '3º/4º Ano', 'transcript_mode' => 'summary']);
+            }
+            $saved = $history->years()->create($data + ['position' => $grade]);
+            $years[] = $data + ['id' => $saved->id];
+        }
+        $payload = $this->yearlyPayload($history, $years, [
+            0 => [$this->yearComponentData('Matemática', 'Matemática', ['score_label' => '8,0'])],
+            3 => [$this->yearComponentData('Língua Inglesa', 'Linguagens')],
+        ]);
+        $this->put($this->url($history), $payload)->assertSessionHasNoErrors()->assertRedirect();
+        $this->get(route('people.histories.edit', [$history->person_id, $history]))->assertOk()
+            ->assertSee('name="year_components[3][0][name]"', false)->assertSee('Língua Inglesa');
+        $english = $history->components()->where('name', 'Língua Inglesa')->sole();
+        $record = $english->records()->sole();
+        $this->assertSame($years[3]['id'], $record->student_academic_history_year_id);
+        $this->assertNull($record->score_label);
+        $this->assertNull($record->score_numeric);
+        $this->assertNull($record->workload_hours);
+        $this->assertSame('8,0', $history->components()->where('name', 'Matemática')->sole()->records()->sole()->score_label);
+        $this->get(route('people.histories.edit', [$history->person_id, $history]))->assertOk()->assertSee('Língua Inglesa');
+        $this->assertDatabaseHas('student_academic_history_records', ['id' => $record->id]);
+    }
+
+    public function test_same_component_has_independent_grades_and_removal_in_one_year_preserves_the_other(): void
+    {
+        $history = $this->history();
+        $first = $history->years()->sole();
+        $second = $history->years()->create($this->year(2) + ['position' => 2]);
+        $years = [$this->year(1) + ['id' => $first->id], $this->year(2) + ['id' => $second->id]];
+        $this->put($this->url($history), $this->yearlyPayload($history, $years, [
+            0 => [$this->yearComponentData('Matemática', 'Matemática', ['score_label' => '0', 'absences' => 0])],
+            1 => [$this->yearComponentData('Matemática', 'Matemática', ['score_label' => '7,5', 'workload_hours' => 80])],
+        ]))->assertSessionHasNoErrors();
+        $component = $history->components()->sole();
+        $this->assertSame('0', $component->records()->where('student_academic_history_year_id', $first->id)->sole()->score_label);
+        $this->assertSame('7,5', $component->records()->where('student_academic_history_year_id', $second->id)->sole()->score_label);
+        $this->put($this->url($history), $this->yearlyPayload($history, $years, [
+            0 => [$this->yearComponentData('Matemática', 'Matemática', ['score_label' => '0', 'absences' => 0])],
+        ]))->assertSessionHasNoErrors();
+        $this->assertSame(1, $history->components()->sole()->records()->count());
+        $this->assertSame($first->id, $history->components()->sole()->records()->sole()->student_academic_history_year_id);
+        $this->assertSame(2, $history->years()->count());
+    }
+
+    public function test_yearly_component_errors_point_to_the_correct_year_and_conflicts_cannot_overwrite_grades(): void
+    {
+        $history = $this->history();
+        $year = $history->years()->sole();
+        $years = [$this->year(1) + ['id' => $year->id]];
+        $this->put($this->url($history), $this->yearlyPayload($history, $years, [
+            0 => [$this->yearComponentData('Matemática', 'Matemática e suas Tecnologias')],
+        ]))->assertSessionHasErrors('year_components.0.0.knowledge_area');
+        $this->put($this->url($history), $this->yearlyPayload($history, $years, [
+            0 => [$this->yearComponentData('Matemática', 'Matemática', ['score_label' => '8,0']), $this->yearComponentData('Matemática', 'Matemática', ['score_label' => '6,0'])],
+        ]))->assertSessionHasErrors('year_components.0.1.record.score_label');
+        $this->assertSame('8,0', $history->components()->sole()->records()->sole()->score_label);
+        $this->put($this->url($history), $this->yearlyPayload($history, $years, [
+            9 => [$this->yearComponentData('Língua Inglesa', 'Linguagens')],
+        ]))->assertSessionHasErrors('year_components');
+        $this->assertSame('8,0', $history->components()->sole()->records()->sole()->score_label);
+    }
+
+    public function test_yearly_component_preserves_distinct_formations_and_existing_complementary_fields(): void
+    {
+        $history = $this->history();
+        $year = $history->years()->sole();
+        $rows = [$this->yearComponentData('Língua Inglesa', 'Linguagens', ['score_label' => '8,0', 'completed_workload_hours' => 72])];
+        $rows[] = array_merge($this->yearComponentData('Língua Inglesa', 'Linguagens', ['score_label' => '7,0']), ['formation' => 'Parte Diversificada', 'module_label' => 'Módulo I', 'regulatory_reference' => 'Referência preservada']);
+        $this->put($this->url($history), $this->yearlyPayload($history, [$this->year(1) + ['id' => $year->id]], [0 => $rows]))->assertSessionHasNoErrors();
+        $this->assertSame(2, $history->components()->count());
+        $this->assertSame('72.00', $history->components()->where('formation', 'Formação Geral Básica')->sole()->records()->sole()->completed_workload_hours);
+        $this->assertSame('Módulo I', $history->components()->where('formation', 'Parte Diversificada')->sole()->module_label);
+    }
+
+    private function yearComponentData(string $name, string $area, array $record = []): array
+    {
+        return ['name' => $name, 'knowledge_area' => $area, 'formation' => 'Formação Geral Básica', 'record' => $record];
+    }
+
+    private function yearlyPayload(StudentAcademicHistory $history, array $years, array $rows): array
+    {
+        $payload = $this->payload($history, $years, app(StudentHistoryEditGuard::class)->version($history->fresh()));
+        unset($payload['components']);
+
+        return $payload + ['year_components_present' => '1', 'year_components' => $rows];
+    }
+
+    public function test_adding_an_external_year_keeps_a_component_registered_without_a_grade(): void
+    {
+        $history = $this->history();
+        $payload = $this->yearlyPayload($history, [array_merge($this->year(4), ['transcript_mode' => 'summary'])], [0 => [$this->yearComponentData('Língua Inglesa', 'Linguagens')]]);
+        $this->post(route('people.histories.store', $history->person_id), $payload)->assertSessionHasNoErrors()->assertRedirect();
+        $year = $history->years()->where('grade_number', 4)->sole();
+        $this->assertSame('Língua Inglesa', $year->records()->with('component')->sole()->component->name);
+        $this->assertNull($year->records()->sole()->score_label);
+        $this->get(route('people.histories.edit', [$history->person_id, $history]))->assertOk()->assertSee('Língua Inglesa');
     }
 
     public function test_new_year_is_added_without_replacing_existing_year_or_its_grade(): void

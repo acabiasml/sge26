@@ -48,3 +48,13 @@ html[data-theme] .sge-history-workspace .sge-history-year-card[open] { border-co
     font-weight: 700;
 }
 .sge-history-year-fields .form-row > .form-group:last-child { margin-bottom: 0; }
+.sge-history-year-table { min-width: 740px; }
+.sge-history-year-table th { white-space: nowrap; }
+.sge-history-year-table th:nth-child(-n + 2) { width: 20%; }
+.sge-history-year-table th:nth-child(3) { width: 26%; }
+.sge-history-year-table th:nth-child(4) { width: 28%; }
+.sge-history-year-table th:last-child { width: 1%; }
+.sge-history-year-table :is(td, th) { vertical-align: top; }
+.sge-history-year-components .sge-history-matrix-toolbar { justify-content: flex-end; margin-bottom: .75rem; }
+.sge-history-year-components [role="region"]:focus-visible { outline: 3px solid var(--history-year-accent); outline-offset: 2px; }
+.sge-history-year-table .sge-history-record-grid { grid-template-columns: minmax(0, 1fr); }

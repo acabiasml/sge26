@@ -16,7 +16,9 @@
         pattern,
     );
 
-    document.querySelectorAll('table[data-sge-client-pagination]').forEach((table, tableIndex) => {
+    const initialize = (scope = document) => scope.querySelectorAll('table[data-sge-client-pagination]').forEach((table, tableIndex) => {
+        if (table.dataset.sgePaginationReady) return;
+        table.dataset.sgePaginationReady = '1';
         const body = table.tBodies[0];
         const pageSize = Math.max(1, Number.parseInt(table.dataset.sgeClientPagination, 10) || 10);
 
@@ -29,6 +31,7 @@
             || table.querySelector('caption')?.textContent
             || table.closest('.card')?.querySelector('h2, h3')?.textContent;
         const navigation = document.createElement('nav');
+        navigation.dataset.sgeClientPaginationNav = '1';
         navigation.className = 'flex-wrap align-items-center justify-content-between mt-3';
         navigation.setAttribute('aria-label', tableLabel
             ? `${labels.navigation}: ${tableLabel.trim()}`
@@ -122,4 +125,6 @@
             render(rowAdded);
         }).observe(body, { childList: true });
     });
+    window.sgeInitializeTablePagination = initialize;
+    initialize();
 }());

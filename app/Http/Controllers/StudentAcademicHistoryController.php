@@ -189,7 +189,9 @@ class StudentAcademicHistoryController extends Controller
                     ]));
                     foreach ($data['components'] as $componentData) {
                         $record = $componentData['records'][$index] ?? [];
-                        if (collect($record)->filter(fn ($value) => filled($value))->isEmpty()) {
+                        $registered = (bool) ($record['registered'] ?? false);
+                        unset($record['registered']);
+                        if (! $registered && collect($record)->filter(fn ($value) => filled($value))->isEmpty()) {
                             continue;
                         }
                         unset($componentData['records']);
@@ -539,6 +541,52 @@ class StudentAcademicHistoryController extends Controller
      */
     private function validatedData(Request $request, bool $creating = false): array
     {
+        if (! $request->boolean('year_components_present')) {
+            return $this->validatedMatrixData($request, $creating);
+        }
+        $request->validate([
+            'years' => ['required', 'array', 'min:1'],
+            'year_components' => ['nullable', 'array'],
+            'year_components.*' => ['array'],
+            'year_components.*.*' => ['array'],
+            'year_components.*.*.record' => ['nullable', 'array'],
+        ]);
+        $components = [];
+        $origins = [];
+        foreach ($request->input('year_components', []) as $yearIndex => $rows) {
+            if (! ctype_digit((string) $yearIndex) || ! array_key_exists($yearIndex, $request->input('years'))) {
+                throw ValidationException::withMessages(['year_components' => __('O componente deve pertencer a um ano deste formulário.')]);
+            }
+            foreach ($rows as $rowIndex => $row) {
+                $origins[count($components)] = "year_components.{$yearIndex}.{$rowIndex}";
+                $record = $row['record'] ?? [];
+                $components[] = [
+                    'formation' => $row['formation'] ?? null,
+                    'knowledge_area' => $row['knowledge_area'] ?? null,
+                    'name' => $row['name'] ?? null,
+                    'module_label' => $row['module_label'] ?? null,
+                    'regulatory_reference' => $row['regulatory_reference'] ?? null,
+                    'records' => [$yearIndex => array_merge($record, ['registered' => true])],
+                ];
+            }
+        }
+        $request->merge(['components' => $components]);
+        try {
+            return $this->validatedMatrixData($request, $creating);
+        } catch (ValidationException $exception) {
+            $errors = [];
+            foreach ($exception->errors() as $field => $messages) {
+                if (preg_match('/^components\.(\d+)\.(.*)$/', $field, $match) && isset($origins[(int) $match[1]])) {
+                    $field = $origins[(int) $match[1]].'.'.preg_replace('/^records\.\d+\./', 'record.', $match[2]);
+                }
+                $errors[$field] = $messages;
+            }
+            throw ValidationException::withMessages($errors);
+        }
+    }
+
+    private function validatedMatrixData(Request $request, bool $creating = false): array
+    {
         $routeHistory = $request->route('history');
         $fixedYearStage = $routeHistory instanceof StudentAcademicHistory && $routeHistory->is_unified
             ? AcademicCourse::STAGE_LABELS[$routeHistory->education_stage] ?? $routeHistory->stage
@@ -586,7 +634,7 @@ class StudentAcademicHistoryController extends Controller
             })->all(),
             'components' => collect($request->input('components', []))->map(function (array $component): array {
                 $component['records'] = collect($component['records'] ?? [])->map(function (array $record): array {
-                    foreach (['score_numeric', 'workload_hours', 'frequency_percentage'] as $field) {
+                    foreach (['score_numeric', 'workload_hours', 'completed_workload_hours', 'frequency_percentage'] as $field) {
                         if (isset($record[$field])) {
                             $record[$field] = $this->number($record[$field]);
                         }
@@ -643,11 +691,15 @@ class StudentAcademicHistoryController extends Controller
             'components.*.formation' => ['nullable', 'string', 'max:255'],
             'components.*.knowledge_area' => ['nullable', 'string', 'max:255'],
             'components.*.name' => ['required', 'string', 'max:255'],
+            'components.*.module_label' => ['nullable', 'string', 'max:255'],
+            'components.*.regulatory_reference' => ['nullable', 'string'],
             'components.*.records' => ['nullable', 'array'],
+            'components.*.records.*.registered' => ['nullable', 'boolean'],
             'components.*.records.*.score_label' => ['nullable', 'string', 'max:255'],
             'components.*.records.*.score_numeric' => ['nullable', 'numeric', 'min:0', 'max:10'],
             // A carga horária pertence ao ano/série, não ao lançamento de cada componente.
             // Preserve complementary data transcribed from external documents.
+            'components.*.records.*.completed_workload_hours' => ['nullable', 'numeric', 'min:0'],
             'components.*.records.*.workload_hours' => ['nullable', 'numeric', 'min:0'],
             'components.*.records.*.frequency_label' => ['nullable', 'string', 'max:255'],
             'components.*.records.*.frequency_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -765,26 +817,30 @@ class StudentAcademicHistoryController extends Controller
      */
     private function mergeEquivalentComponents(array $components): array
     {
-        return collect($components)
-            ->groupBy(fn (array $component): string => Str::lower(trim((string) ($component['knowledge_area'] ?? ''))).'|'.Str::lower(trim($component['name'])))
-            ->map(function ($equivalent): array {
-                $merged = $equivalent->first();
-                $merged['records'] = $equivalent
-                    ->pluck('records')
-                    ->reduce(function (array $records, array $candidate): array {
-                        foreach ($candidate as $yearIndex => $record) {
-                            if (! isset($records[$yearIndex]) || collect($records[$yearIndex])->filter(fn ($value) => filled($value))->isEmpty()) {
-                                $records[$yearIndex] = $record;
-                            }
-                        }
+        $merged = [];
+        foreach ($components as $index => $component) {
+            $key = collect([$component['formation'] ?? '', $component['knowledge_area'] ?? '', $component['name'], $component['module_label'] ?? '', $component['regulatory_reference'] ?? ''])
+                ->map(fn ($value) => Str::lower(trim((string) $value)))->join('|');
+            if (! isset($merged[$key])) {
+                $merged[$key] = $component;
 
-                        return $records;
-                    }, []);
+                continue;
+            }
+            foreach ($component['records'] ?? [] as $yearIndex => $record) {
+                foreach ($record as $field => $value) {
+                    $previous = $merged[$key]['records'][$yearIndex][$field] ?? null;
+                    if ($field !== 'registered' && filled($previous) && filled($value) && (string) $previous !== (string) $value
+                        && ! (is_numeric($previous) && is_numeric($value) && (float) $previous === (float) $value)) {
+                        throw ValidationException::withMessages(["components.{$index}.records.{$yearIndex}.{$field}" => __('Há valores diferentes para o mesmo componente neste ano. Confira as linhas repetidas.')]);
+                    }
+                    if (! filled($previous) || $field === 'registered') {
+                        $merged[$key]['records'][$yearIndex][$field] = $value;
+                    }
+                }
+            }
+        }
 
-                return $merged;
-            })
-            ->values()
-            ->all();
+        return array_values($merged);
     }
 
     /**
@@ -824,7 +880,9 @@ class StudentAcademicHistoryController extends Controller
                     continue;
                 }
 
-                if (collect($recordData)->filter(fn ($value) => filled($value))->isEmpty()) {
+                $registered = (bool) ($recordData['registered'] ?? false);
+                unset($recordData['registered']);
+                if (! $registered && collect($recordData)->filter(fn ($value) => filled($value))->isEmpty()) {
                     continue;
                 }
 

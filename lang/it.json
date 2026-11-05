@@ -2747,5 +2747,15 @@
     "Anos cursados": "Anni frequentati",
     "Notas e componentes": "Voti e discipline",
     "Identificação do ano": "Identificazione dell’anno",
-    "Carga horária e resultado": "Monte ore ed esito"
+    "Carga horária e resultado": "Monte ore ed esito",
+    "O componente deve pertencer a um ano deste formulário.": "La disciplina deve appartenere a un anno di questo modulo.",
+    "Há valores diferentes para o mesmo componente neste ano. Confira as linhas repetidas.": "Ci sono valori diversi per la stessa disciplina in questo anno. Controlla le righe duplicate.",
+    "Este ano usa resultado global ou não possui transcrição detalhada. Os componentes cadastrados e suas notas serão preservados.": "Questo anno usa un esito globale o non ha una trascrizione dettagliata. Le discipline registrate e i voti saranno conservati.",
+    "Adicionar componente neste ano": "Aggiungi disciplina a questo anno",
+    "Remover componente deste ano": "Rimuovi disciplina da questo anno",
+    "Nenhum componente cadastrado neste ano.": "Nessuna disciplina registrata in questo anno.",
+    "Novo ano": "Nuovo anno",
+    "Abra o bloco de cada ano para preencher a escola, o resultado e os componentes daquele ano.": "Apri il riquadro di ogni anno per compilare la scuola, l’esito e le discipline di quell’anno.",
+    "Se o documento trouxer resultado global ou etapa sem transcrição, selecione esse tipo no próprio ano. Os componentes podem ser registrados sem nota.": "Se il documento riporta un esito globale o un anno senza trascrizione, seleziona quel tipo nel relativo anno. Le discipline possono essere registrate senza voto.",
+    "Observações deste ano": "Note per questo anno"
 }

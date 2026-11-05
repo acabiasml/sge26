@@ -54,7 +54,8 @@ class ItalianInterfaceTest extends TestCase
 
         $this->get(route('people.histories.create', $user->person))
             ->assertSee('value="Formação Geral Básica"', false)
-            ->assertSee("formation.value === 'Formação Geral Básica'", false)
+            ->assertSee('sge-history-editor.js', false)
+            ->assertSeeText('Aggiungi disciplina a questo anno')
             ->assertSee('value="Regular"', false)
             ->assertSeeText('Regolare');
 

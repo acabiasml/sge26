@@ -240,6 +240,8 @@ O histórico unificado é separado por etapa — Fundamental, Médio ou Técnico
 
 Na edição do histórico unificado, a secretaria lança séries cursadas em outras instituições sem precisar desfazer uma transferência. Todas as séries cursadas em escolas da rede são sincronizadas a partir das matrículas e exibidas para consulta, sem edição manual de notas, faltas ou resultados. A sincronização também ocorre ao abrir, editar ou emitir o histórico; uma matrícula reclassificada aparece com esse resultado.
 
+Cada ano possui seu próprio bloco de componentes, notas e dados complementares. Incluir ou remover um componente afeta somente aquele ano. O vínculo de um componente sem nota é mantido inclusive em transcrições globais, e registros com valores conflitantes no mesmo ano exigem correção antes de salvar.
+
 Na tabela principal dos históricos da educação básica, **CHC** significa carga horária cursada, com legenda no documento. Anos ainda em andamento não exibem CHC. O Ensino Médio apresenta totais previstos e cursados por formação e por ano, além dos totais gerais. Anos em modo **Global** usam uma coluna unificada. O cabeçalho da matriz curricular se repete somente quando a tabela continua em outra página.
 
 ## Documentos
