@@ -3,6 +3,10 @@
 @section('title', __('navigation.home'))
 @section('page-title', __('navigation.home'))
 
+@push('styles')
+    <link href="{{ asset('template/css/sge-dashboard-access.css') }}?v={{ filemtime(public_path('template/css/sge-dashboard-access.css')) }}" rel="stylesheet">
+@endpush
+
 @php
     $dashboardUser = auth()->user();
     $dashboardFirstName = \Illuminate\Support\Str::before(trim($dashboardUser->name), ' ');
@@ -201,6 +205,10 @@
             </div>
         </section>
     @endcan
+
+    @if($teacherLastAccess !== null)
+        @include('dashboard.partials.teacher-last-access', ['access' => $teacherLastAccess])
+    @endif
 
     @if($teacherOverview !== null)
         <section class="sge-dashboard-metrics mb-4" aria-label="{{ __('dashboard.teacher_metrics') }}">

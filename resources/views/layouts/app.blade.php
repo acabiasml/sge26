@@ -30,6 +30,7 @@
     <link href="{{ asset('template/css/sge-section-tabs.css') }}?v={{ filemtime(public_path('template/css/sge-section-tabs.css')) }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-actions.css') }}?v={{ filemtime(public_path('template/css/sge-actions.css')) }}" rel="stylesheet">
     @livewireStyles
+    @stack('styles')
 </head>
 
 <body id="page-top">

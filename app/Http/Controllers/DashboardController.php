@@ -12,6 +12,7 @@ use App\Models\StudentEnrollment;
 use App\Models\User;
 use App\Support\AcademicCalendarGrid;
 use App\Support\TeacherAccess;
+use App\Support\TeacherLastAccessOverview;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -66,6 +67,7 @@ class DashboardController extends Controller
             'activeAcademicYearCount' => $canManagePeople ? $this->activeAcademicYearCount($calendarSchoolIds) : 0,
             'registrationPendingCount' => $canManagePeople ? $this->registrationPendingCount($manageableSchoolIds) : 0,
             'teacherOverview' => $teacherOverview,
+            'teacherLastAccess' => $canManagePeople ? app(TeacherLastAccessOverview::class)->build($user, $request) : null,
             'monthSchoolDayCount' => $combinedCalendarMonth['school_days_count'],
             'roleCounts' => $roleCounts,
             'roleChart' => $this->roleChart($roleCounts),

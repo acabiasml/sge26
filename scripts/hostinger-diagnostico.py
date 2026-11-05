@@ -200,6 +200,8 @@ with tempfile.TemporaryDirectory() as directory:
         # Migração aditiva desta entrega; não executa migrations alheias nem recalcula registros.
         commands.append(('Conferir coluna de carga cursada',
                          'php artisan migrate --path=database/migrations/2026_10_30_000001_add_completed_workload_to_history_records.php --force --no-ansi'))
+        commands.append(('Conferir registro de último acesso',
+                         'php artisan migrate --path=database/migrations/2026_11_05_000001_add_last_access_at_to_users_table.php --force --no-ansi'))
         commands.append(('Migrations', 'php artisan migrate:status --no-ansi'))
         expected_commit = os.environ['EXPECTED_COMMIT']
         deadline = time.monotonic() + 180

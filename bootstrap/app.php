@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\RejectRememberedLogin::class,
             \App\Http\Middleware\SetUserLocale::class,
+            \App\Http\Middleware\RecordUserLastAccess::class,
         ]);
         $middleware->alias([
             'profile.complete' => \App\Http\Middleware\EnsureProfileIsComplete::class,

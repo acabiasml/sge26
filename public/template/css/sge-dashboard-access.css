@@ -1,0 +1,55 @@
+.sge-teacher-access { overflow: hidden; }
+.sge-access-summary {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-height: 64px;
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    list-style: none;
+    color: var(--sge-text);
+}
+.sge-access-summary::-webkit-details-marker { display: none; }
+.sge-access-summary:focus-visible,
+.sge-teacher-access [role="region"]:focus-visible {
+    outline: 3px solid var(--sge-blue);
+    outline-offset: -3px;
+}
+.sge-access-title { font-weight: 700; }
+.sge-access-title > i { margin-inline-end: .4rem; }
+.sge-access-counts { display: flex; flex-wrap: wrap; gap: .5rem; margin-inline-start: auto; }
+.sge-access-status {
+    --access-tone: var(--sge-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .3rem .6rem;
+    border-radius: var(--sge-badge-radius, 1rem);
+    background: color-mix(in srgb, var(--access-tone) 12%, var(--sge-surface));
+    border: 1px solid color-mix(in srgb, var(--access-tone) 40%, var(--sge-border));
+    color: var(--sge-text);
+    font-size: .875rem;
+    white-space: nowrap;
+}
+.sge-access-status > i { color: var(--access-tone); }
+.sge-access-recent { --access-tone: var(--sge-green); }
+.sge-access-overdue { --access-tone: var(--sge-orange-dark); }
+.sge-access-chevron { flex-shrink: 0; transition: transform .2s ease; }
+.sge-teacher-access[open] > summary { border-bottom: 1px solid var(--sge-border); }
+.sge-teacher-access[open] .sge-access-chevron { transform: rotate(180deg); }
+.sge-access-filters { display: flex; align-items: end; flex-wrap: wrap; gap: .75rem; margin-bottom: 1rem; }
+.sge-access-filters > div { flex: 1 1 180px; min-width: 0; }
+.sge-access-filters .sge-access-search { flex-grow: 2; }
+.sge-access-filters label { font-size: .875rem; margin-bottom: .25rem; }
+.sge-access-filters .sge-access-actions { display: flex; gap: .5rem; flex: 0 1 auto; flex-wrap: wrap; }
+.sge-teacher-access th, .sge-teacher-access td { vertical-align: middle; }
+.sge-teacher-access time { white-space: nowrap; }
+@media (max-width: 767.98px) {
+    .sge-access-summary { flex-wrap: wrap; gap: .75rem; }
+    .sge-access-title { flex: 1; }
+    .sge-access-counts { order: 3; margin: 0; flex-basis: 100%; }
+    .sge-teacher-access table { min-width: 540px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .sge-access-chevron { transition: none; }
+}

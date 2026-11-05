@@ -6,6 +6,7 @@ use App\Models\Announcement;
 use App\Models\DiaryAlert;
 use App\Models\PersonSchoolRole;
 use App\Models\User;
+use App\Support\UserLastAccess;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Event;
@@ -30,8 +31,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Event::listen(Login::class, function (): void {
+        Event::listen(Login::class, function (Login $event): void {
             session()->forget('announcements_presented');
+            if ($event->user instanceof User) {
+                app(UserLastAccess::class)->record($event->user);
+            }
         });
 
         $appDir = trim((string) config('app.dir'), '/');

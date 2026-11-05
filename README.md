@@ -309,6 +309,8 @@ O editor também oferece cores e marca-texto, links clicáveis, tachado, sobresc
 
 O dashboard combina indicadores conforme o perfil, recados, aniversariantes e calendário mensal. O menu é organizado em Meu espaço, Gestão escolar, Rotina acadêmica, Documentos, Comunicação e Administração.
 
+Na visão da gestão, o painel recolhível **Acesso dos docentes** mostra o último acesso ao sistema, com data e hora de Mato Grosso. O semáforo distingue até sete dias, mais de sete dias e acessos ainda sem registro. Há busca, filtros por escola e situação e paginação de dez docentes. A gestão consulta somente suas escolas e a administração consulta todas as escolas ativas. O registro começa nesta atualização e é renovado no login e durante a navegação autenticada, sem gerar alterações cadastrais na auditoria.
+
 Recados podem ser cadastrados e editados, com público, vigência e destaque. Os destaques ainda não vistos aparecem em um modal central após o login. **Marcar como já visto** salva a leitura por usuário; fechar sem marcar permite a apresentação no próximo acesso.
 
 A auditoria apresenta nomes e descrições dos registros e agrupa ações consecutivas do mesmo usuário, tipo e contexto, com intervalo de até cinco minutos entre registros. Chamadas e avaliações distintas permanecem separadas. Cada grupo permite consultar os registros originais e os detalhes das alterações. O agrupamento é feito antes da paginação.
