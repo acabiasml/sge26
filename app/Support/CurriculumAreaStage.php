@@ -42,7 +42,9 @@ final class CurriculumAreaStage
                 && $normalized !== 'itinerario formativo';
         }
 
-        return ! in_array($normalized, ['ensino religioso', 'parte diversificada', 'parte complementar'], true);
+        // A parte diversificada também existe em currículos antigos do Médio;
+        // não deve ser convertida em itinerário nem confundida com área da BNCC.
+        return $normalized !== 'ensino religioso';
     }
 
     public static function validate(?string $name, ?string $stage, string $field): void

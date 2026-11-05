@@ -41,6 +41,8 @@ class CurriculumStageAreasTest extends TestCase
         $this->assertSame('Linguagens', CurriculumAreaStage::canonicalName('Linguagens, Códigos e suas Tecnologias', 'fundamental'));
         $this->assertSame('Ciências Humanas e Sociais Aplicadas', CurriculumAreaStage::canonicalName('Ciências Humanas e suas Tecnologias', 'medio'));
         $this->assertTrue(CurriculumAreaStage::compatible('Área Técnica', 'tecnico'));
+        $this->assertTrue(CurriculumAreaStage::compatible('Parte Diversificada', 'medio'));
+        $this->assertTrue(CurriculumAreaStage::compatible('Parte Complementar', 'medio'));
         $this->assertFalse(CurriculumAreaStage::compatible('Área e suas Tecnologias', 'fundamental'));
     }
 
@@ -140,6 +142,24 @@ class CurriculumStageAreasTest extends TestCase
         $this->assertSame('fundamental', CurriculumAreaStage::historyStage($history->fresh()));
         $history->years()->create(['stage' => 'Ensino Médio', 'label' => '1º Ano']);
         $this->assertNull(CurriculumAreaStage::historyStage($history->fresh()));
+    }
+
+    public function test_mixed_history_uses_the_component_records_stage_and_does_not_guess_an_empty_history(): void
+    {
+        $history = StudentAcademicHistory::create(['person_id' => Person::create(['full_name' => 'Estudante de teste'])->id, 'title' => 'Histórico recebido']);
+        $elementary = $history->years()->create(['label' => '9º Ano', 'stage' => 'Ensino Fundamental']);
+        $history->years()->create(['label' => '1º Ano', 'stage' => 'Ensino Médio']);
+        $component = $history->components()->create(['name' => 'Matemática', 'knowledge_area' => 'Matemática e suas Tecnologias']);
+        $component->records()->create(['student_academic_history_year_id' => $elementary->id, 'score_label' => '8,0']);
+        $empty = StudentAcademicHistory::create(['person_id' => $history->person_id, 'title' => 'Sem etapa identificada']);
+        $unclassified = $empty->components()->create(['name' => 'Matemática', 'knowledge_area' => 'Matemática e suas Tecnologias']);
+        $this->artisan('curriculum:reconcile-stage-areas --apply')->assertSuccessful();
+        $this->assertSame('Matemática', $component->fresh()->knowledge_area);
+        $this->assertSame('Matemática e Suas Tecnologias', $unclassified->fresh()->knowledge_area);
+        $report = app(CurriculumAreaStageReconciler::class)->inspect();
+        $this->assertSame(1, $report['unclassified_history_components']);
+        $this->assertFalse($report['unclassified_groups'][0]['has_years']);
+        $this->assertFalse($report['unclassified_groups'][0]['has_records']);
     }
 
     private function yearAndManager(): AcademicYear

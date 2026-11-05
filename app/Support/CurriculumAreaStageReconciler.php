@@ -12,7 +12,7 @@ final class CurriculumAreaStageReconciler
     /** O relatório contém somente contagens e nomes de áreas, sem dados de estudantes. */
     public function inspect(bool $apply = false): array
     {
-        $report = ['curriculum_components' => 0, 'history_components' => 0, 'unclassified_history_components' => 0, 'groups' => []];
+        $report = ['curriculum_components' => 0, 'history_components' => 0, 'unclassified_history_components' => 0, 'unclassified_groups' => [], 'groups' => []];
         foreach (CurriculumComponent::with(['course', 'area'])->when($apply, fn ($query) => $query->lockForUpdate())->lazyById(200) as $component) {
             $stage = $component->course?->stage;
             $name = $component->area?->name;
@@ -25,11 +25,19 @@ final class CurriculumAreaStageReconciler
                 $component->update(['knowledge_area_id' => CurriculumAreaStage::areaForStage($component->area, $stage)->id]);
             }
         }
-        foreach (StudentAcademicHistoryComponent::with('history.years')->whereNotNull('knowledge_area')
+        foreach (StudentAcademicHistoryComponent::with(['history.years', 'records.year'])->whereNotNull('knowledge_area')
             ->when($apply, fn ($query) => $query->lockForUpdate())->lazyById(200) as $component) {
             $stage = $component->history ? CurriculumAreaStage::historyStage($component->history) : null;
             if ($stage === null) {
+                $recordStages = $component->records->map(fn ($record) => CurriculumAreaStage::stageFromLabel($record->year?->stage))->filter()->unique();
+                $stage = $recordStages->count() === 1 ? $recordStages->first() : null;
+            }
+            if ($stage === null) {
                 $report['unclassified_history_components']++;
+                $group = ['area' => $component->knowledge_area, 'has_years' => (bool) $component->history?->years->isNotEmpty(), 'has_records' => $component->records->isNotEmpty()];
+                $key = json_encode($group);
+                $report['unclassified_groups'][$key] ??= $group + ['count' => 0];
+                $report['unclassified_groups'][$key]['count']++;
 
                 continue;
             }
@@ -54,6 +62,7 @@ final class CurriculumAreaStageReconciler
             }
         }
         $report['groups'] = array_values($report['groups']);
+        $report['unclassified_groups'] = array_values($report['unclassified_groups']);
 
         return $report;
     }

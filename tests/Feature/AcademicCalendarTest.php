@@ -1293,7 +1293,7 @@ class AcademicCalendarTest extends TestCase
             ->assertSee('Ciências Humanas e Sociais Aplicadas')
             ->assertSee('Itinerário Formativo')
             ->assertSee('Informática')
-            ->assertViewHas('knowledgeAreas', fn ($areas) => ! $areas->pluck('name')->contains('Parte Diversificada'));
+            ->assertSee('Parte Diversificada');
 
         $this->actingAs($admin)
             ->get(route('academic-years.courses.show', [$year, $elementarySchool]))
