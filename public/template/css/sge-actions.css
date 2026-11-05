@@ -1,3 +1,111 @@
+/* Contrato compartilhado: também vale para controles gerados por Livewire. */
+html .btn,
+html .lwt-btn,
+html .lwt-search__clear,
+html button.dropdown-item {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+}
+html .btn { max-width: 100%; white-space: normal; }
+.sge-action-buttons { gap: .5rem; }
+
+/* Cada variante usa um par do tema em repouso, hover, foco e pressionamento. */
+html[data-theme][data-theme-family] .btn {
+    --sge-button-color: var(--sge-brown);
+    --sge-button-ink: var(--sge-on-accent);
+}
+html[data-theme][data-theme-family] :is(.btn-success, .btn-outline-success) { --sge-button-color: var(--sge-green); }
+html[data-theme][data-theme-family] :is(.btn-danger, .btn-outline-danger) { --sge-button-color: var(--sge-orange-dark); }
+html[data-theme][data-theme-family] :is(.btn-warning, .btn-outline-warning) { --sge-button-color: var(--sge-orange); }
+html[data-theme][data-theme-family] :is(.btn-info, .btn-outline-info) { --sge-button-color: var(--sge-blue-dark); }
+html[data-theme][data-theme-family] :is(.btn-secondary, .btn-outline-secondary) {
+    --sge-button-color: var(--sge-muted);
+    --sge-button-ink: var(--sge-paper);
+}
+html[data-theme][data-theme-family] :is(.btn-dark, .btn-outline-dark) {
+    --sge-button-color: var(--sge-ink);
+    --sge-button-ink: var(--sge-paper);
+}
+html[data-theme][data-theme-family] :is(.btn-primary, .btn-secondary, .btn-success, .btn-danger, .btn-warning, .btn-info, .btn-dark) {
+    background: var(--sge-button-color) !important;
+    color: var(--sge-button-ink) !important;
+    border-color: var(--sge-button-color) !important;
+}
+html[data-theme][data-theme-family] :is(.btn-outline-primary, .btn-outline-secondary, .btn-outline-success, .btn-outline-danger, .btn-outline-warning, .btn-outline-info, .btn-outline-dark) {
+    background: var(--sge-paper) !important;
+    color: var(--sge-button-color) !important;
+    border-color: var(--sge-button-color) !important;
+}
+html[data-theme][data-theme-family] :is(.btn-outline-primary, .btn-outline-secondary, .btn-outline-success, .btn-outline-danger, .btn-outline-warning, .btn-outline-info, .btn-outline-dark):is(:hover, :focus, :active, .active):not(:disabled, .disabled) {
+    background: var(--sge-button-color) !important;
+    color: var(--sge-button-ink) !important;
+    border-color: var(--sge-button-color) !important;
+}
+html[data-theme][data-theme-family] :is(.btn-light, .btn-outline-light) {
+    background: var(--sge-paper) !important;
+    color: var(--sge-ink) !important;
+    border-color: var(--sge-muted) !important;
+}
+html[data-theme][data-theme-family] :is(.btn-light, .btn-outline-light):is(:hover, :focus, :active):not(:disabled, .disabled) {
+    background: var(--sge-surface) !important;
+    color: var(--sge-ink) !important;
+}
+html[data-theme][data-theme-family] .btn-link:not(.sge-topbar-icon-button, .sge-sidebar-toggle) {
+    background: transparent !important;
+    color: var(--sge-brown) !important;
+}
+html :is(.btn, .lwt-btn, .page-link, button.dropdown-item, button.close):focus-visible {
+    outline: 3px solid var(--identity-primary, var(--sge-brown));
+    outline-offset: 3px;
+}
+
+html button.close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 2.75rem;
+    min-width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    color: var(--sge-ink);
+    background: var(--sge-paper);
+    border: 1px solid var(--sge-muted);
+    border-radius: var(--identity-button-radius, .45rem);
+    opacity: 1;
+    text-shadow: none;
+}
+html .modal-header .close { margin: -.25rem -.25rem -.25rem .75rem; padding: 0; }
+html .pagination { flex-wrap: wrap; gap: .25rem; }
+html .pagination .page-item .page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    margin: 0;
+    border-radius: var(--identity-button-radius, .45rem);
+}
+.sge-calendar-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+}
+html .sge-calendar-grid > .sge-calendar-month { min-width: 0; overflow-x: auto; }
+.sge-calendar-grid :is(.sge-calendar-month-header, .sge-calendar-weekdays, .sge-calendar-week) {
+    min-width: 19.25rem;
+}
+.sge-calendar-grid .sge-calendar-day { aspect-ratio: auto; min-width: 0; }
+html[data-theme][data-theme-family] .topbar .badge-counter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    min-height: 1.25rem;
+    font-size: .75rem;
+    line-height: 1.2;
+    background: var(--sge-orange-dark) !important;
+    color: var(--sge-on-accent) !important;
+}
+
 /* Mantém o campo e sua ação próximos, sem colunas vazias entre eles. */
 .sge-listing-search {
     display: flex;

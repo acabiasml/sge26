@@ -8,6 +8,22 @@ use RecursiveIteratorIterator;
 
 class PageActionButtonPatternTest extends TestCase
 {
+    public function test_independent_actions_do_not_use_joined_bootstrap_button_groups(): void
+    {
+        $viewsPath = dirname(__DIR__, 2).'/resources/views';
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($viewsPath));
+        $issues = [];
+
+        foreach ($files as $file) {
+            if ($file->isFile() && str_ends_with($file->getFilename(), '.blade.php')
+                && preg_match('/class="[^"]*\bbtn-group(?:-sm|-lg|-vertical)?\b/', file_get_contents($file->getPathname()))) {
+                $issues[] = $file->getPathname();
+            }
+        }
+
+        $this->assertSame([], $issues, 'Ações independentes precisam de espaçamento e cantos completos: '.implode(', ', $issues));
+    }
+
     public function test_page_header_actions_follow_the_compact_accessible_pattern(): void
     {
         $viewsPath = dirname(__DIR__, 2).'/resources/views';

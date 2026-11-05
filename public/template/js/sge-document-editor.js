@@ -172,6 +172,23 @@
             onInit: () => {
                 const editor = $editor.next('.note-editor');
                 const editable = editor.find('.note-editable')[0];
+                editor.find('.note-color-palette').each((_, palette) => {
+                    const swatches = () => [...palette.querySelectorAll('.note-color-btn')];
+                    swatches().forEach((button, index) => button.tabIndex = index === 0 ? 0 : -1);
+                    palette.addEventListener('keydown', event => {
+                        const buttons = swatches();
+                        const index = buttons.indexOf(event.target);
+                        if (index < 0 || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+                        event.preventDefault();
+                        const columns = getComputedStyle(palette).gridTemplateColumns.split(' ').length;
+                        const offset = {ArrowLeft: -1, ArrowRight: 1, ArrowUp: -columns, ArrowDown: columns}[event.key];
+                        const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1
+                            : Math.max(0, Math.min(buttons.length - 1, index + offset));
+                        buttons[index].tabIndex = -1;
+                        buttons[next].tabIndex = 0;
+                        buttons[next].focus();
+                    });
+                });
                 editable.setAttribute('aria-label', input.getAttribute('aria-label'));
                 editable.setAttribute('aria-describedby', 'editor-help editor-feedback');
                 editable.addEventListener('mousedown', e => { if (e.target.tagName === 'IMG') selectedImage = e.target; }, true);

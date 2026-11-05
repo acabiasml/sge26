@@ -4,7 +4,7 @@
 @section('page-title', $history->title)
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action {{ (! $history->is_unified || ! $historyCompleteness['complete']) ? 'disabled' : '' }}" @if($history->is_unified && $historyCompleteness['complete']) href="{{ route('people.histories.pdf', [$person, $history]) }}" target="_blank" @else aria-disabled="true" @endif aria-label="{{ __('Emitir histórico em PDF') }}" title="{{ $historyCompleteness['complete'] ? __('Histórico em PDF') : $historyCompleteness['message'] }}">
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action {{ (! $history->is_unified || ! $historyCompleteness['complete']) ? 'disabled' : '' }}" @if($history->is_unified && $historyCompleteness['complete']) href="{{ route('people.histories.pdf', [$person, $history]) }}" target="_blank" @else aria-disabled="true" tabindex="-1" @endif aria-label="{{ __('Emitir histórico em PDF') }}" title="{{ $historyCompleteness['complete'] ? __('Histórico em PDF') : $historyCompleteness['message'] }}">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
     <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.histories.details.edit', [$person, $history]) }}" aria-label="{{ __('Editar dados gerais do histórico') }}" title="{{ __('Dados gerais') }}">

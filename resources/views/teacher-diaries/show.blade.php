@@ -155,7 +155,7 @@
         <div id="section-frequencia" class="card shadow mb-4" data-academic-panel="frequencia" role="tabpanel">
             <div class="card-header py-3 d-flex align-items-center justify-content-between flex-wrap">
                 <h2 class="h6 m-0 font-weight-bold text-primary">{{ __('Frequência') }}</h2>
-                <div class="btn-group mt-2 mt-md-0"><a class="btn btn-outline-primary btn-sm" href="{{ route('teacher-diaries.contents', [$schoolClass, $component, 'period' => $period->id]) }}"><i class="fas fa-book mr-1" aria-hidden="true"></i>{{ __('Conteúdos') }}</a><a class="btn btn-primary btn-sm" href="{{ route('teacher-diaries.attendance', [$schoolClass, $component, 'period' => $period->id]) }}"><i class="fas fa-clipboard-check mr-1" aria-hidden="true"></i>{{ __('Lançar frequência') }}</a></div>
+                <div class="sge-action-buttons mt-2 mt-md-0"><a class="btn btn-outline-primary btn-sm" href="{{ route('teacher-diaries.contents', [$schoolClass, $component, 'period' => $period->id]) }}"><i class="fas fa-book mr-1" aria-hidden="true"></i>{{ __('Conteúdos') }}</a><a class="btn btn-primary btn-sm" href="{{ route('teacher-diaries.attendance', [$schoolClass, $component, 'period' => $period->id]) }}"><i class="fas fa-clipboard-check mr-1" aria-hidden="true"></i>{{ __('Lançar frequência') }}</a></div>
             </div>
             <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
                 <p class="mb-0 mr-3">{{ __('Use a folha visual para lançar até 15 dias de uma vez, inclusive presenças parciais por aula.') }}</p>

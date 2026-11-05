@@ -14,6 +14,7 @@
     <link rel="preload" href="{{ asset('template/fonts/atkinson-hyperlegible-next/atkinson-hyperlegible-next-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link href="{{ asset('template/css/sb-admin-2.min.css') }}" rel="stylesheet">
     <link href="{{ asset('template/css/sge-brand.css') }}?v={{ filemtime(public_path('template/css/sge-brand.css')) }}" rel="stylesheet">
+    <link href="{{ asset('template/css/sge-actions.css') }}?v={{ filemtime(public_path('template/css/sge-actions.css')) }}" rel="stylesheet">
 </head>
 
 <body class="bg-gradient-primary sge-login-page">

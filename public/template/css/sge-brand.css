@@ -2230,7 +2230,7 @@ details.sge-panel-card { display: block; }
 
     .sge-page-actions .btn,
     .sge-action-buttons .btn {
-        min-height: 2.35rem;
+        min-height: 2.75rem;
     }
 
     .card-body {
@@ -3511,7 +3511,7 @@ textarea:focus-visible {
 }
 
 .dropdown-item {
-    min-height: 2.35rem;
+    min-height: 2.75rem;
 }
 
 .sidebar .collapse-inner {
@@ -3522,7 +3522,7 @@ textarea:focus-visible {
     align-items: center;
     display: flex;
     gap: .5rem;
-    min-height: 2.35rem;
+    min-height: 2.75rem;
 }
 
 .sidebar .collapse-item i {

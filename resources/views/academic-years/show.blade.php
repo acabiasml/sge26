@@ -343,7 +343,7 @@
                 <div class="card-header py-3 d-flex align-items-center justify-content-between">
                     <h2 id="section-turmas" class="h6 m-0 font-weight-bold text-primary sge-anchor-section">{{ __('Turmas') }}</h2>
                     @if ($canChangeCalendar)
-                        <a class="btn btn-sm btn-primary {{ $readyCourses->isEmpty() ? 'disabled' : '' }}" href="{{ $readyCourses->isEmpty() ? '#' : route('academic-years.classes.create', $academicYear) }}" @if($readyCourses->isEmpty()) aria-disabled="true" @endif>
+                        <a class="btn btn-sm btn-primary {{ $readyCourses->isEmpty() ? 'disabled' : '' }}" @if($readyCourses->isEmpty()) aria-disabled="true" tabindex="-1" @else href="{{ route('academic-years.classes.create', $academicYear) }}" @endif>
                             {{ __('Nova turma') }}
                         </a>
                     @endif

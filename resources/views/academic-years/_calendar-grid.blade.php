@@ -35,6 +35,7 @@
                                 data-calendar-day-title="{{ $day?->title ?? '' }}"
                                 data-calendar-description="{{ $day?->description ?? '' }}"
                                 title="{{ $entry['date']->format('d/m/Y') }} - {{ $entry['label'] }}"
+                                aria-label="{{ $entry['date']->format('d/m/Y') }} - {{ $entry['label'] }}"
                             >
                                 <span class="sge-calendar-date">{{ $entry['date']->format('j') }}</span>
                                 <span class="sge-calendar-code">{{ $entry['code'] ?: '-' }}</span>

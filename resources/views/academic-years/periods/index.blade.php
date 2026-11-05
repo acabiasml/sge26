@@ -207,7 +207,7 @@
                                     <h3 id="diary-closing-{{ $period->id }}" class="h6 font-weight-bold text-primary mb-1"><i class="fas fa-check-double mr-1" aria-hidden="true"></i>{{ __('Fechamento dos diários') }}</h3>
                                     <p class="small text-muted mb-0">{{ __('A gestão consolida o período apenas quando todos os diários estiverem confirmados e sem pendências.') }}</p>
                                 </div>
-                                <div class="btn-group mt-2 mt-md-0">
+                                <div class="sge-action-buttons mt-2 mt-md-0">
                                     @if($consolidation?->consolidated)
                                         <button class="btn btn-sm btn-outline-warning" type="button" data-toggle="collapse" data-target="#reopen-period-{{ $period->id }}" aria-expanded="false" aria-controls="reopen-period-{{ $period->id }}"><i class="fas fa-unlock mr-1" aria-hidden="true"></i>{{ __('Reabrir') }}</button>
                                     @else

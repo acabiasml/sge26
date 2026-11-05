@@ -21,7 +21,8 @@
 /* Theme button shapes must not split the editor's compact controls. */
 html[data-theme][data-theme-family] .note-editor .note-toolbar .note-btn {
     flex: 0 0 auto;
-    min-height: 2.25rem;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
     margin: 0;
     padding: .4rem .55rem;
     border-radius: .35rem;
@@ -33,10 +34,42 @@ html[data-theme][data-theme-family] .note-editor .note-toolbar .note-btn {
 .note-editor .note-editable:focus { outline: 2px solid var(--sge-brown); outline-offset: -2px; }
 .note-editor button:focus-visible, .note-popover button:focus-visible { outline: 2px solid var(--sge-brown); outline-offset: 2px; }
 .note-editor .note-resizebar:focus-visible { outline: 3px solid var(--sge-brown); outline-offset: 2px; }
-.note-editor .note-color .note-btn.dropdown-toggle { min-width: 24px; }
+.note-editor .note-color .note-btn.dropdown-toggle { min-width: 2.75rem; }
 .note-group-image-url { display: none; }
 .note-popover { z-index: 1050; }
-.note-editor .note-btn { min-height: 32px; }
+.note-editor .note-btn, .note-popover .note-btn {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    color: var(--sge-ink);
+    background: var(--sge-paper);
+    border-color: var(--sge-muted);
+}
+.note-editor .note-toolbar .dropdown-menu,
+.note-popover .dropdown-menu {
+    max-width: calc(100vw - 2rem);
+    max-height: min(22rem, 40dvh);
+    overflow-y: auto;
+}
+.note-editor .note-color .note-dropdown-menu {
+    width: min(15rem, calc(100vw - 2rem));
+    min-width: 0;
+    max-height: min(22rem, 40dvh);
+    overflow: auto;
+}
+.note-editor .note-color .note-palette { display: block; width: 100%; }
+.note-editor .note-color .note-color-palette {
+    display: grid;
+    grid-template-columns: repeat(4, 2.75rem);
+    justify-content: center;
+    gap: .25rem;
+}
+.note-editor .note-color .note-color-row { display: contents; }
+.note-editor .note-toolbar .note-color .note-color-palette .note-color-btn {
+    width: 2.75rem;
+    height: 2.75rem;
+    margin: 0;
+    border: 1px solid var(--sge-muted);
+}
 
 .note-editor .note-editing-area .note-editable table, .note-editor .note-editing-area .note-editable td, .note-editor .note-editing-area .note-editable th { background: #fff !important; color: #2f241f !important; }
 
@@ -44,9 +77,9 @@ html[data-theme][data-theme-family] .note-editor .note-toolbar .note-btn {
     /* Stack the two palettes instead of letting Summernote's fixed width overflow. */
     .note-editor .note-toolbar .note-color .note-dropdown-menu {
         min-width: 0;
-        width: 180px;
+        width: min(15rem, calc(100vw - 2rem));
         max-width: calc(100vw - 2rem);
-        max-height: 70vh;
+        max-height: min(22rem, 40dvh);
         overflow: auto;
     }
 }
