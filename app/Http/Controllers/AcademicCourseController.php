@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AcademicCourse;
 use App\Models\AcademicYear;
 use App\Support\AcademicStructureValidator;
+use App\Support\CurriculumAreaStage;
 use App\Support\CurriculumCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -187,6 +188,12 @@ class AcademicCourseController extends Controller
             'class_hour_minutes' => ['required', 'integer', 'min:1', 'max:240'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
+
+        if ($course && $course->stage !== $data['stage']) {
+            foreach ($course->components()->with('area')->get() as $component) {
+                CurriculumAreaStage::validate($component->area?->name, $data['stage'], 'stage');
+            }
+        }
 
         $data['status'] = 'curricular';
         $data['active'] = true;

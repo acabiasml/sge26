@@ -149,6 +149,8 @@ Matrizes representam cursos ou etapas e podem ser duplicadas. Componentes possue
 
 Em **Áreas curriculares**, a Administração pode rastrear os usos por escola, ano, matriz e componente, desvincular componentes e excluir áreas sem usos. A desvinculação preserva os componentes e seus registros acadêmicos.
 
+As áreas da BNCC são separadas por etapa: Fundamental usa Linguagens, Matemática, Ciências da Natureza e Ciências Humanas; Médio usa os nomes correspondentes com Tecnologias e Ciências Humanas e Sociais Aplicadas. Os seletores e a validação impedem associações entre etapas, inclusive em históricos recebidos, na troca da etapa da matriz e na renomeação de áreas já usadas. Importações convertem apenas equivalências conhecidas. `php artisan curriculum:reconcile-stage-areas` faz diagnóstico por contagens, sem dados de estudantes; `--apply` corrige as associações conhecidas em transação, com auditoria, preservando IDs, notas, faltas e cargas horárias.
+
 No Ensino Médio, o sistema separa:
 
 - **Formação Geral Básica**;

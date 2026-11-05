@@ -8,7 +8,9 @@ use App\Models\KnowledgeArea;
 class CurriculumCatalog
 {
     public const FORMATION_FGB = 'Formação Geral Básica';
+
     public const FORMATION_COMPLEMENTARY = 'Parte Complementar';
+
     public const FORMATION_ITINERARY = 'Itinerário Formativo';
 
     /**
@@ -40,7 +42,9 @@ class CurriculumCatalog
             ->where('active', true)
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->filter(fn (KnowledgeArea $area) => CurriculumAreaStage::compatible($area->name, $course->stage))
+            ->values();
     }
 
     /**

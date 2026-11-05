@@ -23,6 +23,7 @@ use App\Models\SchoolAssessmentRule;
 use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
 use App\Models\StudentEnrollment;
+use App\Support\CurriculumAreaStage;
 use App\Support\TextNormalizer;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -744,7 +745,9 @@ class ImportLegacyData extends Command
                 ],
                 [
                     'academic_course_id' => $courseId,
-                    'knowledge_area_id' => $areaMap[(int) ($legacyComponent['area_id'] ?? 0)] ?? null,
+                    'knowledge_area_id' => CurriculumAreaStage::areaForStage(
+                        KnowledgeArea::find($areaMap[(int) ($legacyComponent['area_id'] ?? 0)] ?? null), $course?->stage
+                    )?->id,
                     'name' => $this->title($legacyComponent['nome'] ?? 'Componente '.$legacyId),
                     'weekly_lessons' => $weeklyLessons,
                     'workload_hours' => $weeklyLessons && $course

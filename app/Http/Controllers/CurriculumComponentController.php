@@ -6,6 +6,7 @@ use App\Models\AcademicCourse;
 use App\Models\AcademicYear;
 use App\Models\CurriculumComponent;
 use App\Models\SchoolClassComponent;
+use App\Support\CurriculumAreaStage;
 use App\Support\CurriculumCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,7 +25,7 @@ class CurriculumComponentController extends Controller
         return view('curriculum-components.show', [
             'academicYear' => $academicYear->load('school'),
             'course' => $course,
-            'knowledgeAreas' => CurriculumCatalog::knowledgeAreasForCourse($course)->when($component->area, fn ($areas) => $areas->push($component->area))->unique('id'),
+            'knowledgeAreas' => CurriculumCatalog::knowledgeAreasForCourse($course)->when($component->area && CurriculumAreaStage::compatible($component->area->name, $course->stage), fn ($areas) => $areas->push($component->area))->unique('id'),
             'component' => $component->load('area', 'startsPeriod', 'endsPeriod'),
             'periods' => $academicYear->periods()->orderBy('position')->get(),
         ]);
@@ -87,11 +88,10 @@ class CurriculumComponentController extends Controller
         AcademicYear $academicYear,
         AcademicCourse $course,
         ?CurriculumComponent $component = null
-    ): array
-    {
+    ): array {
         $allowedAreaIds = CurriculumCatalog::knowledgeAreasForCourse($course)
             ->pluck('id')
-            ->when($component?->knowledge_area_id, fn ($ids) => $ids->push($component->knowledge_area_id))
+            ->when($component?->area && CurriculumAreaStage::compatible($component->area->name, $course->stage), fn ($ids) => $ids->push($component->knowledge_area_id))
             ->unique()
             ->all();
 

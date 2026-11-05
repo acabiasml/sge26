@@ -5,6 +5,10 @@ on:
       - main
   workflow_dispatch:
     inputs:
+      repair_stage_areas:
+        description: Corrigir associações entre áreas curriculares e etapas conforme autorização
+        type: boolean
+        default: false
       refresh_views:
         description: Limpar cache das telas Blade
         type: boolean
@@ -85,6 +89,7 @@ jobs:
         run: python -m pip install 'paramiko==3.5.1'
       - name: Verificar produção e aplicar migration quando solicitado
         env:
+          REPAIR_STAGE_AREAS: ${{ inputs.repair_stage_areas }}
           REFRESH_VIEWS: ${{ inputs.refresh_views }}
           APPLY_VISIBILITY_MIGRATION: ${{ inputs.apply_visibility_migration }}
           APPLY_PRIVATE_OWNER_MIGRATION: ${{ inputs.apply_private_owner_migration }}

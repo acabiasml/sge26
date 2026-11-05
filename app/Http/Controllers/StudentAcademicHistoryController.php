@@ -10,6 +10,7 @@ use App\Models\StudentAcademicHistory;
 use App\Models\StudentAcademicHistoryYear;
 use App\Models\StudentEnrollment;
 use App\Support\BrazilianStates;
+use App\Support\CurriculumAreaStage;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
 use App\Support\StudentAcademicHistoryCompleteness;
@@ -677,6 +678,19 @@ class StudentAcademicHistoryController extends Controller
             422,
             __('Uma das matrículas informadas não pertence ao estudante deste histórico.'),
         );
+        foreach ($data['components'] ?? [] as $index => $component) {
+            $componentStages = $routeHistory?->education_stage ? collect([$routeHistory->education_stage])
+                : collect($data['years'])->filter(function ($year, $yearIndex) use ($component) {
+                    return collect($component['records'][$yearIndex] ?? [])->contains(fn ($value) => filled($value));
+                })->pluck('stage')->map(fn ($label) => CurriculumAreaStage::stageFromLabel($label))->filter()->unique();
+            if ($componentStages->isEmpty()) {
+                $componentStages = collect($data['years'])->pluck('stage')->map(fn ($label) => CurriculumAreaStage::stageFromLabel($label))->filter()->unique();
+            }
+            foreach ($componentStages as $componentStage) {
+                CurriculumAreaStage::validate($component['knowledge_area'] ?? null, $componentStage, "components.{$index}.knowledge_area");
+            }
+        }
+
         if ($routeHistory instanceof StudentAcademicHistory && $routeHistory->is_unified) {
             $stage = $routeHistory->education_stage ?: AcademicCourse::STAGE_ELEMENTARY;
             $systemGrades = $routeHistory->years()->where('source', 'system')->get(['grade_number', 'grade_phase'])

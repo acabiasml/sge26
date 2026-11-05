@@ -3,7 +3,7 @@
     $manualOnly = $manualOnly ?? false;
     $history->loadMissing(['years.records', 'components.records.year']);
     $editableYears = $manualOnly ? $history->years->filter(fn ($year) => $year->source !== 'system')->values() : $history->years->values();
-    $catalogStage = $history->education_stage ?: 'fundamental';
+    $catalogStage = \App\Support\CurriculumAreaStage::historyStage($history) ?: 'fundamental';
     $bnccAreas = collect(config("curriculum.stages.{$catalogStage}.formations.formacao_geral_basica.areas", []));
     $bnccComponentsByArea = $bnccAreas->mapWithKeys(fn ($area) => [$area['name'] => $area['components'] ?? []]);
     $flexibleFormation = match ($catalogStage) {
@@ -332,7 +332,7 @@
                                         <select name="components[{{ $componentIndex }}][knowledge_area]" class="form-control form-control-sm" data-history-area aria-label="{{ __('Área') }}" required>
                                             <option value="">{{ __('Selecione') }}</option>
                                             @foreach($bnccAreas as $area)<option value="{{ $area['name'] }}" @selected($selectedArea === $area['name'])>{{ $area['name'] }}</option>@endforeach
-                                            @if($selectedArea && ! $bnccAreas->pluck('name')->contains($selectedArea))<option value="{{ $selectedArea }}" selected>{{ $selectedArea }}</option>@endif
+                                            @if($selectedArea && ! $bnccAreas->pluck('name')->contains($selectedArea) && \App\Support\CurriculumAreaStage::compatible($selectedArea, $catalogStage))<option value="{{ $selectedArea }}" selected>{{ $selectedArea }}</option>@endif
                                         </select>
                                     </td>
                                     <td>

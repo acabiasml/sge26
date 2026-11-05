@@ -20,7 +20,7 @@ class HistorySaveProtectionTest extends TestCase
     private function history(): StudentAcademicHistory
     {
         $person = Person::query()->create([
-            'full_name' => 'Pessoa de teste', 'cpf' => '12345678901', 'birth_date' => '1990-01-01',
+            'full_name' => 'Pessoa de teste', 'cpf' => fake()->unique()->numerify('###########'), 'birth_date' => '1990-01-01',
             'birth_city' => 'Poxoréu', 'birth_state' => 'MT', 'nationality' => 'Brasileira',
             'mother_name' => 'Responsável', 'address' => 'Rua de teste', 'city' => 'Poxoréu',
             'state' => 'MT', 'postal_code' => '78700000', 'profile_completed_at' => now(),
@@ -75,6 +75,27 @@ class HistorySaveProtectionTest extends TestCase
     private function url(StudentAcademicHistory $history): string
     {
         return route('people.histories.update', [$history->person_id, $history]);
+    }
+
+    public function test_histories_reject_areas_from_the_other_stage_even_when_previously_imported(): void
+    {
+        foreach (['fundamental', 'medio'] as $stage) {
+            foreach ([true, false] as $unified) {
+                $history = $this->history();
+                $stageLabel = $stage === 'fundamental' ? 'Ensino Fundamental' : 'Ensino Médio';
+                $history->update(['education_stage' => $unified ? $stage : null, 'stage' => $stageLabel, 'is_unified' => $unified]);
+                $year = $history->years()->sole();
+                $year->update(['stage' => $stageLabel, 'source' => 'external']);
+                $wrongArea = $stage === 'fundamental' ? 'Matemática e suas Tecnologias' : 'Matemática';
+                $component = $history->components()->sole();
+                $component->update(['knowledge_area' => $wrongArea]);
+                $payload = $this->payload($history->fresh(), [$this->year(1) + ['id' => $year->id]], app(StudentHistoryEditGuard::class)->version($history->fresh()));
+                $payload['years'][0]['stage'] = $stageLabel;
+                $payload['components'][0]['knowledge_area'] = $wrongArea;
+                $this->put($this->url($history), $payload)->assertSessionHasErrors('components.0.knowledge_area');
+                $this->assertDatabaseHas('student_academic_history_records', ['student_academic_history_component_id' => $component->id, 'score_label' => '8,0']);
+            }
+        }
     }
 
     public function test_new_year_is_added_without_replacing_existing_year_or_its_grade(): void

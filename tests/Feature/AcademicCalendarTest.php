@@ -8,7 +8,9 @@ use App\Models\AcademicCourse;
 use App\Models\AcademicPeriodDiaryConsolidation;
 use App\Models\AcademicYear;
 use App\Models\Announcement;
+use App\Models\AuditLog;
 use App\Models\CalendarDay;
+use App\Models\CurriculumComponent;
 use App\Models\DiaryAssessment;
 use App\Models\IssuedDocument;
 use App\Models\KnowledgeArea;
@@ -16,12 +18,15 @@ use App\Models\Person;
 use App\Models\PersonContact;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
+use App\Models\StudentAcademicHistory;
 use App\Models\StudentEnrollment;
 use App\Models\User;
 use App\Support\AcademicCalendarGrid;
 use App\Support\AcademicStructureValidator;
 use App\Support\AcademicYearClosureStatus;
 use App\Support\CurriculumCatalog;
+use App\Support\DashboardShortcuts;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use ReflectionMethod;
 use Tests\TestCase;
@@ -32,7 +37,7 @@ class AcademicCalendarTest extends TestCase
 
     public function test_dashboard_shortcuts_prioritize_current_periods_and_personal_audit_without_leaking_other_schools(): void
     {
-        $this->travelTo(\Carbon\Carbon::parse('2026-10-07'));
+        $this->travelTo(Carbon::parse('2026-10-07'));
         $year = $this->academicYear();
         $otherYear = $this->academicYear();
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id);
@@ -40,15 +45,15 @@ class AcademicCalendarTest extends TestCase
             ['url' => route('teacher-diaries.index'), 'label' => 'Diários', 'description' => '', 'icon' => 'fa-book'],
             ['url' => route('enrollments.index'), 'label' => 'Matrículas', 'description' => '', 'icon' => 'fa-users'],
         ];
-        \App\Models\AuditLog::query()->create(['actor_user_id' => $manager->id, 'actor_role' => PersonSchoolRole::ROLE_MANAGER,
+        AuditLog::query()->create(['actor_user_id' => $manager->id, 'actor_role' => PersonSchoolRole::ROLE_MANAGER,
             'auditable_type' => StudentEnrollment::class, 'auditable_id' => 1, 'action' => 'created', 'school_id' => $year->school_id]);
-        $shortcuts = collect(\App\Support\DashboardShortcuts::make($manager, $defaults));
+        $shortcuts = collect(DashboardShortcuts::make($manager, $defaults));
         $this->assertCount(4, $shortcuts);
         $this->assertSame(route('academic-years.periods.index', $year), $shortcuts[0]['url']);
         $this->assertSame(route('enrollments.index'), $shortcuts[1]['url']);
         $this->assertFalse($shortcuts->contains('url', route('academic-years.periods.index', $otherYear)));
         $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'shortcuts-student@ctjj.org');
-        $studentLinks = \App\Support\DashboardShortcuts::make($student, [
+        $studentLinks = DashboardShortcuts::make($student, [
             ['url' => route('profile.edit'), 'label' => 'Perfil', 'description' => '', 'icon' => 'fa-user'],
         ]);
         $this->assertCount(1, $studentLinks);
@@ -85,7 +90,7 @@ class AcademicCalendarTest extends TestCase
         $year = $this->academicYear();
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'historic-area-manager@ctjj.org');
         $student = Person::create(['full_name' => 'Estudante do Histórico']);
-        $history = \App\Models\StudentAcademicHistory::create([
+        $history = StudentAcademicHistory::create([
             'person_id' => $student->id, 'school_id' => $year->school_id,
             'title' => 'Histórico importado', 'stage' => 'Fundamental',
         ]);
@@ -107,7 +112,7 @@ class AcademicCalendarTest extends TestCase
         $course = new AcademicCourse(['class_hour_minutes' => 50]);
         $course->setRelation('academicYear', $year->load('periods'));
         $course->setRelation('startsPeriod', null)->setRelation('endsPeriod', null);
-        $component = new \App\Models\CurriculumComponent(['weekly_lessons' => 2]);
+        $component = new CurriculumComponent(['weekly_lessons' => 2]);
         $component->setRelation('startsPeriod', $periods[0])->setRelation('endsPeriod', $periods[1]);
         $this->assertSame(33.33, $component->calculatedWorkloadHours($course));
         $component->setRelation('startsPeriod', $periods[2])->setRelation('endsPeriod', null);
@@ -1288,7 +1293,7 @@ class AcademicCalendarTest extends TestCase
             ->assertSee('Ciências Humanas e Sociais Aplicadas')
             ->assertSee('Itinerário Formativo')
             ->assertSee('Informática')
-            ->assertSee('Parte Diversificada');
+            ->assertViewHas('knowledgeAreas', fn ($areas) => ! $areas->pluck('name')->contains('Parte Diversificada'));
 
         $this->actingAs($admin)
             ->get(route('academic-years.courses.show', [$year, $elementarySchool]))
@@ -1298,7 +1303,7 @@ class AcademicCalendarTest extends TestCase
             ->assertSee('Ensino Religioso')
             ->assertSee('Parte Diversificada')
             ->assertSee('Informática')
-            ->assertSee('Itinerário Formativo');
+            ->assertViewHas('knowledgeAreas', fn ($areas) => $areas->pluck('name')->intersect(['Itinerário Formativo', 'Linguagens e suas Tecnologias', 'Ciências Humanas e Sociais Aplicadas'])->isEmpty());
 
         $this->actingAs($admin)
             ->post(route('academic-years.courses.components.store', [$year, $highSchool]), [

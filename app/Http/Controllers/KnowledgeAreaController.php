@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CurriculumComponent;
 use App\Models\KnowledgeArea;
 use App\Models\StudentAcademicHistoryComponent;
+use App\Support\CurriculumAreaStage;
 use App\Support\CurriculumCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -54,7 +55,11 @@ class KnowledgeAreaController extends Controller
     public function update(Request $request, KnowledgeArea $area)
     {
         abort_unless($request->user()->isAdministrator(), 403);
-        $area->update($this->validated($request, $area));
+        $data = $this->validated($request, $area);
+        foreach ($area->components()->with('course')->get() as $component) {
+            CurriculumAreaStage::validate($data['name'], $component->course?->stage, 'name');
+        }
+        $area->update($data);
 
         return back()->with('status', __('Área atualizada com sucesso.'));
     }
