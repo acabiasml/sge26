@@ -63,11 +63,11 @@
                 <div class="card-header py-3"><h2 id="period-title" class="h6 m-0 font-weight-bold text-primary">{{ __('Período avaliativo') }}</h2></div>
                 <div class="card-body">
                     @if ($periods->isNotEmpty())
-                        <div class="btn-group flex-wrap" role="group" aria-label="{{ __('Períodos avaliativos') }}">
+                        <nav class="sge-diary-periods" aria-label="{{ __('Períodos avaliativos') }}">
                             @foreach ($periods as $availablePeriod)
-                                <a class="btn btn-sm {{ $period?->id === $availablePeriod->id ? 'btn-primary' : 'btn-outline-primary' }} mb-2" href="{{ route('teacher-diaries.show', [$schoolClass, $component, 'period' => $availablePeriod->id]) }}">{{ $availablePeriod->name }}</a>
+                                <a class="btn {{ $period?->id === $availablePeriod->id ? 'btn-primary' : 'btn-outline-primary' }}" href="{{ route('teacher-diaries.show', [$schoolClass, $component, 'period' => $availablePeriod->id]) }}" @if ($period?->id === $availablePeriod->id) aria-current="page" @endif>{{ $availablePeriod->name }}</a>
                             @endforeach
-                        </div>
+                        </nav>
                     @else
                         <p class="mb-0 text-muted">{{ __('Este ano letivo ainda não possui períodos avaliativos cadastrados.') }}</p>
                     @endif

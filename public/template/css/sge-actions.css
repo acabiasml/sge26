@@ -32,6 +32,20 @@ table .sge-action-buttons > form { flex-shrink: 0; }
     gap: .35rem;
 }
 .sge-score-view-switch > .btn { min-height: 2.75rem; }
+.sge-diary-periods {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+.sge-diary-periods > .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+}
 .sge-managed-alert-message { white-space: pre-wrap; overflow-wrap: anywhere; }
 .sge-diary-alert-manager .modal-content { background: var(--sge-paper); color: var(--sge-ink); }
 
