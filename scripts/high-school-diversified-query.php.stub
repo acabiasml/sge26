@@ -1,0 +1,12 @@
+<?php
+
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    echo json_encode(app(App\Support\HighSchoolDiversifiedOverview::class)->build(), JSON_THROW_ON_ERROR);
+} finally {
+    Illuminate\Support\Facades\DB::rollBack();
+}

@@ -42,3 +42,14 @@ O caminho depende do GitHub Actions e do SSH/segredos continuarem disponíveis.
 Não é garantia de disponibilidade de serviços externos nem substitui backups.
 Uma consulta mostra o estado atual; auditoria incompleta não prova a causa de
 uma perda nem permite reconstruir automaticamente dados apagados.
+
+## Parte diversificada no Ensino Médio
+
+Para identificar de quem são os históricos e quais matrizes usam essa denominação,
+execute `python3 scripts/prepare-history-query.py --scope high-school-diversified
+--key-directory /CAMINHO_PRIVADO_FORA_DO_REPOSITORIO` em uma única linha. Publique
+a configuração e a chave pública pelo mesmo fluxo descrito acima. A consulta
+retorna somente identificação dos estudantes/históricos, escolas, anos e nomes
+dos componentes desse recorte; não consulta notas, faltas ou documentos pessoais.
+O resultado continua criptografado, em transação somente de leitura. O workflow
+aguarda o commit chegar ao servidor antes de executar a consulta.

@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
     paths:
+      - scripts/high-school-diversified-query.php.stub
       - scripts/history-readonly-diagnosis.php.stub
       - scripts/history-readonly-diagnosis.py
       - scripts/history-diagnosis-target.enc
@@ -20,6 +21,7 @@ jobs:
       - run: python -m pip install 'paramiko==3.5.1'
       - name: Consultar em transação somente de leitura
         env:
+          EXPECTED_COMMIT: ${{ github.sha }}
           HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
         run: python scripts/history-readonly-diagnosis.py

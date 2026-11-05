@@ -8,11 +8,14 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 parser = argparse.ArgumentParser()
-parser.add_argument('person_id', type=int)
+parser.add_argument('person_id', type=int, nargs='?')
+parser.add_argument('--scope', choices=['student', 'high-school-diversified'], default='student')
 parser.add_argument('--key-directory', default='/workspace/.sge26-cloud/private-reports')
 args = parser.parse_args()
-if args.person_id <= 0:
+if args.scope == 'student' and (args.person_id is None or args.person_id <= 0):
     parser.error('O identificador deve ser positivo.')
+if args.scope != 'student' and args.person_id is not None:
+    parser.error('Esta consulta não aceita identificador de pessoa.')
 repository = pathlib.Path(__file__).resolve().parent.parent
 directory = pathlib.Path(args.key_directory).resolve()
 if directory.is_relative_to(repository):
@@ -24,5 +27,5 @@ with private_path.open('xb') as stream:
     private_path.chmod(0o600)
     stream.write(key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
 (repository / 'scripts/history-report-public.pem').write_bytes(key.public_key().public_bytes(serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo))
-(repository / 'scripts/history-query.json').write_text(json.dumps({'person_id': args.person_id}) + '\n')
+(repository / 'scripts/history-query.json').write_text((json.dumps({'person_id': args.person_id}) if args.scope == 'student' else json.dumps({'scope': args.scope, 'person_id': 0})) + '\n')
 print('Consulta preparada. Chave privada local:', private_path)
