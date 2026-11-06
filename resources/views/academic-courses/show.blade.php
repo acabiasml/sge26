@@ -1,7 +1,6 @@
 @extends('layouts.app')
 
 @php($canChangeAcademicStructure = ! $academicYear->approved_at || auth()->user()->isAdministrator())
-@php($curriculumSuggestionsByComponent = collect($curriculumSuggestions)->keyBy('component'))
 @php($activeComponents = $course->components->where('active', true))
 @php($visibleClasses = auth()->user()->isAdministrator() ? $course->classes : $course->classes->filter->isOperational())
 @php($linkedEnrollmentCount = $visibleClasses->sum(fn ($class) => $class->enrollments->count()))
@@ -98,12 +97,13 @@
                             <div class="row">
                                 <div class="col-md-4 form-group">
                                     <label for="new_component_name">{{ __('Componente') }}</label>
-                                    <input id="new_component_name" name="name" class="form-control" placeholder="{{ __('Língua Portuguesa') }}" list="curriculum-component-suggestions" data-curriculum-component-name required>
-                                    <datalist id="curriculum-component-suggestions">
+                                    <select id="new_component_name" name="name" class="form-control @error('name') is-invalid @enderror" aria-describedby="new-component-catalog-help" required>
+                                        <option value="">{{ __('Selecione') }}</option>
                                         @foreach ($curriculumSuggestions as $suggestion)
-                                            <option value="{{ $suggestion['component'] }}">{{ $suggestion['area'] }}</option>
+                                            <option value="{{ $suggestion['component'] }}" @selected(old('name') === $suggestion['component'])>{{ $suggestion['component'] }}</option>
                                         @endforeach
-                                    </datalist>
+                                    </select>
+                                    @include('curriculum-components.partials.catalog-help', ['helpId' => 'new-component-catalog-help'])
                                 </div>
                                 <div class="col-md-4 form-group">
                                     <label for="new_component_area_id">{{ __('Área') }}</label>

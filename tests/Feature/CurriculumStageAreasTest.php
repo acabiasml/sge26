@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AcademicCourse;
 use App\Models\AcademicYear;
+use App\Models\HistoryCurriculumComponent;
 use App\Models\KnowledgeArea;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
@@ -98,6 +99,7 @@ class CurriculumStageAreasTest extends TestCase
                 $this->put(route('academic-years.courses.components.update', [$year, $course, $component]), $payload)->assertSessionHasErrors('knowledge_area_id');
                 $rightName = CurriculumAreaStage::canonicalName($wrong->name, $stage);
                 $right = KnowledgeArea::where('name', $rightName)->firstOrFail();
+                HistoryCurriculumComponent::firstOrCreate(['name' => 'Componente', 'knowledge_area_id' => $right->id, 'education_stage' => $stage, 'formation' => 'Formação Geral Básica'], ['active' => true]);
                 $payload['knowledge_area_id'] = $right->id;
                 $this->put(route('academic-years.courses.components.update', [$year, $course, $component]), $payload)->assertSessionHasNoErrors();
                 $this->assertSame($right->id, $component->fresh()->knowledge_area_id);

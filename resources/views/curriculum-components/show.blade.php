@@ -76,7 +76,13 @@
                             <div class="row">
                                 <div class="col-md-6 form-group">
                                     <label for="component_name">{{ __('Componente') }}</label>
-                                    <input id="component_name" name="name" class="form-control" value="{{ old('name', $component->name) }}" required>
+                                    <select id="component_name" name="name" class="form-control @error('name') is-invalid @enderror" aria-describedby="component-catalog-help" required>
+                                        <option value="">{{ __('Selecione') }}</option>
+                                        @foreach ($curriculumSuggestions as $suggestion)
+                                            <option value="{{ $suggestion['component'] }}" @selected(old('name', $component->name) === $suggestion['component'])>{{ $suggestion['component'] }}</option>
+                                        @endforeach
+                                    </select>
+                                    @include('curriculum-components.partials.catalog-help', ['helpId' => 'component-catalog-help'])
                                 </div>
                                 <div class="col-md-6 form-group" data-workload-choice>
                                     @if($component->weekly_lessons !== null && $component->workload_hours !== null)

@@ -12,6 +12,7 @@ use App\Models\AuditLog;
 use App\Models\CalendarDay;
 use App\Models\CurriculumComponent;
 use App\Models\DiaryAssessment;
+use App\Models\HistoryCurriculumComponent;
 use App\Models\IssuedDocument;
 use App\Models\KnowledgeArea;
 use App\Models\Person;
@@ -1313,6 +1314,7 @@ class AcademicCalendarTest extends TestCase
             ->assertSee('Informática')
             ->assertViewHas('knowledgeAreas', fn ($areas) => $areas->pluck('name')->intersect(['Itinerário Formativo', 'Linguagens e suas Tecnologias', 'Ciências Humanas e Sociais Aplicadas'])->isEmpty());
 
+        HistoryCurriculumComponent::create(['name' => 'Informática Básica', 'knowledge_area_id' => $unofficialArea->id, 'education_stage' => 'medio', 'formation' => 'Parte Complementar', 'active' => true]);
         $this->actingAs($admin)
             ->post(route('academic-years.courses.components.store', [$year, $highSchool]), [
                 'name' => 'Informática Básica',

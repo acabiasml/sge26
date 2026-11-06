@@ -26,6 +26,7 @@ class CurriculumComponentController extends Controller
             'academicYear' => $academicYear->load('school'),
             'course' => $course,
             'knowledgeAreas' => CurriculumCatalog::knowledgeAreasForCourse($course, $component->area),
+            'curriculumSuggestions' => CurriculumCatalog::suggestionsForCourse($course, $component),
             'component' => $component->load('area', 'startsPeriod', 'endsPeriod'),
             'periods' => $academicYear->periods()->orderBy('position')->get(),
         ]);
@@ -98,7 +99,7 @@ class CurriculumComponentController extends Controller
             ->all();
 
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', Rule::in(array_column(CurriculumCatalog::suggestionsForCourse($course, $component), 'component'))],
             'knowledge_area_id' => ['nullable', Rule::in($allowedAreaIds)],
             'starts_period_id' => ['nullable', Rule::in($this->allowedPeriodIds($academicYear, $course))],
             'ends_period_id' => ['nullable', Rule::in($this->allowedPeriodIds($academicYear, $course))],
@@ -107,6 +108,8 @@ class CurriculumComponentController extends Controller
             'workload_hours' => ['nullable', 'required_if:workload_mode,workload_hours', 'prohibited_if:workload_mode,weekly_lessons', 'integer', 'min:1', 'max:99999'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'active' => ['nullable', 'boolean'],
+        ], [
+            'name.in' => __('Selecione um componente do catálogo compatível com a etapa de ensino.'),
         ]);
 
         $this->ensureValidPeriodSpan($academicYear, $data['starts_period_id'] ?? null, $data['ends_period_id'] ?? null);

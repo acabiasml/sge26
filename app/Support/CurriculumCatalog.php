@@ -3,6 +3,8 @@
 namespace App\Support;
 
 use App\Models\AcademicCourse;
+use App\Models\CurriculumComponent;
+use App\Models\HistoryCurriculumComponent;
 use App\Models\KnowledgeArea;
 use Illuminate\Support\Str;
 
@@ -53,29 +55,20 @@ class CurriculumCatalog
     /**
      * @return array<int, array{component: string, area: string, area_id: int|null}>
      */
-    public static function suggestionsForCourse(AcademicCourse $course): array
+    public static function suggestionsForCourse(AcademicCourse $course, ?CurriculumComponent $currentComponent = null): array
     {
-        $areas = config("curriculum.stages.{$course->stage}.formations.formacao_geral_basica.areas", []);
+        $currentIds = $currentComponent?->historyCatalogEntries()->pluck('history_curriculum_components.id')->all() ?? [];
 
-        if (! is_array($areas) || $areas === []) {
-            return [];
-        }
-
-        $areaNames = collect($areas)->pluck('name')->filter()->values();
-        $areaIds = KnowledgeArea::query()
-            ->whereIn('name', $areaNames)
-            ->pluck('id', 'name');
-
-        return collect($areas)
-            ->flatMap(function (array $area) use ($areaIds): array {
-                return collect($area['components'] ?? [])
-                    ->map(fn (string $component): array => [
-                        'component' => $component,
-                        'area' => $area['name'],
-                        'area_id' => $areaIds[$area['name']] ?? null,
-                    ])
-                    ->all();
+        return HistoryCurriculumComponent::query()
+            ->where('education_stage', $course->stage)
+            ->where(function ($query) use ($currentIds): void {
+                $query->where(fn ($active) => $active->where('active', true)->whereHas('area', fn ($area) => $area->where('active', true)))
+                    ->orWhereIn('id', $currentIds);
             })
+            ->with('area')->orderBy('name')->get()
+            ->filter(fn ($entry) => CurriculumAreaStage::compatible($entry->area->name, $course->stage))
+            ->map(fn ($entry) => ['component' => $entry->name, 'area' => $entry->area->name, 'area_id' => $entry->knowledge_area_id])
+            ->unique('component')
             ->sortBy(fn (array $item) => self::alphabeticalKey($item['component']), SORT_NATURAL)
             ->values()
             ->all();

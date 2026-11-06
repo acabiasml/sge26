@@ -2834,5 +2834,9 @@
     "Não há anos de outras escolas cadastrados neste histórico. Consulte abaixo as séries registradas no sistema.": "Non ci sono anni di altre scuole registrati in questo storico. Consulta sotto le classi registrate nel sistema.",
     "Cadastrar anos de outra escola": "Registra anni di un’altra scuola",
     "Sem registros": "Nessuna registrazione",
-    "Sistema e transcrição externa": "Sistema e trascrizione da altra scuola"
+    "Sistema e transcrição externa": "Sistema e trascrizione da altra scuola",
+    "Selecione um componente do catálogo compatível com a etapa de ensino.": "Seleziona una disciplina del catalogo compatibile con il grado di istruzione.",
+    "Não há componentes ativos no catálogo para esta etapa de ensino.": "Non ci sono discipline attive nel catalogo per questo grado di istruzione.",
+    "Escolha um componente do catálogo desta etapa de ensino.": "Scegli una disciplina dal catalogo di questo grado di istruzione.",
+    "Gerenciar catálogo": "Gestisci catalogo"
 }
