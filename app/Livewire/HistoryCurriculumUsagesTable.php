@@ -37,7 +37,7 @@ class HistoryCurriculumUsagesTable extends DataTableComponent
         HistoryCurriculumComponent::findOrFail($this->catalogId);
 
         return StudentAcademicHistoryComponent::whereHas('catalogEntries', fn ($query) => $query->whereKey($this->catalogId))
-            ->with(['history.student', 'history.school']);
+            ->with(['history.student', 'history.school', 'records.year']);
     }
 
     public function columns(): array
@@ -46,6 +46,15 @@ class HistoryCurriculumUsagesTable extends DataTableComponent
             Column::make(__('Estudante'), 'history.student.full_name')->sortable()->searchable(),
             Column::make(__('Escola'), 'history.school.name')->sortable()->searchable(),
             Column::make(__('Componente'), 'name')->sortable()->searchable(),
+            Column::make(__('Origem'))->label(function (StudentAcademicHistoryComponent $row): string {
+                if ($row->records->isEmpty()) {
+                    return __('Sem registros');
+                }
+                $manual = $row->records->contains(fn ($record) => $record->year?->source !== 'system');
+                $system = $row->records->contains(fn ($record) => $record->year?->source === 'system');
+
+                return __($manual && $system ? 'Sistema e transcrição externa' : ($manual ? 'Transcrição externa' : 'Sistema'));
+            }),
             Column::make(__('Ações'))->label(fn (StudentAcademicHistoryComponent $row): string => view('livewire.tables.history-curriculum-usage-actions', ['component' => $row])->render())->html(),
         ];
     }

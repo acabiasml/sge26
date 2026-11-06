@@ -102,7 +102,7 @@ class AcademicCalendarTest extends TestCase
         $entry = $component->catalogEntries()->sole();
         $this->actingAs($admin)->get(route('knowledge-areas.index'))->assertOk()->assertDontSee('Áreas registradas nos históricos');
         $this->get($url)->assertRedirect(route('history-curriculum.index', ['table-search' => $component->knowledge_area]));
-        $this->get(route('history-curriculum.usages', $entry))->assertOk()->assertSee($student->full_name)->assertSee($component->name)->assertSee(route('people.histories.edit', [$student, $history]));
+        $this->get(route('history-curriculum.usages', $entry))->assertOk()->assertSee($student->full_name)->assertSee($component->name)->assertSee(route('people.histories.show', [$student, $history]).'#history-component-'.$component->id);
         $this->assertDatabaseHas('student_academic_history_components', ['id' => $component->id, 'formation' => 'Parte Diversificada']);
     }
 

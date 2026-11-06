@@ -164,6 +164,7 @@
                 renumber();
             } else if (button.matches('[data-add-history-year]')) {
                 const clone = cards().at(-1).cloneNode(true);
+                clone.removeAttribute('id');
                 clone.querySelectorAll('input,textarea').forEach(field => { if (field.type === 'checkbox') field.checked = false; else field.value = ''; });
                 clone.querySelectorAll('select').forEach(field => { field.value = ''; });
                 clone.querySelectorAll('details').forEach(details => { details.open = false; });
@@ -235,6 +236,13 @@
         }, true);
         wrapper.querySelectorAll('[data-history-component]').forEach(row => refreshRow(row));
         renumber();
+        try {
+            const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+            if (target?.matches('[data-history-year]')) {
+                target.open = true;
+                requestAnimationFrame(() => target.scrollIntoView({ block: 'start' }));
+            }
+        } catch (_) {}
         if (config.errors[0]) {
             const name = config.errors[0].replace(/\.([^.]*)/g, '[$1]');
             form.elements.namedItem(name)?.dispatchEvent(new Event('invalid', { cancelable: true }));

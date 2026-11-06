@@ -124,7 +124,7 @@
                                 @foreach($formationComponents->sortBy(fn ($component) => collect([$component->module_label, $component->knowledge_area, $component->position])->filter(fn ($value) => $value !== null)->join('|'))->groupBy(fn ($component) => $component->knowledge_area ?: '-') as $area => $areaComponents)
                                     @php($areaRowIndex = 0)
                                     @foreach($areaComponents as $component)
-                                    <tr>
+                                    <tr @if($component->id) id="history-component-{{ $component->id }}" tabindex="-1" @endif>
                                         @if($formationRowIndex === 0)<td rowspan="{{ $formationComponents->count() }}" class="align-middle"><strong>{{ $formation }}</strong></td>@endif
                                         <td>{{ $component->module_label ?: '-' }}</td>
                                         @if($areaRowIndex === 0)<td rowspan="{{ $areaComponents->count() }}" class="align-middle">{{ $area }}</td>@endif

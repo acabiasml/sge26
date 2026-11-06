@@ -7151,3 +7151,9 @@ button.sge-target-result:focus-visible {
         padding-left: 0;
     }
 }
+
+.sge-history-read-table tr:target {
+    outline: 3px solid var(--sge-blue);
+    outline-offset: -3px;
+    scroll-margin-top: 6rem;
+}

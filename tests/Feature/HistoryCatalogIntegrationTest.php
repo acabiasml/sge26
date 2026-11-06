@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Livewire\HistoryCurriculumUsagesTable;
 use App\Models\HistoryCurriculumComponent;
+use App\Models\KnowledgeArea;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
@@ -14,6 +15,7 @@ use App\Support\HistoryCatalogIntegrator;
 use App\Support\HistoryCurriculumCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\ViewErrorBag;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -84,6 +86,70 @@ class HistoryCatalogIntegrationTest extends TestCase
         $admin->unsetRelations();
         $this->get(route('history-curriculum.usages', $entry))->assertForbidden();
         Livewire::test(HistoryCurriculumUsagesTable::class, ['catalogId' => $entry->id])->assertForbidden();
+    }
+
+    public function test_old_system_catalog_references_are_removed_only_when_a_current_reference_exists(): void
+    {
+        $current = $this->historyComponent('medio', 'Técnico em Móveis', 'Administração Atual', 'Itinerário Formativo');
+        $manual = $this->historyComponent('medio', 'Técnico em Móveis', 'Administração Atual', 'Itinerário Formativo');
+        $unmatched = $this->historyComponent('medio', 'Técnico em Móveis', 'Outro componente', 'Itinerário Formativo');
+        app(HistoryCatalogIntegrator::class)->importAll();
+        $entry = $current->catalogEntries()->sole();
+        $oldArea = KnowledgeArea::create(['name' => 'Área anterior', 'formation' => 'Itinerário Formativo']);
+        $old = HistoryCurriculumComponent::create(['name' => 'Nome anterior', 'knowledge_area_id' => $oldArea->id, 'education_stage' => 'medio', 'formation' => 'Itinerário Formativo', 'active' => true]);
+        $current->history->update(['is_unified' => true]);
+        $unmatched->history->update(['is_unified' => true]);
+        $current->history->years()->update(['source' => 'system']);
+        $unmatched->history->years()->update(['source' => 'system']);
+        $current->catalogEntries()->attach($old);
+        $manual->catalogEntries()->attach($old);
+        $unmatched->catalogEntries()->sync([$old->id]);
+        $before = [$current->fresh()->getAttributes(), $current->records()->sole()->getAttributes(), $current->history->years()->sole()->getAttributes()];
+        $this->assertSame(1, app(HistoryCatalogIntegrator::class)->pruneObsoleteSystemReferences());
+        $this->assertSame($entry->id, $current->catalogEntries()->sole()->id);
+        $this->assertSame(2, $manual->catalogEntries()->count());
+        $this->assertSame($old->id, $unmatched->catalogEntries()->sole()->id);
+        $this->assertSame($before, [$current->fresh()->getAttributes(), $current->records()->sole()->getAttributes(), $current->history->years()->sole()->getAttributes()]);
+        $this->assertSame(0, app(HistoryCatalogIntegrator::class)->pruneObsoleteSystemReferences());
+        $this->assertDatabaseHas('history_curriculum_components', ['id' => $old->id]);
+    }
+
+    public function test_system_usages_open_consultation_and_manual_usages_open_their_existing_year(): void
+    {
+        $system = $this->historyComponent('medio', 'Técnico em Móveis', 'Administração Atual', 'Itinerário Formativo');
+        $manual = $this->historyComponent('medio', 'Técnico em Móveis', 'Administração Atual', 'Itinerário Formativo');
+        $system->history->years()->update(['source' => 'system']);
+        app(HistoryCatalogIntegrator::class)->importAll();
+        $entry = $system->catalogEntries()->sole();
+        $this->admin();
+        $html = Livewire::test(HistoryCurriculumUsagesTable::class, ['catalogId' => $entry->id])->html();
+        $this->assertStringContainsString(route('people.histories.show', [$system->history->person_id, $system->history]).'#history-component-'.$system->id, $html);
+        $this->assertStringNotContainsString(route('people.histories.edit', [$system->history->person_id, $system->history]), $html);
+        $this->assertStringContainsString(route('people.histories.edit', [$manual->history->person_id, $manual->history]).'#history-year-'.$manual->history->years()->sole()->id, $html);
+        $this->assertStringContainsString('Consultar histórico', $html);
+        $this->assertStringContainsString('Editar anos externos', $html);
+    }
+
+    public function test_editor_with_only_system_years_shows_the_records_and_keeps_external_creation_optional(): void
+    {
+        $component = $this->historyComponent('medio', 'Técnico em Móveis', 'Administração Atual', 'Itinerário Formativo');
+        $history = $component->history;
+        $history->update(['is_unified' => true, 'stage' => 'Ensino Médio']);
+        $history->years()->update(['source' => 'system']);
+        $history->load(['years.records.component', 'components.records.year', 'components.catalogEntries']);
+        $this->admin();
+        view()->share('errors', new ViewErrorBag);
+        $html = view('student-histories.edit', [
+            'person' => $history->student, 'history' => $history, 'historyVersion' => 'test',
+            'schools' => collect([$history->school]), 'states' => [],
+        ])->render();
+        $document = new \DOMDocument;
+        @$document->loadHTML('<?xml encoding="UTF-8">'.$html);
+        $xpath = new \DOMXPath($document);
+        $this->assertSame(1, $xpath->query('//details[@aria-labelledby="system-years-title" and @open]')->length);
+        $this->assertSame(1, $xpath->query('//details[summary/h2[contains(text(),"Cadastrar anos de outra escola")] and not(@open)]')->length);
+        $this->assertStringContainsString('Administração Atual', $html);
+        $this->assertStringContainsString('8,0', $html);
     }
 
     private function historyComponent(?string $stage, string $area, string $name, string $formation = 'Formação Geral Básica'): StudentAcademicHistoryComponent

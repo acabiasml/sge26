@@ -42,6 +42,33 @@ final class HistoryCatalogIntegrator
         }
     }
 
+    /** Remove referências antigas apenas quando já existe uma referência coerente. */
+    public function pruneObsoleteSystemReferences(?StudentAcademicHistory $history = null): int
+    {
+        $removed = 0;
+        $components = StudentAcademicHistoryComponent::query()
+            ->when($history, fn ($query) => $query->where('student_academic_history_id', $history->id))
+            ->whereHas('history', fn ($query) => $query->where('is_unified', true)->whereNotNull('education_stage'))
+            ->whereHas('records')->whereDoesntHave('records.year', fn ($query) => $query->where('source', '!=', 'system'))
+            ->with(['catalogEntries.area', 'records.year']);
+        foreach ($components->lazyById(100) as $component) {
+            if ($component->records->contains(fn ($record) => $record->year?->source !== 'system')) {
+                continue;
+            }
+            $matches = fn ($entry) => $this->key([$entry->name, $entry->area?->name])
+                === $this->key([$component->name, $component->knowledge_area]);
+            if (! $component->catalogEntries->contains($matches)) {
+                continue;
+            }
+            $obsolete = $component->catalogEntries->reject($matches)->modelKeys();
+            if ($obsolete !== []) {
+                $removed += $component->catalogEntries()->detach($obsolete);
+            }
+        }
+
+        return $removed;
+    }
+
     private function syncComponent(StudentAcademicHistoryComponent $component): void
     {
         // As referências a matrizes, inclusive destinos escolhidos por mesclagem,

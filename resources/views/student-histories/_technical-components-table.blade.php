@@ -11,7 +11,7 @@
         <tbody>
             @forelse($technicalComponents as $component)
                 @php($record = $component->records->firstWhere('student_academic_history_year_id', $historyYear?->id))
-                <tr>
+                <tr @if($component->id) id="history-component-{{ $component->id }}" tabindex="-1" @endif>
                     @if($loop->index % 10 === 0)<td rowspan="{{ min(10, $technicalComponents->count() - $loop->index) }}" class="align-middle"><strong>{{ $technicalArea }}</strong></td>@endif
                     <td><strong>{{ $component->name }}</strong></td>
                     @foreach($modules as $module)

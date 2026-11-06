@@ -210,6 +210,8 @@ with tempfile.TemporaryDirectory() as directory:
                          'php artisan migrate --path=database/migrations/2026_11_05_000004_create_history_curriculum_aliases.php --force --no-ansi'))
         commands.append(('Conferir proteção e origem dos componentes de matrizes',
                          'php artisan migrate --path=database/migrations/2026_11_05_000005_protect_matrix_catalog_components.php --force --no-ansi'))
+        commands.append(('Limpar referências antigas de catálogo sem alterar notas ou séries',
+                         'php artisan migrate --path=database/migrations/2026_11_06_000001_remove_obsolete_system_history_catalog_references.php --force --no-ansi'))
         commands.append(('Conferir vínculos das matrizes no catálogo',
                          'php artisan tinker --execute=\'echo json_encode(["matrix_components" => App\\Models\\CurriculumComponent::count(), '
                          '"unmapped_matrix_components" => App\\Models\\CurriculumComponent::whereDoesntHave("historyCatalogEntries")->count()]);\''))

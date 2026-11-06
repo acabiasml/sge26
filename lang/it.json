@@ -2827,5 +2827,12 @@
     "componentes em históricos": "discipline negli storici scolastici",
     "Esta área é utilizada em matrizes ou históricos. Remova os vínculos antes de excluí-la.": "Questa area è utilizzata nei piani di studio o negli storici scolastici. Rimuovi i collegamenti prima di eliminarla.",
     "Excluir a área :name e seus :count componentes do catálogo sem uso?": "Eliminare l’area :name e le sue :count discipline inutilizzate nel catalogo?",
-    "Excluir a área :name, que não possui usos?": "Eliminare l’area :name, che non è utilizzata?"
+    "Excluir a área :name, que não possui usos?": "Eliminare l’area :name, che non è utilizzata?",
+    "Consultar histórico": "Consulta storico scolastico",
+    "Editar anos externos": "Modifica anni di altre scuole",
+    "Transcrição externa": "Trascrizione da altra scuola",
+    "Não há anos de outras escolas cadastrados neste histórico. Consulte abaixo as séries registradas no sistema.": "Non ci sono anni di altre scuole registrati in questo storico. Consulta sotto le classi registrate nel sistema.",
+    "Cadastrar anos de outra escola": "Registra anni di un’altra scuola",
+    "Sem registros": "Nessuna registrazione",
+    "Sistema e transcrição externa": "Sistema e trascrizione da altra scuola"
 }

@@ -139,7 +139,7 @@
             <div class="card-body">
                 <div id="history-years" class="sge-history-year-grid" aria-label="{{ __('Anos cadastrados') }}">
                     @foreach($yearsInput as $yearIndex => $year)
-                        <details class="sge-history-year-card" data-history-year name="history-year">
+                        <details class="sge-history-year-card" data-history-year name="history-year" @if(!empty($year['id'])) id="history-year-{{ $year['id'] }}" @endif>
                             <summary class="sge-history-year-summary">
                                 <span class="sge-history-year-marker" aria-hidden="true"><i class="fas fa-calendar-alt"></i></span>
                                 <span class="sge-history-year-summary-text">

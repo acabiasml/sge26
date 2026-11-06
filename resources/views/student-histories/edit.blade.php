@@ -13,12 +13,21 @@
 @endsection
 
 @section('content')
+    @php
+        $onlySystemYears = $history->is_unified && $history->years->isNotEmpty() && $history->years->every(fn ($year) => $year->source === 'system');
+    @endphp
     <div class="sge-history-editor-context mb-4">
         <div><span class="sge-page-kicker">{{ $history->stage ?: __('Histórico escolar') }}</span><h2>{{ $person->full_name }}</h2></div>
 
     </div>
     @if($history->is_unified)
         <p class="text-muted mb-4"><i class="fas fa-lock mr-1" aria-hidden="true"></i>{{ __('Edite aqui os anos de outras escolas. Os anos das nossas escolas são calculados pelo sistema e aparecem para consulta ao final.') }}</p>
+    @endif
+    @if($onlySystemYears)
+        <p class="text-muted">{{ __('Não há anos de outras escolas cadastrados neste histórico. Consulte abaixo as séries registradas no sistema.') }}</p>
+        <details class="card sge-panel-card mb-4" @if($errors->any()) open @endif>
+            <summary class="sge-panel-header sge-history-section-summary"><h2>{{ __('Cadastrar anos de outra escola') }}</h2><i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
+            <div class="card-body">
     @endif
     <form method="POST" action="{{ route('people.histories.update', [$person, $history]) }}">
         @csrf
@@ -30,6 +39,7 @@
         @include('student-histories._form', ['curriculumOnly' => true, 'manualOnly' => $history->is_unified])
         <input type="hidden" name="history_payload_complete" value="1">
     </form>
+    @if($onlySystemYears)</div></details>@endif
     @if($history->years->contains(fn ($year) => $year->source !== 'system'))
         <details class="card shadow sge-panel-card mb-4" aria-labelledby="manual-years-title">
             <summary class="sge-panel-header sge-history-section-summary"><div>
@@ -51,7 +61,7 @@
         </details>
     @endif
     @if($history->is_unified && $history->years->contains('source', 'system'))
-        <details class="card shadow sge-panel-card mb-4" aria-labelledby="system-years-title">
+        <details class="card shadow sge-panel-card mb-4" aria-labelledby="system-years-title" @if($onlySystemYears) open @endif>
             <summary class="sge-panel-header sge-history-section-summary">
                 <div>
                     <h2 id="system-years-title">{{ __('Séries registradas no sistema') }}</h2>

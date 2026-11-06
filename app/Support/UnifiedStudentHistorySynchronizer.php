@@ -98,6 +98,7 @@ class UnifiedStudentHistorySynchronizer
             ]);
 
             app(HistoryCatalogIntegrator::class)->syncHistory($history);
+            app(HistoryCatalogIntegrator::class)->pruneObsoleteSystemReferences($history);
 
             return $history->fresh(['years.records', 'components.records.year']);
         });
