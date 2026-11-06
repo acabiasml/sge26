@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\AcademicCourse;
 use App\Models\HistoryCurriculumComponent;
+use App\Models\KnowledgeArea;
 use Illuminate\Support\Facades\Schema;
 
 final class HistoryCurriculumCatalog
@@ -14,6 +15,19 @@ final class HistoryCurriculumCatalog
             'Formação Geral Básica', 'Parte Complementar', 'Parte Diversificada',
             $stage === AcademicCourse::STAGE_HIGH_SCHOOL ? 'Itinerário Formativo' : null,
         ]));
+    }
+
+    public static function formOptions(): array
+    {
+        $areas = KnowledgeArea::where('active', true)->orderBy('name')->get();
+        $stages = array_intersect_key(AcademicCourse::STAGE_LABELS, array_flip(['fundamental', 'medio', 'tecnico']));
+        $config = [];
+        foreach ($stages as $stage => $label) {
+            $config[$stage] = ['formations' => self::formations($stage), 'areas' => $areas->filter(fn ($area) => CurriculumAreaStage::compatible($area->name, $stage))->map->only(['id', 'name'])->values()];
+        }
+        $formationLabels = collect(['Formação Geral Básica', 'Parte Complementar', 'Parte Diversificada', 'Itinerário Formativo', 'Formação Técnica Profissional'])->mapWithKeys(fn ($value) => [$value => __($value)])->all();
+
+        return compact('stages', 'config', 'formationLabels');
     }
 
     public static function all(): array

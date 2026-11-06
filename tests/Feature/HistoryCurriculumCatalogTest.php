@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\HistoryCurriculumComponentsTable;
 use App\Models\HistoryCurriculumComponent;
 use App\Models\KnowledgeArea;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class HistoryCurriculumCatalogTest extends TestCase
@@ -19,7 +21,8 @@ class HistoryCurriculumCatalogTest extends TestCase
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
         $this->actingAs($admin)->get(route('history-curriculum.index'))->assertOk()
             ->assertSee('Áreas e componentes')->assertSee('Catálogo de componentes')
-            ->assertViewHas('components', fn ($items) => $items->perPage() === 10 && $items->hasMorePages());
+            ->assertSeeLivewire(HistoryCurriculumComponentsTable::class);
+        Livewire::test(HistoryCurriculumComponentsTable::class)->assertSet('perPage', 10)->assertSet('paginationCurrentCount', 10);
         $this->get(route('dashboard'))->assertOk()->assertSee(route('history-curriculum.index'));
         $entry = HistoryCurriculumComponent::firstOrFail();
         foreach ([PersonSchoolRole::ROLE_MANAGER, PersonSchoolRole::ROLE_TEACHER, PersonSchoolRole::ROLE_STUDENT] as $role) {
@@ -56,6 +59,45 @@ class HistoryCurriculumCatalogTest extends TestCase
         $this->assertSame('Linguagens', $area->fresh()->name);
         $this->delete(route('knowledge-areas.destroy', $area))->assertSessionHasErrors('area');
         $this->assertDatabaseHas('knowledge_areas', ['id' => $area->id]);
+    }
+
+    public function test_framework_table_searches_filters_sorts_and_paginates_catalog_entries(): void
+    {
+        $this->actingAs($this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR));
+        HistoryCurriculumComponent::query()->delete();
+        $area = KnowledgeArea::where('name', 'Linguagens')->firstOrFail();
+        $catalogIds = [];
+        foreach (range(1, 11) as $number) {
+            $catalogIds[] = HistoryCurriculumComponent::create(['name' => sprintf('Disciplina %02d', $number), 'knowledge_area_id' => $area->id, 'education_stage' => 'fundamental', 'formation' => 'Formação Geral Básica', 'active' => $number !== 11])->id;
+        }
+        $mediumArea = KnowledgeArea::where('name', 'Matemática e suas Tecnologias')->firstOrFail();
+        $medium = HistoryCurriculumComponent::create(['name' => 'Zeta Médio', 'knowledge_area_id' => $mediumArea->id, 'education_stage' => 'medio', 'formation' => 'Formação Geral Básica', 'active' => true]);
+        $table = Livewire::test(HistoryCurriculumComponentsTable::class)
+            ->assertSee('Disciplina 01')->assertDontSee('Disciplina 11')
+            ->assertSet('paginationCurrentCount', 10)
+            ->call('gotoPage', 2)->assertSee('Disciplina 11')->assertSee('Zeta Médio')->assertDontSee('Disciplina 01')
+            ->set('search', 'Disciplina 03')->assertSet('paginators.page', 1)
+            ->assertSee('Disciplina 03')->assertDontSee('Disciplina 02')
+            ->set('search', 'Tecnologias')->assertSee('Zeta Médio')->assertDontSee('Disciplina 03')
+            ->set('search', '')
+            ->call('setFilter', 'education_stage', 'medio')->assertSee('Zeta Médio')->assertDontSee('Disciplina 01')
+            ->call('setFilter', 'education_stage', '')
+            ->call('setFilter', 'status', '0')->assertSee('Disciplina 11')->assertDontSee('Disciplina 01')->assertDontSee('Zeta Médio')
+            ->call('setFilter', 'status', '')
+            ->call('sortBy', 'name');
+        $this->assertSame([$medium->id, $catalogIds[10], $catalogIds[9]], array_slice($table->get('paginationCurrentItems'), 0, 3));
+    }
+
+    public function test_table_rechecks_administrator_access_on_reactive_requests(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $this->actingAs($admin);
+        $table = Livewire::test(HistoryCurriculumComponentsTable::class);
+        $admin->person->schoolRoles()->delete();
+        $admin->unsetRelations();
+        $table->set('search', 'Matemática')->assertForbidden();
+        $this->actingAs($this->userWithRole(PersonSchoolRole::ROLE_TEACHER));
+        Livewire::test(HistoryCurriculumComponentsTable::class)->assertForbidden();
     }
 
     private function userWithRole(string $role): User

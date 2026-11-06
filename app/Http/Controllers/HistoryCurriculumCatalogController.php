@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AcademicCourse;
 use App\Models\HistoryCurriculumComponent;
 use App\Models\KnowledgeArea;
 use App\Support\CurriculumAreaStage;
@@ -15,21 +14,8 @@ class HistoryCurriculumCatalogController extends Controller
     public function index(Request $request)
     {
         abort_unless($request->user()->isAdministrator(), 403);
-        $filters = $request->validate(['q' => ['nullable', 'string', 'max:120'], 'education_stage' => ['nullable', Rule::in(['fundamental', 'medio', 'tecnico'])]]);
-        $components = HistoryCurriculumComponent::with('area')
-            ->when($filters['education_stage'] ?? null, fn ($query, $stage) => $query->where('education_stage', $stage))
-            ->when($filters['q'] ?? null, fn ($query, $search) => $query->where(fn ($query) => $query->where('name', 'like', '%'.$search.'%')->orWhereHas('area', fn ($query) => $query->where('name', 'like', '%'.$search.'%'))))
-            ->orderBy('name')->paginate(10)->withQueryString();
-        $areas = KnowledgeArea::where('active', true)->orderBy('name')->get();
-        $stages = array_intersect_key(AcademicCourse::STAGE_LABELS, array_flip(['fundamental', 'medio', 'tecnico']));
-        $config = [];
-        foreach ($stages as $stage => $label) {
-            $config[$stage] = ['formations' => HistoryCurriculumCatalog::formations($stage), 'areas' => $areas->filter(fn ($area) => CurriculumAreaStage::compatible($area->name, $stage))->map->only(['id', 'name'])->values()];
-        }
 
-        $formationLabels = collect(['Formação Geral Básica', 'Parte Complementar', 'Parte Diversificada', 'Itinerário Formativo', 'Formação Técnica Profissional'])->mapWithKeys(fn ($value) => [$value => __($value)])->all();
-
-        return view('knowledge-areas.catalog', compact('components', 'stages', 'config', 'filters', 'formationLabels'));
+        return view('knowledge-areas.catalog', HistoryCurriculumCatalog::formOptions());
     }
 
     public function store(Request $request)
