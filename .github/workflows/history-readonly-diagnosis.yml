@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - scripts/high-school-diversified-query.php.stub
+      - scripts/history-catalog-classification-query.php.stub
       - scripts/history-readonly-diagnosis.php.stub
       - scripts/history-readonly-diagnosis.py
       - scripts/history-diagnosis-target.enc

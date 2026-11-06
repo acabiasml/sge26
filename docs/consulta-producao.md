@@ -53,3 +53,11 @@ retorna somente identificação dos estudantes/históricos, escolas, anos e nome
 dos componentes desse recorte; não consulta notas, faltas ou documentos pessoais.
 O resultado continua criptografado, em transação somente de leitura. O workflow
 aguarda o commit chegar ao servidor antes de executar a consulta.
+
+## Classificação dos componentes de Móveis
+
+O escopo `--scope history-catalog-classification` consulta somente as áreas de
+Técnico em Móveis, definições vinculadas, matrizes, referências históricas e
+auditoria das edições dos componentes dessas matrizes. Não consulta notas, faltas
+ou documentos pessoais. Use o mesmo fluxo de chave externa, publicação e leitura
+do relatório criptografado. A consulta não executa correções.

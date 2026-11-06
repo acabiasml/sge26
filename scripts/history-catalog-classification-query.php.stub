@@ -1,0 +1,29 @@
+<?php
+
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $areas = App\Models\KnowledgeArea::where('name', 'like', '%Técnico em Móveis%')->get();
+    $entries = App\Models\HistoryCurriculumComponent::whereIn('knowledge_area_id', $areas->modelKeys())->with('matrixComponents.course')->get();
+    $components = App\Models\StudentAcademicHistoryComponent::whereHas('catalogEntries', fn ($query) => $query->whereIn('history_curriculum_components.id', $entries->modelKeys()))
+        ->with(['history:id,person_id,education_stage,is_unified', 'records.year', 'catalogEntries'])->get();
+    $matrices = App\Models\CurriculumComponent::whereIn('knowledge_area_id', $areas->modelKeys())->with('course')->get();
+    $audits = App\Models\AuditLog::where('auditable_type', App\Models\CurriculumComponent::class)->whereIn('auditable_id', $matrices->modelKeys())
+        ->where('action', 'updated')->orderByDesc('id')->get(['id', 'auditable_id', 'old_values', 'new_values']);
+    echo json_encode([
+        'areas' => $areas->map->only(['id', 'name', 'formation']),
+        'catalog' => $entries->map(fn ($entry) => $entry->only(['id', 'name', 'education_stage', 'formation', 'knowledge_area_id', 'matrix_origin']) + ['matrix_ids' => $entry->matrixComponents->modelKeys()]),
+        'matrix_components' => $matrices->map(fn ($component) => $component->only(['id', 'name', 'knowledge_area_id', 'academic_course_id']) + ['stage' => $component->course?->stage]),
+        'history_components' => $components->map(fn ($component) => $component->only(['id', 'name', 'knowledge_area', 'formation', 'student_academic_history_id']) + [
+            'person_id' => $component->history?->person_id, 'stage' => $component->history?->education_stage,
+            'catalog_ids' => $component->catalogEntries->modelKeys(),
+            'years' => $component->records->map(fn ($record) => ['record_id' => $record->id, 'year_id' => $record->year?->id, 'source' => $record->year?->source, 'enrollment_id' => $record->year?->student_enrollment_id, 'year' => $record->year?->year]),
+        ]),
+        'matrix_audits' => $audits,
+    ], JSON_THROW_ON_ERROR);
+} finally {
+    Illuminate\Support\Facades\DB::rollBack();
+}

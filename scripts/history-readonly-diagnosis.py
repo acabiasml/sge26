@@ -17,7 +17,8 @@ def main():
     query = json.loads(config.read_text()) if config.exists() else {'person_id': 0}
     scope = query.get('scope', 'student')
     sources = {'student': 'scripts/history-readonly-diagnosis.php.stub',
-               'high-school-diversified': 'scripts/high-school-diversified-query.php.stub'}
+               'high-school-diversified': 'scripts/high-school-diversified-query.php.stub',
+               'history-catalog-classification': 'scripts/history-catalog-classification-query.php.stub'}
     if scope not in sources:
         raise ValueError('Escopo de consulta inválido.')
     source = pathlib.Path(sources[scope]).read_text()

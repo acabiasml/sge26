@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 
 parser = argparse.ArgumentParser()
 parser.add_argument('person_id', type=int, nargs='?')
-parser.add_argument('--scope', choices=['student', 'high-school-diversified'], default='student')
+parser.add_argument('--scope', choices=['student', 'high-school-diversified', 'history-catalog-classification'], default='student')
 parser.add_argument('--key-directory', default='/workspace/.sge26-cloud/private-reports')
 args = parser.parse_args()
 if args.scope == 'student' and (args.person_id is None or args.person_id <= 0):
