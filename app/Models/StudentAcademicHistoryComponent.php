@@ -41,14 +41,6 @@ class StudentAcademicHistoryComponent extends Model
         return [
             'formation',
             'knowledge_area',
-            'name',
-        ];
-    }
-
-    protected function titleCaseAttributesPreservingRomanNumerals(): array
-    {
-        return [
-            'name',
         ];
     }
 

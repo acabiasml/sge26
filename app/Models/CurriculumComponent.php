@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Models\Concerns\Auditable;
-use App\Models\Concerns\HasTitleCaseAttributes;
 use App\Support\MatrixHistoryCatalog;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,9 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CurriculumComponent extends Model
 {
-    use Auditable, HasFactory, HasTitleCaseAttributes;
+    use Auditable, HasFactory;
 
-    private bool $adoptingCatalogDefinition = false;
     private ?HistoryCurriculumComponent $selectedCatalogDefinition = null;
 
     protected static function booted(): void
@@ -47,24 +45,6 @@ class CurriculumComponent extends Model
         ];
     }
 
-    protected function titleCaseAttributes(): array
-    {
-        if ($this->adoptingCatalogDefinition) {
-            return [];
-        }
-
-        return [
-            'name',
-        ];
-    }
-
-    protected function titleCaseAttributesPreservingRomanNumerals(): array
-    {
-        return [
-            'name',
-        ];
-    }
-
     public function historyCatalogEntries(): BelongsToMany
     {
         return $this->belongsToMany(HistoryCurriculumComponent::class, 'matrix_catalog_components');
@@ -76,12 +56,10 @@ class CurriculumComponent extends Model
         $this->setRawAttributes(array_merge($this->getAttributes(), [
             'name' => $entry->name, 'knowledge_area_id' => $entry->knowledge_area_id,
         ]));
-        $this->adoptingCatalogDefinition = true;
         $this->selectedCatalogDefinition = $entry;
         try {
             $this->save();
         } finally {
-            $this->adoptingCatalogDefinition = false;
             $this->selectedCatalogDefinition = null;
             $this->unsetRelation('historyCatalogEntries');
         }

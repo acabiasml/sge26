@@ -4,7 +4,6 @@ namespace Tests\Unit;
 
 use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
-use App\Models\CurriculumComponent;
 use App\Models\StudentAcademicHistoryComponent;
 use App\Support\TextNormalizer;
 use PHPUnit\Framework\TestCase;
@@ -42,21 +41,18 @@ class TextNormalizerTest extends TestCase
         $this->assertSame('Módulo VII-A', TextNormalizer::titleCasePreservingRomanNumerals('MÓDULO vii-a'));
     }
 
-    public function test_period_and_component_names_preserve_roman_numerals_without_changing_other_models(): void
+    public function test_period_names_keep_roman_numerals_and_history_component_names_keep_the_original_spelling(): void
     {
         $period = new AcademicPeriod(['name' => 'II BIMESTRE']);
-        $component = new CurriculumComponent(['name' => 'DESENHO TÉCNICO II']);
         $course = new AcademicCourse(['name' => 'CURSO TÉCNICO II']);
         $historyComponent = new StudentAcademicHistoryComponent(['name' => 'DESENHO TÉCNICO II']);
 
         $period->applyTitleCaseAttributes();
-        $component->applyTitleCaseAttributes();
         $course->applyTitleCaseAttributes();
         $historyComponent->applyTitleCaseAttributes();
 
         $this->assertSame('II Bimestre', $period->name);
-        $this->assertSame('Desenho Técnico II', $component->name);
         $this->assertSame('Curso Técnico Ii', $course->name);
-        $this->assertSame('Desenho Técnico II', $historyComponent->name);
+        $this->assertSame('DESENHO TÉCNICO II', $historyComponent->name);
     }
 }

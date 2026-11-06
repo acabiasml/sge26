@@ -23,7 +23,7 @@ final class HistoryCurriculumRenamer
         return DB::transaction(function () use ($componentId, $name, $actor): HistoryCurriculumComponent {
             $entry = HistoryCurriculumComponent::whereKey($componentId)->lockForUpdate()->firstOrFail();
             $context = $entry->only(['education_stage', 'formation', 'knowledge_area_id']);
-            $name = TextNormalizer::titleCasePreservingRomanNumerals($name);
+            $name = trim(preg_replace('/\s+/u', ' ', $name));
             Validator::make(['name' => $name], [
                 'name' => ['required', 'string', 'max:255', Rule::unique('history_curriculum_components')->where(fn ($query) => $query->where($context))->ignore($entry->id)],
             ])->validate();

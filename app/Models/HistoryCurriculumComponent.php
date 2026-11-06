@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Models\Concerns\Auditable;
-use App\Models\Concerns\HasTitleCaseAttributes;
 use App\Support\HistoryCurriculumPropagation;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class HistoryCurriculumComponent extends Model
 {
-    use Auditable, HasTitleCaseAttributes;
+    use Auditable;
 
     protected static function booted(): void
     {
@@ -30,16 +29,6 @@ class HistoryCurriculumComponent extends Model
     protected function casts(): array
     {
         return ['active' => 'boolean', 'matrix_origin' => 'boolean'];
-    }
-
-    protected function titleCaseAttributes(): array
-    {
-        return ['name'];
-    }
-
-    protected function titleCaseAttributesPreservingRomanNumerals(): array
-    {
-        return ['name'];
     }
 
     public function matrixComponents(): BelongsToMany

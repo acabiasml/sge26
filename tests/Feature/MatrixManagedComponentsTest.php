@@ -72,8 +72,8 @@ class MatrixManagedComponentsTest extends TestCase
         $before = [$component->fresh()->getAttributes(), HistoryCurriculumComponent::count()];
         $create = $this->get(route('academic-years.courses.show', [$course->academicYear, $course]))->assertOk();
         $edit = $this->get(route('academic-years.courses.components.show', [$course->academicYear, $course, $component]))->assertOk();
-        $this->assertSame(['Álgebra', 'Biologia', 'Biologia', 'Componente Inativo', 'Zoologia'], $this->names($create, 'new_component_name'));
-        $this->assertSame(['Álgebra', 'Biologia', 'Biologia', 'Componente Inativo', 'Zoologia'], $this->names($edit, 'component_name'));
+        $this->assertSame(['Álgebra', 'Biologia', 'Biologia', 'Componente inativo', 'Zoologia'], $this->names($create, 'new_component_name'));
+        $this->assertSame(['Álgebra', 'Biologia', 'Biologia', 'Componente inativo', 'Zoologia'], $this->names($edit, 'component_name'));
         $this->assertSame($before, [$component->fresh()->getAttributes(), HistoryCurriculumComponent::count()]);
         $create->assertDontSee('Gerenciar catálogo');
     }

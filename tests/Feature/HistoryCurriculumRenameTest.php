@@ -44,7 +44,7 @@ class HistoryCurriculumRenameTest extends TestCase
         ])->assertRedirect(route('history-curriculum.index'))->assertSessionHasNoErrors();
 
         foreach ([$entry, $one, $two] as $model) {
-            $this->assertSame('Introdução à Língua Italiana II', $model->fresh()->name);
+            $this->assertSame('introdução à língua italiana II', $model->fresh()->name);
         }
         $this->assertSame($before, collect([$entry, $one, $two])->map(fn ($model) => Arr::except($model->fresh()->getAttributes(), ['name', 'updated_at']))->all());
         app(MatrixHistoryCatalog::class)->importAll();
@@ -85,6 +85,61 @@ class HistoryCurriculumRenameTest extends TestCase
         }
     }
 
+    public function test_catalog_creation_editing_and_later_matrix_and_history_saves_preserve_the_chosen_case(): void
+    {
+        $this->actingAs($this->user(PersonSchoolRole::ROLE_ADMINISTRATOR));
+        $existingMatrix = $this->matrix('Componente da matriz');
+        $data = ['name' => 'LIN. inglesa ii', 'education_stage' => 'medio', 'formation' => 'Itinerário Formativo', 'knowledge_area_id' => $existingMatrix->knowledge_area_id];
+        $this->post(route('history-curriculum.store'), $data)->assertSessionHasNoErrors();
+        $entry = HistoryCurriculumComponent::where('name', 'LIN. inglesa ii')->sole();
+        $this->assertSame('LIN. inglesa ii', $entry->name);
+        $data['name'] = 'língua INGLESA ii';
+        $this->put(route('history-curriculum.update', $entry), $data)->assertSessionHasNoErrors();
+        $this->assertSame($data['name'], $entry->fresh()->name);
+
+        $course = $existingMatrix->course;
+        $this->post(route('academic-years.courses.components.store', [$course->academicYear, $course]), [
+            'catalog_component_id' => $entry->id, 'workload_mode' => 'workload_hours', 'workload_hours' => 80,
+        ])->assertSessionHasNoErrors();
+        $matrix = $course->components()->where('id', '!=', $existingMatrix->id)->sole();
+        $history = $this->history();
+        $year = $history->years()->create(['label' => '1º Ano', 'stage' => 'Ensino Médio', 'source' => 'external']);
+        $row = $history->components()->create(['name' => $data['name'], 'formation' => $entry->formation, 'knowledge_area' => $entry->area->name]);
+        $row->catalogEntries()->attach($entry);
+        $record = $row->records()->create(['student_academic_history_year_id' => $year->id, 'score_label' => '8,0', 'workload_hours' => 80]);
+        $recordBefore = $record->fresh()->getAttributes();
+        $this->assertSame($data['name'], $matrix->name);
+        $this->assertSame($data['name'], $row->fresh()->name);
+
+        $name = 'LÍNGUA inglesa ii';
+        $this->put(route('history-curriculum.rename', $entry), ['name' => $name])->assertSessionHasNoErrors();
+        $matrix->refresh()->update(['workload_hours' => 90]);
+        $row->refresh()->update(['position' => 2]);
+        $entry->refresh()->update(['active' => true]);
+        app(MatrixHistoryCatalog::class)->importAll();
+        app(HistoryCatalogIntegrator::class)->syncHistory($history->fresh());
+        foreach ([$entry, $matrix, $row] as $model) {
+            $this->assertSame($name, $model->fresh()->name);
+        }
+        $this->assertSame($entry->id, $matrix->historyCatalogEntries()->sole()->id);
+        $this->assertSame($entry->id, $row->catalogEntries()->sole()->id);
+        $this->assertSame($recordBefore, $record->fresh()->getAttributes());
+    }
+
+    public function test_case_only_rename_keeps_the_same_entry_and_updates_its_links(): void
+    {
+        $this->actingAs($this->user(PersonSchoolRole::ROLE_ADMINISTRATOR));
+        $matrix = $this->matrix('Língua Inglesa');
+        $entry = $matrix->historyCatalogEntries()->sole();
+        foreach (['LÍNGUA INGLESA', 'língua inglesa', 'Língua Inglesa'] as $name) {
+            $this->put(route('history-curriculum.rename', $entry), ['name' => $name])->assertSessionHasNoErrors();
+            $this->assertSame($name, $entry->fresh()->name);
+            $matrix->refresh()->update(['workload_hours' => 85]);
+            $this->assertSame($name, $matrix->fresh()->name);
+            $this->assertSame($entry->id, $matrix->historyCatalogEntries()->sole()->id);
+        }
+    }
+
     public function test_orphaned_matrix_reference_can_be_renamed_and_full_edit_remains_protected(): void
     {
         $this->actingAs($this->user(PersonSchoolRole::ROLE_ADMINISTRATOR));
@@ -110,7 +165,7 @@ class HistoryCurriculumRenameTest extends TestCase
         $other = $this->matrix('Nome Existente')->historyCatalogEntries()->sole();
         HistoryCurriculumAlias::create($entry->only(['education_stage', 'formation', 'knowledge_area_id']) + ['name' => 'Nome Incorporado', 'history_curriculum_component_id' => $other->id]);
         $before = [$entry->fresh()->getAttributes(), $matrix->fresh()->getAttributes()];
-        foreach (['', '   ', ['Inválido'], str_repeat('a', 256), '  nome    existente ', 'Nome Incorporado'] as $name) {
+        foreach (['', '   ', ['Inválido'], str_repeat('a', 256), '  Nome    Existente ', 'Nome Incorporado'] as $name) {
             $this->put(route('history-curriculum.rename', $entry), ['name' => $name])->assertSessionHasErrors('name');
             $this->assertSame($before, [$entry->fresh()->getAttributes(), $matrix->fresh()->getAttributes()]);
         }

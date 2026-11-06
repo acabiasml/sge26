@@ -63,14 +63,14 @@ class HistoryCurriculumPropagationTest extends TestCase
         $before = [$this->values($first), $this->values($second), $two->fresh()->getAttributes()];
         $one->update(['knowledge_area_id' => $new->id, 'name' => 'Nome atualizado']);
         $this->assertSame('Técnico em Móveis', $first->fresh()->component->knowledge_area);
-        $this->assertSame('Nome Atualizado', $first->fresh()->component->name);
+        $this->assertSame('Nome atualizado', $first->fresh()->component->name);
         $this->assertSame('Área Anterior', $second->fresh()->component->knowledge_area);
         $this->assertNotSame($first->fresh()->student_academic_history_component_id, $second->fresh()->student_academic_history_component_id);
         $this->assertSame($before, [$this->values($first), $this->values($second), $two->fresh()->getAttributes()]);
         $this->assertSame('medio', $history->fresh()->education_stage);
         $this->assertSame($one->historyCatalogEntries()->sole()->id, $first->fresh()->component->catalogEntries()->sole()->id);
         $one->update(['name' => 'Outro nome']);
-        $this->assertSame('Outro Nome', $first->fresh()->component->name);
+        $this->assertSame('Outro nome', $first->fresh()->component->name);
         $this->assertSame('Componente', $second->fresh()->component->name);
     }
 
@@ -119,8 +119,8 @@ class HistoryCurriculumPropagationTest extends TestCase
         $unaffected = $component->records()->create(['student_academic_history_year_id' => $year->id, 'score_label' => '7,0']);
         $before = [$this->values($record), $this->values($unaffected)];
         $entry->update(['name' => 'Novo nome']);
-        $this->assertSame('Novo Nome', $record->fresh()->component->name);
-        $this->assertSame('Nome Antigo', $unaffected->fresh()->component->name);
+        $this->assertSame('Novo nome', $record->fresh()->component->name);
+        $this->assertSame('Nome antigo', $unaffected->fresh()->component->name);
         $this->assertSame($before, [$this->values($record), $this->values($unaffected)]);
         $this->assertSame($other->id, $unaffected->fresh()->component->catalogEntries()->sole()->id);
     }
@@ -169,7 +169,7 @@ class HistoryCurriculumPropagationTest extends TestCase
         $this->assertSame($source->id, $record->fresh()->curriculum_component_id);
         $before = [$this->values($record), $other->fresh()->getAttributes()];
         $source->update(['name' => 'Nome revisado']);
-        $this->assertSame('Nome Revisado', $record->fresh()->component->name);
+        $this->assertSame('Nome revisado', $record->fresh()->component->name);
         $this->assertSame($before, [$this->values($record), $other->fresh()->getAttributes()]);
     }
 
