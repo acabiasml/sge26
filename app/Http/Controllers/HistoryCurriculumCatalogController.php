@@ -22,12 +22,16 @@ class HistoryCurriculumCatalogController extends Controller
         return view('knowledge-areas.catalog', HistoryCurriculumCatalog::formOptions());
     }
 
-    public function mergeForm(Request $request, HistoryCurriculumComponent $catalogComponent)
+    public function mergeForm(Request $request, HistoryCurriculumComponent $catalogComponent, HistoryCurriculumMerger $merger)
     {
         abort_unless($request->user()->isAdministrator(), 403);
-        abort_if($catalogComponent->isMatrixDerived(), 403, __('Componentes de matrizes do sistema são protegidos e não podem ser mesclados ou alterados pelo catálogo.'));
+        $catalogComponent->load(['area', 'matrixComponents.course.academicYear.school']);
+        abort_if($catalogComponent->isMatrixDerived() && $catalogComponent->matrixComponents->isEmpty(), 403, __('Não foi possível identificar a matriz de origem. Revise os vínculos antes de mesclar este componente.'));
         $candidates = HistoryCurriculumComponent::whereHas('matrixComponents')
-            ->whereKeyNot($catalogComponent->id)->with(['area', 'matrixComponents.course.academicYear.school'])->orderBy('name')->get();
+            ->whereKeyNot($catalogComponent->id)->with(['area', 'matrixComponents.course.academicYear.school'])->orderBy('name')->get()
+            ->filter(fn ($candidate) => $merger->supportsMatrixDefinition($catalogComponent, $candidate)
+                || ($catalogComponent->matrixComponents->isNotEmpty() && $merger->supportsMatrixDefinition($candidate, $catalogComponent)))
+            ->sortBy(fn ($candidate) => \App\Support\CurriculumCatalog::alphabeticalKey($candidate->name), SORT_NATURAL)->values();
 
         return view('knowledge-areas.merge', ['catalogComponent' => $catalogComponent->load('area'), 'candidates' => $candidates]);
     }
@@ -35,8 +39,9 @@ class HistoryCurriculumCatalogController extends Controller
     public function merge(Request $request, HistoryCurriculumComponent $catalogComponent, HistoryCurriculumMerger $merger)
     {
         abort_unless($request->user()->isAdministrator(), 403);
-        $data = $request->validate(['target_component_id' => ['required', 'integer']]);
-        $kept = $merger->merge($catalogComponent->id, (int) $data['target_component_id'], $request->user());
+        $data = $request->validate(['target_component_id' => ['required', 'integer'], 'keep' => ['nullable', Rule::in(['source', 'target'])]]);
+        $keepSource = ($data['keep'] ?? 'target') === 'source';
+        $kept = $merger->merge($keepSource ? (int) $data['target_component_id'] : $catalogComponent->id, $keepSource ? $catalogComponent->id : (int) $data['target_component_id'], $request->user());
 
         return redirect()->route('history-curriculum.index')->with('status', __('Componentes mesclados. Nomenclatura mantida: :name.', ['name' => $kept->name]));
     }
@@ -59,7 +64,7 @@ class HistoryCurriculumCatalogController extends Controller
     public function update(Request $request, HistoryCurriculumComponent $catalogComponent)
     {
         abort_unless($request->user()->isAdministrator(), 403);
-        abort_if($catalogComponent->isMatrixDerived(), 403, __('Componentes de matrizes do sistema são protegidos e não podem ser mesclados ou alterados pelo catálogo.'));
+        abort_if($catalogComponent->isMatrixDerived(), 403, __('Componentes de matrizes devem ser alterados na matriz ou pela mesclagem de componentes.'));
         $data = $this->data($request, $catalogComponent);
         DB::transaction(fn () => $catalogComponent->update($data));
 

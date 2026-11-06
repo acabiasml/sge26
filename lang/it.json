@@ -2838,5 +2838,15 @@
     "Selecione um componente do catálogo compatível com a etapa de ensino.": "Seleziona una disciplina del catalogo compatibile con il grado di istruzione.",
     "Não há componentes ativos no catálogo para esta etapa de ensino.": "Non ci sono discipline attive nel catalogo per questo grado di istruzione.",
     "Escolha um componente do catálogo desta etapa de ensino.": "Scegli una disciplina dal catalogo di questo grado di istruzione.",
-    "Gerenciar catálogo": "Gestisci catalogo"
+    "Gerenciar catálogo": "Gestisci catalogo",
+    "Componentes de matrizes devem ser alterados na matriz ou pela mesclagem de componentes.": "Le discipline dei piani di studio devono essere modificate nel piano oppure tramite l’unione delle discipline.",
+    "Não foi possível identificar a matriz de origem. Revise os vínculos antes de mesclar este componente.": "Non è stato possibile identificare il piano di studio di origine. Verifica i collegamenti prima di unire questa disciplina.",
+    "A classificação escolhida é incompatível com a etapa de uma das matrizes de origem.": "La classificazione scelta non è compatibile con il grado di istruzione di uno dei piani di studio di origine.",
+    "Escolha outro componente de matriz e o cadastro que vai prevalecer. A mesclagem atualiza nome, área e formação nas matrizes originais e nos históricos vinculados, preservando notas, faltas, cargas horárias e vínculos dos diários.": "Scegli un’altra disciplina di un piano di studio e la registrazione da mantenere. L’unione aggiorna nome, area e formazione nei piani originali e negli storici collegati, conservando voti, assenze, monte ore e collegamenti dei registri.",
+    "Matrizes vinculadas a este componente": "Piani di studio collegati a questa disciplina",
+    "Confirmar a mesclagem? As matrizes originais e os históricos adotarão o cadastro escolhido. Os lançamentos escolares serão preservados.": "Confermare l’unione? I piani di studio originali e gli storici adotteranno la registrazione scelta. Le registrazioni scolastiche saranno conservate.",
+    "A classificação escolhida deve ser compatível com a etapa de ensino das matrizes afetadas.": "La classificazione scelta deve essere compatibile con il grado di istruzione dei piani di studio interessati.",
+    "Qual cadastro deve prevalecer?": "Quale registrazione deve essere mantenuta?",
+    "Manter o outro componente selecionado": "Mantieni l’altra disciplina selezionata",
+    "Cadastro que será mantido": "Registrazione da mantenere"
 }

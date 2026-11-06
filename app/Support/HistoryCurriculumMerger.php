@@ -12,6 +12,17 @@ use Illuminate\Validation\ValidationException;
 
 final class HistoryCurriculumMerger
 {
+    public function supportsMatrixDefinition(HistoryCurriculumComponent $source, HistoryCurriculumComponent $target): bool
+    {
+        $source->loadMissing('matrixComponents.course');
+        $target->loadMissing('area');
+
+        return $source->matrixComponents->every(fn ($matrix) => $matrix->course
+            && CurriculumAreaStage::compatible($target->area->name, $matrix->course->stage)
+            && $target->formation === ($matrix->course->stage === 'tecnico'
+                ? 'Formação Técnica Profissional' : CurriculumCatalog::formationLabelForArea($matrix->course, $target->area)));
+    }
+
     public function merge(int $sourceId, int $targetId, User $actor): HistoryCurriculumComponent
     {
         abort_unless($actor->isAdministrator(), 403);
@@ -26,16 +37,26 @@ final class HistoryCurriculumMerger
             }
             $source = $entries[$sourceId];
             $target = $entries[$targetId]->load('area');
-            if ($source->isMatrixDerived()) {
-                throw ValidationException::withMessages(['catalog_component' => __('Componentes de matrizes do sistema são protegidos e não podem ser mesclados ou alterados pelo catálogo.')]);
+            $matrices = $source->matrixComponents()->with('course')->orderBy('curriculum_components.id')->lockForUpdate()->get();
+            $source->setRelation('matrixComponents', $matrices);
+            if ($source->isMatrixDerived() && $matrices->isEmpty()) {
+                throw ValidationException::withMessages(['catalog_component' => __('Não foi possível identificar a matriz de origem. Revise os vínculos antes de mesclar este componente.')]);
             }
             if (! $target->matrixComponents()->exists()) {
                 throw ValidationException::withMessages(['target_component_id' => __('O destino deve ser um componente existente em uma matriz do sistema.')]);
             }
+            if (! $this->supportsMatrixDefinition($source, $target)) {
+                throw ValidationException::withMessages(['target_component_id' => __('A classificação escolhida é incompatível com a etapa de uma das matrizes de origem.')]);
+            }
             $historyComponents = $source->historyComponents()->orderBy('student_academic_history_components.id')->lockForUpdate()->get();
-            $oldRows = [];
-            foreach ($historyComponents as $component) {
-                $oldRows[] = $component->only(['id', 'name', 'formation', 'knowledge_area']);
+            $oldRows = $historyComponents->map->only(['id', 'name', 'formation', 'knowledge_area'])->all();
+            $oldMatrices = $matrices->map->only(['id', 'academic_course_id', 'name', 'knowledge_area_id'])->all();
+            foreach ($matrices as $matrix) {
+                $matrix->adoptCatalogDefinition($target);
+            }
+            // O salvamento das matrizes já propaga os registros com origem identificada.
+            // Completa a migração das transcrições e referências restantes da origem.
+            foreach ($source->historyComponents()->lockForUpdate()->get() as $component) {
                 $component->adoptCatalogDefinition($target);
                 $component->catalogEntries()->sync([$target->id]);
             }
@@ -47,9 +68,9 @@ final class HistoryCurriculumMerger
                 'actor_user_id' => $actor->id, 'actor_person_id' => $actor->person_id,
                 'actor_role' => PersonSchoolRole::ROLE_ADMINISTRATOR,
                 'auditable_type' => HistoryCurriculumComponent::class, 'auditable_id' => $target->id,
-                'action' => 'updated', 'old_values' => ['merged_component' => $old, 'history_components' => $oldRows],
+                'action' => 'updated', 'old_values' => ['merged_component' => $old, 'history_components' => $oldRows, 'matrix_components' => $oldMatrices],
                 'new_values' => $target->only(['id', 'name', 'education_stage', 'formation', 'knowledge_area_id', 'active']),
-                'metadata' => ['operation' => 'history-curriculum:merge', 'transferred_links' => $historyComponents->count(), 'record_description' => 'Mesclagem de componente histórico para matriz: '.$old['name'].' → '.$target->name],
+                'metadata' => ['operation' => 'history-curriculum:merge', 'transferred_links' => $historyComponents->count(), 'updated_matrix_components' => $matrices->count(), 'record_description' => 'Mesclagem de componentes: '.$old['name'].' → '.$target->name],
                 'ip_address' => request()->ip(), 'user_agent' => request()->userAgent(),
             ]);
 

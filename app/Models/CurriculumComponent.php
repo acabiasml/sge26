@@ -15,6 +15,8 @@ class CurriculumComponent extends Model
 {
     use Auditable, HasFactory, HasTitleCaseAttributes;
 
+    private bool $adoptingCatalogDefinition = false;
+
     protected static function booted(): void
     {
         static::saved(fn (self $component) => app(MatrixHistoryCatalog::class)->syncComponent($component, $component->wasChanged(['name', 'knowledge_area_id'])));
@@ -46,6 +48,10 @@ class CurriculumComponent extends Model
 
     protected function titleCaseAttributes(): array
     {
+        if ($this->adoptingCatalogDefinition) {
+            return [];
+        }
+
         return [
             'name',
         ];
@@ -61,6 +67,19 @@ class CurriculumComponent extends Model
     public function historyCatalogEntries(): BelongsToMany
     {
         return $this->belongsToMany(HistoryCurriculumComponent::class, 'matrix_catalog_components');
+    }
+
+    public function adoptCatalogDefinition(HistoryCurriculumComponent $entry): void
+    {
+        $this->setRawAttributes(array_merge($this->getAttributes(), [
+            'name' => $entry->name, 'knowledge_area_id' => $entry->knowledge_area_id,
+        ]));
+        $this->adoptingCatalogDefinition = true;
+        try {
+            $this->save();
+        } finally {
+            $this->adoptingCatalogDefinition = false;
+        }
     }
 
     public function course(): BelongsTo
