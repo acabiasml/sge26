@@ -26,6 +26,7 @@ use App\Support\AcademicStructureValidator;
 use App\Support\AcademicYearClosureStatus;
 use App\Support\CurriculumCatalog;
 use App\Support\DashboardShortcuts;
+use App\Support\HistoryCatalogIntegrator;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use ReflectionMethod;
@@ -84,7 +85,7 @@ class AcademicCalendarTest extends TestCase
         $this->assertSame(1, IssuedDocument::query()->where('type', 'class-student-contacts')->count());
     }
 
-    public function test_historical_area_usages_are_traceable_without_changing_the_catalog(): void
+    public function test_historical_area_usages_are_available_through_the_catalog(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
         $year = $this->academicYear();
@@ -97,8 +98,11 @@ class AcademicCalendarTest extends TestCase
         $component = $history->components()->create(['name' => 'Saberes e Fazeres do Campo', 'formation' => 'Parte Diversificada', 'knowledge_area' => 'Ciências da Natureza', 'position' => 1]);
         $url = route('knowledge-areas.historical-usages', ['formation' => $component->formation, 'area' => $component->knowledge_area]);
         $this->actingAs($manager)->get($url)->assertForbidden();
-        $this->actingAs($admin)->get(route('knowledge-areas.index'))->assertOk()->assertSee('Áreas registradas nos históricos')->assertSee($component->formation);
-        $this->get($url)->assertOk()->assertSee($student->full_name)->assertSee($component->name)->assertSee(route('people.histories.edit', [$student, $history]));
+        app(HistoryCatalogIntegrator::class)->importAll();
+        $entry = $component->catalogEntries()->sole();
+        $this->actingAs($admin)->get(route('knowledge-areas.index'))->assertOk()->assertDontSee('Áreas registradas nos históricos');
+        $this->get($url)->assertRedirect(route('history-curriculum.index', ['table-search' => $component->knowledge_area]));
+        $this->get(route('history-curriculum.usages', $entry))->assertOk()->assertSee($student->full_name)->assertSee($component->name)->assertSee(route('people.histories.edit', [$student, $history]));
         $this->assertDatabaseHas('student_academic_history_components', ['id' => $component->id, 'formation' => 'Parte Diversificada']);
     }
 

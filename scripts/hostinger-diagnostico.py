@@ -204,6 +204,12 @@ with tempfile.TemporaryDirectory() as directory:
                          'php artisan migrate --path=database/migrations/2026_11_05_000001_add_last_access_at_to_users_table.php --force --no-ansi'))
         commands.append(('Conferir totais por formação e catálogo de componentes',
                          'php artisan migrate --path=database/migrations/2026_11_05_000002_add_history_formation_totals_and_component_catalog.php --force --no-ansi'))
+        commands.append(('Incorporar componentes dos históricos ao catálogo',
+                         'php artisan migrate --path=database/migrations/2026_11_05_000003_integrate_history_components_into_curriculum_catalog.php --force --no-ansi'))
+        commands.append(('Conferir integração dos históricos ao catálogo',
+                         'php artisan tinker --execute=\'echo json_encode(["catalog_components" => App\\Models\\HistoryCurriculumComponent::count(), '
+                         '"history_components" => App\\Models\\StudentAcademicHistoryComponent::count(), '
+                         '"unlinked_history_components" => $missing = App\\Models\\StudentAcademicHistoryComponent::whereDoesntHave("catalogEntries")->count()]); exit($missing === 0 ? 0 : 1);\''))
         commands.append(('Conferir áreas curriculares por etapa', 'php artisan curriculum:reconcile-stage-areas --no-ansi'))
         if os.environ.get('REPAIR_STAGE_AREAS') == 'true':
             commands.append(('Corrigir áreas curriculares por etapa', 'php artisan curriculum:reconcile-stage-areas --apply --no-ansi'))

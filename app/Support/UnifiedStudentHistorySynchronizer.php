@@ -97,6 +97,8 @@ class UnifiedStudentHistorySynchronizer
                 'legal_basis' => $legalBasis,
             ]);
 
+            app(HistoryCatalogIntegrator::class)->syncHistory($history);
+
             return $history->fresh(['years.records', 'components.records.year']);
         });
     }

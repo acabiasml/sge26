@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\CurriculumComponent;
 use App\Models\KnowledgeArea;
-use App\Models\StudentAcademicHistoryComponent;
 use App\Support\CurriculumAreaStage;
 use App\Support\CurriculumCatalog;
 use Illuminate\Http\Request;
@@ -19,8 +18,7 @@ class KnowledgeAreaController extends Controller
         abort_unless($request->user()->isAdministrator(), 403);
 
         return view('knowledge-areas.index', [
-            'historicalAreas' => StudentAcademicHistoryComponent::query()->selectRaw('formation, knowledge_area, COUNT(*) as uses_count')->groupBy('formation', 'knowledge_area')->orderBy('formation')->orderBy('knowledge_area')->get(),
-            'areas' => KnowledgeArea::query()->withCount('components')->orderBy('sort_order')->orderBy('name')->get(),
+            'areas' => KnowledgeArea::query()->withCount(['components', 'historyCatalogComponents'])->orderBy('sort_order')->orderBy('name')->get(),
             'formations' => [CurriculumCatalog::FORMATION_FGB, CurriculumCatalog::FORMATION_ITINERARY, CurriculumCatalog::FORMATION_COMPLEMENTARY, 'Parte Diversificada', 'Formação Técnica Profissional'],
         ]);
     }
@@ -30,18 +28,7 @@ class KnowledgeAreaController extends Controller
         abort_unless($request->user()->isAdministrator(), 403);
         $filters = $request->validate(['formation' => ['nullable', 'string', 'max:255'], 'area' => ['nullable', 'string', 'max:255']]);
 
-        return view('knowledge-areas.historical-usages', [
-            'components' => StudentAcademicHistoryComponent::query()
-                ->when($request->filled('q'), fn ($query) => $query->where(fn ($search) => $search
-                    ->where('name', 'like', '%'.trim((string) $request->input('q')).'%')
-                    ->orWhereHas('history.student', fn ($student) => $student->where('full_name', 'like', '%'.trim((string) $request->input('q')).'%'))))
-                ->where('formation', $filters['formation'] ?? null)
-                ->where('knowledge_area', $filters['area'] ?? null)
-                ->with(['history.student', 'history.school'])->orderBy('student_academic_history_id')->orderBy('name')
-                ->paginate(10)->withQueryString(),
-            'formation' => $filters['formation'] ?? '—',
-            'area' => $filters['area'] ?? '—',
-        ]);
+        return redirect()->route('history-curriculum.index', ['table-search' => $filters['area'] ?? '']);
     }
 
     public function store(Request $request)

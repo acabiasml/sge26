@@ -1,0 +1,1 @@
+<a class="btn btn-sm btn-outline-primary" href="{{ route('history-curriculum.usages', $component) }}" aria-label="{{ __('Ver usos') }}: {{ $component->name }}"><i class="fas fa-list mr-1" aria-hidden="true"></i>{{ $component->history_components_count }}</a>

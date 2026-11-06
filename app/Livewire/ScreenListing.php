@@ -46,7 +46,6 @@ class ScreenListing extends Component
         'school-years' => [Controllers\SchoolAcademicYearController::class, 'index', ['q']],
         'knowledge-areas' => [Controllers\KnowledgeAreaController::class, 'index', ['q']],
         'area-usages' => [Controllers\KnowledgeAreaController::class, 'usages', ['q']],
-        'historical-usages' => [Controllers\KnowledgeAreaController::class, 'historicalUsages', ['q', 'formation', 'area']],
         'justifications' => [Controllers\AttendanceJustificationController::class, 'index', ['q', 'school', 'year', 'class']],
         'diaries' => [Controllers\TeacherDiaryController::class, 'index', ['q', 'school', 'year', 'academic_year', 'period', 'class', 'component', 'teacher', 'status']],
         'quality' => [Controllers\DataQualityController::class, 'index', ['school_id', 'severity']],
@@ -214,7 +213,7 @@ class ScreenListing extends Component
             'announcements' => $data['announcements'],
             'justifications' => $data['justifications'],
             'histories' => $data['students'],
-            'area-usages', 'historical-usages' => $data['components'],
+            'area-usages' => $data['components'],
             'teacher-schedules' => $data['slots'],
             default => null,
         };
@@ -237,7 +236,6 @@ class ScreenListing extends Component
                 break;
             case 'knowledge-areas':
                 $data['areas'] = $filter($data['areas'], ['name', 'formation']);
-                $data['historicalAreas'] = $filter($data['historicalAreas'], ['knowledge_area', 'formation']);
                 break;
             case 'enrollments':
                 $data['class']->setRelation('enrollments', $filter($data['class']->enrollments, ['student.full_name', 'student.cpf', 'enrollment_number']));

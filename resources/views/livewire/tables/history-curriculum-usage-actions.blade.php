@@ -1,0 +1,1 @@
+<a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.histories.edit', [$component->history->person_id, $component->history]) }}" aria-label="{{ __('Editar histórico') }}: {{ $component->history->student?->full_name }}" title="{{ __('Editar histórico') }}"><i class="fas fa-edit" aria-hidden="true"></i></a>

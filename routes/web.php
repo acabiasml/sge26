@@ -161,6 +161,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
 
     Route::get('areas-curriculares/catalogo', [HistoryCurriculumCatalogController::class, 'index'])->name('history-curriculum.index');
     Route::post('areas-curriculares/catalogo', [HistoryCurriculumCatalogController::class, 'store'])->name('history-curriculum.store');
+    Route::get('areas-curriculares/catalogo/{catalogComponent}/usos', [HistoryCurriculumCatalogController::class, 'usages'])->name('history-curriculum.usages');
     Route::put('areas-curriculares/catalogo/{catalogComponent}', [HistoryCurriculumCatalogController::class, 'update'])->name('history-curriculum.update');
     Route::delete('areas-curriculares/catalogo/{catalogComponent}', [HistoryCurriculumCatalogController::class, 'destroy'])->name('history-curriculum.destroy');
     Route::get('areas-curriculares/historicos', [KnowledgeAreaController::class, 'historicalUsages'])->name('knowledge-areas.historical-usages');

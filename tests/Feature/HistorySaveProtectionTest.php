@@ -249,6 +249,7 @@ class HistorySaveProtectionTest extends TestCase
         $this->assertSame('1000.00', $year->workload_hours);
         $this->assertEquals(['Formação Geral Básica' => 800, 'Parte Complementar' => 80, 'Parte Diversificada' => 120], $year->formation_workload_hours);
         $this->assertSame('8,0', $history->components()->sole()->records()->sole()->score_label);
+        $this->assertSame('Matemática', $history->components()->sole()->catalogEntries()->sole()->name);
         $totals = $history->fresh()->formationWorkloadTotals();
         $this->assertSame(['planned' => 800.0, 'completed' => 800.0], $totals['Formação Geral Básica']);
         $this->assertSame(['planned' => 80.0, 'completed' => 80.0], $totals['Parte Complementar']);
@@ -329,6 +330,22 @@ class HistorySaveProtectionTest extends TestCase
         $payload['years'][] = $this->year(2) + ['id' => $second->id];
         $payload['year_components'][1] = $payload['year_components'][0];
         $this->put($this->url($history), $payload)->assertSessionHasErrors('year_components.1.0.name');
+    }
+
+    public function test_saving_after_a_catalog_rename_preserves_its_link_without_recreating_the_old_name(): void
+    {
+        $history = $this->history();
+        $year = $history->years()->sole();
+        $payload = $this->yearlyPayload($history, [$this->year(1) + ['id' => $year->id]], [0 => [$this->yearComponentData('Matemática', 'Matemática', ['score_label' => '8,0'])]]);
+        $this->put($this->url($history), $payload)->assertSessionHasNoErrors();
+        $entry = $history->components()->sole()->catalogEntries()->sole();
+        $entry->update(['name' => 'Matemática Básica']);
+        $count = HistoryCurriculumComponent::count();
+        $payload['history_version'] = app(StudentHistoryEditGuard::class)->version($history->fresh());
+        $this->put($this->url($history), $payload)->assertSessionHasNoErrors();
+        $this->assertSame($count, HistoryCurriculumComponent::count());
+        $this->assertSame($entry->id, $history->components()->sole()->catalogEntries()->sole()->id);
+        $this->assertSame('8,0', $history->components()->sole()->records()->sole()->score_label);
     }
 
     public function test_new_year_is_added_without_replacing_existing_year_or_its_grade(): void

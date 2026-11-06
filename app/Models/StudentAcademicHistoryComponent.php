@@ -6,6 +6,7 @@ use App\Models\Concerns\HasTitleCaseAttributes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StudentAcademicHistoryComponent extends Model
@@ -48,6 +49,11 @@ class StudentAcademicHistoryComponent extends Model
     public function history(): BelongsTo
     {
         return $this->belongsTo(StudentAcademicHistory::class, 'student_academic_history_id');
+    }
+
+    public function catalogEntries(): BelongsToMany
+    {
+        return $this->belongsToMany(HistoryCurriculumComponent::class, 'history_catalog_usages');
     }
 
     public function records(): HasMany

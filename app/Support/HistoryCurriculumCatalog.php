@@ -9,6 +9,14 @@ use Illuminate\Support\Facades\Schema;
 
 final class HistoryCurriculumCatalog
 {
+    public const UNCLASSIFIED_STAGE = 'nao_identificada';
+
+    public static function stageLabels(): array
+    {
+        return array_intersect_key(AcademicCourse::STAGE_LABELS, array_flip(['fundamental', 'medio', 'tecnico']))
+            + [self::UNCLASSIFIED_STAGE => 'Etapa não identificada'];
+    }
+
     public static function formations(?string $stage): array
     {
         return $stage === AcademicCourse::STAGE_TECHNICAL ? ['Formação Técnica Profissional'] : array_values(array_filter([
@@ -25,6 +33,7 @@ final class HistoryCurriculumCatalog
         foreach ($stages as $stage => $label) {
             $config[$stage] = ['formations' => self::formations($stage), 'areas' => $areas->filter(fn ($area) => CurriculumAreaStage::compatible($area->name, $stage))->map->only(['id', 'name'])->values()];
         }
+        $config[''] = ['formations' => [], 'areas' => []];
         $formationLabels = collect(['Formação Geral Básica', 'Parte Complementar', 'Parte Diversificada', 'Itinerário Formativo', 'Formação Técnica Profissional'])->mapWithKeys(fn ($value) => [$value => __($value)])->all();
 
         return compact('stages', 'config', 'formationLabels');

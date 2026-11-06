@@ -8,6 +8,7 @@ use App\Support\CurriculumAreaStage;
 use App\Support\HistoryCurriculumCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class HistoryCurriculumCatalogController extends Controller
 {
@@ -16,6 +17,13 @@ class HistoryCurriculumCatalogController extends Controller
         abort_unless($request->user()->isAdministrator(), 403);
 
         return view('knowledge-areas.catalog', HistoryCurriculumCatalog::formOptions());
+    }
+
+    public function usages(Request $request, HistoryCurriculumComponent $catalogComponent)
+    {
+        abort_unless($request->user()->isAdministrator(), 403);
+
+        return view('knowledge-areas.catalog-usages', ['catalogComponent' => $catalogComponent->load('area')]);
     }
 
     public function store(Request $request)
@@ -37,6 +45,9 @@ class HistoryCurriculumCatalogController extends Controller
     public function destroy(Request $request, HistoryCurriculumComponent $catalogComponent)
     {
         abort_unless($request->user()->isAdministrator(), 403);
+        if ($catalogComponent->historyComponents()->exists()) {
+            throw ValidationException::withMessages(['catalog_component' => __('Este componente é utilizado em históricos. Inative-o para preservar os vínculos.')]);
+        }
         $catalogComponent->delete();
 
         return back()->with('status', __('Componente removido do catálogo. Os históricos emitidos e cadastrados foram preservados.'));

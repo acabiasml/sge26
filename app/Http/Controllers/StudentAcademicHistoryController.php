@@ -11,6 +11,7 @@ use App\Models\StudentAcademicHistoryYear;
 use App\Models\StudentEnrollment;
 use App\Support\BrazilianStates;
 use App\Support\CurriculumAreaStage;
+use App\Support\HistoryCatalogIntegrator;
 use App\Support\HistoryCurriculumCatalog;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
@@ -905,6 +906,8 @@ class StudentAcademicHistoryController extends Controller
         foreach ($data['removed_year_ids'] ?? [] as $id) {
             $history->years()->findOrFail($id)->delete();
         }
+        $catalogLinks = $history->components()->with('catalogEntries')->get()->groupBy(fn ($component) => json_encode($component->only(['formation', 'knowledge_area', 'name', 'module_label', 'regulatory_reference']), JSON_THROW_ON_ERROR)
+        )->map(fn ($components) => $components->flatMap(fn ($component) => $component->catalogEntries->modelKeys())->unique()->values()->all());
         $history->components()->delete();
 
         $yearsByIndex = [];
@@ -928,6 +931,10 @@ class StudentAcademicHistoryController extends Controller
             $component = $history->components()->create($componentData + [
                 'position' => $componentIndex + 1,
             ]);
+            $catalogKey = json_encode($component->only(['formation', 'knowledge_area', 'name', 'module_label', 'regulatory_reference']), JSON_THROW_ON_ERROR);
+            if ($ids = $catalogLinks->get($catalogKey)) {
+                $component->catalogEntries()->sync($ids);
+            }
 
             foreach ($records as $yearIndex => $recordData) {
                 if (! isset($yearsByIndex[(int) $yearIndex])) {
@@ -945,6 +952,7 @@ class StudentAcademicHistoryController extends Controller
                 ]);
             }
         }
+        app(HistoryCatalogIntegrator::class)->syncHistory($history);
     }
 
     private function verificationCode(): string

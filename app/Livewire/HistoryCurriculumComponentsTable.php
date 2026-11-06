@@ -2,8 +2,9 @@
 
 namespace App\Livewire;
 
-use App\Models\AcademicCourse;
 use App\Models\HistoryCurriculumComponent;
+use App\Models\KnowledgeArea;
+use App\Support\HistoryCurriculumCatalog;
 use Illuminate\Database\Eloquent\Builder;
 use Rappasoft\LaravelLivewireTables\DataTableComponent;
 use Rappasoft\LaravelLivewireTables\Views\Column;
@@ -28,7 +29,7 @@ class HistoryCurriculumComponentsTable extends DataTableComponent
     {
         abort_unless(auth()->user()?->isAdministrator(), 403);
 
-        return HistoryCurriculumComponent::query()->with('area');
+        return HistoryCurriculumComponent::query()->with('area')->withCount('historyComponents');
     }
 
     public function columns(): array
@@ -37,20 +38,24 @@ class HistoryCurriculumComponentsTable extends DataTableComponent
             Column::make(__('Componente'), 'name')->sortable()->searchable(),
             Column::make(__('Área'), 'area.name')->sortable()->searchable(),
             Column::make(__('Formação'), 'formation')->sortable()->format(fn ($value) => __($value)),
-            Column::make(__('Etapa'), 'education_stage')->sortable()->format(fn ($value) => __(AcademicCourse::STAGE_LABELS[$value])),
+            Column::make(__('Etapa'), 'education_stage')->sortable()->format(fn ($value) => __(HistoryCurriculumCatalog::stageLabels()[$value])),
             Column::make(__('Situação'), 'active')->sortable()->format(fn ($value) => $value ? __('Ativo') : __('Inativo')),
+            Column::make(__('Usos'))->label(fn (HistoryCurriculumComponent $row): string => view('livewire.tables.history-curriculum-count', ['component' => $row])->render())->html(),
             Column::make(__('Ações'))->label(fn (HistoryCurriculumComponent $row): string => view('livewire.tables.history-curriculum-actions', ['component' => $row])->render())->html(),
         ];
     }
 
     public function filters(): array
     {
-        $stages = array_intersect_key(AcademicCourse::STAGE_LABELS, array_flip(['fundamental', 'medio', 'tecnico']));
+        $stages = HistoryCurriculumCatalog::stageLabels();
 
         return [
             SelectFilter::make(__('Etapa'), 'education_stage')
                 ->options(['' => __('Todas')] + array_map(fn ($label) => __($label), $stages))
                 ->filter(fn (Builder $query, string $value) => $query->where('history_curriculum_components.education_stage', $value)),
+            SelectFilter::make(__('Área'), 'area_id')
+                ->options(['' => __('Todas')] + KnowledgeArea::orderBy('name')->pluck('name', 'id')->all())
+                ->filter(fn (Builder $query, string $value) => $query->where('history_curriculum_components.knowledge_area_id', (int) $value)),
             SelectFilter::make(__('Situação'), 'status')
                 ->options(['' => __('Todas'), '1' => __('Ativo'), '0' => __('Inativo')])
                 ->filter(fn (Builder $query, string $value) => $query->where('history_curriculum_components.active', $value === '1')),

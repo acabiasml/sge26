@@ -22,10 +22,10 @@
                     <tr>
                         <td class="align-middle font-weight-bold"><a href="{{ route('knowledge-areas.usages', $area) }}">{{ $area->name }}</a></td>
                         <td class="align-middle">{{ __($area->formation ?: 'Formação não definida') }}</td>
-                        <td class="align-middle text-center"><a class="btn btn-sm btn-outline-primary" href="{{ route('knowledge-areas.usages', $area) }}">{{ $area->components_count }} · {{ __('Ver usos') }}</a></td>
+                        <td class="align-middle text-center"><a class="btn btn-sm btn-outline-primary" href="{{ route('knowledge-areas.usages', $area) }}">{{ $area->components_count }} · {{ __('Ver usos') }}</a> <a class="btn btn-sm btn-outline-primary" href="{{ route('history-curriculum.index', ['table-filters' => ['area_id' => $area->id]]) }}">{{ $area->history_catalog_components_count }} · {{ __('Catálogo') }}</a></td>
                         <td class="align-middle text-right text-nowrap">
                             <button type="button" class="btn btn-sm btn-outline-primary" data-toggle="modal" data-target="#edit-area-{{ $area->id }}">{{ __('Editar') }}</button>
-                            @if($area->components_count === 0)
+                            @if($area->components_count === 0 && $area->history_catalog_components_count === 0)
                                 <form class="d-inline" method="POST" action="{{ route('knowledge-areas.destroy', $area) }}" data-confirm-message="{{ __('Excluir esta área sem vínculos?') }}">@csrf @method('DELETE')<button type="submit" class="btn btn-sm btn-outline-danger">{{ __('Excluir') }}</button></form>
                             @endif
                         </td>
@@ -34,15 +34,6 @@
             </table>
         </div>
     </section>
-    <details class="card shadow-sm mt-4">
-        <summary class="card-header font-weight-bold">{{ __('Áreas registradas nos históricos') }}</summary>
-        <div class="card-body"><p>{{ __('Os históricos preservam as áreas e formações do documento de origem. Esses nomes são independentes do catálogo das matrizes. Consulte os usos para editar o histórico correspondente.') }}</p>
-        <div class="table-responsive"><table class="table"><thead><tr><th>{{ __('Área') }}</th><th>{{ __('Formação') }}</th><th>{{ __('Usos') }}</th></tr></thead><tbody>
-        @foreach($historicalAreas as $historicalArea)
-            <tr><td>{{ $historicalArea->knowledge_area ?: '—' }}</td><td>{{ $historicalArea->formation ?: '—' }}</td><td><a href="{{ route('knowledge-areas.historical-usages', ['formation' => $historicalArea->formation, 'area' => $historicalArea->knowledge_area]) }}">{{ __('Ver usos') }} ({{ $historicalArea->uses_count }})</a></td></tr>
-        @endforeach
-        </tbody></table></div></div>
-    </details>
     @foreach($areas as $area)
         <div class="modal fade" id="edit-area-{{ $area->id }}" tabindex="-1" role="dialog" aria-labelledby="edit-area-title-{{ $area->id }}" aria-hidden="true"><div class="modal-dialog modal-dialog-centered" role="document"><form class="modal-content" method="POST" action="{{ route('knowledge-areas.update', $area) }}">
             @csrf @method('PUT')
