@@ -7,6 +7,8 @@
         const form = wrapper?.closest('form');
         if (!wrapper || !settings || !template || !form) return;
         const config = JSON.parse(settings.textContent);
+        const alphabet = new Intl.Collator(document.documentElement.lang || 'pt-BR', { sensitivity: 'base', numeric: true });
+        const sorted = values => Array.from(new Set(values)).sort(alphabet.compare);
         const cards = () => Array.from(wrapper.querySelectorAll('[data-history-year]'));
         let nextTableId = cards().length;
         const stageOf = card => config.fixedStage || Object.entries(config.stageLabels).find(([, label]) => label === card.querySelector('[data-history-stage]')?.value)?.[0] || 'fundamental';
@@ -35,16 +37,17 @@
                 const currentFormation = formation.value;
                 const formations = Array.from(new Set([config.formations[stage]?.[0] || 'Formação Geral Básica', ...areas.map(item => item.formation)]));
                 if (!reset && currentFormation && !formations.includes(currentFormation)) formations.push(currentFormation);
+                formations.sort((a, b) => alphabet.compare(config.formationLabels[a] || a, config.formationLabels[b] || b));
                 formation.replaceChildren(...formations.map(value => new Option(config.formationLabels[value] || value, value)));
                 formation.value = formations.includes(currentFormation) ? currentFormation : formations[0];
             }
             const availableAreas = Array.from(new Set(areas.filter(item => item.formation === formation.value).map(item => item.area)));
-            area.replaceChildren(new Option(config.select, ''), ...availableAreas.map(name => new Option(name, name)));
-            if (!reset && currentArea && !availableAreas.includes(currentArea)) area.add(new Option(currentArea, currentArea));
+            if (!reset && currentArea) availableAreas.push(currentArea);
+            area.replaceChildren(new Option(config.select, ''), ...sorted(availableAreas).map(name => new Option(name, name)));
             area.value = Array.from(area.options).some(option => option.value === currentArea) ? currentArea : '';
-            select.replaceChildren(new Option(config.select, ''));
-            areas.filter(item => item.formation === formation.value && item.area === area.value).forEach(item => { if (!Array.from(select.options).some(option => option.value === item.name)) select.add(new Option(item.name, item.name)); });
-            if (current && !Array.from(select.options).some(option => option.value === current)) select.add(new Option(current, current));
+            const names = areas.filter(item => item.formation === formation.value && item.area === area.value).map(item => item.name);
+            if (current) names.push(current);
+            select.replaceChildren(new Option(config.select, ''), ...sorted(names).map(name => new Option(name, name)));
             select.value = current;
             select.disabled = false;
             select.required = true;

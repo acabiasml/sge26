@@ -8,8 +8,13 @@
     $catalogRows = collect($historyCatalogs[$componentStage] ?? []);
     $rowFormations = $catalogRows->pluck('formation')->unique()->values()->all();
     if (! in_array($selectedFormation, $rowFormations, true)) $rowFormations[] = $selectedFormation;
-    $rowAreas = $catalogRows->where('formation', $selectedFormation)->pluck('area')->unique()->values();
-    $rowComponents = $catalogRows->where('formation', $selectedFormation)->where('area', $selectedArea)->pluck('name')->unique()->values();
+    $rowFormations = collect($rowFormations)->sortBy(fn ($formation) => \App\Support\CurriculumCatalog::alphabeticalKey(__($formation)), SORT_NATURAL)->values()->all();
+    $rowAreas = $catalogRows->where('formation', $selectedFormation)->pluck('area');
+    if ($selectedArea && ($preservesMatrixReference || \App\Support\CurriculumAreaStage::compatible($selectedArea, $componentStage))) $rowAreas->push($selectedArea);
+    $rowAreas = $rowAreas->unique()->sortBy(fn ($area) => \App\Support\CurriculumCatalog::alphabeticalKey($area), SORT_NATURAL)->values();
+    $rowComponents = $catalogRows->where('formation', $selectedFormation)->where('area', $selectedArea)->pluck('name');
+    if ($selectedComponent) $rowComponents->push($selectedComponent);
+    $rowComponents = $rowComponents->unique()->sortBy(fn ($name) => \App\Support\CurriculumCatalog::alphabeticalKey($name), SORT_NATURAL)->values();
     $prefix = "year_components[{$yearIndex}][{$componentIndex}]";
 @endphp
 <tr data-history-component>
@@ -18,7 +23,6 @@
         <input type="hidden" name="{{ $prefix }}[regulatory_reference]" value="{{ $component['regulatory_reference'] ?? '' }}">
         <input type="hidden" name="{{ $prefix }}[record][completed_workload_hours]" value="{{ $record['completed_workload_hours'] ?? '' }}" @disabled($summaryMode)>
         <select name="{{ $prefix }}[formation]" class="form-control form-control-sm" data-history-formation aria-label="{{ __('Formação') }}" required>
-            @if(! in_array($selectedFormation, $rowFormations, true))<option value="{{ $selectedFormation }}" selected>{{ $selectedFormation }}</option>@endif
             @foreach($rowFormations as $formation)<option value="{{ $formation }}" @selected($selectedFormation === $formation)>{{ __($formation) }}</option>@endforeach
         </select>
         <small class="d-block text-muted mt-1" data-history-formation-inactive hidden>{{ __('Formação desmarcada: estes componentes não serão incluídos ao salvar.') }}</small>
@@ -27,14 +31,12 @@
         <select name="{{ $prefix }}[knowledge_area]" class="form-control form-control-sm" data-history-area aria-label="{{ __('Área') }}" required>
             <option value="">{{ __('Selecione') }}</option>
             @foreach($rowAreas as $area)<option value="{{ $area }}" @selected($selectedArea === $area)>{{ $area }}</option>@endforeach
-            @if($selectedArea && ! $rowAreas->contains($selectedArea) && ($preservesMatrixReference || \App\Support\CurriculumAreaStage::compatible($selectedArea, $componentStage)))<option value="{{ $selectedArea }}" selected>{{ $selectedArea }} · {{ __('Registro existente') }}</option>@endif
         </select>
     </td>
     <td>
         <select class="form-control form-control-sm" data-history-component-select aria-label="{{ __('Componente') }}" required >
             <option value="">{{ __('Selecione') }}</option>
             @foreach($rowComponents as $name)<option value="{{ $name }}" @selected($selectedComponent === $name)>{{ $name }}</option>@endforeach
-            @if($selectedComponent && ! $rowComponents->contains($selectedComponent))<option value="{{ $selectedComponent }}" selected>{{ $selectedComponent }}</option>@endif
         </select>
         <input name="{{ $prefix }}[name]" class="form-control form-control-sm" data-history-component-input aria-label="{{ __('Componente') }}" value="{{ $selectedComponent }}" type="hidden" required>
     </td>

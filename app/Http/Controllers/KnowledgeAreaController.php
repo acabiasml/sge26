@@ -18,7 +18,7 @@ class KnowledgeAreaController extends Controller
         abort_unless($request->user()->isAdministrator(), 403);
 
         return view('knowledge-areas.index', [
-            'areas' => KnowledgeArea::query()->withCount(['components', 'historyCatalogComponents'])->orderBy('sort_order')->orderBy('name')->get(),
+            'areas' => KnowledgeArea::query()->withCount(['components', 'historyCatalogComponents'])->orderBy('name')->get()->sortBy(fn ($area) => CurriculumCatalog::alphabeticalKey($area->name), SORT_NATURAL)->values(),
             'formations' => [CurriculumCatalog::FORMATION_FGB, CurriculumCatalog::FORMATION_ITINERARY, CurriculumCatalog::FORMATION_COMPLEMENTARY, 'Parte Diversificada', 'Formação Técnica Profissional'],
         ]);
     }

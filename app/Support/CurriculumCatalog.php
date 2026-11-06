@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\AcademicCourse;
 use App\Models\KnowledgeArea;
+use Illuminate\Support\Str;
 
 class CurriculumCatalog
 {
@@ -36,14 +37,16 @@ class CurriculumCatalog
             ->all();
     }
 
-    public static function knowledgeAreasForCourse(AcademicCourse $course)
+    public static function knowledgeAreasForCourse(AcademicCourse $course, ?KnowledgeArea $currentArea = null)
     {
         return KnowledgeArea::query()
             ->where('active', true)
-            ->orderBy('sort_order')
             ->orderBy('name')
             ->get()
+            ->when($currentArea, fn ($areas) => $areas->push($currentArea))
             ->filter(fn (KnowledgeArea $area) => CurriculumAreaStage::compatible($area->name, $course->stage))
+            ->unique('id')
+            ->sortBy(fn (KnowledgeArea $area) => self::alphabeticalKey($area->name), SORT_NATURAL)
             ->values();
     }
 
@@ -73,6 +76,7 @@ class CurriculumCatalog
                     ])
                     ->all();
             })
+            ->sortBy(fn (array $item) => self::alphabeticalKey($item['component']), SORT_NATURAL)
             ->values()
             ->all();
     }
@@ -108,6 +112,11 @@ class CurriculumCatalog
             self::FORMATION_COMPLEMENTARY => 30,
             default => 90,
         };
+    }
+
+    public static function alphabeticalKey(string $value): string
+    {
+        return Str::lower(Str::ascii(trim($value)));
     }
 
     private static function normalize(string $value): string

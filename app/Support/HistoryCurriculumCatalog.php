@@ -27,11 +27,11 @@ final class HistoryCurriculumCatalog
 
     public static function formOptions(): array
     {
-        $areas = KnowledgeArea::where('active', true)->orderBy('name')->get();
+        $areas = KnowledgeArea::where('active', true)->orderBy('name')->get()->sortBy(fn ($area) => CurriculumCatalog::alphabeticalKey($area->name), SORT_NATURAL);
         $stages = array_intersect_key(AcademicCourse::STAGE_LABELS, array_flip(['fundamental', 'medio', 'tecnico']));
         $config = [];
         foreach ($stages as $stage => $label) {
-            $config[$stage] = ['formations' => self::formations($stage), 'areas' => $areas->filter(fn ($area) => CurriculumAreaStage::compatible($area->name, $stage))->map->only(['id', 'name'])->values()];
+            $config[$stage] = ['formations' => collect(self::formations($stage))->sortBy(fn ($formation) => CurriculumCatalog::alphabeticalKey(__($formation)), SORT_NATURAL)->values()->all(), 'areas' => $areas->filter(fn ($area) => CurriculumAreaStage::compatible($area->name, $stage))->map->only(['id', 'name'])->values()];
         }
         $config[''] = ['formations' => [], 'areas' => []];
         $formationLabels = collect(['Formação Geral Básica', 'Parte Complementar', 'Parte Diversificada', 'Itinerário Formativo', 'Formação Técnica Profissional'])->mapWithKeys(fn ($value) => [$value => __($value)])->all();

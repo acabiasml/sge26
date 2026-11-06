@@ -404,6 +404,39 @@ class HistorySaveProtectionTest extends TestCase
         }
     }
 
+    public function test_history_area_and_component_choices_keep_legacy_values_in_alphabetical_position(): void
+    {
+        $history = $this->history();
+        $year = $history->years()->sole();
+        $old = $history->components()->sole();
+        $old->update(['name' => 'Ábaco', 'knowledge_area' => 'Álgebra']);
+        $area = KnowledgeArea::where('name', 'Linguagens')->firstOrFail();
+        foreach (['Zoologia', 'Biologia'] as $name) {
+            HistoryCurriculumComponent::create(['education_stage' => 'fundamental', 'formation' => 'Formação Geral Básica', 'knowledge_area_id' => $area->id, 'name' => $name, 'active' => true]);
+        }
+        $legacy = $history->components()->create(['name' => 'Água', 'formation' => 'Formação Geral Básica', 'knowledge_area' => $area->name]);
+        $legacy->records()->create(['student_academic_history_year_id' => $year->id, 'score_label' => 'AP']);
+        $response = $this->get(route('people.histories.edit', [$history->person_id, $history]))->assertOk();
+        $document = new \DOMDocument;
+        @$document->loadHTML('<?xml encoding="UTF-8">'.$response->getContent());
+        $xpath = new \DOMXPath($document);
+        $values = [];
+        foreach ($xpath->query('//select[@name="year_components[0][0][knowledge_area]"]/option[@value!=""]') as $option) {
+            $values[] = $option->getAttribute('value');
+        }
+        $this->assertSame('Álgebra', $values[0]);
+        $this->assertSame(1, $xpath->query('//select[@name="year_components[0][0][knowledge_area]"]/option[@value="Álgebra" and @selected]')->length);
+        $names = [];
+        foreach ($xpath->query('//select[@data-history-component-select]/option[@value!=""]') as $option) {
+            if (in_array($option->getAttribute('value'), ['Água', 'Biologia', 'Zoologia'], true)) {
+                $names[] = $option->getAttribute('value');
+            }
+        }
+        $this->assertSame(['Água', 'Biologia', 'Zoologia'], $names);
+        $this->assertSame('Ábaco', $old->fresh()->name);
+        $this->assertSame('8,0', $old->records()->sole()->score_label);
+    }
+
     public function test_new_history_choices_use_active_catalog_entries_and_retain_existing_legacy_values(): void
     {
         $history = $this->history();

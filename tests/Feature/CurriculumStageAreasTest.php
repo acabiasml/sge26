@@ -46,6 +46,42 @@ class CurriculumStageAreasTest extends TestCase
         $this->assertFalse(CurriculumAreaStage::compatible('Área e suas Tecnologias', 'fundamental'));
     }
 
+    public function test_area_selects_sort_by_name_instead_of_internal_order_and_keep_an_inactive_selection(): void
+    {
+        $year = $this->yearAndManager();
+        $course = $year->courses()->create(['name' => 'Matriz de teste', 'stage' => 'tecnico']);
+        $zeta = KnowledgeArea::create(['name' => 'Zoologia', 'formation' => 'Parte Complementar', 'sort_order' => -100, 'active' => true]);
+        $algebra = KnowledgeArea::create(['name' => 'Álgebra', 'formation' => 'Parte Complementar', 'sort_order' => 999, 'active' => true]);
+        $biology = KnowledgeArea::create(['name' => 'Biologia', 'formation' => 'Parte Complementar', 'sort_order' => 0, 'active' => true]);
+        $inactive = KnowledgeArea::create(['name' => 'Ábaco', 'formation' => 'Parte Complementar', 'sort_order' => 1000, 'active' => false]);
+        $component = $course->components()->create(['name' => 'Componente de teste', 'knowledge_area_id' => $inactive->id, 'workload_hours' => 80]);
+        $snapshot = [$component->fresh()->getAttributes(), $inactive->fresh()->getAttributes()];
+        foreach ([
+            [route('academic-years.courses.show', [$year, $course]), 'new_component_area_id', [$algebra->id, $biology->id, $zeta->id]],
+            [route('academic-years.courses.components.show', [$year, $course, $component]), 'component_area', [$inactive->id, $algebra->id, $biology->id, $zeta->id]],
+        ] as [$url, $selectId, $expected]) {
+            $response = $this->get($url)->assertOk();
+            $document = new \DOMDocument;
+            @$document->loadHTML('<?xml encoding="UTF-8">'.$response->getContent());
+            $xpath = new \DOMXPath($document);
+            $options = $xpath->query('//select[@id="'.$selectId.'"]/option[@value!=""]');
+            $ids = [];
+            foreach ($options as $option) {
+                $id = (int) $option->getAttribute('value');
+                if (in_array($id, $expected, true)) {
+                    $ids[] = $id;
+                }
+            }
+            $this->assertSame($expected, $ids);
+            if ($selectId === 'component_area') {
+                $this->assertSame(1, $xpath->query('//select[@id="component_area"]/option[@value="'.$inactive->id.'" and @selected]')->length);
+            } else {
+                $this->assertSame(0, $xpath->query('//select[@id="new_component_area_id"]/option[@value="'.$inactive->id.'"]')->length);
+            }
+        }
+        $this->assertSame($snapshot, [$component->fresh()->getAttributes(), $inactive->fresh()->getAttributes()]);
+    }
+
     public function test_create_and_edit_reject_the_opposite_stage_and_cannot_keep_a_preexisting_wrong_area(): void
     {
         $year = $this->yearAndManager();
