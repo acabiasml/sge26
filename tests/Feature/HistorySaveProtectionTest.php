@@ -231,7 +231,7 @@ class HistorySaveProtectionTest extends TestCase
         $this->get(route('people.histories.edit', [$history->person_id, $history]))->assertOk()->assertSee('Língua Inglesa');
     }
 
-    public function test_global_year_shows_only_formation_totals_and_preserves_individual_records(): void
+    public function test_global_year_shows_components_without_individual_grades_and_preserves_legacy_submissions(): void
     {
         $history = $this->history();
         $year = $history->years()->sole();
@@ -240,7 +240,10 @@ class HistorySaveProtectionTest extends TestCase
         $document = new \DOMDocument;
         @$document->loadHTML('<?xml encoding="UTF-8">'.$response->getContent());
         $xpath = new \DOMXPath($document);
-        $this->assertSame(1, $xpath->query('//fieldset[@data-history-components and @hidden and @disabled]')->length);
+        $this->assertSame(1, $xpath->query('//fieldset[@data-history-components and not(@hidden) and not(@disabled)]')->length);
+        $this->assertSame(1, $xpath->query('//td[@data-history-record-fields and @hidden]')->length);
+        $this->assertSame(3, $xpath->query('//button[@data-add-history-component and @data-formation]')->length);
+        $this->assertSame(1, $xpath->query('//input[@name="year_components[0][0][record][score_label]" and @disabled]')->length);
         $this->assertSame(1, $xpath->query('//fieldset[@data-history-formation-totals and not(@hidden)]')->length);
         $this->assertSame(1, $xpath->query('//input[@data-formation-hours and @value="800"]')->length);
         $payload = $this->yearlyPayload($history, [array_merge($this->year(1), ['id' => $year->id, 'transcript_mode' => 'summary',
@@ -310,6 +313,95 @@ class HistorySaveProtectionTest extends TestCase
         $this->assertSame('880.00', $second->workload_hours);
         $this->assertSame(0, $second->records()->count());
         $this->assertSame('8,0', $history->components()->sole()->records()->sole()->score_label);
+    }
+
+    public function test_global_memberships_persist_by_formation_without_accepting_individual_grades(): void
+    {
+        $history = $this->history();
+        $year = $history->years()->sole();
+        foreach (['Parte Complementar' => 'Expressão Corporal', 'Parte Diversificada' => 'Projeto de Leitura'] as $formation => $name) {
+            HistoryCurriculumComponent::create(['education_stage' => 'fundamental', 'formation' => $formation, 'knowledge_area_id' => KnowledgeArea::where('name', 'Linguagens')->value('id'), 'name' => $name, 'active' => true]);
+        }
+        $globalYear = array_merge($this->year(2), ['transcript_mode' => 'summary', 'enabled_formations' => ['Parte Complementar', 'Parte Diversificada'], 'formation_workload_hours' => ['Formação Geral Básica' => 800, 'Parte Complementar' => 80, 'Parte Diversificada' => 120]]);
+        $rows = [
+            $this->yearComponentData('Matemática', 'Matemática', ['score_label' => '99', 'score_numeric' => 99, 'workload_hours' => 999, 'absences' => 200]),
+            array_merge($this->yearComponentData('Expressão Corporal', 'Linguagens', ['score_label' => '99']), ['formation' => 'Parte Complementar']),
+            array_merge($this->yearComponentData('Projeto de Leitura', 'Linguagens'), ['formation' => 'Parte Diversificada']),
+        ];
+        $payload = $this->yearlyPayload($history, [$this->year(1) + ['id' => $year->id], $globalYear], [0 => [$this->yearComponentData('Matemática', 'Matemática', ['score_label' => '8,0'])], 1 => $rows]);
+        $payload += ['formation_totals_present' => 1, 'global_components_present' => 1];
+        $this->put($this->url($history), $payload)->assertSessionHasNoErrors();
+        $global = $history->years()->where('grade_number', 2)->sole();
+        $this->assertSame(3, $global->records()->count());
+        foreach ($global->records as $record) {
+            $this->assertNull($record->score_label);
+            $this->assertNull($record->score_numeric);
+            $this->assertNull($record->workload_hours);
+            $this->assertNull($record->absences);
+        }
+        $this->assertEquals(['Formação Geral Básica', 'Parte Complementar', 'Parte Diversificada'], $global->records->map(fn ($record) => $record->component->formation)->all());
+        $this->assertSame('1000.00', $global->workload_hours);
+        $this->assertSame('8,0', $year->records()->sole()->score_label);
+        $this->assertSame(1600.0, $history->fresh()->formationWorkloadTotals()['Formação Geral Básica']['planned']);
+        $html = $this->get(route('people.histories.edit', [$history->person_id, $history]))->assertOk()->getContent();
+        $document = new \DOMDocument;
+        @$document->loadHTML('<?xml encoding="UTF-8">'.$html);
+        $xpath = new \DOMXPath($document);
+        $this->assertSame(3, $xpath->query('//input[starts-with(@name,"year_components[1]") and contains(@name,"[name]")]')->length);
+        $this->assertSame(1, $xpath->query('//input[@name="year_components[1][1][name]" and @value="Expressão Corporal"]')->length);
+        // Reabrir e salvar não cria notas nem perde as três associações.
+        $payload['history_version'] = $this->version($history->fresh());
+        $payload['years'][1]['id'] = $global->id;
+        $this->put($this->url($history), $payload)->assertSessionHasNoErrors();
+        $this->assertSame(3, $global->records()->count());
+    }
+
+    public function test_global_memberships_can_be_added_and_removed_per_year_preserving_retained_records(): void
+    {
+        $history = $this->history();
+        $first = $history->years()->sole();
+        $second = $history->years()->create($this->year(2) + ['position' => 2]);
+        $history->components()->sole()->records()->create(['student_academic_history_year_id' => $second->id, 'score_label' => '7,5', 'frequency_percentage' => 95]);
+        $globalYear = fn ($grade, $id) => array_merge($this->year($grade), ['id' => $id, 'transcript_mode' => 'summary', 'formation_workload_hours' => ['Formação Geral Básica' => 800]]);
+        $payload = $this->yearlyPayload($history, [$globalYear(1, $first->id), $globalYear(2, $second->id)], [0 => [$this->yearComponentData('Língua Portuguesa', 'Linguagens')], 1 => [$this->yearComponentData('Matemática', 'Matemática', ['score_label' => '99', 'frequency_percentage' => 10])]]);
+        $payload += ['formation_totals_present' => 1, 'global_components_present' => 1];
+        $this->put($this->url($history), $payload)->assertSessionHasNoErrors();
+        $this->assertSame('Língua Portuguesa', $first->records()->with('component')->sole()->component->name);
+        $this->assertNull($first->records()->sole()->score_label);
+        $this->assertSame('7,5', $second->records()->sole()->score_label);
+        $this->assertEquals(95, $second->records()->sole()->frequency_percentage);
+        $payload['history_version'] = $this->version($history->fresh());
+        $payload['years'][1]['transcript_mode'] = 'detailed';
+        $payload['year_components'][1][0]['record'] = ['score_label' => '7,5', 'frequency_percentage' => 95];
+        $this->put($this->url($history), $payload)->assertSessionHasNoErrors();
+        $this->assertSame('7,5', $second->records()->sole()->score_label);
+    }
+
+    public function test_global_memberships_reject_disabled_formations_and_allow_explicit_removal(): void
+    {
+        $history = $this->history();
+        $year = $history->years()->sole();
+        $globalYear = array_merge($this->year(1), ['id' => $year->id, 'transcript_mode' => 'summary', 'formation_workload_hours' => ['Formação Geral Básica' => 800]]);
+        $payload = $this->yearlyPayload($history, [$globalYear], [0 => [array_merge($this->yearComponentData('Língua Portuguesa', 'Linguagens'), ['formation' => 'Parte Complementar'])]]);
+        $payload += ['formation_totals_present' => 1, 'global_components_present' => 1];
+        $this->put($this->url($history), $payload)->assertSessionHasErrors('year_components.0.0.formation');
+        $this->assertSame('8,0', $year->records()->sole()->score_label);
+        $payload['year_components'] = [];
+        $this->put($this->url($history), $payload)->assertSessionHasNoErrors();
+        $this->assertSame(0, $year->records()->count());
+        $this->assertSame('800.00', $year->fresh()->workload_hours);
+    }
+
+    public function test_global_memberships_reject_malformed_years_and_rows_without_changing_saved_records(): void
+    {
+        $history = $this->history();
+        $year = $history->years()->sole();
+        $payload = $this->yearlyPayload($history, [$this->year(1) + ['id' => $year->id]], []);
+        $payload += ['formation_totals_present' => 1, 'global_components_present' => 1];
+        foreach ([['years' => ['invalid']], ['year_components' => 'invalid'], ['year_components' => [[['formation' => ['invalid']]]]]] as $malformed) {
+            $this->put($this->url($history), array_replace($payload, $malformed))->assertSessionHasErrors();
+            $this->assertSame('8,0', $year->records()->sole()->score_label);
+        }
     }
 
     public function test_new_history_choices_use_active_catalog_entries_and_retain_existing_legacy_values(): void

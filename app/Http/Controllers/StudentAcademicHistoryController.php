@@ -592,15 +592,38 @@ class StudentAcademicHistoryController extends Controller
 
     private function prepareGlobalYears(Request $request): void
     {
-        $request->validate(['years' => ['required', 'array', 'min:1']]);
+        $request->validate([
+            'years' => ['required', 'array', 'min:1'],
+            'years.*' => ['array'],
+            'years.*.id' => ['nullable', 'integer'],
+            'years.*.stage' => ['nullable', 'string'],
+            'years.*.transcript_mode' => ['nullable', 'string'],
+            'years.*.enabled_formations' => ['nullable', 'array'],
+            'years.*.enabled_formations.*' => ['string'],
+            'years.*.formation_workload_hours' => ['nullable', 'array'],
+            'year_components' => ['nullable', 'array'],
+            'year_components.*' => ['array'],
+            'year_components.*.*' => ['array'],
+            'year_components.*.*.record' => ['nullable', 'array'],
+            'year_components.*.*.formation' => ['nullable', 'string'],
+            'year_components.*.*.knowledge_area' => ['nullable', 'string'],
+            'year_components.*.*.name' => ['nullable', 'string'],
+            'year_components.*.*.module_label' => ['nullable', 'string'],
+            'year_components.*.*.regulatory_reference' => ['nullable', 'string'],
+        ]);
         $history = $request->route('history');
         $groups = $request->input('year_components', []);
         $years = $request->input('years');
         foreach ($years as $index => &$year) {
             $mode = $year['transcript_mode'] ?? 'detailed';
             $stage = $history?->education_stage ?: CurriculumAreaStage::stageFromLabel($year['stage'] ?? null);
+            $saved = $history instanceof StudentAcademicHistory && ! empty($year['id'])
+                ? $history->years()->where('source', '!=', 'system')->whereKey($year['id'])->with('records.component')->first() : null;
             if ($mode === 'summary') {
-                $allowed = HistoryCurriculumCatalog::formations($stage);
+                $allowed = array_values(array_unique([
+                    ...HistoryCurriculumCatalog::formations($stage),
+                    ...($saved?->records->pluck('component.formation')->filter()->all() ?? []),
+                ]));
                 $base = $allowed[0];
                 $enabled = $year['enabled_formations'] ?? [];
                 $hours = $year['formation_workload_hours'] ?? [];
@@ -621,15 +644,32 @@ class StudentAcademicHistoryController extends Controller
                 unset($year['formation_workload_hours']);
             }
             if (in_array($mode, ['summary', 'no_transcription'], true)) {
-                // Preserva os lançamentos antigos: o modo global não edita notas individuais.
-                $saved = $history instanceof StudentAcademicHistory && ! empty($year['id'])
-                    ? $history->years()->where('source', '!=', 'system')->whereKey($year['id'])->with('records.component')->first() : null;
-                $groups[$index] = $saved ? $saved->records->map(fn ($record) => [
+                $savedRows = $saved ? $saved->records->map(fn ($record) => [
                     'formation' => $record->component->formation, 'knowledge_area' => $record->component->knowledge_area,
                     'name' => $record->component->name, 'module_label' => $record->component->module_label,
                     'regulatory_reference' => $record->component->regulatory_reference,
                     'record' => $record->only(['score_label', 'score_numeric', 'workload_hours', 'completed_workload_hours', 'frequency_label', 'frequency_percentage', 'absences', 'result']),
                 ])->all() : [];
+                if ($mode === 'summary' && $request->boolean('global_components_present')) {
+                    // O global edita a composição, preservando dados individuais já existentes.
+                    $byComponent = collect($savedRows)->groupBy(fn ($row) => $this->catalogComponentKey(collect($row)->except('record')->all()));
+                    $groups[$index] ??= [];
+                    foreach ($groups[$index] as $rowIndex => &$row) {
+                        if (! array_key_exists($row['formation'] ?? '', $totals)) {
+                            throw ValidationException::withMessages(["year_components.{$index}.{$rowIndex}.formation" => __('Ative esta formação antes de incluir seus componentes.')]);
+                        }
+                        $key = $this->catalogComponentKey([
+                            'formation' => $row['formation'] ?? null, 'knowledge_area' => $row['knowledge_area'] ?? null,
+                            'name' => $row['name'] ?? null, 'module_label' => $row['module_label'] ?? null,
+                            'regulatory_reference' => $row['regulatory_reference'] ?? null,
+                        ]);
+                        $row['record'] = $byComponent->get($key)?->shift()['record'] ?? [];
+                    }
+                    unset($row);
+                } else {
+                    // Compatibilidade com formulários antigos e anos sem transcrição.
+                    $groups[$index] = $savedRows;
+                }
             }
         }
         unset($year);

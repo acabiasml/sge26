@@ -56,24 +56,46 @@
         function refreshCard(card) {
             const label = card.querySelector('[name$="[grade_phase]"]')?.value.trim() || config.newYear;
             card.querySelector('.sge-history-year-summary strong').textContent = label;
-            card.querySelector('table[data-sge-client-pagination]').setAttribute('aria-label', config.components + ' — ' + label);
             const mode = card.querySelector('[name$="[transcript_mode]"]')?.value || 'detailed';
             const components = card.querySelector('[data-history-components]');
-            components.hidden = mode !== 'detailed';
-            components.disabled = mode !== 'detailed';
+            components.hidden = mode === 'no_transcription';
+            components.disabled = mode === 'no_transcription';
+            const summary = mode === 'summary';
+            card.dataset.historyMode = mode;
+            const title = summary ? config.globalComponents : config.components;
+            card.querySelector('[data-history-components-title]').textContent = title;
+            components.querySelector('[role="region"]').setAttribute('aria-label', title);
+            components.querySelector('table').setAttribute('aria-label', title + ' — ' + label);
+            components.querySelectorAll('[data-history-detailed-only],[data-history-record-fields]').forEach(element => { element.hidden = summary; });
+            components.querySelector('[data-history-empty] td')?.setAttribute('colspan', summary ? '4' : '5');
             const totals = card.querySelector('[data-history-formation-totals]');
             totals.hidden = mode !== 'summary';
             totals.disabled = mode !== 'summary';
             let total = 0, complete = true;
+            const enabledFormations = [];
             totals.querySelectorAll('[data-history-formation-total]').forEach(group => {
                 const field = group.querySelector('[data-formation-hours]'), toggle = group.querySelector('[data-formation-toggle]');
                 const enabled = !toggle || toggle.checked;
                 field.disabled = !enabled;
-                field.required = enabled && mode === 'summary';
+                field.required = enabled && summary;
+                const formation = group.dataset.historyFormationTotal;
+                if (enabled) enabledFormations.push(formation);
+                const hasCatalog = catalogOf(card).some(item => item.formation === formation);
+                group.querySelector('[data-add-history-component]').disabled = !enabled || !hasCatalog;
+                group.querySelector('[data-history-no-catalog]').hidden = !enabled || hasCatalog;
                 if (!enabled) return;
                 const value = Number(field.value.trim().replace(',', '.'));
                 if (field.value.trim() === '' || !Number.isFinite(value) || value < 0) complete = false;
                 else total += value;
+            });
+            components.querySelectorAll('[data-history-component]').forEach(row => {
+                const formation = row.querySelector('[data-history-formation]');
+                const inactive = summary && !enabledFormations.includes(formation.value);
+                row.querySelector('[data-history-formation-inactive]').hidden = !inactive;
+                row.querySelectorAll('input,select,textarea').forEach(field => {
+                    field.disabled = inactive || (summary && field.name.includes('[record]'));
+                });
+                Array.from(formation.options).forEach(option => { option.disabled = summary && !enabledFormations.includes(option.value); });
             });
             const annualTotal = card.querySelector('[data-history-total-hours]');
             annualTotal.readOnly = mode === 'summary';
@@ -127,6 +149,10 @@
                 card.querySelector('[data-history-empty]')?.remove();
                 card.querySelector('tbody').appendChild(fragment);
                 refreshRow(row, true, true);
+                if (button.dataset.formation) {
+                    row.querySelector('[data-history-formation]').value = button.dataset.formation;
+                    refreshRow(row, true);
+                }
                 renumber();
                 requestAnimationFrame(() => row.querySelector('[data-history-area]').focus());
             } else if (button.matches('[data-remove-history-row]') && card) {

@@ -2803,5 +2803,12 @@
     "Somente componentes já cadastrados em matrizes podem receber a mesclagem. As matrizes permanecem intactas.": "Solo le discipline già registrate nei piani di studio possono ricevere l’unione. I piani di studio rimangono intatti.",
     "Não há componentes de matriz disponíveis para receber a mesclagem.": "Non ci sono discipline di un piano di studi disponibili per ricevere l’unione.",
     "Ver componentes no catálogo": "Vedi discipline nel catalogo",
-    "Nenhum componente de matriz vinculado a esta área.": "Nessuna disciplina di un piano di studi collegata a questa area."
+    "Nenhum componente de matriz vinculado a esta área.": "Nessuna disciplina di un piano di studi collegata a questa area.",
+    "Global/AP ou síntese sem notas individuais": "Globale/AP o sintesi senza voti individuali",
+    "Componentes do global": "Discipline della valutazione globale",
+    "Selecione o tipo de transcrição em cada ano. No modo global, indique os componentes e os totais de horas por formação, sem notas individuais.": "Seleziona il tipo di trascrizione per ciascun anno. Nella modalità globale, indica le discipline e i totali delle ore per formazione, senza voti individuali.",
+    "Não há componentes ativos desta formação no catálogo.": "Non ci sono discipline attive di questa formazione nel catalogo.",
+    "Indique os componentes de cada formação. As horas são informadas somente nos totais acima, sem notas individuais.": "Indica le discipline di ciascuna formazione. Le ore vanno indicate solo nei totali sopra, senza voti individuali.",
+    "Formação desmarcada: estes componentes não serão incluídos ao salvar.": "Formazione deselezionata: queste discipline non saranno incluse al salvataggio.",
+    "Ative esta formação antes de incluir seus componentes.": "Attiva questa formazione prima di includere le sue discipline."
 }

@@ -66,3 +66,7 @@ html[data-theme] .sge-history-workspace .sge-history-year-card[open] { border-co
     min-height: 44px;
 }
 .sge-history-global-totals [data-formation-toggle] { accent-color: var(--history-year-accent); }
+
+.sge-history-year-card[data-history-mode="summary"] .sge-history-year-table { min-width: 580px; }
+.sge-history-year-card[data-history-mode="summary"] .sge-history-year-table th:nth-child(3) { width: 45%; }
+.sge-history-workspace [hidden] { display: none !important; }
