@@ -49,14 +49,15 @@ class MatrixManagedComponentsTest extends TestCase
         return array_map(fn ($option) => $option->getAttribute('value'), iterator_to_array($options));
     }
 
-    public function test_create_and_edit_offer_only_managed_active_stage_compatible_names_in_alphabetical_order(): void
+    public function test_create_and_edit_offer_registered_components_regardless_of_legacy_status_in_alphabetical_order(): void
     {
         $course = $this->course();
         $zeta = $this->entry('Zoologia');
         $this->entry('Álgebra');
         $this->entry('Biologia');
         $this->entry('Apenas no médio', 'medio');
-        $this->entry('Componente inativo', active: false);
+        $legacyEntry = $this->entry('Componente inativo', active: false);
+        \Illuminate\Support\Facades\DB::table('history_curriculum_components')->where('id', $legacyEntry->id)->update(['active' => false]);
         $inactiveArea = KnowledgeArea::create(['name' => 'Área inativa', 'formation' => 'Formação Técnica Profissional', 'active' => false]);
         $this->entry('Com área inativa', area: $inactiveArea);
         $this->entry('Biologia', area: KnowledgeArea::create(['name' => 'Outra área', 'formation' => 'Formação Técnica Profissional', 'active' => true]));
@@ -64,8 +65,8 @@ class MatrixManagedComponentsTest extends TestCase
         $before = [$component->fresh()->getAttributes(), HistoryCurriculumComponent::count()];
         $create = $this->get(route('academic-years.courses.show', [$course->academicYear, $course]))->assertOk();
         $edit = $this->get(route('academic-years.courses.components.show', [$course->academicYear, $course, $component]))->assertOk();
-        $this->assertSame(['Álgebra', 'Biologia', 'Zoologia'], $this->names($create, 'new_component_name'));
-        $this->assertSame(['Álgebra', 'Biologia', 'Zoologia'], $this->names($edit, 'component_name'));
+        $this->assertSame(['Álgebra', 'Biologia', 'Componente Inativo', 'Zoologia'], $this->names($create, 'new_component_name'));
+        $this->assertSame(['Álgebra', 'Biologia', 'Componente Inativo', 'Zoologia'], $this->names($edit, 'component_name'));
         $this->assertSame($before, [$component->fresh()->getAttributes(), HistoryCurriculumComponent::count()]);
         $create->assertDontSee('Gerenciar catálogo');
     }
@@ -103,18 +104,18 @@ class MatrixManagedComponentsTest extends TestCase
         $incompatible = $this->entry('Área incompatível', 'fundamental', area: $wrongArea);
         $deleted = $this->entry('Excluído após abrir a tela', 'fundamental');
         $deleted->delete();
-        foreach ([$entry, $otherStage, $incompatible, $deleted] as $unavailable) {
+        foreach ([$otherStage, $incompatible, $deleted] as $unavailable) {
             $this->post($store, ['name' => $unavailable->name, 'workload_mode' => 'workload_hours', 'workload_hours' => 80])->assertSessionHasErrors('name');
         }
-        HistoryCurriculumComponent::where('education_stage', 'fundamental')->update(['active' => false]);
+        HistoryCurriculumComponent::where('education_stage', 'fundamental')->delete();
         $page = $this->get(route('academic-years.courses.show', [$course->academicYear, $course]))->assertOk()
-            ->assertSee('Não há componentes ativos no catálogo para esta etapa de ensino.')
+            ->assertSee('Não há componentes cadastrados no catálogo para esta etapa de ensino.')
             ->assertSee(route('history-curriculum.index'));
         $this->assertSame([], $this->names($page, 'new_component_name'));
         $this->assertSame(0, $course->components()->count());
     }
 
-    public function test_an_inactive_current_selection_can_be_retained_without_becoming_available_in_new_matrices(): void
+    public function test_an_inactive_area_can_be_retained_in_existing_matrices(): void
     {
         $course = $this->course();
         $entry = $this->entry('Componente já utilizado');

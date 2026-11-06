@@ -1,6 +1,6 @@
 <small id="{{ $helpId }}" class="form-text text-muted">
     @if ($curriculumSuggestions === [])
-        {{ __('Não há componentes ativos no catálogo para esta etapa de ensino.') }}
+        {{ __('Não há componentes cadastrados no catálogo para esta etapa de ensino.') }}
     @else
         {{ __('Escolha um componente do catálogo desta etapa de ensino.') }}
     @endif

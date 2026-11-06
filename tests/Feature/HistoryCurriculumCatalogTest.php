@@ -40,17 +40,17 @@ class HistoryCurriculumCatalogTest extends TestCase
         }
     }
 
-    public function test_administrator_can_create_edit_deactivate_and_remove_and_stage_is_validated(): void
+    public function test_catalog_entries_are_always_available_on_create_and_edit_and_stage_is_validated(): void
     {
         $this->actingAs($this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR));
         $area = KnowledgeArea::where('name', 'Linguagens')->firstOrFail();
-        $data = ['name' => 'Expressão Corporal', 'education_stage' => 'fundamental', 'formation' => 'Parte Complementar', 'knowledge_area_id' => $area->id, 'active' => 1];
+        $data = ['name' => 'Expressão Corporal', 'education_stage' => 'fundamental', 'formation' => 'Parte Complementar', 'knowledge_area_id' => $area->id];
         $this->post(route('history-curriculum.store'), $data)->assertSessionHasNoErrors();
         $item = HistoryCurriculumComponent::where('name', 'Expressão Corporal')->sole();
         $this->post(route('history-curriculum.store'), $data)->assertSessionHasErrors('name');
         $data['active'] = 0;
         $this->put(route('history-curriculum.update', $item), $data)->assertSessionHasNoErrors();
-        $this->assertFalse($item->fresh()->active);
+        $this->assertTrue($item->fresh()->active);
         $data['knowledge_area_id'] = KnowledgeArea::where('name', 'Linguagens e suas Tecnologias')->value('id');
         $this->put(route('history-curriculum.update', $item), $data)->assertSessionHasErrors('knowledge_area_id');
         $this->delete(route('history-curriculum.destroy', $item))->assertSessionHasNoErrors();
@@ -66,6 +66,26 @@ class HistoryCurriculumCatalogTest extends TestCase
         $this->delete(route('knowledge-areas.destroy', $area))->assertSessionHasNoErrors();
         $this->assertDatabaseMissing('knowledge_areas', ['id' => $area->id]);
         $this->assertDatabaseMissing('history_curriculum_components', ['knowledge_area_id' => $area->id]);
+    }
+
+    public function test_catalog_form_has_no_activation_control_and_legacy_entries_are_made_available_without_other_changes(): void
+    {
+        $this->actingAs($this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR));
+        $entry = HistoryCurriculumComponent::firstOrFail();
+        DB::table('history_curriculum_components')->where('id', $entry->id)->update(['active' => false]);
+        $before = DB::table('history_curriculum_components')->orderBy('id')->get()->map(fn ($row) => collect((array) $row)->except('active')->all())->all();
+        $migration = require database_path('migrations/2026_11_06_000004_make_catalog_components_always_available.php');
+        $migration->up();
+        $migration->up();
+        $this->assertSame(0, HistoryCurriculumComponent::where('active', false)->count());
+        $this->assertSame($before, DB::table('history_curriculum_components')->orderBy('id')->get()->map(fn ($row) => collect((array) $row)->except('active')->all())->all());
+        $page = $this->get(route('history-curriculum.index'))->assertOk()->getContent();
+        $dom = new \DOMDocument;
+        @$dom->loadHTML('<?xml encoding="UTF-8">'.$page);
+        $xpath = new \DOMXPath($dom);
+        $this->assertSame(0, $xpath->query('//input[@name="active"]')->length);
+        $table = Livewire::test(HistoryCurriculumComponentsTable::class);
+        $this->assertNotContains('status', collect($table->instance()->filters())->map(fn ($filter) => $filter->getKey())->all());
     }
 
     public function test_framework_table_searches_filters_sorts_and_paginates_catalog_entries(): void
@@ -89,8 +109,6 @@ class HistoryCurriculumCatalogTest extends TestCase
             ->set('search', '')
             ->call('setFilter', 'education_stage', 'medio')->assertSee('Zeta Médio')->assertDontSee('Disciplina 01')
             ->call('setFilter', 'education_stage', '')
-            ->call('setFilter', 'status', '0')->assertSee('Disciplina 11')->assertDontSee('Disciplina 01')->assertDontSee('Zeta Médio')
-            ->call('setFilter', 'status', '')
             ->call('sortBy', 'name');
         $this->assertSame([$medium->id, $catalogIds[10], $catalogIds[9]], array_slice($table->get('paginationCurrentItems'), 0, 3));
     }

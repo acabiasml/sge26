@@ -29,7 +29,7 @@
                         <option value="{{ $candidate->id }}" data-name="{{ $candidate->name }}" data-stage="{{ __(\App\Support\HistoryCurriculumCatalog::stageLabels()[$candidate->education_stage]) }}" data-formation="{{ __($candidate->formation) }}" data-area="{{ $candidate->area->name }}" @selected((string) old('target_component_id') === (string) $candidate->id)>{{ $candidate->name }} · {{ __(\App\Support\HistoryCurriculumCatalog::stageLabels()[$candidate->education_stage]) }} · {{ __($candidate->formation) }} · {{ $candidate->area->name }}</option>
                     @endforeach
                 </select>
-                <small id="merge-context" class="form-text text-muted">{{ __('A classificação escolhida deve ser compatível com a etapa de ensino das matrizes afetadas.') }}</small>
+                <small id="merge-context" class="form-text text-muted">{{ __('Somente componentes da mesma etapa de ensino podem ser mesclados. A classificação escolhida deve ser compatível com as matrizes vinculadas.') }}</small>
             </div>
                 <fieldset class="form-group">
                     <legend class="h6">{{ __('Qual cadastro deve prevalecer?') }}</legend>

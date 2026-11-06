@@ -216,6 +216,10 @@ with tempfile.TemporaryDirectory() as directory:
                          'php artisan migrate --path=database/migrations/2026_11_06_000002_link_history_records_to_matrix_components.php --force --no-ansi'))
         commands.append(('Propagar classificações corrigidas conforme auditoria das matrizes',
                          'php artisan migrate --path=database/migrations/2026_11_06_000003_propagate_audited_history_classification_changes.php --force --no-ansi'))
+        commands.append(('Disponibilizar todos os componentes cadastrados no catálogo',
+                         'php artisan migrate --path=database/migrations/2026_11_06_000004_make_catalog_components_always_available.php --force --no-ansi'))
+        commands.append(('Conferir disponibilidade dos componentes do catálogo',
+                         'php artisan tinker --execute=\'echo json_encode(["unavailable_catalog_components" => App\\Models\\HistoryCurriculumComponent::where("active", false)->count()]);\''))
         commands.append(('Conferir vínculos das matrizes no catálogo',
                          'php artisan tinker --execute=\'echo json_encode(["matrix_components" => App\\Models\\CurriculumComponent::count(), '
                          '"unmapped_matrix_components" => App\\Models\\CurriculumComponent::whereDoesntHave("historyCatalogEntries")->count()]);\''))
@@ -276,6 +280,8 @@ with tempfile.TemporaryDirectory() as directory:
             if label == 'Conferir vínculos das matrizes no catálogo':
                 if json.loads(output).get('unmapped_matrix_components') != 0:
                     raise RuntimeError('Há componentes de matrizes sem proteção no catálogo.')
+            if label == 'Conferir disponibilidade dos componentes do catálogo' and json.loads(output).get('unavailable_catalog_components') != 0:
+                raise RuntimeError('Há componentes cadastrados indisponíveis no catálogo.')
             if label == 'Conferir integração dos históricos ao catálogo':
                 integration = json.loads(output)
                 if integration.get('unlinked_history_components') != 0:

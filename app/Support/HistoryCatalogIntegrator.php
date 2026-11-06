@@ -124,9 +124,7 @@ final class HistoryCatalogIntegrator
                 'education_stage' => $stage, 'formation' => $formation,
                 'knowledge_area_id' => $area->id, 'name' => $component->name,
             ], [
-                'active' => $stage !== HistoryCurriculumCatalog::UNCLASSIFIED_STAGE && $area->active
-                    && filled($component->knowledge_area) && CurriculumAreaStage::compatible($area->name, $stage)
-                    && in_array($formation, HistoryCurriculumCatalog::formations($stage), true),
+                'active' => true,
             ]);
             $ids[] = $entry->id;
         }

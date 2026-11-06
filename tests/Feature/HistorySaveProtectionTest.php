@@ -437,7 +437,7 @@ class HistorySaveProtectionTest extends TestCase
         $this->assertSame('8,0', $old->records()->sole()->score_label);
     }
 
-    public function test_new_history_choices_use_active_catalog_entries_and_retain_existing_legacy_values(): void
+    public function test_catalog_entries_remain_usable_in_additional_years_even_if_deactivation_is_requested(): void
     {
         $history = $this->history();
         $year = $history->years()->sole();
@@ -457,7 +457,7 @@ class HistorySaveProtectionTest extends TestCase
         $payload['history_version'] = app(StudentHistoryEditGuard::class)->version($history->fresh());
         $payload['years'][] = $this->year(2) + ['id' => $second->id];
         $payload['year_components'][1] = $payload['year_components'][0];
-        $this->put($this->url($history), $payload)->assertSessionHasErrors('year_components.1.0.name');
+        $this->put($this->url($history), $payload)->assertSessionHasNoErrors();
     }
 
     public function test_saving_after_a_catalog_rename_preserves_its_link_without_recreating_the_old_name(): void
@@ -479,7 +479,7 @@ class HistorySaveProtectionTest extends TestCase
         $this->assertSame('8,0', $history->components()->sole()->records()->sole()->score_label);
     }
 
-    public function test_a_merged_manual_history_keeps_the_matrix_classification_when_edited_again(): void
+    public function test_a_preexisting_cross_stage_merge_keeps_its_classification_when_the_history_is_edited_again(): void
     {
         $history = $this->history();
         app(HistoryCatalogIntegrator::class)->syncHistory($history);
@@ -488,7 +488,11 @@ class HistorySaveProtectionTest extends TestCase
         $course = $year->courses()->create(['name' => 'Matriz Médio', 'stage' => 'medio']);
         $matrix = $course->components()->create(['name' => 'Lin. Inglesa', 'knowledge_area_id' => KnowledgeArea::where('name', 'Linguagens e suas Tecnologias')->value('id'), 'active' => true]);
         $target = app(MatrixHistoryCatalog::class)->syncComponent($matrix);
-        $this->post(route('history-curriculum.merge', $source), ['target_component_id' => $target->id])->assertSessionHasNoErrors();
+        // Estado já salvo antes da restrição de novas mesclagens à mesma etapa.
+        $existing = $history->components()->sole();
+        $existing->adoptCatalogDefinition($target);
+        $existing->catalogEntries()->sync([$target->id]);
+        $source->delete();
         $this->get(route('people.histories.edit', [$history->person_id, $history]))->assertOk()->assertSee('value="Linguagens e suas Tecnologias" selected', false);
         $external = $history->years()->sole();
         $payload = $this->yearlyPayload($history->fresh(), [$this->year(1) + ['id' => $external->id]], [0 => [$this->yearComponentData('Lin. Inglesa', 'Linguagens e suas Tecnologias', ['score_label' => '8,5'])]]);

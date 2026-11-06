@@ -14,6 +14,9 @@ final class HistoryCurriculumMerger
 {
     public function supportsMatrixDefinition(HistoryCurriculumComponent $source, HistoryCurriculumComponent $target): bool
     {
+        if ($source->education_stage !== $target->education_stage || $source->education_stage === HistoryCurriculumCatalog::UNCLASSIFIED_STAGE) {
+            return false;
+        }
         $source->loadMissing('matrixComponents.course');
         $target->loadMissing('area');
 
@@ -37,6 +40,9 @@ final class HistoryCurriculumMerger
             }
             $source = $entries[$sourceId];
             $target = $entries[$targetId]->load('area');
+            if ($source->education_stage !== $target->education_stage || $source->education_stage === HistoryCurriculumCatalog::UNCLASSIFIED_STAGE) {
+                throw ValidationException::withMessages(['target_component_id' => __('A mesclagem só é permitida entre componentes da mesma etapa de ensino identificada.')]);
+            }
             $matrices = $source->matrixComponents()->with('course')->orderBy('curriculum_components.id')->lockForUpdate()->get();
             $source->setRelation('matrixComponents', $matrices);
             if (! $this->supportsMatrixDefinition($source, $target)) {

@@ -45,7 +45,10 @@ final class HistoryCurriculumCatalog
         if (! once(fn () => Schema::hasTable('history_curriculum_components'))) {
             return $catalogs;
         }
-        foreach (HistoryCurriculumComponent::query()->where('active', true)->whereHas('area', fn ($query) => $query->where('active', true))->with('area')->orderBy('formation')->orderBy('name')->get() as $item) {
+        foreach (HistoryCurriculumComponent::query()->whereHas('area', fn ($query) => $query->where('active', true))->with('area')->orderBy('formation')->orderBy('name')->get() as $item) {
+            if (! array_key_exists($item->education_stage, $catalogs)) {
+                continue;
+            }
             if (! CurriculumAreaStage::compatible($item->area->name, $item->education_stage)) {
                 continue;
             }
@@ -57,7 +60,7 @@ final class HistoryCurriculumCatalog
 
     public static function contains(string $stage, ?string $formation, ?string $area, string $name): bool
     {
-        return HistoryCurriculumComponent::where('active', true)->where('education_stage', $stage)->where('formation', $formation)->where('name', $name)
+        return HistoryCurriculumComponent::where('education_stage', $stage)->where('formation', $formation)->where('name', $name)
             ->whereHas('area', fn ($query) => $query->where('active', true)->where('name', $area))->exists();
     }
 }

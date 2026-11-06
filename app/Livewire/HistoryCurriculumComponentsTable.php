@@ -39,7 +39,6 @@ class HistoryCurriculumComponentsTable extends DataTableComponent
             Column::make(__('Área'), 'area.name')->sortable()->searchable(),
             Column::make(__('Formação'), 'formation')->sortable()->format(fn ($value) => __($value)),
             Column::make(__('Etapa'), 'education_stage')->sortable()->format(fn ($value) => __(HistoryCurriculumCatalog::stageLabels()[$value])),
-            Column::make(__('Situação'), 'active')->sortable()->format(fn ($value) => $value ? __('Ativo') : __('Inativo')),
             Column::make(__('Origem'))->label(fn (HistoryCurriculumComponent $row): string => $row->isMatrixDerived() ? __('Matriz do sistema') : __('Histórico / cadastro')),
             Column::make(__('Históricos'))->label(fn (HistoryCurriculumComponent $row): string => view('livewire.tables.history-curriculum-count', ['component' => $row])->render())->html(),
             Column::make(__('Ações'))->label(fn (HistoryCurriculumComponent $row): string => view('livewire.tables.history-curriculum-actions', ['component' => $row])->render())->html(),
@@ -57,9 +56,6 @@ class HistoryCurriculumComponentsTable extends DataTableComponent
             SelectFilter::make(__('Área'), 'area_id')
                 ->options(['' => __('Todas')] + KnowledgeArea::orderBy('name')->pluck('name', 'id')->all())
                 ->filter(fn (Builder $query, string $value) => $query->where('history_curriculum_components.knowledge_area_id', (int) $value)),
-            SelectFilter::make(__('Situação'), 'status')
-                ->options(['' => __('Todas'), '1' => __('Ativo'), '0' => __('Inativo')])
-                ->filter(fn (Builder $query, string $value) => $query->where('history_curriculum_components.active', $value === '1')),
         ];
     }
 

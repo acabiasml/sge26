@@ -38,7 +38,7 @@ class HistoryCatalogIntegrationTest extends TestCase
         $this->assertSame(2, $entry->historyComponents()->count());
         $this->assertSame($entry->id, $duplicate->catalogEntries()->sole()->id);
         $this->assertSame($knownEntry->id, $known->catalogEntries()->sole()->id);
-        $this->assertFalse($knownEntry->fresh()->active);
+        $this->assertTrue($knownEntry->fresh()->active);
         $this->assertSame($before, [$legacy->fresh()->getAttributes(), $legacy->records()->sole()->getAttributes(), $legacy->history->years()->sole()->getAttributes()]);
         $total = HistoryCurriculumComponent::count();
         app(HistoryCatalogIntegrator::class)->importAll();
@@ -47,7 +47,7 @@ class HistoryCatalogIntegrationTest extends TestCase
         $this->assertTrue(HistoryCurriculumCatalog::contains('fundamental', 'Parte Diversificada', 'Saberes Locais', 'Práticas Comunitárias'));
     }
 
-    public function test_mixed_stage_records_link_to_the_correct_stage_and_unknown_stage_is_kept_inactive(): void
+    public function test_mixed_stage_records_link_correctly_and_unidentified_entries_are_not_offered_as_a_known_stage(): void
     {
         $component = $this->historyComponent(null, 'Matemática', 'Matemática');
         $component->history->years()->sole()->update(['stage' => 'Ensino Fundamental']);
@@ -59,7 +59,8 @@ class HistoryCatalogIntegrationTest extends TestCase
         $this->assertSame('Matemática e suas Tecnologias', $component->catalogEntries()->where('education_stage', 'medio')->sole()->area->name);
         $entry = $unknown->catalogEntries()->sole();
         $this->assertSame(HistoryCurriculumCatalog::UNCLASSIFIED_STAGE, $entry->education_stage);
-        $this->assertFalse($entry->active);
+        $this->assertTrue($entry->active);
+        $this->assertFalse(collect(HistoryCurriculumCatalog::all())->flatten(1)->contains('name', 'Oficinas'));
         $this->assertSame('9,0', $component->records()->where('student_academic_history_year_id', $year->id)->sole()->score_label);
         $this->admin();
         $this->get(route('history-curriculum.index'))->assertOk()->assertSee('Etapa não identificada');

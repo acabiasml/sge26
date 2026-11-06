@@ -62,7 +62,7 @@ class CurriculumCatalog
         return HistoryCurriculumComponent::query()
             ->where('education_stage', $course->stage)
             ->where(function ($query) use ($currentIds): void {
-                $query->where(fn ($active) => $active->where('active', true)->whereHas('area', fn ($area) => $area->where('active', true)))
+                $query->whereHas('area', fn ($area) => $area->where('active', true))
                     ->orWhereIn('id', $currentIds);
             })
             ->with('area')->orderBy('name')->get()

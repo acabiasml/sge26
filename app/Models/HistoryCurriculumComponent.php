@@ -15,6 +15,9 @@ class HistoryCurriculumComponent extends Model
 
     protected static function booted(): void
     {
+        static::saving(function (self $entry): void {
+            $entry->active = true;
+        });
         static::updated(function (self $entry): void {
             if ($entry->wasChanged(['name', 'formation', 'knowledge_area_id', 'education_stage'])) {
                 app(HistoryCurriculumPropagation::class)->catalogChanged($entry, $entry->getOriginal('education_stage'));

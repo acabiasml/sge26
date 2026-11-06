@@ -52,14 +52,13 @@ final class MatrixHistoryCatalog
                 // A grafia é uma cópia fiel da matriz, inclusive em importações que
                 // não passaram pela normalização de texto dos formulários.
                 DB::table('history_curriculum_components')->insertOrIgnore($context + [
-                    'name' => $component->name, 'active' => (bool) $component->active, 'matrix_origin' => true,
+                    'name' => $component->name, 'active' => true, 'matrix_origin' => true,
                     'created_at' => now(), 'updated_at' => now(),
                 ]);
                 $entry = $findEntry();
                 abort_unless($entry, 422);
             }
-            $active = $component->active || $entry->matrixComponents()->where('curriculum_components.id', '!=', $component->id)->where('curriculum_components.active', true)->exists();
-            $definition = $context + ['name' => $component->name, 'matrix_origin' => true, 'active' => $active];
+            $definition = $context + ['name' => $component->name, 'matrix_origin' => true, 'active' => true];
             if ($entry->only(array_keys($definition)) != $definition) {
                 DB::table('history_curriculum_components')->where('id', $entry->id)->update($definition + ['updated_at' => now()]);
             }

@@ -28,11 +28,11 @@ class HistoryCurriculumMergeTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_merge_adopts_the_matrix_destination_across_stage_formation_and_area_without_changing_matrix_or_results(): void
+    public function test_merge_adopts_the_destination_formation_and_area_within_the_same_stage_without_changing_matrix_or_results(): void
     {
         $admin = $this->user(PersonSchoolRole::ROLE_ADMINISTRATOR);
         $source = $this->entry('Inglês antigo');
-        $matrix = $this->matrixComponent('Língua Inglesa', 'medio', 'Linguagens e suas Tecnologias', 'Parte Complementar');
+        $matrix = $this->matrixComponent('Língua Inglesa', 'fundamental', 'Saberes Complementares', 'Parte Complementar');
         $target = app(MatrixHistoryCatalog::class)->syncComponent($matrix);
         $history = $this->history();
         $one = $history->components()->create(['name' => $source->name, 'formation' => $source->formation, 'knowledge_area' => $source->area->name]);
@@ -146,8 +146,8 @@ class HistoryCurriculumMergeTest extends TestCase
     public function test_merging_matrix_components_rejects_incompatible_stages_without_partial_changes(): void
     {
         $this->actingAs($this->user(PersonSchoolRole::ROLE_ADMINISTRATOR));
-        $one = $this->matrixComponent('Português fundamental');
-        $two = $this->matrixComponent('Português médio', 'medio', 'Linguagens e suas Tecnologias');
+        $one = $this->matrixComponent('Português fundamental', 'fundamental', 'Saberes Locais');
+        $two = $this->matrixComponent('Português médio', 'medio', 'Saberes Locais');
         $source = $one->historyCatalogEntries()->sole();
         $target = $two->historyCatalogEntries()->sole();
         $before = [$one->fresh()->getAttributes(), $two->fresh()->getAttributes()];
@@ -157,6 +157,33 @@ class HistoryCurriculumMergeTest extends TestCase
         $this->assertSame($before, [$one->fresh()->getAttributes(), $two->fresh()->getAttributes()]);
         $this->assertDatabaseHas('matrix_catalog_components', ['curriculum_component_id' => $one->id, 'history_curriculum_component_id' => $source->id]);
         $this->assertDatabaseHas('matrix_catalog_components', ['curriculum_component_id' => $two->id, 'history_curriculum_component_id' => $target->id]);
+    }
+
+    public function test_catalog_and_orphan_system_merges_reject_every_cross_stage_pair_for_either_kept_choice(): void
+    {
+        $this->actingAs($this->user(PersonSchoolRole::ROLE_ADMINISTRATOR));
+        $area = KnowledgeArea::firstOrCreate(['name' => 'Saberes Locais'], ['formation' => 'Formação Geral Básica', 'active' => true]);
+        $entries = collect(['fundamental', 'medio', 'tecnico'])->mapWithKeys(fn ($stage) => [$stage => HistoryCurriculumComponent::create([
+            'name' => 'Componente '.$stage, 'knowledge_area_id' => $area->id, 'formation' => 'Formação Geral Básica', 'education_stage' => $stage,
+        ])]);
+        $orphan = $entries['medio'];
+        $orphan->forceFill(['matrix_origin' => true])->save();
+        $history = $this->history();
+        $year = $history->years()->create(['label' => '1º Ano', 'source' => 'system', 'stage' => 'Ensino Médio']);
+        $row = $history->components()->create(['name' => $orphan->name, 'knowledge_area' => $area->name, 'formation' => $orphan->formation]);
+        $row->catalogEntries()->attach($orphan);
+        $record = $row->records()->create(['student_academic_history_year_id' => $year->id, 'score_label' => '8,0', 'workload_hours' => 80]);
+        $before = [$record->fresh()->getAttributes(), $row->fresh()->getAttributes(), $year->fresh()->getAttributes(), $entries->map(fn ($entry) => $entry->fresh()->getAttributes())->all()];
+        foreach ($entries as $stage => $source) {
+            $this->get(route('history-curriculum.merge-form', $source))->assertOk()->assertViewHas('candidates', fn ($candidates) => $candidates->every(fn ($candidate) => $candidate->education_stage === $stage));
+            foreach ($entries->except($stage) as $target) {
+                foreach (['source', 'target'] as $keep) {
+                    $this->post(route('history-curriculum.merge', $source), ['target_component_id' => $target->id, 'keep' => $keep])->assertSessionHasErrors('target_component_id');
+                }
+            }
+        }
+        $this->assertSame($before, [$record->fresh()->getAttributes(), $row->fresh()->getAttributes(), $year->fresh()->getAttributes(), $entries->map(fn ($entry) => $entry->fresh()->getAttributes())->all()]);
+        $this->assertDatabaseCount('history_curriculum_aliases', 0);
     }
 
     public function test_components_in_the_same_matrix_keep_both_year_results_and_the_exact_chosen_spelling(): void
@@ -282,7 +309,7 @@ class HistoryCurriculumMergeTest extends TestCase
     {
         $source = $this->entry('Inglês antigo');
         $manual = $this->entry('Apenas cadastro');
-        $target = app(MatrixHistoryCatalog::class)->syncComponent($this->matrixComponent('Lin. Inglesa', 'medio', 'Linguagens e suas Tecnologias'));
+        $target = app(MatrixHistoryCatalog::class)->syncComponent($this->matrixComponent('Lin. Inglesa'));
         $this->actingAs($this->user(PersonSchoolRole::ROLE_ADMINISTRATOR));
         $this->get(route('history-curriculum.merge-form', $source))->assertOk()->assertSee('Lin. Inglesa')->assertSee($manual->name)->assertSee('id="merge-keep-source"', false);
         foreach ([PersonSchoolRole::ROLE_MANAGER, PersonSchoolRole::ROLE_TEACHER] as $role) {
@@ -362,7 +389,7 @@ class HistoryCurriculumMergeTest extends TestCase
         (require database_path('migrations/2026_11_05_000005_protect_matrix_catalog_components.php'))->up();
         $entry = $one->historyCatalogEntries()->sole();
         $this->assertSame('LIN. INGLESA', $entry->name);
-        $this->assertSame($one->fresh()->active, $entry->active);
+        $this->assertTrue($entry->active);
         $this->assertSame($entry->knowledge_area_id, $two->historyCatalogEntries()->sole()->knowledge_area_id);
         $this->assertSame($snapshot, [$one->fresh()->getAttributes(), $two->fresh()->getAttributes()]);
     }

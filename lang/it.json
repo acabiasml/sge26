@@ -2851,5 +2851,8 @@
     "Cadastro que será mantido": "Registrazione da mantenere",
     "Escolha outro componente do catálogo e o cadastro que vai prevalecer. A mesclagem atualiza nome, área e formação nos históricos e nas matrizes vinculadas, preservando notas, faltas, cargas horárias e vínculos dos diários.": "Scegli un’altra disciplina del catalogo e la registrazione da mantenere. L’unione aggiorna nome, area e formazione negli storici e nei piani di studio collegati, conservando voti, assenze, monte ore e collegamenti dei registri.",
     "Não há outro componente disponível para mesclar.": "Non ci sono altre discipline disponibili da unire.",
-    "Confirmar a mesclagem? Os históricos e as matrizes vinculadas, quando houver, adotarão o cadastro escolhido. Os lançamentos escolares serão preservados.": "Confermare l’unione? Gli storici e gli eventuali piani di studio collegati adotteranno la registrazione scelta. Le registrazioni scolastiche saranno conservate."
+    "Confirmar a mesclagem? Os históricos e as matrizes vinculadas, quando houver, adotarão o cadastro escolhido. Os lançamentos escolares serão preservados.": "Confermare l’unione? Gli storici e gli eventuali piani di studio collegati adotteranno la registrazione scelta. Le registrazioni scolastiche saranno conservate.",
+    "A mesclagem só é permitida entre componentes da mesma etapa de ensino identificada.": "L’unione è consentita solo tra discipline dello stesso grado di istruzione identificato.",
+    "Somente componentes da mesma etapa de ensino podem ser mesclados. A classificação escolhida deve ser compatível com as matrizes vinculadas.": "Si possono unire solo discipline dello stesso grado di istruzione. La classificazione scelta deve essere compatibile con i piani di studio collegati.",
+    "Não há componentes cadastrados no catálogo para esta etapa de ensino.": "Non ci sono discipline registrate nel catalogo per questo grado di istruzione."
 }

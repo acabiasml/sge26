@@ -6,7 +6,6 @@
     $selectedFormation = $submitted ? old('formation') : ($catalogComponent->formation ?: ($config[$selectedStage]['formations'][0] ?? ''));
     $selectedArea = $submitted ? old('knowledge_area_id') : $catalogComponent->knowledge_area_id;
     $selectedName = $submitted ? old('name') : $catalogComponent->name;
-    $selectedActive = $submitted ? old('active') : (! $catalogComponent->exists || $catalogComponent->active);
 @endphp
 <input type="hidden" name="catalog_form" value="{{ $formId }}">
 <div class="form-row">
@@ -15,5 +14,4 @@
     <div class="form-group col-md-6"><label for="{{ $formId }}-area">{{ __('Área') }}</label><select id="{{ $formId }}-area" name="knowledge_area_id" class="form-control" data-catalog-area required><option value="">{{ __('Selecione') }}</option>@foreach($config[$selectedStage]['areas'] as $area)<option value="{{ $area['id'] }}" @selected((string) $selectedArea === (string) $area['id'])>{{ $area['name'] }}</option>@endforeach</select></div>
     <div class="form-group col-md-6"><label for="{{ $formId }}-name">{{ __('Componente') }}</label><input id="{{ $formId }}-name" name="name" class="form-control" maxlength="255" value="{{ $selectedName }}" required></div>
 </div>
-<input type="hidden" name="active" value="0"><label class="d-block"><input type="checkbox" name="active" value="1" @checked($selectedActive)> {{ __('Ativo') }}</label>
 <button type="submit" class="btn btn-primary"><i class="fas fa-save mr-1" aria-hidden="true"></i>{{ __('Salvar') }}</button>

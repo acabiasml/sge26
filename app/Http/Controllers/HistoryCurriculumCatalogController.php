@@ -27,6 +27,7 @@ class HistoryCurriculumCatalogController extends Controller
         abort_unless($request->user()->isAdministrator(), 403);
         $catalogComponent->load(['area', 'matrixComponents.course.academicYear.school']);
         $candidates = HistoryCurriculumComponent::whereKeyNot($catalogComponent->id)
+            ->where('education_stage', $catalogComponent->education_stage)
             ->with(['area', 'matrixComponents.course.academicYear.school'])->orderBy('name')->get()
             ->filter(fn ($candidate) => $merger->supportsMatrixDefinition($catalogComponent, $candidate)
                 || $merger->supportsMatrixDefinition($candidate, $catalogComponent))
@@ -89,7 +90,6 @@ class HistoryCurriculumCatalogController extends Controller
             'formation' => ['required', Rule::in(HistoryCurriculumCatalog::formations($request->input('education_stage')))],
             'knowledge_area_id' => ['required', 'integer', Rule::exists('knowledge_areas', 'id')],
             'name' => ['required', 'string', 'max:255', Rule::unique('history_curriculum_components')->where('education_stage', $request->input('education_stage'))->where('formation', $request->input('formation'))->where('knowledge_area_id', $request->input('knowledge_area_id'))->ignore($component?->id)],
-            'active' => ['required', 'boolean'],
         ]);
         if (HistoryCurriculumAlias::where('education_stage', $data['education_stage'])->where('formation', $data['formation'])
             ->where('knowledge_area_id', $data['knowledge_area_id'])->where('name', $data['name'])
@@ -97,6 +97,7 @@ class HistoryCurriculumCatalogController extends Controller
             throw ValidationException::withMessages(['name' => __('Esta nomenclatura já foi incorporada a outro componente do catálogo.')]);
         }
         CurriculumAreaStage::validate(KnowledgeArea::findOrFail($data['knowledge_area_id'])->name, $data['education_stage'], 'knowledge_area_id');
+        $data['active'] = true;
 
         return $data;
     }
