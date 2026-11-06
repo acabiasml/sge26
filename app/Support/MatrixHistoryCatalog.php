@@ -27,7 +27,7 @@ final class MatrixHistoryCatalog
         return $count;
     }
 
-    public function syncComponent(CurriculumComponent $component): ?HistoryCurriculumComponent
+    public function syncComponent(CurriculumComponent $component, bool $propagate = false): ?HistoryCurriculumComponent
     {
         if (! Schema::hasTable('matrix_catalog_components')) {
             return null;
@@ -39,7 +39,8 @@ final class MatrixHistoryCatalog
             return null;
         }
 
-        return DB::transaction(function () use ($component, $course): HistoryCurriculumComponent {
+        return DB::transaction(function () use ($component, $course, $propagate): HistoryCurriculumComponent {
+            $previous = $component->historyCatalogEntries()->first();
             $formation = $course->stage === AcademicCourse::STAGE_TECHNICAL ? 'Formação Técnica Profissional' : CurriculumCatalog::formationLabelForArea($course, $component->area);
             $area = $component->area ?: KnowledgeArea::firstOrCreate(['name' => TextNormalizer::titleCase('Área não definida')], ['formation' => $formation, 'active' => true]);
             $stage = array_key_exists($course->stage, AcademicCourse::STAGE_LABELS) ? $course->stage : HistoryCurriculumCatalog::UNCLASSIFIED_STAGE;
@@ -64,7 +65,12 @@ final class MatrixHistoryCatalog
             }
             DB::table('matrix_catalog_components')->updateOrInsert(['curriculum_component_id' => $component->id], ['history_curriculum_component_id' => $entry->id]);
 
-            return $entry->fresh();
+            $entry = $entry->fresh();
+            if ($propagate && $previous) {
+                app(HistoryCurriculumPropagation::class)->matrixChanged($component, $previous, $entry);
+            }
+
+            return $entry;
         });
     }
 }

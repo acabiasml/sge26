@@ -9,6 +9,7 @@ use App\Models\SchoolClassComponent;
 use App\Support\CurriculumCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -58,8 +59,11 @@ class CurriculumComponentController extends Controller
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
         $this->ensureCanChangeApprovedCalendar($request, $academicYear);
 
-        $component->update($this->validatedData($request, $academicYear, $course, $component));
-        $course->refreshWorkloadHours();
+        $data = $this->validatedData($request, $academicYear, $course, $component);
+        DB::transaction(function () use ($component, $data, $course): void {
+            $component->update($data);
+            $course->refreshWorkloadHours();
+        });
 
         return redirect()->route('academic-years.courses.components.show', [$academicYear, $course, $component])
             ->with('status', __('Componente curricular atualizado com sucesso.'));

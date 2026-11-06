@@ -9,6 +9,7 @@ use App\Support\CurriculumAreaStage;
 use App\Support\HistoryCurriculumCatalog;
 use App\Support\HistoryCurriculumMerger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -59,7 +60,8 @@ class HistoryCurriculumCatalogController extends Controller
     {
         abort_unless($request->user()->isAdministrator(), 403);
         abort_if($catalogComponent->isMatrixDerived(), 403, __('Componentes de matrizes do sistema são protegidos e não podem ser mesclados ou alterados pelo catálogo.'));
-        $catalogComponent->update($this->data($request, $catalogComponent));
+        $data = $this->data($request, $catalogComponent);
+        DB::transaction(fn () => $catalogComponent->update($data));
 
         return back()->with('status', __('Componente do catálogo atualizado.'));
     }

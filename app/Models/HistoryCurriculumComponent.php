@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasTitleCaseAttributes;
+use App\Support\HistoryCurriculumPropagation;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -11,6 +12,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class HistoryCurriculumComponent extends Model
 {
     use Auditable, HasTitleCaseAttributes;
+
+    protected static function booted(): void
+    {
+        static::updated(function (self $entry): void {
+            if ($entry->wasChanged(['name', 'formation', 'knowledge_area_id', 'education_stage'])) {
+                app(HistoryCurriculumPropagation::class)->catalogChanged($entry, $entry->getOriginal('education_stage'));
+            }
+        });
+    }
 
     protected $fillable = ['knowledge_area_id', 'education_stage', 'formation', 'name', 'active'];
 

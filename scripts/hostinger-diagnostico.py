@@ -212,6 +212,10 @@ with tempfile.TemporaryDirectory() as directory:
                          'php artisan migrate --path=database/migrations/2026_11_05_000005_protect_matrix_catalog_components.php --force --no-ansi'))
         commands.append(('Limpar referências antigas de catálogo sem alterar notas ou séries',
                          'php artisan migrate --path=database/migrations/2026_11_06_000001_remove_obsolete_system_history_catalog_references.php --force --no-ansi'))
+        commands.append(('Conferir origem estável dos registros históricos',
+                         'php artisan migrate --path=database/migrations/2026_11_06_000002_link_history_records_to_matrix_components.php --force --no-ansi'))
+        commands.append(('Propagar classificações corrigidas conforme auditoria das matrizes',
+                         'php artisan migrate --path=database/migrations/2026_11_06_000003_propagate_audited_history_classification_changes.php --force --no-ansi'))
         commands.append(('Conferir vínculos das matrizes no catálogo',
                          'php artisan tinker --execute=\'echo json_encode(["matrix_components" => App\\Models\\CurriculumComponent::count(), '
                          '"unmapped_matrix_components" => App\\Models\\CurriculumComponent::whereDoesntHave("historyCatalogEntries")->count()]);\''))
@@ -226,6 +230,10 @@ with tempfile.TemporaryDirectory() as directory:
                              '"without_uses" => $areas->filter(fn ($area) => $area->usageCount() === 0)->count(), '
                              '"matrix_uses" => $areas->sum("matrix_uses_count"), '
                              '"history_uses" => $areas->sum("history_uses_count")]);')))
+        commands.append(('Conferir área anterior de Móveis após propagação',
+                         'php artisan tinker --execute=' + shlex.quote(
+                             '$area = App\\Models\\KnowledgeArea::withUsageCounts()->where("name", "Educação Profissional e Tecnológica - Técnico em Móveis")->first(); '
+                             'echo json_encode(["area_exists" => (bool) $area, "remaining_uses" => $area?->usageCount() ?? 0]);')))
         commands.append(('Conferir áreas curriculares por etapa', 'php artisan curriculum:reconcile-stage-areas --no-ansi'))
         if os.environ.get('REPAIR_STAGE_AREAS') == 'true':
             commands.append(('Corrigir áreas curriculares por etapa', 'php artisan curriculum:reconcile-stage-areas --apply --no-ansi'))

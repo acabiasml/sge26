@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasTitleCaseAttributes;
+use App\Support\HistoryCurriculumPropagation;
 use App\Support\MatrixHistoryCatalog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -20,7 +21,10 @@ class KnowledgeArea extends Model
         static::updated(function (self $model): void {
             if ($model->wasChanged(['name', 'formation'])) {
                 foreach ($model->components()->get() as $component) {
-                    app(MatrixHistoryCatalog::class)->syncComponent($component);
+                    app(MatrixHistoryCatalog::class)->syncComponent($component, true);
+                }
+                foreach ($model->historyCatalogComponents()->with('area')->get() as $entry) {
+                    app(HistoryCurriculumPropagation::class)->catalogChanged($entry);
                 }
             }
         });

@@ -17,7 +17,7 @@ class CurriculumComponent extends Model
 
     protected static function booted(): void
     {
-        static::saved(fn (self $component) => app(MatrixHistoryCatalog::class)->syncComponent($component));
+        static::saved(fn (self $component) => app(MatrixHistoryCatalog::class)->syncComponent($component, $component->wasChanged(['name', 'knowledge_area_id'])));
     }
 
     protected $fillable = [

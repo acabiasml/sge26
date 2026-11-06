@@ -56,9 +56,12 @@ class StudentAcademicHistoryComponent extends Model
     {
         $entry->loadMissing('area');
         // Preserva a grafia da matriz, inclusive abreviações e nomes das áreas.
-        $this->setRawAttributes(array_merge($this->getAttributes(), [
-            'name' => $entry->name, 'formation' => $entry->formation, 'knowledge_area' => $entry->area->name,
-        ]));
+        $this->adoptLabels(['name' => $entry->name, 'formation' => $entry->formation, 'knowledge_area' => $entry->area->name]);
+    }
+
+    public function adoptLabels(array $labels): void
+    {
+        $this->setRawAttributes(array_merge($this->getAttributes(), $labels));
         $this->adoptingCatalogDefinition = true;
         try {
             $this->save();

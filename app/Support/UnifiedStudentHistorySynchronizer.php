@@ -209,7 +209,9 @@ class UnifiedStudentHistorySynchronizer
             if ($stage === AcademicCourse::STAGE_TECHNICAL) {
                 $formation = 'Formação Técnica Profissional';
             }
-            $historyComponent = $history->components()
+            $historyComponent = $history->components()->whereHas('records', fn ($query) => $query
+                ->where('student_academic_history_year_id', $yearRow->id)->where('curriculum_component_id', $component->id))->first();
+            $historyComponent ??= $history->components()
                 ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($component->name), 'UTF-8')])
                 ->where('knowledge_area', $knowledgeArea)
                 ->when($moduleLabel !== null, fn ($query) => $query->where('module_label', $moduleLabel))
@@ -263,6 +265,7 @@ class UnifiedStudentHistorySynchronizer
             $historyComponent->records()->updateOrCreate(
                 ['student_academic_history_year_id' => $yearRow->id],
                 [
+                    'curriculum_component_id' => $component->id,
                     'score_label' => $score !== null ? number_format($score, $usesLegacyScale ? 1 : 2, ',', '.') : '-',
                     'score_numeric' => $score,
                     'workload_hours' => $stage === AcademicCourse::STAGE_TECHNICAL && $isInProgress && ! $moduleConcluded

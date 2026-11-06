@@ -50,7 +50,7 @@ class KnowledgeAreaController extends Controller
         foreach ($area->historyCatalogComponents()->get() as $component) {
             CurriculumAreaStage::validate($data['name'], $component->education_stage, 'name');
         }
-        $area->update($data);
+        DB::transaction(fn () => $area->update($data));
 
         return back()->with('status', __('Área atualizada com sucesso.'));
     }

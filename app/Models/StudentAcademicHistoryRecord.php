@@ -10,9 +10,12 @@ class StudentAcademicHistoryRecord extends Model
 {
     use HasFactory;
 
+    protected $attributes = ['curriculum_component_id' => null];
+
     protected $fillable = [
         'student_academic_history_component_id',
         'student_academic_history_year_id',
+        'curriculum_component_id',
         'score_label',
         'score_numeric',
         'workload_hours',
@@ -26,6 +29,7 @@ class StudentAcademicHistoryRecord extends Model
     protected function casts(): array
     {
         return [
+            'curriculum_component_id' => 'integer',
             'score_numeric' => 'decimal:2',
             'workload_hours' => 'decimal:2',
             'completed_workload_hours' => 'decimal:2',

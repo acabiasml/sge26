@@ -469,7 +469,10 @@ class HistorySaveProtectionTest extends TestCase
         $entry = $history->components()->sole()->catalogEntries()->sole();
         $entry->update(['name' => 'Matemática Básica']);
         $count = HistoryCurriculumComponent::count();
+        $this->assertSame('Matemática Básica', $history->components()->sole()->name);
+        $this->put($this->url($history), $payload)->assertSessionHasErrors('history_version');
         $payload['history_version'] = app(StudentHistoryEditGuard::class)->version($history->fresh());
+        $payload['year_components'][0][0]['name'] = 'Matemática Básica';
         $this->put($this->url($history), $payload)->assertSessionHasNoErrors();
         $this->assertSame($count, HistoryCurriculumComponent::count());
         $this->assertSame($entry->id, $history->components()->sole()->catalogEntries()->sole()->id);
