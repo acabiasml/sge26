@@ -3,10 +3,13 @@
 namespace Tests\Feature;
 
 use App\Livewire\HistoryCurriculumComponentsTable;
+use App\Models\AcademicYear;
 use App\Models\HistoryCurriculumComponent;
 use App\Models\KnowledgeArea;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
+use App\Models\School;
+use App\Models\StudentAcademicHistory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -98,6 +101,76 @@ class HistoryCurriculumCatalogTest extends TestCase
         $table->set('search', 'Matemática')->assertForbidden();
         $this->actingAs($this->userWithRole(PersonSchoolRole::ROLE_TEACHER));
         Livewire::test(HistoryCurriculumComponentsTable::class)->assertForbidden();
+    }
+
+    public function test_matrix_modal_lists_all_linked_matrices_even_with_zero_history_usages(): void
+    {
+        $this->actingAs($this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR));
+        $school = School::create(['name' => 'Escola dos vínculos']);
+        $year = AcademicYear::create(['school_id' => $school->id, 'name' => 'Ano 2026', 'reference_year' => 2026, 'starts_at' => '2026-01-01', 'ends_at' => '2026-12-31']);
+        $courses = collect(['Matriz A', 'Matriz B'])->map(fn ($name) => $year->courses()->create(['name' => $name, 'stage' => 'fundamental']));
+        foreach ($courses as $course) {
+            $matrix = $course->components()->create(['name' => 'Arte dos vínculos', 'knowledge_area_id' => KnowledgeArea::where('name', 'Linguagens')->value('id'), 'active' => true]);
+        }
+        $entry = $matrix->historyCatalogEntries()->sole();
+        $this->assertSame(0, $entry->historyComponents()->count());
+        $table = Livewire::test(HistoryCurriculumComponentsTable::class)->set('search', 'Arte dos vínculos');
+        $table->assertSeeHtml('data-target="#catalog-links-'.$entry->id.'"')
+            ->assertSeeHtml('id="catalog-links-'.$entry->id.'"')
+            ->assertSee('A contagem de históricos não inclui os vínculos com matrizes.')
+            ->assertSee('Escola dos Vínculos')->assertSee('Ano 2026')
+            ->assertDontSeeHtml('action="'.route('history-curriculum.destroy', $entry).'"');
+        foreach ($courses as $course) {
+            $table->assertSeeHtml('href="'.route('academic-years.courses.show', [$year, $course]).'"');
+            $this->get(route('academic-years.courses.show', [$year, $course]))->assertOk();
+        }
+        $this->delete(route('history-curriculum.destroy', $entry))->assertForbidden();
+        $this->assertSame(2, $entry->matrixComponents()->count());
+        // O modal deve continuar disponível depois da paginação reativa.
+        $table->set('search', '')->call('gotoPage', 2)->set('search', 'Arte dos vínculos')
+            ->assertSeeHtml('id="catalog-links-'.$entry->id.'"');
+    }
+
+    public function test_unused_catalog_entry_can_be_removed_after_its_matrix_link_is_removed(): void
+    {
+        $this->actingAs($this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR));
+        $school = School::create(['name' => 'Escola de origem']);
+        $year = AcademicYear::create(['school_id' => $school->id, 'name' => '2026', 'reference_year' => 2026, 'starts_at' => '2026-01-01', 'ends_at' => '2026-12-31']);
+        $course = $year->courses()->create(['name' => 'Matriz original', 'stage' => 'fundamental']);
+        $matrix = $course->components()->create(['name' => 'Componente original', 'knowledge_area_id' => KnowledgeArea::where('name', 'Linguagens')->value('id')]);
+        $entry = $matrix->historyCatalogEntries()->sole();
+        $this->assertTrue($entry->matrix_origin);
+        $this->delete(route('history-curriculum.destroy', $entry))->assertForbidden();
+        // Renomear na matriz deixa o nome antigo sem vínculos efetivos.
+        $matrix->update(['name' => 'Componente atual']);
+        $snapshot = $matrix->fresh()->getAttributes();
+        $current = $matrix->historyCatalogEntries()->sole();
+        $this->assertSame(0, $entry->matrixComponents()->count());
+        Livewire::test(HistoryCurriculumComponentsTable::class)->set('search', 'Componente original')
+            ->assertSeeHtml('action="'.route('history-curriculum.destroy', $entry).'"')
+            ->assertSee('Excluir este componente do catálogo? Ele não está vinculado a matrizes nem a históricos.');
+        $this->delete(route('history-curriculum.destroy', $entry))->assertSessionHasNoErrors();
+        $this->assertDatabaseMissing('history_curriculum_components', ['id' => $entry->id]);
+        $this->assertDatabaseHas('history_curriculum_components', ['id' => $current->id]);
+        $this->assertSame($snapshot, $matrix->fresh()->getAttributes());
+    }
+
+    public function test_history_links_block_deletion_even_when_there_is_no_matrix_link(): void
+    {
+        $this->actingAs($this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR));
+        $entry = HistoryCurriculumComponent::create(['name' => 'Componente em histórico', 'knowledge_area_id' => KnowledgeArea::where('name', 'Linguagens')->value('id'), 'education_stage' => 'fundamental', 'formation' => 'Formação Geral Básica', 'active' => true]);
+        $student = Person::create(['full_name' => 'Estudante de teste']);
+        $school = School::create(['name' => 'Escola do histórico']);
+        $history = StudentAcademicHistory::create(['person_id' => $student->id, 'school_id' => $school->id, 'title' => 'Histórico de teste', 'education_stage' => 'fundamental']);
+        $component = $history->components()->create(['name' => $entry->name, 'formation' => $entry->formation, 'knowledge_area' => $entry->area->name]);
+        $entry->historyComponents()->attach($component);
+        foreach ([false, true] as $matrixOrigin) {
+            $entry->forceFill(['matrix_origin' => $matrixOrigin])->save();
+            Livewire::test(HistoryCurriculumComponentsTable::class)->set('search', 'Componente em histórico')
+                ->assertDontSeeHtml('aria-label="Remover componente: '.$entry->name.'"');
+            $this->delete(route('history-curriculum.destroy', $entry))->assertSessionHasErrors('catalog_component');
+            $this->assertDatabaseHas('history_catalog_usages', ['history_curriculum_component_id' => $entry->id, 'student_academic_history_component_id' => $component->id]);
+        }
     }
 
     private function userWithRole(string $role): User

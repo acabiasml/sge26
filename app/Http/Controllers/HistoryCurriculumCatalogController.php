@@ -67,9 +67,9 @@ class HistoryCurriculumCatalogController extends Controller
     public function destroy(Request $request, HistoryCurriculumComponent $catalogComponent)
     {
         abort_unless($request->user()->isAdministrator(), 403);
-        abort_if($catalogComponent->isMatrixDerived(), 403, __('Componentes de matrizes do sistema são protegidos e não podem ser mesclados ou alterados pelo catálogo.'));
+        abort_if($catalogComponent->matrixComponents()->exists(), 403, __('Este componente está vinculado a matrizes. Revise os vínculos nas matrizes antes de excluí-lo do catálogo.'));
         if ($catalogComponent->historyComponents()->exists()) {
-            throw ValidationException::withMessages(['catalog_component' => __('Este componente é utilizado em históricos. Inative-o para preservar os vínculos.')]);
+            throw ValidationException::withMessages(['catalog_component' => __('Este componente é utilizado em históricos. Os vínculos precisam ser preservados.')]);
         }
         $catalogComponent->delete();
 

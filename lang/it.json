@@ -2810,5 +2810,15 @@
     "Não há componentes ativos desta formação no catálogo.": "Non ci sono discipline attive di questa formazione nel catalogo.",
     "Indique os componentes de cada formação. As horas são informadas somente nos totais acima, sem notas individuais.": "Indica le discipline di ciascuna formazione. Le ore vanno indicate solo nei totali sopra, senza voti individuali.",
     "Formação desmarcada: estes componentes não serão incluídos ao salvar.": "Formazione deselezionata: queste discipline non saranno incluse al salvataggio.",
-    "Ative esta formação antes de incluir seus componentes.": "Attiva questa formazione prima di includere le sue discipline."
+    "Ative esta formação antes de incluir seus componentes.": "Attiva questa formazione prima di includere le sue discipline.",
+    "Ver históricos vinculados": "Vedi gli storici collegati",
+    "Ver vínculos antes de excluir": "Vedi i collegamenti prima di eliminare",
+    "Excluir este componente do catálogo? Ele não está vinculado a matrizes nem a históricos.": "Eliminare questa disciplina dal catalogo? Non è collegata a piani di studio né a storici scolastici.",
+    "Excluir componente": "Elimina disciplina",
+    "Este componente está vinculado a matrizes. Revise os vínculos nas matrizes antes de excluí-lo do catálogo.": "Questa disciplina è collegata a piani di studio. Controlla i collegamenti nei piani di studio prima di eliminarla dal catalogo.",
+    "A contagem de históricos não inclui os vínculos com matrizes.": "Il conteggio degli storici non include i collegamenti con i piani di studio.",
+    "Abrir matriz": "Apri piano di studi",
+    "A matriz de origem não está mais vinculada a este componente.": "Il piano di studi di origine non è più collegato a questa disciplina.",
+    "Este componente é utilizado em históricos. Os vínculos precisam ser preservados.": "Questa disciplina è utilizzata negli storici scolastici. I collegamenti devono essere conservati.",
+    "Este componente não possui vínculos. Use o botão de lixeira na listagem para excluí-lo.": "Questa disciplina non ha collegamenti. Usa il pulsante del cestino nell’elenco per eliminarla."
 }
