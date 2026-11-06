@@ -13,7 +13,7 @@ final class HistoryCurriculumCatalog
 
     public static function stageLabels(): array
     {
-        return array_intersect_key(AcademicCourse::STAGE_LABELS, array_flip(['fundamental', 'medio', 'tecnico']))
+        return AcademicCourse::STAGE_LABELS
             + [self::UNCLASSIFIED_STAGE => 'Etapa não identificada'];
     }
 

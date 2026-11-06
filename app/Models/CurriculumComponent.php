@@ -4,14 +4,21 @@ namespace App\Models;
 
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasTitleCaseAttributes;
+use App\Support\MatrixHistoryCatalog;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CurriculumComponent extends Model
 {
     use Auditable, HasFactory, HasTitleCaseAttributes;
+
+    protected static function booted(): void
+    {
+        static::saved(fn (self $component) => app(MatrixHistoryCatalog::class)->syncComponent($component));
+    }
 
     protected $fillable = [
         'academic_course_id',
@@ -49,6 +56,11 @@ class CurriculumComponent extends Model
         return [
             'name',
         ];
+    }
+
+    public function historyCatalogEntries(): BelongsToMany
+    {
+        return $this->belongsToMany(HistoryCurriculumComponent::class, 'matrix_catalog_components');
     }
 
     public function course(): BelongsTo
@@ -99,8 +111,7 @@ class CurriculumComponent extends Model
         $periods = $year?->periods;
 
         if ($periods?->isNotEmpty()) {
-            $activePeriods = $periods->filter(fn (AcademicPeriod $period): bool =>
-                $this->isActiveInPeriod($period)
+            $activePeriods = $periods->filter(fn (AcademicPeriod $period): bool => $this->isActiveInPeriod($period)
                 && (! $course->startsPeriod || $period->position >= $course->startsPeriod->position)
                 && (! $course->endsPeriod || $period->position <= $course->endsPeriod->position)
             )->count();

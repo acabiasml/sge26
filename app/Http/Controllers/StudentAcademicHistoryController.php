@@ -794,7 +794,22 @@ class StudentAcademicHistoryController extends Controller
             if ($componentStages->isEmpty()) {
                 $componentStages = collect($data['years'])->pluck('stage')->map(fn ($label) => CurriculumAreaStage::stageFromLabel($label))->filter()->unique();
             }
+            $preservesMatrixReference = $routeHistory instanceof StudentAcademicHistory && ! empty($component['records']);
+            foreach ($component['records'] ?? [] as $yearIndex => $record) {
+                $yearId = $data['years'][$yearIndex]['id'] ?? null;
+                if (! $preservesMatrixReference || ! $yearId || ! $routeHistory->components()->where('name', $component['name'])
+                    ->where('formation', $component['formation'] ?? null)->where('knowledge_area', $component['knowledge_area'] ?? null)
+                    ->whereHas('catalogEntries', fn ($query) => $query->where('matrix_origin', true))
+                    ->whereHas('records', fn ($query) => $query->where('student_academic_history_year_id', $yearId)->whereHas('year', fn ($query) => $query->whereIn('source', ['manual', 'external'])))->exists()) {
+                    $preservesMatrixReference = false;
+                }
+            }
             foreach ($componentStages as $componentStage) {
+                // Mantém a classificação escolhida por mesclagem, somente nos anos
+                // em que o vínculo com a matriz já existe; não libera novos lançamentos.
+                if ($preservesMatrixReference) {
+                    continue;
+                }
                 CurriculumAreaStage::validate($component['knowledge_area'] ?? null, $componentStage, "components.{$index}.knowledge_area");
                 if ($request->boolean('formation_totals_present') && ! HistoryCurriculumCatalog::contains($componentStage, $component['formation'] ?? null, $component['knowledge_area'] ?? null, $component['name'])) {
                     $existingOnly = $routeHistory instanceof StudentAcademicHistory && ! empty($component['records']);
@@ -906,7 +921,7 @@ class StudentAcademicHistoryController extends Controller
         foreach ($data['removed_year_ids'] ?? [] as $id) {
             $history->years()->findOrFail($id)->delete();
         }
-        $catalogLinks = $history->components()->with('catalogEntries')->get()->groupBy(fn ($component) => json_encode($component->only(['formation', 'knowledge_area', 'name', 'module_label', 'regulatory_reference']), JSON_THROW_ON_ERROR)
+        $catalogLinks = $history->components()->with('catalogEntries')->get()->groupBy(fn ($component) => $this->catalogComponentKey($component->only(['formation', 'knowledge_area', 'name', 'module_label', 'regulatory_reference']))
         )->map(fn ($components) => $components->flatMap(fn ($component) => $component->catalogEntries->modelKeys())->unique()->values()->all());
         $history->components()->delete();
 
@@ -931,9 +946,13 @@ class StudentAcademicHistoryController extends Controller
             $component = $history->components()->create($componentData + [
                 'position' => $componentIndex + 1,
             ]);
-            $catalogKey = json_encode($component->only(['formation', 'knowledge_area', 'name', 'module_label', 'regulatory_reference']), JSON_THROW_ON_ERROR);
+            $catalogKey = $this->catalogComponentKey($component->only(['formation', 'knowledge_area', 'name', 'module_label', 'regulatory_reference']));
             if ($ids = $catalogLinks->get($catalogKey)) {
                 $component->catalogEntries()->sync($ids);
+                $matrixEntries = $component->catalogEntries()->where('matrix_origin', true)->get();
+                if ($matrixEntries->count() === 1) {
+                    $component->adoptCatalogDefinition($matrixEntries->sole());
+                }
             }
 
             foreach ($records as $yearIndex => $recordData) {
@@ -953,6 +972,11 @@ class StudentAcademicHistoryController extends Controller
             }
         }
         app(HistoryCatalogIntegrator::class)->syncHistory($history);
+    }
+
+    private function catalogComponentKey(array $attributes): string
+    {
+        return json_encode(array_map(fn ($value) => Str::lower(trim((string) $value)), $attributes), JSON_THROW_ON_ERROR);
     }
 
     private function verificationCode(): string

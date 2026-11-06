@@ -59,7 +59,7 @@ class KnowledgeAreaController extends Controller
         abort_unless($request->user()->isAdministrator(), 403);
 
         return view('knowledge-areas.usages', [
-            'area' => $area->loadCount('components'),
+            'area' => $area->loadCount(['components', 'historyCatalogComponents']),
             'components' => $area->components()->with('course.academicYear.school')
                 ->when($request->filled('q'), fn ($query) => $query->where('name', 'like', '%'.trim((string) $request->input('q')).'%'))
                 ->orderBy('name')->paginate(10),

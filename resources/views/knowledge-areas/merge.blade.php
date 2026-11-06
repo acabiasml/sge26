@@ -5,24 +5,32 @@
 @include('knowledge-areas._navigation')
 <section class="card sge-panel-card mb-4">
     <div class="card-body">
-        <p><strong>{{ $catalogComponent->name }}</strong> · {{ $catalogComponent->area->name }} · {{ __($catalogComponent->formation) }} · {{ __(\App\Support\HistoryCurriculumCatalog::stageLabels()[$catalogComponent->education_stage]) }}</p>
-        <p class="text-muted">{{ __('Reúna os vínculos no catálogo e escolha a nomenclatura final. As notas, faltas e cargas horárias dos históricos serão preservadas.') }}</p>
+        <p><strong>{{ __('Origem') }}: {{ $catalogComponent->name }}</strong> · {{ $catalogComponent->area->name }} · {{ __($catalogComponent->formation) }} · {{ __(\App\Support\HistoryCurriculumCatalog::stageLabels()[$catalogComponent->education_stage]) }}</p>
+        <p class="text-muted">{{ __('Escolha o destino em uma matriz do sistema. Todos os registros históricos da origem adotarão o nome, a etapa, a formação e a área do destino. Notas, faltas e cargas horárias serão preservadas.') }}</p>
         <form method="POST" action="{{ route('history-curriculum.merge', $catalogComponent) }}" data-catalog-merge-form>
             @csrf
             <div class="form-group">
-                <label for="merge-other">{{ __('Outro componente') }}</label>
-                <select id="merge-other" name="other_component_id" class="form-control" required aria-describedby="merge-context">
+                <label for="merge-target">{{ __('Componente de destino na matriz') }}</label>
+                <select id="merge-target" name="target_component_id" class="form-control" required aria-describedby="merge-context">
                     <option value="">{{ __('Selecione') }}</option>
-                    @foreach($candidates as $candidate)<option value="{{ $candidate->id }}" data-name="{{ $candidate->name }}" @selected((string) old('other_component_id') === (string) $candidate->id)>{{ $candidate->name }} · {{ $candidate->active ? __('Ativo') : __('Inativo') }} · {{ $candidate->history_components_count }} {{ __('Usos') }}</option>@endforeach
+                    @foreach($candidates as $candidate)
+                        <option value="{{ $candidate->id }}" data-name="{{ $candidate->name }}" data-stage="{{ __(\App\Support\HistoryCurriculumCatalog::stageLabels()[$candidate->education_stage]) }}" data-formation="{{ __($candidate->formation) }}" data-area="{{ $candidate->area->name }}" @selected((string) old('target_component_id') === (string) $candidate->id)>{{ $candidate->name }} · {{ __(\App\Support\HistoryCurriculumCatalog::stageLabels()[$candidate->education_stage]) }} · {{ __($candidate->formation) }} · {{ $candidate->area->name }}</option>
+                    @endforeach
                 </select>
-                <small id="merge-context" class="form-text text-muted">{{ __('Selecione outro componente da mesma etapa, formação e área.') }}</small>
+                <small id="merge-context" class="form-text text-muted">{{ __('Somente componentes já cadastrados em matrizes podem receber a mesclagem. As matrizes permanecem intactas.') }}</small>
             </div>
-            <fieldset class="form-group">
-                <legend class="h6">{{ __('Qual nomenclatura deseja manter?') }}</legend>
-                <label class="d-flex align-items-center border rounded p-3 mb-2"><input type="radio" name="keep" value="current" class="mr-2" @checked(old('keep') === 'current') required> {{ $catalogComponent->name }}</label>
-                <label class="d-flex align-items-center border rounded p-3"><input type="radio" name="keep" value="other" class="mr-2" @checked(old('keep') === 'other') required><span data-merge-other-name>{{ __('Selecione o outro componente') }}</span></label>
-            </fieldset>
-            @if($candidates->isEmpty())<p role="status">{{ __('Não há outro componente compatível para mesclar.') }}</p>@endif
+            <div class="border rounded p-3 mb-3" data-merge-preview hidden aria-live="polite">
+                <strong data-merge-name></strong>
+                <p class="mb-0" data-merge-classification></p>
+                <ul class="mb-0 mt-2" data-merge-matrices>
+                    @foreach($candidates as $candidate)
+                        @foreach($candidate->matrixComponents as $matrixComponent)
+                            <li data-target-id="{{ $candidate->id }}" hidden>{{ $matrixComponent->course->name }} · {{ $matrixComponent->course->academicYear?->school?->name }} · {{ $matrixComponent->course->academicYear?->reference_year }}</li>
+                        @endforeach
+                    @endforeach
+                </ul>
+            </div>
+            @if($candidates->isEmpty())<p role="status">{{ __('Não há componentes de matriz disponíveis para receber a mesclagem.') }}</p>@endif
             <div class="sge-action-buttons">
                 <button class="btn btn-primary" type="submit" @disabled($candidates->isEmpty())><i class="fas fa-object-group mr-1" aria-hidden="true"></i>{{ __('Mesclar componentes') }}</button>
                 <a class="btn btn-outline-secondary" href="{{ route('history-curriculum.index') }}">{{ __('Cancelar') }}</a>
@@ -35,11 +43,13 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.querySelector('[data-catalog-merge-form]');
-    const select = form.querySelector('#merge-other');
+    const select = form.querySelector('#merge-target');
     const update = () => {
-        const name = select.selectedOptions[0]?.dataset.name;
-        form.querySelector('[data-merge-other-name]').textContent = name || @js(__('Selecione o outro componente'));
-        form.querySelector('[value="other"]').disabled = !name;
+        const option = select.selectedOptions[0], data = option?.dataset;
+        form.querySelector('[data-merge-preview]').hidden = !select.value;
+        form.querySelector('[data-merge-name]').textContent = data?.name || '';
+        form.querySelector('[data-merge-classification]').textContent = [data?.stage, data?.formation, data?.area].filter(Boolean).join(' · ');
+        form.querySelectorAll('[data-target-id]').forEach(row => { row.hidden = row.dataset.targetId !== select.value; });
     };
     select.addEventListener('change', update);
     update();

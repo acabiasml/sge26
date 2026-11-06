@@ -44,6 +44,12 @@ final class HistoryCatalogIntegrator
 
     private function syncComponent(StudentAcademicHistoryComponent $component): void
     {
+        // As referências a matrizes, inclusive destinos escolhidos por mesclagem,
+        // prevalecem sobre a etapa anteriormente transcrita no histórico.
+        $matrixEntries = $component->catalogEntries->filter(fn ($entry) => $entry->matrix_origin);
+        if ($matrixEntries->isNotEmpty()) {
+            return;
+        }
         $history = $component->history;
         $allowedStages = ['fundamental', 'medio', 'tecnico'];
         $fixedStage = in_array($history?->education_stage, $allowedStages, true) ? $history->education_stage : null;
@@ -67,14 +73,23 @@ final class HistoryCatalogIntegrator
             $formation = $component->formation ?: 'Formação não informada';
             $area = $this->area($areaName, $formation);
             $key = $this->key([$stage, $formation, $area->id, $component->name]);
-            $this->aliases ??= Schema::hasTable('history_curriculum_aliases')
-                ? HistoryCurriculumAlias::with('target')->get()->keyBy(fn ($alias) => $this->key([$alias->education_stage, $alias->formation, $alias->knowledge_area_id, $alias->name]))->all() : [];
-            if ($alias = $this->aliases[$key] ?? null) {
-                $ids[] = $alias->history_curriculum_component_id;
+            $this->entries ??= HistoryCurriculumComponent::all()->keyBy(fn ($entry) => $this->key([$entry->education_stage, $entry->formation, $entry->knowledge_area_id, $entry->name]))->all();
+            if (($this->entries[$key] ?? null)?->matrix_origin) {
+                $ids[] = $this->entries[$key]->id;
 
                 continue;
             }
-            $this->entries ??= HistoryCurriculumComponent::all()->keyBy(fn ($entry) => $this->key([$entry->education_stage, $entry->formation, $entry->knowledge_area_id, $entry->name]))->all();
+            $this->aliases ??= Schema::hasTable('history_curriculum_aliases')
+                ? HistoryCurriculumAlias::with('target.area')->get()->keyBy(fn ($alias) => $this->key([$alias->education_stage, $alias->formation, $alias->knowledge_area_id, $alias->name]))->all() : [];
+            $hasSystemRecords = $component->records->contains(fn ($record) => $record->year?->source === 'system');
+            if (! $hasSystemRecords && ($alias = $this->aliases[$key] ?? null)) {
+                $ids[] = $alias->history_curriculum_component_id;
+                if ($alias->target->matrix_origin) {
+                    $component->adoptCatalogDefinition($alias->target);
+                }
+
+                continue;
+            }
             $entry = $this->entries[$key] ??= HistoryCurriculumComponent::firstOrCreate([
                 'education_stage' => $stage, 'formation' => $formation,
                 'knowledge_area_id' => $area->id, 'name' => $component->name,

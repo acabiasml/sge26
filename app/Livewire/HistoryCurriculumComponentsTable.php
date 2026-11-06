@@ -16,7 +16,7 @@ class HistoryCurriculumComponentsTable extends DataTableComponent
     {
         abort_unless(auth()->user()?->isAdministrator(), 403);
         $this->setPrimaryKey('id');
-        $this->setAdditionalSelects(['history_curriculum_components.id as id', 'history_curriculum_components.knowledge_area_id']);
+        $this->setAdditionalSelects(['history_curriculum_components.id as id', 'history_curriculum_components.knowledge_area_id', 'history_curriculum_components.matrix_origin']);
         $this->setDefaultSort('name');
         $this->setSearchDebounce(250);
         $this->setOfflineIndicatorDisabled();
@@ -40,6 +40,7 @@ class HistoryCurriculumComponentsTable extends DataTableComponent
             Column::make(__('Formação'), 'formation')->sortable()->format(fn ($value) => __($value)),
             Column::make(__('Etapa'), 'education_stage')->sortable()->format(fn ($value) => __(HistoryCurriculumCatalog::stageLabels()[$value])),
             Column::make(__('Situação'), 'active')->sortable()->format(fn ($value) => $value ? __('Ativo') : __('Inativo')),
+            Column::make(__('Origem'))->label(fn (HistoryCurriculumComponent $row): string => $row->isMatrixDerived() ? __('Matriz do sistema') : __('Histórico / cadastro')),
             Column::make(__('Usos'))->label(fn (HistoryCurriculumComponent $row): string => view('livewire.tables.history-curriculum-count', ['component' => $row])->render())->html(),
             Column::make(__('Ações'))->label(fn (HistoryCurriculumComponent $row): string => view('livewire.tables.history-curriculum-actions', ['component' => $row])->render())->html(),
         ];

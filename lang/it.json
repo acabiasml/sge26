@@ -2791,5 +2791,17 @@
     "Um dos componentes mudou ou já foi mesclado. Reabra o catálogo.": "Una delle discipline è cambiata o è già stata unita. Riapri il catalogo.",
     "A mesclagem exige a mesma etapa, formação e área curricular.": "L’unione richiede lo stesso livello, formazione e area curricolare.",
     "Componentes mesclados. Nomenclatura mantida: :name.": "Discipline unite. Denominazione mantenuta: :name.",
-    "Esta nomenclatura já foi incorporada a outro componente do catálogo.": "Questa denominazione è già stata incorporata in un’altra disciplina del catalogo."
+    "Esta nomenclatura já foi incorporada a outro componente do catálogo.": "Questa denominazione è già stata incorporata in un’altra disciplina del catalogo.",
+    "Componentes de matrizes do sistema são protegidos e não podem ser mesclados ou alterados pelo catálogo.": "Le discipline dei piani di studio del sistema sono protette e non possono essere unite o modificate dal catalogo.",
+    "Selecione um componente de destino diferente da origem.": "Seleziona una disciplina di destinazione diversa dall’origine.",
+    "O destino deve ser um componente existente em uma matriz do sistema.": "La destinazione deve essere una disciplina presente in un piano di studi del sistema.",
+    "Matriz do sistema": "Piano di studi del sistema",
+    "Histórico / cadastro": "Carriera / registrazione",
+    "Definido na matriz": "Definito nel piano di studi",
+    "Escolha o destino em uma matriz do sistema. Todos os registros históricos da origem adotarão o nome, a etapa, a formação e a área do destino. Notas, faltas e cargas horárias serão preservadas.": "Scegli la destinazione in un piano di studi del sistema. Tutte le registrazioni storiche di origine adotteranno il nome, il livello, la formazione e l’area della destinazione. Voti, assenze e monte ore saranno conservati.",
+    "Componente de destino na matriz": "Disciplina di destinazione nel piano di studi",
+    "Somente componentes já cadastrados em matrizes podem receber a mesclagem. As matrizes permanecem intactas.": "Solo le discipline già registrate nei piani di studio possono ricevere l’unione. I piani di studio rimangono intatti.",
+    "Não há componentes de matriz disponíveis para receber a mesclagem.": "Non ci sono discipline di un piano di studi disponibili per ricevere l’unione.",
+    "Ver componentes no catálogo": "Vedi discipline nel catalogo",
+    "Nenhum componente de matriz vinculado a esta área.": "Nessuna disciplina di un piano di studi collegata a questa area."
 }

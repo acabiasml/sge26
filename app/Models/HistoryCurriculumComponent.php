@@ -16,7 +16,7 @@ class HistoryCurriculumComponent extends Model
 
     protected function casts(): array
     {
-        return ['active' => 'boolean'];
+        return ['active' => 'boolean', 'matrix_origin' => 'boolean'];
     }
 
     protected function titleCaseAttributes(): array
@@ -27,6 +27,16 @@ class HistoryCurriculumComponent extends Model
     protected function titleCaseAttributesPreservingRomanNumerals(): array
     {
         return ['name'];
+    }
+
+    public function matrixComponents(): BelongsToMany
+    {
+        return $this->belongsToMany(CurriculumComponent::class, 'matrix_catalog_components');
+    }
+
+    public function isMatrixDerived(): bool
+    {
+        return (bool) $this->matrix_origin || $this->matrixComponents()->exists() || $this->historyComponents()->whereHas('records.year', fn ($query) => $query->where('source', 'system'))->exists();
     }
 
     public function historyComponents(): BelongsToMany

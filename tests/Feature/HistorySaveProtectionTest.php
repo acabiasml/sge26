@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AcademicYear;
 use App\Models\AuditLog;
 use App\Models\HistoryCurriculumComponent;
 use App\Models\KnowledgeArea;
@@ -11,6 +12,8 @@ use App\Models\School;
 use App\Models\StudentAcademicHistory;
 use App\Models\StudentAcademicHistoryYear;
 use App\Models\User;
+use App\Support\HistoryCatalogIntegrator;
+use App\Support\MatrixHistoryCatalog;
 use App\Support\StudentHistoryEditGuard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -346,6 +349,28 @@ class HistorySaveProtectionTest extends TestCase
         $this->assertSame($count, HistoryCurriculumComponent::count());
         $this->assertSame($entry->id, $history->components()->sole()->catalogEntries()->sole()->id);
         $this->assertSame('8,0', $history->components()->sole()->records()->sole()->score_label);
+    }
+
+    public function test_a_merged_manual_history_keeps_the_matrix_classification_when_edited_again(): void
+    {
+        $history = $this->history();
+        app(HistoryCatalogIntegrator::class)->syncHistory($history);
+        $source = $history->components()->sole()->catalogEntries()->sole();
+        $year = AcademicYear::create(['school_id' => $history->school_id, 'name' => '2026', 'reference_year' => 2026, 'starts_at' => '2026-01-01', 'ends_at' => '2026-12-31']);
+        $course = $year->courses()->create(['name' => 'Matriz Médio', 'stage' => 'medio']);
+        $matrix = $course->components()->create(['name' => 'Lin. Inglesa', 'knowledge_area_id' => KnowledgeArea::where('name', 'Linguagens e suas Tecnologias')->value('id'), 'active' => true]);
+        $target = app(MatrixHistoryCatalog::class)->syncComponent($matrix);
+        $this->post(route('history-curriculum.merge', $source), ['target_component_id' => $target->id])->assertSessionHasNoErrors();
+        $this->get(route('people.histories.edit', [$history->person_id, $history]))->assertOk()->assertSee('value="Linguagens e suas Tecnologias" selected', false);
+        $external = $history->years()->sole();
+        $payload = $this->yearlyPayload($history->fresh(), [$this->year(1) + ['id' => $external->id]], [0 => [$this->yearComponentData('Lin. Inglesa', 'Linguagens e suas Tecnologias', ['score_label' => '8,5'])]]);
+        $payload['formation_totals_present'] = 1;
+        $this->put($this->url($history), $payload)->assertSessionHasNoErrors();
+        $component = $history->components()->sole();
+        $this->assertSame($target->id, $component->catalogEntries()->sole()->id);
+        $this->assertSame('Linguagens e suas Tecnologias', $component->knowledge_area);
+        $this->assertSame('8,5', $component->records()->sole()->score_label);
+        $this->assertSame('Lin. Inglesa', $matrix->fresh()->name);
     }
 
     public function test_new_year_is_added_without_replacing_existing_year_or_its_grade(): void

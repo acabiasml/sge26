@@ -1161,8 +1161,9 @@ class AcademicCalendarTest extends TestCase
         $this->delete(route('knowledge-areas.detach', [$area, $first]))->assertNotFound();
         $this->delete(route('knowledge-areas.detach-all', $area))->assertSessionHasNoErrors();
         $this->assertNull($second->refresh()->knowledge_area_id);
-        $this->delete(route('knowledge-areas.destroy', $area))->assertSessionHasNoErrors();
-        $this->assertDatabaseMissing('knowledge_areas', ['id' => $area->id]);
+        $this->delete(route('knowledge-areas.destroy', $area))->assertSessionHasErrors('area');
+        $this->assertDatabaseHas('knowledge_areas', ['id' => $area->id]);
+        $this->assertTrue($area->historyCatalogComponents()->where('matrix_origin', true)->exists());
         $this->assertDatabaseHas('curriculum_components', ['id' => $first->id, 'name' => $first->name]);
         $this->assertDatabaseHas('curriculum_components', ['id' => $second->id]);
     }

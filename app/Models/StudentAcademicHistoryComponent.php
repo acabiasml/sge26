@@ -13,6 +13,8 @@ class StudentAcademicHistoryComponent extends Model
 {
     use HasFactory, HasTitleCaseAttributes;
 
+    private bool $adoptingCatalogDefinition = false;
+
     protected $fillable = [
         'student_academic_history_id',
         'position',
@@ -32,6 +34,10 @@ class StudentAcademicHistoryComponent extends Model
 
     protected function titleCaseAttributes(): array
     {
+        if ($this->adoptingCatalogDefinition) {
+            return [];
+        }
+
         return [
             'formation',
             'knowledge_area',
@@ -44,6 +50,21 @@ class StudentAcademicHistoryComponent extends Model
         return [
             'name',
         ];
+    }
+
+    public function adoptCatalogDefinition(HistoryCurriculumComponent $entry): void
+    {
+        $entry->loadMissing('area');
+        // Preserva a grafia da matriz, inclusive abreviações e nomes das áreas.
+        $this->setRawAttributes(array_merge($this->getAttributes(), [
+            'name' => $entry->name, 'formation' => $entry->formation, 'knowledge_area' => $entry->area->name,
+        ]));
+        $this->adoptingCatalogDefinition = true;
+        try {
+            $this->save();
+        } finally {
+            $this->adoptingCatalogDefinition = false;
+        }
     }
 
     public function history(): BelongsTo

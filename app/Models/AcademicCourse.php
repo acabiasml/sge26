@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasTitleCaseAttributes;
 use App\Support\CurriculumCatalog;
+use App\Support\MatrixHistoryCatalog;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,8 +18,11 @@ class AcademicCourse extends Model
     use Auditable, HasFactory, HasTitleCaseAttributes;
 
     public const STAGE_ELEMENTARY = 'fundamental';
+
     public const STAGE_HIGH_SCHOOL = 'medio';
+
     public const STAGE_TECHNICAL = 'tecnico';
+
     public const STAGE_OTHER = 'outro';
 
     public const STAGE_LABELS = [
@@ -29,13 +33,21 @@ class AcademicCourse extends Model
     ];
 
     public const MODALITY_REGULAR = 'regular';
+
     public const MODALITY_PROFESSIONAL_TECHNOLOGICAL = 'educacao_profissional_tecnologica';
+
     public const MODALITY_EJA = 'eja';
+
     public const MODALITY_SPECIAL = 'educacao_especial';
+
     public const MODALITY_INDIGENOUS = 'educacao_indigena';
+
     public const MODALITY_QUILOMBOLA = 'educacao_quilombola';
+
     public const MODALITY_RURAL = 'educacao_do_campo';
+
     public const MODALITY_DISTANCE = 'educacao_a_distancia';
+
     public const MODALITY_OTHER = 'outra';
 
     public const MODALITY_LABELS = [
@@ -49,6 +61,17 @@ class AcademicCourse extends Model
         self::MODALITY_DISTANCE => 'Educação a Distância',
         self::MODALITY_OTHER => 'Outra modalidade',
     ];
+
+    protected static function booted(): void
+    {
+        static::updated(function (self $model): void {
+            if ($model->wasChanged(['stage'])) {
+                foreach ($model->components()->get() as $component) {
+                    app(MatrixHistoryCatalog::class)->syncComponent($component);
+                }
+            }
+        });
+    }
 
     protected $fillable = [
         'academic_year_id',

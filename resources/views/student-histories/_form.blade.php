@@ -5,7 +5,7 @@
 @php
     $curriculumOnly = $curriculumOnly ?? false;
     $manualOnly = $manualOnly ?? false;
-    $history->loadMissing(['years.records', 'components.records.year']);
+    $history->loadMissing(['years.records', 'components.records.year', 'components.catalogEntries']);
     $editableYears = $manualOnly ? $history->years->filter(fn ($year) => $year->source !== 'system')->values() : $history->years->values();
     $catalogStage = \App\Support\CurriculumAreaStage::historyStage($history) ?: 'fundamental';
     $historyCatalogs = \App\Support\HistoryCurriculumCatalog::all();

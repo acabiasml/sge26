@@ -208,6 +208,11 @@ with tempfile.TemporaryDirectory() as directory:
                          'php artisan migrate --path=database/migrations/2026_11_05_000003_integrate_history_components_into_curriculum_catalog.php --force --no-ansi'))
         commands.append(('Conferir referências de componentes mesclados',
                          'php artisan migrate --path=database/migrations/2026_11_05_000004_create_history_curriculum_aliases.php --force --no-ansi'))
+        commands.append(('Conferir proteção e origem dos componentes de matrizes',
+                         'php artisan migrate --path=database/migrations/2026_11_05_000005_protect_matrix_catalog_components.php --force --no-ansi'))
+        commands.append(('Conferir vínculos das matrizes no catálogo',
+                         'php artisan tinker --execute=\'echo json_encode(["matrix_components" => App\\Models\\CurriculumComponent::count(), '
+                         '"unmapped_matrix_components" => App\\Models\\CurriculumComponent::whereDoesntHave("historyCatalogEntries")->count()]);\''))
         commands.append(('Conferir integração dos históricos ao catálogo',
                          'php artisan tinker --execute=\'echo json_encode(["catalog_components" => App\\Models\\HistoryCurriculumComponent::count(), '
                          '"history_components" => App\\Models\\StudentAcademicHistoryComponent::count(), '
@@ -251,6 +256,9 @@ with tempfile.TemporaryDirectory() as directory:
                 print(output, flush=True)
             if label == 'Configuração da sessão' and output.strip() not in ('120 true database', '120 true file'):
                 raise RuntimeError('A sessão em produção não está limitada a duas horas de inatividade e ao navegador aberto.')
+            if label == 'Conferir vínculos das matrizes no catálogo':
+                if json.loads(output).get('unmapped_matrix_components') != 0:
+                    raise RuntimeError('Há componentes de matrizes sem proteção no catálogo.')
             if label == 'Conferir integração dos históricos ao catálogo':
                 integration = json.loads(output)
                 if integration.get('unlinked_history_components') != 0:

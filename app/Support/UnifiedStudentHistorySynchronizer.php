@@ -243,6 +243,9 @@ class UnifiedStudentHistorySynchronizer
                 'regulatory_reference' => $technicalCourse?->conciseRegulatoryReference(),
                 'knowledge_area' => $knowledgeArea,
             ]);
+            if ($catalogEntry = app(MatrixHistoryCatalog::class)->syncComponent($component)) {
+                $historyComponent->catalogEntries()->syncWithoutDetaching([$catalogEntry->id]);
+            }
             $synchronizedComponentIds->push($historyComponent->id);
             $periodCount = max(1, (int) $componentReport['total_periods']);
             $rawScore = $componentReport['complete_periods'] > 0 ? (float) $componentReport['points'] / $periodCount : null;

@@ -7,7 +7,7 @@
         if ($submittedComponent) $modalComponents->put($submittedComponent->id, $submittedComponent);
     }
 @endphp
-@foreach($modalComponents as $component)
+@foreach($modalComponents->reject(fn ($component) => $component->isMatrixDerived()) as $component)
 <div class="modal fade" id="catalog-edit-{{ $component->id }}" wire:key="catalog-modal-{{ $component->id }}" wire:ignore.self tabindex="-1" role="dialog" aria-labelledby="catalog-title-{{ $component->id }}" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document"><div class="modal-content">
         <div class="modal-header">

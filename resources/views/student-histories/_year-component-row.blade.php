@@ -3,6 +3,7 @@
     $selectedArea = $component['knowledge_area'] ?? '';
     $selectedComponent = $component['name'] ?? '';
     $record = $component['record'] ?? [];
+    $preservesMatrixReference = $history->components->contains(fn ($saved) => $saved->name === $selectedComponent && $saved->knowledge_area === $selectedArea && $saved->formation === $selectedFormation && $saved->catalogEntries->contains('matrix_origin', true));
     $catalogRows = collect($historyCatalogs[$componentStage] ?? []);
     $rowFormations = $catalogRows->pluck('formation')->unique()->values()->all();
     if (! in_array($selectedFormation, $rowFormations, true)) $rowFormations[] = $selectedFormation;
@@ -24,7 +25,7 @@
         <select name="{{ $prefix }}[knowledge_area]" class="form-control form-control-sm" data-history-area aria-label="{{ __('Área') }}" required>
             <option value="">{{ __('Selecione') }}</option>
             @foreach($rowAreas as $area)<option value="{{ $area }}" @selected($selectedArea === $area)>{{ $area }}</option>@endforeach
-            @if($selectedArea && ! $rowAreas->contains($selectedArea) && \App\Support\CurriculumAreaStage::compatible($selectedArea, $componentStage))<option value="{{ $selectedArea }}" selected>{{ $selectedArea }} · {{ __('Registro existente') }}</option>@endif
+            @if($selectedArea && ! $rowAreas->contains($selectedArea) && ($preservesMatrixReference || \App\Support\CurriculumAreaStage::compatible($selectedArea, $componentStage)))<option value="{{ $selectedArea }}" selected>{{ $selectedArea }} · {{ __('Registro existente') }}</option>@endif
         </select>
     </td>
     <td>
