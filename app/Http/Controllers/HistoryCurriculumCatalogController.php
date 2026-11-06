@@ -26,11 +26,10 @@ class HistoryCurriculumCatalogController extends Controller
     {
         abort_unless($request->user()->isAdministrator(), 403);
         $catalogComponent->load(['area', 'matrixComponents.course.academicYear.school']);
-        abort_if($catalogComponent->isMatrixDerived() && $catalogComponent->matrixComponents->isEmpty(), 403, __('Não foi possível identificar a matriz de origem. Revise os vínculos antes de mesclar este componente.'));
         $candidates = HistoryCurriculumComponent::whereKeyNot($catalogComponent->id)
             ->with(['area', 'matrixComponents.course.academicYear.school'])->orderBy('name')->get()
             ->filter(fn ($candidate) => $merger->supportsMatrixDefinition($catalogComponent, $candidate)
-                || ((! $candidate->isMatrixDerived() || $candidate->matrixComponents->isNotEmpty()) && $merger->supportsMatrixDefinition($candidate, $catalogComponent)))
+                || $merger->supportsMatrixDefinition($candidate, $catalogComponent))
             ->sortBy(fn ($candidate) => \App\Support\CurriculumCatalog::alphabeticalKey($candidate->name), SORT_NATURAL)->values();
 
         return view('knowledge-areas.merge', ['catalogComponent' => $catalogComponent->load('area'), 'candidates' => $candidates]);

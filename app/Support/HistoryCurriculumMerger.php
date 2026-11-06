@@ -39,9 +39,6 @@ final class HistoryCurriculumMerger
             $target = $entries[$targetId]->load('area');
             $matrices = $source->matrixComponents()->with('course')->orderBy('curriculum_components.id')->lockForUpdate()->get();
             $source->setRelation('matrixComponents', $matrices);
-            if ($source->isMatrixDerived() && $matrices->isEmpty()) {
-                throw ValidationException::withMessages(['catalog_component' => __('Não foi possível identificar a matriz de origem. Revise os vínculos antes de mesclar este componente.')]);
-            }
             if (! $this->supportsMatrixDefinition($source, $target)) {
                 throw ValidationException::withMessages(['target_component_id' => __('A classificação escolhida é incompatível com a etapa de uma das matrizes de origem.')]);
             }

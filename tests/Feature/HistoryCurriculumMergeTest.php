@@ -186,7 +186,7 @@ class HistoryCurriculumMergeTest extends TestCase
         $this->assertSame($target->id, $one->historyCatalogEntries()->sole()->id);
     }
 
-    public function test_unmapped_system_records_stay_protected_and_invalid_destinations_are_rejected(): void
+    public function test_invalid_merge_destinations_are_rejected_and_system_history_references_can_be_merged(): void
     {
         $this->actingAs($this->user(PersonSchoolRole::ROLE_ADMINISTRATOR));
         $source = $this->entry('Inglês antigo');
@@ -199,9 +199,57 @@ class HistoryCurriculumMergeTest extends TestCase
         $record = $component->records()->create(['student_academic_history_year_id' => $year->id, 'score_label' => '9,0']);
         $source->historyComponents()->attach($component);
         $target = app(MatrixHistoryCatalog::class)->syncComponent($this->matrixComponent('Lin. Inglesa'));
-        $this->post(route('history-curriculum.merge', $source), ['target_component_id' => $target->id])->assertSessionHasErrors('catalog_component');
+        $this->post(route('history-curriculum.merge', $source), ['target_component_id' => $target->id])->assertSessionHasNoErrors();
         $this->assertSame('9,0', $record->fresh()->score_label);
-        $this->assertDatabaseHas('history_curriculum_components', ['id' => $source->id]);
+        $this->assertDatabaseMissing('history_curriculum_components', ['id' => $source->id]);
+        $this->assertSame($target->id, $record->fresh()->component->catalogEntries()->sole()->id);
+    }
+
+    public function test_orphaned_system_field_cultivation_reference_can_merge_its_two_histories_without_changing_any_matrix(): void
+    {
+        $admin = $this->user(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $this->actingAs($admin);
+        $area = KnowledgeArea::where('name', 'Parte Diversificada')->firstOrFail();
+        $source = HistoryCurriculumComponent::create(['name' => 'Cultivo de Hortaliças', 'knowledge_area_id' => $area->id,
+            'education_stage' => 'medio', 'formation' => 'Itinerário Formativo', 'active' => true]);
+        $source->forceFill(['matrix_origin' => true])->save();
+        $matrix = $this->matrixComponent('Cultivo de Hortaliças', 'medio', 'Aprofundamento de Estudos', 'Itinerário Formativo');
+        $target = $matrix->historyCatalogEntries()->sole();
+        $records = collect();
+        foreach (range(1, 2) as $number) {
+            $history = $this->history();
+            $history->update(['is_unified' => true, 'education_stage' => 'medio']);
+            $year = $history->years()->create(['label' => '1º Ano', 'stage' => 'Ensino Médio', 'source' => 'system', 'year' => '2025']);
+            $component = $history->components()->create(['name' => $source->name, 'knowledge_area' => $area->name, 'formation' => $source->formation]);
+            $component->catalogEntries()->attach($source);
+            $records->push($component->records()->create(['student_academic_history_year_id' => $year->id, 'curriculum_component_id' => $matrix->id,
+                'score_label' => '8,0', 'score_numeric' => 8, 'workload_hours' => 80, 'completed_workload_hours' => 76, 'absences' => 4, 'frequency_percentage' => 95, 'result' => 'Aprovado']));
+        }
+        $this->assertTrue($source->isMatrixDerived());
+        $this->assertFalse($source->matrixComponents()->exists());
+        $this->assertSame(2, $source->historyComponents()->count());
+        Livewire::test(HistoryCurriculumComponentsTable::class)->set('search', 'Cultivo de Hortaliças')
+            ->assertSeeHtml(route('history-curriculum.merge-form', $source))->assertDontSeeHtml('id="catalog-edit-'.$source->id.'"');
+        $this->get(route('history-curriculum.merge-form', $source))->assertOk()
+            ->assertViewHas('candidates', fn ($candidates) => $candidates->contains('id', $target->id));
+        $models = $records->flatMap(fn ($record) => [$record, $record->year])->push($matrix, $matrix->course);
+        $before = $models->map(fn ($model) => $model->fresh()->getAttributes())->all();
+        $this->post(route('history-curriculum.merge', $source), ['target_component_id' => $target->id])->assertSessionHasNoErrors();
+        $this->assertDatabaseMissing('history_curriculum_components', ['id' => $source->id]);
+        foreach ($records as $record) {
+            $component = $record->fresh()->component;
+            $this->assertSame($target->name, $component->name);
+            $this->assertSame($target->formation, $component->formation);
+            $this->assertSame($target->area->name, $component->knowledge_area);
+            $this->assertSame($target->id, $component->catalogEntries()->sole()->id);
+        }
+        app(MatrixHistoryCatalog::class)->importAll();
+        app(HistoryCatalogIntegrator::class)->importAll();
+        $this->assertSame($before, $models->map(fn ($model) => $model->fresh()->getAttributes())->all());
+        $this->assertSame(2, $target->historyComponents()->count());
+        $this->assertDatabaseMissing('history_curriculum_components', ['id' => $source->id]);
+        $this->assertDatabaseHas('audit_logs', ['actor_user_id' => $admin->id, 'metadata->operation' => 'history-curriculum:merge',
+            'metadata->transferred_links' => 2, 'metadata->updated_matrix_components' => 0]);
     }
 
     public function test_matrix_origins_stay_current_and_aliases_never_override_a_real_matrix_name(): void
