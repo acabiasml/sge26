@@ -17,16 +17,16 @@
         <div class="card-header d-flex justify-content-between align-items-center"><strong>{{ __('Áreas cadastradas') }}</strong><span class="badge badge-light">{{ $areas->total() }}</span></div>
         <div class="table-responsive">
             <table class="table table-hover mb-0">
-                <thead><tr><th>{{ __('Área') }}</th><th>{{ __('Formação') }}</th><th class="text-center">{{ __('Componentes vinculados') }}</th><th class="text-right">{{ __('Ações') }}</th></tr></thead>
+                <thead><tr><th>{{ __('Área') }}</th><th>{{ __('Formação') }}</th><th class="text-center">{{ __('Usos e catálogo') }}</th><th class="text-right">{{ __('Ações') }}</th></tr></thead>
                 <tbody>@forelse($areas as $area)
                     <tr>
                         <td class="align-middle font-weight-bold"><a href="{{ route('knowledge-areas.usages', $area) }}">{{ $area->name }}</a></td>
                         <td class="align-middle">{{ __($area->formation ?: 'Formação não definida') }}</td>
-                        <td class="align-middle text-center"><a class="btn btn-sm btn-outline-primary" href="{{ route('knowledge-areas.usages', $area) }}">{{ $area->components_count }} · {{ __('Ver usos') }}</a> <a class="btn btn-sm btn-outline-primary" href="{{ route('history-curriculum.index', ['table-filters' => ['area_id' => $area->id]]) }}">{{ $area->history_catalog_components_count }} · {{ __('Catálogo') }}</a></td>
+                        <td class="align-middle text-center"><a class="btn btn-sm btn-outline-primary" href="{{ route('knowledge-areas.usages', $area) }}" title="{{ __('Matrizes: :matrices. Históricos: :histories.', ['matrices' => $area->matrix_uses_count, 'histories' => $area->history_uses_count]) }}">{{ $area->usageCount() }} · {{ __('Ver usos') }}</a> <a class="btn btn-sm btn-outline-primary" href="{{ route('history-curriculum.index', ['table-filters' => ['area_id' => $area->id]]) }}">{{ $area->history_catalog_components_count }} · {{ __('Catálogo') }}</a></td>
                         <td class="align-middle text-right text-nowrap">
                             <button type="button" class="btn btn-sm btn-outline-primary" data-toggle="modal" data-target="#edit-area-{{ $area->id }}">{{ __('Editar') }}</button>
-                            @if($area->components_count === 0 && $area->history_catalog_components_count === 0)
-                                <form class="d-inline" method="POST" action="{{ route('knowledge-areas.destroy', $area) }}" data-confirm-message="{{ __('Excluir esta área sem vínculos?') }}">@csrf @method('DELETE')<button type="submit" class="btn btn-sm btn-outline-danger">{{ __('Excluir') }}</button></form>
+                            @if($area->usageCount() === 0)
+                                @include('knowledge-areas._delete-form')
                             @endif
                         </td>
                     </tr>

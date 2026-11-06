@@ -4,13 +4,13 @@
     <a data-navigation-return class="btn btn-outline-secondary mb-3" href="{{ route('knowledge-areas.index') }}"><i class="fas fa-arrow-left mr-1" aria-hidden="true"></i>{{ __('Áreas e formações') }}</a>
     <section class="card shadow-sm mb-4">
         <div class="card-body d-flex align-items-center justify-content-between flex-wrap">
-            <div><span class="text-muted">{{ __('Formação') }}</span><h2 class="h5">{{ __($area->formation ?: 'Formação não definida') }}</h2><span>{{ $area->components_count }} {{ __('componentes vinculados') }}</span></div>
+            <div><span class="text-muted">{{ __('Formação') }}</span><h2 class="h5">{{ __($area->formation ?: 'Formação não definida') }}</h2><span>{{ $area->matrix_uses_count }} {{ __('componentes em matrizes') }} · {{ $area->history_uses_count }} {{ __('componentes em históricos') }}</span></div>
             @if($area->components_count)
                 <form method="POST" action="{{ route('knowledge-areas.detach-all', $area) }}" data-confirm-message="{{ __('Desvincular todos os componentes desta área? Os componentes serão mantidos, sem área definida.') }}">@csrf @method('DELETE')<button type="submit" class="btn btn-outline-danger">{{ __('Desvincular todos') }}</button></form>
-            @elseif($area->history_catalog_components_count)
+            @elseif($area->usageCount() > 0)
                 <a class="btn btn-outline-primary" href="{{ route('history-curriculum.index', ['table-filters' => ['area_id' => $area->id]]) }}">{{ __('Ver componentes no catálogo') }} ({{ $area->history_catalog_components_count }})</a>
             @else
-                <form method="POST" action="{{ route('knowledge-areas.destroy', $area) }}" data-confirm-message="{{ __('Excluir esta área sem vínculos?') }}">@csrf @method('DELETE')<button type="submit" class="btn btn-outline-danger">{{ __('Excluir área') }}</button></form>
+                @include('knowledge-areas._delete-form')
             @endif
         </div>
     </section>

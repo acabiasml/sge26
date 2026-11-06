@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CurriculumComponent;
+use App\Models\HistoryCurriculumAlias;
 use App\Models\KnowledgeArea;
 use App\Support\CurriculumAreaStage;
 use App\Support\CurriculumCatalog;
@@ -18,7 +19,7 @@ class KnowledgeAreaController extends Controller
         abort_unless($request->user()->isAdministrator(), 403);
 
         return view('knowledge-areas.index', [
-            'areas' => KnowledgeArea::query()->withCount(['components', 'historyCatalogComponents'])->orderBy('name')->get()->sortBy(fn ($area) => CurriculumCatalog::alphabeticalKey($area->name), SORT_NATURAL)->values(),
+            'areas' => KnowledgeArea::query()->withUsageCounts()->orderBy('name')->get()->sortBy(fn ($area) => CurriculumCatalog::alphabeticalKey($area->name), SORT_NATURAL)->values(),
             'formations' => [CurriculumCatalog::FORMATION_FGB, CurriculumCatalog::FORMATION_ITINERARY, CurriculumCatalog::FORMATION_COMPLEMENTARY, 'Parte Diversificada', 'Formação Técnica Profissional'],
         ]);
     }
@@ -59,7 +60,7 @@ class KnowledgeAreaController extends Controller
         abort_unless($request->user()->isAdministrator(), 403);
 
         return view('knowledge-areas.usages', [
-            'area' => $area->loadCount(['components', 'historyCatalogComponents']),
+            'area' => KnowledgeArea::withUsageCounts()->findOrFail($area->id),
             'components' => $area->components()->with('course.academicYear.school')
                 ->when($request->filled('q'), fn ($query) => $query->where('name', 'like', '%'.trim((string) $request->input('q')).'%'))
                 ->orderBy('name')->paginate(10),
@@ -95,8 +96,15 @@ class KnowledgeAreaController extends Controller
         abort_unless($request->user()->isAdministrator(), 403);
         DB::transaction(function () use ($area): void {
             $area = $area->newQuery()->whereKey($area->id)->lockForUpdate()->firstOrFail();
-            if ($area->components()->exists() || $area->historyCatalogComponents()->exists()) {
-                throw ValidationException::withMessages(['area' => __('Desvincule os componentes antes de excluir a área.')]);
+            $catalogComponents = $area->historyCatalogComponents()->lockForUpdate()->get();
+            if ($area->components()->exists() || $area->historyCatalogComponents()
+                ->where(fn ($query) => $query->whereHas('matrixComponents')->orWhereHas('historyComponents'))->exists()) {
+                throw ValidationException::withMessages(['area' => __('Esta área é utilizada em matrizes ou históricos. Remova os vínculos antes de excluí-la.')]);
+            }
+            // Somente metadados sem uso; matrizes e transcrições permanecem intactas.
+            HistoryCurriculumAlias::where('knowledge_area_id', $area->id)->delete();
+            foreach ($catalogComponents as $catalogComponent) {
+                $catalogComponent->delete();
             }
             $area->delete();
         });

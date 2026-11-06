@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Livewire\HistoryCurriculumComponentsTable;
 use App\Models\AcademicYear;
+use App\Models\HistoryCurriculumAlias;
 use App\Models\HistoryCurriculumComponent;
 use App\Models\KnowledgeArea;
 use App\Models\Person;
@@ -12,6 +13,7 @@ use App\Models\School;
 use App\Models\StudentAcademicHistory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -34,6 +36,7 @@ class HistoryCurriculumCatalogTest extends TestCase
             $this->post(route('history-curriculum.store'), [])->assertForbidden();
             $this->put(route('history-curriculum.update', $entry), [])->assertForbidden();
             $this->delete(route('history-curriculum.destroy', $entry))->assertForbidden();
+            $this->delete(route('knowledge-areas.destroy', $entry->area))->assertForbidden();
         }
     }
 
@@ -54,14 +57,15 @@ class HistoryCurriculumCatalogTest extends TestCase
         $this->assertDatabaseMissing('history_curriculum_components', ['id' => $item->id]);
     }
 
-    public function test_catalog_associations_prevent_incompatible_area_renaming_and_deletion(): void
+    public function test_catalog_associations_prevent_incompatible_renaming_but_allow_removing_an_unused_area(): void
     {
         $this->actingAs($this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR));
         $area = KnowledgeArea::where('name', 'Linguagens')->firstOrFail();
         $this->put(route('knowledge-areas.update', $area), ['name' => 'Ciências da Natureza e suas Tecnologias', 'formation' => 'Formação Geral Básica'])->assertSessionHasErrors('name');
         $this->assertSame('Linguagens', $area->fresh()->name);
-        $this->delete(route('knowledge-areas.destroy', $area))->assertSessionHasErrors('area');
-        $this->assertDatabaseHas('knowledge_areas', ['id' => $area->id]);
+        $this->delete(route('knowledge-areas.destroy', $area))->assertSessionHasNoErrors();
+        $this->assertDatabaseMissing('knowledge_areas', ['id' => $area->id]);
+        $this->assertDatabaseMissing('history_curriculum_components', ['knowledge_area_id' => $area->id]);
     }
 
     public function test_framework_table_searches_filters_sorts_and_paginates_catalog_entries(): void
@@ -171,6 +175,85 @@ class HistoryCurriculumCatalogTest extends TestCase
             $this->delete(route('history-curriculum.destroy', $entry))->assertSessionHasErrors('catalog_component');
             $this->assertDatabaseHas('history_catalog_usages', ['history_curriculum_component_id' => $entry->id, 'student_academic_history_component_id' => $component->id]);
         }
+    }
+
+    public function test_zero_use_area_can_be_deleted_with_unused_catalog_entries_and_old_aliases(): void
+    {
+        $this->actingAs($this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR));
+        $area = KnowledgeArea::create(['name' => 'Área sem usos', 'formation' => 'Parte Complementar']);
+        foreach (range(1, 13) as $number) {
+            $entry = HistoryCurriculumComponent::create(['name' => 'Componente '.$number, 'knowledge_area_id' => $area->id, 'education_stage' => 'fundamental', 'formation' => 'Parte Complementar', 'active' => true]);
+            $entry->forceFill(['matrix_origin' => true])->save();
+        }
+        $school = School::create(['name' => 'Escola preservada']);
+        $year = AcademicYear::create(['school_id' => $school->id, 'name' => '2026', 'reference_year' => 2026, 'starts_at' => '2026-01-01', 'ends_at' => '2026-12-31']);
+        $course = $year->courses()->create(['name' => 'Matriz preservada', 'stage' => 'fundamental']);
+        $matrix = $course->components()->create(['name' => 'Componente preservado', 'knowledge_area_id' => KnowledgeArea::where('name', 'Linguagens')->value('id')]);
+        $target = $matrix->historyCatalogEntries()->sole();
+        HistoryCurriculumAlias::create(['knowledge_area_id' => $area->id, 'education_stage' => 'fundamental', 'formation' => 'Parte Complementar', 'name' => 'Nome antigo', 'history_curriculum_component_id' => $target->id]);
+        HistoryCurriculumAlias::create(['knowledge_area_id' => $area->id, 'education_stage' => 'fundamental', 'formation' => 'Parte Complementar', 'name' => 'Outro nome', 'history_curriculum_component_id' => $entry->id]);
+        $snapshot = [$matrix->fresh()->getAttributes(), $target->fresh()->getAttributes(), $course->fresh()->getAttributes()];
+        $counts = KnowledgeArea::withUsageCounts()->findOrFail($area->id);
+        $this->assertSame(0, $counts->usageCount());
+        $this->assertSame(13, $counts->history_catalog_components_count);
+        foreach ([route('knowledge-areas.index', ['q' => $area->name]), route('knowledge-areas.usages', $area)] as $url) {
+            $this->get($url)->assertOk()->assertSee('aria-label="Excluir área: '.$area->name.'"', false)
+                ->assertSee('13 componentes do catálogo sem uso?');
+        }
+        $this->delete(route('knowledge-areas.destroy', $area))->assertSessionHasNoErrors()->assertRedirect(route('knowledge-areas.index'));
+        $this->assertDatabaseMissing('knowledge_areas', ['id' => $area->id]);
+        $this->assertDatabaseMissing('history_curriculum_components', ['knowledge_area_id' => $area->id]);
+        $this->assertDatabaseMissing('history_curriculum_aliases', ['knowledge_area_id' => $area->id]);
+        $this->assertSame($snapshot, [$matrix->fresh()->getAttributes(), $target->fresh()->getAttributes(), $course->fresh()->getAttributes()]);
+    }
+
+    public function test_history_use_is_counted_once_and_blocks_area_deletion_without_partial_cleanup(): void
+    {
+        $this->actingAs($this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR));
+        $area = KnowledgeArea::create(['name' => 'Área com histórico', 'formation' => 'Parte Complementar']);
+        $entries = collect(['fundamental', 'medio'])->map(fn ($stage) => HistoryCurriculumComponent::create(['name' => 'Componente utilizado', 'knowledge_area_id' => $area->id, 'education_stage' => $stage, 'formation' => 'Parte Complementar', 'active' => true]));
+        $unused = HistoryCurriculumComponent::create(['name' => 'Componente sem uso', 'knowledge_area_id' => $area->id, 'education_stage' => 'fundamental', 'formation' => 'Parte Complementar', 'active' => true]);
+        $history = StudentAcademicHistory::create(['person_id' => Person::create(['full_name' => 'Estudante de teste'])->id, 'school_id' => School::create(['name' => 'Escola de teste'])->id, 'title' => 'Histórico de teste']);
+        $component = $history->components()->create(['name' => 'Componente utilizado', 'knowledge_area' => $area->name, 'formation' => 'Parte Complementar']);
+        $year = $history->years()->create(['label' => '8º Ano', 'source' => 'manual']);
+        $record = $component->records()->create(['student_academic_history_year_id' => $year->id, 'score_label' => '8,0', 'workload_hours' => 80]);
+        foreach ($entries as $entry) {
+            $entry->historyComponents()->attach($component);
+        }
+        $snapshot = [$record->fresh()->getAttributes(), $component->fresh()->getAttributes()];
+        $counts = KnowledgeArea::withUsageCounts()->findOrFail($area->id);
+        $this->assertSame(0, $counts->matrix_uses_count);
+        $this->assertSame(1, $counts->history_uses_count);
+        $this->assertSame(1, $counts->usageCount());
+        $this->get(route('knowledge-areas.index', ['q' => $area->name]))->assertOk()
+            ->assertSee('Matrizes: 0. Históricos: 1.')
+            ->assertDontSee('aria-label="Excluir área: '.$area->name.'"', false);
+        $this->delete(route('knowledge-areas.destroy', $area))->assertSessionHasErrors('area');
+        $this->assertDatabaseHas('history_curriculum_components', ['id' => $unused->id]);
+        $this->assertDatabaseHas('knowledge_areas', ['id' => $area->id]);
+        $this->assertSame($snapshot, [$record->fresh()->getAttributes(), $component->fresh()->getAttributes()]);
+    }
+
+    public function test_matrix_usage_blocks_deletion_even_when_its_catalog_definition_is_in_another_area(): void
+    {
+        $this->actingAs($this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR));
+        $area = KnowledgeArea::create(['name' => 'Área da matriz', 'formation' => 'Parte Complementar']);
+        $school = School::create(['name' => 'Escola da matriz']);
+        $year = AcademicYear::create(['school_id' => $school->id, 'name' => '2026', 'reference_year' => 2026, 'starts_at' => '2026-01-01', 'ends_at' => '2026-12-31']);
+        $course = $year->courses()->create(['name' => 'Matriz protegida', 'stage' => 'fundamental']);
+        $matrix = $course->components()->create(['name' => 'Componente protegido', 'knowledge_area_id' => $area->id, 'active' => false]);
+        $entry = $matrix->historyCatalogEntries()->sole();
+        $otherArea = KnowledgeArea::create(['name' => 'Outra área de referência', 'formation' => 'Parte Complementar']);
+        DB::table('history_curriculum_components')->where('id', $entry->id)->update(['knowledge_area_id' => $otherArea->id]);
+        $snapshot = [$matrix->fresh()->getAttributes(), $entry->fresh()->getAttributes()];
+        foreach ([$area, $otherArea] as $usedArea) {
+            $counts = KnowledgeArea::withUsageCounts()->findOrFail($usedArea->id);
+            $this->assertSame(1, $counts->matrix_uses_count);
+            $this->assertSame(1, $counts->usageCount());
+            $this->delete(route('knowledge-areas.destroy', $usedArea))->assertSessionHasErrors('area');
+            $this->assertDatabaseHas('knowledge_areas', ['id' => $usedArea->id]);
+        }
+        $this->assertSame($snapshot, [$matrix->fresh()->getAttributes(), $entry->fresh()->getAttributes()]);
     }
 
     private function userWithRole(string $role): User

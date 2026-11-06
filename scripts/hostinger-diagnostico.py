@@ -217,6 +217,13 @@ with tempfile.TemporaryDirectory() as directory:
                          'php artisan tinker --execute=\'echo json_encode(["catalog_components" => App\\Models\\HistoryCurriculumComponent::count(), '
                          '"history_components" => App\\Models\\StudentAcademicHistoryComponent::count(), '
                          '"unlinked_history_components" => App\\Models\\StudentAcademicHistoryComponent::whereDoesntHave("catalogEntries")->count()]);\''))
+        commands.append(('Conferir usos efetivos das áreas curriculares',
+                         'php artisan tinker --execute=' + shlex.quote(
+                             '$areas = App\\Models\\KnowledgeArea::withUsageCounts()->get(); '
+                             'echo json_encode(["areas" => $areas->count(), '
+                             '"without_uses" => $areas->filter(fn ($area) => $area->usageCount() === 0)->count(), '
+                             '"matrix_uses" => $areas->sum("matrix_uses_count"), '
+                             '"history_uses" => $areas->sum("history_uses_count")]);')))
         commands.append(('Conferir áreas curriculares por etapa', 'php artisan curriculum:reconcile-stage-areas --no-ansi'))
         if os.environ.get('REPAIR_STAGE_AREAS') == 'true':
             commands.append(('Corrigir áreas curriculares por etapa', 'php artisan curriculum:reconcile-stage-areas --apply --no-ansi'))
