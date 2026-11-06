@@ -65,7 +65,7 @@ class HistoryCurriculumMergeTest extends TestCase
         $target = app(MatrixHistoryCatalog::class)->syncComponent($second);
         $before = [$first->fresh()->getAttributes(), $second->fresh()->getAttributes()];
         $this->get(route('history-curriculum.merge-form', $source))->assertOk()->assertSee('name="keep"', false)
-            ->assertSee('data-confirm-message=', false)->assertSee('As matrizes originais');
+            ->assertSee('data-confirm-message=', false)->assertSee('Os históricos e as matrizes vinculadas');
         $this->put(route('history-curriculum.update', $source), ['name' => 'Língua Inglesa'])->assertForbidden();
         $this->delete(route('history-curriculum.destroy', $source))->assertForbidden();
         Livewire::test(HistoryCurriculumComponentsTable::class)->set('search', $source->name)
@@ -186,12 +186,11 @@ class HistoryCurriculumMergeTest extends TestCase
         $this->assertSame($target->id, $one->historyCatalogEntries()->sole()->id);
     }
 
-    public function test_manual_catalog_entries_and_unmapped_system_records_are_not_valid_merge_sources_or_destinations(): void
+    public function test_unmapped_system_records_stay_protected_and_invalid_destinations_are_rejected(): void
     {
         $this->actingAs($this->user(PersonSchoolRole::ROLE_ADMINISTRATOR));
         $source = $this->entry('Inglês antigo');
-        $notMatrix = $this->entry('Outro nome manual');
-        $this->post(route('history-curriculum.merge', $source), ['target_component_id' => $notMatrix->id])->assertSessionHasErrors('target_component_id');
+        $this->post(route('history-curriculum.merge', $source), ['target_component_id' => 999999])->assertSessionHasErrors('target_component_id');
         $this->post(route('history-curriculum.merge', $source), ['target_component_id' => $source->id])->assertSessionHasErrors('target_component_id');
         $this->post(route('history-curriculum.merge', $source), [])->assertSessionHasErrors('target_component_id');
         $history = $this->history();
@@ -231,18 +230,77 @@ class HistoryCurriculumMergeTest extends TestCase
         $this->assertTrue($target->fresh()->matrix_origin);
     }
 
-    public function test_merge_form_lists_only_matrix_destinations_and_other_roles_cannot_merge(): void
+    public function test_merge_form_lists_catalog_and_matrix_destinations_and_other_roles_cannot_merge(): void
     {
         $source = $this->entry('Inglês antigo');
         $manual = $this->entry('Apenas cadastro');
         $target = app(MatrixHistoryCatalog::class)->syncComponent($this->matrixComponent('Lin. Inglesa', 'medio', 'Linguagens e suas Tecnologias'));
         $this->actingAs($this->user(PersonSchoolRole::ROLE_ADMINISTRATOR));
-        $this->get(route('history-curriculum.merge-form', $source))->assertOk()->assertSee('Lin. Inglesa')->assertDontSee($manual->name)->assertDontSee('id="merge-keep-source"', false);
+        $this->get(route('history-curriculum.merge-form', $source))->assertOk()->assertSee('Lin. Inglesa')->assertSee($manual->name)->assertSee('id="merge-keep-source"', false);
         foreach ([PersonSchoolRole::ROLE_MANAGER, PersonSchoolRole::ROLE_TEACHER] as $role) {
             $this->actingAs($this->user($role));
             $this->get(route('history-curriculum.merge-form', $source))->assertForbidden();
             $this->post(route('history-curriculum.merge', $source), ['target_component_id' => $target->id])->assertForbidden();
         }
+    }
+
+    public function test_duplicate_manual_field_science_components_can_keep_the_nature_area(): void
+    {
+        $this->assertManualDuplicateMerge('source');
+    }
+
+    public function test_duplicate_manual_field_science_components_can_keep_the_humanities_area(): void
+    {
+        $this->assertManualDuplicateMerge('target');
+    }
+
+    private function assertManualDuplicateMerge(string $keep): void
+    {
+        $this->actingAs($this->user(PersonSchoolRole::ROLE_ADMINISTRATOR));
+        $entries = collect(['Ciências da Natureza', 'Ciências Humanas'])->map(fn ($area) => HistoryCurriculumComponent::create([
+            'name' => 'Ciências e Saberes do Campo', 'education_stage' => 'fundamental', 'formation' => 'Parte Diversificada',
+            'knowledge_area_id' => KnowledgeArea::where('name', $area)->value('id'), 'active' => true,
+        ]));
+        [$source, $target] = $entries->all();
+        foreach ([[$source, $target], [$target, $source]] as [$from, $other]) {
+            $this->get(route('history-curriculum.merge-form', $from))->assertOk()
+                ->assertViewHas('candidates', fn ($candidates) => $candidates->contains('id', $other->id))
+                ->assertSee('id="merge-keep-source"', false);
+        }
+        $records = collect();
+        foreach (range(1, 6) as $number) {
+            $entry = $number <= 2 ? $source : $target;
+            $history = $this->history();
+            $row = $history->components()->create(['name' => $entry->name, 'knowledge_area' => $entry->area->name, 'formation' => $entry->formation]);
+            $row->catalogEntries()->attach($entry);
+            $year = $history->years()->create(['label' => '4º Ano', 'stage' => 'Ensino Fundamental', 'source' => 'manual', 'year' => '2025']);
+            $records->push($row->records()->create(['student_academic_history_year_id' => $year->id, 'score_label' => '8,0', 'score_numeric' => 8, 'workload_hours' => 80, 'completed_workload_hours' => 76, 'frequency_percentage' => 95, 'absences' => 4, 'result' => 'Aprovado']));
+        }
+        $before = $records->map(fn ($record) => [$record->fresh()->getAttributes(), $record->year->fresh()->getAttributes()])->all();
+        $matrices = CurriculumComponent::orderBy('id')->get()->toArray();
+        $kept = $keep === 'source' ? $source : $target;
+        $discarded = $keep === 'source' ? $target : $source;
+        $this->post(route('history-curriculum.merge', $source), ['target_component_id' => $target->id, 'keep' => $keep])->assertSessionHasNoErrors();
+        $this->assertDatabaseMissing('history_curriculum_components', ['id' => $discarded->id]);
+        $this->assertSame(6, $kept->historyComponents()->count());
+        foreach ($records as $record) {
+            $row = $record->fresh()->component;
+            $this->assertSame($kept->name, $row->name);
+            $this->assertSame($kept->formation, $row->formation);
+            $this->assertSame($kept->area->name, $row->knowledge_area);
+            $this->assertSame($kept->id, $row->catalogEntries()->sole()->id);
+        }
+        app(HistoryCatalogIntegrator::class)->importAll();
+        $this->assertSame($before, $records->map(fn ($record) => [$record->fresh()->getAttributes(), $record->year->fresh()->getAttributes()])->all());
+        $this->assertSame($matrices, CurriculumComponent::orderBy('id')->get()->toArray());
+        $this->assertDatabaseMissing('history_curriculum_components', ['id' => $discarded->id]);
+        $legacy = $this->history();
+        $row = $legacy->components()->create(['name' => $discarded->name, 'formation' => $discarded->formation, 'knowledge_area' => $discarded->area->name]);
+        $year = $legacy->years()->create(['label' => '5º Ano', 'stage' => 'Ensino Fundamental', 'source' => 'manual']);
+        $row->records()->create(['student_academic_history_year_id' => $year->id, 'score_label' => '9,0']);
+        app(HistoryCatalogIntegrator::class)->syncHistory($legacy);
+        $this->assertSame($kept->id, $row->catalogEntries()->sole()->id);
+        $this->assertSame($kept->area->name, $row->fresh()->knowledge_area);
     }
 
     public function test_matrix_backfill_reads_database_defaults_and_keeps_imported_spelling_without_repeated_placeholder_areas(): void

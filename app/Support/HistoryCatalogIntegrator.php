@@ -77,6 +77,13 @@ final class HistoryCatalogIntegrator
         if ($matrixEntries->isNotEmpty()) {
             return;
         }
+        $this->aliases ??= Schema::hasTable('history_curriculum_aliases')
+            ? HistoryCurriculumAlias::with('target.area')->get()->keyBy(fn ($alias) => $this->key([$alias->education_stage, $alias->formation, $alias->knowledge_area_id, $alias->name]))->all() : [];
+        // O cadastro mantido por mesclagem prevalece também quando veio de transcrição.
+        $mergeTargets = collect($this->aliases)->pluck('history_curriculum_component_id');
+        if ($component->catalogEntries->contains(fn ($entry) => $mergeTargets->contains($entry->id))) {
+            return;
+        }
         $history = $component->history;
         $allowedStages = ['fundamental', 'medio', 'tecnico'];
         $fixedStage = in_array($history?->education_stage, $allowedStages, true) ? $history->education_stage : null;
@@ -106,14 +113,10 @@ final class HistoryCatalogIntegrator
 
                 continue;
             }
-            $this->aliases ??= Schema::hasTable('history_curriculum_aliases')
-                ? HistoryCurriculumAlias::with('target.area')->get()->keyBy(fn ($alias) => $this->key([$alias->education_stage, $alias->formation, $alias->knowledge_area_id, $alias->name]))->all() : [];
             $hasSystemRecords = $component->records->contains(fn ($record) => $record->year?->source === 'system');
             if (! $hasSystemRecords && ($alias = $this->aliases[$key] ?? null)) {
                 $ids[] = $alias->history_curriculum_component_id;
-                if ($alias->target->matrix_origin) {
-                    $component->adoptCatalogDefinition($alias->target);
-                }
+                $component->adoptCatalogDefinition($alias->target);
 
                 continue;
             }

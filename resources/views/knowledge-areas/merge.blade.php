@@ -6,7 +6,7 @@
 <section class="card sge-panel-card mb-4">
     <div class="card-body">
         <p><strong>{{ __('Origem') }}: {{ $catalogComponent->name }}</strong> · {{ $catalogComponent->area->name }} · {{ __($catalogComponent->formation) }} · {{ __(\App\Support\HistoryCurriculumCatalog::stageLabels()[$catalogComponent->education_stage]) }}</p>
-        <p class="text-muted">{{ __('Escolha outro componente de matriz e o cadastro que vai prevalecer. A mesclagem atualiza nome, área e formação nas matrizes originais e nos históricos vinculados, preservando notas, faltas, cargas horárias e vínculos dos diários.') }}</p>
+        <p class="text-muted">{{ __('Escolha outro componente do catálogo e o cadastro que vai prevalecer. A mesclagem atualiza nome, área e formação nos históricos e nas matrizes vinculadas, preservando notas, faltas, cargas horárias e vínculos dos diários.') }}</p>
         @if($catalogComponent->matrixComponents->isNotEmpty())
             <details class="mb-3">
                 <summary>{{ __('Matrizes vinculadas a este componente') }}</summary>
@@ -19,7 +19,7 @@
         @endif
         <form method="POST" action="{{ route('history-curriculum.merge', $catalogComponent) }}" data-catalog-merge-form
               data-source-name="{{ $catalogComponent->name }}" data-source-stage="{{ __(\App\Support\HistoryCurriculumCatalog::stageLabels()[$catalogComponent->education_stage]) }}" data-source-formation="{{ __($catalogComponent->formation) }}" data-source-area="{{ $catalogComponent->area->name }}"
-              data-confirm-message="{{ __('Confirmar a mesclagem? As matrizes originais e os históricos adotarão o cadastro escolhido. Os lançamentos escolares serão preservados.') }}">
+              data-confirm-message="{{ __('Confirmar a mesclagem? Os históricos e as matrizes vinculadas, quando houver, adotarão o cadastro escolhido. Os lançamentos escolares serão preservados.') }}">
             @csrf
             <div class="form-group">
                 <label for="merge-target">{{ __('Selecione o outro componente') }}</label>
@@ -31,7 +31,6 @@
                 </select>
                 <small id="merge-context" class="form-text text-muted">{{ __('A classificação escolhida deve ser compatível com a etapa de ensino das matrizes afetadas.') }}</small>
             </div>
-            @if($catalogComponent->matrixComponents->isNotEmpty())
                 <fieldset class="form-group">
                     <legend class="h6">{{ __('Qual cadastro deve prevalecer?') }}</legend>
                     <div class="custom-control custom-radio mb-2">
@@ -43,7 +42,6 @@
                         <label class="custom-control-label" for="merge-keep-target" data-merge-target-label>{{ __('Manter o outro componente selecionado') }}</label>
                     </div>
                 </fieldset>
-            @endif
             <div class="border rounded p-3 mb-3" data-merge-preview hidden aria-live="polite">
                 <p class="small text-muted mb-1">{{ __('Cadastro que será mantido') }}</p>
                 <strong data-merge-name></strong>
@@ -56,7 +54,7 @@
                     @endforeach
                 </ul>
             </div>
-            @if($candidates->isEmpty())<p role="status">{{ __('Não há componentes de matriz disponíveis para receber a mesclagem.') }}</p>@endif
+            @if($candidates->isEmpty())<p role="status">{{ __('Não há outro componente disponível para mesclar.') }}</p>@endif
             <div class="sge-action-buttons">
                 <button class="btn btn-primary" type="submit" @disabled($candidates->isEmpty())><i class="fas fa-object-group mr-1" aria-hidden="true"></i>{{ __('Mesclar componentes') }}</button>
                 <a data-navigation-return class="btn btn-outline-secondary" href="{{ route('history-curriculum.index') }}">{{ __('Cancelar') }}</a>

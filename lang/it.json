@@ -2848,5 +2848,8 @@
     "A classificação escolhida deve ser compatível com a etapa de ensino das matrizes afetadas.": "La classificazione scelta deve essere compatibile con il grado di istruzione dei piani di studio interessati.",
     "Qual cadastro deve prevalecer?": "Quale registrazione deve essere mantenuta?",
     "Manter o outro componente selecionado": "Mantieni l’altra disciplina selezionata",
-    "Cadastro que será mantido": "Registrazione da mantenere"
+    "Cadastro que será mantido": "Registrazione da mantenere",
+    "Escolha outro componente do catálogo e o cadastro que vai prevalecer. A mesclagem atualiza nome, área e formação nos históricos e nas matrizes vinculadas, preservando notas, faltas, cargas horárias e vínculos dos diários.": "Scegli un’altra disciplina del catalogo e la registrazione da mantenere. L’unione aggiorna nome, area e formazione negli storici e nei piani di studio collegati, conservando voti, assenze, monte ore e collegamenti dei registri.",
+    "Não há outro componente disponível para mesclar.": "Non ci sono altre discipline disponibili da unire.",
+    "Confirmar a mesclagem? Os históricos e as matrizes vinculadas, quando houver, adotarão o cadastro escolhido. Os lançamentos escolares serão preservados.": "Confermare l’unione? Gli storici e gli eventuali piani di studio collegati adotteranno la registrazione scelta. Le registrazioni scolastiche saranno conservate."
 }
