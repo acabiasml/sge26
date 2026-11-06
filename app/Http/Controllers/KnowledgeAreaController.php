@@ -21,7 +21,7 @@ class KnowledgeAreaController extends Controller
         return view('knowledge-areas.index', [
             'historicalAreas' => StudentAcademicHistoryComponent::query()->selectRaw('formation, knowledge_area, COUNT(*) as uses_count')->groupBy('formation', 'knowledge_area')->orderBy('formation')->orderBy('knowledge_area')->get(),
             'areas' => KnowledgeArea::query()->withCount('components')->orderBy('sort_order')->orderBy('name')->get(),
-            'formations' => [CurriculumCatalog::FORMATION_FGB, CurriculumCatalog::FORMATION_ITINERARY, CurriculumCatalog::FORMATION_COMPLEMENTARY],
+            'formations' => [CurriculumCatalog::FORMATION_FGB, CurriculumCatalog::FORMATION_ITINERARY, CurriculumCatalog::FORMATION_COMPLEMENTARY, 'Parte Diversificada', 'Formação Técnica Profissional'],
         ]);
     }
 
@@ -58,6 +58,9 @@ class KnowledgeAreaController extends Controller
         $data = $this->validated($request, $area);
         foreach ($area->components()->with('course')->get() as $component) {
             CurriculumAreaStage::validate($data['name'], $component->course?->stage, 'name');
+        }
+        foreach ($area->historyCatalogComponents()->get() as $component) {
+            CurriculumAreaStage::validate($data['name'], $component->education_stage, 'name');
         }
         $area->update($data);
 
@@ -105,7 +108,7 @@ class KnowledgeAreaController extends Controller
         abort_unless($request->user()->isAdministrator(), 403);
         DB::transaction(function () use ($area): void {
             $area = $area->newQuery()->whereKey($area->id)->lockForUpdate()->firstOrFail();
-            if ($area->components()->exists()) {
+            if ($area->components()->exists() || $area->historyCatalogComponents()->exists()) {
                 throw ValidationException::withMessages(['area' => __('Desvincule os componentes antes de excluir a área.')]);
             }
             $area->delete();
@@ -118,7 +121,7 @@ class KnowledgeAreaController extends Controller
     {
         return $request->validate([
             'name' => ['required', 'string', 'max:255', Rule::unique('knowledge_areas')->ignore($area?->id)],
-            'formation' => ['required', Rule::in([CurriculumCatalog::FORMATION_FGB, CurriculumCatalog::FORMATION_ITINERARY, CurriculumCatalog::FORMATION_COMPLEMENTARY])],
+            'formation' => ['required', Rule::in([CurriculumCatalog::FORMATION_FGB, CurriculumCatalog::FORMATION_ITINERARY, CurriculumCatalog::FORMATION_COMPLEMENTARY, 'Parte Diversificada', 'Formação Técnica Profissional'])],
         ]);
     }
 }

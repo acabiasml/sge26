@@ -227,7 +227,7 @@ Antes do fechamento do ano, a conferência verifica calendário aprovado, perío
 
 A tela **Vida escolar** reúne matrículas, responsáveis, boletins, fichas individuais, frequência, desempenho, históricos, convalidações, documentos e movimentações.
 
-Históricos recebidos de outras instituições aceitam estruturas flexíveis: anos, séries, fases, escolas, localidades, componentes livres, formações, áreas, notas ou conceitos, frequência, carga horária, resultados e observações.
+Históricos recebidos de outras instituições aceitam estruturas flexíveis: anos, séries, fases, escolas, localidades, componentes do catálogo curricular, formações, áreas, notas ou conceitos, frequência, carga horária, resultados e observações.
 
 O histórico unificado é separado por etapa — Fundamental, Médio ou Técnico — e combina, quando pertinente:
 
@@ -240,9 +240,13 @@ O histórico unificado é separado por etapa — Fundamental, Médio ou Técnico
 
 Na edição do histórico unificado, a secretaria lança séries cursadas em outras instituições sem precisar desfazer uma transferência. Todas as séries cursadas em escolas da rede são sincronizadas a partir das matrículas e exibidas para consulta, sem edição manual de notas, faltas ou resultados. A sincronização também ocorre ao abrir, editar ou emitir o histórico; uma matrícula reclassificada aparece com esse resultado.
 
-Cada ano possui seu próprio bloco de componentes, notas e dados complementares. Incluir ou remover um componente afeta somente aquele ano. O vínculo de um componente sem nota é mantido inclusive em transcrições globais, e registros com valores conflitantes no mesmo ano exigem correção antes de salvar.
+Cada ano possui seu próprio bloco. No tipo **Detalhado**, componentes e notas pertencem àquele ano, e incluir ou remover um componente não altera os demais. Valores conflitantes no mesmo ano exigem correção antes de salvar.
 
-Na tabela principal dos históricos da educação básica, **CHC** significa carga horária cursada, com legenda no documento. Anos ainda em andamento não exibem CHC. O Ensino Médio apresenta totais previstos e cursados por formação e por ano, além dos totais gerais. Anos em modo **Global** usam uma coluna unificada. O cabeçalho da matriz curricular se repete somente quando a tabela continua em outra página.
+No tipo **Global/AP**, a secretaria informa somente os **totais de horas por formação**: Formação Geral Básica é obrigatória; Parte Complementar e Parte Diversificada são independentes e devem ser marcadas quando existirem. No Médio, também é possível informar Itinerário Formativo. A carga horária anual é a soma dos totais selecionados. Notas individuais antigas são preservadas, mas ficam ocultas nesse modo. Se um documento antigo tiver mais de uma formação sem discriminar suas horas, a divisão deve ser conferida no documento de origem; o sistema não distribui a carga automaticamente.
+
+O menu **Administração → Áreas e componentes**, exclusivo de administradores, permite manter o catálogo que fornece as opções dos históricos. Os cadastros respeitam a etapa de ensino e distinguem Fundamental de Médio. Inativar ou remover uma opção não apaga lançamentos históricos já existentes.
+
+Na tabela principal dos históricos da educação básica, **CHC** significa carga horária cursada, com legenda no documento. Anos ainda em andamento não exibem CHC. Fundamental e Médio apresentam totais previstos e cursados por formação; o Médio também discrimina os totais por ano. Anos em modo **Global** usam uma coluna unificada. O cabeçalho da matriz curricular se repete somente quando a tabela continua em outra página.
 
 ## Documentos
 

@@ -1,13 +1,13 @@
 @php
-    $selectedFormation = $component['formation'] ?? 'Formação Geral Básica';
+    $selectedFormation = $component['formation'] ?? ($componentStage === 'tecnico' ? 'Formação Técnica Profissional' : 'Formação Geral Básica');
     $selectedArea = $component['knowledge_area'] ?? '';
     $selectedComponent = $component['name'] ?? '';
     $record = $component['record'] ?? [];
-    $rowAreas = collect(config("curriculum.stages.{$componentStage}.formations.formacao_geral_basica.areas", []));
-    $rowFlexibleFormation = match ($componentStage) { 'medio' => 'Itinerário Formativo', 'tecnico' => 'Formação Técnica Profissional', default => 'Parte Diversificada' };
-    $rowFormations = $componentStage === 'tecnico' ? [$rowFlexibleFormation] : ['Formação Geral Básica', $rowFlexibleFormation];
-    if ($componentStage === 'tecnico' && empty($component['formation'])) $selectedFormation = $rowFlexibleFormation;
-    $rowComponents = collect($rowAreas->firstWhere('name', $selectedArea)['components'] ?? []);
+    $catalogRows = collect($historyCatalogs[$componentStage] ?? []);
+    $rowFormations = $catalogRows->pluck('formation')->unique()->values()->all();
+    if (! in_array($selectedFormation, $rowFormations, true)) $rowFormations[] = $selectedFormation;
+    $rowAreas = $catalogRows->where('formation', $selectedFormation)->pluck('area')->unique()->values();
+    $rowComponents = $catalogRows->where('formation', $selectedFormation)->where('area', $selectedArea)->pluck('name')->unique()->values();
     $prefix = "year_components[{$yearIndex}][{$componentIndex}]";
 @endphp
 <tr data-history-component>
@@ -21,23 +21,19 @@
         </select>
     </td>
     <td>
-        @if($componentStage === 'tecnico')
-            <input name="{{ $prefix }}[knowledge_area]" class="form-control form-control-sm" data-history-area aria-label="{{ __('Área') }}" value="{{ $selectedArea }}" required>
-        @else
-            <select name="{{ $prefix }}[knowledge_area]" class="form-control form-control-sm" data-history-area aria-label="{{ __('Área') }}" required>
-                <option value="">{{ __('Selecione') }}</option>
-                @foreach($rowAreas as $area)<option value="{{ $area['name'] }}" @selected($selectedArea === $area['name'])>{{ $area['name'] }}</option>@endforeach
-                @if($selectedArea && ! $rowAreas->pluck('name')->contains($selectedArea) && \App\Support\CurriculumAreaStage::compatible($selectedArea, $componentStage))<option value="{{ $selectedArea }}" selected>{{ $selectedArea }}</option>@endif
-            </select>
-        @endif
+        <select name="{{ $prefix }}[knowledge_area]" class="form-control form-control-sm" data-history-area aria-label="{{ __('Área') }}" required>
+            <option value="">{{ __('Selecione') }}</option>
+            @foreach($rowAreas as $area)<option value="{{ $area }}" @selected($selectedArea === $area)>{{ $area }}</option>@endforeach
+            @if($selectedArea && ! $rowAreas->contains($selectedArea) && \App\Support\CurriculumAreaStage::compatible($selectedArea, $componentStage))<option value="{{ $selectedArea }}" selected>{{ $selectedArea }} · {{ __('Registro existente') }}</option>@endif
+        </select>
     </td>
     <td>
-        <select class="form-control form-control-sm" data-history-component-select aria-label="{{ __('Componente') }}" required @disabled($selectedFormation !== 'Formação Geral Básica')>
+        <select class="form-control form-control-sm" data-history-component-select aria-label="{{ __('Componente') }}" required >
             <option value="">{{ __('Selecione') }}</option>
             @foreach($rowComponents as $name)<option value="{{ $name }}" @selected($selectedComponent === $name)>{{ $name }}</option>@endforeach
             @if($selectedComponent && ! $rowComponents->contains($selectedComponent))<option value="{{ $selectedComponent }}" selected>{{ $selectedComponent }}</option>@endif
         </select>
-        <input name="{{ $prefix }}[name]" class="form-control form-control-sm" data-history-component-input aria-label="{{ __('Componente') }}" value="{{ $selectedComponent }}" @if($selectedFormation === 'Formação Geral Básica') type="hidden" @else type="text" @endif required>
+        <input name="{{ $prefix }}[name]" class="form-control form-control-sm" data-history-component-input aria-label="{{ __('Componente') }}" value="{{ $selectedComponent }}" type="hidden" required>
     </td>
     <td>
         <div class="sge-history-record-grid">

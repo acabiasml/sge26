@@ -189,8 +189,26 @@ class HistoryMatrixTest extends TestCase
             ],
         ])->setPaper('a4', 'portrait');
 
+        $signatureBottom = null;
+        $footerTop = null;
+        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame) use (&$signatureBottom, &$footerTop): void {
+            $node = $frame->get_node();
+            if (! $node instanceof \DOMElement) {
+                return;
+            }
+            $box = $frame->get_border_box();
+            if ($node->getAttribute('class') === 'signatures') {
+                $signatureBottom = $box['y'] + $box['h'];
+            }
+            if ($node->getAttribute('class') === 'document-footer') {
+                $footerTop = $box['y'];
+            }
+        }]]);
         $this->assertStringStartsWith('%PDF-', $pdf->output());
         $this->assertSame(1, $pdf->getDomPDF()->getCanvas()->get_page_count());
+        $this->assertNotNull($signatureBottom);
+        $this->assertNotNull($footerTop);
+        $this->assertLessThan($footerTop - 5, $signatureBottom, 'As assinaturas devem terminar antes do rodapé, com espaço de separação.');
     }
 
     public function test_cycle_heading_breaks_between_phase_and_cycle(): void

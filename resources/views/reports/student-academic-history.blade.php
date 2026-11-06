@@ -22,6 +22,7 @@
         .basic-history-matrix, .technical-history-matrix { page-break-inside: auto; }
         .basic-history-matrix th, .basic-history-matrix td { font-size: 11px; padding: 1px 2px; line-height: 1.12; }
         .basic-history-matrix th { text-transform: none; }
+        .basic-history-matrix .workload-heading { white-space: nowrap; padding-inline: 0; }
         .basic-history-matrix .area-label { font-size: 11px; }
         .basic-history-matrix .score-cell { padding: 2px 0; white-space: nowrap; letter-spacing: -.2px; }
         .vertical-workload { height: 116px; position: relative; }
@@ -29,6 +30,8 @@
         .vertical-formation { height: 100px; position: relative; }
         .vertical-formation span { position: absolute; width: 125px; left: 50%; top: 50%; margin-left: -62.5px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; font-weight: 600; }
         .workload-totals { page-break-inside: avoid; margin-top: 6px; }
+        .workload-totals-compact { margin-top: 0; margin-bottom: 2px; }
+        .workload-totals-compact td { padding: 0 2px; }
         .vertical-heading { height: 48px; position: relative; }
         .vertical-heading span { position: absolute; width: 72px; left: 50%; top: 50%; margin-left: -36px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; }
         .vertical-heading-multiline { height: 76px; }
@@ -48,12 +51,12 @@
         .general-total-label { border-right: 0 !important; white-space: normal; }
         .general-total-label-space { border-left: 0 !important; }
         .studies-table { page-break-inside: auto; }
-        .studies-table td { padding-top: .5px; padding-bottom: .5px; }
+        .studies-table td { padding-top: 0; padding-bottom: 0; }
         .studies-table tr { page-break-inside: avoid; }
         .studies-nowrap { white-space: normal; }
         .notes { margin: 3px 0 0; }
         .legend-table { border-collapse: collapse; font-size: 11px; line-height: 1.06; margin-top: 3px; width: 100%; }
-        .legend-table th, .legend-table td { border: .45px solid #d8ccc4; padding: 3px 5px; text-align: left; vertical-align: top; }
+        .legend-table th, .legend-table td { border: .45px solid #d8ccc4; padding: 1px 5px; text-align: left; vertical-align: top; }
         .legend-table th { background: #f3eee9; font-weight: 600; width: 10%; }
         .legend-table td { background: #faf8f6; }
         .signatures { border-collapse: collapse; margin-top: 6px; page-break-inside: avoid; width: 100%; }
@@ -91,9 +94,7 @@
     @include('reports.partials.technical-history-matrix', ['history' => $history])
 @else
 @include('reports.partials.basic-history-matrix', ['history' => $history])
-@if($history->education_stage === 'medio')
-    @include('reports.partials.history-formation-workloads')
-@endif
+@include('reports.partials.history-formation-workloads', ['showAnnualFormationWorkloads' => $history->education_stage === 'medio', 'compactFormationWorkloads' => $history->education_stage === 'fundamental'])
 @endif
 
 @php($technicalRegulation = $history->components->pluck('regulatory_reference')->filter()->unique()->join(' '))
@@ -152,7 +153,7 @@
 <table class="legend-table">
     <tr>
         <th>Legenda</th>
-        <td>N (nota ou conceito) · CHC (carga horária cursada, em horas) · RF (resultado final) · AP (aproveitamento/progressão global conforme documento de origem).</td>
+        <td>N (nota ou conceito) · CHC (carga horária cursada, em horas) · RF (resultado final) · AP (aproveitamento/progressão global conforme documento de origem). Totais por formação: horas previstas / cursadas.</td>
     </tr>
 </table>
 

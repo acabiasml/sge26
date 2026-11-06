@@ -202,6 +202,8 @@ with tempfile.TemporaryDirectory() as directory:
                          'php artisan migrate --path=database/migrations/2026_10_30_000001_add_completed_workload_to_history_records.php --force --no-ansi'))
         commands.append(('Conferir registro de último acesso',
                          'php artisan migrate --path=database/migrations/2026_11_05_000001_add_last_access_at_to_users_table.php --force --no-ansi'))
+        commands.append(('Conferir totais por formação e catálogo de componentes',
+                         'php artisan migrate --path=database/migrations/2026_11_05_000002_add_history_formation_totals_and_component_catalog.php --force --no-ansi'))
         commands.append(('Conferir áreas curriculares por etapa', 'php artisan curriculum:reconcile-stage-areas --no-ansi'))
         if os.environ.get('REPAIR_STAGE_AREAS') == 'true':
             commands.append(('Corrigir áreas curriculares por etapa', 'php artisan curriculum:reconcile-stage-areas --apply --no-ansi'))

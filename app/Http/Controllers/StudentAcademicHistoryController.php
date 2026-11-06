@@ -11,6 +11,7 @@ use App\Models\StudentAcademicHistoryYear;
 use App\Models\StudentEnrollment;
 use App\Support\BrazilianStates;
 use App\Support\CurriculumAreaStage;
+use App\Support\HistoryCurriculumCatalog;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
 use App\Support\StudentAcademicHistoryCompleteness;
@@ -541,6 +542,9 @@ class StudentAcademicHistoryController extends Controller
      */
     private function validatedData(Request $request, bool $creating = false): array
     {
+        if ($request->boolean('formation_totals_present')) {
+            $this->prepareGlobalYears($request);
+        }
         if (! $request->boolean('year_components_present')) {
             return $this->validatedMatrixData($request, $creating);
         }
@@ -585,6 +589,52 @@ class StudentAcademicHistoryController extends Controller
         }
     }
 
+    private function prepareGlobalYears(Request $request): void
+    {
+        $request->validate(['years' => ['required', 'array', 'min:1']]);
+        $history = $request->route('history');
+        $groups = $request->input('year_components', []);
+        $years = $request->input('years');
+        foreach ($years as $index => &$year) {
+            $mode = $year['transcript_mode'] ?? 'detailed';
+            $stage = $history?->education_stage ?: CurriculumAreaStage::stageFromLabel($year['stage'] ?? null);
+            if ($mode === 'summary') {
+                $allowed = HistoryCurriculumCatalog::formations($stage);
+                $base = $allowed[0];
+                $enabled = $year['enabled_formations'] ?? [];
+                $hours = $year['formation_workload_hours'] ?? [];
+                if (! is_array($enabled) || ! is_array($hours) || array_diff($enabled, $allowed) || array_diff(array_keys($hours), $allowed)) {
+                    throw ValidationException::withMessages(["years.{$index}.formation_workload_hours" => __('Selecione as formações válidas e informe o total de horas de cada uma.')]);
+                }
+                $totals = [];
+                foreach (array_unique([$base, ...$enabled]) as $formation) {
+                    $value = $this->number($hours[$formation] ?? null);
+                    if (! is_numeric($value) || (float) $value < 0) {
+                        throw ValidationException::withMessages(["years.{$index}.formation_workload_hours.{$formation}" => __('Informe o total de horas desta formação.')]);
+                    }
+                    $totals[$formation] = round((float) $value, 2);
+                }
+                $year['formation_workload_hours'] = $totals;
+                $year['workload_hours'] = round(array_sum($totals), 2);
+            } else {
+                unset($year['formation_workload_hours']);
+            }
+            if (in_array($mode, ['summary', 'no_transcription'], true)) {
+                // Preserva os lançamentos antigos: o modo global não edita notas individuais.
+                $saved = $history instanceof StudentAcademicHistory && ! empty($year['id'])
+                    ? $history->years()->where('source', '!=', 'system')->whereKey($year['id'])->with('records.component')->first() : null;
+                $groups[$index] = $saved ? $saved->records->map(fn ($record) => [
+                    'formation' => $record->component->formation, 'knowledge_area' => $record->component->knowledge_area,
+                    'name' => $record->component->name, 'module_label' => $record->component->module_label,
+                    'regulatory_reference' => $record->component->regulatory_reference,
+                    'record' => $record->only(['score_label', 'score_numeric', 'workload_hours', 'completed_workload_hours', 'frequency_label', 'frequency_percentage', 'absences', 'result']),
+                ])->all() : [];
+            }
+        }
+        unset($year);
+        $request->merge(['years' => $years, 'year_components' => $groups]);
+    }
+
     private function validatedMatrixData(Request $request, bool $creating = false): array
     {
         $routeHistory = $request->route('history');
@@ -593,9 +643,12 @@ class StudentAcademicHistoryController extends Controller
             : null;
 
         $request->merge([
-            'years' => collect($request->input('years', []))->map(function (array $year) use ($fixedYearStage): array {
+            'years' => collect($request->input('years', []))->map(function (array $year) use ($fixedYearStage, $request): array {
                 // Série/fase é a identificação apresentada para a coluna e no histórico.
                 $year['label'] = $year['grade_phase'] ?? '';
+                if (! $request->boolean('formation_totals_present')) {
+                    unset($year['formation_workload_hours']);
+                }
 
                 if ($fixedYearStage) {
                     $year['stage'] = $fixedYearStage;
@@ -682,7 +735,9 @@ class StudentAcademicHistoryController extends Controller
             'years.*.country' => ['nullable', 'string', 'max:255'],
             'years.*.transcript_mode' => ['required', Rule::in(['detailed', 'summary', 'no_transcription'])],
             'years.*.final_result' => ['required', 'string', 'max:255'],
-            'years.*.workload_hours' => ['required', 'numeric', 'min:0'],
+            'years.*.workload_hours' => ['required', 'numeric', 'min:0', 'max:999999.99'],
+            'years.*.formation_workload_hours' => ['nullable', 'array'],
+            'years.*.formation_workload_hours.*' => ['required', 'numeric', 'min:0'],
             'years.*.school_days' => ['nullable', 'integer', 'min:0', 'max:400'],
             'years.*.attendance_label' => ['nullable', 'string', 'max:255'],
             'years.*.minimum_attendance_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -740,6 +795,22 @@ class StudentAcademicHistoryController extends Controller
             }
             foreach ($componentStages as $componentStage) {
                 CurriculumAreaStage::validate($component['knowledge_area'] ?? null, $componentStage, "components.{$index}.knowledge_area");
+                if ($request->boolean('formation_totals_present') && ! HistoryCurriculumCatalog::contains($componentStage, $component['formation'] ?? null, $component['knowledge_area'] ?? null, $component['name'])) {
+                    $existingOnly = $routeHistory instanceof StudentAcademicHistory && ! empty($component['records']);
+                    foreach ($component['records'] ?? [] as $yearIndex => $record) {
+                        $yearId = $data['years'][$yearIndex]['id'] ?? null;
+                        $exists = $existingOnly && $yearId && $routeHistory->components()->where('name', $component['name'])
+                            ->where('formation', $component['formation'] ?? null)->where('knowledge_area', $component['knowledge_area'] ?? null)
+                            ->whereHas('records', fn ($query) => $query->where('student_academic_history_year_id', $yearId)->whereHas('year', fn ($query) => $query->whereIn('source', ['manual', 'external'])))->exists();
+                        if (! $exists) {
+                            $existingOnly = false;
+                        }
+                    }
+                    if (! $existingOnly) {
+                        throw ValidationException::withMessages(["components.{$index}.name" => __('Selecione um componente ativo do cadastro para esta formação, área e etapa.')]);
+                    }
+                }
+
             }
         }
 
@@ -754,14 +825,6 @@ class StudentAcademicHistoryController extends Controller
                     throw ValidationException::withMessages(["years.{$index}.grade_phase" => __('Esta série já está registrada no sistema e não pode ser lançada manualmente.')]);
                 }
             }
-            $areas = collect(config("curriculum.stages.{$stage}.formations.formacao_geral_basica.areas", []));
-            $componentsByArea = $areas->mapWithKeys(fn (array $area): array => [$area['name'] => $area['components'] ?? []]);
-            $flexibleFormation = match ($stage) {
-                AcademicCourse::STAGE_HIGH_SCHOOL => 'Itinerário Formativo',
-                AcademicCourse::STAGE_TECHNICAL => 'Formação Técnica Profissional',
-                default => 'Parte Diversificada',
-            };
-
             foreach ($data['components'] ?? [] as $index => $component) {
                 // Imported transcripts can use historical labels outside the current BNCC catalog.
                 $existingImported = $routeHistory->components()
@@ -774,21 +837,12 @@ class StudentAcademicHistoryController extends Controller
                     continue;
                 }
 
-                $validFormations = $stage === AcademicCourse::STAGE_TECHNICAL
-                    ? [$flexibleFormation]
-                    : ['Formação Geral Básica', $flexibleFormation];
+                $validFormations = HistoryCurriculumCatalog::formations($stage);
                 if (! in_array($component['formation'] ?? null, $validFormations, true)) {
                     throw ValidationException::withMessages(["components.{$index}.formation" => __('Selecione uma formação válida para esta etapa.')]);
                 }
-                if ($stage === AcademicCourse::STAGE_TECHNICAL) {
-                    continue;
-                }
-                if (! $areas->pluck('name')->contains($component['knowledge_area'] ?? null)) {
-                    throw ValidationException::withMessages(["components.{$index}.knowledge_area" => __('Selecione uma área de conhecimento da BNCC.')]);
-                }
-                if (($component['formation'] ?? null) === 'Formação Geral Básica'
-                    && ! collect($componentsByArea[$component['knowledge_area']] ?? [])->contains($component['name'])) {
-                    throw ValidationException::withMessages(["components.{$index}.name" => __('Selecione um componente da BNCC correspondente à área informada.')]);
+                if (! HistoryCurriculumCatalog::contains($stage, $component['formation'] ?? null, $component['knowledge_area'] ?? null, $component['name'])) {
+                    throw ValidationException::withMessages(["components.{$index}.name" => __('Selecione um componente ativo do cadastro para esta formação, área e etapa.')]);
                 }
             }
         }

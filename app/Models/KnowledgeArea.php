@@ -33,6 +33,11 @@ class KnowledgeArea extends Model
         ];
     }
 
+    public function historyCatalogComponents(): HasMany
+    {
+        return $this->hasMany(HistoryCurriculumComponent::class);
+    }
+
     public function components(): HasMany
     {
         return $this->hasMany(CurriculumComponent::class);

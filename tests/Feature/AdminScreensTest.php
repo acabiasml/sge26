@@ -7,7 +7,9 @@ use App\Models\AcademicPeriod;
 use App\Models\AcademicYear;
 use App\Models\CalendarDay;
 use App\Models\DiaryAssessment;
+use App\Models\HistoryCurriculumComponent;
 use App\Models\IssuedDocument;
+use App\Models\KnowledgeArea;
 use App\Models\OfficialDocument;
 use App\Models\Person;
 use App\Models\PersonContact;
@@ -1422,6 +1424,12 @@ class AdminScreensTest extends TestCase
         $this->assertDatabaseHas('student_academic_history_years', [
             'student_academic_history_id' => $history->id,
             'student_enrollment_id' => $enrollment->id,
+        ]);
+
+        $catalogArea = KnowledgeArea::create(['name' => 'Móveis', 'formation' => 'Formação Técnica Profissional', 'active' => true]);
+        HistoryCurriculumComponent::create([
+            'knowledge_area_id' => $catalogArea->id, 'education_stage' => AcademicCourse::STAGE_TECHNICAL,
+            'formation' => 'Formação Técnica Profissional', 'name' => 'Desenho Técnico', 'active' => true,
         ]);
 
         $this->actingAs($admin)

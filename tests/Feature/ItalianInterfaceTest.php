@@ -121,7 +121,7 @@ class ItalianInterfaceTest extends TestCase
 
     private function scenario(): array
     {
-        $this->travelTo(now()->setDate(2026, 3, 11));
+        $this->travelTo(now()->setDate(2026, 3, 11)->setTime(12, 0));
         $person = Person::create([
             'full_name' => 'Pessoa de teste', 'cpf' => '12345678901',
             'birth_date' => '1990-01-01', 'birth_city' => 'Poxoréu', 'birth_state' => 'MT',

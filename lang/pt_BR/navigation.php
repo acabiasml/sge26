@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'areas_components' => 'Áreas e componentes',
     'home' => 'Início', 'skip' => 'Ir para o conteúdo', 'main_menu' => 'Menu principal', 'menu' => 'Menu',
     'my_space' => 'Meu espaço', 'my_area' => 'Minha área', 'my_profile' => 'Meu cadastro',
     'school_calendar' => 'Calendário escolar', 'my_schedules' => 'Meus horários', 'my_diary' => 'Meu diário',

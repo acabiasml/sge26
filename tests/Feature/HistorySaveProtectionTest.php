@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\AuditLog;
+use App\Models\HistoryCurriculumComponent;
+use App\Models\KnowledgeArea;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
@@ -110,7 +112,7 @@ class HistorySaveProtectionTest extends TestCase
         $this->assertSame(2, $cards->length);
         $this->assertSame(0, $xpath->query('//details[@data-history-year and @open]')->length);
         foreach ($cards as $index => $card) {
-            $this->assertSame(4, $xpath->query('.//fieldset/legend', $card)->length);
+            $this->assertSame(5, $xpath->query('.//fieldset/legend', $card)->length);
             $this->assertSame(1, $xpath->query('.//table[@data-sge-client-pagination]', $card)->length);
             $this->assertSame(1, $xpath->query('.//input[@name="years['.$index.'][year]"]', $card)->length);
             $this->assertSame(1, $xpath->query('.//input[@name="years['.$index.'][school_name]"]', $card)->length);
@@ -194,6 +196,7 @@ class HistorySaveProtectionTest extends TestCase
         $history = $this->history();
         $year = $history->years()->sole();
         $rows = [$this->yearComponentData('Língua Inglesa', 'Linguagens', ['score_label' => '8,0', 'completed_workload_hours' => 72])];
+        HistoryCurriculumComponent::create(['education_stage' => 'fundamental', 'formation' => 'Parte Diversificada', 'knowledge_area_id' => KnowledgeArea::where('name', 'Linguagens')->value('id'), 'name' => 'Língua Inglesa', 'active' => true]);
         $rows[] = array_merge($this->yearComponentData('Língua Inglesa', 'Linguagens', ['score_label' => '7,0']), ['formation' => 'Parte Diversificada', 'module_label' => 'Módulo I', 'regulatory_reference' => 'Referência preservada']);
         $this->put($this->url($history), $this->yearlyPayload($history, [$this->year(1) + ['id' => $year->id]], [0 => $rows]))->assertSessionHasNoErrors();
         $this->assertSame(2, $history->components()->count());
@@ -223,6 +226,109 @@ class HistorySaveProtectionTest extends TestCase
         $this->assertSame('Língua Inglesa', $year->records()->with('component')->sole()->component->name);
         $this->assertNull($year->records()->sole()->score_label);
         $this->get(route('people.histories.edit', [$history->person_id, $history]))->assertOk()->assertSee('Língua Inglesa');
+    }
+
+    public function test_global_year_shows_only_formation_totals_and_preserves_individual_records(): void
+    {
+        $history = $this->history();
+        $year = $history->years()->sole();
+        $year->update(['transcript_mode' => 'summary']);
+        $response = $this->get(route('people.histories.edit', [$history->person_id, $history]))->assertOk();
+        $document = new \DOMDocument;
+        @$document->loadHTML('<?xml encoding="UTF-8">'.$response->getContent());
+        $xpath = new \DOMXPath($document);
+        $this->assertSame(1, $xpath->query('//fieldset[@data-history-components and @hidden and @disabled]')->length);
+        $this->assertSame(1, $xpath->query('//fieldset[@data-history-formation-totals and not(@hidden)]')->length);
+        $this->assertSame(1, $xpath->query('//input[@data-formation-hours and @value="800"]')->length);
+        $payload = $this->yearlyPayload($history, [array_merge($this->year(1), ['id' => $year->id, 'transcript_mode' => 'summary',
+            'formation_workload_hours' => ['Formação Geral Básica' => '800', 'Parte Complementar' => '80', 'Parte Diversificada' => '120'],
+            'enabled_formations' => ['Parte Complementar', 'Parte Diversificada'], 'workload_hours' => '999'])], [0 => [$this->yearComponentData('Matemática', 'Matemática', ['score_label' => '99'])]]);
+        $payload['formation_totals_present'] = 1;
+        $this->put($this->url($history), $payload)->assertSessionHasNoErrors();
+        $year = $year->fresh();
+        $this->assertSame('1000.00', $year->workload_hours);
+        $this->assertEquals(['Formação Geral Básica' => 800, 'Parte Complementar' => 80, 'Parte Diversificada' => 120], $year->formation_workload_hours);
+        $this->assertSame('8,0', $history->components()->sole()->records()->sole()->score_label);
+        $totals = $history->fresh()->formationWorkloadTotals();
+        $this->assertSame(['planned' => 800.0, 'completed' => 800.0], $totals['Formação Geral Básica']);
+        $this->assertSame(['planned' => 80.0, 'completed' => 80.0], $totals['Parte Complementar']);
+        $this->assertSame(['planned' => 120.0, 'completed' => 120.0], $totals['Parte Diversificada']);
+    }
+
+    public function test_global_totals_require_each_enabled_formation_and_do_not_multiply_component_hours(): void
+    {
+        $history = $this->history();
+        $year = $history->years()->sole();
+        $year->update(['transcript_mode' => 'summary']);
+        $history->components()->sole()->records()->update(['workload_hours' => 800]);
+        $component = $history->components()->create(['name' => 'Língua Portuguesa', 'formation' => 'Formação Geral Básica', 'knowledge_area' => 'Linguagens']);
+        $component->records()->create(['student_academic_history_year_id' => $year->id, 'workload_hours' => 800, 'score_label' => 'APROV']);
+        $this->assertSame(800.0, $history->fresh()->formationWorkloadTotals()['Formação Geral Básica']['planned']);
+        $payload = $this->yearlyPayload($history, [array_merge($this->year(1), ['id' => $year->id, 'transcript_mode' => 'summary', 'enabled_formations' => ['Parte Complementar'], 'formation_workload_hours' => ['Formação Geral Básica' => 800, 'Parte Complementar' => '']])], []);
+        $payload['formation_totals_present'] = 1;
+        $this->put($this->url($history), $payload)->assertSessionHasErrors('years.0.formation_workload_hours.Parte Complementar');
+        $this->assertNull($year->fresh()->formation_workload_hours);
+        $this->assertSame('800.00', $year->fresh()->workload_hours);
+        $payload['years'][0]['formation_workload_hours']['Parte Complementar'] = 0;
+        $this->put($this->url($history), $payload)->assertSessionHasNoErrors();
+        $this->assertSame(2, $history->components()->count());
+        $this->assertEquals(0, $year->fresh()->formation_workload_hours['Parte Complementar']);
+    }
+
+    public function test_global_optional_formations_are_independent_and_switching_back_preserves_grades(): void
+    {
+        $history = $this->history();
+        $year = $history->years()->sole();
+        $year->update(['transcript_mode' => 'summary', 'workload_hours' => 1000, 'formation_workload_hours' => ['Formação Geral Básica' => 800, 'Parte Complementar' => 80, 'Parte Diversificada' => 120]]);
+        $payload = $this->yearlyPayload($history, [array_merge($this->year(1), ['id' => $year->id, 'transcript_mode' => 'summary', 'enabled_formations' => ['Parte Diversificada'], 'formation_workload_hours' => ['Formação Geral Básica' => 800, 'Parte Diversificada' => 120]])], []);
+        $payload['formation_totals_present'] = 1;
+        $this->put($this->url($history), $payload)->assertSessionHasNoErrors();
+        $this->assertSame('920.00', $year->fresh()->workload_hours);
+        $this->assertEquals(['Formação Geral Básica' => 800, 'Parte Diversificada' => 120], $year->fresh()->formation_workload_hours);
+        $this->assertArrayNotHasKey('Parte Complementar', $history->fresh()->formationWorkloadTotals());
+        $payload['history_version'] = app(StudentHistoryEditGuard::class)->version($history->fresh());
+        $payload['years'][0]['transcript_mode'] = 'detailed';
+        $payload['years'][0]['workload_hours'] = 920;
+        $payload['year_components'][0] = [$this->yearComponentData('Matemática', 'Matemática', ['score_label' => '8,0'])];
+        $this->put($this->url($history), $payload)->assertSessionHasNoErrors();
+        $this->assertSame('8,0', $history->components()->sole()->records()->sole()->score_label);
+        $this->assertEquals(['Formação Geral Básica' => 800, 'Parte Diversificada' => 120], $year->fresh()->formation_workload_hours);
+    }
+
+    public function test_new_global_year_has_totals_without_individual_component_records(): void
+    {
+        $history = $this->history();
+        $year = $history->years()->sole();
+        $payload = $this->yearlyPayload($history, [$this->year(1) + ['id' => $year->id], array_merge($this->year(2), ['transcript_mode' => 'summary', 'enabled_formations' => ['Parte Complementar'], 'formation_workload_hours' => ['Formação Geral Básica' => '800', 'Parte Complementar' => '80']])], [0 => [$this->yearComponentData('Matemática', 'Matemática', ['score_label' => '8,0'])], 1 => [$this->yearComponentData('Matemática', 'Matemática', ['score_label' => '99'])]]);
+        $payload['formation_totals_present'] = 1;
+        $this->put($this->url($history), $payload)->assertSessionHasNoErrors();
+        $second = $history->years()->where('year', '2019')->sole();
+        $this->assertSame('880.00', $second->workload_hours);
+        $this->assertSame(0, $second->records()->count());
+        $this->assertSame('8,0', $history->components()->sole()->records()->sole()->score_label);
+    }
+
+    public function test_new_history_choices_use_active_catalog_entries_and_retain_existing_legacy_values(): void
+    {
+        $history = $this->history();
+        $year = $history->years()->sole();
+        $catalog = HistoryCurriculumComponent::create(['education_stage' => 'fundamental', 'formation' => 'Parte Complementar', 'knowledge_area_id' => KnowledgeArea::where('name', 'Linguagens')->value('id'), 'name' => 'Expressão Corporal', 'active' => true]);
+        $html = $this->get(route('people.histories.edit', [$history->person_id, $history]))->assertOk()->getContent();
+        $document = new \DOMDocument;
+        @$document->loadHTML('<?xml encoding="UTF-8">'.$html);
+        $config = json_decode($document->getElementById('history-editor-config')->textContent, true, flags: JSON_THROW_ON_ERROR);
+        $this->assertContains(['formation' => 'Parte Complementar', 'area' => 'Linguagens', 'name' => 'Expressão Corporal'], $config['catalogs']['fundamental']);
+        $payload = $this->yearlyPayload($history, [$this->year(1) + ['id' => $year->id]], [0 => [array_merge($this->yearComponentData('Expressão Corporal', 'Linguagens', ['score_label' => '8,0']), ['formation' => 'Parte Complementar'])]]);
+        $payload['formation_totals_present'] = 1;
+        $this->put($this->url($history), $payload)->assertSessionHasNoErrors();
+        $catalog->update(['active' => false]);
+        $payload['history_version'] = app(StudentHistoryEditGuard::class)->version($history->fresh());
+        $this->put($this->url($history), $payload)->assertSessionHasNoErrors();
+        $second = $history->years()->create($this->year(2) + ['position' => 2]);
+        $payload['history_version'] = app(StudentHistoryEditGuard::class)->version($history->fresh());
+        $payload['years'][] = $this->year(2) + ['id' => $second->id];
+        $payload['year_components'][1] = $payload['year_components'][0];
+        $this->put($this->url($history), $payload)->assertSessionHasErrors('year_components.1.0.name');
     }
 
     public function test_new_year_is_added_without_replacing_existing_year_or_its_grade(): void

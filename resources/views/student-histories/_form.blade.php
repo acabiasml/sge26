@@ -8,6 +8,7 @@
     $history->loadMissing(['years.records', 'components.records.year']);
     $editableYears = $manualOnly ? $history->years->filter(fn ($year) => $year->source !== 'system')->values() : $history->years->values();
     $catalogStage = \App\Support\CurriculumAreaStage::historyStage($history) ?: 'fundamental';
+    $historyCatalogs = \App\Support\HistoryCurriculumCatalog::all();
     $modalityOptions = \App\Models\AcademicCourse::MODALITY_LABELS;
     $defaultYearCount = match ($history->education_stage) {
         'fundamental' => 9,
@@ -47,6 +48,7 @@
             'transcript_mode' => $year->transcript_mode,
             'final_result' => $year->final_result,
             'workload_hours' => $year->workload_hours,
+            'formation_workload_hours' => \App\Support\HistoryFormationWorkloads::yearHours($history, $year),
             'school_days' => $year->school_days,
             'attendance_label' => $year->attendance_label,
             'minimum_attendance_percentage' => $year->minimum_attendance_percentage,
@@ -72,19 +74,20 @@
     $historyEditorConfig = [
     'fixedStage' => $history->education_stage ?: '',
     'stageLabels' => \App\Models\AcademicCourse::STAGE_LABELS,
-    'catalogs' => config('curriculum.stages'),
+    'catalogs' => $historyCatalogs,
+    'formations' => collect(['fundamental', 'medio', 'tecnico'])->mapWithKeys(fn ($stage) => [$stage => \App\Support\HistoryCurriculumCatalog::formations($stage)])->all(),
     'errors' => $errors->keys(),
     'select' => __('Selecione'), 'newYear' => __('Novo ano'), 'preview' => __('Preencha os dados deste ano'),
     'empty' => __('Nenhum componente cadastrado neste ano.'),
     'components' => __('Notas e componentes'), 'area' => __('Área'),
     'confirmRemove' => __('Remover este ano e suas notas transcritas ao salvar o histórico?'),
-    'formationLabels' => collect(['Formação Geral Básica', 'Parte Diversificada', 'Itinerário Formativo', 'Formação Técnica Profissional'])->mapWithKeys(fn ($value) => [$value => __($value)])->all(),
-    'flexibleFormations' => ['fundamental' => 'Parte Diversificada', 'medio' => 'Itinerário Formativo', 'tecnico' => 'Formação Técnica Profissional'],
+    'formationLabels' => collect(['Formação Geral Básica', 'Parte Complementar', 'Parte Diversificada', 'Itinerário Formativo', 'Formação Técnica Profissional'])->mapWithKeys(fn ($value) => [$value => __($value)])->all(),
 ];
 
 @endphp
 
 <section class="sge-history-workspace mb-4" aria-label="{{ __('Cadastro de histórico escolar') }}">
+    <input type="hidden" name="formation_totals_present" value="1">
     <input type="hidden" name="year_components_present" value="1">
     <input type="hidden" name="is_unified" value="{{ old('is_unified', $history->is_unified) ? 1 : 0 }}">
     @if($curriculumOnly)
@@ -103,7 +106,7 @@
                 <summary class="text-primary">{{ __('Como preencher') }}</summary>
                 <div class="text-muted mt-2">
                     <p>{{ __('Abra o bloco de cada ano para preencher a escola, o resultado e os componentes daquele ano.') }}</p>
-                    <p>{{ __('Se o documento trouxer resultado global ou etapa sem transcrição, selecione esse tipo no próprio ano. Os componentes podem ser registrados sem nota.') }}</p>
+                    <p>{{ __('Selecione o tipo de transcrição em cada ano. No modo global, informe os totais de horas por formação, sem notas individuais.') }}</p>
                 </div>
             </details>
             @if($schools->count() === 1)
@@ -172,7 +175,7 @@
                                 </div>
                                 <div class="form-group {{ $manualOnly ? 'col-md-6' : 'col-md-12' }}">
                                     <label>{{ __('Tipo de transcrição') }}</label>
-                                    @php($transcriptMode = $year['transcript_mode'] ?? 'detailed')
+                                    @php $transcriptMode = $year['transcript_mode'] ?? 'detailed'; @endphp
                                     <select name="years[{{ $yearIndex }}][transcript_mode]" class="form-control" required>
                                         <option value="detailed" @selected($transcriptMode === 'detailed')>{{ __('Detalhada por componente curricular') }}</option>
                                         <option value="summary" @selected($transcriptMode === 'summary')>{{ __('Global/AP ou síntese sem componentes detalhados') }}</option>
@@ -195,7 +198,7 @@
                                 @endif
                                 <div class="form-group col-md-6">
                                     <label>{{ __('Modalidade') }}</label>
-                                    @php($selectedModality = $year['modality'] ?? '')
+                                    @php $selectedModality = $year['modality'] ?? ''; @endphp
                                     <select name="years[{{ $yearIndex }}][modality]" class="form-control" required>
                                         <option value="">{{ __('Selecione') }}</option>
                                         @foreach($modalityOptions as $modality)<option value="{{ $modality }}" @selected($selectedModality === $modality)>{{ __($modality) }}</option>@endforeach
@@ -235,7 +238,7 @@
                             <div class="form-row">
                                 <div class="form-group col-md-4">
                                     <label>{{ __('Carga horária total (h)') }}</label>
-                                    <input name="years[{{ $yearIndex }}][workload_hours]" data-mask="decimal" inputmode="decimal" class="form-control" value="{{ $year['workload_hours'] ?? '' }}" required>
+                                    <input name="years[{{ $yearIndex }}][workload_hours]" data-history-total-hours @readonly(($year['transcript_mode'] ?? 'detailed') === 'summary') data-mask="decimal" inputmode="decimal" class="form-control" value="{{ $year['workload_hours'] ?? '' }}" required>
                                 </div>
                                 <div class="form-group col-md-8">
                                     <label>{{ __('Resultado final nesta escola/ano') }}</label>
@@ -243,10 +246,28 @@
                                 </div>
                             </div>
                             </fieldset>
-                            @php($componentStage = $history->education_stage ?: (\App\Support\CurriculumAreaStage::stageFromLabel($year['stage'] ?? null) ?: $catalogStage))
-                            <fieldset class="sge-history-year-fields sge-history-year-components" data-history-components>
+                            @php
+                                $componentStage = $history->education_stage ?: (\App\Support\CurriculumAreaStage::stageFromLabel($year['stage'] ?? null) ?: $catalogStage);
+                                $globalFormations = \App\Support\HistoryCurriculumCatalog::formations($componentStage);
+                                $globalHours = $year['formation_workload_hours'] ?? [$globalFormations[0] => $year['workload_hours'] ?? ''];
+                                $summaryMode = ($year['transcript_mode'] ?? 'detailed') === 'summary';
+                            @endphp
+                            <fieldset class="sge-history-year-fields sge-history-global-totals" data-history-formation-totals @unless($summaryMode) hidden disabled @endunless>
+                                <legend>{{ __('Totais por formação (h)') }}</legend>
+                                <div class="form-row">
+                                @foreach($globalFormations as $formationIndex => $formation)
+                                    @php $formationEnabled = $formationIndex === 0 || array_key_exists($formation, $globalHours); @endphp
+                                    <div class="form-group col-md-4" data-history-formation-total>
+                                        @if($formationIndex === 0)<label><strong>{{ __($formation) }}</strong></label>
+                                        @else<label><input type="checkbox" name="years[{{ $yearIndex }}][enabled_formations][]" data-formation-toggle value="{{ $formation }}" @checked($formationEnabled)> {{ __($formation) }}</label>@endif
+                                        <input name="years[{{ $yearIndex }}][formation_workload_hours][{{ $formation }}]" data-formation-hours data-mask="decimal" inputmode="decimal" class="form-control" aria-label="{{ __('Total de horas') }} — {{ __($formation) }}" value="{{ $globalHours[$formation] ?? '' }}" @disabled(! $formationEnabled) @required($formationEnabled)>
+                                    </div>
+                                @endforeach
+                                </div>
+                                <p class="small text-muted mb-0">{{ __('No tipo global, informe somente os totais de horas por formação. A carga horária do ano é a soma desses totais.') }}</p>
+                            </fieldset>
+                            <fieldset class="sge-history-year-fields sge-history-year-components" data-history-components @unless(($year['transcript_mode'] ?? 'detailed') === 'detailed') hidden disabled @endunless>
                                 <legend>{{ __('Notas e componentes') }}</legend>
-                                <p class="small text-muted" data-history-global-hint @if(($year['transcript_mode'] ?? 'detailed') === 'detailed') hidden @endif>{{ __('Este ano usa resultado global ou não possui transcrição detalhada. Os componentes cadastrados e suas notas serão preservados.') }}</p>
                                 <div class="sge-history-matrix-toolbar">
                                     <button class="btn btn-sm btn-outline-primary" type="button" data-add-history-component><i class="fas fa-plus mr-1" aria-hidden="true"></i>{{ __('Adicionar componente neste ano') }}</button>
                                 </div>

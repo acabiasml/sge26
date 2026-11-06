@@ -50,6 +50,7 @@ class StudentAcademicHistoryYear extends Model
         'transcript_mode',
         'final_result',
         'workload_hours',
+        'formation_workload_hours',
         'school_days',
         'attendance_label',
         'minimum_attendance_percentage',
@@ -62,6 +63,7 @@ class StudentAcademicHistoryYear extends Model
             'position' => 'integer',
             'grade_number' => 'integer',
             'workload_hours' => 'decimal:2',
+            'formation_workload_hours' => 'array',
             'school_days' => 'integer',
             'minimum_attendance_percentage' => 'decimal:2',
         ];

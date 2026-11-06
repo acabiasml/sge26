@@ -240,6 +240,12 @@
             @if ($currentUser->isAdministrator())
                 <div class="sidebar-heading">{{ __('navigation.administration') }}</div>
 
+                <div class="nav-item {{ request()->routeIs('history-curriculum.*', 'knowledge-areas.*') ? 'active' : '' }}">
+                    <a class="nav-link" href="{{ route('history-curriculum.index') }}">
+                        <i class="fas fa-fw fa-layer-group" aria-hidden="true"></i>
+                        <span>{{ __('navigation.areas_components') }}</span>
+                    </a>
+                </div>
                 <div class="nav-item {{ request()->routeIs('audit-logs.*') ? 'active' : '' }}">
                     <a class="nav-link" href="{{ route('audit-logs.index') }}">
                         <i class="fas fa-fw fa-history" aria-hidden="true"></i>

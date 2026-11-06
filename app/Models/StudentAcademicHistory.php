@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasTitleCaseAttributes;
+use App\Support\HistoryFormationWorkloads;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -50,38 +51,7 @@ class StudentAcademicHistory extends Model
     /** @return array<string, array{planned: ?float, completed: ?float}> */
     public function formationWorkloadTotals(?StudentAcademicHistoryYear $selectedYear = null): array
     {
-        $this->loadMissing('years', 'components.records');
-        $years = $this->years->keyBy('id');
-        $totals = [];
-
-        foreach (['Formação Geral Básica', 'Itinerário Formativo'] as $formation) {
-            $planned = null;
-            $completed = null;
-            foreach ($this->components->where('formation', $formation) as $component) {
-                foreach ($component->records as $record) {
-                    $year = $years->get($record->student_academic_history_year_id);
-                    if ($selectedYear && $record->student_academic_history_year_id != $selectedYear->id) {
-                        continue;
-                    }
-                    if (! $year || $year->transcript_mode === 'no_transcription' || $record->workload_hours === null) {
-                        continue;
-                    }
-                    $planned = ($planned ?? 0) + (float) $record->workload_hours;
-                    if ($year->displaysCompletedWorkload()) {
-                        $hours = $record->completedWorkloadHours($year);
-                        if ($hours !== null) {
-                            $completed = ($completed ?? 0) + $hours;
-                        }
-                    }
-                }
-            }
-            $totals[$formation] = [
-                'planned' => $planned !== null ? round($planned, 2) : null,
-                'completed' => $completed !== null ? round($completed, 2) : null,
-            ];
-        }
-
-        return $totals;
+        return HistoryFormationWorkloads::totals($this, $selectedYear);
     }
 
     public function student(): BelongsTo

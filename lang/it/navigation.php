@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'areas_components' => 'Aree e discipline',
     'home' => 'Inizio',
     'skip' => 'Vai al contenuto',
     'main_menu' => 'Menu principale',

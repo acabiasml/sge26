@@ -21,6 +21,7 @@ use App\Http\Controllers\DataQualityController;
 use App\Http\Controllers\DocumentIssuanceController;
 use App\Http\Controllers\EnrollmentPdfController;
 use App\Http\Controllers\GoogleWorkspaceController;
+use App\Http\Controllers\HistoryCurriculumCatalogController;
 use App\Http\Controllers\KnowledgeAreaController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\OfficialDocumentController;
@@ -158,6 +159,10 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('meu-diario/{enrollment}/horario-pdf', [StudentDiaryController::class, 'schedulePdf'])->name('student-diaries.schedule-pdf');
     Route::get('meu-diario/{enrollment}/{component}', [StudentDiaryController::class, 'show'])->name('student-diaries.show');
 
+    Route::get('areas-curriculares/catalogo', [HistoryCurriculumCatalogController::class, 'index'])->name('history-curriculum.index');
+    Route::post('areas-curriculares/catalogo', [HistoryCurriculumCatalogController::class, 'store'])->name('history-curriculum.store');
+    Route::put('areas-curriculares/catalogo/{catalogComponent}', [HistoryCurriculumCatalogController::class, 'update'])->name('history-curriculum.update');
+    Route::delete('areas-curriculares/catalogo/{catalogComponent}', [HistoryCurriculumCatalogController::class, 'destroy'])->name('history-curriculum.destroy');
     Route::get('areas-curriculares/historicos', [KnowledgeAreaController::class, 'historicalUsages'])->name('knowledge-areas.historical-usages');
     Route::get('areas-curriculares/{area}/usos', [KnowledgeAreaController::class, 'usages'])->name('knowledge-areas.usages');
     Route::delete('areas-curriculares/{area}/componentes/{component}', [KnowledgeAreaController::class, 'detach'])->name('knowledge-areas.detach');

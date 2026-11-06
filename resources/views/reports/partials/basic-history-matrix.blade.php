@@ -58,7 +58,7 @@
         </tr>
         @if($headerRows === 2)
         <tr>@foreach($history->years as $year)
-            @if($year->transcript_mode === 'detailed')<th class="center">N</th><th class="center">CHC</th>
+            @if($year->transcript_mode === 'detailed')<th class="center">N</th><th class="center workload-heading">CHC</th>
             @endif
         @endforeach</tr>
         @endif

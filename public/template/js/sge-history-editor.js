@@ -10,7 +10,7 @@
         const cards = () => Array.from(wrapper.querySelectorAll('[data-history-year]'));
         let nextTableId = cards().length;
         const stageOf = card => config.fixedStage || Object.entries(config.stageLabels).find(([, label]) => label === card.querySelector('[data-history-stage]')?.value)?.[0] || 'fundamental';
-        const catalogOf = card => config.catalogs[stageOf(card)]?.formations?.formacao_geral_basica?.areas || [];
+        const catalogOf = card => config.catalogs[stageOf(card)] || [];
 
         function labelFields(scope) {
             scope.querySelectorAll('.form-group').forEach(group => {
@@ -29,50 +29,60 @@
             let area = row.querySelector('[data-history-area]');
             const select = row.querySelector('[data-history-component-select]');
             const input = row.querySelector('[data-history-component-input]');
+            const current = reset ? '' : input.value;
+            const currentArea = area.value;
             if (configure) {
                 const currentFormation = formation.value;
-                const formations = stage === 'tecnico' ? [config.flexibleFormations[stage]] : ['Formação Geral Básica', config.flexibleFormations[stage] || 'Parte Diversificada'];
+                const formations = Array.from(new Set([config.formations[stage]?.[0] || 'Formação Geral Básica', ...areas.map(item => item.formation)]));
+                if (!reset && currentFormation && !formations.includes(currentFormation)) formations.push(currentFormation);
                 formation.replaceChildren(...formations.map(value => new Option(config.formationLabels[value] || value, value)));
                 formation.value = formations.includes(currentFormation) ? currentFormation : formations[0];
-                const currentArea = area.value;
-                const replacement = document.createElement(stage === 'tecnico' ? 'input' : 'select');
-                replacement.name = area.name;
-                replacement.className = area.className;
-                replacement.dataset.historyArea = '';
-                replacement.setAttribute('aria-label', config.area);
-                replacement.required = true;
-                if (stage === 'tecnico') replacement.value = currentArea;
-                else {
-                    replacement.add(new Option(config.select, ''));
-                    areas.forEach(item => replacement.add(new Option(item.name, item.name)));
-                    replacement.value = areas.some(item => item.name === currentArea) ? currentArea : '';
-                }
-                area.replaceWith(replacement);
-                area = replacement;
             }
-            const basic = formation.value === 'Formação Geral Básica';
-            const current = reset ? '' : input.value;
+            const availableAreas = Array.from(new Set(areas.filter(item => item.formation === formation.value).map(item => item.area)));
+            area.replaceChildren(new Option(config.select, ''), ...availableAreas.map(name => new Option(name, name)));
+            if (!reset && currentArea && !availableAreas.includes(currentArea)) area.add(new Option(currentArea, currentArea));
+            area.value = Array.from(area.options).some(option => option.value === currentArea) ? currentArea : '';
             select.replaceChildren(new Option(config.select, ''));
-            (areas.find(item => item.name === area.value)?.components || []).forEach(name => select.add(new Option(name, name)));
+            areas.filter(item => item.formation === formation.value && item.area === area.value).forEach(item => { if (!Array.from(select.options).some(option => option.value === item.name)) select.add(new Option(item.name, item.name)); });
             if (current && !Array.from(select.options).some(option => option.value === current)) select.add(new Option(current, current));
             select.value = current;
-            select.disabled = !basic;
-            select.required = basic;
-            select.hidden = !basic;
-            input.type = basic ? 'hidden' : 'text';
-            if (reset) input.value = '';
-            else if (basic) input.value = select.value;
+            select.disabled = false;
+            select.required = true;
+            select.hidden = false;
+            input.type = 'hidden';
+            input.value = select.value;
         }
+
         function refreshCard(card) {
             const label = card.querySelector('[name$="[grade_phase]"]')?.value.trim() || config.newYear;
             card.querySelector('.sge-history-year-summary strong').textContent = label;
+            card.querySelector('table[data-sge-client-pagination]').setAttribute('aria-label', config.components + ' — ' + label);
+            const mode = card.querySelector('[name$="[transcript_mode]"]')?.value || 'detailed';
+            const components = card.querySelector('[data-history-components]');
+            components.hidden = mode !== 'detailed';
+            components.disabled = mode !== 'detailed';
+            const totals = card.querySelector('[data-history-formation-totals]');
+            totals.hidden = mode !== 'summary';
+            totals.disabled = mode !== 'summary';
+            let total = 0, complete = true;
+            totals.querySelectorAll('[data-history-formation-total]').forEach(group => {
+                const field = group.querySelector('[data-formation-hours]'), toggle = group.querySelector('[data-formation-toggle]');
+                const enabled = !toggle || toggle.checked;
+                field.disabled = !enabled;
+                field.required = enabled && mode === 'summary';
+                if (!enabled) return;
+                const value = Number(field.value.trim().replace(',', '.'));
+                if (field.value.trim() === '' || !Number.isFinite(value) || value < 0) complete = false;
+                else total += value;
+            });
+            const annualTotal = card.querySelector('[data-history-total-hours]');
+            annualTotal.readOnly = mode === 'summary';
+            if (mode === 'summary') annualTotal.value = complete ? total.toFixed(2).replace('.', ',') : '';
             card.querySelector('[data-history-year-preview]').textContent = ['year', 'school_name', 'workload_hours'].map(name => {
                 const value = card.querySelector(`[name^="years["][name$="[${name}]"]`)?.value.trim();
                 return value ? value + (name === 'workload_hours' ? ' h' : '') : '';
             }).filter(Boolean).join(' · ') || config.preview;
-            card.querySelector('table[data-sge-client-pagination]').setAttribute('aria-label', config.components + ' — ' + label);
-            const mode = card.querySelector('[name$="[transcript_mode]"]')?.value || 'detailed';
-            card.querySelector('[data-history-global-hint]').hidden = mode === 'detailed';
+
             const grade = card.querySelector('[data-history-grade]');
             if (grade) {
                 const stage = stageOf(card);
@@ -125,7 +135,7 @@
                 renumber();
             } else if (button.matches('[data-add-history-year]')) {
                 const clone = cards().at(-1).cloneNode(true);
-                clone.querySelectorAll('input,textarea').forEach(field => { field.value = ''; });
+                clone.querySelectorAll('input,textarea').forEach(field => { if (field.type === 'checkbox') field.checked = false; else field.value = ''; });
                 clone.querySelectorAll('select').forEach(field => { field.value = ''; });
                 clone.querySelectorAll('details').forEach(details => { details.open = false; });
                 clone.querySelectorAll('[data-sge-client-pagination-nav]').forEach(nav => nav.remove());
