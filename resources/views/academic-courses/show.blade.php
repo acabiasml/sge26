@@ -95,25 +95,9 @@
                         <form method="POST" action="{{ route('academic-years.courses.components.store', [$academicYear, $course]) }}">
                             @csrf
                             <div class="row">
-                                <div class="col-md-4 form-group">
+                                <div class="col-md-8 form-group">
                                     <label for="new_component_name">{{ __('Componente') }}</label>
-                                    <select id="new_component_name" name="name" class="form-control @error('name') is-invalid @enderror" aria-describedby="new-component-catalog-help" required>
-                                        <option value="">{{ __('Selecione') }}</option>
-                                        @foreach ($curriculumSuggestions as $suggestion)
-                                            <option value="{{ $suggestion['component'] }}" @selected(old('name') === $suggestion['component'])>{{ $suggestion['component'] }}</option>
-                                        @endforeach
-                                    </select>
-                                    @include('curriculum-components.partials.catalog-help', ['helpId' => 'new-component-catalog-help'])
-                                </div>
-                                <div class="col-md-4 form-group">
-                                    <label for="new_component_area_id">{{ __('Área') }}</label>
-                                    <select id="new_component_area_id" name="knowledge_area_id" class="form-control" required data-curriculum-area-select>
-                                        <option value="">{{ __('Não definida') }}</option>
-                                        @foreach ($knowledgeAreas as $area)
-                                            <option value="{{ $area->id }}" @selected(old('knowledge_area_id') == $area->id)>{{ $area->name }} — {{ __($area->formation ?: 'Formação não definida') }}</option>
-                                        @endforeach
-                                    </select>
-                                    @if(auth()->user()->isAdministrator())<a href="{{ route('knowledge-areas.index') }}" target="_blank" rel="noopener">{{ __('Gerenciar áreas e formações') }}</a>@endif
+                                    @include('curriculum-components.partials.catalog-selection', ['selectId' => 'new_component_name', 'component' => null])
                                 </div>
                                 <div class="col-md-4 form-group" data-workload-choice>
                                     <label class="d-block">{{ __('Como informar a carga horária?') }}</label>

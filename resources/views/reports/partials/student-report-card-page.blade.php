@@ -65,8 +65,8 @@
         ->sort(function (array $first, array $second) use ($courses, $sortText): int {
             $firstComponent = $first['component'];
             $secondComponent = $second['component'];
-            $firstFormation = CurriculumCatalog::formationLabelForArea($firstComponent->course ?? $courses->first(), $firstComponent->area);
-            $secondFormation = CurriculumCatalog::formationLabelForArea($secondComponent->course ?? $courses->first(), $secondComponent->area);
+            $firstFormation = CurriculumCatalog::formationLabelForComponent($firstComponent);
+            $secondFormation = CurriculumCatalog::formationLabelForComponent($secondComponent);
             $formationComparison = CurriculumCatalog::formationOrder($firstFormation) <=> CurriculumCatalog::formationOrder($secondFormation);
 
             if ($formationComparison !== 0) {
@@ -86,7 +86,7 @@
         })
         ->values();
     $groupedComponents = $annualComponents
-        ->groupBy(fn (array $summary): string => CurriculumCatalog::formationLabelForArea($summary['component']->course ?? $courses->first(), $summary['component']->area))
+        ->groupBy(fn (array $summary): string => CurriculumCatalog::formationLabelForComponent($summary['component']))
         ->map(fn ($formationItems, string $formation): array => [
             'formation' => $formation,
             'rowspan' => $formationItems->count(),

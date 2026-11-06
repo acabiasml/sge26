@@ -10,6 +10,13 @@ use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\User;
+use App\Models\StudentAcademicHistory;
+use App\Support\CurriculumCatalog;
+use App\Support\MatrixHistoryCatalog;
+use App\Console\Commands\ImportLegacyData;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -44,9 +51,9 @@ class MatrixManagedComponentsTest extends TestCase
         @$document->loadHTML('<?xml encoding="UTF-8">'.$response->getContent());
         $xpath = new \DOMXPath($document);
         $this->assertSame(0, $xpath->query('//input[@name="name"] | //datalist')->length);
-        $options = $xpath->query('//select[@id="'.$id.'" and @name="name" and @required]/option[@value!=""]');
+        $options = $xpath->query('//select[@id="'.$id.'" and @name="catalog_component_id" and @required]/option[@value!=""]');
 
-        return array_map(fn ($option) => $option->getAttribute('value'), iterator_to_array($options));
+        return array_map(fn ($option) => $option->getAttribute('data-name'), iterator_to_array($options));
     }
 
     public function test_create_and_edit_offer_registered_components_regardless_of_legacy_status_in_alphabetical_order(): void
@@ -65,8 +72,8 @@ class MatrixManagedComponentsTest extends TestCase
         $before = [$component->fresh()->getAttributes(), HistoryCurriculumComponent::count()];
         $create = $this->get(route('academic-years.courses.show', [$course->academicYear, $course]))->assertOk();
         $edit = $this->get(route('academic-years.courses.components.show', [$course->academicYear, $course, $component]))->assertOk();
-        $this->assertSame(['Álgebra', 'Biologia', 'Componente Inativo', 'Zoologia'], $this->names($create, 'new_component_name'));
-        $this->assertSame(['Álgebra', 'Biologia', 'Componente Inativo', 'Zoologia'], $this->names($edit, 'component_name'));
+        $this->assertSame(['Álgebra', 'Biologia', 'Biologia', 'Componente Inativo', 'Zoologia'], $this->names($create, 'new_component_name'));
+        $this->assertSame(['Álgebra', 'Biologia', 'Biologia', 'Componente Inativo', 'Zoologia'], $this->names($edit, 'component_name'));
         $this->assertSame($before, [$component->fresh()->getAttributes(), HistoryCurriculumComponent::count()]);
         $create->assertDontSee('Gerenciar catálogo');
     }
@@ -76,17 +83,17 @@ class MatrixManagedComponentsTest extends TestCase
         $course = $this->course();
         $entry = $this->entry('Componente cadastrado');
         $other = $this->entry('Outro componente cadastrado');
-        $payload = ['name' => $entry->name, 'knowledge_area_id' => $entry->knowledge_area_id, 'workload_mode' => 'workload_hours', 'workload_hours' => 80];
+        $payload = ['catalog_component_id' => $entry->id, 'workload_mode' => 'workload_hours', 'workload_hours' => 80];
         $store = route('academic-years.courses.components.store', [$course->academicYear, $course]);
         $this->post($store, $payload)->assertSessionHasNoErrors()->assertRedirect();
         $component = $course->components()->sole();
         $update = route('academic-years.courses.components.update', [$course->academicYear, $course, $component]);
-        $this->put($update, array_replace($payload, ['name' => $other->name]))->assertSessionHasNoErrors();
+        $this->put($update, array_replace($payload, ['catalog_component_id' => $other->id]))->assertSessionHasNoErrors();
         $before = [$component->fresh()->getAttributes(), HistoryCurriculumComponent::count()];
         foreach (['Nome inventado', 'Nome <script>alert(1)</script>', ''] as $name) {
-            $invalid = array_replace($payload, ['name' => $name]);
-            $this->post($store, $invalid)->assertSessionHasErrors('name');
-            $this->put($update, $invalid)->assertSessionHasErrors('name');
+            $invalid = array_diff_key($payload, ['catalog_component_id' => true]) + ['name' => $name];
+            $this->post($store, $invalid)->assertSessionHasErrors('catalog_component_id');
+            $this->put($update, $invalid)->assertSessionHasErrors('catalog_component_id');
         }
         $this->assertSame(1, $course->components()->count());
         $this->assertSame($before, [$component->fresh()->getAttributes(), HistoryCurriculumComponent::count()]);
@@ -105,7 +112,7 @@ class MatrixManagedComponentsTest extends TestCase
         $deleted = $this->entry('Excluído após abrir a tela', 'fundamental');
         $deleted->delete();
         foreach ([$otherStage, $incompatible, $deleted] as $unavailable) {
-            $this->post($store, ['name' => $unavailable->name, 'workload_mode' => 'workload_hours', 'workload_hours' => 80])->assertSessionHasErrors('name');
+            $this->post($store, ['catalog_component_id' => $unavailable->id, 'workload_mode' => 'workload_hours', 'workload_hours' => 80])->assertSessionHasErrors('catalog_component_id');
         }
         HistoryCurriculumComponent::where('education_stage', 'fundamental')->delete();
         $page = $this->get(route('academic-years.courses.show', [$course->academicYear, $course]))->assertOk()
@@ -123,10 +130,78 @@ class MatrixManagedComponentsTest extends TestCase
         $entry->area->update(['active' => false]);
         $edit = $this->get(route('academic-years.courses.components.show', [$course->academicYear, $course, $component]))->assertOk();
         $this->assertSame([$entry->name], $this->names($edit, 'component_name'));
-        $payload = ['name' => $entry->name, 'knowledge_area_id' => $entry->knowledge_area_id, 'workload_mode' => 'workload_hours', 'workload_hours' => 120];
-        $this->post(route('academic-years.courses.components.store', [$course->academicYear, $course]), $payload)->assertSessionHasErrors('name');
+        $payload = ['catalog_component_id' => $entry->id, 'workload_mode' => 'workload_hours', 'workload_hours' => 120];
+        $this->post(route('academic-years.courses.components.store', [$course->academicYear, $course]), $payload)->assertSessionHasErrors('catalog_component_id');
         $this->put(route('academic-years.courses.components.update', [$course->academicYear, $course, $component]), $payload)->assertSessionHasNoErrors();
         $this->assertEquals(120, $component->fresh()->workload_hours);
         $this->assertSame($entry->name, $component->fresh()->name);
+    }
+
+    public function test_selected_formation_survives_saving_and_syncing_even_when_the_area_has_another_default(): void
+    {
+        $course = $this->course('fundamental');
+        $area = KnowledgeArea::where('name', 'Linguagens')->firstOrFail();
+        $basic = $this->entry('Componente compartilhado', 'fundamental', area: $area);
+        $diversified = HistoryCurriculumComponent::create(['name' => $basic->name, 'education_stage' => 'fundamental', 'formation' => 'Parte Diversificada', 'knowledge_area_id' => $area->id]);
+        $count = HistoryCurriculumComponent::count();
+        $payload = ['catalog_component_id' => $diversified->id, 'workload_mode' => 'workload_hours', 'workload_hours' => 80,
+            'name' => 'Nome adulterado', 'formation' => 'Itinerário Formativo', 'knowledge_area_id' => 999999, 'education_stage' => 'medio'];
+        $this->post(route('academic-years.courses.components.store', [$course->academicYear, $course]), $payload)->assertSessionHasNoErrors();
+        $component = $course->components()->sole();
+        $this->assertSame($basic->name, $component->name);
+        $this->assertSame($area->id, $component->knowledge_area_id);
+        $this->assertSame('Parte Diversificada', CurriculumCatalog::formationLabelForComponent($component));
+        app(MatrixHistoryCatalog::class)->importAll();
+        $this->assertSame($diversified->id, $component->historyCatalogEntries()->sole()->id);
+        $this->assertSame($count, HistoryCurriculumComponent::count());
+        $history = StudentAcademicHistory::create(['person_id' => Person::create(['full_name' => 'Estudante'])->id, 'school_id' => $course->academicYear->school_id, 'education_stage' => 'fundamental', 'title' => 'Histórico de teste']);
+        $year = $history->years()->create(['label' => '1º Ano', 'source' => 'system']);
+        $row = $history->components()->create(['name' => $diversified->name, 'knowledge_area' => $area->name, 'formation' => $diversified->formation]);
+        $row->catalogEntries()->attach($diversified);
+        $record = $row->records()->create(['student_academic_history_year_id' => $year->id, 'curriculum_component_id' => $component->id, 'score_label' => '8,0', 'workload_hours' => 80]);
+        $before = $record->fresh()->getAttributes();
+        $payload['catalog_component_id'] = $basic->id;
+        $this->put(route('academic-years.courses.components.update', [$course->academicYear, $course, $component]), $payload)->assertSessionHasNoErrors();
+        $this->assertSame('Formação Geral Básica', $record->fresh()->component->formation);
+        $this->assertSame($before, $record->fresh()->getAttributes());
+        $this->assertSame($basic->id, $component->historyCatalogEntries()->sole()->id);
+    }
+
+    public function test_imports_use_the_complete_catalog_definition_even_with_model_events_disabled(): void
+    {
+        $course = $this->course('fundamental');
+        $entry = $this->entry('Componente importado', 'fundamental', area: KnowledgeArea::where('name', 'Linguagens')->firstOrFail());
+        $entry->update(['formation' => 'Parte Complementar']);
+        $command = app(ImportLegacyData::class);
+        (new \ReflectionProperty($command, 'courseIdMap'))->setValue($command, ['test' => [1 => $course->id]]);
+        Model::withoutEvents(fn () => (new \ReflectionMethod($command, 'importCurriculumComponents'))->invoke($command, 'test', [1 => $entry->knowledge_area_id], [['id' => 1, 'cursos_id' => 1, 'area_id' => 1, 'nome' => $entry->name, 'horas' => 80]]));
+        $component = $course->components()->sole();
+        $this->assertSame($entry->id, $component->historyCatalogEntries()->sole()->id);
+        $this->assertSame('Parte Complementar', CurriculumCatalog::formationLabelForComponent($component));
+    }
+
+    public function test_imports_reject_unknown_or_ambiguous_classification_without_partial_matrix_writes(): void
+    {
+        $course = $this->course('fundamental');
+        $entry = $this->entry('Componente importado', 'fundamental', area: KnowledgeArea::where('name', 'Linguagens')->firstOrFail());
+        $command = app(ImportLegacyData::class);
+        (new \ReflectionProperty($command, 'courseIdMap'))->setValue($command, ['test' => [1 => $course->id]]);
+        $run = fn (array $rows) => DB::transaction(fn () => Model::withoutEvents(fn () => (new \ReflectionMethod($command, 'importCurriculumComponents'))->invoke($command, 'test', [1 => $entry->knowledge_area_id], $rows)));
+        $good = ['id' => 1, 'cursos_id' => 1, 'area_id' => 1, 'nome' => $entry->name, 'horas' => 80];
+        try {
+            $run([$good, array_replace($good, ['id' => 2, 'nome' => 'Sem cadastro'])]);
+            $this->fail('A importação não pode inventar um cadastro.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('components', $exception->errors());
+        }
+        $this->assertSame(0, $course->components()->count());
+        HistoryCurriculumComponent::create(['name' => $entry->name, 'education_stage' => 'fundamental', 'formation' => 'Parte Diversificada', 'knowledge_area_id' => $entry->knowledge_area_id]);
+        try {
+            $run([$good]);
+            $this->fail('A importação não pode escolher uma formação por aproximação.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('components', $exception->errors());
+        }
+        $this->assertSame(0, $course->components()->count());
     }
 }

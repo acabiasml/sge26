@@ -68,6 +68,22 @@ class HistoryCurriculumCatalogTest extends TestCase
         $this->assertDatabaseMissing('history_curriculum_components', ['knowledge_area_id' => $area->id]);
     }
 
+    public function test_catalog_cannot_move_a_component_to_a_different_stage_while_a_history_uses_it(): void
+    {
+        $this->actingAs($this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR));
+        $area = KnowledgeArea::create(['name' => 'Saberes Locais', 'formation' => 'Parte Complementar']);
+        $entry = HistoryCurriculumComponent::create(['name' => 'Oficinas', 'education_stage' => 'fundamental', 'formation' => 'Parte Complementar', 'knowledge_area_id' => $area->id]);
+        $history = StudentAcademicHistory::create(['person_id' => Person::create(['full_name' => 'Estudante'])->id, 'school_id' => School::create(['name' => 'Escola'])->id, 'title' => 'Histórico', 'education_stage' => 'fundamental']);
+        $year = $history->years()->create(['label' => '4º Ano', 'stage' => 'Ensino Fundamental', 'source' => 'external']);
+        $row = $history->components()->create(['name' => $entry->name, 'formation' => $entry->formation, 'knowledge_area' => $area->name]);
+        $row->catalogEntries()->attach($entry);
+        $record = $row->records()->create(['student_academic_history_year_id' => $year->id, 'score_label' => '8,0']);
+        $before = [$row->fresh()->getAttributes(), $record->fresh()->getAttributes()];
+        $this->put(route('history-curriculum.update', $entry), ['name' => $entry->name, 'education_stage' => 'medio', 'formation' => $entry->formation, 'knowledge_area_id' => $area->id])->assertSessionHasErrors('education_stage');
+        $this->assertSame('fundamental', $entry->fresh()->education_stage);
+        $this->assertSame($before, [$row->fresh()->getAttributes(), $record->fresh()->getAttributes()]);
+    }
+
     public function test_catalog_form_has_no_activation_control_and_legacy_entries_are_made_available_without_other_changes(): void
     {
         $this->actingAs($this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR));

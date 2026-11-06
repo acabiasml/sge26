@@ -45,7 +45,7 @@
                         <dt>{{ __('Matriz') }}</dt>
                         <dd>{{ $course->name }} · {{ __($course->stageLabel()) }} · {{ __($course->modalityLabel()) }}</dd>
                         <dt>{{ __('Formação') }}</dt>
-                        <dd>{{ \App\Support\CurriculumCatalog::formationLabelForArea($course, $component->area) }}</dd>
+                        <dd>{{ \App\Support\CurriculumCatalog::formationLabelForComponent($component) }}</dd>
                         <dt>{{ __('Área') }}</dt>
                         <dd>{{ $component->area?->name ?? __('Não definida') }}</dd>
                         <dt>{{ __('Situação') }}</dt>
@@ -76,13 +76,7 @@
                             <div class="row">
                                 <div class="col-md-6 form-group">
                                     <label for="component_name">{{ __('Componente') }}</label>
-                                    <select id="component_name" name="name" class="form-control @error('name') is-invalid @enderror" aria-describedby="component-catalog-help" required>
-                                        <option value="">{{ __('Selecione') }}</option>
-                                        @foreach ($curriculumSuggestions as $suggestion)
-                                            <option value="{{ $suggestion['component'] }}" @selected(old('name', $component->name) === $suggestion['component'])>{{ $suggestion['component'] }}</option>
-                                        @endforeach
-                                    </select>
-                                    @include('curriculum-components.partials.catalog-help', ['helpId' => 'component-catalog-help'])
+                                    @include('curriculum-components.partials.catalog-selection', ['selectId' => 'component_name'])
                                 </div>
                                 <div class="col-md-6 form-group" data-workload-choice>
                                     @if($component->weekly_lessons !== null && $component->workload_hours !== null)
@@ -109,17 +103,7 @@
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-md-4 form-group">
-                                    <label for="component_area">{{ __('Área') }}</label>
-                                    <select id="component_area" name="knowledge_area_id" class="form-control" required>
-                                        <option value="">{{ __('Selecione a área') }}</option>
-                                        @foreach($knowledgeAreas as $area)
-                                            <option value="{{ $area->id }}" @selected(old('knowledge_area_id', $component->knowledge_area_id) == $area->id)>{{ $area->name }} — {{ __($area->formation ?: 'Formação não definida') }}</option>
-                                        @endforeach
-                                    </select>
-                                    @if(auth()->user()->isAdministrator())<a href="{{ route('knowledge-areas.index') }}" target="_blank" rel="noopener">{{ __('Gerenciar áreas e formações') }}</a>@endif
-                                </div>
-                                <div class="col-md-4 form-group">
+                                <div class="col-md-6 form-group">
                                     <label for="component_starts_period_id">{{ __('Período inicial') }}</label>
                                     <select id="component_starts_period_id" name="starts_period_id" class="form-control">
                                         <option value="">{{ __('Desde o início da turma') }}</option>
@@ -128,7 +112,7 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="col-md-4 form-group">
+                                <div class="col-md-6 form-group">
                                     <label for="component_ends_period_id">{{ __('Período final') }}</label>
                                     <select id="component_ends_period_id" name="ends_period_id" class="form-control">
                                         <option value="">{{ __('Até o fim da turma') }}</option>

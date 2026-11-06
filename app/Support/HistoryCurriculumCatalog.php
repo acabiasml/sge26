@@ -6,11 +6,39 @@ use App\Models\AcademicCourse;
 use App\Models\HistoryCurriculumComponent;
 use App\Models\KnowledgeArea;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 
 final class HistoryCurriculumCatalog
 {
     public const UNCLASSIFIED_STAGE = 'nao_identificada';
 
+    public static function validDefinition(HistoryCurriculumComponent $entry, string $stage): bool
+    {
+        $entry->loadMissing('area');
+
+        return $entry->area !== null && in_array($stage, ['fundamental', 'medio', 'tecnico'], true) && $entry->education_stage === $stage
+            && in_array($entry->formation, self::formations($stage), true)
+            && CurriculumAreaStage::compatible($entry->area?->name, $stage);
+    }
+
+    public static function validateDefinition(HistoryCurriculumComponent $entry, string $stage, string $field = 'catalog_component_id'): void
+    {
+        if (! self::validDefinition($entry, $stage)) {
+            throw ValidationException::withMessages([$field => __('Selecione um componente do catálogo com etapa, formação e área compatíveis.')]);
+        }
+    }
+
+    public static function resolveImportedDefinition(string $stage, ?int $areaId, string $name): HistoryCurriculumComponent
+    {
+        $candidates = HistoryCurriculumComponent::where('education_stage', $stage)->where('knowledge_area_id', $areaId)
+            ->with('area')->get()->filter(fn ($entry) => mb_strtolower(trim($entry->name)) === mb_strtolower(trim($name))
+                && self::validDefinition($entry, $stage));
+        if ($candidates->count() !== 1) {
+            throw ValidationException::withMessages(['components' => __('A importação exige um único cadastro compatível no catálogo para o componente: :name.', ['name' => $name])]);
+        }
+
+        return $candidates->first();
+    }
     public static function stageLabels(): array
     {
         return AcademicCourse::STAGE_LABELS
@@ -49,7 +77,7 @@ final class HistoryCurriculumCatalog
             if (! array_key_exists($item->education_stage, $catalogs)) {
                 continue;
             }
-            if (! CurriculumAreaStage::compatible($item->area->name, $item->education_stage)) {
+            if (! self::validDefinition($item, $item->education_stage)) {
                 continue;
             }
             $catalogs[$item->education_stage][] = ['formation' => $item->formation, 'area' => $item->area->name, 'name' => $item->name];
@@ -60,6 +88,10 @@ final class HistoryCurriculumCatalog
 
     public static function contains(string $stage, ?string $formation, ?string $area, string $name): bool
     {
+        if (! in_array($stage, ['fundamental', 'medio', 'tecnico'], true)
+            || ! in_array($formation, self::formations($stage), true) || ! CurriculumAreaStage::compatible($area, $stage)) {
+            return false;
+        }
         return HistoryCurriculumComponent::where('education_stage', $stage)->where('formation', $formation)->where('name', $name)
             ->whereHas('area', fn ($query) => $query->where('active', true)->where('name', $area))->exists();
     }

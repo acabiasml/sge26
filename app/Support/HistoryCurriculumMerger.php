@@ -21,9 +21,7 @@ final class HistoryCurriculumMerger
         $target->loadMissing('area');
 
         return $source->matrixComponents->every(fn ($matrix) => $matrix->course
-            && CurriculumAreaStage::compatible($target->area->name, $matrix->course->stage)
-            && $target->formation === ($matrix->course->stage === 'tecnico'
-                ? 'Formação Técnica Profissional' : CurriculumCatalog::formationLabelForArea($matrix->course, $target->area)));
+            && HistoryCurriculumCatalog::validDefinition($target, $matrix->course->stage));
     }
 
     public function merge(int $sourceId, int $targetId, User $actor): HistoryCurriculumComponent

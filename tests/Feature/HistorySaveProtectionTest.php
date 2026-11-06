@@ -82,6 +82,49 @@ class HistorySaveProtectionTest extends TestCase
         return route('people.histories.update', [$history->person_id, $history]);
     }
 
+    public function test_omitting_form_flags_cannot_bypass_stage_formation_or_complete_catalog_validation(): void
+    {
+        $history = $this->history();
+        $history->update(['is_unified' => false, 'education_stage' => null]);
+        $year = $history->years()->sole();
+        $before = $year->records()->sole()->getAttributes();
+        foreach ([false, true] as $yearly) {
+            foreach ([['formation' => 'Itinerário Formativo'], ['knowledge_area' => 'Linguagens']] as $invalid) {
+                $row = array_replace($this->yearComponentData('Matemática', 'Matemática', ['score_label' => '8,0']), $invalid);
+                $payload = $this->payload($history, [$this->year(1) + ['id' => $year->id]], app(StudentHistoryEditGuard::class)->version($history->fresh()));
+                if ($yearly) {
+                    unset($payload['components']);
+                    $payload['year_components_present'] = 1;
+                    $payload['year_components'] = [0 => [$row]];
+                } else {
+                    $payload['components'][0] = array_merge(collect($row)->except('record')->all(), ['records' => [0 => $row['record']]]);
+                }
+                $payload['formation_totals_present'] = 0;
+                $this->put($this->url($history), $payload)->assertSessionHasErrors();
+                $this->post(route('people.histories.store', $history->person_id), $payload)->assertSessionHasErrors();
+            }
+        }
+        $this->assertSame($before, $year->records()->sole()->getAttributes());
+        $this->assertSame(1, $history->years()->count());
+    }
+
+    public function test_existing_invalid_classification_cannot_be_copied_to_a_new_year_by_an_old_payload(): void
+    {
+        foreach ([true, false] as $unified) {
+            $history = $this->history();
+            $history->update(['is_unified' => $unified, 'education_stage' => $unified ? 'fundamental' : null]);
+            $component = $history->components()->sole();
+            $component->update(['formation' => 'Itinerário Formativo']);
+            $year = $history->years()->sole();
+            $payload = $this->payload($history->fresh(), [$this->year(1) + ['id' => $year->id], $this->year(2)], app(StudentHistoryEditGuard::class)->version($history->fresh()));
+            $payload['components'][0]['formation'] = 'Itinerário Formativo';
+            $before = $year->records()->sole()->getAttributes();
+            $this->put($this->url($history), $payload)->assertSessionHasErrors('components.0.formation');
+            $this->assertSame($before, $year->records()->sole()->getAttributes());
+            $this->assertSame(1, $history->years()->count());
+        }
+    }
+
     public function test_histories_reject_areas_from_the_other_stage_even_when_previously_imported(): void
     {
         foreach (['fundamental', 'medio'] as $stage) {

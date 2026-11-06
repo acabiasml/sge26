@@ -175,8 +175,8 @@ class AcademicCourse extends Model
 
         return $components
             ->sort(function (CurriculumComponent $first, CurriculumComponent $second): int {
-                $firstFormation = CurriculumCatalog::formationLabelForArea($this, $first->area);
-                $secondFormation = CurriculumCatalog::formationLabelForArea($this, $second->area);
+                $firstFormation = CurriculumCatalog::formationLabelForComponent($first);
+                $secondFormation = CurriculumCatalog::formationLabelForComponent($second);
 
                 $formationComparison = CurriculumCatalog::formationOrder($firstFormation) <=> CurriculumCatalog::formationOrder($secondFormation);
 
@@ -196,7 +196,7 @@ class AcademicCourse extends Model
                 return strnatcasecmp($first->name, $second->name);
             })
             ->values()
-            ->groupBy(fn (CurriculumComponent $component): string => CurriculumCatalog::formationLabelForArea($this, $component->area))
+            ->groupBy(fn (CurriculumComponent $component): string => CurriculumCatalog::formationLabelForComponent($component))
             ->map(function (Collection $formationComponents, string $formation): array {
                 return [
                     'formation' => $formation,

@@ -2854,5 +2854,11 @@
     "Confirmar a mesclagem? Os históricos e as matrizes vinculadas, quando houver, adotarão o cadastro escolhido. Os lançamentos escolares serão preservados.": "Confermare l’unione? Gli storici e gli eventuali piani di studio collegati adotteranno la registrazione scelta. Le registrazioni scolastiche saranno conservate.",
     "A mesclagem só é permitida entre componentes da mesma etapa de ensino identificada.": "L’unione è consentita solo tra discipline dello stesso grado di istruzione identificato.",
     "Somente componentes da mesma etapa de ensino podem ser mesclados. A classificação escolhida deve ser compatível com as matrizes vinculadas.": "Si possono unire solo discipline dello stesso grado di istruzione. La classificazione scelta deve essere compatibile con i piani di studio collegati.",
-    "Não há componentes cadastrados no catálogo para esta etapa de ensino.": "Non ci sono discipline registrate nel catalogo per questo grado di istruzione."
+    "Não há componentes cadastrados no catálogo para esta etapa de ensino.": "Non ci sono discipline registrate nel catalogo per questo grado di istruzione.",
+    "Selecione um componente do catálogo com etapa, formação e área compatíveis.": "Seleziona una disciplina del catalogo con grado di istruzione, formazione e area compatibili.",
+    "Selecione um componente do catálogo.": "Seleziona una disciplina del catalogo.",
+    "Etapa, formação e área são mantidas conforme o componente escolhido no catálogo.": "Grado di istruzione, formazione e area seguono la disciplina scelta nel catalogo.",
+    "Para alterar a classificação, escolha outro componente do catálogo na matriz.": "Per cambiare la classificazione, scegli un’altra disciplina del catalogo nel piano di studio.",
+    "A etapa não pode ser alterada porque o componente já é utilizado em históricos de outra etapa.": "Non è possibile cambiare il grado di istruzione perché la disciplina è già utilizzata in storici di un altro grado.",
+    "A importação exige um único cadastro compatível no catálogo para o componente: :name.": "L’importazione richiede un’unica registrazione compatibile nel catalogo per la disciplina: :name."
 }

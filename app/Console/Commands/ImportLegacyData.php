@@ -97,14 +97,15 @@ class ImportLegacyData extends Command
             return self::FAILURE;
         }
 
-        if ($this->option('fresh')) {
-            $this->removePreviousImport(array_keys($sources));
-        }
-
-        Model::withoutEvents(function () use ($sources): void {
-            foreach ($sources as $source => $path) {
-                $this->importSource($source, base_path($path));
+        DB::transaction(function () use ($sources): void {
+            if ($this->option('fresh')) {
+                $this->removePreviousImport(array_keys($sources));
             }
+            Model::withoutEvents(function () use ($sources): void {
+                foreach ($sources as $source => $path) {
+                    $this->importSource($source, base_path($path));
+                }
+            });
         });
 
         $this->info('Importação das bases anteriores concluída.');
@@ -738,17 +739,15 @@ class ImportLegacyData extends Command
                 ? $this->weeklyLessonsFromLegacyWorkload($legacyWorkloadHours, (int) $course->class_hour_minutes)
                 : null;
 
-            $component = CurriculumComponent::query()->updateOrCreate(
+            $area = CurriculumAreaStage::areaForStage(KnowledgeArea::find($areaMap[(int) ($legacyComponent['area_id'] ?? 0)] ?? null), $course->stage);
+            $definition = \App\Support\HistoryCurriculumCatalog::resolveImportedDefinition($course->stage, $area?->id, $this->title($legacyComponent['nome'] ?? 'Componente '.$legacyId));
+            $component = CurriculumComponent::query()->firstOrNew(
                 [
                     'legacy_source' => $source,
                     'legacy_id' => $legacyId,
-                ],
-                [
+                ]);
+            $component->fill([
                     'academic_course_id' => $courseId,
-                    'knowledge_area_id' => CurriculumAreaStage::areaForStage(
-                        KnowledgeArea::find($areaMap[(int) ($legacyComponent['area_id'] ?? 0)] ?? null), $course?->stage
-                    )?->id,
-                    'name' => $this->title($legacyComponent['nome'] ?? 'Componente '.$legacyId),
                     'weekly_lessons' => $weeklyLessons,
                     'workload_hours' => $weeklyLessons && $course
                         ? (int) round(($weeklyLessons * (int) $course->class_hour_minutes * 40) / 60)
@@ -756,8 +755,10 @@ class ImportLegacyData extends Command
                     'notes' => null,
                     'active' => true,
                     'legacy_metadata' => $legacyComponent,
-                ]
-            );
+                ]);
+            $component->adoptCatalogDefinition($definition);
+            // O importador suspende eventos; o vínculo completo continua obrigatório.
+            app(\App\Support\MatrixHistoryCatalog::class)->syncComponent($component, true, $definition);
 
             $this->componentIdMap[$source][$legacyId] = $component->id;
         }

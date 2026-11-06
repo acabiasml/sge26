@@ -38,7 +38,13 @@ class CurriculumComponentController extends Controller
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
         $this->ensureCanChangeApprovedCalendar($request, $academicYear);
 
-        $component = $course->components()->create($this->validatedData($request, $academicYear, $course));
+        [$data, $definition] = $this->validatedData($request, $academicYear, $course);
+        $component = DB::transaction(function () use ($course, $data, $definition) {
+            $component = $course->components()->make($data);
+            $component->adoptCatalogDefinition($definition);
+
+            return $component;
+        });
         foreach ($course->classes as $class) {
             SchoolClassComponent::query()->firstOrCreate([
                 'school_class_id' => $class->id,
@@ -60,9 +66,9 @@ class CurriculumComponentController extends Controller
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
         $this->ensureCanChangeApprovedCalendar($request, $academicYear);
 
-        $data = $this->validatedData($request, $academicYear, $course, $component);
-        DB::transaction(function () use ($component, $data, $course): void {
-            $component->update($data);
+        [$data, $definition] = $this->validatedData($request, $academicYear, $course, $component);
+        DB::transaction(function () use ($component, $data, $definition, $course): void {
+            $component->fill($data)->adoptCatalogDefinition($definition);
             $course->refreshWorkloadHours();
         });
 
@@ -93,14 +99,10 @@ class CurriculumComponentController extends Controller
         AcademicCourse $course,
         ?CurriculumComponent $component = null
     ): array {
-        $allowedAreaIds = CurriculumCatalog::knowledgeAreasForCourse($course, $component?->area)
-            ->pluck('id')
-            ->unique()
-            ->all();
+        $definitions = CurriculumCatalog::definitionsForCourse($course, $component)->keyBy('id');
 
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255', Rule::in(array_column(CurriculumCatalog::suggestionsForCourse($course, $component), 'component'))],
-            'knowledge_area_id' => ['nullable', Rule::in($allowedAreaIds)],
+            'catalog_component_id' => ['required', 'integer', Rule::in($definitions->modelKeys())],
             'starts_period_id' => ['nullable', Rule::in($this->allowedPeriodIds($academicYear, $course))],
             'ends_period_id' => ['nullable', Rule::in($this->allowedPeriodIds($academicYear, $course))],
             'workload_mode' => ['required', Rule::in(['weekly_lessons', 'workload_hours'])],
@@ -109,7 +111,8 @@ class CurriculumComponentController extends Controller
             'notes' => ['nullable', 'string', 'max:5000'],
             'active' => ['nullable', 'boolean'],
         ], [
-            'name.in' => __('Selecione um componente do catálogo compatível com a etapa de ensino.'),
+            'catalog_component_id.required' => __('Selecione um componente do catálogo.'),
+            'catalog_component_id.in' => __('Selecione um componente do catálogo com etapa, formação e área compatíveis.'),
         ]);
 
         $this->ensureValidPeriodSpan($academicYear, $data['starts_period_id'] ?? null, $data['ends_period_id'] ?? null);
@@ -121,9 +124,10 @@ class CurriculumComponentController extends Controller
             $data['weekly_lessons'] = null;
         }
         unset($data['workload_mode']);
-        $data['knowledge_area_id'] = $data['knowledge_area_id'] ?? null;
+        $definition = $definitions->get((int) $data['catalog_component_id']);
+        unset($data['catalog_component_id']);
 
-        return $data;
+        return [$data, $definition];
     }
 
     /**

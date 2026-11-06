@@ -57,6 +57,13 @@ class CurriculumCatalog
      */
     public static function suggestionsForCourse(AcademicCourse $course, ?CurriculumComponent $currentComponent = null): array
     {
+        return self::definitionsForCourse($course, $currentComponent)
+            ->map(fn ($entry) => ['id' => $entry->id, 'formation' => $entry->formation, 'component' => $entry->name, 'area' => $entry->area->name, 'area_id' => $entry->knowledge_area_id])
+            ->all();
+    }
+
+    public static function definitionsForCourse(AcademicCourse $course, ?CurriculumComponent $currentComponent = null)
+    {
         $currentIds = $currentComponent?->historyCatalogEntries()->pluck('history_curriculum_components.id')->all() ?? [];
 
         return HistoryCurriculumComponent::query()
@@ -66,12 +73,18 @@ class CurriculumCatalog
                     ->orWhereIn('id', $currentIds);
             })
             ->with('area')->orderBy('name')->get()
-            ->filter(fn ($entry) => CurriculumAreaStage::compatible($entry->area->name, $course->stage))
-            ->map(fn ($entry) => ['component' => $entry->name, 'area' => $entry->area->name, 'area_id' => $entry->knowledge_area_id])
-            ->unique('component')
-            ->sortBy(fn (array $item) => self::alphabeticalKey($item['component']), SORT_NATURAL)
-            ->values()
-            ->all();
+            ->filter(fn ($entry) => HistoryCurriculumCatalog::validDefinition($entry, $course->stage))
+            ->sortBy(fn ($entry) => self::alphabeticalKey($entry->name.' '.$entry->formation.' '.$entry->area->name), SORT_NATURAL)
+            ->values();
+    }
+
+    public static function formationLabelForComponent(CurriculumComponent $component): string
+    {
+        $entry = $component->historyCatalogEntries->first(fn ($entry) => $entry->name === $component->name
+            && $entry->knowledge_area_id === $component->knowledge_area_id && $entry->education_stage === $component->course->stage);
+
+        return $entry?->formation ?? ($component->course?->stage === AcademicCourse::STAGE_TECHNICAL
+            ? 'Formação Técnica Profissional' : self::formationLabelForArea($component->course, $component->area));
     }
 
     public static function areaIdForComponent(AcademicCourse $course, string $componentName): ?int

@@ -132,7 +132,12 @@ class AcademicCourseController extends Controller
             ]);
 
             foreach ($course->components as $component) {
-                $duplicatedCourse->components()->create([
+                $definition = $component->historyCatalogEntries()->first();
+                if (! $definition) {
+                    throw ValidationException::withMessages(['components' => __('Selecione um componente do catálogo com etapa, formação e área compatíveis.')]);
+                }
+                \App\Support\HistoryCurriculumCatalog::validateDefinition($definition, $duplicatedCourse->stage, 'components');
+                $copy = $duplicatedCourse->components()->make([
                     'knowledge_area_id' => $component->knowledge_area_id,
                     'starts_period_id' => $component->starts_period_id,
                     'ends_period_id' => $component->ends_period_id,
@@ -142,6 +147,7 @@ class AcademicCourseController extends Controller
                     'notes' => $component->notes,
                     'active' => $component->active,
                 ]);
+                $copy->adoptCatalogDefinition($definition);
             }
 
             $duplicatedCourse->refreshWorkloadHours();
@@ -192,6 +198,11 @@ class AcademicCourseController extends Controller
         if ($course && $course->stage !== $data['stage']) {
             foreach ($course->components()->with('area')->get() as $component) {
                 CurriculumAreaStage::validate($component->area?->name, $data['stage'], 'stage');
+                $definition = $component->historyCatalogEntries()->first();
+                if (! $definition) {
+                    throw ValidationException::withMessages(['stage' => __('Selecione um componente do catálogo com etapa, formação e área compatíveis.')]);
+                }
+                \App\Support\HistoryCurriculumCatalog::validateDefinition($definition, $data['stage'], 'stage');
             }
         }
 

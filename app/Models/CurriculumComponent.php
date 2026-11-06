@@ -16,10 +16,11 @@ class CurriculumComponent extends Model
     use Auditable, HasFactory, HasTitleCaseAttributes;
 
     private bool $adoptingCatalogDefinition = false;
+    private ?HistoryCurriculumComponent $selectedCatalogDefinition = null;
 
     protected static function booted(): void
     {
-        static::saved(fn (self $component) => app(MatrixHistoryCatalog::class)->syncComponent($component, $component->wasChanged(['name', 'knowledge_area_id'])));
+        static::saved(fn (self $component) => app(MatrixHistoryCatalog::class)->syncComponent($component, $component->wasChanged(['name', 'knowledge_area_id']), $component->selectedCatalogDefinition));
     }
 
     protected $fillable = [
@@ -71,14 +72,18 @@ class CurriculumComponent extends Model
 
     public function adoptCatalogDefinition(HistoryCurriculumComponent $entry): void
     {
+        \App\Support\HistoryCurriculumCatalog::validateDefinition($entry, $this->course->stage);
         $this->setRawAttributes(array_merge($this->getAttributes(), [
             'name' => $entry->name, 'knowledge_area_id' => $entry->knowledge_area_id,
         ]));
         $this->adoptingCatalogDefinition = true;
+        $this->selectedCatalogDefinition = $entry;
         try {
             $this->save();
         } finally {
             $this->adoptingCatalogDefinition = false;
+            $this->selectedCatalogDefinition = null;
+            $this->unsetRelation('historyCatalogEntries');
         }
     }
 

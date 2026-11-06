@@ -102,7 +102,7 @@ final class HistoryCurriculumPropagation
                     $labels = $selected ? [
                         'name' => $target->name,
                         'formation' => $matrix && ! $manual && $component->history->education_stage !== 'tecnico'
-                            ? ($matrix->area?->formation ?: $target->formation) : $target->formation,
+                            ? ($matrix->course->stage === 'tecnico' ? ($matrix->area?->formation ?: $component->formation) : CurriculumCatalog::formationLabelForComponent($matrix)) : $target->formation,
                         'knowledge_area' => $target->area->name,
                     ] : $oldLabels;
                     $key = json_encode([$selected, $labels], JSON_THROW_ON_ERROR);

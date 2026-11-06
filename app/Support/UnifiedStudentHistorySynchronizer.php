@@ -204,7 +204,7 @@ class UnifiedStudentHistorySynchronizer
             $moduleLabel = $technicalCourse && $stage === AcademicCourse::STAGE_TECHNICAL
                 ? $this->technicalModuleLabel($component, $technicalCourse)
                 : null;
-            $formation = CurriculumCatalog::formationLabelForArea($component->course, $component->area);
+            $formation = ($technicalCourse && $stage !== AcademicCourse::STAGE_TECHNICAL ? CurriculumCatalog::formationLabelForArea($component->course, $component->area) : CurriculumCatalog::formationLabelForComponent($component));
             $knowledgeArea = CurriculumCatalog::areaLabelForComponent($component->course, $component->area);
             if ($stage === AcademicCourse::STAGE_TECHNICAL) {
                 $formation = 'Formação Técnica Profissional';

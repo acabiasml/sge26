@@ -27,7 +27,7 @@ final class MatrixHistoryCatalog
         return $count;
     }
 
-    public function syncComponent(CurriculumComponent $component, bool $propagate = false): ?HistoryCurriculumComponent
+    public function syncComponent(CurriculumComponent $component, bool $propagate = false, ?HistoryCurriculumComponent $selected = null): ?HistoryCurriculumComponent
     {
         if (! Schema::hasTable('matrix_catalog_components')) {
             return null;
@@ -39,15 +39,22 @@ final class MatrixHistoryCatalog
             return null;
         }
 
-        return DB::transaction(function () use ($component, $course, $propagate): HistoryCurriculumComponent {
+        return DB::transaction(function () use ($component, $course, $propagate, $selected): HistoryCurriculumComponent {
             $previous = $component->historyCatalogEntries()->first();
             $formation = $course->stage === AcademicCourse::STAGE_TECHNICAL ? 'Formação Técnica Profissional' : CurriculumCatalog::formationLabelForArea($course, $component->area);
+            if ($selected) {
+                HistoryCurriculumCatalog::validateDefinition($selected, $course->stage);
+                $formation = $selected->formation;
+            } elseif ($previous && $previous->education_stage === $course->stage
+                && $previous->name === $component->name && $previous->knowledge_area_id === $component->knowledge_area_id) {
+                $formation = $previous->formation;
+            }
             $area = $component->area ?: KnowledgeArea::firstOrCreate(['name' => TextNormalizer::titleCase('Área não definida')], ['formation' => $formation, 'active' => true]);
             $stage = array_key_exists($course->stage, AcademicCourse::STAGE_LABELS) ? $course->stage : HistoryCurriculumCatalog::UNCLASSIFIED_STAGE;
             $context = ['knowledge_area_id' => $area->id, 'education_stage' => $stage, 'formation' => $formation];
             $findEntry = fn () => HistoryCurriculumComponent::where($context)->where('name', $component->name)->first()
                 ?? HistoryCurriculumComponent::where($context)->get()->first(fn ($entry) => Str::lower(trim($entry->name)) === Str::lower(trim($component->name)));
-            $entry = $findEntry();
+            $entry = $selected ?? $findEntry();
             if (! $entry) {
                 // A grafia é uma cópia fiel da matriz, inclusive em importações que
                 // não passaram pela normalização de texto dos formulários.
@@ -65,7 +72,7 @@ final class MatrixHistoryCatalog
             DB::table('matrix_catalog_components')->updateOrInsert(['curriculum_component_id' => $component->id], ['history_curriculum_component_id' => $entry->id]);
 
             $entry = $entry->fresh();
-            if ($propagate && $previous) {
+            if ($previous && ($propagate || ($selected && $previous->id !== $entry->id))) {
                 app(HistoryCurriculumPropagation::class)->matrixChanged($component, $previous, $entry);
             }
 

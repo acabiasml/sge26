@@ -379,7 +379,7 @@ class ClassAcademicDocumentsController extends Controller
                             'id' => $component->id,
                             'component' => $component,
                             'course' => $course,
-                            'formation' => CurriculumCatalog::formationLabelForArea($course, $component->area),
+                            'formation' => CurriculumCatalog::formationLabelForComponent($component),
                             'area' => $component->area?->name ?? 'Área não definida',
                             'name' => $component->name,
                         ];

@@ -74,7 +74,7 @@ class KnowledgeAreaController extends Controller
             $area->newQuery()->whereKey($area->id)->lockForUpdate()->firstOrFail();
             $component = $component->newQuery()->whereKey($component->id)->lockForUpdate()->firstOrFail();
             abort_unless($component->knowledge_area_id === $area->id, 404);
-            $component->update(['knowledge_area_id' => null]);
+            throw ValidationException::withMessages(['area' => __('Para alterar a classificação, escolha outro componente do catálogo na matriz.')]);
         });
 
         return back()->with('status', __('Componente desvinculado da área.'));
@@ -85,7 +85,9 @@ class KnowledgeAreaController extends Controller
         abort_unless($request->user()->isAdministrator(), 403);
         DB::transaction(function () use ($area): void {
             $area->newQuery()->whereKey($area->id)->lockForUpdate()->firstOrFail();
-            $area->components()->lockForUpdate()->get()->each->update(['knowledge_area_id' => null]);
+            if ($area->components()->lockForUpdate()->exists()) {
+                throw ValidationException::withMessages(['area' => __('Para alterar a classificação, escolha outro componente do catálogo na matriz.')]);
+            }
         });
 
         return redirect()->route('knowledge-areas.usages', $area)->with('status', __('Todos os componentes foram desvinculados da área.'));

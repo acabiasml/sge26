@@ -97,6 +97,16 @@ class HistoryCurriculumCatalogController extends Controller
             throw ValidationException::withMessages(['name' => __('Esta nomenclatura já foi incorporada a outro componente do catálogo.')]);
         }
         CurriculumAreaStage::validate(KnowledgeArea::findOrFail($data['knowledge_area_id'])->name, $data['education_stage'], 'knowledge_area_id');
+        if ($component && $component->education_stage !== $data['education_stage']) {
+            foreach ($component->historyComponents()->with(['history', 'records.year'])->get() as $usage) {
+                foreach ($usage->records as $record) {
+                    $stage = $usage->history->education_stage ?: CurriculumAreaStage::stageFromLabel($record->year?->stage);
+                    if ($stage && $stage !== $data['education_stage']) {
+                        throw ValidationException::withMessages(['education_stage' => __('A etapa não pode ser alterada porque o componente já é utilizado em históricos de outra etapa.')]);
+                    }
+                }
+            }
+        }
         $data['active'] = true;
 
         return $data;

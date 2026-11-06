@@ -812,9 +812,18 @@ class StudentAcademicHistoryController extends Controller
         foreach ($data['years'] as $index => $year) {
             abort_unless(empty($year['imported_from_history_year_id'])
                 || in_array((int) $year['imported_from_history_year_id'], $existingImportIds, true), 422);
+            $submittedStage = array_search($year['stage'], AcademicCourse::STAGE_LABELS, true);
             $yearStage = $routeHistory instanceof StudentAcademicHistory && $routeHistory->is_unified
-                ? $routeHistory->education_stage
-                : array_search($year['stage'], AcademicCourse::STAGE_LABELS, true);
+                ? $routeHistory->education_stage : $submittedStage;
+            $savedYear = $routeHistory instanceof StudentAcademicHistory && ! empty($year['id']) ? $routeHistory->years()->find($year['id']) : null;
+            if ((! $submittedStage || $submittedStage === AcademicCourse::STAGE_OTHER || $submittedStage !== $yearStage)
+                && (! $savedYear || $savedYear->stage !== $year['stage'])) {
+                throw ValidationException::withMessages(["years.{$index}.stage" => __('Identifique a etapa escolar de cada ano antes de salvar.')]);
+            }
+            $allowedFormations = array_unique([...HistoryCurriculumCatalog::formations($yearStage ?: ''), ...array_keys($savedYear?->formation_workload_hours ?? [])]);
+            if (array_diff(array_keys($year['formation_workload_hours'] ?? []), $allowedFormations)) {
+                throw ValidationException::withMessages(["years.{$index}.formation_workload_hours" => __('Selecione uma formação válida para esta etapa.')]);
+            }
             if (in_array($yearStage, [AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL], true)
                 && (! isset($year['grade_number']) || (int) $year['grade_number'] > ($yearStage === AcademicCourse::STAGE_HIGH_SCHOOL ? 3 : 9))) {
                 throw ValidationException::withMessages(["years.{$index}.grade_number" => __('Selecione o ano escolar correspondente à etapa informada.')]);
@@ -834,39 +843,40 @@ class StudentAcademicHistoryController extends Controller
             if ($componentStages->isEmpty()) {
                 $componentStages = collect($data['years'])->pluck('stage')->map(fn ($label) => CurriculumAreaStage::stageFromLabel($label))->filter()->unique();
             }
-            $preservesMatrixReference = $routeHistory instanceof StudentAcademicHistory && ! empty($component['records']);
+            if ($componentStages->isEmpty()) {
+                throw ValidationException::withMessages(["components.{$index}.name" => __('Identifique a etapa escolar de cada ano antes de salvar.')]);
+            }
+            $existingOnly = $routeHistory instanceof StudentAcademicHistory && ! empty($component['records']);
+            $preservesMatrixReference = $existingOnly;
             foreach ($component['records'] ?? [] as $yearIndex => $record) {
                 $yearId = $data['years'][$yearIndex]['id'] ?? null;
-                if (! $preservesMatrixReference || ! $yearId || ! $routeHistory->components()->where('name', $component['name'])
+                $existing = $existingOnly && $yearId ? $routeHistory->components()->where('name', $component['name'])
                     ->where('formation', $component['formation'] ?? null)->where('knowledge_area', $component['knowledge_area'] ?? null)
-                    ->whereHas('catalogEntries', fn ($query) => $query->where('matrix_origin', true))
-                    ->whereHas('records', fn ($query) => $query->where('student_academic_history_year_id', $yearId)->whereHas('year', fn ($query) => $query->whereIn('source', ['manual', 'external'])))->exists()) {
+                    ->whereHas('records', fn ($query) => $query->where('student_academic_history_year_id', $yearId)
+                        ->whereHas('year', fn ($query) => $query->whereIn('source', ['manual', 'external'])))->first() : null;
+                if (! $existing) {
+                    $existingOnly = false;
+                    $preservesMatrixReference = false;
+                } elseif (! $existing->catalogEntries()->where('matrix_origin', true)->exists()) {
                     $preservesMatrixReference = false;
                 }
             }
             foreach ($componentStages as $componentStage) {
-                // Mantém a classificação escolhida por mesclagem, somente nos anos
-                // em que o vínculo com a matriz já existe; não libera novos lançamentos.
                 if ($preservesMatrixReference) {
                     continue;
                 }
                 CurriculumAreaStage::validate($component['knowledge_area'] ?? null, $componentStage, "components.{$index}.knowledge_area");
-                if ($request->boolean('formation_totals_present') && ! HistoryCurriculumCatalog::contains($componentStage, $component['formation'] ?? null, $component['knowledge_area'] ?? null, $component['name'])) {
-                    $existingOnly = $routeHistory instanceof StudentAcademicHistory && ! empty($component['records']);
-                    foreach ($component['records'] ?? [] as $yearIndex => $record) {
-                        $yearId = $data['years'][$yearIndex]['id'] ?? null;
-                        $exists = $existingOnly && $yearId && $routeHistory->components()->where('name', $component['name'])
-                            ->where('formation', $component['formation'] ?? null)->where('knowledge_area', $component['knowledge_area'] ?? null)
-                            ->whereHas('records', fn ($query) => $query->where('student_academic_history_year_id', $yearId)->whereHas('year', fn ($query) => $query->whereIn('source', ['manual', 'external'])))->exists();
-                        if (! $exists) {
-                            $existingOnly = false;
-                        }
-                    }
-                    if (! $existingOnly) {
-                        throw ValidationException::withMessages(["components.{$index}.name" => __('Selecione um componente ativo do cadastro para esta formação, área e etapa.')]);
-                    }
+                // Valores antigos só podem permanecer nos anos em que já estavam salvos.
+                // Nenhum campo enviado pelo navegador desativa a validação de novos vínculos.
+                if ($existingOnly) {
+                    continue;
                 }
-
+                if (! in_array($component['formation'] ?? null, HistoryCurriculumCatalog::formations($componentStage), true)) {
+                    throw ValidationException::withMessages(["components.{$index}.formation" => __('Selecione uma formação válida para esta etapa.')]);
+                }
+                if (! HistoryCurriculumCatalog::contains($componentStage, $component['formation'] ?? null, $component['knowledge_area'] ?? null, $component['name'])) {
+                    throw ValidationException::withMessages(["components.{$index}.name" => __('Selecione um componente do catálogo com etapa, formação e área compatíveis.')]);
+                }
             }
         }
 
@@ -881,26 +891,7 @@ class StudentAcademicHistoryController extends Controller
                     throw ValidationException::withMessages(["years.{$index}.grade_phase" => __('Esta série já está registrada no sistema e não pode ser lançada manualmente.')]);
                 }
             }
-            foreach ($data['components'] ?? [] as $index => $component) {
-                // Imported transcripts can use historical labels outside the current BNCC catalog.
-                $existingImported = $routeHistory->components()
-                    ->where('name', $component['name'])
-                    ->where('formation', $component['formation'] ?? null)
-                    ->where('knowledge_area', $component['knowledge_area'] ?? null)
-                    ->whereHas('records.year', fn ($query) => $query->whereIn('source', ['manual', 'external']))
-                    ->exists();
-                if ($existingImported) {
-                    continue;
-                }
 
-                $validFormations = HistoryCurriculumCatalog::formations($stage);
-                if (! in_array($component['formation'] ?? null, $validFormations, true)) {
-                    throw ValidationException::withMessages(["components.{$index}.formation" => __('Selecione uma formação válida para esta etapa.')]);
-                }
-                if (! HistoryCurriculumCatalog::contains($stage, $component['formation'] ?? null, $component['knowledge_area'] ?? null, $component['name'])) {
-                    throw ValidationException::withMessages(["components.{$index}.name" => __('Selecione um componente ativo do cadastro para esta formação, área e etapa.')]);
-                }
-            }
         }
 
         return [

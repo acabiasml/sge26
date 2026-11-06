@@ -823,8 +823,7 @@ class AcademicCalendarTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('academic-years.courses.components.store', [$year, $course]), [
-                'name' => 'Língua Portuguesa',
-                'knowledge_area_id' => $area->id,
+                'catalog_component_id' => HistoryCurriculumComponent::where('education_stage', $course->stage)->where('name', 'Língua Portuguesa')->where('knowledge_area_id', $area->id)->value('id'),
                 'workload_mode' => 'weekly_lessons',
                 'weekly_lessons' => '5',
                 'active' => '1',
@@ -912,7 +911,7 @@ class AcademicCalendarTest extends TestCase
         $response->assertOk()->assertSee('O cálculo usa 33 horas totais');
         $this->assertMatchesRegularExpression('/id="component_workload_mode_total"[^>]*checked/', $response->getContent());
         $this->actingAs($admin)->put(route('academic-years.courses.components.update', [$year, $course, $component]), [
-            'name' => 'Arte', 'workload_mode' => 'weekly_lessons', 'weekly_lessons' => 1, 'active' => 1,
+            'catalog_component_id' => HistoryCurriculumComponent::where('education_stage', 'medio')->where('name', 'Arte')->where('formation', 'Formação Geral Básica')->value('id'), 'workload_mode' => 'weekly_lessons', 'weekly_lessons' => 1, 'active' => 1,
         ])->assertSessionHasNoErrors()->assertRedirect();
         $this->assertNull($component->fresh()->workload_hours);
         $this->assertEquals(33.33, $component->fresh()->calculatedWorkloadHours($course));
@@ -1129,7 +1128,7 @@ class AcademicCalendarTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('academic-years.courses.components.store', [$year, $course]), [
-                'name' => 'Matemática',
+                'catalog_component_id' => HistoryCurriculumComponent::where('education_stage', $course->stage)->where('name', 'Matemática')->value('id'),
                 'workload_mode' => 'weekly_lessons',
                 'weekly_lessons' => '2.5',
                 'active' => '1',
@@ -1156,20 +1155,11 @@ class AcademicCalendarTest extends TestCase
         $this->delete(route('knowledge-areas.destroy', $area))->assertForbidden();
         $this->actingAs($admin)->get(route('knowledge-areas.usages', $area))->assertOk()->assertSee($first->name)->assertSee($course->name)->assertSee($year->school->name);
         $this->delete(route('knowledge-areas.destroy', $area))->assertSessionHasErrors('area');
-        $this->delete(route('knowledge-areas.detach', [$area, $first]))->assertSessionHasNoErrors();
-        $this->assertNull($first->refresh()->knowledge_area_id);
-        $this->assertSame($area->id, $second->refresh()->knowledge_area_id);
-        $this->delete(route('knowledge-areas.detach', [$area, $first]))->assertNotFound();
-        $this->delete(route('knowledge-areas.detach-all', $area))->assertSessionHasNoErrors();
-        $this->assertNull($second->refresh()->knowledge_area_id);
-        $this->assertTrue($area->historyCatalogComponents()->where('matrix_origin', true)->exists());
-        $snapshot = [$first->fresh()->getAttributes(), $second->fresh()->getAttributes()];
-        $this->delete(route('knowledge-areas.destroy', $area))->assertSessionHasNoErrors();
-        $this->assertDatabaseMissing('knowledge_areas', ['id' => $area->id]);
-        $this->assertDatabaseMissing('history_curriculum_components', ['knowledge_area_id' => $area->id]);
-        $this->assertSame($snapshot, [$first->fresh()->getAttributes(), $second->fresh()->getAttributes()]);
-        $this->assertDatabaseHas('curriculum_components', ['id' => $first->id, 'name' => $first->name]);
-        $this->assertDatabaseHas('curriculum_components', ['id' => $second->id]);
+        $this->delete(route('knowledge-areas.detach', [$area, $first]))->assertSessionHasErrors('area');
+        $this->delete(route('knowledge-areas.detach-all', $area))->assertSessionHasErrors('area');
+        $this->assertSame($area->id, $first->fresh()->knowledge_area_id);
+        $this->assertSame($area->id, $second->fresh()->knowledge_area_id);
+        $this->delete(route('knowledge-areas.destroy', $area))->assertSessionHasErrors('area');
     }
 
     public function test_explicit_area_formation_controls_components_across_stages_and_can_be_edited(): void
@@ -1183,9 +1173,10 @@ class AcademicCalendarTest extends TestCase
         $area = KnowledgeArea::query()->where('name', 'Área Escolhida')->firstOrFail();
         $course = $year->courses()->create(['name' => 'Fundamental', 'stage' => AcademicCourse::STAGE_ELEMENTARY, 'status' => 'curricular', 'active' => true]);
         $component = $course->components()->create(['name' => 'Língua Portuguesa', 'workload_hours' => 80]);
-        $this->get(route('academic-years.courses.components.show', [$year, $course, $component]))->assertOk()->assertSee('select id="component_area"', false);
+        HistoryCurriculumComponent::create(['name' => $component->name, 'education_stage' => 'fundamental', 'formation' => 'Parte Complementar', 'knowledge_area_id' => $area->id]);
+        $this->get(route('academic-years.courses.components.show', [$year, $course, $component]))->assertOk()->assertSee('name="catalog_component_id"', false);
         $this->put(route('academic-years.courses.components.update', [$year, $course, $component]), [
-            'name' => $component->name, 'knowledge_area_id' => $area->id, 'workload_mode' => 'workload_hours', 'workload_hours' => 80,
+            'catalog_component_id' => HistoryCurriculumComponent::where('education_stage', 'fundamental')->where('name', $component->name)->where('knowledge_area_id', $area->id)->value('id'), 'workload_mode' => 'workload_hours', 'workload_hours' => 80,
         ])->assertSessionHasNoErrors();
         $this->assertSame($area->id, $component->refresh()->knowledge_area_id);
         $this->assertSame(CurriculumCatalog::FORMATION_COMPLEMENTARY, CurriculumCatalog::formationLabelForArea($course, $component->area));
@@ -1200,39 +1191,15 @@ class AcademicCalendarTest extends TestCase
         $this->assertSame(CurriculumCatalog::FORMATION_FGB, CurriculumCatalog::formationLabelForArea($course, $languages));
     }
 
-    public function test_component_area_is_not_inferred_from_its_name(): void
+    public function test_component_name_alone_cannot_create_an_unclassified_matrix_component(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
         $year = $this->academicYear();
-        $course = $year->courses()->create([
-            'name' => 'Ensino Médio',
-            'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
-            'status' => 'iniciado',
-            'class_hour_minutes' => 50,
-            'active' => true,
-        ]);
-        $area = KnowledgeArea::query()
-            ->where('name', 'like', '%Natureza%')
-            ->where('name', 'like', '%Tecnologias%')
-            ->firstOrFail();
-
-        $this->actingAs($admin)
-            ->post(route('academic-years.courses.components.store', [$year, $course]), [
-                'name' => 'Biologia',
-                'workload_mode' => 'workload_hours',
-                'workload_hours' => 80,
-                'active' => '1',
-            ])
-            ->assertRedirect(route('academic-years.courses.show', [$year, $course]));
-
-        $this->assertDatabaseHas('curriculum_components', [
-            'academic_course_id' => $course->id,
-            'name' => 'Biologia',
-            'knowledge_area_id' => null,
-            'weekly_lessons' => null,
-            'workload_hours' => 80,
-        ]);
-        $this->assertEqualsWithDelta(80, $course->fresh()->calculatedWorkloadHours(), 0.001);
+        $course = $year->courses()->create(['name' => 'Ensino Médio', 'stage' => 'medio']);
+        $this->actingAs($admin)->post(route('academic-years.courses.components.store', [$year, $course]), [
+            'name' => 'Biologia', 'workload_mode' => 'workload_hours', 'workload_hours' => 80,
+        ])->assertSessionHasErrors('catalog_component_id');
+        $this->assertSame(0, $course->components()->count());
     }
 
     public function test_component_requires_exactly_one_workload_definition(): void
@@ -1249,7 +1216,7 @@ class AcademicCalendarTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('academic-years.courses.components.store', [$year, $course]), [
-                'name' => 'Matemática',
+                'catalog_component_id' => HistoryCurriculumComponent::where('education_stage', $course->stage)->where('name', 'Matemática')->value('id'),
                 'workload_mode' => 'weekly_lessons',
                 'weekly_lessons' => 5,
                 'workload_hours' => 160,
@@ -1259,7 +1226,7 @@ class AcademicCalendarTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('academic-years.courses.components.store', [$year, $course]), [
-                'name' => 'Matemática',
+                'catalog_component_id' => HistoryCurriculumComponent::where('education_stage', $course->stage)->where('name', 'Matemática')->value('id'),
                 'workload_mode' => 'workload_hours',
                 'active' => '1',
             ])
@@ -1300,9 +1267,7 @@ class AcademicCalendarTest extends TestCase
             ->assertOk()
             ->assertSee('Linguagens e suas Tecnologias')
             ->assertSee('Ciências Humanas e Sociais Aplicadas')
-            ->assertSee('Itinerário Formativo')
-            ->assertSee('Informática')
-            ->assertSee('Parte Diversificada');
+            ->assertViewHas('knowledgeAreas', fn ($areas) => $areas->contains('name', 'Informática'));
 
         $this->actingAs($admin)
             ->get(route('academic-years.courses.show', [$year, $elementarySchool]))
@@ -1310,15 +1275,13 @@ class AcademicCalendarTest extends TestCase
             ->assertSee('Linguagens')
             ->assertSee('Ciências Humanas')
             ->assertSee('Ensino Religioso')
-            ->assertSee('Parte Diversificada')
-            ->assertSee('Informática')
+
             ->assertViewHas('knowledgeAreas', fn ($areas) => $areas->pluck('name')->intersect(['Itinerário Formativo', 'Linguagens e suas Tecnologias', 'Ciências Humanas e Sociais Aplicadas'])->isEmpty());
 
         HistoryCurriculumComponent::create(['name' => 'Informática Básica', 'knowledge_area_id' => $unofficialArea->id, 'education_stage' => 'medio', 'formation' => 'Parte Complementar', 'active' => true]);
         $this->actingAs($admin)
             ->post(route('academic-years.courses.components.store', [$year, $highSchool]), [
-                'name' => 'Informática Básica',
-                'knowledge_area_id' => $unofficialArea->id,
+                'catalog_component_id' => HistoryCurriculumComponent::where('education_stage', 'medio')->where('name', 'Informática Básica')->value('id'),
                 'workload_mode' => 'workload_hours',
                 'workload_hours' => 40,
                 'active' => '1',
@@ -1404,7 +1367,7 @@ class AcademicCalendarTest extends TestCase
 
         $groups = $course->fresh()->load('components.area')->componentsGroupedByFormationAndArea();
 
-        $this->assertSame(CurriculumCatalog::FORMATION_ITINERARY, $groups->first()['formation']);
+        $this->assertSame('Formação Técnica Profissional', $groups->first()['formation']);
         $this->assertSame('Educação Profissional e Tecnológica', $groups->first()['areas']->first()['area']);
     }
 
@@ -1583,7 +1546,7 @@ class AcademicCalendarTest extends TestCase
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
         $year = $this->academicYear();
-        $area = KnowledgeArea::query()->where('name', 'Linguagens')->firstOrFail();
+        $area = KnowledgeArea::query()->where('name', 'Linguagens e suas Tecnologias')->firstOrFail();
         $course = $year->courses()->create([
             'name' => '1º Ano',
             'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,

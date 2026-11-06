@@ -57,28 +57,9 @@ class CurriculumStageAreasTest extends TestCase
         $inactive = KnowledgeArea::create(['name' => 'Ábaco', 'formation' => 'Parte Complementar', 'sort_order' => 1000, 'active' => false]);
         $component = $course->components()->create(['name' => 'Componente de teste', 'knowledge_area_id' => $inactive->id, 'workload_hours' => 80]);
         $snapshot = [$component->fresh()->getAttributes(), $inactive->fresh()->getAttributes()];
-        foreach ([
-            [route('academic-years.courses.show', [$year, $course]), 'new_component_area_id', [$algebra->id, $biology->id, $zeta->id]],
-            [route('academic-years.courses.components.show', [$year, $course, $component]), 'component_area', [$inactive->id, $algebra->id, $biology->id, $zeta->id]],
-        ] as [$url, $selectId, $expected]) {
-            $response = $this->get($url)->assertOk();
-            $document = new \DOMDocument;
-            @$document->loadHTML('<?xml encoding="UTF-8">'.$response->getContent());
-            $xpath = new \DOMXPath($document);
-            $options = $xpath->query('//select[@id="'.$selectId.'"]/option[@value!=""]');
-            $ids = [];
-            foreach ($options as $option) {
-                $id = (int) $option->getAttribute('value');
-                if (in_array($id, $expected, true)) {
-                    $ids[] = $id;
-                }
-            }
+        foreach ([[null, [$algebra->id, $biology->id, $zeta->id]], [$inactive, [$inactive->id, $algebra->id, $biology->id, $zeta->id]]] as [$current, $expected]) {
+            $ids = CurriculumCatalog::knowledgeAreasForCourse($course, $current)->pluck('id')->filter(fn ($id) => in_array($id, $expected, true))->values()->all();
             $this->assertSame($expected, $ids);
-            if ($selectId === 'component_area') {
-                $this->assertSame(1, $xpath->query('//select[@id="component_area"]/option[@value="'.$inactive->id.'" and @selected]')->length);
-            } else {
-                $this->assertSame(0, $xpath->query('//select[@id="new_component_area_id"]/option[@value="'.$inactive->id.'"]')->length);
-            }
         }
         $this->assertSame($snapshot, [$component->fresh()->getAttributes(), $inactive->fresh()->getAttributes()]);
     }
@@ -91,16 +72,16 @@ class CurriculumStageAreasTest extends TestCase
             $otherStage = $stage === 'fundamental' ? 'medio' : 'fundamental';
             foreach (array_slice(config("curriculum.stages.$otherStage.formations.formacao_geral_basica.areas"), 0, 4) as $area) {
                 $wrong = KnowledgeArea::where('name', $area['name'])->firstOrFail();
-                $payload = ['name' => 'Componente', 'knowledge_area_id' => $wrong->id, 'workload_mode' => 'workload_hours', 'workload_hours' => 80];
-                $this->post(route('academic-years.courses.components.store', [$year, $course]), $payload)->assertSessionHasErrors('knowledge_area_id');
+                $payload = ['catalog_component_id' => HistoryCurriculumComponent::where('education_stage', $otherStage)->where('knowledge_area_id', $wrong->id)->value('id'), 'workload_mode' => 'workload_hours', 'workload_hours' => 80];
+                $this->post(route('academic-years.courses.components.store', [$year, $course]), $payload)->assertSessionHasErrors('catalog_component_id');
                 $component = $course->components()->create(['name' => 'Componente existente', 'knowledge_area_id' => $wrong->id]);
                 $response = $this->get(route('academic-years.courses.components.show', [$year, $course, $component]))->assertOk();
                 $this->assertNotContains($wrong->id, $response->viewData('knowledgeAreas')->modelKeys());
-                $this->put(route('academic-years.courses.components.update', [$year, $course, $component]), $payload)->assertSessionHasErrors('knowledge_area_id');
+                $this->put(route('academic-years.courses.components.update', [$year, $course, $component]), $payload)->assertSessionHasErrors('catalog_component_id');
                 $rightName = CurriculumAreaStage::canonicalName($wrong->name, $stage);
                 $right = KnowledgeArea::where('name', $rightName)->firstOrFail();
                 HistoryCurriculumComponent::firstOrCreate(['name' => 'Componente', 'knowledge_area_id' => $right->id, 'education_stage' => $stage, 'formation' => 'Formação Geral Básica'], ['active' => true]);
-                $payload['knowledge_area_id'] = $right->id;
+                $payload['catalog_component_id'] = HistoryCurriculumComponent::where('name', 'Componente')->where('education_stage', $stage)->where('knowledge_area_id', $right->id)->value('id');
                 $this->put(route('academic-years.courses.components.update', [$year, $course, $component]), $payload)->assertSessionHasNoErrors();
                 $this->assertSame($right->id, $component->fresh()->knowledge_area_id);
             }
