@@ -342,7 +342,7 @@ Relatórios administrativos aceitam busca e filtros respeitando o escopo escolar
 - confirmações de ações e descrição de imagens do editor em modais acessíveis, sem caixas nativas de alerta do navegador;
 - calendário com legenda e distinção visual dos tipos de dia, usando as cores do tema ativo;
 - tabelas responsivas;
-- retorno à lista de Pessoas pela seta no cabeçalho, preservando busca, filtros e página na mesma aba;
+- botões de voltar, cancelar e hierarquia acadêmica recuperam a seção anteriormente aberta e os filtros/página presentes na URL do destino, na mesma aba; a memória é separada por usuário e visão do sistema, respeita links com seção explícita e prioriza a seção dos erros de validação;
 - faixa colorida no topo durante envios de formulários e atualizações do Livewire, incluindo paginação, busca e filtros;
 - prevenção de cliques repetidos na paginação enquanto a atualização está em andamento;
 - cores, pesos e tamanhos voltados à legibilidade;

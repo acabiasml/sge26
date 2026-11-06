@@ -4,7 +4,7 @@
 @section('page-title', __('Adicionar anos externos ao histórico'))
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('people.show', $person) }}" aria-label="{{ __('Voltar ao cadastro') }}" title="{{ __('Voltar ao cadastro') }}">
+    <a data-navigation-return class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('people.show', $person) }}" aria-label="{{ __('Voltar ao cadastro') }}" title="{{ __('Voltar ao cadastro') }}">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
     </a>
 @endsection

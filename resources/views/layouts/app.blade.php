@@ -465,6 +465,7 @@
     <script src="{{ asset('template/js/sge-table-drag.js') }}?v={{ filemtime(public_path('template/js/sge-table-drag.js')) }}"></script>
     <script src="{{ asset('template/js/sge-loading.js') }}?v={{ filemtime(public_path('template/js/sge-loading.js')) }}" data-loading-label="{{ __('Solicitação em processamento') }}"></script>
     <script src="{{ asset('template/js/sge-table-pagination.js') }}?v={{ filemtime(public_path('template/js/sge-table-pagination.js')) }}" data-previous="{{ __('Anterior') }}" data-next="{{ __('Próxima') }}" data-go-to-page="{{ __('Ir para página') }}" data-page="{{ __('Página :current de :total') }}" data-range="{{ __('Registros :first–:last de :total') }}" data-navigation="{{ __('Paginação da tabela') }}"></script>
+    <script src="{{ asset('template/js/sge-navigation.js') }}?v={{ filemtime(public_path('template/js/sge-navigation.js')) }}" data-navigation-scope="{{ auth()->id() }}:{{ auth()->user()->currentView() }}" data-app-url="{{ url('/') }}"></script>
     @livewireScripts(['url' => asset(config('app.debug') ? 'livewire/livewire.js' : 'livewire/livewire.min.js')])
     <script>
         const inputMasks = {
@@ -865,9 +866,18 @@
                 requestAnimationFrame(updateScrollHint);
                 const names = tabs.map((tab) => tab.dataset.academicTab);
                 const defaultName = names.includes(tabList.dataset.defaultTab) ? tabList.dataset.defaultTab : names[0];
-                const nameFromHash = () => {
+                const nameFromHash = (preferValidation = false) => {
+                    if (preferValidation && document.querySelector('[data-validation-summary]')) return defaultName;
                     const hash = window.location.hash.replace('#section-', '');
-                    return names.includes(hash) ? hash : defaultName;
+                    if (names.includes(hash)) return hash;
+                    // Links para um campo também precisam abrir o painel que o contém.
+                    try {
+                        const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+                        const panel = target?.closest('[data-academic-panel]')?.dataset.academicPanel;
+                        if (names.includes(panel)) return panel;
+                    } catch (_) {}
+                    const saved = window.sgeNavigation?.section();
+                    return names.includes(saved) ? saved : defaultName;
                 };
 
                 const activate = (name, updateHash = false) => {
@@ -895,8 +905,9 @@
                     });
 
                     if (updateHash) {
-                        history.replaceState(null, '', '#section-' + selected);
+                        history.replaceState(history.state, '', '#section-' + selected);
                     }
+                    window.sgeNavigation?.rememberSection(selected);
                 };
 
                 tabs.forEach((tab) => tab.addEventListener('click', (event) => {
@@ -920,7 +931,7 @@
                 }));
                 tabs.forEach((tab) => tab.querySelectorAll('i').forEach((icon) => icon.setAttribute('aria-hidden', 'true')));
                 window.addEventListener('hashchange', () => activate(nameFromHash()));
-                activate(nameFromHash());
+                activate(nameFromHash(true));
             });
         };
 

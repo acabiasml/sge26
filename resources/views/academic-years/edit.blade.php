@@ -4,7 +4,7 @@
 @section('page-title', __('screens.edit_school_year'))
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('academic-years.show', $academicYear) }}" aria-label="{{ __('screens.back_to_school_year', ['year' => $academicYear->name]) }}" title="{{ __('screens.back') }}">
+    <a data-navigation-return class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('academic-years.show', $academicYear) }}" aria-label="{{ __('screens.back_to_school_year', ['year' => $academicYear->name]) }}" title="{{ __('screens.back') }}">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
     </a>
 @endsection

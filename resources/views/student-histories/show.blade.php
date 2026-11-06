@@ -13,7 +13,7 @@
     <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.histories.edit', [$person, $history]) }}" aria-label="{{ $history->is_unified ? __('Gerenciar séries externas do histórico') : __('Gerenciar matriz curricular do histórico') }}" title="{{ $history->is_unified ? __('Séries externas') : __('Matriz curricular') }}">
         <i class="fas fa-table" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('student-histories.student', $person) }}" aria-label="{{ __('Voltar aos históricos') }}" title="{{ __('Voltar aos históricos') }}">
+    <a data-navigation-return class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('student-histories.student', $person) }}" aria-label="{{ __('Voltar aos históricos') }}" title="{{ __('Voltar aos históricos') }}">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
     </a>
     @unless($history->is_unified)

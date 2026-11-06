@@ -4,7 +4,7 @@
 @section('page-title', __('Conceitos e critérios'))
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('schools.edit', $school) }}" aria-label="{{ __('Voltar para a escola') }} {{ $school->name }}" title="{{ __('Voltar') }}">
+    <a data-navigation-return class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('schools.edit', $school) }}" aria-label="{{ __('Voltar para a escola') }} {{ $school->name }}" title="{{ __('Voltar') }}">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
     </a>
 @endsection

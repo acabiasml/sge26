@@ -1,7 +1,7 @@
 <div>
     @include('livewire.listings.search')
 
-    <a class="btn btn-outline-secondary mb-3" href="{{ route('knowledge-areas.index') }}"><i class="fas fa-arrow-left mr-1" aria-hidden="true"></i>{{ __('Áreas e formações') }}</a>
+    <a data-navigation-return class="btn btn-outline-secondary mb-3" href="{{ route('knowledge-areas.index') }}"><i class="fas fa-arrow-left mr-1" aria-hidden="true"></i>{{ __('Áreas e formações') }}</a>
     <section class="card shadow-sm mb-4">
         <div class="card-body d-flex align-items-center justify-content-between flex-wrap">
             <div><span class="text-muted">{{ __('Formação') }}</span><h2 class="h5">{{ __($area->formation ?: 'Formação não definida') }}</h2><span>{{ $area->components_count }} {{ __('componentes vinculados') }}</span></div>

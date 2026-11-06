@@ -2,7 +2,7 @@
 @section('title', __('Registros agrupados'))
 @section('page-title', __('Registros agrupados'))
 @section('page-actions')
-    <a href="{{ route('audit-logs.index') }}" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" aria-label="{{ __('Voltar para Auditoria') }}" title="{{ __('Voltar para Auditoria') }}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
+    <a data-navigation-return href="{{ route('audit-logs.index') }}" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" aria-label="{{ __('Voltar para Auditoria') }}" title="{{ __('Voltar para Auditoria') }}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
 @endsection
 @section('content')
 <div class="card shadow mb-4"><div class="card-body">

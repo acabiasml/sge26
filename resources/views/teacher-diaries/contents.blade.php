@@ -4,7 +4,7 @@
 @section('page-title', __('Conteúdos: ').$component->name)
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('teacher-diaries.show', [$schoolClass, $component, 'period' => $period->id]) }}" aria-label="{{ __('Voltar ao diário') }}" title="{{ __('Voltar ao diário') }}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
+    <a data-navigation-return class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('teacher-diaries.show', [$schoolClass, $component, 'period' => $period->id]) }}" aria-label="{{ __('Voltar ao diário') }}" title="{{ __('Voltar ao diário') }}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
 @endsection
 
 @section('content')

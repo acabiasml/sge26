@@ -148,7 +148,7 @@
     </div>
 
     <div class="d-flex justify-content-between">
-        <a class="btn btn-outline-secondary" href="{{ $isEdit ? route('academic-years.classes.show', [$academicYear, $class]) : route('academic-years.show', $academicYear) }}">{{ __('Cancelar') }}</a>
+        <a data-navigation-return class="btn btn-outline-secondary" href="{{ $isEdit ? route('academic-years.classes.show', [$academicYear, $class]) : route('academic-years.show', $academicYear) }}">{{ __('Cancelar') }}</a>
         <button class="btn btn-primary" type="submit" @disabled($readyCourses->isEmpty() || $academicYear->periods->isEmpty())>{{ $isEdit ? __('Salvar turma') : __('Cadastrar turma') }}</button>
     </div>
 </form>

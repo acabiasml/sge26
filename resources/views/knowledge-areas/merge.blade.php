@@ -33,7 +33,7 @@
             @if($candidates->isEmpty())<p role="status">{{ __('Não há componentes de matriz disponíveis para receber a mesclagem.') }}</p>@endif
             <div class="sge-action-buttons">
                 <button class="btn btn-primary" type="submit" @disabled($candidates->isEmpty())><i class="fas fa-object-group mr-1" aria-hidden="true"></i>{{ __('Mesclar componentes') }}</button>
-                <a class="btn btn-outline-secondary" href="{{ route('history-curriculum.index') }}">{{ __('Cancelar') }}</a>
+                <a data-navigation-return class="btn btn-outline-secondary" href="{{ route('history-curriculum.index') }}">{{ __('Cancelar') }}</a>
             </div>
         </form>
     </div>

@@ -10,7 +10,7 @@
                 @csrf
                 @include('schools._form', ['school' => new \App\Models\School(['active' => true])])
                 <button class="btn btn-primary" type="submit">{{ __('screens.save_school') }}</button>
-                <a class="btn btn-secondary" href="{{ route('schools.index') }}">{{ __('screens.cancel') }}</a>
+                <a data-navigation-return class="btn btn-secondary" href="{{ route('schools.index') }}">{{ __('screens.cancel') }}</a>
             </form>
         </div>
     </div>

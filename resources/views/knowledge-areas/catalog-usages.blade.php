@@ -2,7 +2,7 @@
 @section('title', __('Usos no histórico'))
 @section('page-title', __('Usos no histórico'))
 @section('page-actions')
-    <a class="btn btn-outline-primary sge-icon-action" href="{{ route('history-curriculum.index') }}" aria-label="{{ __('Catálogo de componentes') }}" title="{{ __('Catálogo de componentes') }}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
+    <a data-navigation-return class="btn btn-outline-primary sge-icon-action" href="{{ route('history-curriculum.index') }}" aria-label="{{ __('Catálogo de componentes') }}" title="{{ __('Catálogo de componentes') }}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
 @endsection
 @section('content')
 @include('knowledge-areas._navigation')

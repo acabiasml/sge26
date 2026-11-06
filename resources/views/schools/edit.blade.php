@@ -23,7 +23,7 @@
                 @method('PUT')
                 @include('schools._form', ['school' => $school])
                 <button class="btn btn-primary" type="submit">{{ __('screens.save_changes') }}</button>
-                <a class="btn btn-secondary" href="{{ route('schools.index') }}">{{ __('screens.back') }}</a>
+                <a data-navigation-return class="btn btn-secondary" href="{{ route('schools.index') }}">{{ __('screens.back') }}</a>
             </form>
         </div>
     </div>

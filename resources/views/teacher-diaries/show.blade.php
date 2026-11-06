@@ -16,7 +16,7 @@
     <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('teacher-diaries.attendance-sheet.pdf', [$schoolClass, $component]) }}" aria-label="{{ __('Imprimir lista de chamada mensal') }}" title="{{ __('Imprimir lista de chamada mensal') }}">
         <i class="fas fa-clipboard-list" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('teacher-diaries.index') }}" aria-label="{{ __('Voltar aos diários') }}" title="{{ __('Voltar aos diários') }}">
+    <a data-navigation-return class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('teacher-diaries.index') }}" aria-label="{{ __('Voltar aos diários') }}" title="{{ __('Voltar aos diários') }}">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
     </a>
 @endsection

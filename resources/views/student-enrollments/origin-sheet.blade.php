@@ -2,7 +2,7 @@
 @section('title', __('Ficha da escola de origem'))
 @section('page-title', __('Ficha da escola de origem'))
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('enrollments.report-card.show', $enrollment) }}#convalidation-title" title="{{ __('Voltar ao boletim') }}" aria-label="{{ __('Voltar ao boletim') }}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
+    <a data-navigation-return class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('enrollments.report-card.show', $enrollment) }}#convalidation-title" title="{{ __('Voltar ao boletim') }}" aria-label="{{ __('Voltar ao boletim') }}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
 @endsection
 @section('content')
 @php

@@ -4,7 +4,7 @@
 @section('page-title', __('Períodos: ').$academicYear->name)
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('academic-years.show', $academicYear) }}" aria-label="{{ __('Voltar ao ano letivo') }}" title="{{ __('Voltar ao ano letivo') }}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
+    <a data-navigation-return class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('academic-years.show', $academicYear) }}" aria-label="{{ __('Voltar ao ano letivo') }}" title="{{ __('Voltar ao ano letivo') }}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
 @endsection
 
 @section('content')

@@ -97,5 +97,5 @@
 
 <div class="sge-form-actions pt-2">
     <button type="submit" class="btn btn-primary"><i class="fas fa-save mr-1" aria-hidden="true"></i>{{ __('screens.save_changes') }}</button>
-    <a href="{{ $backRoute }}" class="btn btn-outline-secondary">{{ __('screens.cancel') }}</a>
+    <a data-navigation-return href="{{ $backRoute }}" class="btn btn-outline-secondary">{{ __('screens.cancel') }}</a>
 </div>

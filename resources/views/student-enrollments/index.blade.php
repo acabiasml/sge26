@@ -21,7 +21,7 @@
     <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('classes.final-results.pdf', $class) }}" aria-label="{{ __('Emitir ata de resultados finais em PDF') }}" title="{{ __('Ata de resultados finais em PDF') }}">
         <i class="fas fa-file-signature" aria-hidden="true"></i>
     </a>
-    <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('academic-years.classes.show', [$academicYear, $class]) }}" aria-label="{{ __('Voltar à turma') }} {{ $class->name }}" title="{{ __('Voltar à turma') }}">
+    <a data-navigation-return class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('academic-years.classes.show', [$academicYear, $class]) }}" aria-label="{{ __('Voltar à turma') }} {{ $class->name }}" title="{{ __('Voltar à turma') }}">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
     </a>
 @endsection

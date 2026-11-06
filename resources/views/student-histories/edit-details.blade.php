@@ -4,7 +4,7 @@
 @section('page-title', __('Dados gerais do histórico'))
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('people.histories.show', [$person, $history]) }}" aria-label="{{ __('Voltar ao histórico escolar') }}" title="{{ __('Voltar ao histórico') }}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
+    <a data-navigation-return class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('people.histories.show', [$person, $history]) }}" aria-label="{{ __('Voltar ao histórico escolar') }}" title="{{ __('Voltar ao histórico') }}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
 @endsection
 
 @section('content')

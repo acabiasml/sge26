@@ -35,7 +35,7 @@
 
                         <div class="sge-form-actions">
                             <button type="submit" class="btn btn-primary">{{ __('Confirmar como privado') }}</button>
-                            <a href="{{ route('official-documents.create') }}" class="btn btn-outline-secondary">{{ __('Cancelar') }}</a>
+                            <a data-navigation-return href="{{ route('official-documents.create') }}" class="btn btn-outline-secondary">{{ __('Cancelar') }}</a>
                         </div>
                     </form>
                 </div>

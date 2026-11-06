@@ -4,7 +4,7 @@
 @section('page-title', __('Documentos da matrícula'))
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('classes.enrollments.index', $class) }}" aria-label="{{ __('Voltar às matrículas da turma') }} {{ $class->name }}" title="{{ __('Voltar às matrículas') }}">
+    <a data-navigation-return class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('classes.enrollments.index', $class) }}" aria-label="{{ __('Voltar às matrículas da turma') }} {{ $class->name }}" title="{{ __('Voltar às matrículas') }}">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
     </a>
 @endsection

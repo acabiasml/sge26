@@ -69,7 +69,7 @@
                 </div>
 
                 <button class="btn btn-primary" type="submit">{{ __('screens.save_person') }}</button>
-                <a class="btn btn-secondary" href="{{ route('people.index') }}">{{ __('screens.cancel') }}</a>
+                <a data-navigation-return class="btn btn-secondary" href="{{ route('people.index') }}">{{ __('screens.cancel') }}</a>
             </form>
         </div>
     </div>

@@ -22,7 +22,3 @@
         </div>
     </div>
 @endsection
-
-@push('scripts')
-    <script src="{{ asset('template/js/sge-people-navigation.js') }}" data-people-list-url="{{ route('people.index') }}" defer></script>
-@endpush

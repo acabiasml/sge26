@@ -14,7 +14,7 @@
         <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('schools.edit', $school) }}" aria-label="{{ __('screens.edit_school', ['name' => $school->name]) }}" title="{{ __('screens.edit_school_title') }}">
             <i class="fas fa-pen" aria-hidden="true"></i>
         </a>
-        <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('schools.index') }}" aria-label="{{ __('screens.back_schools') }}" title="{{ __('screens.back') }}">
+        <a data-navigation-return class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('schools.index') }}" aria-label="{{ __('screens.back_schools') }}" title="{{ __('screens.back') }}">
             <i class="fas fa-arrow-left" aria-hidden="true"></i>
         </a>
     @endif

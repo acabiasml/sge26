@@ -3,7 +3,7 @@
 @section('title', __('Editar justificativa de ausência'))
 @section('page-title', __('Editar justificativa de ausência'))
 @section('page-actions')
-    <a href="{{ route('attendance-justifications.index', ['school' => $academicYear->school_id, 'year' => $academicYear->id, 'class' => $justification->enrollment?->school_class_id]) }}" class="btn btn-sm btn-outline-primary shadow-sm" aria-label="{{ __('Voltar para justificativas de ausência') }}"><i class="fas fa-arrow-left mr-1" aria-hidden="true"></i>{{ __('Voltar') }}</a>
+    <a data-navigation-return href="{{ route('attendance-justifications.index', ['school' => $academicYear->school_id, 'year' => $academicYear->id, 'class' => $justification->enrollment?->school_class_id]) }}" class="btn btn-sm btn-outline-primary shadow-sm" aria-label="{{ __('Voltar para justificativas de ausência') }}"><i class="fas fa-arrow-left mr-1" aria-hidden="true"></i>{{ __('Voltar') }}</a>
 @endsection
 
 @section('content')

@@ -4,7 +4,7 @@
 @section('page-title', __('Horários: ').$class->name)
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('academic-years.classes.show', [$academicYear, $class]) }}" aria-label="{{ __('Voltar à turma') }}" title="{{ __('Voltar à turma') }}">
+    <a data-navigation-return class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('academic-years.classes.show', [$academicYear, $class]) }}" aria-label="{{ __('Voltar à turma') }}" title="{{ __('Voltar à turma') }}">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
     </a>
     @if ($schedule)

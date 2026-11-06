@@ -198,6 +198,26 @@ class CurriculumStageAreasTest extends TestCase
         $this->assertFalse($report['unclassified_groups'][0]['has_records']);
     }
 
+    public function test_academic_back_links_use_shared_navigation_and_keep_route_fallbacks(): void
+    {
+        $year = $this->yearAndManager();
+        $course = $year->courses()->create(['name' => 'Matriz de teste', 'stage' => 'fundamental']);
+        $component = $course->components()->create(['name' => 'Componente de teste', 'knowledge_area_id' => KnowledgeArea::where('name', 'Linguagens')->value('id')]);
+        foreach ([
+            [route('academic-years.courses.components.show', [$year, $course, $component]), route('academic-years.courses.show', [$year, $course])],
+            [route('academic-years.courses.show', [$year, $course]), route('academic-years.show', $year)],
+            [route('academic-years.courses.edit', [$year, $course]), route('academic-years.courses.show', [$year, $course])],
+        ] as [$url, $fallback]) {
+            $response = $this->get($url)->assertOk();
+            $document = new \DOMDocument;
+            @$document->loadHTML('<?xml encoding="UTF-8">'.$response->getContent());
+            $xpath = new \DOMXPath($document);
+            $this->assertGreaterThanOrEqual(1, $xpath->query('//a[@data-navigation-return and @href="'.$fallback.'"]')->length);
+            $response->assertSee('template/js/sge-navigation.js', false)
+                ->assertSee('data-navigation-scope="'.auth()->id().':'.PersonSchoolRole::ROLE_MANAGER.'"', false);
+        }
+    }
+
     private function yearAndManager(): AcademicYear
     {
         $school = School::create(['name' => 'Escola de teste']);

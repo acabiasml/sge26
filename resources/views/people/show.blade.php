@@ -17,7 +17,7 @@
 
 @section('page-actions')
     @if(auth()->user()->canManagePeople())
-        <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.index') }}" data-people-return aria-label="{{ __('Voltar para Pessoas') }}" title="{{ __('Voltar para Pessoas') }}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
+        <a data-navigation-return class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.index') }}" aria-label="{{ __('Voltar para Pessoas') }}" title="{{ __('Voltar para Pessoas') }}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
     @endif
 
     @if (auth()->user()->isAdministrator() && config('services.google_workspace.enabled'))
@@ -500,7 +500,7 @@
                                                         <span>{{ __('screens.editing_contact') }}</span>
                                                         <strong>{{ $contact->name }}</strong>
                                                     </div>
-                                                    <a class="btn btn-sm btn-outline-secondary" href="{{ route('people.show', $person) }}#contacts-table">{{ __('screens.cancel') }}</a>
+                                                    <a data-navigation-return class="btn btn-sm btn-outline-secondary" href="{{ route('people.show', $person) }}#contacts-table">{{ __('screens.cancel') }}</a>
                                                 </div>
 
                                                 <form method="POST" action="{{ route('people.contacts.update', [$person, $contact]) }}">
@@ -595,7 +595,3 @@
         </div>
     </div>
 @endsection
-
-@push('scripts')
-    <script src="{{ asset('template/js/sge-people-navigation.js') }}" data-people-list-url="{{ route('people.index') }}" defer></script>
-@endpush

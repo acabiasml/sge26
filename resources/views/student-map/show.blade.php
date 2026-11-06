@@ -41,7 +41,7 @@
         <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.histories.create', $person) }}" aria-label="{{ __('Cadastrar histórico escolar de') }} {{ $person->full_name }}" title="{{ __('Novo histórico escolar') }}">
             <i class="fas fa-folder-plus" aria-hidden="true"></i>
         </a>
-        <a class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('people.show', $person) }}" aria-label="{{ __('Voltar ao cadastro de') }} {{ $person->full_name }}" title="{{ __('Voltar ao cadastro') }}">
+        <a data-navigation-return class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('people.show', $person) }}" aria-label="{{ __('Voltar ao cadastro de') }} {{ $person->full_name }}" title="{{ __('Voltar ao cadastro') }}">
             <i class="fas fa-arrow-left" aria-hidden="true"></i>
         </a>
     @endif
