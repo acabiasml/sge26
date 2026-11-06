@@ -2,7 +2,7 @@
     ['stages' => $stages, 'config' => $config] = \App\Support\HistoryCurriculumCatalog::formOptions();
     $modalComponents = collect($currentRows->items())->keyBy('id');
     // Reabre também erros de um formulário cujo registro tenha saído da página filtrada.
-    if (preg_match('/^catalog-([0-9]+)$/', (string) old('catalog_form'), $matches) && ! $modalComponents->has((int) $matches[1])) {
+    if (preg_match('/^catalog-(?:rename-)?([0-9]+)$/', (string) old('catalog_form'), $matches) && ! $modalComponents->has((int) $matches[1])) {
         $submittedComponent = \App\Models\HistoryCurriculumComponent::with('matrixComponents.course.academicYear.school')->withCount('historyComponents')->find((int) $matches[1]);
         if ($submittedComponent) $modalComponents->put($submittedComponent->id, $submittedComponent);
     }
@@ -24,6 +24,36 @@
 @endforeach
 
 @foreach($modalComponents->filter(fn ($component) => $component->isMatrixDerived()) as $component)
+@php
+    $renameForm = 'catalog-rename-'.$component->id;
+@endphp
+<div class="modal fade" id="{{ $renameForm }}" wire:key="catalog-rename-modal-{{ $component->id }}" wire:ignore.self tabindex="-1" role="dialog" aria-labelledby="{{ $renameForm }}-title" aria-describedby="{{ $renameForm }}-description" aria-hidden="true">
+    <div class="modal-dialog" role="document"><div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title h5" id="{{ $renameForm }}-title">{{ __('Editar nome') }}: {{ $component->name }}</h2>
+            <button type="button" class="close" data-dismiss="modal" aria-label="{{ __('Fechar') }}"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <form action="{{ route('history-curriculum.rename', $component) }}" method="POST">
+            @csrf
+            @method('PUT')
+            <input type="hidden" name="catalog_form" value="{{ $renameForm }}">
+            <div class="modal-body">
+                <p id="{{ $renameForm }}-description" class="text-muted">{{ __('O nome será atualizado nas matrizes e nos históricos vinculados. Área, etapa, formação e lançamentos serão preservados.') }}</p>
+                <div class="form-group">
+                    <label for="{{ $renameForm }}-name">{{ __('Componente') }}</label>
+                    <input id="{{ $renameForm }}-name" name="name" class="form-control @if(old('catalog_form') === $renameForm && $errors->has('name')) is-invalid @endif" maxlength="255" value="{{ old('catalog_form') === $renameForm ? old('name') : $component->name }}" required @if(old('catalog_form') === $renameForm && $errors->has('name')) aria-invalid="true" aria-describedby="{{ $renameForm }}-error" @endif>
+                    @if(old('catalog_form') === $renameForm)
+                        @error('name')<div id="{{ $renameForm }}-error" class="invalid-feedback" role="alert">{{ $message }}</div>@enderror
+                    @endif
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">{{ __('Cancelar') }}</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save mr-1" aria-hidden="true"></i>{{ __('Salvar') }}</button>
+            </div>
+        </form>
+    </div></div>
+</div>
 <div class="modal fade" id="catalog-links-{{ $component->id }}" wire:key="catalog-links-modal-{{ $component->id }}" wire:ignore.self tabindex="-1" role="dialog" aria-labelledby="catalog-links-title-{{ $component->id }}" aria-describedby="catalog-links-description-{{ $component->id }}" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document"><div class="modal-content">
         <div class="modal-header">

@@ -18,6 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitted = @json(old('catalog_form'));
     if (submitted && /^catalog-[0-9]+$/.test(submitted)) {
         window.jQuery('#catalog-edit-' + submitted.slice('catalog-'.length)).modal('show');
+    } else if (submitted && /^catalog-rename-[0-9]+$/.test(submitted)) {
+        window.jQuery('#' + submitted).modal('show');
     }
     const catalogs = @json($config);
     const labels = @json($formationLabels);

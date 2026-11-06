@@ -1,6 +1,7 @@
 <div class="sge-action-buttons">
     <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('history-curriculum.merge-form', $component) }}" aria-label="{{ __('Mesclar componentes') }}: {{ $component->name }}" title="{{ __('Mesclar componentes') }}"><i class="fas fa-object-group" aria-hidden="true"></i></a>
     @if($component->isMatrixDerived())
+        <button type="button" class="btn btn-sm btn-outline-primary sge-icon-action" data-toggle="modal" data-target="#catalog-rename-{{ $component->id }}" aria-label="{{ __('Editar nome') }}: {{ $component->name }}" title="{{ __('Editar nome') }}"><i class="fas fa-edit" aria-hidden="true"></i></button>
         <button type="button" class="btn btn-sm btn-outline-primary sge-icon-action" data-toggle="modal" data-target="#catalog-links-{{ $component->id }}" aria-label="{{ __('Ver vínculos antes de excluir') }}: {{ $component->name }}" title="{{ __('Ver vínculos antes de excluir') }}"><i class="fas fa-lock" aria-hidden="true"></i></button>
     @else
     <button type="button" class="btn btn-sm btn-outline-primary sge-icon-action" data-toggle="modal" data-target="#catalog-edit-{{ $component->id }}" aria-label="{{ __('Editar componente') }}: {{ $component->name }}" title="{{ __('Editar componente') }}"><i class="fas fa-edit" aria-hidden="true"></i></button>

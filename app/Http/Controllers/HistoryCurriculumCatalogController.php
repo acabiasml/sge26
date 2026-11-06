@@ -8,6 +8,7 @@ use App\Models\KnowledgeArea;
 use App\Support\CurriculumAreaStage;
 use App\Support\HistoryCurriculumCatalog;
 use App\Support\HistoryCurriculumMerger;
+use App\Support\HistoryCurriculumRenamer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -69,6 +70,15 @@ class HistoryCurriculumCatalogController extends Controller
         DB::transaction(fn () => $catalogComponent->update($data));
 
         return back()->with('status', __('Componente do catálogo atualizado.'));
+    }
+
+    public function rename(Request $request, HistoryCurriculumComponent $catalogComponent, HistoryCurriculumRenamer $renamer)
+    {
+        abort_unless($request->user()->isAdministrator(), 403);
+        $data = $request->validate(['name' => ['required', 'string', 'max:255']]);
+        $renamer->rename($catalogComponent->id, $data['name'], $request->user());
+
+        return back()->with('status', __('Nome atualizado no catálogo, nas matrizes e nos históricos vinculados.'));
     }
 
     public function destroy(Request $request, HistoryCurriculumComponent $catalogComponent)
