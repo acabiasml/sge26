@@ -209,7 +209,7 @@ with tempfile.TemporaryDirectory() as directory:
         commands.append(('Conferir integração dos históricos ao catálogo',
                          'php artisan tinker --execute=\'echo json_encode(["catalog_components" => App\\Models\\HistoryCurriculumComponent::count(), '
                          '"history_components" => App\\Models\\StudentAcademicHistoryComponent::count(), '
-                         '"unlinked_history_components" => $missing = App\\Models\\StudentAcademicHistoryComponent::whereDoesntHave("catalogEntries")->count()]); exit($missing === 0 ? 0 : 1);\''))
+                         '"unlinked_history_components" => App\\Models\\StudentAcademicHistoryComponent::whereDoesntHave("catalogEntries")->count()]);\''))
         commands.append(('Conferir áreas curriculares por etapa', 'php artisan curriculum:reconcile-stage-areas --no-ansi'))
         if os.environ.get('REPAIR_STAGE_AREAS') == 'true':
             commands.append(('Corrigir áreas curriculares por etapa', 'php artisan curriculum:reconcile-stage-areas --apply --no-ansi'))
@@ -249,6 +249,10 @@ with tempfile.TemporaryDirectory() as directory:
                 print(output, flush=True)
             if label == 'Configuração da sessão' and output.strip() not in ('120 true database', '120 true file'):
                 raise RuntimeError('A sessão em produção não está limitada a duas horas de inatividade e ao navegador aberto.')
+            if label == 'Conferir integração dos históricos ao catálogo':
+                integration = json.loads(output)
+                if integration.get('unlinked_history_components') != 0:
+                    raise RuntimeError('Há componentes dos históricos sem vínculo com o catálogo.')
             if label == 'Migrations' and 'Pending' in output:
                 raise RuntimeError('Há migrations pendentes em produção.')
             if label == 'Nomes sociais cadastrados após a limpeza' and output.strip() != '0':
