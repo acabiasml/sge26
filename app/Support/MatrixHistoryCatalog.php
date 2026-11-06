@@ -44,7 +44,8 @@ final class MatrixHistoryCatalog
             $area = $component->area ?: KnowledgeArea::firstOrCreate(['name' => TextNormalizer::titleCase('Área não definida')], ['formation' => $formation, 'active' => true]);
             $stage = array_key_exists($course->stage, AcademicCourse::STAGE_LABELS) ? $course->stage : HistoryCurriculumCatalog::UNCLASSIFIED_STAGE;
             $context = ['knowledge_area_id' => $area->id, 'education_stage' => $stage, 'formation' => $formation];
-            $findEntry = fn () => HistoryCurriculumComponent::where($context)->get()->first(fn ($entry) => Str::lower(trim($entry->name)) === Str::lower(trim($component->name)));
+            $findEntry = fn () => HistoryCurriculumComponent::where($context)->where('name', $component->name)->first()
+                ?? HistoryCurriculumComponent::where($context)->get()->first(fn ($entry) => Str::lower(trim($entry->name)) === Str::lower(trim($component->name)));
             $entry = $findEntry();
             if (! $entry) {
                 // A grafia é uma cópia fiel da matriz, inclusive em importações que

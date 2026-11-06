@@ -135,7 +135,8 @@ class HistoryCurriculumMergeTest extends TestCase
         $two = $initial->course->components()->create(['name' => 'Segundo sem área']);
         DB::table('curriculum_components')->where('id', $one->id)->update(['name' => 'LIN. INGLESA']);
         $snapshot = [$one->fresh()->getAttributes(), $two->fresh()->getAttributes()];
-        app(MatrixHistoryCatalog::class)->importAll();
+        (require database_path('migrations/2026_11_05_000005_protect_matrix_catalog_components.php'))->up();
+        (require database_path('migrations/2026_11_05_000005_protect_matrix_catalog_components.php'))->up();
         $entry = $one->historyCatalogEntries()->sole();
         $this->assertSame('LIN. INGLESA', $entry->name);
         $this->assertSame($one->fresh()->active, $entry->active);
