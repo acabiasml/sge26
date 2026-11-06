@@ -161,6 +161,8 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
 
     Route::get('areas-curriculares/catalogo', [HistoryCurriculumCatalogController::class, 'index'])->name('history-curriculum.index');
     Route::post('areas-curriculares/catalogo', [HistoryCurriculumCatalogController::class, 'store'])->name('history-curriculum.store');
+    Route::get('areas-curriculares/catalogo/{catalogComponent}/mesclar', [HistoryCurriculumCatalogController::class, 'mergeForm'])->name('history-curriculum.merge-form');
+    Route::post('areas-curriculares/catalogo/{catalogComponent}/mesclar', [HistoryCurriculumCatalogController::class, 'merge'])->name('history-curriculum.merge');
     Route::get('areas-curriculares/catalogo/{catalogComponent}/usos', [HistoryCurriculumCatalogController::class, 'usages'])->name('history-curriculum.usages');
     Route::put('areas-curriculares/catalogo/{catalogComponent}', [HistoryCurriculumCatalogController::class, 'update'])->name('history-curriculum.update');
     Route::delete('areas-curriculares/catalogo/{catalogComponent}', [HistoryCurriculumCatalogController::class, 'destroy'])->name('history-curriculum.destroy');

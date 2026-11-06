@@ -2779,5 +2779,17 @@
     "Informe o total de horas desta formação.": "Indica il monte ore di questa formazione.",
     "Totais por formação (h)": "Totali per formazione (h)",
     "Registro existente": "Registrazione esistente",
-    "No tipo global, informe somente os totais de horas por formação. A carga horária do ano é a soma desses totais.": "Nel tipo globale, indica solo i totali delle ore per formazione. Il monte ore dell’anno è la somma di questi totali."
+    "No tipo global, informe somente os totais de horas por formação. A carga horária do ano é a soma desses totais.": "Nel tipo globale, indica solo i totali delle ore per formazione. Il monte ore dell’anno è la somma di questi totali.",
+    "Mesclar componentes": "Unisci discipline",
+    "Outro componente": "Altra disciplina",
+    "Reúna os vínculos no catálogo e escolha a nomenclatura final. As notas, faltas e cargas horárias dos históricos serão preservadas.": "Riunisci i collegamenti nel catalogo e scegli la denominazione finale. Voti, assenze e monte ore delle carriere saranno conservati.",
+    "Selecione outro componente da mesma etapa, formação e área.": "Seleziona un’altra disciplina dello stesso livello, formazione e area.",
+    "Qual nomenclatura deseja manter?": "Quale denominazione vuoi mantenere?",
+    "Selecione o outro componente": "Seleziona l’altra disciplina",
+    "Não há outro componente compatível para mesclar.": "Non ci sono altre discipline compatibili da unire.",
+    "Selecione dois componentes diferentes e a nomenclatura que deseja manter.": "Seleziona due discipline diverse e la denominazione da mantenere.",
+    "Um dos componentes mudou ou já foi mesclado. Reabra o catálogo.": "Una delle discipline è cambiata o è già stata unita. Riapri il catalogo.",
+    "A mesclagem exige a mesma etapa, formação e área curricular.": "L’unione richiede lo stesso livello, formazione e area curricolare.",
+    "Componentes mesclados. Nomenclatura mantida: :name.": "Discipline unite. Denominazione mantenuta: :name.",
+    "Esta nomenclatura já foi incorporada a outro componente do catálogo.": "Questa denominazione è già stata incorporata in un’altra disciplina del catalogo."
 }

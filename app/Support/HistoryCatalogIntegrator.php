@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\HistoryCurriculumAlias;
 use App\Models\HistoryCurriculumComponent;
 use App\Models\KnowledgeArea;
 use App\Models\StudentAcademicHistory;
@@ -15,6 +16,8 @@ final class HistoryCatalogIntegrator
     private ?array $areas = null;
 
     private ?array $entries = null;
+
+    private ?array $aliases = null;
 
     public function importAll(): int
     {
@@ -64,6 +67,13 @@ final class HistoryCatalogIntegrator
             $formation = $component->formation ?: 'Formação não informada';
             $area = $this->area($areaName, $formation);
             $key = $this->key([$stage, $formation, $area->id, $component->name]);
+            $this->aliases ??= Schema::hasTable('history_curriculum_aliases')
+                ? HistoryCurriculumAlias::with('target')->get()->keyBy(fn ($alias) => $this->key([$alias->education_stage, $alias->formation, $alias->knowledge_area_id, $alias->name]))->all() : [];
+            if ($alias = $this->aliases[$key] ?? null) {
+                $ids[] = $alias->history_curriculum_component_id;
+
+                continue;
+            }
             $this->entries ??= HistoryCurriculumComponent::all()->keyBy(fn ($entry) => $this->key([$entry->education_stage, $entry->formation, $entry->knowledge_area_id, $entry->name]))->all();
             $entry = $this->entries[$key] ??= HistoryCurriculumComponent::firstOrCreate([
                 'education_stage' => $stage, 'formation' => $formation,

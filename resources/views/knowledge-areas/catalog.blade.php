@@ -2,10 +2,7 @@
 @section('title', __('Áreas e componentes'))
 @section('page-title', __('Áreas e componentes'))
 @section('content')
-<nav class="sge-section-nav mb-4" aria-label="{{ __('Cadastro curricular') }}">
-    <a class="sge-section-nav-item" href="{{ route('knowledge-areas.index') }}"><i class="fas fa-layer-group" aria-hidden="true"></i><span>{{ __('Áreas e formações') }}</span></a>
-    <a class="sge-section-nav-item active" aria-current="page" href="{{ route('history-curriculum.index') }}"><i class="fas fa-book" aria-hidden="true"></i><span>{{ __('Componentes') }}</span></a>
-</nav>
+@include('knowledge-areas._navigation')
 <p class="text-muted">{{ __('Este cadastro fornece as opções de formação, área e componente dos históricos escolares, conforme a etapa de ensino.') }}</p>
 <details class="card sge-panel-card mb-4" @if(old('catalog_form') === 'catalog-new') open @endif>
     <summary class="sge-panel-header sge-history-section-summary"><h2>{{ __('Cadastrar componente') }}</h2><i class="fas fa-chevron-down" aria-hidden="true"></i></summary>

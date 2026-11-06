@@ -206,6 +206,8 @@ with tempfile.TemporaryDirectory() as directory:
                          'php artisan migrate --path=database/migrations/2026_11_05_000002_add_history_formation_totals_and_component_catalog.php --force --no-ansi'))
         commands.append(('Incorporar componentes dos históricos ao catálogo',
                          'php artisan migrate --path=database/migrations/2026_11_05_000003_integrate_history_components_into_curriculum_catalog.php --force --no-ansi'))
+        commands.append(('Conferir referências de componentes mesclados',
+                         'php artisan migrate --path=database/migrations/2026_11_05_000004_create_history_curriculum_aliases.php --force --no-ansi'))
         commands.append(('Conferir integração dos históricos ao catálogo',
                          'php artisan tinker --execute=\'echo json_encode(["catalog_components" => App\\Models\\HistoryCurriculumComponent::count(), '
                          '"history_components" => App\\Models\\StudentAcademicHistoryComponent::count(), '
