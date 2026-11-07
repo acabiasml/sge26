@@ -11,6 +11,7 @@ use App\Models\StudentAcademicHistoryComponent;
 use App\Models\StudentAcademicHistoryRecord;
 use App\Models\StudentAcademicHistoryYear;
 use App\Models\User;
+use App\Support\StudentAcademicHistoryPdf;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\ViewErrorBag;
@@ -378,6 +379,85 @@ class HistoryMatrixTest extends TestCase
             $this->assertSame(1, $count, 'O cabeçalho deve aparecer uma única vez em cada página da tabela.');
         }
         $this->assertStringContainsString('Componente 48', $html);
+    }
+
+    public function test_pdf_keeps_thirteen_basic_formation_components_and_their_areas_in_one_block(): void
+    {
+        $data = $this->paginatedHistoryData(13);
+        $data['history']->components->push(...collect(range(1, 8))->map(function ($number) {
+            $component = new StudentAcademicHistoryComponent(['name' => 'Itinerário '.$number, 'formation' => 'Itinerário Formativo', 'knowledge_area' => 'Aprofundamento de Estudos']);
+            $component->setRelation('records', collect());
+
+            return $component;
+        }));
+        $before = $data['history']->components->map->getAttributes()->all();
+        $renderedData = null;
+        view()->composer('reports.student-academic-history', function ($view) use (&$renderedData): void {
+            $renderedData = $view->getData();
+        });
+        $pdf = app(StudentAcademicHistoryPdf::class)->make($data);
+        $this->assertStringStartsWith('%PDF-', $pdf->output());
+        $document = new \DOMDocument;
+        @$document->loadHTML('<?xml encoding="UTF-8">'.view('reports.partials.basic-history-matrix', $renderedData)->render());
+        $xpath = new \DOMXPath($document);
+        $this->assertSame(1, $xpath->query('//td[contains(@class,"formation-cell") and @rowspan="13"]//span[text()="Formação Geral Básica"]')->length);
+        $this->assertSame(1, $xpath->query('//td[contains(@class,"area-label") and @rowspan="3" and text()="Ciências da Natureza e Suas Tecnologias"]')->length);
+        $this->assertSame(2, $xpath->query('//td[contains(@class,"formation-cell")]')->length);
+        $this->assertSame(1, $xpath->query('//td[contains(@class,"formation-cell")]//span[text()="Itinerário Formativo"]')->length);
+        $this->assertSame($before, $data['history']->components->map->getAttributes()->all());
+    }
+
+    public function test_pdf_keeps_page_breaks_and_all_results_when_a_formation_spans_multiple_pages(): void
+    {
+        $data = $this->paginatedHistoryData(60);
+        $renderedData = null;
+        view()->composer('reports.student-academic-history', function ($view) use (&$renderedData): void {
+            $renderedData = $view->getData();
+        });
+        $pdf = app(StudentAcademicHistoryPdf::class)->make($data);
+        $this->assertStringStartsWith('%PDF-', $pdf->output());
+        $this->assertGreaterThanOrEqual(2, $pdf->getDomPDF()->getCanvas()->get_page_count());
+        $document = new \DOMDocument;
+        @$document->loadHTML('<?xml encoding="UTF-8">'.view('reports.partials.basic-history-matrix', $renderedData)->render());
+        $xpath = new \DOMXPath($document);
+        $cells = $xpath->query('//td[contains(@class,"formation-cell")]');
+        $this->assertGreaterThan(1, $cells->length);
+        $this->assertSame(60, array_sum(array_map(fn ($cell) => (int) $cell->getAttribute('rowspan'), iterator_to_array($cells))));
+        foreach (range(1, 60) as $number) {
+            $this->assertSame(1, $xpath->query('//td[text()="Componente '.$number.'"]')->length);
+        }
+        $this->assertSame(180, $xpath->query('//td[contains(@class,"score-cell") and text()="8,5"]')->length);
+    }
+
+    private function paginatedHistoryData(int $componentCount): array
+    {
+        $history = new StudentAcademicHistory(['education_stage' => 'medio', 'title' => 'Histórico Escolar — Ensino Médio']);
+        $history->setRelation('school', null);
+        $history->setRelation('years', collect(range(1, 3))->map(function ($number) {
+            $year = new StudentAcademicHistoryYear(['label' => $number.'º Ano', 'transcript_mode' => 'detailed', 'final_result' => 'Aprovado']);
+            $year->id = $number;
+
+            return $year;
+        }));
+        $history->setRelation('components', collect(range(1, $componentCount))->map(function ($number) {
+            $area = match (true) {
+                $number <= 5 => 'Linguagens e Suas Tecnologias',
+                $number <= 8 => 'Ciências da Natureza e Suas Tecnologias',
+                $number <= 12 => 'Ciências Humanas e Sociais Aplicadas',
+                default => 'Matemática e Suas Tecnologias',
+            };
+            $component = new StudentAcademicHistoryComponent(['name' => 'Componente '.$number, 'formation' => 'Formação Geral Básica', 'knowledge_area' => $area]);
+            $component->setRelation('records', collect(range(1, 3))->map(fn ($year) => new StudentAcademicHistoryRecord([
+                'student_academic_history_year_id' => $year, 'score_label' => '8,5', 'workload_hours' => 80,
+            ])));
+
+            return $component;
+        }));
+        $issued = new IssuedDocument(['issued_at' => now(), 'verification_code' => 'PREVIA']);
+        $issued->setRelation('issuedBy', null);
+
+        return ['history' => $history, 'person' => new Person(['full_name' => 'Estudante de teste']),
+            'issuedDocument' => $issued, 'verificationUrl' => 'https://ctjj.org/verificar/PREVIA', 'letterhead' => ['lines' => ['Escola de teste']]];
     }
 
     public function test_global_year_spans_all_components_without_discarding_detailed_results(): void

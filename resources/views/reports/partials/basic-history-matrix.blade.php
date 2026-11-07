@@ -41,6 +41,11 @@
     if ($hasGlobalSummary && $allMatrixComponents->count() <= 18 && $allMatrixComponents->groupBy('formation')->count() <= 3) {
         $matrixSections = collect([$allMatrixComponents]);
     }
+    // A emissão reúne seções que o renderizador confirmou caberem na mesma página.
+    if (isset($historyMatrixSectionGroups)) {
+        $matrixSections = collect($historyMatrixSectionGroups)->map(fn ($indexes) => collect($indexes)
+            ->flatMap(fn ($index) => $matrixSections[$index])->values());
+    }
     [$formationWidth, $areaWidth, $componentWidth] = $wideComponentColumn ? [4, 18, 36] : [5, 12, 23];
     $unitWidth = (100 - $formationWidth - $areaWidth - $componentWidth) / max(1, $columnUnits);
 @endphp
@@ -66,7 +71,7 @@
     <tbody>
         @foreach($matrixSections as $matrixComponents)
         @php($lastMatrixSection = $loop->last)
-        <tr><td colspan="{{ 3 + $columnUnits }}" class="matrix-section-cell" style="padding:0;border:0;">
+        <tr><td colspan="{{ 3 + $columnUnits }}" class="matrix-section-cell" style="padding:0;border:0;" data-history-section="{{ $loop->index }}" data-history-formation="{{ $matrixComponents->pluck('formation')->unique()->count() === 1 ? $matrixComponents->first()->formation : '' }}">
         <table class="history-table matrix-section" style="margin:0;">
     <colgroup>
         <col style="width:{{ $formationWidth }}%"><col style="width:{{ $areaWidth }}%"><col style="width:{{ $componentWidth }}%">

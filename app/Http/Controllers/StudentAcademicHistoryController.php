@@ -16,10 +16,10 @@ use App\Support\HistoryCurriculumCatalog;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
 use App\Support\StudentAcademicHistoryCompleteness;
+use App\Support\StudentAcademicHistoryPdf;
 use App\Support\StudentHistoryConsolidator;
 use App\Support\StudentHistoryEditGuard;
 use App\Support\UnifiedStudentHistorySynchronizer;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -400,16 +400,15 @@ class StudentAcademicHistoryController extends Controller
             'issued_at' => now(),
         ]);
 
-        $pdf = Pdf::loadView('reports.student-academic-history', [
+        $pdf = app(StudentAcademicHistoryPdf::class)->make([
             'person' => $person,
             'history' => $history,
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
             'letterhead' => PdfLetterhead::make($history->school),
             'technicalPeriodDurations' => $this->technicalPeriodDurations($history),
-        ])->setPaper('a4', 'portrait');
+        ]);
 
-        $pdf->render();
         $pdf->addInfo([
             'Title' => $history->title.' - '.$person->full_name.' - '.$issuedDocument->verification_code,
             'Subject' => 'Histórico escolar emitido pelo Beabá',
