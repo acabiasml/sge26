@@ -429,6 +429,46 @@ class HistoryMatrixTest extends TestCase
         $this->assertSame(180, $xpath->query('//td[contains(@class,"score-cell") and text()="8,5"]')->length);
     }
 
+    public function test_pdf_fills_the_remaining_page_with_at_least_twenty_six_components_above_the_footer(): void
+    {
+        $data = $this->paginatedHistoryData(13);
+        foreach (range(1, 20) as $number) {
+            $component = new StudentAcademicHistoryComponent(['name' => 'Itinerário '.$number, 'formation' => 'Itinerário Formativo',
+                'knowledge_area' => $number <= 3 ? 'Aprofundamento de Estudos' : 'Técnico em Móveis']);
+            $component->setRelation('records', collect());
+            $data['history']->components->push($component);
+        }
+        $data['person']->fill(['legacy_code' => 'PREVIA', 'birth_date' => '2007-09-19', 'birth_city' => 'Palmas', 'birth_state' => 'TO',
+            'personal_email' => 'teste@example.org', 'institutional_email' => 'teste@escola.example.org', 'address' => 'Rua da Escola', 'city' => 'Poxoréu', 'state' => 'MT']);
+        $data['letterhead']['lines'] = ['Centro Técnico de Teste', 'Certificado de educação', 'Escola de teste', 'Cadastro da escola', 'Autorização de funcionamento'];
+        $rows = $bottoms = $footers = $formations = [];
+        $pdf = app(StudentAcademicHistoryPdf::class)->make($data);
+        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame, $canvas) use (&$rows, &$bottoms, &$footers, &$formations): void {
+            $node = $frame->get_node();
+            if (! $node instanceof \DOMElement) return;
+            $page = $canvas->get_page_number();
+            $box = $frame->get_border_box();
+            if ($node->tagName === 'td' && preg_match('/^(Componente|Itinerário) [0-9]+$/u', trim($node->textContent))) {
+                $rows[$page][] = trim($node->textContent);
+                $bottoms[$page] = $box['y'] + $box['h'];
+            }
+            if (str_contains($node->getAttribute('class'), 'formation-cell')) {
+                $formations[$page][] = trim($node->textContent);
+            }
+            if ($node->getAttribute('class') === 'document-footer') $footers[$page] = $box['y'];
+        }]]);
+        $this->assertStringStartsWith('%PDF-', $pdf->output());
+        $this->assertGreaterThanOrEqual(26, count($rows[1]));
+        $this->assertSame($data['history']->components->pluck('name')->all(), array_merge(...array_values($rows)));
+        foreach ($formations as $labels) {
+            $this->assertSame(count($labels), count(array_unique($labels)), 'A formação deve aparecer uma única vez por página da matriz.');
+        }
+        foreach ($bottoms as $page => $bottom) {
+            $this->assertLessThan($footers[$page] - 3, $bottom, 'Os componentes devem terminar antes do rodapé.');
+        }
+        $this->assertLessThan(35, $footers[1] - $bottoms[1], 'O espaço livre deve ser aproveitado por linhas vindas da página seguinte.');
+    }
+
     private function paginatedHistoryData(int $componentCount): array
     {
         $history = new StudentAcademicHistory(['education_stage' => 'medio', 'title' => 'Histórico Escolar — Ensino Médio']);
