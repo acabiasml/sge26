@@ -8,7 +8,7 @@ Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
 Illuminate\Support\Facades\DB::beginTransaction();
 try {
     $people = App\Models\Person::query()
-        ->whereRaw('SHA2(LOWER(TRIM(full_name)), 256) = ?', ['__NAME_SHA256__'])
+        ->whereRaw("SHA2(LOWER(TRIM(SUBSTRING_INDEX(full_name, ' ', __NAME_WORDS__))), 256) = ?", ['__NAME_SHA256__'])
         ->get(['id', 'full_name']);
     $output = ['matched_people' => $people->count()];
     if ($people->count() === 1) {
