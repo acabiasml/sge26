@@ -75,6 +75,7 @@ final class LegacyClassDiaryReconciler
             'contents_to_fill' => 0, 'matrix_changes' => 0, 'existing_entries_preserved' => 0,
             'entries_to_correct' => 0, 'entries_to_remove' => 0,
             'sessions_missing_quantity' => 0, 'marks_outside_enrollment' => 0,
+            'estimated_sessions' => 0,
             'existing_grades_preserved' => $assessments->sum(fn ($row) => $row->results->count()),
             'documented_sessions' => 0, 'documented_lessons' => 0];
         $sessions = [];
@@ -130,6 +131,8 @@ final class LegacyClassDiaryReconciler
                     && $date >= $period->starts_at->toDateString() && $date <= $period->ends_at->toDateString(), 'A data ou a quantidade de aulas diverge do bimestre.');
                 $this->require(! $existing || ($existing->academic_period_id === $period->id && $existing->lesson_count === $lessonCount), 'Uma chamada existente conflita com a fonte.');
                 $stats['calls_to_create'] += $existing ? 0 : 1;
+                $quantityBasis = $session['lesson_count_basis'] ?? null;
+                $stats['estimated_sessions'] += $quantityBasis ? 1 : 0;
                 $attendance = [];
                 $outsideEnrollmentIds = [];
                 foreach ($session['attendance'] as $studentName => $mark) {
@@ -171,7 +174,7 @@ final class LegacyClassDiaryReconciler
                 if ($content !== '' && trim((string) $existingContent?->content) === '') {
                     $stats[$existingContent ? 'contents_to_fill' : 'contents_to_create']++;
                 }
-                $sessions[$key] = compact('component', 'period', 'date', 'lessonCount', 'attendance', 'content', 'existing', 'existingContent', 'removals') + ['file' => $document['file'], 'sha256' => $document['sha256']];
+                $sessions[$key] = compact('component', 'period', 'date', 'lessonCount', 'attendance', 'content', 'existing', 'existingContent', 'removals', 'quantityBasis') + ['file' => $document['file'], 'sha256' => $document['sha256']];
                 $stats['documented_sessions']++;
                 $stats['documented_lessons'] += $lessonCount;
             }
@@ -210,7 +213,8 @@ final class LegacyClassDiaryReconciler
                     'school_class_id' => $class->id, 'curriculum_component_id' => $session['component']->id,
                     'academic_period_id' => $session['period']->id, 'class_date' => $session['date'],
                     'lesson_count' => $session['lessonCount'], 'legacy_source' => 'pdf-reconciliation',
-                    'legacy_metadata' => ['source_file' => $session['file'], 'source_sha256' => $session['sha256']],
+                    'legacy_metadata' => array_filter(['source_file' => $session['file'], 'source_sha256' => $session['sha256'],
+                        'lesson_count_basis' => $session['quantityBasis']], fn ($value) => $value !== null),
                 ]);
                 foreach ($session['attendance'] as $enrollmentId => $attended) {
                     $entry = $session['existing']?->entries->firstWhere('student_enrollment_id', $enrollmentId);

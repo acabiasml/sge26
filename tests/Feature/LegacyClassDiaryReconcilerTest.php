@@ -139,6 +139,7 @@ class LegacyClassDiaryReconcilerTest extends TestCase
         $record = DiaryAttendanceRecord::sole();
         $record->entries()->create(['student_enrollment_id' => $enrollment->id, 'status' => 'presente', 'attended_lessons' => 1]);
         $manifest['source_authoritative'] = true;
+        $manifest['documents'][0]['sessions'][1]['lesson_count_basis'] = ['method' => 'source_pattern', 'user_authorized' => true];
         $manifest['documents'][0]['students'][] = ['legacy_student_id' => 57, 'student_name' => $other->full_name, 'grades' => []];
         $manifest['documents'][0]['sessions'][0]['not_enrolled'] = [$other->full_name];
         $manifest['documents'][0]['sessions'][0]['attendance']['Estudante de Teste'] = 'absent';
@@ -146,10 +147,12 @@ class LegacyClassDiaryReconcilerTest extends TestCase
         $plan = $service->reconcile($manifest);
         $this->assertSame(1, $plan['stats']['entries_to_correct']);
         $this->assertSame(1, $plan['stats']['entries_to_remove']);
+        $this->assertSame(1, $plan['stats']['estimated_sessions']);
         $service->reconcile($manifest, true, $plan['snapshot_sha256']);
         $this->assertDatabaseMissing('diary_attendance_entries', ['student_enrollment_id' => $enrollment->id]);
         $this->assertEquals(0, $record->entries()->sole()->attended_lessons);
         $this->assertSame('falta', $record->entries()->sole()->status);
+        $this->assertSame('source_pattern', DiaryAttendanceRecord::whereDate('class_date', '2025-02-04')->sole()->legacy_metadata['lesson_count_basis']['method']);
         $next = $service->reconcile($manifest);
         $this->assertSame(0, $next['stats']['entries_to_correct']);
         $this->assertSame(0, $next['stats']['entries_to_remove']);
@@ -211,7 +214,15 @@ class LegacyClassDiaryReconcilerTest extends TestCase
     {
         [$first, $course] = $this->scenario();
         [$second, , , , $historyRecord] = $this->scenario();
-        $batch = ['format' => 'legacy-diary-batch-v1', 'classes' => [$first, $second]];
+        $sameYear = $course->academicYear;
+        $extraCourse = $sameYear->courses()->create(['name' => 'Outra matriz', 'class_hour_minutes' => 50, 'workload_hours' => 80]);
+        $otherYear = AcademicYear::create(['school_id' => $sameYear->school_id, 'reference_year' => 2024,
+            'name' => 'Ano 2024', 'starts_at' => '2024-01-01', 'ends_at' => '2024-12-31', 'class_hour_minutes' => 50]);
+        $priorCourse = $otherYear->courses()->create(['name' => 'Matriz anterior', 'class_hour_minutes' => 50, 'workload_hours' => 40]);
+        $batch = ['format' => 'legacy-diary-batch-v1', 'classes' => [$first, $second], 'school_year_class_hours' => [
+            ['school_id' => $sameYear->school_id, 'reference_year' => 2024, 'class_hour_minutes' => 60],
+            ['school_id' => $sameYear->school_id, 'reference_year' => 2025, 'class_hour_minutes' => 60],
+        ]];
         $service = app(LegacyDiaryBatchReconciler::class);
         $plan = $service->reconcile($batch);
         $changed = $batch;
@@ -232,12 +243,19 @@ class LegacyClassDiaryReconcilerTest extends TestCase
             $this->assertStringContainsString('histórico', $error->getMessage());
         }
         $this->assertEquals(200, $course->fresh()->workload_hours);
+        $this->assertEquals(50, $extraCourse->fresh()->class_hour_minutes);
+        $this->assertEquals(50, $priorCourse->fresh()->class_hour_minutes);
         $this->assertDatabaseCount('diary_attendance_records', 2);
         $this->assertDatabaseCount('diary_attendance_entries', 2);
         $historyRecord->component->update(['name' => 'Língua Inglesa']);
         $plan = $service->reconcile($batch);
         $applied = $service->reconcile($batch, true, $plan['snapshot_sha256']);
         $this->assertSame('apply', $applied['mode']);
+        $this->assertEquals(60, $extraCourse->fresh()->class_hour_minutes);
+        $this->assertEquals(60, $priorCourse->fresh()->class_hour_minutes);
+        $this->assertEquals(60, $otherYear->fresh()->class_hour_minutes);
+        $this->assertEquals(60, $sameYear->fresh()->class_hour_minutes);
+        $this->assertSame(0, $service->reconcile($batch)['school_year_class_hours'][0]['courses_to_update']);
         $this->assertDatabaseCount('diary_attendance_records', 4);
         $this->assertDatabaseCount('diary_attendance_entries', 4);
     }

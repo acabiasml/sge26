@@ -146,6 +146,16 @@ duração e aulas semanais permanecem como estavam quando não há confirmação
 Uma quantidade semanal nula pode ser preservada, mas não introduzida em uma
 matriz que já possuía esse valor.
 
+Quando o usuário confirmar que a duração vale para todas as turmas de um ano,
+o lote pode incluir `school_year_class_hours`, com escola, ano e duração de
+60 minutos por alvo. A simulação confere também o estado de todas as matrizes
+e diários desses anos. A aplicação corrige primeiro a duração pelo serviço
+anual e então reconcilia os PDFs, tudo na mesma transação. O hash inicial cobre
+ambos os recortes. Quantidades estimadas com autorização do usuário devem
+trazer `lesson_count_basis`, com o critério e as datas de referência; essa
+proveniência acompanha a chamada criada e a contagem de estimativas no relatório.
+Não substituir uma quantidade explícita apenas para atingir uma carga anual.
+
 ### Duração da aula para toda uma escola e ano
 
 O mesmo workflow aceita `operation: school-year-class-hours` na configuração,
