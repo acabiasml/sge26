@@ -113,6 +113,25 @@ marcação de presença por preencher. As branches de relatório não são integ
 à aplicação. A duração da aula e a carga prevista são decisões documentais:
 não devem ser deduzidas da contagem de conteúdos ou da aprovação dos estudantes.
 
+### Duração da aula para toda uma escola e ano
+
+O mesmo workflow aceita `operation: school-year-class-hours` na configuração,
+com `school_id`, `reference_year`, `class_hour_minutes: 60` e `mode: dry-run`.
+Esse modo não lê o envelope de PDFs. A simulação lista todas as matrizes do
+recorte e reconhece as conversões de carga produzidas pelo importador de 50
+minutos: só quando a carga e as aulas semanais ainda correspondem exatamente
+à fórmula original elas voltam à carga legada, com a duração confirmada.
+Matrizes já corrigidas para 60 minutos e cargas manuais são preservadas.
+
+Revise as alterações e publique `mode: apply` com `expected_snapshot_sha256`
+do relatório. A alteração abrange o calendário, as matrizes e as horas dos
+históricos com origem `system` vinculados às matrículas desse ano. Notas,
+resultados, chamadas e conteúdos são protegidos por um hash antes e depois.
+Há backup privado e transação, inclusive para a atualização dos históricos.
+Outras escolas, anos, históricos recebidos e calendários plurianuais ficam
+fora dessa correção. Ao concluir, retorne a `mode: dry-run` e confirme que não
+resta duração ou conversão por ajustar.
+
 ## Classificação dos componentes de Móveis
 
 O escopo `--scope history-catalog-classification` consulta somente as áreas de

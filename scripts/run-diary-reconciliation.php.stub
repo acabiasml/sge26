@@ -5,6 +5,17 @@ $app = require 'bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 try {
 $config = json_decode(file_get_contents('scripts/diary-reconciliation.json'), true, flags: JSON_THROW_ON_ERROR);
+if (($config['operation'] ?? '') === 'school-year-class-hours') {
+    if (! in_array($config['mode'] ?? '', ['dry-run', 'apply'], true)) {
+        throw new RuntimeException('Modo de correção inválido.');
+    }
+    $result = app(App\Support\SchoolYearClassHourCorrection::class)->correct(
+        $config['school_id'], $config['reference_year'], $config['class_hour_minutes'],
+        $config['mode'] === 'apply', $config['expected_snapshot_sha256'] ?? null,
+    );
+    echo json_encode($result, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+    return;
+}
 if (! preg_match('/^[a-f0-9]{32}$/', $config['transport_key_id'] ?? '')
     || ! in_array($config['mode'] ?? '', ['dry-run', 'apply'], true)) {
     throw new RuntimeException('Configuração inválida.');

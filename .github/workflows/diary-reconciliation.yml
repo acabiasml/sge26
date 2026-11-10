@@ -8,6 +8,7 @@ on:
       - scripts/run-diary-reconciliation.py
       - scripts/run-diary-reconciliation.php.stub
       - app/Support/LegacyClassDiaryReconciler.php
+      - app/Support/SchoolYearClassHourCorrection.php
       - .github/workflows/diary-reconciliation.yml
 permissions:
   contents: write
