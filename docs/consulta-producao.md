@@ -72,6 +72,10 @@ quanto o PDF ficam exclusivamente no relatório criptografado.
 Para divergência na grafia do sobrenome, `name_words` limita a comparação às
 primeiras palavras (1 a 20). Mais de uma correspondência impede a consulta
 das notas; após identificar a pessoa, prefira voltar ao nome completo.
+O parâmetro opcional `simulated_transfer_date` (AAAA-MM-DD) monta a ficha com
+uma cópia da matrícula em memória. O relatório identifica explicitamente essa
+simulação e inclui separadamente a situação efetivamente lida do banco.
+Não registra nem desfaz uma transferência real.
 
 ## Classificação dos componentes de Móveis
 

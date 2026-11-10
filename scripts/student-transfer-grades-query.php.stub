@@ -18,7 +18,15 @@ try {
             ->whereHas('schoolClass.academicYear', fn ($q) => $q->where('reference_year', __REFERENCE_YEAR__))
             ->with('schoolClass.academicYear.school')->get();
         $output['enrollments'] = $enrollments->map(function ($enrollment) {
-            $report = app(App\Support\StudentReportCardBuilder::class)->build($enrollment);
+            $reportEnrollment = clone $enrollment;
+            $simulatedTransferDate = '__SIMULATED_TRANSFER_DATE__';
+            if ($simulatedTransferDate !== '') {
+                // Apenas o objeto em memória muda; a matrícula nunca é salva.
+                $reportEnrollment->status = App\Models\StudentEnrollment::STATUS_TRANSFERRED;
+                $reportEnrollment->transferred_at = $simulatedTransferDate;
+                $reportEnrollment->final_result_status = App\Models\StudentEnrollment::FINAL_TRANSFERRED;
+            }
+            $report = app(App\Support\StudentReportCardBuilder::class)->build($reportEnrollment);
             $results = App\Models\DiaryAssessmentResult::query()
                 ->where('student_enrollment_id', $enrollment->id)->with('assessment')->get();
             $document = new App\Models\IssuedDocument(['issued_at' => now(), 'verification_code' => 'PREVIA-DIAGNOSTICO']);
@@ -30,6 +38,8 @@ try {
 
             return [
                 'enrollment' => $enrollment->only(['id', 'school_class_id', 'status', 'enrolled_at', 'transferred_at', 'cancelled_at', 'reclassified_at', 'updated_at']),
+                'report_mode' => $simulatedTransferDate !== '' ? 'simulated_transfer_readonly' : 'stored_enrollment',
+                'report_enrollment' => $reportEnrollment->only(['id', 'status', 'transferred_at']),
                 'class' => $enrollment->schoolClass->name,
                 'school' => $enrollment->schoolClass->academicYear->school->name,
                 'periods' => $report['periodReports']->map(fn ($period) => [

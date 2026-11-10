@@ -35,10 +35,15 @@ def main():
             raise ValueError('Seletor de estudante ou ano inválido.')
         source = source.replace('__NAME_SHA256__', name_hash).replace('__REFERENCE_YEAR__', str(reference_year))
         if scope == 'student-transfer-grades':
+            import datetime
             name_words = query.get('name_words', 20)
             if type(name_words) is not int or not 1 <= name_words <= 20:
                 raise ValueError('Quantidade de palavras do nome inválida.')
             source = source.replace('__NAME_WORDS__', str(name_words))
+            simulated_date = query.get('simulated_transfer_date', '')
+            if simulated_date and datetime.date.fromisoformat(simulated_date).isoformat() != simulated_date:
+                raise ValueError('Data de transferência simulada inválida.')
+            source = source.replace('__SIMULATED_TRANSFER_DATE__', simulated_date)
     source = source.replace('__PERSON_ID__', str(person_id))
     source = source.replace('__ENCRYPTED_TARGET__', pathlib.Path('scripts/history-diagnosis-target.enc').read_text().strip())
     with tempfile.TemporaryDirectory() as directory:
