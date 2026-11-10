@@ -100,6 +100,13 @@ CONTEÚDOS II BIMESTRE
             with self.assertRaisesRegex(ValueError, 'incompatível'):
                 extract.parse_document(Path('example.pdf'), 'pdftotext', names)
 
+    def test_progress_table_continues_after_print_footer_on_the_next_page(self):
+        text = self.document(2025, 'I').replace('FREQUÊNCIA I BIMESTRE',
+            'Ficha gerada para impressão\n\fFICHA DE REGISTRO DE PROGRESSÃO\n54 OUTRO ESTUDANTE 6 7 8 9 7.5 - - - - 0 aprovado\nFREQUÊNCIA I BIMESTRE')
+        with patch.object(extract, 'pdf_text', return_value=text):
+            result = extract.parse_document(Path('example.pdf'), 'pdftotext')
+        self.assertEqual([53, 54], [student['legacy_student_id'] for student in result['students']])
+
     def test_2026_roman_period_keeps_its_original_year(self):
         with patch.object(extract, 'pdf_text', return_value=self.document(2026, 'I')):
             result = extract.parse_document(Path('example.pdf'), 'pdftotext')

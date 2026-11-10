@@ -310,6 +310,28 @@ class LegacyClassDiaryReconcilerTest extends TestCase
         app(LegacyClassDiaryReconciler::class)->reconcile($batch['classes'][0]);
     }
 
+    public function test_partial_package_preserves_other_components_and_rejects_changes_to_their_matrix(): void
+    {
+        [$manifest, $course, $class, $enrollment] = $this->scenario();
+        $other = $course->components()->create(['name' => 'Arte', 'workload_hours' => 40, 'weekly_lessons' => 1, 'active' => true]);
+        $period = $class->academicYear->periods()->sole();
+        $call = DiaryAttendanceRecord::create(['school_class_id' => $class->id, 'curriculum_component_id' => $other->id,
+            'academic_period_id' => $period->id, 'class_date' => '2025-02-10', 'lesson_count' => 1]);
+        $call->entries()->create(['student_enrollment_id' => $enrollment->id, 'status' => 'presente', 'attended_lessons' => 1]);
+        $before = $call->fresh('entries')->toArray();
+        $manifest['allow_partial_documents'] = true;
+        $manifest['matrix']['components'][] = ['name' => 'Arte', 'workload_hours' => $other->workload_hours, 'weekly_lessons' => 1];
+        $service = app(LegacyClassDiaryReconciler::class);
+        $plan = $service->reconcile($manifest);
+        $this->assertSame([$other->id], $plan['undocumented_component_ids']);
+        $service->reconcile($manifest, true, $plan['snapshot_sha256']);
+        $this->assertSame($before, $call->fresh('entries')->toArray());
+        $this->assertEquals(40, $other->fresh()->workload_hours);
+        $manifest['matrix']['components'][1]['workload_hours'] = 80;
+        $this->expectExceptionMessage('sem documento');
+        $service->reconcile($manifest);
+    }
+
     private function reenrollmentScenario(): array
     {
         [$manifest, $course, $class, $enrollment] = $this->scenario();

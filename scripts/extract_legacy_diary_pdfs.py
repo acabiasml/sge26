@@ -59,7 +59,9 @@ def parse_progress(lines: list[str], student_names: dict[int, str] | None = None
         if "FICHA DE REGISTRO DE PROGRESSÃO" in line:
             in_progress = True
             continue
-        if in_progress and ("FREQUÊNCIA " in line or "Ficha gerada" in line):
+        # O quadro de notas pode continuar na página seguinte, depois do
+        # rodapé de impressão. Só a frequência encerra a progressão.
+        if in_progress and "FREQUÊNCIA " in line:
             if results:
                 break
         if not in_progress:

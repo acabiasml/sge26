@@ -31,6 +31,7 @@ final class LegacyClassDiaryReconciler
         $authoritative = ($manifest['source_authoritative'] ?? false) === true;
         $deferIncomplete = ($manifest['defer_incomplete_sessions'] ?? false) === true;
         $allowRounding = ($manifest['allow_grade_rounding'] ?? false) === true;
+        $partialDocuments = ($manifest['allow_partial_documents'] ?? false) === true;
         $class = SchoolClass::with(['academicYear.periods', 'enrollments.student'])->when($apply, fn ($q) => $q->lockForUpdate())->findOrFail($target['class_id'] ?? 0);
         $course = AcademicCourse::with('components')->when($apply, fn ($q) => $q->lockForUpdate())->findOrFail($target['course_id'] ?? 0);
         $year = $class->academicYear;
@@ -50,7 +51,14 @@ final class LegacyClassDiaryReconciler
         $this->require($matrixComponents->keys()->sort()->values()->all() === $components->keys()->sort()->values()->all(), 'A matriz documentada precisa conter todos os componentes da turma.');
         $documents = collect($manifest['documents'])->keyBy(fn ($row) => $this->normalized($row['component_name']));
         $this->require($documents->count() === count($manifest['documents'])
-            && $documents->keys()->sort()->values()->all() === $components->keys()->sort()->values()->all(), 'Documentos duplicados ou componentes ausentes.');
+            && $documents->keys()->diff($components->keys())->isEmpty()
+            && ($partialDocuments || $documents->count() === $components->count()), 'Documentos duplicados ou componentes ausentes.');
+        $undocumented = $components->reject(fn ($row, $name) => $documents->has($name));
+        foreach ($undocumented as $name => $component) {
+            $definition = $matrixComponents[$name];
+            $this->require($definition['workload_hours'] === $component->workload_hours
+                && $definition['weekly_lessons'] === $component->weekly_lessons, 'Componente sem documento não pode ter a matriz alterada.');
+        }
         $enrollmentGroups = $class->enrollments->groupBy(fn ($row) => $this->normalized($row->student->full_name));
         $this->require($enrollmentGroups->every(fn ($rows) => $rows->pluck('person_id')->unique()->count() === 1), 'Estudantes ambíguos na turma.');
         $enrollments = $enrollmentGroups->map(fn ($rows) => $rows->sortByDesc(fn ($row) => ($row->enrolled_at?->toDateString() ?? '0000-00-00').sprintf('-%010d', $row->id))->first());
@@ -190,7 +198,8 @@ final class LegacyClassDiaryReconciler
                     || (is_int($definition['weekly_lessons']) && $definition['weekly_lessons'] > 0)), 'Definição inválida da matriz.');
             $stats['matrix_changes'] += (float) $component->workload_hours !== (float) $definition['workload_hours'] || $component->weekly_lessons !== $definition['weekly_lessons'] ? 1 : 0;
         }
-        $this->require($records->reject(fn ($row) => in_array($row->curriculum_component_id, $gradeOnlyComponents, true))
+        $preservedComponentIds = array_merge($gradeOnlyComponents, $undocumented->pluck('id')->all());
+        $this->require($records->reject(fn ($row) => in_array($row->curriculum_component_id, $preservedComponentIds, true))
             ->every(fn ($row) => isset($documentedKeys[$row->curriculum_component_id.':'.$row->class_date->toDateString()])), 'Há chamadas atuais sem correspondência nos documentos.');
         $planned = (float) $matrixComponents->sum('workload_hours');
         $stats['matrix_changes'] += (int) $course->class_hour_minutes !== $minutes || (float) $course->workload_hours !== $planned ? 1 : 0;
@@ -199,7 +208,8 @@ final class LegacyClassDiaryReconciler
             'snapshot_sha256' => $snapshotHash, 'manifest_sha256' => $manifestHash, 'stats' => $stats,
             'planned_hours' => $planned, 'class_hour_minutes' => $minutes,
             'students_count' => $class->enrollments->pluck('person_id')->unique()->count(), 'enrollments_count' => $class->enrollments->count(),
-            'deferred' => $deferred, 'grade_only_component_ids' => $gradeOnlyComponents];
+            'deferred' => $deferred, 'grade_only_component_ids' => $gradeOnlyComponents,
+            'undocumented_component_ids' => $undocumented->pluck('id')->values()->all()];
         if (! $apply) {
             return $result;
         }
