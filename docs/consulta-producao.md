@@ -77,6 +77,42 @@ uma cópia da matrícula em memória. O relatório identifica explicitamente ess
 simulação e inclui separadamente a situação efetivamente lida do banco.
 Não registra nem desfaz uma transferência real.
 
+## Reconciliação de uma turma a partir dos diários originais
+
+O escopo `class-diary-reconciliation` seleciona a turma por `person_id` e
+`reference_year`, com `transport_key_id` aleatório de 32 caracteres hexadecimais.
+Ele consulta a turma em transação somente de leitura e prepara uma chave RSA
+privada exclusivamente em `storage/app/private/diary-reconciliation` no servidor.
+O relatório criptografado contém somente a chave pública desse transporte.
+
+Extraia os PDFs com `scripts/extract_legacy_diary_pdfs.py`. Confira todos os
+estudantes, períodos, aulas, notas e divergências da matriz. O manifesto privado
+inclui o SHA-256 de cada PDF, o alvo exato (escola, ano, turma e matriz) e a matriz
+confirmada pelo usuário. Criptografe com AES-256-GCM e encapsule a chave AES com
+RSA-OAEP SHA-1, compatível com o OpenSSL do PHP 8.4. Somente o envelope
+`scripts/diary-reconciliation.encrypted.json` é publicado; nunca o manifesto
+legível ou a chave privada. O envelope contém `key`, `nonce`, `ciphertext` e `tag`
+em base64. A chave de transporte permanece no servidor, com permissão 0600.
+
+O workflow **Reconciliação protegida de diários documentados** lê
+`scripts/diary-reconciliation.json`, que contém `transport_key_id` e `mode`.
+Publique primeiro `mode: dry-run`. Revise o relatório criptografado e só então
+publique `mode: apply` com `expected_snapshot_sha256` da conferência anterior.
+A aplicação aborta se a turma mudou ou houver conflito de identidade, notas,
+presenças, quantidade de aulas ou período. Não há substituição de notas nem de
+chamadas existentes. São preenchidas chamadas e conteúdos ausentes, ajustada
+somente a matriz selecionada e atualizadas as cargas/frequências dos anos de
+histórico com origem `system` vinculados às matrículas dessa turma.
+
+Antes da gravação, uma cópia privada dos registros é salva no servidor. Todas
+as mudanças de banco são transacionais; a auditoria referencia o manifesto e
+essa cópia. O resultado sai apenas criptografado na branch
+`reconciliacao-diarios-ID_DA_EXECUCAO`, pelo mesmo leitor de relatórios privados.
+Ao concluir, volte a `mode: dry-run` para verificar que não restam chamadas ou
+marcação de presença por preencher. As branches de relatório não são integradas
+à aplicação. A duração da aula e a carga prevista são decisões documentais:
+não devem ser deduzidas da contagem de conteúdos ou da aprovação dos estudantes.
+
 ## Classificação dos componentes de Móveis
 
 O escopo `--scope history-catalog-classification` consulta somente as áreas de
