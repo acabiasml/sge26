@@ -32,6 +32,22 @@ try {
         fclose($stream);
     }
     $public = openssl_pkey_get_details(openssl_pkey_get_private(file_get_contents($keyPath)))['key'];
+    $historyYears = App\Models\StudentAcademicHistoryYear::query()->whereIn('student_enrollment_id', $class->enrollments()->pluck('id'))
+        ->where('source', 'system')->with('records')->get();
+    $history = App\Models\StudentAcademicHistory::query()->where('person_id', $enrollment->person_id)
+        ->whereHas('years', fn ($q) => $q->where('student_enrollment_id', $enrollment->id)->where('source', 'system'))
+        ->with(['school', 'years.records', 'components.records'])->first();
+    $preview = null;
+    if ($history) {
+        $document = new App\Models\IssuedDocument(['issued_at' => now(), 'verification_code' => 'PREVIA-DIAGNOSTICO']);
+        $document->setRelation('issuedBy', null);
+        $pdf = app(App\Support\StudentAcademicHistoryPdf::class)->make([
+            'person' => $enrollment->student, 'history' => $history, 'issuedDocument' => $document,
+            'verificationUrl' => '', 'letterhead' => App\Support\PdfLetterhead::make($history->school),
+            'technicalPeriodDurations' => collect(),
+        ]);
+        $preview = base64_encode($pdf->output());
+    }
     echo json_encode([
         'transport_public_key' => $public,
         'class' => $class->only(['id', 'name', 'academic_year_id', 'legacy_source', 'legacy_id']),
@@ -46,6 +62,12 @@ try {
         'attendance_records' => $records,
         'contents' => App\Models\DiaryContent::query()->where('school_class_id', $class->id)->whereIn('curriculum_component_id', $componentIds)->get(),
         'assessments' => $assessments,
+        'history_years' => $historyYears->map(fn ($row) => [
+            'id' => $row->id, 'enrollment_id' => $row->student_enrollment_id,
+            'planned_hours' => $row->workload_hours, 'completed_hours' => $row->completedWorkloadHours(),
+            'records' => $row->records->map->only(['id', 'curriculum_component_id', 'score_label', 'workload_hours', 'completed_workload_hours', 'absences']),
+        ]),
+        'history_preview_pdf_base64' => $preview,
     ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 } finally {
     Illuminate\Support\Facades\DB::rollBack();
