@@ -33,7 +33,7 @@ def main():
                 if time.monotonic() >= deadline:
                     raise RuntimeError('O commit conferido não chegou ao servidor.')
                 time.sleep(10)
-            stdin, stdout, stderr = client.exec_command('cd /home/u810745753/domains/ctjj.org/public_html/sge && php', timeout=300)
+            stdin, stdout, stderr = client.exec_command('cd /home/u810745753/domains/ctjj.org/public_html/sge && php', timeout=600)
             stdin.write(pathlib.Path('scripts/run-diary-reconciliation.php.stub').read_text())
             stdin.flush()
             stdin.channel.shutdown_write()

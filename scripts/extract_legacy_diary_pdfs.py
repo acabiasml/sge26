@@ -138,7 +138,21 @@ def parse_frequency_sections(lines: list[str], student_names: dict[int, str], re
                 continue
             for date, (mark, _) in zip(dates, marks):
                 if mark != "#":
-                    sessions[date]["attendance"][student_name] = "absent" if mark == "F" else "present"
+                    value = "absent" if mark == "F" else "present"
+                    previous = sessions[date]["attendance"].get(student_name)
+                    if previous is not None and previous != value:
+                        issues.append({"type": "conflicting_frequency_rows", "date": date, "student_id": student_id})
+                    sessions[date]["attendance"][student_name] = value
+                else:
+                    excluded = sessions[date].setdefault("not_enrolled", [])
+                    if student_name not in excluded:
+                        excluded.append(student_name)
+        # Uma pessoa pode aparecer duas vezes por rematrícula. A marcação
+        # explícita prevalece sobre '#' da outra linha, sem duplicar chamadas.
+        for date in dates:
+            if "not_enrolled" in sessions[date]:
+                sessions[date]["not_enrolled"] = [name for name in sessions[date]["not_enrolled"]
+                                                if name not in sessions[date]["attendance"]]
         index = section_end
     return sessions, issues
 

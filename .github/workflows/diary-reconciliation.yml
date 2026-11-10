@@ -8,6 +8,7 @@ on:
       - scripts/run-diary-reconciliation.py
       - scripts/run-diary-reconciliation.php.stub
       - app/Support/LegacyClassDiaryReconciler.php
+      - app/Support/LegacyDiaryBatchReconciler.php
       - app/Support/SchoolYearClassHourCorrection.php
       - .github/workflows/diary-reconciliation.yml
 permissions:
@@ -18,7 +19,7 @@ concurrency:
 jobs:
   reconciliar:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
       - run: python -m pip install 'paramiko==3.5.1'

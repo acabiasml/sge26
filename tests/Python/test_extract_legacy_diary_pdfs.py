@@ -61,6 +61,24 @@ CONTEÚDOS II BIMESTRE
         self.assertEqual(1, len(result['students']))
         self.assertEqual([], result['sessions'])
 
+    def test_hash_marks_are_explicit_exclusions_and_do_not_override_a_reenrollment(self):
+        text = self.document(2025, 'I').replace('53  ESTUDANTE COM NOME QUEBRA DE LINHA        *   F  1',
+            '53  ESTUDANTE COM NOME QUEBRA DE LINHA        #   #  0\n53  ESTUDANTE COM NOME QUEBRA DE LINHA        *   #  0')
+        with patch.object(extract, 'pdf_text', return_value=text):
+            result = extract.parse_document(Path('example.pdf'), 'pdftotext')
+        name = result['students'][0]['student_name']
+        self.assertEqual('present', result['sessions'][0]['attendance'][name])
+        self.assertEqual([], result['sessions'][0]['not_enrolled'])
+        self.assertEqual([name], result['sessions'][1]['not_enrolled'])
+        self.assertEqual([], result['issues'])
+
+    def test_conflicting_duplicate_marks_are_reported(self):
+        text = self.document(2025, 'I').replace('Observações:',
+            '53  ESTUDANTE COM NOME QUEBRA DE LINHA        F   F  2\nObservações:')
+        with patch.object(extract, 'pdf_text', return_value=text):
+            result = extract.parse_document(Path('example.pdf'), 'pdftotext')
+        self.assertEqual('conflicting_frequency_rows', result['issues'][0]['type'])
+
     def test_2026_roman_period_keeps_its_original_year(self):
         with patch.object(extract, 'pdf_text', return_value=self.document(2026, 'I')):
             result = extract.parse_document(Path('example.pdf'), 'pdftotext')

@@ -1,5 +1,7 @@
 <?php
 
+ini_set('memory_limit', '512M');
+
 require 'vendor/autoload.php';
 $app = require 'bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
@@ -31,7 +33,9 @@ if ($plaintext === false) {
     throw new RuntimeException('O manifesto não passou na verificação de integridade.');
 }
 $manifest = json_decode($plaintext, true, flags: JSON_THROW_ON_ERROR);
-$result = app(App\Support\LegacyClassDiaryReconciler::class)->reconcile(
+$service = ($config['operation'] ?? '') === 'diary-batch'
+    ? App\Support\LegacyDiaryBatchReconciler::class : App\Support\LegacyClassDiaryReconciler::class;
+$result = app($service)->reconcile(
     $manifest, $config['mode'] === 'apply', $config['expected_snapshot_sha256'] ?? null,
 );
 echo json_encode($result, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);

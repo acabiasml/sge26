@@ -1,1 +1,1 @@
-{"operation": "school-year-class-hours", "school_id": 3, "reference_year": 2025, "class_hour_minutes": 60, "mode": "dry-run", "verification_attempt": 2}
+{"operation": "diary-batch", "transport_key_id": "03f159d41f334649b9a58c85757eef0c", "mode": "dry-run"}

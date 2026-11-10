@@ -119,6 +119,33 @@ marcação de presença por preencher. As branches de relatório não são integ
 à aplicação. A duração da aula e a carga prevista são decisões documentais:
 não devem ser deduzidas da contagem de conteúdos ou da aprovação dos estudantes.
 
+### Lote autorizado por diários originais
+
+`operation: diary-batch` usa o mesmo transporte criptografado e um manifesto
+`legacy-diary-batch-v1`, com `classes` contendo até 20 manifestos individuais.
+Turmas e matrizes devem ser distintas. O hash da simulação inclui o estado e
+o manifesto de cada turma; a aplicação inteira ocorre em uma única transação.
+Cada turma mantém sua cópia privada anterior e auditoria. As notas persistidas
+são verificadas antes e depois da gravação.
+
+Somente quando o usuário declarou a fonte correta, `source_authoritative: true`
+permite corrigir presenças divergentes e retirar marcações cuja data tenha `#`
+explícito (`not_enrolled`) no PDF. Ausência de uma linha não autoriza exclusão.
+`allow_grade_rounding: true` aceita a mesma aproximação para meio ponto já usada
+pelo sistema; não modifica nenhuma nota. Linhas duplicadas de frequência com
+marcas conflitantes são rejeitadas pelo extrator. Em rematrículas, uma marca
+explícita prevalece sobre `#` da outra linha do mesmo estudante.
+
+`defer_incomplete_sessions: true` preserva a quantidade de uma chamada já
+existente quando o conteúdo não a informa. Sem quantidade documentada nem
+chamada existente, a data é relatada como pendente e não é criada. Marcações
+fora das datas do vínculo também são relatadas, sem alterar matrícula ou
+inventar frequência. Documentos contendo apenas notas preservam as chamadas
+atuais e não geram novas. Cargas anuais podem ser corrigidas pelos cabeçalhos;
+duração e aulas semanais permanecem como estavam quando não há confirmação.
+Uma quantidade semanal nula pode ser preservada, mas não introduzida em uma
+matriz que já possuía esse valor.
+
 ### Duração da aula para toda uma escola e ano
 
 O mesmo workflow aceita `operation: school-year-class-hours` na configuração,
