@@ -1,0 +1,55 @@
+<?php
+
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$config = json_decode(file_get_contents('scripts/history-query.json'), true, flags: JSON_THROW_ON_ERROR);
+$canonical = static function (string $value): string {
+    $value = preg_replace('/([1-9])\s*[º°ª]?\s*(ano|s[eé]rie)/iu', '$1 ano', $value);
+
+    return Illuminate\Support\Str::of($value)->ascii()->lower()->replaceMatches('/[^a-z0-9]+/', ' ')->squish()->value();
+};
+Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $requests = collect($config['classes'])->map(fn ($row) => $row + ['key' => $row['reference_year'].':'.$canonical($row['name'])]);
+    $years = App\Models\AcademicYear::query()->where('legacy_source', $config['source'])
+        ->whereIn('reference_year', $requests->pluck('reference_year')->unique())->with('periods')->get();
+    $classes = App\Models\SchoolClass::query()->whereIn('academic_year_id', $years->pluck('id'))
+        ->with(['academicYear', 'courses.components', 'enrollments.student'])->orderBy('id')->get()
+        ->filter(fn ($row) => $requests->contains('key', $row->academicYear->reference_year.':'.$canonical($row->name)));
+    $found = $classes->map(fn ($row) => $row->academicYear->reference_year.':'.$canonical($row->name));
+    echo json_encode([
+        'source' => $config['source'],
+        'missing' => $requests->reject(fn ($row) => $found->contains($row['key']))->values(),
+        'classes' => $classes->map(function ($class) {
+            $records = App\Models\DiaryAttendanceRecord::where('school_class_id', $class->id)->with('entries')->orderBy('id')->get();
+            $assessments = App\Models\DiaryAssessment::where('school_class_id', $class->id)->with('results')->orderBy('id')->get();
+
+            return [
+                'class' => $class->only(['id', 'name', 'academic_year_id', 'legacy_source', 'legacy_id']),
+                'academic_year' => $class->academicYear->only(['id', 'school_id', 'reference_year', 'class_hour_minutes', 'minimum_school_days']),
+                'periods' => $class->academicYear->periods->map->only(['id', 'position', 'name', 'starts_at', 'ends_at']),
+                'courses' => $class->courses->map(fn ($course) => [
+                    'course' => $course->only(['id', 'name', 'stage', 'class_hour_minutes', 'workload_hours']),
+                    'components' => $course->components->map->only(['id', 'name', 'weekly_lessons', 'workload_hours', 'active', 'legacy_source', 'legacy_id', 'legacy_metadata']),
+                ]),
+                'enrollments' => $class->enrollments->map(fn ($enrollment) => [
+                    'enrollment' => $enrollment->only(['id', 'person_id', 'status', 'enrolled_at', 'transferred_at']),
+                    'student' => $enrollment->student->only(['id', 'full_name', 'legacy_source', 'legacy_id']),
+                ]),
+                'attendance_records' => $records,
+                'contents' => App\Models\DiaryContent::where('school_class_id', $class->id)->orderBy('id')->get(),
+                'assessments' => $assessments,
+                'grade_averages' => $assessments->groupBy(fn ($row) => $row->curriculum_component_id.':'.$row->academic_period_id)
+                    ->map(fn ($group) => [
+                        'component_id' => $group->first()->curriculum_component_id,
+                        'period_id' => $group->first()->academic_period_id,
+                        'averages' => app(App\Support\DiaryGradeCalculator::class)->averages($class->enrollments, $group),
+                    ])->values(),
+            ];
+        })->values(),
+    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally {
+    Illuminate\Support\Facades\DB::rollBack();
+}

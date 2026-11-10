@@ -43,6 +43,12 @@ Não é garantia de disponibilidade de serviços externos nem substitui backups.
 Uma consulta mostra o estado atual; auditoria incompleta não prova a causa de
 uma perda nem permite reconstruir automaticamente dados apagados.
 
+O escopo `diary-batch` confere até 20 turmas expressamente selecionadas em
+`classes` (`reference_year` e `name`), limitadas à fonte `lar`, `laura` ou `beaba`.
+Retorna matrizes, notas, chamadas e conteúdos do recorte em transação somente
+de leitura. Identidades, resultados e demais dados continuam restritos ao
+relatório criptografado; a conferência não executa importação ou correção.
+
 ## Parte diversificada no Ensino Médio
 
 Para identificar de quem são os históricos e quais matrizes usam essa denominação,

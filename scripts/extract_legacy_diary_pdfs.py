@@ -21,7 +21,7 @@ ROMAN_PERIODS = {"I": 1, "II": 2, "III": 3, "IV": 4}
 VALUE = r"(?:-|\d+(?:[.,]\d+)?)"
 PROGRESS_RE = re.compile(
     rf"^\s*(\d+)\s+(.*?)\s*({VALUE})\s+({VALUE})\s+({VALUE})\s+({VALUE})"
-    rf"\s+({VALUE})\s+({VALUE})\s+({VALUE})\s+({VALUE})\s+({VALUE})\s+({VALUE})\s+\S+\s*$"
+    rf"\s+({VALUE})\s+({VALUE})\s+({VALUE})\s+({VALUE})\s+({VALUE})\s+({VALUE})\s+(\S+)\s*$"
 )
 HEADER_RE = re.compile(
     r"Educação Básica,\s*(20\d{2})\.\s*(.+?),\s*(ENSINO\s+(?:FUNDAMENTAL|MEDIO))\.\s*(.+?),\s*(\d+(?:[.,]\d+)?)h\s*-\s*Área:",
@@ -72,6 +72,10 @@ def parse_progress(lines: list[str], student_names: dict[int, str] | None = None
             "legacy_student_id": int(match.group(1)),
             "student_name": (student_names or {}).get(int(match.group(1))) or match.group(2).strip(),
             "grades": {str(index): value for index, value in enumerate(notes, 1) if value is not None},
+            "reported_average": score(match.group(7)),
+            "reported_absences": {str(index): score(value) for index, value in enumerate(match.groups()[7:11], 1)},
+            "reported_total_absences": score(match.group(12)),
+            "reported_result": match.group(13),
         })
     return results
 
@@ -169,6 +173,10 @@ def parse_document(path: Path, pdftotext: str) -> dict:
         match = re.match(r"^\s*(\d+)\s+(.+?)\s+[*F#](?=\s|$)", line)
         if match:
             student_id, name = int(match.group(1)), match.group(2).strip()
+            # Em tabelas largas, a linha pode conter só ID e marcações.
+            # O primeiro '*' ou 'F' não é uma variação do nome do aluno.
+            if re.fullmatch(r"[*F#\s]+", name):
+                continue
             if student_id in frequency_names and normalized(frequency_names[student_id]) != normalized(name):
                 raise ValueError("Nomes divergentes para o mesmo estudante nas chamadas")
             frequency_names[student_id] = name

@@ -22,13 +22,23 @@ def main():
                'student-workload': 'scripts/student-workload-query.php.stub',
                'student-transfer-grades': 'scripts/student-transfer-grades-query.php.stub',
                'class-diary-reconciliation': 'scripts/class-diary-reconciliation-query.php.stub',
-               'history-issuance': 'scripts/history-issuance-query.php.stub'}
+               'history-issuance': 'scripts/history-issuance-query.php.stub',
+               'diary-batch': 'scripts/diary-batch-query.php.stub'}
     if scope not in sources:
         raise ValueError('Escopo de consulta inválido.')
     source = pathlib.Path(sources[scope]).read_text()
     person_id = query['person_id']
     if type(person_id) is not int or person_id < 0:
         raise ValueError('Identificador de pessoa inválido.')
+    if scope == 'diary-batch':
+        classes = query.get('classes', [])
+        if query.get('source') not in ('lar', 'laura', 'beaba') or not isinstance(classes, list) or not 1 <= len(classes) <= 20:
+            raise ValueError('Recorte de diários inválido.')
+        for row in classes:
+            if (not isinstance(row, dict) or type(row.get('reference_year')) is not int
+                    or not 1900 <= row['reference_year'] <= 2100
+                    or not isinstance(row.get('name'), str) or not 1 <= len(row['name']) <= 80):
+                raise ValueError('Turma ou ano inválido no recorte.')
     if scope == 'class-diary-reconciliation':
         import re
         key_id = query.get('transport_key_id', '')
