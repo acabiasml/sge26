@@ -104,6 +104,8 @@ Os nomes sociais que já estavam cadastrados foram limpos por migration; o campo
 
 **Meu Cadastro** separa dados pessoais, contatos, endereço e ficha socioeconômica em abas. Cada usuário pode atualizar os próprios dados socioeconômicos; benefícios concedidos e seu ano de referência continuam sob responsabilidade da gestão. A troca de abas mantém os valores digitados, e a validação abre a seção do campo que precisa ser corrigido.
 
+A data e a hora de atualização da ficha socioeconômica são registradas automaticamente a cada salvamento, inclusive quando os valores não mudam. Esse dado não aparece nos formulários e é apresentado no PDF no horário de Cuiabá.
+
 Escolas possuem dados institucionais, CNPJ, INEP, atos autorizativos, contatos, endereço, logomarca e responsáveis por assinatura.
 
 A central de **Conformidade** reúne bloqueios, avisos e atenções relativos a pessoas, responsáveis, vínculos, escolas, matrículas, estruturas acadêmicas e anos letivos. Documentos oficiais não são emitidos quando faltam dados indispensáveis da pessoa ou da escola, salvo fluxos que prevejam confirmação explícita para determinada pendência.

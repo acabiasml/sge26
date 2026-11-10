@@ -32,10 +32,12 @@ class ProfileTabsTest extends TestCase
         $this->assertSame(1, $xpath->query('//input[@id="socio-benefits-alimentacao"]/ancestor::fieldset[@disabled]')->length);
         $this->assertSame(0, $xpath->query('//section[@id="profile-panel-socioeconomica"]//details')->length);
         $this->assertSame(0, $xpath->query('//input[@id="socio-rg_number" and @disabled]')->length);
+        $this->assertSame(0, $xpath->query('//input[@name="socioeconomic_data[assessed_at]"]')->length);
     }
 
     public function test_people_can_update_only_their_own_data_preserving_identity_locks_and_management_fields(): void
     {
+        $this->freezeTime();
         [$user, $person] = $this->fixture();
         $person->update(['socioeconomic_data' => ['benefit_year' => 2026, 'benefits' => ['alimentacao'], 'assessed_at' => '2026-11-01', 'lives_with' => ['pai']]]);
         $other = Person::create(['full_name' => 'Outra pessoa']);
@@ -57,7 +59,7 @@ class ProfileTabsTest extends TestCase
         $this->assertNull($updated->socioeconomic_data['image_use_authorized']);
         $this->assertSame([], $updated->socioeconomic_data['lives_with']);
         foreach (['benefit_year', 'benefits'] as $key) $this->assertSame($person->socioeconomic_data[$key], $updated->socioeconomic_data[$key]);
-        $this->assertSame('2026-11-09', $updated->socioeconomic_data['assessed_at']);
+        $this->assertSame(now()->utc()->toIso8601String(), $updated->socioeconomic_data['assessed_at']);
         $this->assertSame($beforeOther, $other->fresh()->getAttributes());
     }
 

@@ -96,7 +96,7 @@
     </tbody>
 </table>
 <p class="notes"><strong>Observações:</strong> {{ $profile['notes'] ?? '________________________________________________________________________' }}</p>
-@if(filled($profile['assessed_at'] ?? null))<p><strong>Atualização dos dados socioeconômicos:</strong> {{ $dateValue('assessed_at') }}</p>@endif
+@if($lastSaved = \App\Support\SocioeconomicProfile::lastSavedLabel($profile))<p><strong>Atualização dos dados socioeconômicos:</strong> {{ $lastSaved }}</p>@endif
 <p>DECLARO ainda que o estudante, objeto desta matrícula, é contemplado com os benefícios assinalados nesta ficha, concedidos por esta instituição conforme especificado anteriormente.</p>
 <p class="center">{{ collect([$academicYear->school->city, $academicYear->school->state])->filter()->join(' / ') }}, {{ $issuedDocument->issued_at->timezone('America/Cuiaba')->format('d/m/Y') }}.</p>
 <table class="signatures">

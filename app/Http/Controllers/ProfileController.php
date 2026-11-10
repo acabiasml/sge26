@@ -70,7 +70,7 @@ class ProfileController extends Controller
         if (array_key_exists('socioeconomic_data', $validated)) {
             $profile = SocioeconomicProfile::normalize($validated['socioeconomic_data'] ?? [], $request->boolean('socioeconomic_profile_present'));
             $profile = array_intersect_key($profile, array_flip($editableSocioeconomicFields));
-            $validated['socioeconomic_data'] = array_replace($person->socioeconomic_data ?? [], $profile);
+            $validated['socioeconomic_data'] = SocioeconomicProfile::saved(array_replace($person->socioeconomic_data ?? [], $profile));
         }
 
         if ($canChangeInstitutionalEmail) {

@@ -275,7 +275,7 @@ class PersonController extends Controller
         if (array_key_exists('socioeconomic_data', $data)) {
             $complete = $request->boolean('socioeconomic_profile_present');
             $profile = SocioeconomicProfile::normalize($data['socioeconomic_data'] ?? [], $complete);
-            $data['socioeconomic_data'] = $complete ? $profile : array_replace($person?->socioeconomic_data ?? [], $profile);
+            $data['socioeconomic_data'] = SocioeconomicProfile::saved($complete ? $profile : array_replace($person?->socioeconomic_data ?? [], $profile));
         }
 
         if ($lockOwnIdentity) {

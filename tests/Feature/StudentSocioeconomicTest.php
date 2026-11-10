@@ -44,11 +44,13 @@ class StudentSocioeconomicTest extends TestCase
 
     public function test_creation_accepts_the_new_fields_and_rejects_invalid_or_forged_data_without_partial_saves(): void
     {
+        $this->freezeTime();
         [$manager] = $this->fixture();
         $admin = User::factory()->create(['person_id' => $this->person('Admin', PersonSchoolRole::ROLE_ADMINISTRATOR)->id]);
         $this->actingAs($admin)->post(route('people.store'), ['full_name' => 'Novo estudante', 'socioeconomic_data' => ['race' => 'parda', 'rg_number' => '0123']])->assertSessionHasNoErrors();
         $student = Person::where('full_name', 'Novo Estudante')->sole();
         $this->assertSame('0123', $student->socioeconomic_data['rg_number']);
+        $this->assertSame(now()->utc()->toIso8601String(), $student->socioeconomic_data['assessed_at']);
         $before = $student->getAttributes();
         foreach ([['race' => 'inventada'], ['blood_type' => 'C+'], ['has_disability' => 'talvez'], ['sus_card' => '123'], ['benefits' => ['alimentacao']],
             ['benefits' => ['inventado'], 'benefit_year' => 2026], ['rg_issued_at' => '2099-01-01'], ['benefit_year' => 3000], ['role' => 'administrador']] as $invalid) {
@@ -151,6 +153,40 @@ class StudentSocioeconomicTest extends TestCase
         $this->assertStringNotContainsString('(X) Alimentação', $html);
         $this->assertStringNotContainsString('<script>', $html);
         $this->assertStringContainsString('&lt;script&gt;', $html);
+    }
+
+    public function test_last_save_time_is_automatic_for_management_and_self_service_and_cannot_be_forged(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-11-10T02:30:00+00:00'));
+        [$manager, $enrollment] = $this->fixture();
+        $student = $enrollment->student;
+        $data = $student->only(['full_name', 'cpf', 'birth_city', 'birth_state', 'nationality', 'mother_name', 'address', 'city', 'state', 'postal_code']);
+        $data['birth_date'] = $student->birth_date->toDateString();
+        $payload = $data + ['socioeconomic_data' => ['rg_number' => 'RG-001', 'assessed_at' => '1900-01-01']];
+        $this->actingAs($manager)->put(route('people.update', $student), $payload)->assertSessionHasNoErrors();
+        $this->assertSame('2026-11-10T02:30:00+00:00', $student->fresh()->socioeconomic_data['assessed_at']);
+        $this->assertSame('09/11/2026 22:30', \App\Support\SocioeconomicProfile::lastSavedLabel($student->fresh()->socioeconomic_data));
+
+        $this->travel(15)->minutes();
+        $this->put(route('people.update', $student), $payload)->assertSessionHasNoErrors();
+        $this->assertSame('2026-11-10T02:45:00+00:00', $student->fresh()->socioeconomic_data['assessed_at']);
+        $this->assertSame('RG-001', $student->fresh()->socioeconomic_data['rg_number']);
+        $saved = $student->fresh()->socioeconomic_data;
+        $this->travel(5)->minutes();
+        $this->put(route('people.update', $student), $data)->assertSessionHasNoErrors();
+        $this->assertSame($saved, $student->fresh()->socioeconomic_data);
+
+        $self = User::factory()->create(['person_id' => $student->id]);
+        $this->actingAs($self)->put(route('profile.update'), $data + ['socioeconomic_data' => ['has_disability' => '0', 'assessed_at' => '2099-01-01']])->assertSessionHasNoErrors();
+        $this->assertSame('2026-11-10T02:50:00+00:00', $student->fresh()->socioeconomic_data['assessed_at']);
+        $this->travel(5)->minutes();
+        $this->put(route('profile.update'), $data + ['socioeconomic_data' => ['sus_card' => '123']])->assertSessionHasErrors();
+        $this->assertSame('2026-11-10T02:50:00+00:00', $student->fresh()->socioeconomic_data['assessed_at']);
+
+        foreach ([route('profile.edit'), route('people.edit', $student)] as $url) {
+            $this->actingAs($manager)->get($url)->assertOk()->assertDontSee('name="socioeconomic_data[assessed_at]"', false)
+                ->assertDontSee('Data de atualização da ficha socioeconômica');
+        }
     }
 
     public function fixture(): array

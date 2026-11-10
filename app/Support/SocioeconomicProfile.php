@@ -44,7 +44,6 @@ final class SocioeconomicProfile
             'medication_food_allergy_details' => ['label' => 'Medicamentos ou alimentos que causam alergia', 'type' => 'text', 'max' => 500],
             'benefit_year' => ['label' => 'Ano de referência dos benefícios', 'type' => 'year'],
             'benefits' => ['label' => 'Benefícios concedidos', 'type' => 'choices', 'options' => ['material_didatico' => 'Material didático', 'alimentacao' => 'Alimentação', 'acompanhamento_pedagogico' => 'Acompanhamento pedagógico', 'estrutura_educacional' => 'Estrutura física educacional adequada', 'orientacao_familiar' => 'Acompanhamento e orientação familiar', 'acompanhamento_psicopedagogico' => 'Acompanhamento psicopedagógico']],
-            'assessed_at' => ['label' => 'Data de atualização da ficha socioeconômica', 'type' => 'date'],
             'notes' => ['label' => 'Observações socioeconômicas', 'type' => 'textarea', 'max' => 2000],
         ];
     }
@@ -55,14 +54,18 @@ final class SocioeconomicProfile
             'Identificação complementar' => ['sex', 'rg_number', 'rg_issued_at', 'rg_issuer', 'sus_card', 'race', 'blood_type'],
             'Família e residência' => ['residential_zone', 'consumer_unit', 'lives_with', 'lives_with_other', 'family_income_range', 'receives_bolsa_familia', 'bolsa_familia_nis', 'guardians_work_outside', 'authorized_pickup', 'uses_school_transport', 'image_use_authorized'],
             'Saúde e cuidados' => ['has_disability', 'disability_details', 'has_allergies', 'allergy_details', 'has_medication_food_allergies', 'medication_food_allergy_details'],
-            'Concessão de benefícios' => ['benefit_year', 'benefits', 'assessed_at', 'notes'],
+            'Concessão de benefícios' => ['benefit_year', 'benefits', 'notes'],
         ];
     }
 
     public static function rules(?array $allowedFields = null): array
     {
         $fields = $allowedFields === null ? self::fields() : array_intersect_key(self::fields(), array_flip($allowedFields));
-        $rules = ['socioeconomic_data' => ['sometimes', 'nullable', 'array:'.implode(',', array_keys($fields))]];
+        $rules = [
+            'socioeconomic_data' => ['sometimes', 'nullable', 'array:'.implode(',', [...array_keys($fields), 'assessed_at'])],
+            // Formulários antigos podem enviá-la; o servidor sempre ignora essa data.
+            'socioeconomic_data.assessed_at' => ['exclude'],
+        ];
         foreach ($fields as $key => $field) {
             $name = 'socioeconomic_data.'.$key;
             $rules[$name] = match ($field['type']) {
@@ -101,6 +104,24 @@ final class SocioeconomicProfile
         if ($field['type'] === 'choices') return collect($value)->map(fn ($item) => __($field['options'][$item] ?? $item))->join(', ');
 
         return isset($field['options'][$value]) ? __($field['options'][$value]) : (string) $value;
+    }
+
+    public static function saved(array $profile): array
+    {
+        $profile['assessed_at'] = now()->utc()->toIso8601String();
+
+        return $profile;
+    }
+
+    public static function lastSavedLabel(array $profile): ?string
+    {
+        $value = $profile['assessed_at'] ?? null;
+        if (blank($value)) return null;
+        $date = \Illuminate\Support\Carbon::parse($value);
+        // Preserva a interpretação das datas antigas que ainda não possuem horário.
+        if (preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/', $value)) return $date->format('d/m/Y');
+
+        return $date->timezone('America/Cuiaba')->format('d/m/Y H:i');
     }
 
     public static function attributes(): array
