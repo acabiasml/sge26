@@ -213,8 +213,14 @@ class StudentReportCardBuilder
                     $componentAssessments = $assessments
                         ->where('academic_period_id', $period->id)
                         ->where('curriculum_component_id', $component->id)
+                        // A data das avaliações vinculadas às regras é preenchida
+                        // automaticamente com o fim do bimestre. Ela não indica
+                        // quando o estudante realizou a avaliação e não pode
+                        // ocultar a nota de um período que ele frequentou.
                         ->filter(fn (DiaryAssessment $assessment): bool => $periodWithinEnrollment
-                            && (! $endsAt || ! $assessment->assessment_date || $assessment->assessment_date->toDateString() <= $endsAt))
+                            && (! $endsAt || ! $assessment->assessment_date
+                                || (! $assessment->is_recovery && $assessment->school_assessment_rule_id !== null)
+                                || $assessment->assessment_date->toDateString() <= $endsAt))
                         ->values();
                     $average = $this->gradeCalculator->averages(collect([$enrollment]), $componentAssessments)[$enrollment->id];
                     $convalidation = $convalidations->get($period->id.'-'.$component->id);

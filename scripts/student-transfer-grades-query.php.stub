@@ -42,7 +42,7 @@ try {
                 ]),
                 'stored_results' => $results->map(fn ($result) => [
                     'result' => $result->only(['id', 'diary_assessment_id', 'score', 'created_at', 'updated_at']),
-                    'assessment' => $result->assessment?->only(['id', 'school_class_id', 'curriculum_component_id', 'academic_period_id', 'assessment_date', 'is_recovery', 'legacy_source', 'legacy_metadata']),
+                    'assessment' => $result->assessment?->only(['id', 'school_class_id', 'curriculum_component_id', 'academic_period_id', 'school_assessment_rule_id', 'assessment_date', 'is_recovery', 'legacy_source', 'legacy_metadata']),
                 ]),
                 'convalidations' => $enrollment->periodConvalidations->map->only(['id', 'academic_period_id', 'curriculum_component_id', 'score', 'convalidated_at']),
                 'pdf_preview_base64' => base64_encode($pdf->output()),

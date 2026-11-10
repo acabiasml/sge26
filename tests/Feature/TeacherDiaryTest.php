@@ -1329,6 +1329,61 @@ class TeacherDiaryTest extends TestCase
         $this->assertStringContainsString(route('enrollments.individual-record.pdf', $latestEnrollment), $matches[1] ?? '');
     }
 
+    public function test_transfer_preserves_recorded_period_grades_with_automatic_assessment_dates(): void
+    {
+        [, $year, $class, $component, , $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'notas-transferencia@ctjj.org');
+        $second = $year->periods()->create(['name' => '2º Bimestre', 'position' => 2, 'starts_at' => '2026-04-22', 'ends_at' => '2026-07-03']);
+        $third = $year->periods()->create(['name' => '3º Bimestre', 'position' => 3, 'starts_at' => '2026-07-29', 'ends_at' => '2026-10-09']);
+        $fourth = $year->periods()->create(['name' => '4º Bimestre', 'position' => 4, 'starts_at' => '2026-10-13', 'ends_at' => '2026-12-18']);
+        foreach ([[$second, '2026-09-18', 6.5], [$third, '2026-10-09', 0], [$fourth, '2026-12-18', 9]] as [$period, $date, $score]) {
+            $assessment = DiaryAssessment::create([
+                'school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+                'academic_period_id' => $period->id, 'school_assessment_rule_id' => $period->assessmentRules()->firstOrFail()->id,
+                'title' => 'Nota bimestral', 'assessment_date' => $date, 'is_recovery' => false,
+            ]);
+            $assessment->results()->create(['student_enrollment_id' => $enrollment->id, 'score' => $score]);
+        }
+        foreach (['2026-09-09', '2026-09-11'] as $date) {
+            $attendance = DiaryAttendanceRecord::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+                'academic_period_id' => $third->id, 'class_date' => $date, 'lesson_count' => 1]);
+            $attendance->entries()->create(['student_enrollment_id' => $enrollment->id, 'status' => DiaryAttendanceRecord::STATUS_ABSENT, 'attended_lessons' => 0]);
+        }
+        $before = app(StudentReportCardBuilder::class)->build($enrollment->fresh());
+        $this->assertSame([6.5, 0.0], $before['periodReports']->whereIn('period.id', [$second->id, $third->id])->map(fn ($period) => $period['components']->first()['average']['value'])->values()->all());
+        $storedResults = DiaryAssessmentResult::where('student_enrollment_id', $enrollment->id)->get()->toArray();
+
+        $this->actingAs($manager)->patch(route('enrollments.transfer', $enrollment), ['transferred_at' => '2026-09-10', 'confirm_transfer' => '1'])
+            ->assertSessionHasNoErrors()->assertRedirect();
+
+        $after = app(StudentReportCardBuilder::class)->build($enrollment->fresh());
+        $this->assertSame([6.5, 0.0], $after['periodReports']->whereIn('period.id', [$second->id, $third->id])->map(fn ($period) => $period['components']->first()['average']['value'])->values()->all());
+        $this->assertNull($after['periodReports']->firstWhere('period.id', $fourth->id)['components']->first()['average']['value']);
+        $this->assertSame(1, $after['annualAttendance']['absent']);
+        $this->assertSame($storedResults, DiaryAssessmentResult::where('student_enrollment_id', $enrollment->id)->get()->toArray());
+
+        $pdfReport = null;
+        View::composer('reports.student-individual-record', function ($view) use (&$pdfReport): void {
+            $pdfReport = $view->getData()['report'];
+        });
+        $this->get(route('enrollments.individual-record.pdf', $enrollment))->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertSame([6.5, 0.0], $pdfReport['periodReports']->whereIn('period.id', [$second->id, $third->id])->map(fn ($period) => $period['components']->first()['average']['value'])->values()->all());
+    }
+
+    public function test_transferred_student_report_still_excludes_dated_assessments_after_exit_within_the_same_period(): void
+    {
+        [, , $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $enrollment->update(['status' => StudentEnrollment::STATUS_TRANSFERRED, 'transferred_at' => '2026-03-12']);
+        foreach ([['2026-03-10', 7], ['2026-03-13', 10]] as [$date, $score]) {
+            $assessment = DiaryAssessment::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+                'academic_period_id' => $period->id, 'title' => 'Avaliação com data própria', 'assessment_date' => $date]);
+            $assessment->results()->create(['student_enrollment_id' => $enrollment->id, 'score' => $score]);
+        }
+        $report = app(StudentReportCardBuilder::class)->build($enrollment->fresh());
+        $this->assertSame(7.0, $report['periodReports']->first()['components']->first()['average']['value']);
+        $this->assertCount(1, $report['periodReports']->first()['components']->first()['assessments']);
+    }
+
     public function test_retroactive_transfer_limits_absences_in_attendance_documents_and_student_views(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();

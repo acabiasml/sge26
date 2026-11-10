@@ -69,6 +69,9 @@ O escopo `student-transfer-grades` usa os mesmos seletores e retorna as notas
 persistidas, datas das avaliações, médias exibidas por bimestre e uma prévia
 privada da ficha individual. A prévia não registra emissão. Tanto os dados
 quanto o PDF ficam exclusivamente no relatório criptografado.
+Para divergência na grafia do sobrenome, `name_words` limita a comparação às
+primeiras palavras (1 a 20). Mais de uma correspondência impede a consulta
+das notas; após identificar a pessoa, prefira voltar ao nome completo.
 
 ## Classificação dos componentes de Móveis
 
