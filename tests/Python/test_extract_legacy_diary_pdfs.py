@@ -79,6 +79,27 @@ CONTEÚDOS II BIMESTRE
             result = extract.parse_document(Path('example.pdf'), 'pdftotext')
         self.assertEqual('conflicting_frequency_rows', result['issues'][0]['type'])
 
+    def test_verified_roster_resolves_different_wrapped_fragments_without_accepting_another_name(self):
+        text = self.document(2025, 'I').replace('53  ESTUDANTE COM NOME QUEBRA DE LINHA        *   F  1',
+            '53  ESTUDANTE        *   F  1')
+        text += '''
+FREQUÊNCIA II BIMESTRE
+ID  Estudante                               04  05 TF
+                                            05  05
+53  QUEBRA                                  *   F  1
+CONTEÚDOS II BIMESTRE
+04-05-2025 1 Continuação.
+05-05-2025 1 Continuação.
+'''
+        names = {53: 'ESTUDANTE COM NOME QUEBRA DE LINHA'}
+        with patch.object(extract, 'pdf_text', return_value=text):
+            result = extract.parse_document(Path('example.pdf'), 'pdftotext', names)
+        self.assertEqual([], result['issues'])
+        self.assertEqual(names[53], result['students'][0]['student_name'])
+        with patch.object(extract, 'pdf_text', return_value=text.replace('53  QUEBRA', '53  OUTRA PESSOA')):
+            with self.assertRaisesRegex(ValueError, 'incompatível'):
+                extract.parse_document(Path('example.pdf'), 'pdftotext', names)
+
     def test_2026_roman_period_keeps_its_original_year(self):
         with patch.object(extract, 'pdf_text', return_value=self.document(2026, 'I')):
             result = extract.parse_document(Path('example.pdf'), 'pdftotext')

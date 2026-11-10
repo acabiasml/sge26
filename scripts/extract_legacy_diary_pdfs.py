@@ -174,7 +174,7 @@ def parse_contents(lines: list[str], sessions: dict[str, dict]) -> list[dict]:
     return contents
 
 
-def parse_document(path: Path, pdftotext: str) -> dict:
+def parse_document(path: Path, pdftotext: str, student_names: dict[int, str] | None = None) -> dict:
     text = pdf_text(path, pdftotext)
     lines = text.splitlines()
     school_name = next((school for school in SCHOOLS if school in text[:3000]), None)
@@ -191,10 +191,19 @@ def parse_document(path: Path, pdftotext: str) -> dict:
             # O primeiro '*' ou 'F' não é uma variação do nome do aluno.
             if re.fullmatch(r"[*F#\s]+", name):
                 continue
+            if student_names and student_id in student_names:
+                # Uma tabela de outra página/diário da mesma turma fornece o
+                # nome completo; a linha larga pode conter só um fragmento.
+                complete = normalized(student_names[student_id]).split()
+                fragment = normalized(name).split()
+                cursor = iter(complete)
+                if not all(any(token == candidate for candidate in cursor) for token in fragment):
+                    raise ValueError("Fragmento de nome incompatível com o estudante identificado")
+                name = student_names[student_id]
             if student_id in frequency_names and normalized(frequency_names[student_id]) != normalized(name):
                 raise ValueError("Nomes divergentes para o mesmo estudante nas chamadas")
             frequency_names[student_id] = name
-    students = parse_progress(lines, frequency_names)
+    students = parse_progress(lines, frequency_names | (student_names or {}))
     sessions, issues = parse_frequency_sections(
         lines,
         {student["legacy_student_id"]: student["student_name"] for student in students},
