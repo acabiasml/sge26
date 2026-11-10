@@ -1,0 +1,52 @@
+<?php
+
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $enrollment = App\Models\StudentEnrollment::query()->where('person_id', __PERSON_ID__)
+        ->whereHas('schoolClass.academicYear', fn ($q) => $q->where('reference_year', __REFERENCE_YEAR__))
+        ->with(['schoolClass.academicYear.school', 'courses.components'])->sole();
+    $class = $enrollment->schoolClass;
+    $year = $class->academicYear;
+    $components = $enrollment->courses->flatMap->components->unique('id');
+    $componentIds = $components->pluck('id');
+    $records = App\Models\DiaryAttendanceRecord::query()->where('school_class_id', $class->id)
+        ->whereIn('curriculum_component_id', $componentIds)->with('entries')->orderBy('class_date')->get();
+    $assessments = App\Models\DiaryAssessment::query()->where('school_class_id', $class->id)
+        ->whereIn('curriculum_component_id', $componentIds)->with('results')->get();
+    $keyPath = storage_path('app/private/diary-reconciliation/__TRANSPORT_KEY_ID__.pem');
+    if (! is_dir(dirname($keyPath))) {
+        mkdir(dirname($keyPath), 0700, true);
+    }
+    if (! is_file($keyPath)) {
+        $key = openssl_pkey_new(['private_key_bits' => 3072, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+        if (! $key || ! openssl_pkey_export($key, $private)) {
+            throw new RuntimeException('Não foi possível preparar o transporte privado.');
+        }
+        $stream = fopen($keyPath, 'x');
+        chmod($keyPath, 0600);
+        fwrite($stream, $private);
+        fclose($stream);
+    }
+    $public = openssl_pkey_get_details(openssl_pkey_get_private(file_get_contents($keyPath)))['key'];
+    echo json_encode([
+        'transport_public_key' => $public,
+        'class' => $class->only(['id', 'name', 'academic_year_id', 'legacy_source', 'legacy_id']),
+        'academic_year' => $year->only(['id', 'reference_year', 'school_id', 'class_hour_minutes', 'minimum_school_days', 'closed_at']),
+        'periods' => $year->periods->map->only(['id', 'position', 'name', 'starts_at', 'ends_at']),
+        'courses' => $enrollment->courses->map->only(['id', 'name', 'class_hour_minutes', 'workload_hours', 'legacy_metadata']),
+        'components' => $components->map->only(['id', 'name', 'academic_course_id', 'weekly_lessons', 'workload_hours', 'legacy_metadata']),
+        'enrollments' => $class->enrollments()->with('student')->get()->map(fn ($row) => [
+            'enrollment' => $row->only(['id', 'person_id', 'enrolled_at', 'transferred_at', 'status']),
+            'student' => $row->student->only(['id', 'full_name', 'legacy_source', 'legacy_id']),
+        ]),
+        'attendance_records' => $records,
+        'contents' => App\Models\DiaryContent::query()->where('school_class_id', $class->id)->whereIn('curriculum_component_id', $componentIds)->get(),
+        'assessments' => $assessments,
+    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally {
+    Illuminate\Support\Facades\DB::rollBack();
+}

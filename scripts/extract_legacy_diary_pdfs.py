@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract legacy 2026 class diary PDFs into an auditable JSON manifest."""
+"""Extract legacy class diary PDFs into an auditable JSON manifest."""
 
 from __future__ import annotations
 
@@ -20,15 +20,15 @@ SCHOOLS = {
 ROMAN_PERIODS = {"I": 1, "II": 2, "III": 3, "IV": 4}
 VALUE = r"(?:-|\d+(?:[.,]\d+)?)"
 PROGRESS_RE = re.compile(
-    rf"^\s*(\d+)\s+(.+?)\s+({VALUE})\s+({VALUE})\s+({VALUE})\s+({VALUE})"
+    rf"^\s*(\d+)\s+(.*?)\s*({VALUE})\s+({VALUE})\s+({VALUE})\s+({VALUE})"
     rf"\s+({VALUE})\s+({VALUE})\s+({VALUE})\s+({VALUE})\s+({VALUE})\s+({VALUE})\s+\S+\s*$"
 )
 HEADER_RE = re.compile(
-    r"Educação Básica,\s*2026\.\s*(.+?),\s*(ENSINO\s+(?:FUNDAMENTAL|MEDIO))\.\s*(.+?),\s*\d+h\s*-\s*Área:",
+    r"Educação Básica,\s*(20\d{2})\.\s*(.+?),\s*(ENSINO\s+(?:FUNDAMENTAL|MEDIO))\.\s*(.+?),\s*(\d+(?:[.,]\d+)?)h\s*-\s*Área:",
     re.IGNORECASE,
 )
-CONTENT_RE = re.compile(r"^\s*(\d{2}-\d{2}-2026)\s+(\d+)\s+(.+?)\s*$")
-FREQUENCY_RE = re.compile(r"FREQUÊNCIA\s+(I|II|III|IV)\s+BIMESTRE", re.IGNORECASE)
+CONTENT_RE = re.compile(r"^\s*(\d{2}-\d{2}-20\d{2})\s+(\d+)\s+(.+?)\s*$")
+FREQUENCY_RE = re.compile(r"FREQUÊNCIA\s+(IV|III|II|I|[1-4])[°ºo]?\s+BIMESTRE", re.IGNORECASE)
 
 
 def normalized(value: str) -> str:
@@ -52,7 +52,7 @@ def score(value: str) -> float | None:
     return float(value.replace(",", "."))
 
 
-def parse_progress(lines: list[str]) -> list[dict]:
+def parse_progress(lines: list[str], student_names: dict[int, str] | None = None) -> list[dict]:
     results: list[dict] = []
     in_progress = False
     for line in lines:
@@ -70,7 +70,7 @@ def parse_progress(lines: list[str]) -> list[dict]:
         notes = [score(value) for value in match.groups()[2:6]]
         results.append({
             "legacy_student_id": int(match.group(1)),
-            "student_name": match.group(2).strip(),
+            "student_name": (student_names or {}).get(int(match.group(1))) or match.group(2).strip(),
             "grades": {str(index): value for index, value in enumerate(notes, 1) if value is not None},
         })
     return results
@@ -80,7 +80,7 @@ def positions(line: str, pattern: str) -> list[int]:
     return [match.start() for match in re.finditer(pattern, line)]
 
 
-def parse_frequency_sections(lines: list[str], student_names: dict[int, str]) -> tuple[dict[str, dict], list[dict]]:
+def parse_frequency_sections(lines: list[str], student_names: dict[int, str], reference_year: int = 2026) -> tuple[dict[str, dict], list[dict]]:
     sessions: dict[str, dict] = {}
     issues: list[dict] = []
     index = 0
@@ -89,7 +89,8 @@ def parse_frequency_sections(lines: list[str], student_names: dict[int, str]) ->
         if not heading:
             index += 1
             continue
-        period = ROMAN_PERIODS[heading.group(1).upper()]
+        period_label = heading.group(1).upper()
+        period = int(period_label) if period_label.isdigit() else ROMAN_PERIODS[period_label]
         section_end = index + 1
         while section_end < len(lines):
             if "CONTEÚDOS " in lines[section_end] or (section_end > index + 2 and FREQUENCY_RE.search(lines[section_end])):
@@ -112,7 +113,7 @@ def parse_frequency_sections(lines: list[str], student_names: dict[int, str]) ->
             issues.append({"type": "frequency_date_count", "period": period, "days": len(days), "months": len(months)})
             index = section_end
             continue
-        dates = [f"2026-{month}-{day}" for (day, _), month in zip(days, months)]
+        dates = [f"{reference_year}-{month}-{day}" for (day, _), month in zip(days, months)]
         for date in dates:
             sessions.setdefault(date, {"date": date, "period": period, "attendance": {}})
         for line in section[header_index + 2:]:
@@ -162,21 +163,33 @@ def parse_document(path: Path, pdftotext: str) -> dict:
     header = HEADER_RE.search(text)
     if not school_name or not header:
         raise ValueError("Cabeçalho de escola/turma/componente não reconhecido")
-    students = parse_progress(lines)
+    reference_year = int(header.group(1))
+    frequency_names = {}
+    for line in lines:
+        match = re.match(r"^\s*(\d+)\s+(.+?)\s+[*F#](?=\s|$)", line)
+        if match:
+            student_id, name = int(match.group(1)), match.group(2).strip()
+            if student_id in frequency_names and normalized(frequency_names[student_id]) != normalized(name):
+                raise ValueError("Nomes divergentes para o mesmo estudante nas chamadas")
+            frequency_names[student_id] = name
+    students = parse_progress(lines, frequency_names)
     sessions, issues = parse_frequency_sections(
         lines,
         {student["legacy_student_id"]: student["student_name"] for student in students},
+        reference_year,
     )
     contents = parse_contents(lines, sessions)
     return {
         "file": path.name,
         "source": SCHOOLS[school_name],
         "school": school_name,
-        "class_name": header.group(1).strip(),
-        "education_level": re.sub(r"\s+", " ", header.group(2)).upper(),
-        "component_name": header.group(3).strip(),
-        "normalized_class": normalized(header.group(1)),
-        "normalized_component": normalized(header.group(3)),
+        "reference_year": reference_year,
+        "header_workload_hours": float(header.group(5).replace(",", ".")),
+        "class_name": header.group(2).strip(),
+        "education_level": re.sub(r"\s+", " ", header.group(3)).upper(),
+        "component_name": header.group(4).strip(),
+        "normalized_class": normalized(header.group(2)),
+        "normalized_component": normalized(header.group(4)),
         "students": students,
         "sessions": sorted(sessions.values(), key=lambda item: item["date"]),
         "content_rows": len(contents),

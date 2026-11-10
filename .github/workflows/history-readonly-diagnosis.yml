@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
     paths:
+      - scripts/class-diary-reconciliation-query.php.stub
       - scripts/student-transfer-grades-query.php.stub
       - scripts/student-workload-query.php.stub
       - scripts/high-school-diversified-query.php.stub
