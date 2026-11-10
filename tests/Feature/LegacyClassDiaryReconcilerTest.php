@@ -12,6 +12,7 @@ use App\Models\School;
 use App\Models\StudentAcademicHistory;
 use App\Support\LegacyClassDiaryReconciler;
 use App\Support\LegacyDiaryBatchReconciler;
+use App\Support\StudentReportCardBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -258,6 +259,77 @@ class LegacyClassDiaryReconcilerTest extends TestCase
         $this->assertSame(0, $service->reconcile($batch)['school_year_class_hours'][0]['courses_to_update']);
         $this->assertDatabaseCount('diary_attendance_records', 4);
         $this->assertDatabaseCount('diary_attendance_entries', 4);
+    }
+
+    public function test_restores_transferred_episode_and_counts_its_attendance_after_reenrollment_without_changing_grades(): void
+    {
+        [$batch, $current, $course, $request] = $this->reenrollmentScenario();
+        $grades = DiaryAssessmentResult::get()->toArray();
+        $service = app(LegacyDiaryBatchReconciler::class);
+        $plan = $service->reconcile($batch);
+        $this->assertSame(1, $plan['restored_enrollment_episodes'][0]['previous_to_create']);
+        $this->assertSame(1, $plan['stats']['marks_outside_enrollment']);
+        $service->reconcile($batch, true, $plan['snapshot_sha256']);
+        $prior = $current->schoolClass->enrollments()->where('legacy_id', 64)->sole();
+        $this->assertSame('transferido', $prior->status);
+        $this->assertSame('2025-02-01', $prior->enrolled_at->toDateString());
+        $this->assertSame('2025-02-28', $prior->transferred_at->toDateString());
+        $this->assertEquals(82, $current->fresh()->legacy_id);
+        $this->assertSame('2025-05-01', $current->fresh()->enrolled_at->toDateString());
+        $this->assertTrue($prior->courses()->whereKey($course->id)->exists());
+        $this->assertEquals($prior->id, DiaryAttendanceRecord::whereDate('class_date', '2025-02-03')->sole()->entries()->sole()->student_enrollment_id);
+        $this->assertEquals($current->id, DiaryAttendanceRecord::whereDate('class_date', '2025-05-02')->sole()->entries()->sole()->student_enrollment_id);
+        $this->assertSame($grades, DiaryAssessmentResult::get()->toArray());
+        $report = app(StudentReportCardBuilder::class)->build($current->fresh());
+        $this->assertSame(3, $report['annualAttendance']['lessons']);
+        $this->assertSame(1, $report['annualAttendance']['attended']);
+        $next = $service->reconcile($batch);
+        $this->assertSame(0, $next['restored_enrollment_episodes'][0]['previous_to_create']);
+        $this->assertSame(0, $next['restored_enrollment_episodes'][0]['legacy_id_to_correct']);
+        $this->assertSame(0, $next['stats']['marks_outside_enrollment']);
+        $this->assertSame(0, $next['stats']['entries_to_create']);
+        Storage::disk('local')->put('u810745753_laura.sql', 'Fonte alterada depois da conferência');
+        $this->expectExceptionMessage('fonte legada mudou');
+        $service->reconcile($batch);
+    }
+
+    public function test_conflicting_enrollment_dates_and_overlapping_episodes_are_rejected(): void
+    {
+        [$batch, $current, $course] = $this->reenrollmentScenario();
+        $batch['restore_enrollment_episodes'][0]['previous_row']['datatransf'] = '2025-06-01';
+        try {
+            app(LegacyDiaryBatchReconciler::class)->reconcile($batch);
+            $this->fail('Os vínculos sobrepostos devem ser rejeitados.');
+        } catch (RuntimeException $error) {
+            $this->assertStringContainsString('sobrepostos', $error->getMessage());
+        }
+        $prior = $current->schoolClass->enrollments()->create(['person_id' => $current->person_id,
+            'enrolled_at' => '2025-02-01', 'transferred_at' => '2025-06-01', 'status' => 'transferido']);
+        $prior->courses()->attach($course);
+        $this->expectExceptionMessage('vínculos sobrepostos');
+        app(LegacyClassDiaryReconciler::class)->reconcile($batch['classes'][0]);
+    }
+
+    private function reenrollmentScenario(): array
+    {
+        [$manifest, $course, $class, $enrollment] = $this->scenario();
+        $class->update(['legacy_source' => 'laura', 'legacy_id' => 5]);
+        $class->academicYear->periods()->sole()->update(['ends_at' => '2025-06-30']);
+        $new = ['id' => '82', 'datamatricula' => '2025-05-01', 'datatransf' => null,
+            'status' => 'matriculado', 'tipo' => 'regular', 'cursos_id' => '5', 'users_id' => (string) $enrollment->student->legacy_id];
+        $old = array_replace($new, ['id' => '64', 'datamatricula' => '2025-02-01', 'datatransf' => '2025-02-28', 'status' => 'transferido']);
+        $enrollment->update(['enrolled_at' => '2025-05-01', 'legacy_source' => 'laura', 'legacy_id' => 64,
+            'legacy_metadata' => ['latest_imported_row' => $new]]);
+        DiaryAttendanceRecord::sole()->entries()->delete();
+        $manifest['defer_incomplete_sessions'] = true;
+        $manifest['documents'][0]['sessions'][1]['date'] = '2025-05-02';
+        Storage::disk('local')->put('u810745753_laura.sql', 'Fonte original preservada para a conferência');
+        $request = ['current_enrollment_id' => $enrollment->id, 'person_id' => $enrollment->person_id, 'class_id' => $class->id,
+            'previous_row' => $old, 'current_row' => $new, 'user_confirmed_reenrollment' => true,
+            'legacy_dump_sha256' => hash_file('sha256', Storage::disk('local')->path('u810745753_laura.sql'))];
+        $batch = ['format' => 'legacy-diary-batch-v1', 'classes' => [$manifest], 'restore_enrollment_episodes' => [$request]];
+
+        return [$batch, $enrollment, $course, $request];
     }
 
     private function scenario(): array

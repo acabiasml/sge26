@@ -51,8 +51,9 @@ final class LegacyClassDiaryReconciler
         $documents = collect($manifest['documents'])->keyBy(fn ($row) => $this->normalized($row['component_name']));
         $this->require($documents->count() === count($manifest['documents'])
             && $documents->keys()->sort()->values()->all() === $components->keys()->sort()->values()->all(), 'Documentos duplicados ou componentes ausentes.');
-        $enrollments = $class->enrollments->keyBy(fn ($row) => $this->normalized($row->student->full_name));
-        $this->require($enrollments->count() === $class->enrollments->count(), 'Estudantes ambíguos na turma.');
+        $enrollmentGroups = $class->enrollments->groupBy(fn ($row) => $this->normalized($row->student->full_name));
+        $this->require($enrollmentGroups->every(fn ($rows) => $rows->pluck('person_id')->unique()->count() === 1), 'Estudantes ambíguos na turma.');
+        $enrollments = $enrollmentGroups->map(fn ($rows) => $rows->sortByDesc(fn ($row) => ($row->enrolled_at?->toDateString() ?? '0000-00-00').sprintf('-%010d', $row->id))->first());
         $periods = $year->periods->keyBy('position');
         $records = DiaryAttendanceRecord::with('entries')->where('school_class_id', $class->id)
             ->whereIn('curriculum_component_id', $components->pluck('id'))->orderBy('id')->get();
@@ -93,7 +94,7 @@ final class LegacyClassDiaryReconciler
                 $enrollment = $enrollments->get($this->normalized($student['student_name']));
                 $this->require($enrollment && $enrollment->student->legacy_source === $target['source']
                     && (int) $enrollment->student->legacy_id === (int) $student['legacy_student_id'], 'A identidade de um estudante diverge do documento.');
-                $seenStudents[] = $enrollment->id;
+                $seenStudents[] = $enrollment->person_id;
                 foreach ($student['grades'] as $position => $score) {
                     // A conferência compara as notas persistidas, inclusive as
                     // recebidas de origem antes do ingresso nessa turma.
@@ -104,7 +105,7 @@ final class LegacyClassDiaryReconciler
                     $this->require($current !== null && abs((float) $current - $expected) < 0.001, 'Há divergência nas notas; a reconciliação não altera notas existentes.');
                 }
             }
-            $this->require(count(array_unique($seenStudents)) === $class->enrollments->count(), 'O diário não identifica todos os estudantes da turma.');
+            $this->require(count(array_unique($seenStudents)) === $class->enrollments->pluck('person_id')->unique()->count(), 'O diário não identifica todos os estudantes da turma.');
             if (empty($document['sessions']) && $deferIncomplete) {
                 $gradeOnlyComponents[] = $component->id;
             }
@@ -138,6 +139,10 @@ final class LegacyClassDiaryReconciler
                 foreach ($session['attendance'] as $studentName => $mark) {
                     $enrollment = $enrollments->get($this->normalized($studentName));
                     $this->require($enrollment && in_array($mark, ['present', 'absent'], true), 'Estudante ou marcação desconhecida.');
+                    $episodes = $enrollmentGroups[$this->normalized($studentName)]->filter(fn ($row) => (! $row->enrolled_at || $date >= $row->enrolled_at->toDateString())
+                        && (! $row->attendanceEndsAt() || $date <= $row->attendanceEndsAt()));
+                    $this->require($episodes->count() <= 1, 'Há vínculos sobrepostos para a mesma data.');
+                    $enrollment = $episodes->first() ?? $enrollment;
                     $inEnrollment = (! $enrollment->enrolled_at || $date >= $enrollment->enrolled_at->toDateString())
                         && (! $enrollment->attendanceEndsAt() || $date <= $enrollment->attendanceEndsAt());
                     if (! $inEnrollment && $deferIncomplete) {
@@ -160,10 +165,10 @@ final class LegacyClassDiaryReconciler
                 $excludedIds = [];
                 if ($authoritative) {
                     foreach ($session['not_enrolled'] ?? [] as $studentName) {
-                        $enrollment = $enrollments->get($this->normalized($studentName));
-                        $this->require($enrollment && ! array_key_exists($enrollment->id, $attendance)
-                            && ! in_array($enrollment->id, $outsideEnrollmentIds, true), 'Exclusão de frequência ambígua.');
-                        $excludedIds[] = $enrollment->id;
+                        $episodes = $enrollmentGroups->get($this->normalized($studentName));
+                        $this->require($episodes && $episodes->every(fn ($row) => ! array_key_exists($row->id, $attendance)
+                            && ! in_array($row->id, $outsideEnrollmentIds, true)), 'Exclusão de frequência ambígua.');
+                        $excludedIds = array_merge($excludedIds, $episodes->pluck('id')->all());
                     }
                 }
                 $removals = $existing?->entries->whereIn('student_enrollment_id', $excludedIds)->pluck('id')->all() ?? [];
@@ -192,7 +197,8 @@ final class LegacyClassDiaryReconciler
         $manifestHash = hash('sha256', json_encode($manifest, JSON_THROW_ON_ERROR));
         $result = ['mode' => $apply ? 'apply' : 'dry-run', 'class_id' => $class->id, 'reference_year' => $year->reference_year,
             'snapshot_sha256' => $snapshotHash, 'manifest_sha256' => $manifestHash, 'stats' => $stats,
-            'planned_hours' => $planned, 'class_hour_minutes' => $minutes, 'students_count' => $class->enrollments->count(),
+            'planned_hours' => $planned, 'class_hour_minutes' => $minutes,
+            'students_count' => $class->enrollments->pluck('person_id')->unique()->count(), 'enrollments_count' => $class->enrollments->count(),
             'deferred' => $deferred, 'grade_only_component_ids' => $gradeOnlyComponents];
         if (! $apply) {
             return $result;

@@ -9,6 +9,7 @@ on:
       - scripts/run-diary-reconciliation.php.stub
       - app/Support/LegacyClassDiaryReconciler.php
       - app/Support/LegacyDiaryBatchReconciler.php
+      - app/Support/LegacyEnrollmentEpisodeRestorer.php
       - app/Support/SchoolYearClassHourCorrection.php
       - .github/workflows/diary-reconciliation.yml
 permissions:

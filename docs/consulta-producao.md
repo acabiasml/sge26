@@ -163,6 +163,17 @@ trazer `lesson_count_basis`, com o critério e as datas de referência; essa
 proveniência acompanha a chamada criada e a contagem de estimativas no relatório.
 Não substituir uma quantidade explícita apenas para atingir uma carga anual.
 
+Se a importação fundiu uma saída e rematrícula, o lote aceita
+`restore_enrollment_episodes` somente para suas turmas documentadas. Exige a
+confirmação da rematrícula, as duas linhas originais e o hash do dump privado
+ainda presente no servidor. Confere identidade, datas sem sobreposição e a
+linha importada na matrícula atual. Preserva o ingresso atual, restaura o
+vínculo transferido e seus cursos e corrige o identificador legado da volta,
+sem copiar ou mover notas. Backup, simulação e transação abrangem os vínculos.
+Chamadas são associadas ao único vínculo válido na data; sobreposição bloqueia
+a reconciliação. O relatório atual já agrega a frequência do vínculo anterior
+pela continuidade de matrículas no mesmo ano e série.
+
 ### Duração da aula para toda uma escola e ano
 
 O mesmo workflow aceita `operation: school-year-class-hours` na configuração,
