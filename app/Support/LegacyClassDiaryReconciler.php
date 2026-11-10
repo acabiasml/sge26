@@ -73,7 +73,6 @@ final class LegacyClassDiaryReconciler
             'existing_grades_preserved' => $assessments->sum(fn ($row) => $row->results->count()),
             'documented_sessions' => 0, 'documented_lessons' => 0];
         $sessions = [];
-        $reports = $class->enrollments->mapWithKeys(fn ($row) => [$row->id => app(StudentReportCardBuilder::class)->build($row)]);
         foreach ($documents as $name => $document) {
             $component = $components[$name];
             $this->require(($document['reference_year'] ?? null) === $year->reference_year
@@ -87,8 +86,11 @@ final class LegacyClassDiaryReconciler
                     && (int) $enrollment->student->legacy_id === (int) $student['legacy_student_id'], 'A identidade de um estudante diverge do documento.');
                 $seenStudents[] = $enrollment->id;
                 foreach ($student['grades'] as $position => $score) {
-                    $periodReport = $reports[$enrollment->id]['periodReports']->firstWhere('period.position', (int) $position);
-                    $current = $periodReport['components']->firstWhere('component.id', $component->id)['average']['value'] ?? null;
+                    // A conferência compara as notas persistidas, inclusive as
+                    // recebidas de origem antes do ingresso nessa turma.
+                    $period = $periods->get((int) $position);
+                    $stored = $assessments->where('academic_period_id', $period?->id)->where('curriculum_component_id', $component->id)->values();
+                    $current = app(DiaryGradeCalculator::class)->averages(collect([$enrollment]), $stored)[$enrollment->id]['value'];
                     $this->require($current !== null && abs((float) $current - (float) $score) < 0.001, 'Há divergência nas notas; a reconciliação não altera notas existentes.');
                 }
             }

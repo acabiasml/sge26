@@ -114,6 +114,22 @@ class LegacyClassDiaryReconcilerTest extends TestCase
         $this->assertDatabaseCount('diary_attendance_entries', 1);
     }
 
+    public function test_persisted_origin_grade_does_not_create_attendance_before_enrollment(): void
+    {
+        [$manifest, , , $enrollment] = $this->scenario();
+        $enrollment->update(['enrolled_at' => '2025-05-01']);
+        DiaryAttendanceRecord::query()->get()->each(fn ($record) => $record->entries()->delete());
+        DiaryAttendanceRecord::query()->delete();
+        foreach ($manifest['documents'][0]['sessions'] as &$session) {
+            $session['attendance'] = [];
+        }
+        unset($session);
+        $plan = app(LegacyClassDiaryReconciler::class)->reconcile($manifest);
+        $this->assertSame(0, $plan['stats']['entries_to_create']);
+        $this->assertSame(1, $plan['stats']['existing_grades_preserved']);
+        $this->assertDatabaseHas('diary_assessment_results', ['student_enrollment_id' => $enrollment->id, 'score' => 0]);
+    }
+
     private function scenario(): array
     {
         Storage::fake('local');
