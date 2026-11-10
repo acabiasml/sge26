@@ -751,6 +751,7 @@ class DocumentIssuanceController extends Controller
     private function historyTargets(Request $request, array $schoolIds, string $term): Collection
     {
         return StudentAcademicHistory::query()
+            ->forIssuance()
             ->select('student_academic_histories.*')
             ->join('people', 'people.id', '=', 'student_academic_histories.person_id')
             ->with(['student:id,full_name,social_name,cpf', 'student.contacts:id,person_id,relationship_type,cpf', 'school:id,name'])
@@ -1037,6 +1038,7 @@ class DocumentIssuanceController extends Controller
     private function issueHistory(array $data, User $user, array $schoolIds): RedirectResponse
     {
         $history = StudentAcademicHistory::query()
+            ->forIssuance()
             ->with('student.contacts')
             ->whereKey($data['target_id'])
             ->whereIn('school_id', $schoolIds)

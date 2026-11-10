@@ -13,6 +13,7 @@ use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
+use App\Models\StudentAcademicHistory;
 use App\Models\StudentEnrollment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,6 +24,68 @@ class DocumentIssuancePanelTest extends TestCase
     use RefreshDatabase;
 
     private int $personSequence = 0;
+
+    public function test_history_targets_offer_only_active_unified_documents_and_preserve_legacy_years(): void
+    {
+        $school = School::create(['name' => 'Escola A', 'active' => true]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $student = $this->personWithRole('Estudante do Histórico', PersonSchoolRole::ROLE_STUDENT, $school->id);
+        $source = StudentAcademicHistory::create(['person_id' => $student->id, 'school_id' => $school->id,
+            'title' => 'Observação.', 'stage' => 'Ensino Fundamental Anos Iniciais', 'is_unified' => false, 'active' => true]);
+        $year = $source->years()->create(['label' => '1º Ano', 'grade_number' => 1, 'stage' => 'Ensino Fundamental',
+            'year' => '2017', 'source' => 'external', 'workload_hours' => 800]);
+        $sourceComponent = $source->components()->create(['name' => 'Matemática', 'position' => 1]);
+        $record = $sourceComponent->records()->create(['student_academic_history_year_id' => $year->id, 'score_label' => '8,5', 'workload_hours' => 160]);
+        $canonical = StudentAcademicHistory::create(['person_id' => $student->id, 'school_id' => $school->id,
+            'title' => 'Histórico Escolar - Ensino Fundamental', 'stage' => 'Ensino Fundamental',
+            'education_stage' => 'fundamental', 'is_unified' => true, 'active' => true]);
+        $sourceBefore = $source->fresh()->getAttributes();
+        $yearBefore = $year->fresh()->getAttributes();
+        $recordBefore = $record->fresh()->getAttributes();
+        StudentAcademicHistory::create(['person_id' => $student->id, 'school_id' => $school->id,
+            'title' => 'Histórico antigo inativo', 'stage' => 'Ensino Fundamental Anos Finais', 'is_unified' => false, 'active' => false]);
+        $inactiveStudent = $this->personWithRole('Estudante do Histórico Inativo', PersonSchoolRole::ROLE_STUDENT, $school->id);
+        StudentAcademicHistory::create(['person_id' => $inactiveStudent->id, 'school_id' => $school->id,
+            'title' => 'Histórico unificado desativado', 'education_stage' => 'fundamental', 'is_unified' => true, 'active' => false]);
+        StudentAcademicHistory::create(['person_id' => $student->id, 'school_id' => $school->id,
+            'title' => 'Etapa não identificada', 'is_unified' => true, 'active' => true]);
+
+        $this->actingAs($manager)->getJson(route('document-issuance.targets', ['type' => 'academic-history', 'q' => 'Estudante do Histórico']))
+            ->assertOk()->assertJsonCount(1, 'targets')->assertJsonPath('targets.0.id', $canonical->id)
+            ->assertJsonPath('targets.0.enabled', true);
+        $this->assertSame($sourceBefore, $source->fresh()->getAttributes());
+        $this->assertSame($yearBefore, $year->fresh()->getAttributes());
+        $this->assertSame($recordBefore, $record->fresh()->getAttributes());
+        $this->get(route('document-issuance.issue', ['type' => 'academic-history', 'target_id' => $canonical->id]))
+            ->assertRedirect(route('people.histories.pdf', ['person' => $student, 'history' => $canonical]));
+    }
+
+    public function test_history_issuance_rejects_legacy_and_inactive_ids_and_keeps_other_stages_available(): void
+    {
+        $school = School::create(['name' => 'Escola A', 'active' => true]);
+        $otherSchool = School::create(['name' => 'Escola B', 'active' => true]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $student = $this->personWithRole('Estudante de Etapas', PersonSchoolRole::ROLE_STUDENT, $school->id);
+        $this->actingAs($manager);
+        $available = [];
+        foreach (['fundamental', 'medio', 'tecnico'] as $stage) {
+            $history = StudentAcademicHistory::create(['person_id' => $student->id, 'school_id' => $school->id,
+                'title' => 'Histórico '.$stage, 'education_stage' => $stage, 'is_unified' => true, 'active' => true]);
+            $available[] = $history->id;
+            $this->get(route('document-issuance.issue', ['type' => 'academic-history', 'target_id' => $history->id]))->assertRedirect();
+        }
+        foreach ([['is_unified' => false, 'active' => true, 'education_stage' => null], ['is_unified' => false, 'active' => false, 'education_stage' => null],
+            ['is_unified' => true, 'active' => false], ['is_unified' => true, 'active' => true, 'education_stage' => null],
+            ['is_unified' => true, 'active' => true, 'school_id' => $otherSchool->id]] as $attributes) {
+            $targetStudent = $this->personWithRole('Estudante de Fonte Antiga', PersonSchoolRole::ROLE_STUDENT, $attributes['school_id'] ?? $school->id);
+            $history = StudentAcademicHistory::create(array_merge(['person_id' => $targetStudent->id, 'school_id' => $school->id,
+                'title' => 'Fonte antiga ou inacessível', 'education_stage' => 'fundamental'], $attributes));
+            $this->get(route('document-issuance.issue', ['type' => 'academic-history', 'target_id' => $history->id]))->assertNotFound();
+        }
+        $response = $this->getJson(route('document-issuance.targets', ['type' => 'academic-history']))->assertOk()->assertJsonCount(3, 'targets');
+        $this->assertEqualsCanonicalizing($available, collect($response->json('targets'))->pluck('id')->all());
+        $this->assertDatabaseCount('issued_documents', 0);
+    }
 
     public function test_student_can_only_issue_own_schedule_and_cannot_generate_grade_documents(): void
     {

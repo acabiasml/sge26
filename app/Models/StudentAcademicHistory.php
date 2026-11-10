@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasTitleCaseAttributes;
 use App\Support\HistoryFormationWorkloads;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +14,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class StudentAcademicHistory extends Model
 {
     use Auditable, HasFactory, HasTitleCaseAttributes;
+
+    public function scopeForIssuance(Builder $query): Builder
+    {
+        return $query->where($this->qualifyColumn('is_unified'), true)
+            ->where($this->qualifyColumn('active'), true)
+            ->whereIn($this->qualifyColumn('education_stage'), [
+                AcademicCourse::STAGE_ELEMENTARY,
+                AcademicCourse::STAGE_HIGH_SCHOOL,
+                AcademicCourse::STAGE_TECHNICAL,
+            ]);
+    }
 
     protected $fillable = [
         'person_id',

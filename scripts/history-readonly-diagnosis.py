@@ -21,7 +21,8 @@ def main():
                'history-catalog-classification': 'scripts/history-catalog-classification-query.php.stub',
                'student-workload': 'scripts/student-workload-query.php.stub',
                'student-transfer-grades': 'scripts/student-transfer-grades-query.php.stub',
-               'class-diary-reconciliation': 'scripts/class-diary-reconciliation-query.php.stub'}
+               'class-diary-reconciliation': 'scripts/class-diary-reconciliation-query.php.stub',
+               'history-issuance': 'scripts/history-issuance-query.php.stub'}
     if scope not in sources:
         raise ValueError('Escopo de consulta inválido.')
     source = pathlib.Path(sources[scope]).read_text()

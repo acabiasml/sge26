@@ -1,0 +1,23 @@
+<?php
+
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $histories = App\Models\StudentAcademicHistory::query()->where('person_id', __PERSON_ID__)
+        ->withCount('years')->orderBy('id')->get();
+    $eligible = App\Models\StudentAcademicHistory::query()->forIssuance()->where('person_id', __PERSON_ID__)
+        ->with('years')->orderBy('id')->get();
+    echo json_encode([
+        'person_id' => __PERSON_ID__,
+        'registered_headers' => $histories->map->only(['id', 'title', 'stage', 'education_stage', 'is_unified', 'active', 'years_count']),
+        'issuance_targets' => $eligible->map(fn ($history) => [
+            'id' => $history->id, 'education_stage' => $history->education_stage,
+            'grades' => $history->years->pluck('grade_number')->filter()->unique()->sort()->values(),
+        ]),
+    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally {
+    Illuminate\Support\Facades\DB::rollBack();
+}

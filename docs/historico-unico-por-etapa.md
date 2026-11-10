@@ -5,6 +5,11 @@ etapa. A emissão usa exclusivamente o histórico unificado; os endereços antig
 redirecionam para esse mesmo documento. O cadastro de anos externos acrescenta
 os dados diretamente ao documento da etapa, sem criar outro histórico separado.
 
+A Central de emissão usa o mesmo critério na busca e na validação do registro
+selecionado: somente históricos unificados, ativos e com etapa identificada.
+Fontes antigas, inclusive as rotuladas como anos iniciais ou finais, não são
+opções de emissão. Seus registros permanecem preservados no cadastro.
+
 Ao abrir o cadastro, a central ou o histórico, os anos dos documentos antigos são
 incorporados em transação. Os IDs dos anos e registros, notas, cargas horárias,
 faltas e dados de origem são preservados. As observações e bases legais são
