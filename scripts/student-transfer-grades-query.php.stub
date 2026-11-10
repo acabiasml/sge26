@@ -1,0 +1,55 @@
+<?php
+
+// Conferência individual em transação somente de leitura, sem emitir documentos.
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $people = App\Models\Person::query()
+        ->whereRaw('SHA2(LOWER(TRIM(full_name)), 256) = ?', ['__NAME_SHA256__'])
+        ->get(['id', 'full_name']);
+    $output = ['matched_people' => $people->count()];
+    if ($people->count() === 1) {
+        $person = $people->first();
+        $output['person'] = $person->only(['id', 'full_name']);
+        $enrollments = App\Models\StudentEnrollment::query()->where('person_id', $person->id)
+            ->whereHas('schoolClass.academicYear', fn ($q) => $q->where('reference_year', __REFERENCE_YEAR__))
+            ->with('schoolClass.academicYear.school')->get();
+        $output['enrollments'] = $enrollments->map(function ($enrollment) {
+            $report = app(App\Support\StudentReportCardBuilder::class)->build($enrollment);
+            $results = App\Models\DiaryAssessmentResult::query()
+                ->where('student_enrollment_id', $enrollment->id)->with('assessment')->get();
+            $document = new App\Models\IssuedDocument(['issued_at' => now(), 'verification_code' => 'PREVIA-DIAGNOSTICO']);
+            $document->setRelation('issuedBy', null);
+            $pdf = Barryvdh\DomPDF\Facade\Pdf::loadView('reports.student-individual-record', [
+                'report' => $report, 'scoreView' => 'numeros', 'issuedDocument' => $document,
+                'verificationUrl' => '', 'letterhead' => App\Support\PdfLetterhead::make($report['academicYear']->school),
+            ])->setPaper('a4', 'portrait');
+
+            return [
+                'enrollment' => $enrollment->only(['id', 'school_class_id', 'status', 'enrolled_at', 'transferred_at', 'cancelled_at', 'reclassified_at', 'updated_at']),
+                'class' => $enrollment->schoolClass->name,
+                'school' => $enrollment->schoolClass->academicYear->school->name,
+                'periods' => $report['periodReports']->map(fn ($period) => [
+                    'period' => $period['period']->only(['id', 'name', 'position', 'starts_at', 'ends_at']),
+                    'components' => $period['components']->map(fn ($item) => [
+                        'id' => $item['component']->id, 'name' => $item['component']->name,
+                        'average' => $item['average'], 'assessment_ids' => $item['assessments']->pluck('id'),
+                        'convalidation' => $item['convalidation']?->only(['id', 'score', 'convalidated_at']),
+                    ]),
+                ]),
+                'stored_results' => $results->map(fn ($result) => [
+                    'result' => $result->only(['id', 'diary_assessment_id', 'score', 'created_at', 'updated_at']),
+                    'assessment' => $result->assessment?->only(['id', 'school_class_id', 'curriculum_component_id', 'academic_period_id', 'assessment_date', 'is_recovery', 'legacy_source', 'legacy_metadata']),
+                ]),
+                'convalidations' => $enrollment->periodConvalidations->map->only(['id', 'academic_period_id', 'curriculum_component_id', 'score', 'convalidated_at']),
+                'pdf_preview_base64' => base64_encode($pdf->output()),
+            ];
+        });
+    }
+    echo json_encode($output, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally {
+    Illuminate\Support\Facades\DB::rollBack();
+}

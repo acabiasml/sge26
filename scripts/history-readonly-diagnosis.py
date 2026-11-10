@@ -19,14 +19,15 @@ def main():
     sources = {'student': 'scripts/history-readonly-diagnosis.php.stub',
                'high-school-diversified': 'scripts/high-school-diversified-query.php.stub',
                'history-catalog-classification': 'scripts/history-catalog-classification-query.php.stub',
-               'student-workload': 'scripts/student-workload-query.php.stub'}
+               'student-workload': 'scripts/student-workload-query.php.stub',
+               'student-transfer-grades': 'scripts/student-transfer-grades-query.php.stub'}
     if scope not in sources:
         raise ValueError('Escopo de consulta inválido.')
     source = pathlib.Path(sources[scope]).read_text()
     person_id = query['person_id']
     if type(person_id) is not int or person_id < 0:
         raise ValueError('Identificador de pessoa inválido.')
-    if scope == 'student-workload':
+    if scope in ('student-workload', 'student-transfer-grades'):
         import re
         name_hash = query.get('name_sha256', '')
         reference_year = query.get('reference_year')

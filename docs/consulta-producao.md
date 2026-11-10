@@ -65,6 +65,11 @@ cargas registradas no histórico com componentes, aulas semanais, duração da
 hora-aula e períodos das matrizes do ano escolhido. Não emite documento,
 não sincroniza histórico e não grava registros; o relatório segue criptografado.
 
+O escopo `student-transfer-grades` usa os mesmos seletores e retorna as notas
+persistidas, datas das avaliações, médias exibidas por bimestre e uma prévia
+privada da ficha individual. A prévia não registra emissão. Tanto os dados
+quanto o PDF ficam exclusivamente no relatório criptografado.
+
 ## Classificação dos componentes de Móveis
 
 O escopo `--scope history-catalog-classification` consulta somente as áreas de
