@@ -1,1 +1,1 @@
-{"operation": "school-year-class-hours", "school_id": 3, "reference_year": 2025, "class_hour_minutes": 60, "mode": "dry-run"}
+{"operation": "school-year-class-hours", "school_id": 3, "reference_year": 2025, "class_hour_minutes": 60, "mode": "dry-run", "verification_attempt": 2}
