@@ -54,6 +54,17 @@ dos componentes desse recorte; não consulta notas, faltas ou documentos pessoai
 O resultado continua criptografado, em transação somente de leitura. O workflow
 aguarda o commit chegar ao servidor antes de executar a consulta.
 
+## Conferência de carga horária por estudante e ano
+
+O escopo `student-workload` aceita `person_id: 0`, `name_sha256` (SHA-256 do
+nome completo em minúsculas, sem espaços nas extremidades) e `reference_year`.
+Use uma chave pública nova e mantenha a chave privada fora do checkout, pelo
+mesmo fluxo de publicação e leitura. O nome em texto não deve ser publicado.
+Somente uma correspondência permite retornar dados. A consulta compara as
+cargas registradas no histórico com componentes, aulas semanais, duração da
+hora-aula e períodos das matrizes do ano escolhido. Não emite documento,
+não sincroniza histórico e não grava registros; o relatório segue criptografado.
+
 ## Classificação dos componentes de Móveis
 
 O escopo `--scope history-catalog-classification` consulta somente as áreas de

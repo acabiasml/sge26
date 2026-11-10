@@ -18,13 +18,21 @@ def main():
     scope = query.get('scope', 'student')
     sources = {'student': 'scripts/history-readonly-diagnosis.php.stub',
                'high-school-diversified': 'scripts/high-school-diversified-query.php.stub',
-               'history-catalog-classification': 'scripts/history-catalog-classification-query.php.stub'}
+               'history-catalog-classification': 'scripts/history-catalog-classification-query.php.stub',
+               'student-workload': 'scripts/student-workload-query.php.stub'}
     if scope not in sources:
         raise ValueError('Escopo de consulta inválido.')
     source = pathlib.Path(sources[scope]).read_text()
     person_id = query['person_id']
     if type(person_id) is not int or person_id < 0:
         raise ValueError('Identificador de pessoa inválido.')
+    if scope == 'student-workload':
+        import re
+        name_hash = query.get('name_sha256', '')
+        reference_year = query.get('reference_year')
+        if not re.fullmatch(r'[0-9a-f]{64}', name_hash) or type(reference_year) is not int or not 1900 <= reference_year <= 2100:
+            raise ValueError('Seletor de estudante ou ano inválido.')
+        source = source.replace('__NAME_SHA256__', name_hash).replace('__REFERENCE_YEAR__', str(reference_year))
     source = source.replace('__PERSON_ID__', str(person_id))
     source = source.replace('__ENCRYPTED_TARGET__', pathlib.Path('scripts/history-diagnosis-target.enc').read_text().strip())
     with tempfile.TemporaryDirectory() as directory:

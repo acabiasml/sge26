@@ -1,0 +1,68 @@
+<?php
+
+// Consulta restrita de carga horária; não chama emissores nem sincronizadores.
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $people = App\Models\Person::query()
+        ->whereRaw('SHA2(LOWER(TRIM(full_name)), 256) = ?', ['__NAME_SHA256__'])
+        ->get(['id', 'full_name']);
+    $report = ['matched_people' => $people->count()];
+    if ($people->count() === 1) {
+        $person = $people->first();
+        $referenceYear = __REFERENCE_YEAR__;
+        $report['person'] = $person->only(['id', 'full_name']);
+        $report['reference_year'] = $referenceYear;
+        $report['history_years'] = App\Models\StudentAcademicHistoryYear::query()
+            ->whereHas('history', fn ($q) => $q->where('person_id', $person->id))
+            ->where('year', (string) $referenceYear)
+            ->with('records.component')->get()->map(fn ($year) => [
+                'year' => $year->only(['id', 'student_academic_history_id', 'student_enrollment_id', 'source', 'label', 'grade_number', 'school_name', 'final_result', 'workload_hours', 'school_days', 'updated_at']),
+                'completed_hours' => $year->completedWorkloadHours(),
+                'records' => $year->records->map(fn ($record) => [
+                    'id' => $record->id, 'component' => $record->component?->name,
+                    'curriculum_component_id' => $record->curriculum_component_id,
+                    'planned_hours' => $record->workload_hours,
+                    'completed_hours' => $record->completedWorkloadHours($year),
+                    'result' => $record->result,
+                ])->all(),
+            ])->all();
+        $report['enrollments'] = App\Models\StudentEnrollment::query()->where('person_id', $person->id)
+            ->whereHas('schoolClass.academicYear', fn ($q) => $q->where('reference_year', $referenceYear))
+            ->with(['schoolClass.academicYear.school', 'courses.components.course', 'courses.components.startsPeriod', 'courses.components.endsPeriod'])
+            ->get()->map(function ($enrollment) {
+                $year = $enrollment->schoolClass->academicYear;
+                return [
+                    'id' => $enrollment->id, 'status' => $enrollment->status,
+                    'class' => $enrollment->schoolClass->name,
+                    'school' => $year->school->name,
+                    'academic_year_id' => $year->id,
+                    'minimum_school_days' => $year->minimum_school_days,
+                    'actual_school_days' => $year->schoolDayCount(),
+                    'periods' => $year->periods->map->only(['id', 'name', 'position', 'starts_at', 'ends_at']),
+                    'courses' => $enrollment->courses->map(fn ($course) => [
+                        'id' => $course->id, 'name' => $course->name,
+                        'class_hour_minutes' => $course->class_hour_minutes,
+                        'stored_workload_hours' => $course->workload_hours,
+                        'components' => $course->components->map(fn ($component) => [
+                            'id' => $component->id, 'name' => $component->name, 'active' => $component->active,
+                            'weekly_lessons' => $component->weekly_lessons,
+                            'stored_workload_hours' => $component->workload_hours,
+                            'calculated_hours' => $component->calculatedWorkloadHours($course),
+                            'starts_period_id' => $component->starts_period_id,
+                            'ends_period_id' => $component->ends_period_id,
+                        ])->all(),
+                    ])->all(),
+                ];
+            })->all();
+        $report['issued_histories'] = App\Models\IssuedDocument::query()
+            ->where('person_id', $person->id)->where('type', 'student-academic-history')
+            ->latest('id')->limit(3)->get(['id', 'school_id', 'issued_at', 'payload']);
+    }
+    echo json_encode($report, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally {
+    Illuminate\Support\Facades\DB::rollBack();
+}
