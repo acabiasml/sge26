@@ -1,1 +1,1 @@
-{"transport_key_id": "03f159d41f334649b9a58c85757eef0c", "mode": "dry-run"}
+{"transport_key_id": "03f159d41f334649b9a58c85757eef0c", "mode": "apply", "expected_snapshot_sha256": "9b376857b38b7a6551f0b34e68c68494ecc9becbbe65ca8bb7176ecc1951bb20"}
