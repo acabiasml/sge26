@@ -150,6 +150,13 @@ class DocumentIssuanceController extends Controller
             'target' => 'enrollment',
             'icon' => 'fa-chart-bar',
         ],
+        'socioeconomic-form' => [
+            'group' => 'Estudante',
+            'label' => 'Ficha socioeconômica',
+            'description' => 'Dados socioeconômicos, termo de benefícios, matrículas e assinaturas do estudante.',
+            'target' => 'enrollment',
+            'icon' => 'fa-hand-holding-heart',
+        ],
         'individual-record' => [
             'group' => 'Estudante',
             'label' => 'Ficha individual',
@@ -980,6 +987,7 @@ class DocumentIssuanceController extends Controller
             'enrollment-form' => 'enrollments.pdf',
             'report-card' => 'enrollments.report-card.pdf',
             'student-progress' => 'enrollments.progress.pdf',
+            'socioeconomic-form' => 'enrollments.socioeconomic.pdf',
             'individual-record' => 'enrollments.individual-record.pdf',
             default => abort(404),
         };

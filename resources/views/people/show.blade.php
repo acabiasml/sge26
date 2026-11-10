@@ -4,6 +4,9 @@
     $roles = \App\Models\PersonSchoolRole::ROLE_LABELS;
     $positions = \App\Models\PersonSchoolRole::POSITION_LABELS;
     $primaryRole = $person->primaryActiveRole();
+    $socioeconomicEnrollment = $person->studentEnrollments
+        ->filter(fn ($enrollment) => auth()->user()->canManageSchool($enrollment->schoolClass?->academicYear?->school_id))
+        ->sortByDesc(fn ($enrollment) => ($enrollment->enrolled_at?->format('Y-m-d') ?? '').'|'.str_pad($enrollment->id, 12, '0', STR_PAD_LEFT))->first();
     $canDeletePerson = auth()->user()->isAdministrator()
         && $person->schoolRoles->isEmpty()
         && $person->studentEnrollments->isEmpty()
@@ -16,6 +19,9 @@
 @section('page-title', $person->full_name)
 
 @section('page-actions')
+    @if($socioeconomicEnrollment)
+        <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('enrollments.socioeconomic.pdf', $socioeconomicEnrollment) }}" aria-label="{{ __('Ficha socioeconômica') }}: {{ $person->full_name }}" title="{{ __('Ficha socioeconômica') }}"><i class="fas fa-hand-holding-heart" aria-hidden="true"></i></a>
+    @endif
     @if(auth()->user()->canManagePeople())
         <a data-navigation-return class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.index') }}" aria-label="{{ __('Voltar para Pessoas') }}" title="{{ __('Voltar para Pessoas') }}"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
     @endif
@@ -51,6 +57,18 @@
 @endsection
 
 @section('content')
+    @if(auth()->user()->canManagePeople() && $person->socioeconomic_data)
+        <details class="card sge-panel-card mb-4">
+            <summary class="sge-panel-header sge-history-section-summary"><h2>{{ __('Ficha socioeconômica') }}</h2><i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
+            <div class="card-body"><dl class="sge-definition-list mb-3">
+                @foreach(\App\Support\SocioeconomicProfile::fields() as $key => $field)
+                    @if(isset($person->socioeconomic_data[$key]) && $person->socioeconomic_data[$key] !== [] && $person->socioeconomic_data[$key] !== '')
+                        <dt>{{ __($field['label']) }}</dt><dd>{{ __(\App\Support\SocioeconomicProfile::label($key, $person->socioeconomic_data[$key])) }}</dd>
+                    @endif
+                @endforeach
+            </dl><a class="btn btn-outline-primary" href="{{ route('people.edit', $person) }}"><i class="fas fa-edit mr-1" aria-hidden="true"></i>{{ __('Editar dados socioeconômicos') }}</a></div>
+        </details>
+    @endif
     <div class="row">
         <div class="col-xl-4 col-lg-5">
             <div class="card shadow mb-4">

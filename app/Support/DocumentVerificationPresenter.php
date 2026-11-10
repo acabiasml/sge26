@@ -70,6 +70,7 @@ class DocumentVerificationPresenter
     {
         return match (true) {
             $type === 'person-record' => __('Ficha de cadastro de pessoa'),
+            $type === 'student-socioeconomic' => __('Ficha socioeconômica'),
             $type === 'volunteer-receipt' => __('Recibo de atividade voluntária'),
             $type === 'school-record' => __('Ficha de cadastro de escola'),
             $type === 'academic-calendar' => __('Calendário escolar oficial'),
@@ -105,6 +106,7 @@ class DocumentVerificationPresenter
     {
         return match (true) {
             $type === 'person-record' => __('Este código confirma que uma ficha cadastral de pessoa foi emitida pelo Beabá.'),
+            $type === 'student-socioeconomic' => __('Este código confirma a emissão de uma ficha socioeconômica pelo Beabá.'),
             $type === 'volunteer-receipt' => __('Este código confirma que um recibo de atividade voluntária foi emitido pelo Beabá.'),
             $type === 'school-record' => __('Este código confirma que uma ficha cadastral de escola foi emitida pelo Beabá.'),
             $type === 'academic-calendar' => __('Este código confirma que um calendário escolar oficial foi emitido pelo Beabá.'),

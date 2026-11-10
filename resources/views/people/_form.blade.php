@@ -212,6 +212,10 @@
     @error('address_complement') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
 </div>
 
+@if(auth()->user()?->canManagePeople() && request()->routeIs('people.*'))
+    @include('people._socioeconomic-form')
+@endif
+
 @once
     @push('scripts')
         <script>

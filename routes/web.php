@@ -134,6 +134,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::patch('documentos-oficiais/{document}/visibilidade', [OfficialDocumentController::class, 'updateVisibility'])->name('official-documents.visibility');
     Route::delete('documentos-oficiais/{document}', [OfficialDocumentController::class, 'destroy'])->name('official-documents.destroy');
     Route::post('documentos-oficiais/pdf', [OfficialDocumentController::class, 'store'])->name('official-documents.store');
+    Route::get('matriculas/{enrollment}/ficha-socioeconomica/pdf', [\App\Http\Controllers\StudentSocioeconomicController::class, 'pdf'])->name('enrollments.socioeconomic.pdf');
     Route::get('emissao-de-documentos', [DocumentIssuanceController::class, 'index'])->name('document-issuance.index');
     Route::get('emissao-de-documentos/destinatarios', [DocumentIssuanceController::class, 'targets'])->name('document-issuance.targets');
     Route::get('emissao-de-documentos/emitir', [DocumentIssuanceController::class, 'issue'])->name('document-issuance.issue');

@@ -33,6 +33,7 @@ class Person extends Model
         'student_inep',
         'nis',
         'receives_federal_aid',
+        'socioeconomic_data',
         'legacy_metadata',
         'full_name',
         'social_name',
@@ -67,6 +68,7 @@ class Person extends Model
             'active' => 'boolean',
             'profile_completed_at' => 'datetime',
             'legacy_metadata' => 'array',
+            'socioeconomic_data' => 'array',
             'google_workspace_provisioned_at' => 'datetime',
         ];
     }

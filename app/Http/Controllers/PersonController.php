@@ -6,6 +6,7 @@ use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Support\BrazilianStates;
+use App\Support\SocioeconomicProfile;
 use App\Support\UnifiedStudentHistorySynchronizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -269,8 +270,13 @@ class PersonController extends Controller
             $rules['institutional_email'] = ['nullable', 'email', 'max:255', 'ends_with:@ctjj.org', Rule::unique('people', 'institutional_email')->ignore($person)];
         }
 
-        $data = $request->validate($rules);
+        $data = $request->validate($rules + SocioeconomicProfile::rules(), [], SocioeconomicProfile::attributes());
         $data['receives_federal_aid'] = $request->boolean('receives_federal_aid');
+        if (array_key_exists('socioeconomic_data', $data)) {
+            $complete = $request->boolean('socioeconomic_profile_present');
+            $profile = SocioeconomicProfile::normalize($data['socioeconomic_data'] ?? [], $complete);
+            $data['socioeconomic_data'] = $complete ? $profile : array_replace($person?->socioeconomic_data ?? [], $profile);
+        }
 
         if ($lockOwnIdentity) {
             foreach (['full_name', 'cpf', 'birth_date', 'mother_name'] as $field) {

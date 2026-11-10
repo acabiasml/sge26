@@ -97,6 +97,7 @@ O cadastro de pessoa mantém, conforme disponibilidade:
 - telefone, e-mails e endereço;
 - participação em auxílio federal;
 - contatos e responsáveis;
+- ficha socioeconômica opcional, com RG, SUS, cor/raça, PCD, composição familiar, renda, Bolsa Família, alergias, transporte, retirada do estudante, autorização de imagem e benefícios por ano de referência;
 - vínculos escolares e suas vigências.
 
 Os nomes sociais que já estavam cadastrados foram limpos por migration; o campo continua disponível para novos cadastros quando necessário.
@@ -269,6 +270,7 @@ O sistema emite, entre outros:
 - fichas de pessoa e escola;
 - calendário e matrizes curriculares;
 - ficha de matrícula;
+- ficha socioeconômica por estudante, com termo de concessão de benefícios, matrículas da escola emissora e espaços para assinaturas do responsável, direção e assistente social. A gestão completa os dados na seção recolhível do cadastro de pessoa e emite pela Central de Emissão ou pelo atalho na ficha da pessoa; campos não preenchidos permanecem não informados e benefícios só são assinalados para seu ano de referência;
 - boletim escolar e boletins da turma;
 - relatório individual de situação de notas e frequência, com pontos faltantes por componente e estimativa da margem anual de faltas em horas;
 - ficha individual;

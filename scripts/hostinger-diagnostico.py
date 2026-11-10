@@ -218,6 +218,8 @@ with tempfile.TemporaryDirectory() as directory:
                          'php artisan migrate --path=database/migrations/2026_11_06_000003_propagate_audited_history_classification_changes.php --force --no-ansi'))
         commands.append(('Disponibilizar todos os componentes cadastrados no catálogo',
                          'php artisan migrate --path=database/migrations/2026_11_06_000004_make_catalog_components_always_available.php --force --no-ansi'))
+        commands.append(('Conferir cadastro socioeconômico das pessoas',
+                         'php artisan migrate --path=database/migrations/2026_11_09_000001_add_socioeconomic_data_to_people.php --force --no-ansi'))
         commands.append(('Conferir disponibilidade dos componentes do catálogo',
                          'php artisan tinker --execute=\'echo json_encode(["unavailable_catalog_components" => App\\Models\\HistoryCurriculumComponent::where("active", false)->count()]);\''))
         commands.append(('Conferir vínculos das matrizes no catálogo',
