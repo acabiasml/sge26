@@ -1,0 +1,62 @@
+<?php
+
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $person = App\Models\Person::findOrFail(__PERSON_ID__);
+    if (! in_array($person->legacy_source, ['lar', 'laura', 'beaba'], true) || ! ctype_digit((string) $person->legacy_id)) {
+        throw new RuntimeException('Estudante sem identidade legada válida.');
+    }
+    $enrollments = $person->studentEnrollments()->whereHas('schoolClass.academicYear', fn ($q) => $q->where('reference_year', __REFERENCE_YEAR__))
+        ->with('schoolClass.academicYear')->orderBy('id')->get();
+    $legacyCourseIds = $enrollments->pluck('schoolClass')->where('legacy_source', $person->legacy_source)->pluck('legacy_id')->all();
+    $path = storage_path('app/private/u810745753_'.$person->legacy_source.'.sql');
+    $legacyRows = [];
+    $available = is_file($path);
+    if ($available) {
+        $stream = fopen($path, 'rb');
+        try {
+            while (($line = fgets($stream)) !== false) {
+                if (! preg_match('/^INSERT INTO `turmas` \((.*?)\) VALUES\s*(.*)$/', trim($line), $header)) {
+                    continue;
+                }
+                $columns = array_map(fn ($name) => trim($name, " `\r\n\t"), explode(',', $header[1]));
+                $values = $header[2];
+                while (! preg_match('/;\s*$/', $values) && ($line = fgets($stream)) !== false) {
+                    $values .= $line;
+                    if (strlen($values) > 16 * 1024 * 1024) {
+                        throw new RuntimeException('Bloco legado maior que o limite da consulta.');
+                    }
+                }
+                // A tabela turmas contém somente identificadores, datas, status
+                // e tipo; rejeita estruturas inesperadas em vez de executá-las.
+                preg_match_all('/\(([^()]*)\)/', $values, $rows);
+                foreach ($rows[1] as $row) {
+                    $fields = str_getcsv($row, ',', "'", '\\');
+                    if (count($columns) !== count($fields)) {
+                        throw new RuntimeException('Linha legada com estrutura inesperada.');
+                    }
+                    $entry = array_combine($columns, array_map(fn ($value) => trim((string) $value) === 'NULL' ? null : trim((string) $value), $fields));
+                    if ((int) ($entry['users_id'] ?? 0) === (int) $person->legacy_id
+                        && in_array((int) ($entry['cursos_id'] ?? 0), array_map('intval', $legacyCourseIds), true)) {
+                        $legacyRows[] = Illuminate\Support\Arr::only($entry, ['id', 'datamatricula', 'datatransf', 'status', 'tipo', 'cursos_id', 'users_id']);
+                    }
+                }
+            }
+        } finally {
+            fclose($stream);
+        }
+    }
+    echo json_encode([
+        'person' => $person->only(['id', 'full_name', 'legacy_source', 'legacy_id']),
+        'enrollments' => $enrollments->map(fn ($row) => $row->only(['id', 'school_class_id', 'person_id', 'enrolled_at', 'transferred_at',
+            'cancelled_at', 'reclassified_at', 'status', 'legacy_source', 'legacy_id', 'legacy_metadata'])),
+        'legacy_dump_available' => $available, 'legacy_dump_sha256' => $available ? hash_file('sha256', $path) : null,
+        'legacy_enrollments' => $legacyRows,
+    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally {
+    Illuminate\Support\Facades\DB::rollBack();
+}

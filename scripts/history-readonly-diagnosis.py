@@ -23,7 +23,8 @@ def main():
                'student-transfer-grades': 'scripts/student-transfer-grades-query.php.stub',
                'class-diary-reconciliation': 'scripts/class-diary-reconciliation-query.php.stub',
                'history-issuance': 'scripts/history-issuance-query.php.stub',
-               'diary-batch': 'scripts/diary-batch-query.php.stub'}
+               'diary-batch': 'scripts/diary-batch-query.php.stub',
+               'student-reenrollment': 'scripts/student-reenrollment-query.php.stub'}
     if scope not in sources:
         raise ValueError('Escopo de consulta inválido.')
     source = pathlib.Path(sources[scope]).read_text()
@@ -46,6 +47,11 @@ def main():
         if person_id <= 0 or not re.fullmatch(r'[0-9a-f]{32}', key_id) or type(reference_year) is not int or not 1900 <= reference_year <= 2100:
             raise ValueError('Seletores da turma inválidos.')
         source = source.replace('__TRANSPORT_KEY_ID__', key_id).replace('__REFERENCE_YEAR__', str(reference_year))
+    if scope == 'student-reenrollment':
+        reference_year = query.get('reference_year')
+        if person_id <= 0 or type(reference_year) is not int or not 1900 <= reference_year <= 2100:
+            raise ValueError('Estudante ou ano inválido para conferir a rematrícula.')
+        source = source.replace('__REFERENCE_YEAR__', str(reference_year))
     if scope in ('student-workload', 'student-transfer-grades'):
         import re
         name_hash = query.get('name_sha256', '')

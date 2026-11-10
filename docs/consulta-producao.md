@@ -49,6 +49,13 @@ Retorna matrizes, notas, chamadas e conteúdos do recorte em transação somente
 de leitura. Identidades, resultados e demais dados continuam restritos ao
 relatório criptografado; a conferência não executa importação ou correção.
 
+O escopo `student-reenrollment` usa `person_id` positivo e `reference_year`.
+Consulta os vínculos desse estudante no ano e, se o dump privado original ainda
+estiver disponível, lê somente a tabela legada `turmas` e retorna apenas as
+linhas da mesma pessoa e dos cursos correspondentes. Não executa SQL do dump,
+não importa matrículas e não altera as datas. A consulta informa a disponibilidade
+e o hash da fonte; seu resultado permanece criptografado.
+
 ## Parte diversificada no Ensino Médio
 
 Para identificar de quem são os históricos e quais matrizes usam essa denominação,
