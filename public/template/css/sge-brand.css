@@ -3217,6 +3217,10 @@ a.sge-stat-card:focus {
     gap: .75rem;
 }
 
+.sge-section-nav.sge-profile-tabs {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .sge-section-nav-item {
     display: flex;
     min-height: 5.25rem;

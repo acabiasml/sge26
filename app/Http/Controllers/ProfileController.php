@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Support\BrazilianStates;
+use App\Support\SocioeconomicProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -26,6 +27,7 @@ class ProfileController extends Controller
         $person = $request->user()->person;
         $lockOwnIdentity = ! $request->user()->isAdministrator();
         $canChangeInstitutionalEmail = $this->canChangeOwnInstitutionalEmail($request->user());
+        $editableSocioeconomicFields = SocioeconomicProfile::editableFields($request->user()->canManagePeople());
         $locks = [
             'full_name' => $lockOwnIdentity && filled($person->full_name),
             'cpf' => $lockOwnIdentity && filled($person->cpf),
@@ -36,6 +38,9 @@ class ProfileController extends Controller
         $validated = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
             'social_name' => ['nullable', 'string', 'max:255'],
+            'student_inep' => ['nullable', 'string', 'max:255'],
+            'nis' => ['nullable', 'string', 'regex:/^[0-9]{11}$/'],
+            'receives_federal_aid' => ['nullable', 'boolean'],
             'cpf' => [
                 'required',
                 'string',
@@ -57,7 +62,16 @@ class ProfileController extends Controller
             'state' => ['required', 'string', 'size:2', Rule::in(BrazilianStates::codes())],
             'postal_code' => ['required', 'string', 'max:255'],
             'address_complement' => ['nullable', 'string', 'max:255'],
-        ]);
+        ] + SocioeconomicProfile::rules($editableSocioeconomicFields), [], SocioeconomicProfile::attributes());
+
+        if (array_key_exists('receives_federal_aid', $validated)) {
+            $validated['receives_federal_aid'] = $request->boolean('receives_federal_aid');
+        }
+        if (array_key_exists('socioeconomic_data', $validated)) {
+            $profile = SocioeconomicProfile::normalize($validated['socioeconomic_data'] ?? [], $request->boolean('socioeconomic_profile_present'));
+            $profile = array_intersect_key($profile, array_flip($editableSocioeconomicFields));
+            $validated['socioeconomic_data'] = array_replace($person->socioeconomic_data ?? [], $profile);
+        }
 
         if ($canChangeInstitutionalEmail) {
             $validated += $request->validate([

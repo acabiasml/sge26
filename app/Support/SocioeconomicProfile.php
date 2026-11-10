@@ -6,6 +6,15 @@ use Illuminate\Validation\Rule;
 
 final class SocioeconomicProfile
 {
+    public const MANAGEMENT_FIELDS = ['benefit_year', 'benefits'];
+
+    public static function editableFields(bool $canManageBenefits): array
+    {
+        $keys = array_keys(self::fields());
+
+        return $canManageBenefits ? $keys : array_values(array_diff($keys, self::MANAGEMENT_FIELDS));
+    }
+
     public static function fields(): array
     {
         return [
@@ -50,10 +59,11 @@ final class SocioeconomicProfile
         ];
     }
 
-    public static function rules(): array
+    public static function rules(?array $allowedFields = null): array
     {
-        $rules = ['socioeconomic_data' => ['sometimes', 'nullable', 'array:'.implode(',', array_keys(self::fields()))]];
-        foreach (self::fields() as $key => $field) {
+        $fields = $allowedFields === null ? self::fields() : array_intersect_key(self::fields(), array_flip($allowedFields));
+        $rules = ['socioeconomic_data' => ['sometimes', 'nullable', 'array:'.implode(',', array_keys($fields))]];
+        foreach ($fields as $key => $field) {
             $name = 'socioeconomic_data.'.$key;
             $rules[$name] = match ($field['type']) {
                 'boolean' => ['nullable', 'boolean'],

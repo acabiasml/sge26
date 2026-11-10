@@ -102,6 +102,8 @@ O cadastro de pessoa mantém, conforme disponibilidade:
 
 Os nomes sociais que já estavam cadastrados foram limpos por migration; o campo continua disponível para novos cadastros quando necessário.
 
+**Meu Cadastro** separa dados pessoais, contatos, endereço e ficha socioeconômica em abas. Cada usuário pode atualizar os próprios dados socioeconômicos; benefícios concedidos e seu ano de referência continuam sob responsabilidade da gestão. A troca de abas mantém os valores digitados, e a validação abre a seção do campo que precisa ser corrigido.
+
 Escolas possuem dados institucionais, CNPJ, INEP, atos autorizativos, contatos, endereço, logomarca e responsáveis por assinatura.
 
 A central de **Conformidade** reúne bloqueios, avisos e atenções relativos a pessoas, responsáveis, vínculos, escolas, matrículas, estruturas acadêmicas e anos letivos. Documentos oficiais não são emitidos quando faltam dados indispensáveis da pessoa ou da escola, salvo fluxos que prevejam confirmação explícita para determinada pendência.

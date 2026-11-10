@@ -15,8 +15,12 @@
     $requiresCompleteFields = $requiresCompleteActiveData;
     $requiresBrazilianBirthPlace = $requiresCompleteFields && $nationalityValue === 'Brasileira';
     $willGenerateInstitutionalEmail = ! ($person->exists ?? false);
+    $useProfileTabs = $useProfileTabs ?? false;
 @endphp
 
+@if($useProfileTabs)
+<section id="profile-panel-identificacao" role="tabpanel" aria-labelledby="profile-tab-identificacao" data-academic-panel="identificacao">
+@endif
 <div class="form-row">
     <div class="form-group col-md-6">
         <label for="full_name">{{ __('screens.full_name') }}</label>
@@ -133,6 +137,10 @@
     </div>
 </div>
 
+@if($useProfileTabs)
+</section>
+<section id="profile-panel-contatos" role="tabpanel" aria-labelledby="profile-tab-contatos" data-academic-panel="contatos">
+@endif
 <div class="form-row">
     <div class="form-group col-md-4">
         <label for="institutional_email">{{ __('screens.institutional_email') }}</label>
@@ -158,7 +166,12 @@
     </div>
 </div>
 
+@if($useProfileTabs)
+</section>
+<section id="profile-panel-endereco" role="tabpanel" aria-labelledby="profile-tab-endereco" data-academic-panel="endereco">
+@else
 <h2 class="h6 text-gray-800 mt-4">{{ __('screens.address') }}</h2>
+@endif
 
 <div class="form-row">
     <div class="form-group col-md-6">
@@ -212,7 +225,12 @@
     @error('address_complement') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
 </div>
 
-@if(auth()->user()?->canManagePeople() && request()->routeIs('people.*'))
+@if($useProfileTabs)
+</section>
+<section id="profile-panel-socioeconomica" role="tabpanel" aria-labelledby="profile-tab-socioeconomica" data-academic-panel="socioeconomica">
+    @include('people._socioeconomic-form', ['embeddedSocioeconomicForm' => true, 'canManageSocioeconomicBenefits' => auth()->user()->canManagePeople()])
+</section>
+@elseif(auth()->user()?->canManagePeople() && request()->routeIs('people.*'))
     @include('people._socioeconomic-form')
 @endif
 

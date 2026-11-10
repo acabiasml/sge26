@@ -2,17 +2,28 @@
     $socioData = old('socioeconomic_data', $person->socioeconomic_data ?? []);
     if (! is_array($socioData)) $socioData = [];
     $socioFields = \App\Support\SocioeconomicProfile::fields();
+    $embeddedSocioeconomicForm = $embeddedSocioeconomicForm ?? false;
+    $canManageSocioeconomicBenefits = $canManageSocioeconomicBenefits ?? true;
+    if (! $canManageSocioeconomicBenefits) {
+        foreach (\App\Support\SocioeconomicProfile::MANAGEMENT_FIELDS as $managedField) {
+            $socioData[$managedField] = $person->socioeconomic_data[$managedField] ?? null;
+        }
+    }
 @endphp
+@if(! $embeddedSocioeconomicForm)
 <details class="card sge-panel-card my-4" @if($errors->has('socioeconomic_data') || $errors->has('socioeconomic_data.*')) open @endif>
     <summary class="sge-panel-header sge-history-section-summary"><h2>{{ __('Ficha socioeconômica') }}</h2><i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
     <div class="card-body">
+@else
+    <div>
+@endif
         <p class="text-muted">{{ __('Complete os dados informados pela família. Campos vazios permanecem não informados na ficha. Responsáveis e telefones são aproveitados dos contatos cadastrados.') }}</p>
         <input type="hidden" name="socioeconomic_profile_present" value="1">
         @error('socioeconomic_data')<p class="text-danger" role="alert">{{ $message }}</p>@enderror
         @foreach(\App\Support\SocioeconomicProfile::sections() as $section => $keys)
         <fieldset class="mb-4">
             <legend class="h6 font-weight-bold">{{ __($section) }}</legend>
-            @if($section === 'Concessão de benefícios')<p class="small text-muted">{{ __('Marque somente os benefícios concedidos e informe seu ano de referência. Eles serão assinalados apenas nas fichas desse ano.') }}</p>@endif
+            @if($section === 'Concessão de benefícios')<p class="small text-muted">{{ $canManageSocioeconomicBenefits ? __('Marque somente os benefícios concedidos e informe seu ano de referência. Eles serão assinalados apenas nas fichas desse ano.') : __('Os benefícios concedidos e seu ano de referência são preenchidos pela gestão.') }}</p>@endif
             <div class="form-row">
             @foreach($keys as $key)
                 @php
@@ -22,10 +33,11 @@
                     $id = 'socio-'.$key;
                     $errorKey = 'socioeconomic_data.'.$key;
                     $hasError = $errors->has($errorKey) || $errors->has($errorKey.'.*');
+                    $lockedSocioeconomicField = ! $canManageSocioeconomicBenefits && in_array($key, \App\Support\SocioeconomicProfile::MANAGEMENT_FIELDS, true);
                 @endphp
                 <div class="form-group {{ in_array($field['type'], ['choices', 'textarea']) ? 'col-12' : 'col-md-6' }}">
                 @if($field['type'] === 'choices')
-                    <fieldset aria-describedby="{{ $id }}-error">
+                    <fieldset aria-describedby="{{ $id }}-error" @disabled($lockedSocioeconomicField)>
                         <legend class="h6">{{ __($field['label']) }}</legend>
                         @foreach($field['options'] as $option => $label)
                         <div class="form-check form-check-inline mb-2">
@@ -37,16 +49,16 @@
                 @else
                     <label for="{{ $id }}">{{ __($field['label']) }}</label>
                     @if(in_array($field['type'], ['boolean', 'select']))
-                        <select id="{{ $id }}" name="socioeconomic_data[{{ $key }}]" class="form-control @if($hasError) is-invalid @endif" aria-describedby="{{ $id }}-error" @if($hasError) aria-invalid="true" @endif>
+                        <select id="{{ $id }}" name="socioeconomic_data[{{ $key }}]" class="form-control @if($hasError) is-invalid @endif" aria-describedby="{{ $id }}-error" @disabled($lockedSocioeconomicField) @if($hasError) aria-invalid="true" @endif>
                             <option value="">{{ __('Não informado') }}</option>
                             @foreach($field['type'] === 'boolean' ? [1 => 'Sim', 0 => 'Não'] : $field['options'] as $option => $label)
                                 <option value="{{ $option }}" @selected($value !== null && (string) $value === (string) $option || ($field['type'] === 'boolean' && $value === false && $option === 0))>{{ __($label) }}</option>
                             @endforeach
                         </select>
                     @elseif($field['type'] === 'textarea')
-                        <textarea id="{{ $id }}" name="socioeconomic_data[{{ $key }}]" class="form-control @if($hasError) is-invalid @endif" rows="2" maxlength="{{ $field['max'] }}" aria-describedby="{{ $id }}-error" @if($hasError) aria-invalid="true" @endif>{{ is_scalar($value) ? $value : '' }}</textarea>
+                        <textarea id="{{ $id }}" name="socioeconomic_data[{{ $key }}]" class="form-control @if($hasError) is-invalid @endif" rows="2" maxlength="{{ $field['max'] }}" aria-describedby="{{ $id }}-error" @disabled($lockedSocioeconomicField) @if($hasError) aria-invalid="true" @endif>{{ is_scalar($value) ? $value : '' }}</textarea>
                     @else
-                        <input id="{{ $id }}" name="socioeconomic_data[{{ $key }}]" class="form-control @if($hasError) is-invalid @endif" type="{{ $field['type'] === 'date' ? 'date' : ($field['type'] === 'year' ? 'number' : 'text') }}" value="{{ is_scalar($value) ? $value : '' }}" @if(isset($field['max'])) maxlength="{{ $field['max'] }}" @endif @if($field['type'] === 'year') min="1900" max="2100" @endif @if($field['type'] === 'digits') inputmode="numeric" data-mask="digits" data-mask-max="{{ $field['max'] }}" @endif aria-describedby="{{ $id }}-error" @if($hasError) aria-invalid="true" @endif>
+                        <input id="{{ $id }}" name="socioeconomic_data[{{ $key }}]" class="form-control @if($hasError) is-invalid @endif" type="{{ $field['type'] === 'date' ? 'date' : ($field['type'] === 'year' ? 'number' : 'text') }}" value="{{ is_scalar($value) ? $value : '' }}" @disabled($lockedSocioeconomicField) @if(isset($field['max'])) maxlength="{{ $field['max'] }}" @endif @if($field['type'] === 'year') min="1900" max="2100" @endif @if($field['type'] === 'digits') inputmode="numeric" data-mask="digits" data-mask-max="{{ $field['max'] }}" @endif aria-describedby="{{ $id }}-error" @if($hasError) aria-invalid="true" @endif>
                     @endif
                 @endif
                 @if($field['type'] === 'digits')<small class="form-text text-muted">{{ __('Informe :count dígitos, preservando os zeros à esquerda.', ['count' => $field['max']]) }}</small>@endif
@@ -57,4 +69,6 @@
         </fieldset>
         @endforeach
     </div>
+@if(! $embeddedSocioeconomicForm)
 </details>
+@endif
