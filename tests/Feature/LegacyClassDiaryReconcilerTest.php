@@ -272,7 +272,7 @@ class LegacyClassDiaryReconcilerTest extends TestCase
         $service->reconcile($batch, true, $plan['snapshot_sha256']);
         $prior = $current->schoolClass->enrollments()->where('legacy_id', 64)->sole();
         $this->assertSame('transferido', $prior->status);
-        $this->assertSame('2025-02-01', $prior->enrolled_at->toDateString());
+        $this->assertSame('2025-01-20', $prior->enrolled_at->toDateString());
         $this->assertSame('2025-02-28', $prior->transferred_at->toDateString());
         $this->assertEquals(82, $current->fresh()->legacy_id);
         $this->assertSame('2025-05-01', $current->fresh()->enrolled_at->toDateString());
@@ -339,7 +339,7 @@ class LegacyClassDiaryReconcilerTest extends TestCase
         $class->academicYear->periods()->sole()->update(['ends_at' => '2025-06-30']);
         $new = ['id' => '82', 'datamatricula' => '2025-05-01', 'datatransf' => null,
             'status' => 'matriculado', 'tipo' => 'regular', 'cursos_id' => '5', 'users_id' => (string) $enrollment->student->legacy_id];
-        $old = array_replace($new, ['id' => '64', 'datamatricula' => '2025-02-01', 'datatransf' => '2025-02-28', 'status' => 'transferido']);
+        $old = array_replace($new, ['id' => '64', 'datamatricula' => '2025-01-20', 'datatransf' => '2025-02-28', 'status' => 'transferido']);
         $enrollment->update(['enrolled_at' => '2025-05-01', 'legacy_source' => 'laura', 'legacy_id' => 64,
             'legacy_metadata' => ['latest_imported_row' => $new]]);
         DiaryAttendanceRecord::sole()->entries()->delete();

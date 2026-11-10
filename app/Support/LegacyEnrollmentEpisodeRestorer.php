@@ -53,7 +53,7 @@ final class LegacyEnrollmentEpisodeRestorer
             $require((bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
                 && Carbon::parse($date)->toDateString() === $date, 'Data de vínculo inválida.');
         }
-        $require($old['datamatricula'] >= $class->academicYear->starts_at->toDateString()
+        $require($old['datamatricula'] >= $class->academicYear->starts_at->copy()->startOfYear()->toDateString()
             && $old['datamatricula'] <= $old['datatransf'] && $old['datatransf'] < $new['datamatricula']
             && $new['datamatricula'] <= $class->academicYear->ends_at->toDateString(), 'Vínculos sobrepostos ou fora do ano.');
         $path = Storage::disk('local')->path('u810745753_'.$source.'.sql');
