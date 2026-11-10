@@ -38,10 +38,15 @@ def main():
             stdin.flush()
             stdin.channel.shutdown_write()
             raw = stdout.read()
-            stderr.read()
-            if stdout.channel.recv_exit_status():
-                raise RuntimeError('A reconciliação foi interrompida; saída privada omitida.')
-            result = json.loads(raw)
+            private_error = stderr.read()
+            code = stdout.channel.recv_exit_status()
+            try:
+                result = json.loads(raw)
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                result = {'mode': 'error', 'exit_code': code,
+                          'private_stdout': raw.decode(errors='replace')[-20000:],
+                          'private_stderr': private_error.decode(errors='replace')[-20000:]}
+                raw = json.dumps(result).encode()
         finally:
             client.close()
     public = serialization.load_pem_public_key(pathlib.Path('scripts/history-report-public.pem').read_bytes())
@@ -53,6 +58,8 @@ def main():
     }
     pathlib.Path('diary-reconciliation-report.encrypted.json').write_text(json.dumps(envelope))
     print('Reconciliação concluída no modo', result['mode'], '; relatório privado criptografado.')
+    if result['mode'] == 'error':
+        raise RuntimeError('A conferência foi interrompida. O motivo está somente no relatório criptografado.')
 
 
 if __name__ == '__main__':

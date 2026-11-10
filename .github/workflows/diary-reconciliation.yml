@@ -28,10 +28,12 @@ jobs:
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
         run: python scripts/run-diary-reconciliation.py
       - name: Guardar somente o relatório criptografado
+        if: always()
         env:
           RECONCILIATION_RUN_ID: ${{ github.run_id }}
         run: |
           set -euo pipefail
+          test -f diary-reconciliation-report.encrypted.json || exit 0
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           blob=$(git hash-object -w diary-reconciliation-report.encrypted.json)

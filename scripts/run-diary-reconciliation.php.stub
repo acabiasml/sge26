@@ -3,6 +3,7 @@
 require 'vendor/autoload.php';
 $app = require 'bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+try {
 $config = json_decode(file_get_contents('scripts/diary-reconciliation.json'), true, flags: JSON_THROW_ON_ERROR);
 if (! preg_match('/^[a-f0-9]{32}$/', $config['transport_key_id'] ?? '')
     || ! in_array($config['mode'] ?? '', ['dry-run', 'apply'], true)) {
@@ -23,3 +24,6 @@ $result = app(App\Support\LegacyClassDiaryReconciler::class)->reconcile(
     $manifest, $config['mode'] === 'apply', $config['expected_snapshot_sha256'] ?? null,
 );
 echo json_encode($result, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} catch (Throwable $error) {
+    echo json_encode(['mode' => 'error', 'exception' => get_class($error), 'message' => $error->getMessage()], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+}
