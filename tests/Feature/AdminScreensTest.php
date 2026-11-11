@@ -1204,6 +1204,57 @@ class AdminScreensTest extends TestCase
             ->assertSee('Dia compartilhado');
     }
 
+    public function test_dashboard_calendar_navigation_is_consistent_on_initial_load_reload_and_month_links(): void
+    {
+        $this->travelTo(Carbon::parse('2026-11-11 12:00:00', 'America/Sao_Paulo'));
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $school = School::query()->create(['name' => 'Escola Calendário', 'active' => true]);
+        AcademicYear::query()->create([
+            'school_id' => $school->id,
+            'name' => 'Calendário 2026',
+            'reference_year' => 2026,
+            'starts_at' => '2026-01-01',
+            'ends_at' => '2026-12-18',
+            'active' => true,
+        ]);
+
+        foreach ([[], [], ['calendar_month' => '2026-11']] as $query) {
+            $this->actingAs($admin)->get(route('dashboard', $query))
+                ->assertOk()
+                ->assertViewHas('calendarMonth', fn ($month) => $month->format('Y-m') === '2026-11')
+                ->assertViewHas('calendarPreviousMonth', fn ($month) => $month?->format('Y-m') === '2026-10')
+                ->assertViewHas('calendarNextMonth', fn ($month) => $month?->format('Y-m') === '2026-12')
+                ->assertSee(route('dashboard', ['calendar_month' => '2026-12']).'#calendar-heading', false);
+        }
+
+        $this->get(route('dashboard', ['calendar_month' => '2026-10']))
+            ->assertOk()
+            ->assertViewHas('calendarNextMonth', fn ($month) => $month?->format('Y-m') === '2026-11');
+        $this->get(route('dashboard', ['calendar_month' => '2026-12']))
+            ->assertOk()
+            ->assertViewHas('calendarMonth', fn ($month) => $month->format('Y-m') === '2026-12')
+            ->assertViewHas('calendarPreviousMonth', fn ($month) => $month?->format('Y-m') === '2026-11')
+            ->assertViewHas('calendarNextMonth', null);
+        $this->get(route('dashboard', ['calendar_month' => '2026-01']))
+            ->assertOk()
+            ->assertViewHas('calendarPreviousMonth', null)
+            ->assertViewHas('calendarNextMonth', fn ($month) => $month?->format('Y-m') === '2026-02');
+    }
+
+    public function test_dashboard_calendar_without_academic_years_has_no_adjacent_month_links(): void
+    {
+        $this->travelTo(Carbon::parse('2026-11-11 12:00:00', 'America/Sao_Paulo'));
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+
+        foreach ([[], ['calendar_month' => '2026-11']] as $query) {
+            $this->actingAs($admin)->get(route('dashboard', $query))
+                ->assertOk()
+                ->assertViewHas('calendarMonth', fn ($month) => $month->format('Y-m') === '2026-11')
+                ->assertViewHas('calendarPreviousMonth', null)
+                ->assertViewHas('calendarNextMonth', null);
+        }
+    }
+
     public function test_dashboard_month_days_chart_uses_the_same_unique_dates_and_school_day_rule_as_calendar(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);

@@ -394,15 +394,17 @@ class DashboardController extends Controller
     /** @return array{Carbon, Carbon, Carbon} */
     private function calendarMonth(Request $request, ?array $schoolIds, Carbon $fallback): array
     {
+        // Compare calendar months in the same timezone as the stored academic dates.
+        $fallbackMonth = Carbon::parse($fallback->format('Y-m').'-01')->startOfMonth();
         $years = AcademicYear::query()
             ->where('active', true)
             ->when($schoolIds !== null, fn (Builder $query) => $query->whereIn('school_id', $schoolIds))
             ->get(['starts_at', 'ends_at']);
-        $minimum = ($years->min('starts_at') ?? $fallback)->copy()->startOfMonth();
-        $maximum = ($years->max('ends_at') ?? $fallback)->copy()->startOfMonth();
+        $minimum = ($years->min('starts_at') ?? $fallbackMonth)->copy()->startOfMonth();
+        $maximum = ($years->max('ends_at') ?? $fallbackMonth)->copy()->startOfMonth();
         $selected = preg_match('/^\d{4}-\d{2}$/', (string) $request->query('calendar_month')) === 1
             ? Carbon::parse($request->query('calendar_month').'-01')->startOfMonth()
-            : $fallback->copy()->startOfMonth();
+            : $fallbackMonth->copy();
 
         if ($selected->lt($minimum)) {
             $selected = $minimum->copy();
