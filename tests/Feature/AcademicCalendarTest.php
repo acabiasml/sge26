@@ -810,6 +810,7 @@ class AcademicCalendarTest extends TestCase
         $this->actingAs($admin)
             ->post(route('academic-years.courses.store', $year), [
                 'name' => '3º Ano',
+                'itinerary_name' => 'Aprofundamento de Estudos',
                 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
                 'modality' => AcademicCourse::MODALITY_REGULAR,
                 'status' => 'iniciado',

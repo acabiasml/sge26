@@ -6,7 +6,18 @@ $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
 Illuminate\Support\Facades\DB::beginTransaction();
 try {
-    echo json_encode(app(App\Support\LegacyLiceuItineraryLinks::class)->snapshot(), JSON_THROW_ON_ERROR);
+    $legacy = app(App\Support\LegacyLiceuItineraryLinks::class);
+    $snapshot = $legacy->snapshot();
+    $snapshot['authorized_third_year'] = $legacy->authorizedThirdYearSnapshot();
+    $snapshot['incorporated_matrices'] = collect($snapshot['authorized_third_year']['links'])
+        ->unique('high_school_course_id')->map(function ($row) {
+            $matrix = App\Models\AcademicCourse::findOrFail($row['high_school_course_id']);
+            return ['matrix_id' => $matrix->id, 'reference_year' => $row['reference_year'],
+                'linked_offers' => $matrix->technicalItineraries->map(fn ($course) => [
+                    'id' => $course->id, 'components' => $matrix->incorporatedTechnicalComponents($course)->pluck('name')->all(),
+                ])->all()];
+        })->values()->all();
+    echo json_encode($snapshot, JSON_THROW_ON_ERROR);
 } finally {
     Illuminate\Support\Facades\DB::rollBack();
 }

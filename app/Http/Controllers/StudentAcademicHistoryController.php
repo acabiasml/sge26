@@ -18,6 +18,7 @@ use App\Support\PdfLetterhead;
 use App\Support\StudentAcademicHistoryCompleteness;
 use App\Support\StudentAcademicHistoryPdf;
 use App\Support\StudentHistoryConsolidator;
+use App\Support\StudentTechnicalItinerary;
 use App\Support\StudentHistoryEditGuard;
 use App\Support\UnifiedStudentHistorySynchronizer;
 use Illuminate\Http\RedirectResponse;
@@ -66,14 +67,42 @@ class StudentAcademicHistoryController extends Controller
                 $query->whereNull('school_id')->orWhereIn('school_id', $visibleSchoolIds);
             }))
             ->with('years.records.component')->withCount(['years', 'components'])]);
+        $unidentifiedTechnicalHistories = $person->academicHistories->filter(fn ($history) => ! $history->technical_course_id
+            && app(StudentHistoryConsolidator::class)->stage($history) === AcademicCourse::STAGE_TECHNICAL
+            && $history->years->contains(fn ($year) => $year->source !== 'system'));
+        $person->setRelation('academicHistories', $person->academicHistories->filter(fn ($history) =>
+            $history->education_stage !== AcademicCourse::STAGE_TECHNICAL || app(StudentTechnicalItinerary::class)->canIssue($history)));
         $unifiedHistories = $person->academicHistories->where('is_unified', true);
 
         return view('student-histories.student', [
             'person' => $person,
+            'unidentifiedTechnicalHistories' => $unidentifiedTechnicalHistories,
             'historyCompleteness' => $unifiedHistories->mapWithKeys(fn ($history) => [$history->id => $completeness->evaluate($history)]),
             'separateHistories' => $person->academicHistories->where('is_unified', false)->filter(fn ($history) => $history->years->isNotEmpty()),
             'availableHistoryStages' => $this->availableHistoryStages($request, $person),
+            'technicalCourses' => app(StudentTechnicalItinerary::class)->independentCourses($person, $request->user()->isAdministrator() ? null : $visibleSchoolIds),
         ]);
+    }
+
+    public function identifyTechnicalCourse(Request $request, Person $person, StudentAcademicHistory $history, UnifiedStudentHistorySynchronizer $synchronizer): RedirectResponse
+    {
+        $this->authorizeEnrolledStudent($request, $person);
+        abort_unless($history->person_id === $person->id && ! $history->technical_course_id
+            && app(StudentHistoryConsolidator::class)->stage($history) === AcademicCourse::STAGE_TECHNICAL, 404);
+        abort_unless($request->user()->canManageSchool($history->school_id), 403);
+        $request->validate(['technical_course_id' => ['required', 'integer']]);
+        $course = app(StudentTechnicalItinerary::class)->independentCourses($person, $request->user()->isAdministrator() ? null : $request->user()->manageableSchoolIds())->firstWhere('id', $request->integer('technical_course_id'));
+        abort_unless($course, 422);
+        if ($history->years()->where('source', '!=', 'system')->whereHas('records.curriculumComponent', fn ($q) => $q->where('academic_course_id', '!=', $course->id))->exists()) {
+            throw ValidationException::withMessages(['technical_course_id' => __('Os registros identificam outra oferta técnica. Nenhum lançamento foi movido.')]);
+        }
+        $target = DB::transaction(function () use ($request, $person, $history, $course, $synchronizer) {
+            // O documento antigo permanece arquivado; somente os anos manuais identificados
+            // pela gestão são incorporados, com seus IDs e valores originais.
+            $history->update(['is_unified' => false, 'education_stage' => null, 'technical_course_id' => $course->id]);
+            return $synchronizer->synchronize($person, $course->academicYear->school_id, $request->user()->person_id, AcademicCourse::STAGE_TECHNICAL, $course->id);
+        });
+        return redirect()->route('people.histories.edit', [$person, $target])->with('status', __('Lançamentos técnicos identificados e preservados no histórico do curso.'));
     }
 
     public function unified(Request $request, Person $person, string $stage, UnifiedStudentHistorySynchronizer $synchronizer): RedirectResponse
@@ -89,8 +118,16 @@ class StudentAcademicHistoryController extends Controller
                 'stage' => __('O histórico só pode ser iniciado para uma etapa em que o estudante possua matrícula registrada.'),
             ]);
         }
+        $technicalCourse = null;
+        if ($stage === AcademicCourse::STAGE_TECHNICAL) {
+            $eligible = app(StudentTechnicalItinerary::class)->independentCourses($person, $request->user()->isAdministrator() ? null : $request->user()->manageableSchoolIds());
+            $technicalCourse = $request->filled('technical_course_id') ? $eligible->firstWhere('id', $request->integer('technical_course_id')) : ($eligible->count() === 1 ? $eligible->first() : null);
+            if (! $technicalCourse) {
+                throw ValidationException::withMessages(['technical_course_id' => __('Selecione um curso técnico independente disponível para este estudante.')]);
+            }
+        }
         $schoolId = $person->studentEnrollments()
-            ->whereHas('courses', fn ($query) => $query->where('stage', $stage))
+            ->whereHas('courses', fn ($query) => $query->where('stage', $stage)->when($technicalCourse, fn ($q) => $q->whereKey($technicalCourse->id)))
             ->whereHas('schoolClass.academicYear', fn ($query) => $query
                 ->whereIn('school_id', $request->user()->isAdministrator() ? School::query()->pluck('id') : $request->user()->manageableSchoolIds()))
             ->with('schoolClass.academicYear')
@@ -101,7 +138,7 @@ class StudentAcademicHistoryController extends Controller
             ->when(! $request->user()->isAdministrator(), fn ($query) => $query->whereIn('school_id', $request->user()->manageableSchoolIds()))
             ->value('school_id');
         abort_unless($schoolId, 404);
-        $history = $synchronizer->synchronize($person, $schoolId, $request->user()->person_id, $stage);
+        $history = $synchronizer->synchronize($person, $schoolId, $request->user()->person_id, $stage, $technicalCourse?->id);
 
         return redirect()->route('people.histories.show', [$person, $history])
             ->with('status', __('Histórico unificado atualizado com os dados disponíveis no sistema. Os lançamentos manuais foram preservados.'));
@@ -168,6 +205,7 @@ class StudentAcademicHistoryController extends Controller
             'history' => new StudentAcademicHistory,
             'schools' => $this->schools($request),
             'states' => $this->states(),
+            'technicalCourses' => app(StudentTechnicalItinerary::class)->independentCourses($person, $request->user()->isAdministrator() ? null : $request->user()->manageableSchoolIds()),
         ]);
     }
 
@@ -182,7 +220,7 @@ class StudentAcademicHistoryController extends Controller
                 if (! $stage || $stage === AcademicCourse::STAGE_OTHER) {
                     throw ValidationException::withMessages(['years' => __('Identifique a etapa escolar de cada ano antes de salvar.')]);
                 }
-                $history = $synchronizer->synchronize($person, $data['history']['school_id'], $request->user()->person_id, $stage);
+                $history = $synchronizer->synchronize($person, $data['history']['school_id'], $request->user()->person_id, $stage, $stage === AcademicCourse::STAGE_TECHNICAL ? ($request->integer('technical_course_id') ?: null) : null);
                 foreach ($years as $index => $yearData) {
                     unset($yearData['id']);
                     $year = $history->years()->create(array_merge($yearData, [
@@ -227,6 +265,7 @@ class StudentAcademicHistoryController extends Controller
                 $history->school_id,
                 $request->user()->person_id,
                 $history->education_stage,
+                $history->technical_course_id,
             );
         }
 
@@ -255,6 +294,7 @@ class StudentAcademicHistoryController extends Controller
                 $history->school_id,
                 $request->user()->person_id,
                 $history->education_stage,
+                $history->technical_course_id,
             );
         }
 
@@ -307,6 +347,7 @@ class StudentAcademicHistoryController extends Controller
                     $history->school_id,
                     $request->user()->person_id,
                     $history->education_stage,
+                $history->technical_course_id,
                 );
             }
 
@@ -362,6 +403,7 @@ class StudentAcademicHistoryController extends Controller
                 $history->school_id,
                 $request->user()->person_id,
                 $history->education_stage,
+                $history->technical_course_id,
             );
         }
 
@@ -428,8 +470,8 @@ class StudentAcademicHistoryController extends Controller
             ->whereHas('schoolClass.academicYear', fn ($query) => $query->where('school_id', $history->school_id))
             ->with(['courses.startsPeriod', 'courses.endsPeriod', 'schoolClass.academicYear.periods'])
             ->get()
-            ->flatMap(function (StudentEnrollment $enrollment) {
-                $technicalCourses = $enrollment->courses->where('stage', AcademicCourse::STAGE_TECHNICAL);
+            ->flatMap(function (StudentEnrollment $enrollment) use ($history) {
+                $technicalCourses = $enrollment->courses->where('id', $history->technical_course_id);
                 $periods = $enrollment->schoolClass?->academicYear?->periods ?? collect();
 
                 return $technicalCourses->flatMap(function (AcademicCourse $course) use ($periods) {
@@ -451,7 +493,7 @@ class StudentAcademicHistoryController extends Controller
             return null;
         }
 
-        return $synchronizer->synchronize($person, $source->school_id, $request->user()->person_id, $stage);
+        return $synchronizer->synchronize($person, $source->school_id, $request->user()->person_id, $stage, $source->technical_course_id);
     }
 
     private function synchronizeExistingHistories(Request $request, Person $person): void
@@ -506,13 +548,14 @@ class StudentAcademicHistoryController extends Controller
 
         return collect($stages)->merge($person->academicHistories()
             ->where('is_unified', true)->whereIn('school_id', $schoolIds)->pluck('education_stage'))
-            ->filter()->unique()->values()->all();
+            ->filter(fn ($stage) => $stage !== AcademicCourse::STAGE_TECHNICAL || app(StudentTechnicalItinerary::class)->independentCourses($person, $schoolIds)->isNotEmpty())->filter()->unique()->values()->all();
     }
 
     private function authorizeHistory(Request $request, Person $person, StudentAcademicHistory $history): void
     {
         abort_unless($history->person_id === $person->id, 404);
         $this->authorizePerson($request, $person);
+        abort_unless(app(StudentTechnicalItinerary::class)->canIssue($history), 422, __('Este curso integra o histórico do Ensino Médio ou ainda precisa ser identificado por curso.'));
 
         if (! $request->user()->isAdministrator() && $history->school_id) {
             abort_unless(in_array($history->school_id, $request->user()->manageableSchoolIds(), true), 403);

@@ -62,6 +62,11 @@ class AcademicStructureValidator
         $items = [];
         $baseUrl = route('academic-years.courses.show', [$course->academic_year_id, $course]);
 
+        if ($course->stage === AcademicCourse::STAGE_HIGH_SCHOOL && blank($course->itinerary_name)
+            && ! $course->technicalItineraries()->exists()
+            && ! $course->classes()->whereHas('courses', fn ($q) => $q->where('stage', AcademicCourse::STAGE_TECHNICAL))->exists()) {
+            $items[] = self::issue('danger', __('Matriz do Médio sem itinerário'), __('Informe o itinerário próprio ou vincule a oferta técnica que integra esta matriz.'), __('Editar matriz'), route('academic-years.courses.edit', [$course->academic_year_id, $course]));
+        }
         if ($course->components->where('active', true)->isEmpty()) {
             $items[] = self::issue('danger', __('Matriz sem componentes ativos'), __('Inclua os componentes curriculares antes de criar turmas para esta matriz.'), __('Gerenciar matriz'), $baseUrl);
         }

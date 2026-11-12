@@ -27,6 +27,23 @@
 
     <x-structure-validation :issues="$structureIssues" title="{{ __('Validação da matriz') }}" empty="{{ __('Matriz sem inconsistências estruturais.') }}" />
 
+    @if($course->technicalItineraries->isNotEmpty())
+    <section class="card shadow mb-3"><div class="card-body">
+        <h2 class="h5">{{ __('Itinerário técnico incorporado') }}</h2>
+        <p class="text-muted">{{ __('Os componentes permanecem na oferta técnica original. Cada módulo integra o ano em que termina.') }}</p>
+        @foreach($course->technicalItineraries as $technicalOffer)
+            @php($incorporated = $course->incorporatedTechnicalComponents($technicalOffer))
+            @php($itineraryHours = $incorporated->sum(fn ($c) => $c->calculatedWorkloadHours($technicalOffer)))
+            <details class="mb-2"><summary><strong>{{ $technicalOffer->name }}</strong> · {{ number_format($itineraryHours, 2, ',', '.') }} h</summary>
+            <a class="d-inline-block my-2" href="{{ route('academic-years.courses.show', [$technicalOffer->academic_year_id, $technicalOffer]) }}">{{ __('Ver oferta técnica original') }}</a>
+            <div class="table-responsive"><table class="table table-sm" data-sge-client-pagination="10"><thead><tr><th scope="col">{{ __('Componente') }}</th><th scope="col">{{ __('Período') }}</th><th scope="col">{{ __('CH (h)') }}</th></tr></thead><tbody>
+            @foreach($incorporated as $component)<tr><td>{{ $component->name }}</td><td>{{ $component->endsPeriod?->name ?: $component->startsPeriod?->name }}</td><td>{{ number_format($component->calculatedWorkloadHours($technicalOffer), 2, ',', '.') }}</td></tr>@endforeach
+            </tbody></table></div>
+            <p>{{ __('Carga da matriz com este itinerário') }}: <strong>{{ number_format($course->calculatedWorkloadHours() + $itineraryHours, 2, ',', '.') }} h</strong></p>
+            </details>
+        @endforeach
+    </div></section>
+    @endif
     <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="{{ __('Áreas da matriz curricular') }}" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? 'adicionar' : 'resumo' }}">
         <a href="#section-resumo" class="sge-section-nav-item" data-academic-tab="resumo" role="tab"><i class="fas fa-clipboard-list"></i><span>{{ __('Resumo') }}</span></a>
         <a href="#section-adicionar" class="sge-section-nav-item" data-academic-tab="adicionar" role="tab"><i class="fas fa-plus-circle"></i><span>{{ __('Adicionar') }}</span></a>
@@ -63,7 +80,7 @@
                         <dd>{{ $course->isItineraryMatrix() ? __('Itinerário Formativo') : __('Formação Geral Básica') }}</dd>
                         @if(in_array($course->stage, [\App\Models\AcademicCourse::STAGE_HIGH_SCHOOL, \App\Models\AcademicCourse::STAGE_TECHNICAL], true))
                             <dt>{{ __('Itinerário formativo') }}</dt>
-                            <dd>{{ $course->stage === \App\Models\AcademicCourse::STAGE_TECHNICAL ? $course->name : ($course->itinerary_name ?: __('Aprofundamento de Estudos')) }}</dd>
+                            <dd>{{ $course->stage === \App\Models\AcademicCourse::STAGE_TECHNICAL ? $course->name : ($course->itinerary_name ?: ($course->technicalItineraries->pluck('name')->join(', ') ?: __('Conforme os cursos vinculados à turma'))) }}</dd>
                         @endif
                         @if($course->stage === \App\Models\AcademicCourse::STAGE_TECHNICAL)
                             <dt class="col-sm-4">{{ __('Fundamento legal e atos') }}</dt><dd class="col-sm-8">{{ $course->regulatoryReference() }}</dd>

@@ -38,6 +38,11 @@ class StudentAcademicHistoryRecord extends Model
         ];
     }
 
+    public function curriculumComponent(): BelongsTo
+    {
+        return $this->belongsTo(CurriculumComponent::class);
+    }
+
     public function component(): BelongsTo
     {
         return $this->belongsTo(StudentAcademicHistoryComponent::class, 'student_academic_history_component_id');

@@ -29,7 +29,6 @@
     @foreach([
         'fundamental' => [__('Ensino Fundamental'), 'fa-book-open'],
         'medio' => [__('Ensino Médio'), 'fa-graduation-cap'],
-        'tecnico' => [__('Ensino Técnico Profissionalizante'), 'fa-tools'],
     ] as $stage => $definition)
         @php($history = $person->academicHistories->where('is_unified', true)->firstWhere('education_stage', $stage))
         @php($completeness = $history ? ($historyCompleteness[$history->id] ?? null) : null)
@@ -58,6 +57,9 @@
                 @endif
             </div>
             <div class="sge-history-stage-actions">
+                @if($stage === 'medio' && $stageIsAvailable)
+                    <a class="btn btn-outline-secondary sge-icon-action" href="{{ route('people.itineraries.index', $person) }}" title="{{ __('Definir itinerário do estudante') }}" aria-label="{{ __('Definir itinerário do estudante') }}"><i class="fas fa-route" aria-hidden="true"></i></a>
+                @endif
                 @if($history)
                     <a class="btn btn-primary" href="{{ route('people.histories.show', [$person, $history]) }}" aria-label="{{ __('Abrir histórico') }} — {{ $definition[0] }}">{{ __('Abrir histórico') }}<i class="fas fa-arrow-right ml-2" aria-hidden="true"></i></a>
                     <a class="btn btn-outline-secondary sge-icon-action" href="{{ route('people.histories.edit', [$person, $history]) }}" aria-label="{{ __('Editar anos externos') }} — {{ $definition[0] }}" title="{{ __('Editar anos externos') }}"><i class="fas fa-pen" aria-hidden="true"></i></a>
@@ -75,8 +77,41 @@
             </div>
         </article>
     @endforeach
+        @foreach($technicalCourses as $technicalCourse)
+            @php($history = $person->academicHistories->where('is_unified', true)->firstWhere('technical_course_id', $technicalCourse->id))
+            <article class="card sge-panel-card sge-history-stage" data-history-stage="tecnico">
+                <div class="sge-history-stage-icon" aria-hidden="true"><i class="fas fa-tools"></i></div>
+                <div class="sge-history-stage-content"><span class="text-muted small">{{ __('Ensino Técnico Profissionalizante') }}</span><div class="sge-history-stage-heading"><h3>{{ $technicalCourse->name }}</h3></div><p class="text-muted mb-0">{{ $technicalCourse->academicYear->school->name }} · {{ $technicalCourse->academicYear->name }}</p></div>
+                <div class="sge-history-stage-actions">
+                    @if($history)
+                        <a class="btn btn-primary" href="{{ route('people.histories.show', [$person, $history]) }}">{{ __('Abrir histórico') }}</a>
+                        <a class="btn btn-outline-secondary sge-icon-action" href="{{ route('people.histories.edit', [$person, $history]) }}" aria-label="{{ __('Editar anos externos') }} — {{ $technicalCourse->name }}"><i class="fas fa-pen" aria-hidden="true"></i></a>
+                    @else
+                        <form method="post" action="{{ route('student-histories.unified', [$person, 'tecnico']) }}">@csrf
+                            <input type="hidden" name="technical_course_id" value="{{ $technicalCourse->id }}">
+                            <button class="btn btn-outline-primary" type="submit">{{ __('Abrir histórico') }}</button>
+                        </form>
+                    @endif
+                </div>
+            </article>
+        @endforeach
     </div>
 </section>
+@if($unidentifiedTechnicalHistories->isNotEmpty())
+<section class="card shadow mt-3"><div class="card-body">
+<h2 class="h5">{{ __('Identificar cursos dos lançamentos técnicos antigos') }}</h2>
+<p class="text-muted">{{ __('Os anos manuais foram preservados. Selecione a qual curso cada cadastro pertence antes de incorporá-lo ao histórico.') }}</p>
+@foreach($unidentifiedTechnicalHistories as $unidentified)
+<form method="post" action="{{ route('people.histories.identify-course', [$person, $unidentified]) }}" class="mb-3">@csrf
+<label for="history-course-{{ $unidentified->id }}">{{ $unidentified->title }} #{{ $unidentified->id }}</label>
+<div class="d-flex flex-wrap" style="gap: .75rem"><select class="form-control flex-grow-1" style="min-width: 0; max-width: 100%" id="history-course-{{ $unidentified->id }}" name="technical_course_id" required>
+<option value="">{{ __('Selecione o curso') }}</option>
+@foreach($technicalCourses as $course)<option value="{{ $course->id }}">{{ $course->name }} · {{ $course->academicYear->name }}</option>@endforeach
+</select><button class="btn btn-primary" type="submit">{{ __('Identificar e incorporar') }}</button></div>
+</form>
+@endforeach
+</div></section>
+@endif
 @if($separateHistories->isNotEmpty())
 <section class="card shadow sge-panel-card mt-4" aria-labelledby="separate-histories-title">
     <div class="sge-panel-header"><div>

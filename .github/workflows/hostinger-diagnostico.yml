@@ -5,6 +5,10 @@ on:
       - main
   workflow_dispatch:
     inputs:
+      link_liceu_third_year_itineraries:
+        description: Vincular somente o 3º ano de 2026 do Liceu e seu 2º ano de 2025 ao técnico por módulos
+        type: boolean
+        default: false
       repair_stage_areas:
         description: Corrigir associações entre áreas curriculares e etapas conforme autorização
         type: boolean
@@ -89,6 +93,7 @@ jobs:
         run: python -m pip install 'paramiko==3.5.1'
       - name: Verificar produção e aplicar migration quando solicitado
         env:
+          LINK_LICEU_THIRD_YEAR_ITINERARIES: ${{ inputs.link_liceu_third_year_itineraries }}
           REPAIR_STAGE_AREAS: ${{ inputs.repair_stage_areas }}
           REFRESH_VIEWS: ${{ inputs.refresh_views }}
           APPLY_VISIBILITY_MIGRATION: ${{ inputs.apply_visibility_migration }}

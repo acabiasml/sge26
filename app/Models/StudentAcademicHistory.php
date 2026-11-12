@@ -23,7 +23,34 @@ class StudentAcademicHistory extends Model
                 AcademicCourse::STAGE_ELEMENTARY,
                 AcademicCourse::STAGE_HIGH_SCHOOL,
                 AcademicCourse::STAGE_TECHNICAL,
-            ]);
+            ])->where(function (Builder $q): void {
+                $q->where('education_stage', '!=', AcademicCourse::STAGE_TECHNICAL)
+                    ->orWhere(function (Builder $technical): void {
+                        $technical->whereNotNull('technical_course_id')
+                            ->whereExists(function ($enrolled): void {
+                                $enrolled->selectRaw('1')->from('student_enrollments as technical_students')
+                                    ->join('academic_course_student_enrollment as enrolled_courses', 'enrolled_courses.student_enrollment_id', '=', 'technical_students.id')
+                                    ->where('technical_students.status', '!=', StudentEnrollment::STATUS_CANCELLED)
+                                    ->whereColumn('technical_students.person_id', 'student_academic_histories.person_id')
+                                    ->whereColumn('enrolled_courses.academic_course_id', 'student_academic_histories.technical_course_id');
+                            })
+                            ->whereHas('technicalCourse', fn ($course) => $course->where('stage', AcademicCourse::STAGE_TECHNICAL))
+                            ->whereNotExists(function ($integrated): void {
+                                $integrated->selectRaw('1')->from('student_enrollments as integrated_students')
+                                    ->join('academic_course_student_enrollment as technical_courses', 'technical_courses.student_enrollment_id', '=', 'integrated_students.id')
+                                    ->join('academic_course_student_enrollment as regular_courses', 'regular_courses.student_enrollment_id', '=', 'integrated_students.id')
+                                    ->join('academic_courses as regular_matrix', 'regular_matrix.id', '=', 'regular_courses.academic_course_id')
+                                    ->where('regular_matrix.stage', AcademicCourse::STAGE_HIGH_SCHOOL)
+                                    ->whereColumn('integrated_students.person_id', 'student_academic_histories.person_id')
+                                    ->whereColumn('technical_courses.academic_course_id', 'student_academic_histories.technical_course_id');
+                            })
+                            ->whereNotExists(function ($links): void {
+                                $links->selectRaw('1')->from('student_enrollments as itinerary_links')
+                                    ->whereColumn('itinerary_links.person_id', 'student_academic_histories.person_id')
+                                    ->whereColumn('itinerary_links.technical_itinerary_course_id', 'student_academic_histories.technical_course_id');
+                            });
+                    });
+            });
     }
 
     protected $fillable = [
@@ -40,6 +67,7 @@ class StudentAcademicHistory extends Model
         'active',
         'is_unified',
         'education_stage',
+        'technical_course_id',
     ];
 
     protected function casts(): array
@@ -48,6 +76,7 @@ class StudentAcademicHistory extends Model
             'issued_date' => 'date',
             'active' => 'boolean',
             'is_unified' => 'boolean',
+            'technical_course_id' => 'integer',
         ];
     }
 
@@ -74,6 +103,11 @@ class StudentAcademicHistory extends Model
     public function school(): BelongsTo
     {
         return $this->belongsTo(School::class);
+    }
+
+    public function technicalCourse(): BelongsTo
+    {
+        return $this->belongsTo(AcademicCourse::class, 'technical_course_id');
     }
 
     public function createdBy(): BelongsTo

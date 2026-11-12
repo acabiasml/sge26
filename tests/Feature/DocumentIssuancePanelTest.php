@@ -68,9 +68,14 @@ class DocumentIssuancePanelTest extends TestCase
         $student = $this->personWithRole('Estudante de Etapas', PersonSchoolRole::ROLE_STUDENT, $school->id);
         $this->actingAs($manager);
         $available = [];
+        $technicalYear = AcademicYear::create(['school_id' => $school->id, 'name' => 'Técnico', 'reference_year' => 2026, 'starts_at' => '2026-02-01', 'ends_at' => '2026-12-20']);
+        $technicalCourse = $technicalYear->courses()->create(['name' => 'Técnico em Móveis', 'stage' => 'tecnico']);
+        $technicalClass = $technicalYear->classes()->create(['name' => 'Técnico']);
+        $technicalEnrollment = $technicalClass->enrollments()->create(['person_id' => $student->id, 'status' => 'matriculado', 'enrolled_at' => '2026-02-01']);
+        $technicalEnrollment->courses()->attach($technicalCourse);
         foreach (['fundamental', 'medio', 'tecnico'] as $stage) {
             $history = StudentAcademicHistory::create(['person_id' => $student->id, 'school_id' => $school->id,
-                'title' => 'Histórico '.$stage, 'education_stage' => $stage, 'is_unified' => true, 'active' => true]);
+                'title' => 'Histórico '.$stage, 'education_stage' => $stage, 'is_unified' => true, 'active' => true, 'technical_course_id' => $stage === 'tecnico' ? $technicalCourse->id : null]);
             $available[] = $history->id;
             $this->get(route('document-issuance.issue', ['type' => 'academic-history', 'target_id' => $history->id]))->assertRedirect();
         }

@@ -305,10 +305,15 @@ class StudentReportCardBuilder
      */
     private function technicalSupplements(StudentEnrollment $enrollment, int $referenceYear): Collection
     {
+        if (! $enrollment->technical_itinerary_course_id) {
+            return collect();
+        }
+
         return StudentEnrollment::query()
             ->where('person_id', $enrollment->person_id)
             ->where('id', '!=', $enrollment->id)
-            ->whereHas('courses', fn ($query) => $query->where('stage', AcademicCourse::STAGE_TECHNICAL))
+            ->where('status', '!=', StudentEnrollment::STATUS_CANCELLED)
+            ->whereHas('courses', fn ($query) => $query->whereKey($enrollment->technical_itinerary_course_id)->where('stage', AcademicCourse::STAGE_TECHNICAL))
             ->with([
                 'courses.components.area',
                 'courses.components.course',
@@ -321,11 +326,11 @@ class StudentReportCardBuilder
                 $source->schoolClass->academicYear,
                 $referenceYear,
             ))
-            ->flatMap(function (StudentEnrollment $source): Collection {
+            ->flatMap(function (StudentEnrollment $source) use ($enrollment): Collection {
                 $sourceReport = $this->buildEnrollment($source);
 
                 return $source->courses
-                    ->where('stage', AcademicCourse::STAGE_TECHNICAL)
+                    ->where('id', $enrollment->technical_itinerary_course_id)
                     ->map(fn (AcademicCourse $course): array => [
                         'enrollment' => $source,
                         'course' => $course,

@@ -214,6 +214,28 @@ class AcademicCourse extends Model
             ->values();
     }
 
+    public function technicalItineraries(): BelongsToMany
+    {
+        return $this->belongsToMany(self::class, 'academic_course_technical_itinerary', 'academic_course_id', 'technical_course_id')->withTimestamps();
+    }
+
+    public function itineraryEnrollments(): HasMany
+    {
+        return $this->hasMany(StudentEnrollment::class, 'technical_itinerary_course_id');
+    }
+
+    /** Componentes técnicos desta oferta que se concluem no ano da matriz do Médio. */
+    public function incorporatedTechnicalComponents(self $technicalCourse): Collection
+    {
+        $referenceYear = (int) ($this->academicYear->reference_year ?: $this->academicYear->starts_at?->year);
+        $technicalCourse->loadMissing('components.startsPeriod', 'components.endsPeriod', 'academicYear');
+
+        return $technicalCourse->components->filter(fn ($component) => (int) (
+            $component->endsPeriod?->ends_at?->year ?? $component->startsPeriod?->ends_at?->year
+            ?? $technicalCourse->academicYear->ends_at?->year ?? $technicalCourse->academicYear->reference_year
+        ) === $referenceYear)->values();
+    }
+
     public function classes(): BelongsToMany
     {
         return $this->belongsToMany(SchoolClass::class, 'academic_course_school_class')->withTimestamps();

@@ -95,7 +95,7 @@ class CurriculumStageAreasTest extends TestCase
         $area = KnowledgeArea::where('name', 'Linguagens')->firstOrFail();
         $course->components()->create(['name' => 'Português', 'knowledge_area_id' => $area->id]);
         $this->put(route('academic-years.courses.update', [$year, $course]), [
-            'name' => $course->name, 'stage' => 'medio', 'modality' => 'regular', 'class_hour_minutes' => 50,
+            'name' => $course->name, 'stage' => 'medio', 'modality' => 'regular', 'class_hour_minutes' => 50, 'itinerary_name' => 'Ciências da Natureza',
         ])->assertSessionHasErrors('stage');
         $this->assertSame('fundamental', $course->fresh()->stage);
         $person = auth()->user()->person;

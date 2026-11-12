@@ -34,6 +34,9 @@ class StudentHistoryConsolidator
                 foreach ($years as $year) {
                     $stage = array_search($year->stage, AcademicCourse::STAGE_LABELS, true)
                         ?: (blank($year->stage) ? $this->stage($source) : null);
+                    if ($stage === AcademicCourse::STAGE_TECHNICAL && ($source->technical_course_id !== $target->technical_course_id || $year->source === 'system')) {
+                        continue;
+                    }
                     if ($stage !== $target->education_stage) {
                         continue;
                     }

@@ -20,15 +20,37 @@ class UnifiedStudentHistorySynchronizer
         private readonly StudentAcademicHistoryCompleteness $completeness,
     ) {}
 
-    public function synchronize(Person $student, int $schoolId, int $personId, string $stage): StudentAcademicHistory
+    public function synchronize(Person $student, int $schoolId, int $personId, string $stage, ?int $technicalCourseId = null): StudentAcademicHistory
     {
-        return DB::transaction(function () use ($student, $schoolId, $personId, $stage): StudentAcademicHistory {
+        if ($stage === AcademicCourse::STAGE_TECHNICAL) {
+            $eligible = app(StudentTechnicalItinerary::class)->independentCourses($student);
+            $technicalCourseId ??= $eligible->count() === 1 ? $eligible->first()->id : null;
+            if (! $technicalCourseId || ! $eligible->contains('id', $technicalCourseId)) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['technical_course_id' => __('Selecione o curso técnico independente. Cursos usados como itinerário integram o histórico do Médio.')]);
+            }
+        } else {
+            $technicalCourseId = null;
+        }
+        return DB::transaction(function () use ($student, $schoolId, $personId, $stage, $technicalCourseId): StudentAcademicHistory {
             $school = School::query()->findOrFail($schoolId);
             $stageLabel = $stage === AcademicCourse::STAGE_TECHNICAL
-                ? 'Ensino Técnico Profissionalizante'
+                ? 'Ensino Técnico Profissionalizante — '.AcademicCourse::findOrFail($technicalCourseId)->name
                 : AcademicCourse::STAGE_LABELS[$stage];
+            if ($technicalCourseId) {
+                $legacyHistory = StudentAcademicHistory::where('person_id', $student->id)->where('is_unified', true)
+                    ->where('education_stage', AcademicCourse::STAGE_TECHNICAL)->whereNull('technical_course_id')->lockForUpdate()->first();
+                // Só identifica automaticamente um documento antigo quando todos os seus anos
+                // e registros comprovam a mesma oferta. Lançamentos manuais ambíguos são preservados.
+                if ($legacyHistory && ! $legacyHistory->years()->where('source', '!=', 'system')->exists()
+                    && ! $legacyHistory->years()->whereDoesntHave('enrollment.courses', fn ($q) => $q->whereKey($technicalCourseId))->exists()
+                    && ! $legacyHistory->years()->whereHas('records', fn ($q) => $q->whereNull('curriculum_component_id')
+                        ->orWhereHas('curriculumComponent', fn ($q) => $q->where('academic_course_id', '!=', $technicalCourseId)))->exists()
+                    && ! StudentAcademicHistory::where('person_id', $student->id)->where('is_unified', true)->where('education_stage', 'tecnico')->where('technical_course_id', $technicalCourseId)->exists()) {
+                    $legacyHistory->update(['technical_course_id' => $technicalCourseId, 'title' => 'Histórico escolar - '.$stageLabel]);
+                }
+            }
             $history = StudentAcademicHistory::query()->firstOrCreate(
-                ['person_id' => $student->id, 'is_unified' => true, 'education_stage' => $stage],
+                ['person_id' => $student->id, 'is_unified' => true, 'education_stage' => $stage, 'technical_course_id' => $technicalCourseId],
                 [
                     'school_id' => $school->id,
                     'created_by_person_id' => $personId,
@@ -59,12 +81,14 @@ class UnifiedStudentHistorySynchronizer
 
             $enrollments = $allEnrollments->filter(
                 fn (StudentEnrollment $enrollment): bool => $enrollment->courses->contains('stage', $stage)
+                    && (! $technicalCourseId || $enrollment->courses->contains('id', $technicalCourseId))
             )->values();
             $technicalSources = $stage === AcademicCourse::STAGE_HIGH_SCHOOL
                 ? $this->technicalSources($allEnrollments)
                 : collect();
             $technicalCourses = $allEnrollments->flatMap->courses
                 ->where('stage', AcademicCourse::STAGE_TECHNICAL)
+                ->when($technicalCourseId, fn ($courses) => $courses->where('id', $technicalCourseId))
                 ->unique('id');
             $enrollmentIds = $enrollments->pluck('id');
             $obsoleteYears = $history->years()->where('source', 'system');
@@ -117,6 +141,16 @@ class UnifiedStudentHistorySynchronizer
                 ->filter(fn ($stage) => in_array($stage, [AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL, AcademicCourse::STAGE_TECHNICAL], true))
                 ->unique();
             foreach ($stages as $stage) {
+                if ($stage === AcademicCourse::STAGE_TECHNICAL) {
+                    foreach (app(StudentTechnicalItinerary::class)->independentCourses($student, $schoolIds) as $course) {
+                        $key = 'technical:'.$course->id;
+                        if (! isset($processed[$key])) {
+                            $this->synchronize($student, $course->academicYear->school_id, $personId, $stage, $course->id);
+                            $processed[$key] = true;
+                        }
+                    }
+                    continue;
+                }
                 $key = $history->school_id.':'.$stage;
                 if ($history->school_id && ! isset($processed[$key])) {
                     $this->synchronize($student, $history->school_id, $personId, $stage);
@@ -138,12 +172,13 @@ class UnifiedStudentHistorySynchronizer
     private function synchronizeEnrollment(StudentAcademicHistory $history, StudentEnrollment $enrollment, int $position, string $stage, bool $hasLaterEnrollment, Collection $technicalSources): void
     {
         $report = $this->reportCardBuilder->build($enrollment);
-        $course = $report['courses']->firstWhere('stage', $stage);
-        $stageComponents = $report['annualComponents']->filter(fn (array $item): bool => $item['component']->course?->stage === $stage);
+        $course = $history->technical_course_id ? $report['courses']->firstWhere('id', $history->technical_course_id) : $report['courses']->firstWhere('stage', $stage);
+        $stageComponents = $report['annualComponents']->filter(fn (array $item): bool => $item['component']->course?->stage === $stage
+            && (! $history->technical_course_id || $item['component']->academic_course_id === $history->technical_course_id));
         $year = $report['academicYear'];
         $referenceYear = (int) ($year->reference_year ?: $year->starts_at?->year);
         $supplementalComponents = $stage === AcademicCourse::STAGE_HIGH_SCHOOL
-            ? $this->technicalComponentsForYear($technicalSources, $referenceYear)
+            ? $this->technicalComponentsForYear($technicalSources->filter(fn ($source) => $source['course']->id === $enrollment->technical_itinerary_course_id || $source['enrollment']->id === $enrollment->id), $referenceYear)
             : collect();
         $historyComponents = $stageComponents->concat($supplementalComponents)->values();
         $school = $year->school;

@@ -69,7 +69,13 @@ class AcademicCourseController extends Controller
         $this->ensureCanChangeApprovedCalendar($request, $academicYear);
 
         $data = $this->validatedData($request, $academicYear);
-        $course = $academicYear->courses()->create($data);
+        $technicalIds = $data['technical_itinerary_ids'];
+        unset($data['technical_itinerary_ids']);
+        $course = DB::transaction(function () use ($academicYear, $data, $technicalIds) {
+            $course = $academicYear->courses()->create($data);
+            $course->technicalItineraries()->sync($technicalIds);
+            return $course;
+        });
 
         return redirect()->route('academic-years.courses.show', [$academicYear, $course])
             ->with('status', __('Curso cadastrado com sucesso.'));
@@ -81,7 +87,13 @@ class AcademicCourseController extends Controller
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
         $this->ensureCanChangeApprovedCalendar($request, $academicYear);
 
-        $course->update($this->validatedData($request, $academicYear, $course));
+        $data = $this->validatedData($request, $academicYear, $course);
+        $technicalIds = $data['technical_itinerary_ids'];
+        unset($data['technical_itinerary_ids']);
+        DB::transaction(function () use ($course, $data, $technicalIds) {
+            $course->update($data);
+            $course->technicalItineraries()->sync($technicalIds);
+        });
 
         return redirect()->route('academic-years.courses.show', [$academicYear, $course])
             ->with('status', __('Matriz atualizada com sucesso.'));
@@ -150,6 +162,7 @@ class AcademicCourseController extends Controller
                 $copy->adoptCatalogDefinition($definition);
             }
 
+            $duplicatedCourse->technicalItineraries()->sync($course->technicalItineraries()->pluck('academic_courses.id'));
             $duplicatedCourse->refreshWorkloadHours();
 
             return $duplicatedCourse;
@@ -178,7 +191,9 @@ class AcademicCourseController extends Controller
                     ->ignore($course?->id),
             ],
             'stage' => ['required', Rule::in(array_keys(AcademicCourse::STAGE_LABELS))],
-            'itinerary_name' => ['nullable', 'string', 'max:255'],
+            'itinerary_name' => [Rule::requiredIf($request->input('stage') === AcademicCourse::STAGE_HIGH_SCHOOL && empty($request->input('technical_itinerary_ids', []))), 'nullable', 'string', 'max:255'],
+            'technical_itinerary_ids' => ['nullable', 'array'],
+            'technical_itinerary_ids.*' => ['integer', 'distinct', Rule::exists('academic_courses', 'id')->where('stage', AcademicCourse::STAGE_TECHNICAL)->whereIn('academic_year_id', AcademicYear::where('school_id', $academicYear->school_id)->select('id'))],
             'technical_legal_basis' => ['required_if:stage,'.AcademicCourse::STAGE_TECHNICAL, 'nullable', 'string', 'max:5000'],
             'accreditation_act' => ['required_if:stage,'.AcademicCourse::STAGE_TECHNICAL, 'nullable', 'string', 'max:5000'],
             'authorization_act' => ['required_if:stage,'.AcademicCourse::STAGE_TECHNICAL, 'nullable', 'string', 'max:5000'],
@@ -206,6 +221,10 @@ class AcademicCourseController extends Controller
             }
         }
 
+        $data['technical_itinerary_ids'] = $data['stage'] === AcademicCourse::STAGE_HIGH_SCHOOL ? ($data['technical_itinerary_ids'] ?? []) : [];
+        if ($course && $course->enrollments()->whereNotNull('technical_itinerary_course_id')->whereNotIn('technical_itinerary_course_id', $data['technical_itinerary_ids'])->exists()) {
+            throw ValidationException::withMessages(['technical_itinerary_ids' => __('Esta oferta técnica já é itinerário de estudantes da matriz. Ajuste os vínculos dos estudantes antes de removê-la.')]);
+        }
         $data['status'] = 'curricular';
         $data['active'] = true;
         $data['workload_hours'] = $course?->calculatedWorkloadHours() ?? 0;

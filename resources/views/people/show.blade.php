@@ -222,7 +222,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse ($person->academicHistories->where('is_unified', true) as $history)
+                            @forelse ($person->academicHistories->where('is_unified', true)->filter(fn ($h) => app(\App\Support\StudentTechnicalItinerary::class)->canIssue($h)) as $history)
                                 <tr>
                                     <td>
                                         {{ $history->title }}

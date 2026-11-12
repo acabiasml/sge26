@@ -175,6 +175,18 @@
                 </tbody>
             </table>
 
+            @foreach($matrixGroup['courses'] as $regularCourse)
+                @foreach($regularCourse->technicalItineraries as $technicalOffer)
+                    @php($incorporated = $regularCourse->incorporatedTechnicalComponents($technicalOffer))
+                    @php($itineraryHours = $incorporated->sum(fn ($c) => $c->calculatedWorkloadHours($technicalOffer)))
+                    <h3>{{ $regularCourse->name }} — Itinerário: {{ $technicalOffer->name }}</h3>
+                    <table class="matrix-table"><thead><tr><th>Componente</th><th>Módulo / período</th><th>CH (h)</th></tr></thead><tbody>
+                    @foreach($incorporated as $component)<tr><td>{{ $component->name }}</td><td>{{ $component->endsPeriod?->name ?: $component->startsPeriod?->name }}</td><td>{{ number_format($component->calculatedWorkloadHours($technicalOffer), 2, ',', '.') }}</td></tr>@endforeach
+                    <tr><th colspan="2">Total do itinerário neste ano</th><td>{{ number_format($itineraryHours, 2, ',', '.') }}</td></tr>
+                    <tr><th colspan="2">Total da matriz com este itinerário</th><td>{{ number_format($regularCourse->calculatedWorkloadHours() + $itineraryHours, 2, ',', '.') }}</td></tr>
+                    </tbody></table>
+                @endforeach
+            @endforeach
             <div class="signature-block">
                 <div class="signature-date">
                     {{ $academicYear->school?->city ?: 'Poxoréu' }}{{ $academicYear->school?->state ? '-'.$academicYear->school->state : '-MT' }},

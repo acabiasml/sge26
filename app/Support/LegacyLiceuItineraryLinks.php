@@ -12,6 +12,20 @@ final class LegacyLiceuItineraryLinks
 {
     public const SCHOOL_NAME = 'Liceu Pedagógico São Francisco de Assis';
 
+    public function authorizedThirdYearSnapshot(): array
+    {
+        $snapshot = $this->snapshot();
+        $cohort = collect($snapshot['links'])->filter(fn ($row) => $row['reference_year'] === 2026 && $row['high_school_course'] === '3º Ano');
+        $people = $cohort->pluck('person_id');
+        $courses = $cohort->pluck('technical_course_id')->unique();
+        $links = collect($snapshot['links'])->filter(fn ($row) => $people->contains($row['person_id'])
+            && $courses->contains($row['technical_course_id']) && in_array($row['reference_year'], [2025, 2026], true))->values();
+        $identity = $links->map(fn ($row) => [$row['enrollment_id'], $row['high_school_course_id'], $row['technical_course_id']])->all();
+
+        return ['school_id' => $snapshot['school_id'], 'students' => $people->unique()->count(), 'count' => $links->count(),
+            'sha256' => hash('sha256', json_encode($identity, JSON_THROW_ON_ERROR)), 'links' => $links->all()];
+    }
+
     public function snapshot(): array
     {
         $school = School::where('name', self::SCHOOL_NAME)->sole();
@@ -55,7 +69,8 @@ final class LegacyLiceuItineraryLinks
                     'student_name' => $enrollment->student->full_name, 'high_school_course_id' => $course->id,
                     'high_school_course' => $course->name, 'reference_year' => $referenceYear,
                     'technical_course_id' => $source['course']->id, 'technical_course' => $source['course']->name,
-                    'technical_enrollment_id' => $source['enrollment']->id, 'status' => $enrollment->status];
+                    'technical_enrollment_id' => $source['enrollment']->id, 'status' => $enrollment->status,
+                    'assigned_technical_course_id' => $enrollment->getAttribute('technical_itinerary_course_id')];
             }
         }
         $identity = collect($links)->map(fn ($row) => [$row['enrollment_id'], $row['high_school_course_id'], $row['technical_course_id']])->all();

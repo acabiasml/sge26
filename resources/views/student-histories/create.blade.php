@@ -16,6 +16,12 @@
 
     <form method="POST" action="{{ route('people.histories.store', $person) }}">
         @csrf
+        @if($technicalCourses->isNotEmpty())
+            <div class="form-group"><label for="technical_course_id">{{ __('Curso dos anos técnicos externos, se houver') }}</label>
+            <select id="technical_course_id" name="technical_course_id" class="form-control"><option value="">{{ __('Selecione o curso para lançamentos técnicos') }}</option>
+            @foreach($technicalCourses as $course)<option value="{{ $course->id }}" @selected((int) old('technical_course_id') === $course->id)>{{ $course->name }} · {{ $course->academicYear->name }}</option>@endforeach
+            </select></div>
+        @endif
         @include('student-histories._form')
     </form>
 @endsection

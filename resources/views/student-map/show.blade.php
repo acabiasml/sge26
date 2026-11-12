@@ -9,7 +9,7 @@
     $resultsByEnrollment = $assessmentResults->groupBy(fn ($result) => $result->enrollment?->id ?? 'sem-matricula');
     $behaviorByEnrollment = $behaviorGrades->groupBy(fn ($grade) => $grade->enrollment?->id ?? 'sem-matricula');
     $latestResults = $assessmentResults->take(5);
-    $histories = $person->academicHistories->sortByDesc('created_at')->values();
+    $histories = $person->academicHistories->filter(fn ($h) => app(\App\Support\StudentTechnicalItinerary::class)->canIssue($h))->sortByDesc('created_at')->values();
     $convalidations = $enrollments
         ->flatMap(fn ($enrollment) => $enrollment->periodConvalidations->map(fn ($item) => ['enrollment' => $enrollment, 'convalidation' => $item]))
         ->sortByDesc(fn ($item) => $item['convalidation']->convalidated_at?->toDateString())
