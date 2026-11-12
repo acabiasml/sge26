@@ -2937,5 +2937,15 @@
     "Textos institucionais por etapa": "Testi istituzionali per livello scolastico",
     "Preencha somente quando a autorização da etapa exigir um texto diferente do padrão. Se ficar vazio, será usado o texto padrão acima.": "Compila solo quando l’autorizzazione del livello richiede un testo diverso da quello predefinito. Se il campo è vuoto, viene usato il testo predefinito sopra.",
     "Ensino Fundamental — texto institucional (opcional)": "Istruzione primaria e secondaria di primo grado — testo istituzionale (facoltativo)",
-    "Ensino Médio — texto institucional (opcional)": "Istruzione secondaria di secondo grado — testo istituzionale (facoltativo)"
+    "Ensino Médio — texto institucional (opcional)": "Istruzione secondaria di secondo grado — testo istituzionale (facoltativo)",
+    "Etapas de ensino": "Livelli scolastici",
+    "Os dados das matrículas são atualizados ao abrir o histórico.": "I dati delle iscrizioni vengono aggiornati quando si apre la carriera scolastica.",
+    "Atualização automática": "Aggiornamento automatico",
+    "Conferir cadastro": "Controlla i dati",
+    "Cadastrado": "Registrato",
+    "ano cadastrado": "anno registrato",
+    "anos cadastrados": "anni registrati",
+    "componente": "componente",
+    "Disponível a partir das matrículas registradas.": "Disponibile in base alle iscrizioni registrate.",
+    "Sem matrícula nesta etapa": "Nessuna iscrizione a questo livello"
 }

@@ -7172,3 +7172,33 @@ button.sge-target-result:focus-visible {
     white-space: normal;
     overflow-wrap: anywhere;
 }
+
+.sge-history-overview-person { padding: 1rem 1.2rem; }
+.sge-history-overview-person .sge-avatar-lg { width: 3rem; height: 3rem; font-size: 1.4rem; }
+.sge-history-overview-person h2 { font-size: clamp(1.15rem, 2vw, 1.45rem); }
+.sge-history-overview-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem 1rem; margin: 1.35rem 0 .8rem; }
+.sge-history-overview-heading h2 { font-size: 1.05rem; margin: 0; color: var(--sge-ink); }
+.sge-history-overview-heading > span { font-size: .85rem; }
+.sge-history-stage-list { display: grid; gap: .9rem; }
+.sge-history-stage-list .sge-history-stage { --sge-stage-accent: var(--sge-blue); display: grid; grid-template-columns: 3rem minmax(0, 1fr) auto; align-items: center; gap: 1rem; padding: 1.1rem 1.2rem; margin: 0; border-left: 4px solid var(--sge-stage-accent); }
+.sge-history-stage[data-history-stage="medio"] { --sge-stage-accent: var(--sge-orange); }
+.sge-history-stage[data-history-stage="tecnico"] { --sge-stage-accent: var(--sge-green); }
+.sge-history-stage-list .sge-history-stage.is-unavailable { --sge-stage-accent: var(--sge-muted); }
+.sge-history-stage-icon { display: flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; border-radius: .85rem; font-size: 1.15rem; color: var(--sge-stage-accent); background: color-mix(in srgb, var(--sge-stage-accent) 12%, var(--sge-paper)); }
+.sge-history-stage-content { min-width: 0; }
+.sge-history-stage-heading { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+.sge-history-stage-heading h3 { font-size: 1.05rem; color: var(--sge-ink); margin: 0; }
+.sge-history-stage-counts { display: flex; flex-wrap: wrap; gap: .35rem 1rem; color: var(--sge-muted); margin: .45rem 0 0; font-size: .9rem; }
+.sge-history-stage-counts strong { color: var(--sge-ink); }
+.sge-history-stage-notice { color: var(--sge-muted); font-size: .9rem; line-height: 1.4; margin: .4rem 0 0; }
+.sge-history-stage-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+.sge-history-stage-actions form { margin: 0; }
+@media (max-width: 767px) {
+    .sge-history-stage-list .sge-history-stage { grid-template-columns: 3rem minmax(0, 1fr); }
+    .sge-history-stage-actions { grid-column: 2; }
+}
+@media (max-width: 575px) {
+    .sge-history-stage-list .sge-history-stage { padding: 1rem; gap: .75rem; }
+    .sge-history-stage-actions { grid-column: 1 / -1; }
+    .sge-history-stage-heading h3 { font-size: 1rem; }
+}

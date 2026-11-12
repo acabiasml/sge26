@@ -65,6 +65,10 @@ class StudentHistoryConsolidationTest extends TestCase
         $this->assertSame(0, $source->years()->count());
         $this->assertFalse($source->fresh()->active);
         $this->assertStringContainsString($source->notes, $canonical->notes);
+        $this->get(route('student-histories.student', $source->person_id))->assertOk()
+            ->assertDontSee('Atualizar dados das matrículas')
+            ->assertSee(route('people.histories.show', [$source->person_id, $canonical]), false)
+            ->assertSee(route('people.histories.edit', [$source->person_id, $canonical]), false);
         $this->assertDatabaseHas('student_academic_history_years', ['id' => $first, 'student_academic_history_id' => $canonical->id, 'workload_hours' => 800, 'source_document' => 'Documento de origem']);
         $this->assertDatabaseHas('student_academic_history_records', ['student_academic_history_year_id' => $first, 'score_label' => '8,5', 'workload_hours' => 160, 'completed_workload_hours' => 155, 'absences' => 2]);
         $this->assertTrue(app(StudentAcademicHistoryCompleteness::class)->evaluate($canonical)['complete']);
