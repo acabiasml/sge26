@@ -6,6 +6,12 @@
 - Preserve esse caminho reutilizável de consulta pelo GitHub Actions. Mantenha os resultados criptografados e as chaves privadas somente fora do repositório.
 - Consultas de diagnóstico não autorizam alterações nos registros do estudante. Diferencie o estado efetivamente consultado de hipóteses reproduzidas em teste.
 
+### Falha conhecida ao reexecutar a consulta protegida
+
+- Registro de 12/11/2026: a reexecução do run `43231647430` consultou a produção com sucesso, mas falhou ao guardar o novo relatório criptografado. O workflow reutiliza `consulta-historico-$DIAGNOSIS_RUN_ID`; como `git commit-tree` cria commits sem ancestral comum, o push para uma branch já existente é rejeitado com `fetch first`/non-fast-forward.
+- A correção prevista é criar uma branch por execução e tentativa, usando `GITHUB_RUN_ID` e `GITHUB_RUN_ATTEMPT`, e ajustar as instruções de coleta do relatório. Preservar os relatórios anteriores; `git pull` não resolve a colisão entre esses commits independentes.
+- A correção do workflow permanece pendente. Este registro documenta o problema, sem implementar a correção. Até ela ser aplicada, não reexecutar uma consulta esperando substituir o relatório na mesma branch. Distinguir falha no armazenamento do relatório de falha na consulta, alteração de dados escolares ou falha no deploy da aplicação.
+
 ## Fluxo obrigatório para qualquer mudança de código
 
 - Toda alteração de código deve ser feita com confirmação explícita do objetivo, do escopo e do impacto esperado.
