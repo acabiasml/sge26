@@ -106,6 +106,10 @@ with tempfile.TemporaryDirectory() as directory:
                 'php artisan migrate --path=database/migrations/2026_10_29_000001_add_grade_identity_to_history_years.php --force --no-ansi',
             ))
         if os.environ.get('LINK_LICEU_THIRD_YEAR_ITINERARIES') == 'true':
+            commands.append(('Aplicar migration dos históricos por curso',
+                'php artisan migrate --path=database/migrations/2026_11_12_000004_scope_technical_histories_by_course.php --force --no-ansi'))
+            commands.append(('Aplicar migration dos itinerários explícitos',
+                'php artisan migrate --path=database/migrations/2026_11_12_000005_add_explicit_technical_itineraries.php --force --no-ansi'))
             commands.append(('Vincular itinerário autorizado do 3º ano do Liceu',
                 'php artisan itineraries:link-liceu-third-year --apply --expected=bbbe66773bcf2002bec3b403133fbbbae7a88a845ef2b866ddeef1d2630fa54e --no-ansi'))
             commands.append(('Conferir vínculos restantes', 'php artisan itineraries:link-liceu-third-year --no-ansi'))
