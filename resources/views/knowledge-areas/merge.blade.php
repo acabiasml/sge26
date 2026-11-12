@@ -5,7 +5,7 @@
 @include('knowledge-areas._navigation')
 <section class="card sge-panel-card mb-4">
     <div class="card-body">
-        <p><strong>{{ __('Origem') }}: {{ $catalogComponent->name }}</strong> · {{ $catalogComponent->area->name }} · {{ __($catalogComponent->formation) }} · {{ __(\App\Support\HistoryCurriculumCatalog::stageLabels()[$catalogComponent->education_stage]) }}</p>
+        <p><strong>{{ __('Origem') }}: {{ $catalogComponent->name }}</strong> · @include('partials.knowledge-area-label', ['labelArea' => $catalogComponent->area]) · {{ __($catalogComponent->formation) }} · {{ __(\App\Support\HistoryCurriculumCatalog::stageLabels()[$catalogComponent->education_stage]) }}</p>
         <p class="text-muted">{{ __('Escolha outro componente do catálogo e o cadastro que vai prevalecer. A mesclagem atualiza nome, área e formação nos históricos e nas matrizes vinculadas, preservando notas, faltas, cargas horárias e vínculos dos diários.') }}</p>
         @if($catalogComponent->matrixComponents->isNotEmpty())
             <details class="mb-3">
@@ -18,7 +18,7 @@
             </details>
         @endif
         <form method="POST" action="{{ route('history-curriculum.merge', $catalogComponent) }}" data-catalog-merge-form
-              data-source-name="{{ $catalogComponent->name }}" data-source-stage="{{ __(\App\Support\HistoryCurriculumCatalog::stageLabels()[$catalogComponent->education_stage]) }}" data-source-formation="{{ __($catalogComponent->formation) }}" data-source-area="{{ $catalogComponent->area->name }}"
+              data-source-name="{{ $catalogComponent->name }}" data-source-stage="{{ __(\App\Support\HistoryCurriculumCatalog::stageLabels()[$catalogComponent->education_stage]) }}" data-source-formation="{{ __($catalogComponent->formation) }}" data-source-area="{{ $catalogComponent->area->selectionLabel() }}"
               data-confirm-message="{{ __('Confirmar a mesclagem? Os históricos e as matrizes vinculadas, quando houver, adotarão o cadastro escolhido. Os lançamentos escolares serão preservados.') }}">
             @csrf
             <div class="form-group">
@@ -26,7 +26,7 @@
                 <select id="merge-target" name="target_component_id" class="form-control" required aria-describedby="merge-context">
                     <option value="">{{ __('Selecione') }}</option>
                     @foreach($candidates as $candidate)
-                        <option value="{{ $candidate->id }}" data-name="{{ $candidate->name }}" data-stage="{{ __(\App\Support\HistoryCurriculumCatalog::stageLabels()[$candidate->education_stage]) }}" data-formation="{{ __($candidate->formation) }}" data-area="{{ $candidate->area->name }}" @selected((string) old('target_component_id') === (string) $candidate->id)>{{ $candidate->name }} · {{ __(\App\Support\HistoryCurriculumCatalog::stageLabels()[$candidate->education_stage]) }} · {{ __($candidate->formation) }} · {{ $candidate->area->name }}</option>
+                        <option value="{{ $candidate->id }}" data-name="{{ $candidate->name }}" data-stage="{{ __(\App\Support\HistoryCurriculumCatalog::stageLabels()[$candidate->education_stage]) }}" data-formation="{{ __($candidate->formation) }}" data-area="{{ $candidate->area->selectionLabel() }}" @selected((string) old('target_component_id') === (string) $candidate->id)>{{ $candidate->name }} · {{ __(\App\Support\HistoryCurriculumCatalog::stageLabels()[$candidate->education_stage]) }} · {{ __($candidate->formation) }} · {{ $candidate->area->selectionLabel() }}</option>
                     @endforeach
                 </select>
                 <small id="merge-context" class="form-text text-muted">{{ __('Somente componentes da mesma etapa de ensino podem ser mesclados. A classificação escolhida deve ser compatível com as matrizes vinculadas.') }}</small>
@@ -35,7 +35,7 @@
                     <legend class="h6">{{ __('Qual cadastro deve prevalecer?') }}</legend>
                     <div class="custom-control custom-radio mb-2">
                         <input class="custom-control-input" type="radio" id="merge-keep-source" name="keep" value="source" @checked(old('keep', 'target') === 'source')>
-                        <label class="custom-control-label" for="merge-keep-source">{{ $catalogComponent->name }} · {{ __($catalogComponent->formation) }} · {{ $catalogComponent->area->name }}</label>
+                        <label class="custom-control-label" for="merge-keep-source">{{ $catalogComponent->name }} · {{ __($catalogComponent->formation) }} · @include('partials.knowledge-area-label', ['labelArea' => $catalogComponent->area])</label>
                     </div>
                     <div class="custom-control custom-radio">
                         <input class="custom-control-input" type="radio" id="merge-keep-target" name="keep" value="target" @checked(old('keep', 'target') === 'target')>

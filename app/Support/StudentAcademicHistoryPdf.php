@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\KnowledgeArea;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as DocumentPdf;
 use DOMElement;
@@ -10,6 +11,7 @@ final class StudentAcademicHistoryPdf
 {
     public function make(array $data): DocumentPdf
     {
+        $data['historyKnowledgeAreas'] = KnowledgeArea::withSubtitlesByName();
         if ($data['history']->education_stage === 'tecnico') {
             return $this->document($data, null);
         }

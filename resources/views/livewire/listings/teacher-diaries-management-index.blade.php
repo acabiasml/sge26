@@ -215,7 +215,7 @@
                                         <tr>
                                             <td>
                                                 <strong>{{ $assignment->component?->name }}</strong>
-                                                <span class="d-block small text-muted">{{ $assignment->component?->area?->name ?? __('Área não definida') }}</span>
+                                                <span class="d-block small text-muted">@include('partials.knowledge-area-label', ['labelArea' => $assignment->component?->area])</span>
                                             </td>
                                             <td>{{ $assignment->teacher?->full_name ?? __('Não definida') }}</td>
                                             <td>{{ count($summary['pending']['content_without_attendance']) }} {{ __('pendência(s)') }}</td>

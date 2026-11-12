@@ -245,6 +245,8 @@ with tempfile.TemporaryDirectory() as directory:
         commands.append(('Conferir áreas curriculares por etapa', 'php artisan curriculum:reconcile-stage-areas --no-ansi'))
         if os.environ.get('REPAIR_STAGE_AREAS') == 'true':
             commands.append(('Corrigir áreas curriculares por etapa', 'php artisan curriculum:reconcile-stage-areas --apply --no-ansi'))
+        commands.append(('Conferir subtítulo opcional das áreas',
+                         'php artisan migrate --path=database/migrations/2026_11_12_000002_add_subtitle_to_knowledge_areas.php --force --no-ansi'))
         commands.append(('Migrations', 'php artisan migrate:status --no-ansi'))
         expected_commit = os.environ['EXPECTED_COMMIT']
         deadline = time.monotonic() + 180

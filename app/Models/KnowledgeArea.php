@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class KnowledgeArea extends Model
@@ -33,6 +34,7 @@ class KnowledgeArea extends Model
     protected $fillable = [
         'formation',
         'name',
+        'subtitle',
         'sort_order',
         'active',
     ];
@@ -76,6 +78,17 @@ class KnowledgeArea extends Model
     public function usageCount(): int
     {
         return (int) $this->matrix_uses_count + (int) $this->history_uses_count;
+    }
+
+    public function selectionLabel(): string
+    {
+        return $this->name.(filled($this->subtitle) ? ' — '.$this->subtitle : '');
+    }
+
+    public static function withSubtitlesByName(): Collection
+    {
+        return static::query()->whereNotNull('subtitle')->get()
+            ->keyBy(fn (self $area): string => mb_strtolower(trim($area->name)));
     }
 
     public function historyCatalogComponents(): HasMany

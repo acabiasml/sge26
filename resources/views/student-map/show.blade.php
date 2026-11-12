@@ -339,7 +339,7 @@
                                             <div class="sge-component-result">
                                                 <div>
                                                     <strong>{{ $componentName }}</strong>
-                                                    <span>{{ $componentResults->first()->assessment?->component?->area?->name ?? __('Área não definida') }}</span>
+                                                    <span>@include('partials.knowledge-area-label', ['labelArea' => $componentResults->first()->assessment?->component?->area])</span>
                                                 </div>
                                                 <div class="sge-grade-pills">
                                                     @foreach ($componentResults as $result)

@@ -1,4 +1,5 @@
 @php
+    $historyKnowledgeAreas = $historyKnowledgeAreas ?? \App\Models\KnowledgeArea::withSubtitlesByName();
     $hasGlobalSummary = $history->years->contains('transcript_mode', 'summary');
     // Global assessment changes the results column, not the stage's curriculum rows.
     // These display-only rows must not create records or invent grades/workloads.
@@ -89,7 +90,7 @@
                 <td rowspan="{{ $matrixComponents->where('formation', $component->formation)->count() }}" class="center formation-cell" style="width:{{ $formationWidth }}%"><div class="vertical-formation"><span>{{ $component->formation ?: '-' }}</span></div></td>
             @endif
             @if(! $previous || $previous->formation !== $component->formation || $previous->knowledge_area !== $component->knowledge_area)
-                <td rowspan="{{ $matrixComponents->filter(fn ($item) => $item->formation === $component->formation && $item->knowledge_area === $component->knowledge_area)->count() }}" class="area-label" style="width:{{ $areaWidth }}%">{{ $component->knowledge_area ?: '-' }}</td>
+                <td rowspan="{{ $matrixComponents->filter(fn ($item) => $item->formation === $component->formation && $item->knowledge_area === $component->knowledge_area)->count() }}" class="area-label" style="width:{{ $areaWidth }}%">@include('partials.knowledge-area-label', ['labelName' => $component->knowledge_area ?: '-', 'labelArea' => $historyKnowledgeAreas->get(mb_strtolower(trim($component->knowledge_area ?? '')))])</td>
             @endif
             <td style="width:{{ $componentWidth }}%">{{ $component->name }}</td>
             @foreach($history->years as $year)

@@ -36,7 +36,7 @@
                                         <i class="fas fa-book-open" aria-hidden="true"></i>
                                         <span>
                                             <strong>{{ $component->name }}</strong>
-                                            <small>{{ $course->name }} · {{ $component->area?->name ?? __('Área não definida') }}</small>
+                                            <small>{{ $course->name }} · @include('partials.knowledge-area-label', ['labelArea' => $component->area])</small>
                                         </span>
                                         <i class="fas fa-chevron-right" aria-hidden="true"></i>
                                     </a>

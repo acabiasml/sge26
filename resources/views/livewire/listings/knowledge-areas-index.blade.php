@@ -11,6 +11,11 @@
                 <div class="col-md-5 form-group"><label for="new-area-formation">{{ __('Formação') }}</label><select id="new-area-formation" name="formation" class="form-control" required><option value="">{{ __('Selecione') }}</option>@foreach($formations as $formation)<option value="{{ $formation }}" @selected(old('formation') === $formation)>{{ __($formation) }}</option>@endforeach</select></div>
                 <div class="col-md-2 form-group"><button type="submit" class="btn btn-primary">{{ __('Cadastrar') }}</button></div>
             </div>
+            <div class="form-group">
+                <label for="new-area-subtitle">{{ __('Subtítulo (credenciamento e autorização)') }}</label>
+                <textarea id="new-area-subtitle" name="subtitle" class="form-control" rows="2" maxlength="1000" aria-describedby="new-area-subtitle-help">{{ old('subtitle') }}</textarea>
+                <small id="new-area-subtitle-help" class="form-text text-muted">{{ __('Opcional. Aparece junto ao nome da área, em tamanho menor, nas telas e nos documentos.') }}</small>
+            </div>
         </form>
     </details>
     <section class="card shadow-sm">
@@ -20,7 +25,7 @@
                 <thead><tr><th>{{ __('Área') }}</th><th>{{ __('Formação') }}</th><th class="text-center">{{ __('Usos e catálogo') }}</th><th class="text-right">{{ __('Ações') }}</th></tr></thead>
                 <tbody>@forelse($areas as $area)
                     <tr>
-                        <td class="align-middle font-weight-bold"><a href="{{ route('knowledge-areas.usages', $area) }}">{{ $area->name }}</a></td>
+                        <td class="align-middle font-weight-bold"><a href="{{ route('knowledge-areas.usages', $area) }}">@include('partials.knowledge-area-label', ['labelArea' => $area])</a></td>
                         <td class="align-middle">{{ __($area->formation ?: 'Formação não definida') }}</td>
                         <td class="align-middle text-center"><a class="btn btn-sm btn-outline-primary" href="{{ route('knowledge-areas.usages', $area) }}" title="{{ __('Matrizes: :matrices. Históricos: :histories.', ['matrices' => $area->matrix_uses_count, 'histories' => $area->history_uses_count]) }}">{{ $area->usageCount() }} · {{ __('Ver usos') }}</a> <a class="btn btn-sm btn-outline-primary" href="{{ route('history-curriculum.index', ['table-filters' => ['area_id' => $area->id]]) }}">{{ $area->history_catalog_components_count }} · {{ __('Catálogo') }}</a></td>
                         <td class="align-middle text-right text-nowrap">
@@ -40,6 +45,9 @@
             <div class="modal-header"><h2 class="modal-title h5" id="edit-area-title-{{ $area->id }}">{{ __('Editar área') }}</h2><button type="button" class="close" data-dismiss="modal" aria-label="{{ __('Fechar') }}"><span aria-hidden="true">&times;</span></button></div>
             <div class="modal-body">
                 <label for="area-name-{{ $area->id }}">{{ __('Área') }}</label><input id="area-name-{{ $area->id }}" name="name" class="form-control mb-3" value="{{ $area->name }}" required maxlength="255">
+                <label for="area-subtitle-{{ $area->id }}">{{ __('Subtítulo (credenciamento e autorização)') }}</label>
+                <textarea id="area-subtitle-{{ $area->id }}" name="subtitle" class="form-control mb-1" rows="2" maxlength="1000" aria-describedby="area-subtitle-help-{{ $area->id }}">{{ $area->subtitle }}</textarea>
+                <small id="area-subtitle-help-{{ $area->id }}" class="form-text text-muted mb-3">{{ __('Opcional. Aparece junto ao nome da área, em tamanho menor, nas telas e nos documentos.') }}</small>
                 <label for="area-formation-{{ $area->id }}">{{ __('Formação') }}</label><select id="area-formation-{{ $area->id }}" name="formation" class="form-control mb-3" required><option value="">{{ __('Formação não definida') }}</option>@foreach($formations as $formation)<option value="{{ $formation }}" @selected($area->formation === $formation)>{{ __($formation) }}</option>@endforeach</select>
                 <p class="small text-muted mb-0">{{ __('A formação da área é utilizada por todos os componentes vinculados a ela, em todas as matrizes. Alterações valem para os próximos relatórios gerados.') }}</p>
             </div>

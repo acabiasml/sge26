@@ -1,4 +1,5 @@
 @php
+    $historyKnowledgeAreas = $historyKnowledgeAreas ?? \App\Models\KnowledgeArea::withSubtitlesByName();
     $technicalComponents = $history->components->sortBy(fn ($component) => collect([$component->module_label, $component->position])->filter()->join('|'))->values();
     $modules = $technicalComponents->pluck('module_label')->filter()->unique()->sort()->values();
     $technicalArea = $technicalComponents->pluck('knowledge_area')->filter()->first() ?: 'Curso técnico';
@@ -26,7 +27,7 @@
         @foreach($sectionComponents as $component)
             @php($record = $component->records->firstWhere('student_academic_history_year_id', $historyYear?->id))
             <tr>
-                @if($loop->first)<td rowspan="{{ $sectionComponents->count() }}" class="center"><div class="vertical-formation"><span>Formação Técnica Profissional</span></div></td><td rowspan="{{ $sectionComponents->count() }}">{{ $technicalArea }}</td>@endif
+                @if($loop->first)<td rowspan="{{ $sectionComponents->count() }}" class="center"><div class="vertical-formation"><span>Formação Técnica Profissional</span></div></td><td rowspan="{{ $sectionComponents->count() }}">@include('partials.knowledge-area-label', ['labelName' => $technicalArea, 'labelArea' => $historyKnowledgeAreas->get(mb_strtolower(trim($technicalArea)))])</td>@endif
                 <td>{{ $component->name }}</td>
                 @foreach($modules as $module)
                     @if($component->module_label === $module)

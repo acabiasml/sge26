@@ -42,7 +42,7 @@
                         <dt>{{ __('Turma') }}</dt><dd>{{ $schoolClass->name }}</dd>
                         <dt>{{ __('Turno') }}</dt><dd>{{ __($schoolClass->shift ?: 'Não definido') }}</dd>
                         <dt>{{ __('Matriz') }}</dt><dd>{{ $course->name }}</dd>
-                        <dt>{{ __('Área') }}</dt><dd>{{ $component->area?->name ?? __('Não definida') }}</dd>
+                        <dt>{{ __('Área') }}</dt><dd>@include('partials.knowledge-area-label', ['labelArea' => $component->area, 'labelName' => $component->area?->name ?? __('Não definida')])</dd>
                         <dt>{{ __('Docência titular') }}</dt><dd>{{ $assignment->teacher?->full_name ?? __('Não definida') }}</dd>
                         <dt>{{ __('Vigência do componente') }}</dt><dd>{{ $component->startsPeriod?->name ?? __('início da turma') }} {{ __('até') }} {{ $component->endsPeriod?->name ?? __('fim da turma') }}</dd>
                         <dt>{{ __('Carga horária prevista') }}</dt><dd>{{ $component->formattedCalculatedWorkloadHours($course) }} {{ __('horas') }}</dd>

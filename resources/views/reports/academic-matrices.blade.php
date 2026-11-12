@@ -49,6 +49,7 @@
     </style>
 </head>
 <body>
+@php($knowledgeAreaSubtitles = \App\Models\KnowledgeArea::withSubtitlesByName())
     @forelse ($matrixGroups as $matrixGroup)
         <section class="matrix-page">
             @include('reports.partials.letterhead', [
@@ -96,7 +97,7 @@
                             @foreach ($areaGroup['components'] as $component)
                                 <tr>
                                     @if (! $areaPrinted)
-                                        <td class="area-cell" rowspan="{{ $areaGroup['rowspan'] }}">{{ $areaGroup['area'] }}</td>
+                                        <td class="area-cell" rowspan="{{ $areaGroup['rowspan'] }}">@include('partials.knowledge-area-label', ['labelName' => $areaGroup['area'], 'labelArea' => $knowledgeAreaSubtitles->get(mb_strtolower(trim($areaGroup['area'])))])</td>
                                         @php($areaPrinted = true)
                                     @endif
                                     <td class="component-cell">{{ $component['component'] }}</td>

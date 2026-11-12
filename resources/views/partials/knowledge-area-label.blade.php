@@ -1,0 +1,1 @@
+@php($labelArea = $labelArea ?? null)@if(filled($labelArea?->subtitle))<span class="sge-area-name">{{ $labelName ?? $labelArea->name }}</span><small class="sge-area-subtitle">{{ $labelArea->subtitle }}</small>@else{{ $labelName ?? $labelArea?->name ?? __('Área não definida') }}@endif

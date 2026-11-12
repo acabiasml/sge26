@@ -7161,3 +7161,14 @@ button.sge-target-result:focus-visible {
     outline-offset: -3px;
     scroll-margin-top: 6rem;
 }
+
+.sge-area-subtitle {
+    display: block;
+    font-size: .82em;
+    line-height: 1.3;
+    font-weight: 400;
+    color: var(--sge-muted);
+    text-transform: none;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}

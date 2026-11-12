@@ -59,7 +59,7 @@ final class HistoryCurriculumCatalog
         $stages = array_intersect_key(AcademicCourse::STAGE_LABELS, array_flip(['fundamental', 'medio', 'tecnico']));
         $config = [];
         foreach ($stages as $stage => $label) {
-            $config[$stage] = ['formations' => collect(self::formations($stage))->sortBy(fn ($formation) => CurriculumCatalog::alphabeticalKey(__($formation)), SORT_NATURAL)->values()->all(), 'areas' => $areas->filter(fn ($area) => CurriculumAreaStage::compatible($area->name, $stage))->map->only(['id', 'name'])->values()];
+            $config[$stage] = ['formations' => collect(self::formations($stage))->sortBy(fn ($formation) => CurriculumCatalog::alphabeticalKey(__($formation)), SORT_NATURAL)->values()->all(), 'areas' => $areas->filter(fn ($area) => CurriculumAreaStage::compatible($area->name, $stage))->map(fn ($area) => ['id' => $area->id, 'name' => $area->name, 'label' => $area->selectionLabel()])->values()];
         }
         $config[''] = ['formations' => [], 'areas' => []];
         $formationLabels = collect(['Formação Geral Básica', 'Parte Complementar', 'Parte Diversificada', 'Itinerário Formativo', 'Formação Técnica Profissional'])->mapWithKeys(fn ($value) => [$value => __($value)])->all();
@@ -80,7 +80,8 @@ final class HistoryCurriculumCatalog
             if (! self::validDefinition($item, $item->education_stage)) {
                 continue;
             }
-            $catalogs[$item->education_stage][] = ['formation' => $item->formation, 'area' => $item->area->name, 'name' => $item->name];
+            $catalogs[$item->education_stage][] = ['formation' => $item->formation, 'area' => $item->area->name, 'name' => $item->name]
+                + (filled($item->area->subtitle) ? ['area_subtitle' => $item->area->subtitle] : []);
         }
 
         return $catalogs;

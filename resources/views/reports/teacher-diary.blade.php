@@ -78,7 +78,7 @@
         <table class="meta">
             <tr><td class="meta-label">Ano letivo</td><td>{{ $academicYear->referenceYearsLabel() }}</td><td class="meta-label">Período</td><td>{{ $period->name }}</td></tr>
             <tr><td class="meta-label">Turma e etapa</td><td>{{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, collect([$course])) }}</td><td class="meta-label">Matriz</td><td>{{ $course->name }} · {{ $course->stageLabel() }}</td></tr>
-            <tr><td class="meta-label">Componente</td><td>{{ $component->name }}</td><td class="meta-label">Área</td><td>{{ $component->area?->name ?? 'Não definida' }}</td></tr>
+            <tr><td class="meta-label">Componente</td><td>{{ $component->name }}</td><td class="meta-label">Área</td><td>@include('partials.knowledge-area-label', ['labelArea' => $component->area, 'labelName' => $component->area?->name ?? 'Não definida'])</td></tr>
             <tr><td class="meta-label">Docência</td><td>{{ $assignment->teacher?->full_name ?? 'Não definida' }}</td><td class="meta-label">Situação</td><td>{{ $report['confirmation']?->confirmed ? 'Confirmado' : 'Em lançamento' }}</td></tr>
             <tr><td class="meta-label">Critérios de aprovação</td><td colspan="3">{{ number_format((float) $academicYear->passing_points, 1, ',', '.') }} pontos · {{ $academicYear->minimum_attendance_percentage }}% de frequência mínima</td></tr>
         </table>

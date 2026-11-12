@@ -58,7 +58,7 @@ class CurriculumCatalog
     public static function suggestionsForCourse(AcademicCourse $course, ?CurriculumComponent $currentComponent = null): array
     {
         return self::definitionsForCourse($course, $currentComponent)
-            ->map(fn ($entry) => ['id' => $entry->id, 'formation' => $entry->formation, 'component' => $entry->name, 'area' => $entry->area->name, 'area_id' => $entry->knowledge_area_id])
+            ->map(fn ($entry) => ['id' => $entry->id, 'formation' => $entry->formation, 'component' => $entry->name, 'area' => $entry->area->name, 'area_label' => $entry->area->selectionLabel(), 'area_id' => $entry->knowledge_area_id])
             ->all();
     }
 

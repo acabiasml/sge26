@@ -235,7 +235,7 @@ class ScreenListing extends Component
                 $data['school']->setRelation('academicYears', $filter($data['school']->academicYears, ['name', 'reference_year']));
                 break;
             case 'knowledge-areas':
-                $data['areas'] = $filter($data['areas'], ['name', 'formation']);
+                $data['areas'] = $filter($data['areas'], ['name', 'subtitle', 'formation']);
                 break;
             case 'enrollments':
                 $data['class']->setRelation('enrollments', $filter($data['class']->enrollments, ['student.full_name', 'student.cpf', 'enrollment_number']));

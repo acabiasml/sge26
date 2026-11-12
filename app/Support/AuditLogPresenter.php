@@ -215,6 +215,7 @@ class AuditLogPresenter
         'modality' => 'Modalidade',
         'modification_count' => 'Quantidade de alterações',
         'name' => 'Nome',
+        'subtitle' => 'Subtítulo',
         'notes' => 'Observações',
         'number' => 'Número',
         'personal_email' => 'E-mail pessoal',

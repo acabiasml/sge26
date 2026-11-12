@@ -6,6 +6,6 @@
 @endsection
 @section('content')
 @include('knowledge-areas._navigation')
-<p><strong>{{ $catalogComponent->name }}</strong> · {{ $catalogComponent->area->name }} · {{ __($catalogComponent->formation) }} · {{ __(\App\Support\HistoryCurriculumCatalog::stageLabels()[$catalogComponent->education_stage]) }}</p>
+<p><strong>{{ $catalogComponent->name }}</strong> · @include('partials.knowledge-area-label', ['labelArea' => $catalogComponent->area]) · {{ __($catalogComponent->formation) }} · {{ __(\App\Support\HistoryCurriculumCatalog::stageLabels()[$catalogComponent->education_stage]) }}</p>
 <section class="card sge-panel-card sge-livewire-table-card mb-4"><div class="card-body"><livewire:history-curriculum-usages-table :catalog-id="$catalogComponent->id" /></div></section>
 @endsection

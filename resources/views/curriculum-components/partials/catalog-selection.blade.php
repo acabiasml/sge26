@@ -2,7 +2,7 @@
 <select id="{{ $selectId }}" name="catalog_component_id" class="form-control @error('catalog_component_id') is-invalid @enderror" aria-describedby="{{ $selectId }}-help" required>
     <option value="">{{ __('Selecione') }}</option>
     @foreach ($curriculumSuggestions as $suggestion)
-        <option value="{{ $suggestion['id'] }}" data-name="{{ $suggestion['component'] }}" @selected((string) $selectedDefinition === (string) $suggestion['id'])>{{ $suggestion['component'] }} · {{ __($suggestion['formation']) }} · {{ $suggestion['area'] }}</option>
+        <option value="{{ $suggestion['id'] }}" data-name="{{ $suggestion['component'] }}" @selected((string) $selectedDefinition === (string) $suggestion['id'])>{{ $suggestion['component'] }} · {{ __($suggestion['formation']) }} · {{ $suggestion['area_label'] ?? $suggestion['area'] }}</option>
     @endforeach
 </select>
 <small id="{{ $selectId }}-help" class="form-text text-muted">

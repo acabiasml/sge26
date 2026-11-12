@@ -118,6 +118,7 @@ class KnowledgeAreaController extends Controller
     {
         return $request->validate([
             'name' => ['required', 'string', 'max:255', Rule::unique('knowledge_areas')->ignore($area?->id)],
+            'subtitle' => ['nullable', 'string', 'max:1000'],
             'formation' => ['required', Rule::in([CurriculumCatalog::FORMATION_FGB, CurriculumCatalog::FORMATION_ITINERARY, CurriculumCatalog::FORMATION_COMPLEMENTARY, 'Parte Diversificada', 'Formação Técnica Profissional'])],
         ]);
     }

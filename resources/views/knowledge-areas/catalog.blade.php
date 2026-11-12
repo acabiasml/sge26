@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!form) return;
         const catalog = catalogs[event.target.value], formation = form.querySelector('[data-catalog-formation]'), area = form.querySelector('[data-catalog-area]');
         formation.replaceChildren(...catalog.formations.map(value => new Option(labels[value] || value, value)));
-        area.replaceChildren(new Option(@js(__('Selecione')), ''), ...catalog.areas.map(item => new Option(item.name, item.id)));
+        area.replaceChildren(new Option(@js(__('Selecione')), ''), ...catalog.areas.map(item => new Option(item.label || item.name, item.id)));
     });
 });
 </script>

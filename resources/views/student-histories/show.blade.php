@@ -1,4 +1,5 @@
 @extends('layouts.app')
+@php($historyKnowledgeAreas = \App\Models\KnowledgeArea::withSubtitlesByName())
 
 @section('title', $history->title)
 @section('page-title', $history->title)
@@ -127,7 +128,7 @@
                                     <tr @if($component->id) id="history-component-{{ $component->id }}" tabindex="-1" @endif>
                                         @if($formationRowIndex === 0)<td rowspan="{{ $formationComponents->count() }}" class="align-middle"><strong>{{ $formation }}</strong></td>@endif
                                         <td>{{ $component->module_label ?: '-' }}</td>
-                                        @if($areaRowIndex === 0)<td rowspan="{{ $areaComponents->count() }}" class="align-middle">{{ $area }}</td>@endif
+                                        @if($areaRowIndex === 0)<td rowspan="{{ $areaComponents->count() }}" class="align-middle">@include('partials.knowledge-area-label', ['labelName' => $area, 'labelArea' => $historyKnowledgeAreas->get(mb_strtolower(trim($area)))])</td>@endif
                                         <td><strong>{{ $component->name }}</strong></td>
                                         @foreach($history->years as $year)
                                             @if($year->transcript_mode !== 'detailed')

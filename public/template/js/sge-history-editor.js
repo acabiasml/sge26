@@ -43,7 +43,10 @@
             }
             const availableAreas = Array.from(new Set(areas.filter(item => item.formation === formation.value).map(item => item.area)));
             if (!reset && currentArea) availableAreas.push(currentArea);
-            area.replaceChildren(new Option(config.select, ''), ...sorted(availableAreas).map(name => new Option(name, name)));
+            area.replaceChildren(new Option(config.select, ''), ...sorted(availableAreas).map(name => {
+                const subtitle = areas.find(item => item.area === name)?.area_subtitle;
+                return new Option(subtitle ? name + ' — ' + subtitle : name, name);
+            }));
             area.value = Array.from(area.options).some(option => option.value === currentArea) ? currentArea : '';
             const names = areas.filter(item => item.formation === formation.value && item.area === area.value).map(item => item.name);
             if (current) names.push(current);

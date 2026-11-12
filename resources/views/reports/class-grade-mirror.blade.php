@@ -118,7 +118,7 @@
                 <tr>
                     @foreach($formationGroups as $formationGroup)
                         @foreach($formationGroup['areas'] as $areaGroup)
-                            <th class="area-heading" colspan="{{ $areaGroup['colspan'] }}">{{ $areaGroup['area'] }}</th>
+                            <th class="area-heading" colspan="{{ $areaGroup['colspan'] }}">@include('partials.knowledge-area-label', ['labelName' => $areaGroup['area'], 'labelArea' => $areaGroup['items']->first()['component']->area])</th>
                         @endforeach
                     @endforeach
                 </tr>

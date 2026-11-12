@@ -159,7 +159,7 @@
             @forelse ($assignmentGroups as $areaName => $areaAssignments)
                 <section class="sge-class-area-group" aria-labelledby="area-{{ \Illuminate\Support\Str::slug($areaName) }}">
                     <div class="sge-class-area-heading">
-                        <h3 id="area-{{ \Illuminate\Support\Str::slug($areaName) }}">{{ $areaName }}</h3>
+                        <h3 id="area-{{ \Illuminate\Support\Str::slug($areaName) }}">@include('partials.knowledge-area-label', ['labelArea' => $areaAssignments->first()?->component?->area, 'labelName' => $areaName])</h3>
                         <span>{{ $areaAssignments->count() }} {{ __('componente(s)') }}</span>
                     </div>
 

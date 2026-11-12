@@ -30,7 +30,7 @@
     <td>
         <select name="{{ $prefix }}[knowledge_area]" class="form-control form-control-sm" data-history-area aria-label="{{ __('Área') }}" required>
             <option value="">{{ __('Selecione') }}</option>
-            @foreach($rowAreas as $area)<option value="{{ $area }}" @selected($selectedArea === $area)>{{ $area }}</option>@endforeach
+            @foreach($rowAreas as $area)<option value="{{ $area }}" @selected($selectedArea === $area)>{{ $area }}@if($subtitle = $catalogRows->firstWhere('area', $area)['area_subtitle'] ?? null) — {{ $subtitle }}@endif</option>@endforeach
         </select>
     </td>
     <td>

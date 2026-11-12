@@ -46,3 +46,5 @@ thead { display: table-header-group; }
 .document-footer-contact { white-space: nowrap; letter-spacing: -.08px; }
 .document-footer-authentication { white-space: nowrap; }
 .document-footer-issuance { white-space: nowrap; }
+.sge-area-name { font-size: 12px; }
+.sge-area-subtitle { display: block; font-size: 11px; line-height: 1.15; font-weight: 400; color: #555; text-transform: none; }

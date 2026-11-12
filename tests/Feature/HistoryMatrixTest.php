@@ -471,6 +471,8 @@ class HistoryMatrixTest extends TestCase
 
     public function test_all_history_content_stays_above_the_footer_including_studies_and_formation_totals(): void
     {
+        \App\Models\KnowledgeArea::create(['name' => 'Técnico em Móveis', 'formation' => 'Itinerário Formativo',
+            'subtitle' => 'Credenciamento: Portaria nº 123/2026. Autorização: Resolução CEE/MT nº 456/2026.']);
         foreach ([13, 17, 21, 26, 33] as $componentCount) {
             $data = $this->paginatedHistoryData($componentCount);
             $data['history']->setRelation('years', $data['history']->years->take(1));

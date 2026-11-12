@@ -36,7 +36,8 @@ class HistoryCurriculumComponentsTable extends DataTableComponent
     {
         return [
             Column::make(__('Componente'), 'name')->sortable()->searchable(),
-            Column::make(__('Área'), 'area.name')->sortable()->searchable(),
+            Column::make(__('Área'), 'area.name')->sortable()->searchable()
+                ->format(fn ($value, $row) => view('partials.knowledge-area-label', ['labelArea' => $row->area, 'labelName' => $value])->render())->html(),
             Column::make(__('Formação'), 'formation')->sortable()->format(fn ($value) => __($value)),
             Column::make(__('Etapa'), 'education_stage')->sortable()->format(fn ($value) => __(HistoryCurriculumCatalog::stageLabels()[$value])),
             Column::make(__('Origem'))->label(fn (HistoryCurriculumComponent $row): string => $row->isMatrixDerived() ? __('Matriz do sistema') : __('Histórico / cadastro')),
@@ -54,7 +55,7 @@ class HistoryCurriculumComponentsTable extends DataTableComponent
                 ->options(['' => __('Todas')] + array_map(fn ($label) => __($label), $stages))
                 ->filter(fn (Builder $query, string $value) => $query->where('history_curriculum_components.education_stage', $value)),
             SelectFilter::make(__('Área'), 'area_id')
-                ->options(['' => __('Todas')] + KnowledgeArea::orderBy('name')->pluck('name', 'id')->all())
+                ->options(['' => __('Todas')] + KnowledgeArea::orderBy('name')->get()->mapWithKeys(fn ($area) => [$area->id => $area->selectionLabel()])->all())
                 ->filter(fn (Builder $query, string $value) => $query->where('history_curriculum_components.knowledge_area_id', (int) $value)),
         ];
     }

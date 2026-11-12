@@ -162,7 +162,7 @@
             @forelse ($course->componentsGroupedByArea() as $group)
                 <section class="border rounded mb-3">
                     <div class="bg-light border-bottom px-3 py-2">
-                        <h3 class="h6 mb-0 text-primary">{{ $group['area'] === 'Área não definida' ? __('Área não definida') : $group['area'] }}</h3>
+                        <h3 class="h6 mb-0 text-primary">@include('partials.knowledge-area-label', ['labelArea' => $group['components']->first()?->area, 'labelName' => $group['area'] === 'Área não definida' ? __('Área não definida') : $group['area']])</h3>
                     </div>
                     <div class="list-group list-group-flush">
                         @foreach ($group['components'] as $component)

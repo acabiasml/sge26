@@ -47,7 +47,7 @@
                         <dt>{{ __('Formação') }}</dt>
                         <dd>{{ \App\Support\CurriculumCatalog::formationLabelForComponent($component) }}</dd>
                         <dt>{{ __('Área') }}</dt>
-                        <dd>{{ $component->area?->name ?? __('Não definida') }}</dd>
+                        <dd>@include('partials.knowledge-area-label', ['labelArea' => $component->area, 'labelName' => $component->area?->name ?? __('Não definida')])</dd>
                         <dt>{{ __('Situação') }}</dt>
                         <dd><span class="badge badge-{{ $component->active ? 'success' : 'secondary' }}">{{ $component->active ? __('Ativo') : __('Inativo') }}</span></dd>
                         <dt>{{ __('Duração') }}</dt>

@@ -215,6 +215,8 @@
             ->filter()
             ->unique()
             ->join(' / ');
+        $itineraryAreas = $formationGroup['areas']->flatMap(fn (array $group) => $group['items'])
+            ->map(fn (array $summary) => $summary['component']->area)->filter()->unique('id');
     @endphp
     @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY && $technicalCourses->isNotEmpty())
         @include('reports.partials.technical-course-regulations', ['technicalCourses' => $technicalCourses])
@@ -225,7 +227,11 @@
                 <th colspan="2" rowspan="2">
                     {{ mb_strtoupper($formationGroup['formation'], 'UTF-8') }}
                     @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY && $itineraryNames)
-                        <span class="formation-area-label">{{ mb_strtoupper($itineraryNames, 'UTF-8') }}</span>
+                        @forelse($itineraryAreas as $itineraryArea)
+                            <span class="formation-area-label">@include('partials.knowledge-area-label', ['labelArea' => $itineraryArea, 'labelName' => mb_strtoupper($itineraryArea->name, 'UTF-8')])</span>
+                        @empty
+                            <span class="formation-area-label">{{ mb_strtoupper($itineraryNames, 'UTF-8') }}</span>
+                        @endforelse
                     @endif
                 </th>
                 @foreach($formationPeriods as $period)
@@ -255,7 +261,7 @@
                     @endphp
                     <tr>
                         @if($formationGroup['formation'] !== CurriculumCatalog::FORMATION_ITINERARY && $loop->first)
-                            <td class="area-cell" rowspan="{{ $areaGroup['rowspan'] }}">{{ $areaGroup['area'] }}</td>
+                            <td class="area-cell" rowspan="{{ $areaGroup['rowspan'] }}">@include('partials.knowledge-area-label', ['labelArea' => $component->area, 'labelName' => $areaGroup['area']])</td>
                         @endif
                         <td class="component-cell" @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY) colspan="2" @endif>{{ $component->name }}</td>
                         @foreach($formationPeriods as $period)
