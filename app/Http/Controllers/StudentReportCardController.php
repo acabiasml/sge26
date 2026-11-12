@@ -47,7 +47,7 @@ class StudentReportCardController extends Controller
             'canChooseScoreView' => $this->canChooseScoreView($request, $enrollment),
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
-            'letterhead' => PdfLetterhead::make($report['academicYear']->school),
+            'letterhead' => PdfLetterhead::make($report['academicYear']->school, $report['courses']->pluck('stage')->all()),
         ])->setPaper('a4', 'portrait');
 
         return \App\Support\PdfMetadata::stream($pdf, 'beaba-boletim-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
@@ -72,7 +72,7 @@ class StudentReportCardController extends Controller
             'canChooseScoreView' => $this->canChooseScoreView($request, $enrollment),
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
-            'letterhead' => PdfLetterhead::make($report['academicYear']->school),
+            'letterhead' => PdfLetterhead::make($report['academicYear']->school, $report['courses']->pluck('stage')->all()),
         ])->setPaper('a4', 'portrait');
 
         return \App\Support\PdfMetadata::stream($pdf, 'beaba-ficha-individual-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
@@ -94,7 +94,7 @@ class StudentReportCardController extends Controller
             'report' => $report,
             'progress' => $summary->fromReport($report),
             'issuedDocument' => $issuedDocument,
-            'letterhead' => PdfLetterhead::make($report['academicYear']->school),
+            'letterhead' => PdfLetterhead::make($report['academicYear']->school, $report['courses']->pluck('stage')->all()),
         ])->setPaper('a4', 'portrait');
 
         return \App\Support\PdfMetadata::stream($pdf, 'beaba-situacao-academica-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');

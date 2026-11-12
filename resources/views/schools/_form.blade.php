@@ -57,8 +57,28 @@
 <div class="form-group">
     <label for="letterhead_text">{{ __('screens.letterhead_text') }}</label>
     <textarea id="letterhead_text" name="letterhead_text" rows="4" class="form-control @error('letterhead_text') is-invalid @enderror" required>{{ old('letterhead_text', $school->letterhead_text ?? '') }}</textarea>
+    <small class="form-text text-muted">{{ __('Texto padrão para documentos gerais e para etapas sem texto específico.') }}</small>
     @error('letterhead_text') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
 </div>
+
+<details class="card sge-panel-card mb-4" @if(filled(old('letterhead_text_elementary', $school->letterhead_text_elementary ?? null)) || filled(old('letterhead_text_high_school', $school->letterhead_text_high_school ?? null)) || $errors->hasAny(['letterhead_text_elementary', 'letterhead_text_high_school'])) open @endif>
+    <summary class="card-header font-weight-bold">{{ __('Textos institucionais por etapa') }}</summary>
+    <div class="card-body">
+        <p class="text-muted">{{ __('Preencha somente quando a autorização da etapa exigir um texto diferente do padrão. Se ficar vazio, será usado o texto padrão acima.') }}</p>
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label for="letterhead_text_elementary">{{ __('Ensino Fundamental — texto institucional (opcional)') }}</label>
+                <textarea id="letterhead_text_elementary" name="letterhead_text_elementary" rows="4" maxlength="5000" class="form-control @error('letterhead_text_elementary') is-invalid @enderror">{{ old('letterhead_text_elementary', $school->letterhead_text_elementary ?? '') }}</textarea>
+                @error('letterhead_text_elementary') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
+            </div>
+            <div class="form-group col-md-6">
+                <label for="letterhead_text_high_school">{{ __('Ensino Médio — texto institucional (opcional)') }}</label>
+                <textarea id="letterhead_text_high_school" name="letterhead_text_high_school" rows="4" maxlength="5000" class="form-control @error('letterhead_text_high_school') is-invalid @enderror">{{ old('letterhead_text_high_school', $school->letterhead_text_high_school ?? '') }}</textarea>
+                @error('letterhead_text_high_school') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
+            </div>
+        </div>
+    </div>
+</details>
 
 <div class="form-row align-items-end">
     <div class="form-group col-md-8">

@@ -40,7 +40,7 @@ class EnrollmentPdfController extends Controller
             'class' => $class->load('courses'),
             'enrollment' => $enrollment,
             'issuedDocument' => $issuedDocument,
-            'letterhead' => PdfLetterhead::make($academicYear->school),
+            'letterhead' => PdfLetterhead::forEnrollment($enrollment),
         ])->setPaper('a4', 'portrait');
 
         return \App\Support\PdfMetadata::stream($pdf, 'beaba-ficha-matricula-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');

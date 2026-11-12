@@ -405,7 +405,7 @@ class StudentAcademicHistoryController extends Controller
             'history' => $history,
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
-            'letterhead' => PdfLetterhead::make($history->school),
+            'letterhead' => PdfLetterhead::make($history->school, $history->education_stage),
             'technicalPeriodDurations' => $this->technicalPeriodDurations($history),
         ]);
 

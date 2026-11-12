@@ -202,6 +202,8 @@ class AuditLogPresenter
         'legal_name' => 'Razão social',
         'legal_basis' => 'Base legal',
         'letterhead_text' => 'Texto institucional',
+        'letterhead_text_elementary' => 'Texto institucional do Ensino Fundamental',
+        'letterhead_text_high_school' => 'Texto institucional do Ensino Médio',
         'logo_path' => 'Logo',
         'maximum_inclusive' => 'Inclui nota máxima',
         'maximum_score' => 'Nota máxima',

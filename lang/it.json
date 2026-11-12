@@ -2932,5 +2932,10 @@
     "Seções do meu cadastro": "Sezioni del mio profilo",
     "Os benefícios concedidos e seu ano de referência são preenchidos pela gestão.": "I benefici concessi e il relativo anno di riferimento sono compilati dalla direzione.",
     "Subtítulo (credenciamento e autorização)": "Sottotitolo (accreditamento e autorizzazione)",
-    "Opcional. Aparece junto ao nome da área, em tamanho menor, nas telas e nos documentos.": "Facoltativo. Appare accanto al nome dell’area, in caratteri più piccoli, nelle schermate e nei documenti."
+    "Opcional. Aparece junto ao nome da área, em tamanho menor, nas telas e nos documentos.": "Facoltativo. Appare accanto al nome dell’area, in caratteri più piccoli, nelle schermate e nei documenti.",
+    "Texto padrão para documentos gerais e para etapas sem texto específico.": "Testo predefinito per i documenti generali e per i livelli senza un testo specifico.",
+    "Textos institucionais por etapa": "Testi istituzionali per livello scolastico",
+    "Preencha somente quando a autorização da etapa exigir um texto diferente do padrão. Se ficar vazio, será usado o texto padrão acima.": "Compila solo quando l’autorizzazione del livello richiede un testo diverso da quello predefinito. Se il campo è vuoto, viene usato il testo predefinito sopra.",
+    "Ensino Fundamental — texto institucional (opcional)": "Istruzione primaria e secondaria di primo grado — testo istituzionale (facoltativo)",
+    "Ensino Médio — texto institucional (opcional)": "Istruzione secondaria di secondo grado — testo istituzionale (facoltativo)"
 }

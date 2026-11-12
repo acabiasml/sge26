@@ -101,6 +101,8 @@ class SchoolController extends Controller
             'email' => ['required', 'email', 'max:255'],
             'website' => ['nullable', 'url', 'max:255'],
             'letterhead_text' => ['required', 'string', 'max:5000'],
+            'letterhead_text_elementary' => ['nullable', 'string', 'max:5000'],
+            'letterhead_text_high_school' => ['nullable', 'string', 'max:5000'],
             'logo' => ['nullable', 'image', 'max:2048'],
             'address' => ['required', 'string', 'max:255'],
             'district' => ['nullable', 'string', 'max:255'],

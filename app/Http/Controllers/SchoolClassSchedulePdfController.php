@@ -48,7 +48,7 @@ class SchoolClassSchedulePdfController extends Controller
             'classes' => collect([$class]),
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
-            'letterhead' => PdfLetterhead::make($academicYear->school),
+            'letterhead' => PdfLetterhead::forClass($class),
             'weekdays' => $this->weekdays($academicYear),
         ])->setPaper('a4', 'landscape');
 
@@ -117,7 +117,7 @@ class SchoolClassSchedulePdfController extends Controller
             'classes' => $classes,
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
-            'letterhead' => PdfLetterhead::make($academicYear->school),
+            'letterhead' => PdfLetterhead::make($academicYear->school, $classes->flatMap->courses->pluck('stage')->all()),
             'weekdays' => $this->weekdays($academicYear),
         ])->setPaper('a4', 'landscape');
 

@@ -31,6 +31,8 @@
         <tr><th>E-mail</th><td>{{ $school->email ?: '-' }}</td></tr>
         <tr><th>Site</th><td>{{ $school->website ?: '-' }}</td></tr>
         <tr><th>Texto institucional</th><td>{{ $school->letterhead_text ?: '-' }}</td></tr>
+        @if(filled($school->letterhead_text_elementary))<tr><th>Texto institucional — Ensino Fundamental</th><td>{{ $school->letterhead_text_elementary }}</td></tr>@endif
+        @if(filled($school->letterhead_text_high_school))<tr><th>Texto institucional — Ensino Médio</th><td>{{ $school->letterhead_text_high_school }}</td></tr>@endif
         <tr><th>Situação</th><td>{{ $school->active ? 'Ativa' : 'Inativa' }}</td></tr>
     </table>
 

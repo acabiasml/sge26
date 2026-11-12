@@ -52,9 +52,10 @@
 @php($knowledgeAreaSubtitles = \App\Models\KnowledgeArea::withSubtitlesByName())
     @forelse ($matrixGroups as $matrixGroup)
         <section class="matrix-page">
+            @php($matrixLetterhead = isset($letterhead['school']) ? \App\Support\PdfLetterhead::make($letterhead['school'], $matrixGroup['stage']) : $letterhead)
             @include('reports.partials.letterhead', [
                 'title' => 'Matriz curricular - '.$academicYear->name,
-                'letterhead' => $letterhead,
+                'letterhead' => $matrixLetterhead,
                 'issuedDocument' => $issuedDocument,
                 'verificationUrl' => $verificationUrl,
             ])

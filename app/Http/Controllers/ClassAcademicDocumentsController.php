@@ -46,7 +46,7 @@ class ClassAcademicDocumentsController extends Controller
         $pdf = Pdf::loadView('reports.class-student-contacts', [
             'schoolClass' => $class, 'academicYear' => $academicYear, 'rows' => $rows,
             'referenceDate' => $referenceDate, 'issuedDocument' => $issuedDocument,
-            'letterhead' => PdfLetterhead::make($academicYear->school),
+            'letterhead' => PdfLetterhead::forClass($class),
         ])->setPaper('a4', 'portrait');
 
         return PdfMetadata::stream($pdf, 'beaba-alunos-responsaveis-turma-'.$class->id.'.pdf');
@@ -99,7 +99,7 @@ class ClassAcademicDocumentsController extends Controller
             'certificates' => $certificates,
             'scope' => $scope,
             'issuedDocument' => $issuedDocument,
-            'letterhead' => PdfLetterhead::make($academicYear->school),
+            'letterhead' => PdfLetterhead::forClass($class),
         ])->setPaper('a4', 'portrait');
 
         return PdfMetadata::stream($pdf, 'beaba-atestados-frequencia-turma-'.$class->id.'-'.$scope['filename'].'-'.now()->format('Ymd-His').'.pdf');
@@ -148,7 +148,7 @@ class ClassAcademicDocumentsController extends Controller
             'scoreView' => $scoreView,
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
-            'letterhead' => PdfLetterhead::make($academicYear->school),
+            'letterhead' => PdfLetterhead::forClass($class),
         ])->setPaper('a4', 'portrait');
 
         return PdfMetadata::stream($pdf, 'beaba-boletins-turma-'.$class->id.'-'.now()->format('Ymd-His').'.pdf');
@@ -179,7 +179,7 @@ class ClassAcademicDocumentsController extends Controller
             'teacherComponentScope' => $teacherComponentIds !== null,
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
-            'letterhead' => PdfLetterhead::make($academicYear->school),
+            'letterhead' => PdfLetterhead::forClass($class),
         ])->setPaper('a4', 'landscape');
 
         return PdfMetadata::stream($pdf, 'beaba-panorama-turma-'.$class->id.'.pdf');
@@ -242,7 +242,7 @@ class ClassAcademicDocumentsController extends Controller
             'scoreView' => $scoreView,
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
-            'letterhead' => PdfLetterhead::make($academicYear->school),
+            'letterhead' => PdfLetterhead::forClass($class),
         ])->setPaper('a4', 'landscape');
 
         return PdfMetadata::stream($pdf, 'beaba-espelho-notas-turma-'.$class->id.'-'.now()->format('Ymd-His').'.pdf');

@@ -97,7 +97,7 @@ class StudentDiaryController extends Controller
             'weekdays' => SchoolClassScheduleSlot::WEEKDAY_LABELS,
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
-            'letterhead' => PdfLetterhead::make($academicYear->school),
+            'letterhead' => PdfLetterhead::forEnrollment($enrollment),
         ])->setPaper('a4', 'landscape');
 
         return PdfMetadata::stream($pdf, 'beaba-horario-estudante-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');

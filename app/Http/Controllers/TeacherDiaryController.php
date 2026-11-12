@@ -461,7 +461,7 @@ class TeacherDiaryController extends Controller
             'scoreView' => $scoreView,
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
-            'letterhead' => PdfLetterhead::make($academicYear->school),
+            'letterhead' => PdfLetterhead::make($academicYear->school, $course->stage),
         ])->setPaper('a4', 'landscape');
 
         $pdf->render();
@@ -538,7 +538,7 @@ class TeacherDiaryController extends Controller
             'enrollments' => $enrollments,
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
-            'letterhead' => PdfLetterhead::make($academicYear->school),
+            'letterhead' => PdfLetterhead::make($academicYear->school, $course->stage),
         ])->setPaper('a4', 'landscape');
 
         return PdfMetadata::stream($pdf, 'beaba-lista-chamada-'.$schoolClass->id.'-'.$component->id.'-'.$month->format('Ym').'.pdf');

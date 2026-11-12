@@ -63,7 +63,7 @@ class ClassFinalResultsPdfController extends Controller
             'enrollments' => $enrollments,
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
-            'letterhead' => PdfLetterhead::make($academicYear->school),
+            'letterhead' => PdfLetterhead::forClass($class),
         ])->setPaper('a4', 'landscape');
 
         return \App\Support\PdfMetadata::stream($pdf, 'beaba-resultados-finais-turma-'.$class->id.'-'.now()->format('Ymd-His').'.pdf');

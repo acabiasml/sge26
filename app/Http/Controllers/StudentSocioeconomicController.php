@@ -41,7 +41,7 @@ class StudentSocioeconomicController extends Controller
             'student' => $student, 'enrollment' => $enrollment, 'academicYear' => $year,
             'enrollments' => $enrollments, 'profile' => $student->socioeconomic_data ?? [],
             'guardian' => $student->contacts->firstWhere('legal_guardian', true),
-            'issuedDocument' => $issuedDocument, 'letterhead' => PdfLetterhead::make($year->school),
+            'issuedDocument' => $issuedDocument, 'letterhead' => PdfLetterhead::forEnrollment($enrollment),
         ]);
 
         return PdfMetadata::stream($pdf, 'beaba-ficha-socioeconomica-'.$student->id.'-'.now()->format('Ymd-His').'.pdf');

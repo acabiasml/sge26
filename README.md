@@ -158,6 +158,9 @@ Em **Áreas curriculares**, a Administração pode rastrear os usos por escola, 
 
 O cadastro de áreas aceita um subtítulo opcional para os atos de credenciamento e autorização. Quando informado, acompanha o nome da área em tamanho menor nas telas e nos documentos. Alterações aparecem nas próximas visualizações e emissões, inclusive de históricos já vinculados, sem modificar notas, resultados, cargas horárias ou matrizes. Sem subtítulo, aparece somente o nome.
 
+O cadastro da escola mantém o texto institucional padrão do papel timbrado e aceita textos opcionais específicos para Ensino Fundamental e Ensino Médio. A emissão identifica a etapa pela matrícula, turma, matriz ou histórico; campos vazios usam o padrão. Matrículas do Médio com itinerário técnico continuam usando o texto do Médio. Documentos que abrangem as duas etapas exibem seus textos identificados quando diferentes, sem repetir textos iguais. Documentos gerais usam o padrão. A configuração é por etapa, sem vigência por ano letivo.
+
+
 
 As áreas da BNCC são separadas por etapa: Fundamental usa Linguagens, Matemática, Ciências da Natureza e Ciências Humanas; Médio usa os nomes correspondentes com Tecnologias e Ciências Humanas e Sociais Aplicadas. Os seletores e a validação impedem associações entre etapas, inclusive em históricos recebidos, na troca da etapa da matriz e na renomeação de áreas já usadas. Importações convertem apenas equivalências conhecidas. `php artisan curriculum:reconcile-stage-areas` faz diagnóstico por contagens, sem dados de estudantes; `--apply` corrige as associações conhecidas em transação, com auditoria, preservando IDs, notas, faltas e cargas horárias.
 

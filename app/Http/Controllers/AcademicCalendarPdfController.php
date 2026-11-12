@@ -30,7 +30,7 @@ class AcademicCalendarPdfController extends Controller
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
             'calendar' => $this->calendar($academicYear),
             'legend' => CalendarDay::printLegend(),
-            'letterhead' => PdfLetterhead::make($academicYear->school),
+            'letterhead' => PdfLetterhead::make($academicYear->school, $academicYear->courses->pluck('stage')->all()),
             'signatureDate' => $signatureDate,
             'directorName' => $this->directorName($academicYear, $signatureDate),
             'calendarYearLabel' => $this->calendarYearLabel($academicYear),

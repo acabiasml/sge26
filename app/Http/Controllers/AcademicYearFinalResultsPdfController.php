@@ -66,7 +66,7 @@ class AcademicYearFinalResultsPdfController extends Controller
             'rowsCount' => $rowsCount,
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
-            'letterhead' => PdfLetterhead::make($academicYear->school),
+            'letterhead' => PdfLetterhead::make($academicYear->school, $academicYear->classes->flatMap->courses->pluck('stage')->all()),
         ])->setPaper('a4', 'landscape');
 
         return \App\Support\PdfMetadata::stream($pdf, 'beaba-resultados-finais-ano-letivo-'.$academicYear->id.'-'.now()->format('Ymd-His').'.pdf');

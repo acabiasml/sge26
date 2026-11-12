@@ -134,7 +134,7 @@ class StudentEnrollmentCertificateController extends Controller
             'matrixAttendance' => $report['matrices'],
             'scope' => $scope,
             'issuedDocument' => $issuedDocument,
-            'letterhead' => PdfLetterhead::make($academicYear->school),
+            'letterhead' => PdfLetterhead::forEnrollment($enrollment),
         ])->setPaper('a4', 'portrait');
 
         return PdfMetadata::stream($pdf, 'beaba-atestado-frequencia-'.$scope['filename'].'-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
@@ -159,7 +159,7 @@ class StudentEnrollmentCertificateController extends Controller
             'class' => $class,
             'enrollment' => $enrollment,
             'issuedDocument' => $issuedDocument,
-            'letterhead' => PdfLetterhead::make($academicYear->school),
+            'letterhead' => PdfLetterhead::forEnrollment($enrollment),
         ])->setPaper('a4', 'portrait');
 
         return PdfMetadata::stream($pdf, 'beaba-atestado-transferencia-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
@@ -187,7 +187,7 @@ class StudentEnrollmentCertificateController extends Controller
             'class' => $class,
             'enrollment' => $enrollment,
             'issuedDocument' => $issuedDocument,
-            'letterhead' => PdfLetterhead::make($academicYear->school),
+            'letterhead' => PdfLetterhead::forEnrollment($enrollment),
             'title' => $title,
             'statement' => $statement,
         ])->setPaper('a4', 'portrait');

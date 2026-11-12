@@ -3,14 +3,21 @@
 namespace App\Support;
 
 use App\Models\School;
+use App\Models\SchoolClass;
+use App\Models\StudentEnrollment;
 
 class PdfLetterhead
 {
     public const MAINTAINER_NAME = 'Centro Técnico Juvenil de Jarudore';
+
     public const MAINTAINER_CERTIFICATION = 'Certificado CEBAS EDUCAÇÃO, portaria SERES/MEC Nº 269 de 31/07/2023.';
+
     public const MAINTAINER_CNPJ = '00.176.974/0001-20';
+
     public const MAINTAINER_EMAIL = 'ctjj.mt@gmail.com';
+
     public const MAINTAINER_SITE = 'https://ctjj.org/';
+
     public const MAINTAINER_CORRESPONDENCE_ADDRESS = 'Caixa Postal 338. CEP 78700-970. Rondonópolis-MT.';
 
     /**
@@ -22,15 +29,30 @@ class PdfLetterhead
      *     footer_lines: array<int, string>
      * }
      */
-    public static function make(?School $school = null): array
+    public static function make(?School $school = null, string|array|null $educationStages = null): array
     {
         return [
             'school' => $school,
             'maintainer_logo' => self::imageDataUri('brand/centro-tecnico-juvenil-de-jarudore.png'),
             'school_logo' => self::imageDataUri($school?->logo_path),
-            'lines' => $school ? self::schoolLines($school) : self::maintainerLines(),
+            'lines' => $school ? self::schoolLines($school, (array) $educationStages) : self::maintainerLines(),
             'footer_lines' => $school ? self::schoolFooterLines($school) : self::maintainerFooterLines(),
         ];
+    }
+
+    public static function forEnrollment(StudentEnrollment $enrollment): array
+    {
+        $enrollment->loadMissing(['courses', 'schoolClass.academicYear.school', 'schoolClass.courses']);
+        $courses = $enrollment->courses->isNotEmpty() ? $enrollment->courses : $enrollment->schoolClass?->courses;
+
+        return self::make($enrollment->schoolClass?->academicYear?->school, $courses?->pluck('stage')->all());
+    }
+
+    public static function forClass(SchoolClass $class): array
+    {
+        $class->loadMissing(['academicYear.school', 'courses']);
+
+        return self::make($class->academicYear?->school, $class->courses->pluck('stage')->all());
     }
 
     /**
@@ -48,14 +70,14 @@ class PdfLetterhead
     /**
      * @return array<int, string>
      */
-    private static function schoolLines(School $school): array
+    private static function schoolLines(School $school, array $educationStages): array
     {
         return collect([
             mb_strtoupper(self::MAINTAINER_NAME),
             self::MAINTAINER_CERTIFICATION,
             mb_strtoupper($school->name),
             self::schoolRegistryLine($school),
-            $school->letterhead_text,
+            ...$school->letterheadTextsForStages($educationStages),
         ])->filter(fn (?string $line): bool => filled($line))->values()->all();
     }
 

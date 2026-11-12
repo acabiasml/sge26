@@ -28,6 +28,8 @@ class School extends Model
         'email',
         'website',
         'letterhead_text',
+        'letterhead_text_elementary',
+        'letterhead_text_high_school',
         'logo_path',
         'address',
         'district',
@@ -169,6 +171,27 @@ class School extends Model
             $this->state,
             $this->postal_code,
         ])->every(fn ($value): bool => filled($value));
+    }
+
+    /** @return list<string> */
+    public function letterheadTextsForStages(array $stages = []): array
+    {
+        $fields = [
+            AcademicCourse::STAGE_ELEMENTARY => 'letterhead_text_elementary',
+            AcademicCourse::STAGE_HIGH_SCHOOL => 'letterhead_text_high_school',
+        ];
+        $texts = collect($fields)->only($stages)->map(fn (string $field): ?string => filled($this->{$field}) ? trim($this->{$field}) : $this->letterhead_text
+        );
+        if ($texts->isEmpty()) {
+            return filled($this->letterhead_text) ? [$this->letterhead_text] : [];
+        }
+        if ($texts->unique()->count() <= 1) {
+            return $texts->filter(fn ($text): bool => filled($text))->unique()->values()->all();
+        }
+
+        return $texts->filter(fn ($text): bool => filled($text))->map(
+            fn (string $text, string $stage): string => AcademicCourse::STAGE_LABELS[$stage].': '.$text
+        )->values()->all();
     }
 
     /**

@@ -170,7 +170,7 @@ class UnifiedStudentHistorySynchronizer
                 'grade_phase' => $course?->name ?: $report['schoolClass']->name,
                 'grade_number' => $this->completeness->gradeNumber($course?->name ?: $report['schoolClass']->name, $stage),
                 'school_name' => $school->name,
-                'school_authorization' => $school->letterhead_text,
+                'school_authorization' => implode("\n", $school->letterheadTextsForStages([$stage])),
                 'city' => $school->city,
                 'state' => $school->state,
                 'country' => 'Brasil',
