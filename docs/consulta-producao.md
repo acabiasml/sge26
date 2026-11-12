@@ -22,8 +22,11 @@ não salva modelos e não restaura ou altera dados.
    A preparação gera uma chave nova mesmo quando a pessoa não muda.
 4. Confirme a execução em GitHub Actions. Se a API estiver bloqueada, a página
    pública de Actions permite conferir o estado. A criação de uma branch
-   `consulta-historico-ID_DA_EXECUCAO` confirma que o resultado foi produzido.
-5. Recolha por Git: `git fetch origin refs/heads/consulta-historico-ID_DA_EXECUCAO`
+   `consulta-historico-ID_DA_EXECUCAO-NUMERO_DA_TENTATIVA` confirma que o resultado
+   foi produzido. O nome exato aparece no resumo da execução. Cada reexecução
+   incrementa a tentativa e preserva os relatórios anteriores.
+5. Recolha por Git:
+   `git fetch origin refs/heads/consulta-historico-ID_DA_EXECUCAO-NUMERO_DA_TENTATIVA`
    e `git show FETCH_HEAD:report.json > /CAMINHO_FORA_DO_CHECKOUT/report.json`.
 6. Descriptografe localmente com
    `python3 scripts/read-history-query.py RELATORIO_CIFRADO CHAVE_PRIVADA ARQUIVO_PRIVADO`.
@@ -37,6 +40,13 @@ com a `main`; nunca devem ser integradas à aplicação. Não publique relatóri
 descriptografado, chave privada, senha ou arquivo `.env`. O arquivo de alvo
 criptografado anterior é compatibilidade para a busca inicial por nome; com um
 ID positivo a consulta não depende da chave da aplicação fornecida localmente.
+
+Relatórios antigos continuam nas branches `consulta-historico-ID_DA_EXECUCAO`,
+sem o número da tentativa. Reexecutar uma execução anterior à correção usa o
+workflow do commit antigo e ainda pode falhar com `fetch first` ao publicar o
+relatório. Para usar a correção, execute uma nova consulta a partir de um commit
+que já contenha o nome de branch por tentativa. Não use force push nem tente
+mesclar os commits independentes dos relatórios.
 
 O caminho depende do GitHub Actions e do SSH/segredos continuarem disponíveis.
 Não é garantia de disponibilidade de serviços externos nem substitui backups.

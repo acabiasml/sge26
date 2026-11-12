@@ -6,11 +6,11 @@
 - Preserve esse caminho reutilizável de consulta pelo GitHub Actions. Mantenha os resultados criptografados e as chaves privadas somente fora do repositório.
 - Consultas de diagnóstico não autorizam alterações nos registros do estudante. Diferencie o estado efetivamente consultado de hipóteses reproduzidas em teste.
 
-### Falha conhecida ao reexecutar a consulta protegida
+### Reexecuções da consulta protegida
 
 - Registro de 12/11/2026: a reexecução do run `43231647430` consultou a produção com sucesso, mas falhou ao guardar o novo relatório criptografado. O workflow reutiliza `consulta-historico-$DIAGNOSIS_RUN_ID`; como `git commit-tree` cria commits sem ancestral comum, o push para uma branch já existente é rejeitado com `fetch first`/non-fast-forward.
-- A correção prevista é criar uma branch por execução e tentativa, usando `GITHUB_RUN_ID` e `GITHUB_RUN_ATTEMPT`, e ajustar as instruções de coleta do relatório. Preservar os relatórios anteriores; `git pull` não resolve a colisão entre esses commits independentes.
-- A correção do workflow permanece pendente. Este registro documenta o problema, sem implementar a correção. Até ela ser aplicada, não reexecutar uma consulta esperando substituir o relatório na mesma branch. Distinguir falha no armazenamento do relatório de falha na consulta, alteração de dados escolares ou falha no deploy da aplicação.
+- O workflow foi corrigido para criar `consulta-historico-ID_DA_EXECUCAO-NUMERO_DA_TENTATIVA`, usando `github.run_id` e `github.run_attempt`. O resumo da execução informa a branch exata. Preservar os relatórios anteriores; não usar force push nem `git pull` para resolver a colisão entre esses commits independentes. As instruções de coleta estão em `docs/consulta-producao.md`.
+- Reexecutar um run antigo utiliza o workflow do commit antigo, sem essa correção. Para obter o comportamento corrigido, iniciar uma nova consulta com o workflow atualizado. Distinguir falha no armazenamento do relatório de falha na consulta, alteração de dados escolares ou falha no deploy da aplicação.
 
 ## Fluxo obrigatório para qualquer mudança de código
 
