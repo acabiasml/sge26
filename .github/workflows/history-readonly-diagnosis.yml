@@ -3,6 +3,8 @@ on:
   push:
     branches: [main]
     paths:
+      - app/Support/LegacyLiceuItineraryLinks.php
+      - scripts/liceu-itinerary-query.php.stub
       - scripts/diary-batch-query.php.stub
       - scripts/student-reenrollment-query.php.stub
       - scripts/history-issuance-query.php.stub

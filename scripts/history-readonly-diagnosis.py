@@ -17,6 +17,7 @@ def main():
     query = json.loads(config.read_text()) if config.exists() else {'person_id': 0}
     scope = query.get('scope', 'student')
     sources = {'student': 'scripts/history-readonly-diagnosis.php.stub',
+               'liceu-itinerary': 'scripts/liceu-itinerary-query.php.stub',
                'high-school-diversified': 'scripts/high-school-diversified-query.php.stub',
                'history-catalog-classification': 'scripts/history-catalog-classification-query.php.stub',
                'student-workload': 'scripts/student-workload-query.php.stub',
