@@ -63,6 +63,9 @@ final class LegacyLiceuItineraryLinks
         return ['school_id' => $school->id, 'scope' => 'Liceu / Técnico em Móveis / vínculos que a regra anterior já incorporava ao Médio',
             'links' => $links, 'count' => count($links), 'sha256' => hash('sha256', json_encode($identity, JSON_THROW_ON_ERROR)),
             'ambiguous' => $ambiguous,
-            'technical_offers' => $technical->pluck('course')->unique('id')->map(fn ($course) => $course->only(['id', 'name', 'academic_year_id', 'active']))->values()->all()];
+            'technical_offers' => $technical->pluck('course')->unique('id')->map(fn ($course) => [
+                'course' => $course->only(['id', 'name', 'academic_year_id', 'active', 'legacy_source', 'legacy_metadata', 'notes']),
+                'components' => $course->components->map(fn ($component) => $component->only(['id', 'name', 'workload_hours', 'knowledge_area_id', 'legacy_metadata']))->values()->all(),
+            ])->values()->all()];
     }
 }
