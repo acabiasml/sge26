@@ -219,9 +219,9 @@ class AcademicCourse extends Model
         return $this->belongsToMany(self::class, 'academic_course_technical_itinerary', 'academic_course_id', 'technical_course_id')->withTimestamps();
     }
 
-    public function itineraryEnrollments(): HasMany
+    public function itineraryMatrices(): BelongsToMany
     {
-        return $this->hasMany(StudentEnrollment::class, 'technical_itinerary_course_id');
+        return $this->belongsToMany(self::class, 'academic_course_technical_itinerary', 'technical_course_id', 'academic_course_id')->withTimestamps();
     }
 
     /** Componentes técnicos desta oferta que se concluem no ano da matriz do Médio. */

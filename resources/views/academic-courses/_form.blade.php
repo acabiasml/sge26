@@ -37,24 +37,7 @@
                 </div>
             </div>
 
-            <div class="form-group">
-                <label for="itinerary_name">{{ __('Nome do itinerário formativo') }}</label>
-                <input id="itinerary_name" name="itinerary_name" class="form-control @error('itinerary_name') is-invalid @enderror" value="{{ old('itinerary_name', $course->itinerary_name) }}" placeholder="{{ __('Ex.: Ciências da Natureza e Projeto de Vida') }}">
-                <small class="form-text text-muted">{{ __('No Ensino Médio, quando ficar vazio, será apresentado como “Aprofundamento de Estudos”. Em curso técnico, o próprio nome da matriz identifica o itinerário.') }}</small>
-                @error('itinerary_name') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
-            </div>
-
-            <div id="technical-itinerary-options" class="form-group">
-                <label for="technical_itinerary_ids">{{ __('Ofertas técnicas que compõem o itinerário do Médio') }}</label>
-                <select id="technical_itinerary_ids" name="technical_itinerary_ids[]" class="form-control" multiple aria-describedby="technical-itinerary-help">
-                    @foreach(\App\Models\AcademicCourse::where('stage', 'tecnico')->whereHas('academicYear', fn ($q) => $q->where('school_id', $academicYear->school_id))->with('academicYear')->orderBy('name')->get() as $technicalOffer)
-                    <option value="{{ $technicalOffer->id }}" @selected(in_array($technicalOffer->id, old('technical_itinerary_ids', $course->exists ? $course->technicalItineraries->pluck('id')->all() : [])))>{{ $technicalOffer->name }} · {{ $technicalOffer->academicYear->name }}</option>
-                    @endforeach
-                </select>
-                <small id="technical-itinerary-help" class="form-text text-muted">{{ __('No Médio, informe um itinerário próprio ou selecione uma oferta técnica. A gestão define o vínculo de cada estudante na tela de itinerários.') }}</small>
-                @error('technical_itinerary_ids')<div class="text-danger">{{ $message }}</div>@enderror
-                @error('technical_itinerary_ids.*')<div class="text-danger">{{ $message }}</div>@enderror
-            </div>
+            @include('academic-courses._itinerary-fields')
             <section id="technical-regulation" class="card border-left-primary mb-4" @if(old('stage', $course->stage) !== \App\Models\AcademicCourse::STAGE_TECHNICAL) hidden @endif>
                 <div class="card-body">
                     <h3 class="h6 font-weight-bold text-primary">{{ __('Regulamentação da oferta técnica nesta escola') }}</h3>
@@ -106,9 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const regulation = document.getElementById('technical-regulation');
     const sync = () => {
         regulation.hidden = stage.value !== @json(\App\Models\AcademicCourse::STAGE_TECHNICAL);
-        const options = document.getElementById('technical-itinerary-options');
-        options.hidden = stage.value !== 'medio';
-        options.querySelector('select').disabled = stage.value !== 'medio';
     };
     stage.addEventListener('change', sync);
     sync();

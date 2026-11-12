@@ -177,8 +177,10 @@ class UnifiedStudentHistorySynchronizer
             && (! $history->technical_course_id || $item['component']->academic_course_id === $history->technical_course_id));
         $year = $report['academicYear'];
         $referenceYear = (int) ($year->reference_year ?: $year->starts_at?->year);
+        $itineraryCourseIds = $stage === AcademicCourse::STAGE_HIGH_SCHOOL
+            ? app(StudentTechnicalItinerary::class)->courseIdsForEnrollment($enrollment) : collect();
         $supplementalComponents = $stage === AcademicCourse::STAGE_HIGH_SCHOOL
-            ? $this->technicalComponentsForYear($technicalSources->filter(fn ($source) => $source['course']->id === $enrollment->technical_itinerary_course_id || $source['enrollment']->id === $enrollment->id), $referenceYear)
+            ? $this->technicalComponentsForYear($technicalSources->filter(fn ($source) => $itineraryCourseIds->contains($source['course']->id) || $source['enrollment']->id === $enrollment->id), $referenceYear)
             : collect();
         $historyComponents = $stageComponents->concat($supplementalComponents)->values();
         $school = $year->school;

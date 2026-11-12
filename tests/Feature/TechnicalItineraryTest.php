@@ -81,7 +81,6 @@ class TechnicalItineraryTest extends TestCase
         $standalone = app(UnifiedStudentHistorySynchronizer::class)->synchronize($person, $school->id, auth()->user()->person_id, 'tecnico', $course->id);
         foreach ([$previous, $regular] as $enrollment) {
             $enrollment->courses()->first()->technicalItineraries()->attach($course);
-            $this->put(route('people.itineraries.update', [$person, $enrollment]), ['technical_itinerary_course_id' => $course->id])->assertSessionHasNoErrors()->assertRedirect();
         }
         $history = app(UnifiedStudentHistorySynchronizer::class)->synchronize($person, $school->id, auth()->user()->person_id, 'medio');
         foreach ([2025 => $previous, 2026 => $regular] as $year => $enrollment) {
@@ -99,7 +98,8 @@ class TechnicalItineraryTest extends TestCase
         $this->getJson(route('document-issuance.targets', ['type' => 'academic-history']))->assertOk()->assertJsonMissing(['id' => $standalone->id]);
         $this->post(route('student-histories.unified', [$person, 'tecnico']), ['technical_course_id' => $course->id])->assertSessionHasErrors();
         $this->assertDatabaseHas('student_academic_histories', ['id' => $standalone->id]);
-        $this->get(route('people.itineraries.index', $person))->assertOk()->assertSee('Móveis');
+        $this->get('/pessoas/'.$person->id.'/itinerarios')->assertNotFound();
+        $this->get(route('student-histories.student', $person))->assertOk()->assertDontSee('Definir itinerário do estudante');
     }
 
     public function test_integrated_technical_components_keep_the_existing_matrix_and_bimester_configuration(): void
@@ -117,18 +117,54 @@ class TechnicalItineraryTest extends TestCase
         $this->assertNull($regular->fresh()->technical_itinerary_course_id);
     }
 
-    public function test_assignment_rejects_a_course_without_the_students_enrollment_or_matrix_permission(): void
+    public function test_matrix_itinerary_applies_to_all_students_and_does_not_borrow_another_students_grades(): void
     {
         [$school, $person, $regular, $technical] = $this->scenario();
+        $matrix = $regular->courses()->first();
         $course = $technical->courses()->first();
-        $this->put(route('people.itineraries.update', [$person, $regular]), ['technical_itinerary_course_id' => $course->id])->assertSessionHasErrors();
-        $regular->courses()->first()->technicalItineraries()->attach($course);
-        $technical->update(['person_id' => Person::create(['full_name' => 'Outro estudante'])->id]);
-        $this->put(route('people.itineraries.update', [$person, $regular]), ['technical_itinerary_course_id' => $course->id])->assertSessionHasErrors();
-        $this->assertNull($regular->fresh()->technical_itinerary_course_id);
-        $anotherSchool = School::create(['name' => 'Outra escola']);
-        $unmanaged = $this->enrollment($anotherSchool, $person, '3º Ano', 'medio', 2026);
-        $this->put(route('people.itineraries.update', [$person, $unmanaged]), ['technical_itinerary_course_id' => $course->id])->assertForbidden();
+        $route = route('academic-years.courses.itinerary.update', [$matrix->academicYear, $matrix]);
+        $other = Person::create(['full_name' => 'Outro estudante']);
+        $second = $regular->schoolClass->enrollments()->create(['person_id' => $other->id, 'status' => 'matriculado', 'enrolled_at' => '2026-02-01']);
+        $second->courses()->attach($matrix);
+        $this->put($route, ['itinerary_kind' => 'technical', 'technical_itinerary_ids' => [$course->id]])->assertSessionHasNoErrors()->assertRedirect();
+        $legacyCourse = $this->enrollment($school, $person, 'Outro técnico independente', 'tecnico', 2026)->courses()->first();
+        $regular->forceFill(['technical_itinerary_course_id' => $legacyCourse->id])->save();
+        $report = app(StudentReportCardBuilder::class)->build($regular->fresh());
+        $this->assertCount(2, $report['courses']);
+        $this->assertFalse($report['courses']->contains('id', $legacyCourse->id));
+        $this->assertCount(1, app(StudentReportCardBuilder::class)->build($second->fresh())['courses']);
+        $technical->schoolClass->enrollments()->create(['person_id' => $other->id, 'status' => 'matriculado', 'enrolled_at' => '2025-02-01'])->courses()->attach($course);
+        $this->assertCount(2, app(StudentReportCardBuilder::class)->build($second->fresh())['courses']);
+        $this->assertNull($second->fresh()->technical_itinerary_course_id);
+        $this->put($route, ['itinerary_kind' => 'own', 'itinerary_name' => 'Projetos'])->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertCount(1, app(StudentReportCardBuilder::class)->build($regular->fresh())['courses']);
+        $this->assertTrue(app(StudentTechnicalItinerary::class)->independentCourses($person)->contains('id', $course->id));
+    }
+
+    public function test_offers_and_submission_respect_school_dates_and_matrix_permissions(): void
+    {
+        [$school, $person, $regular, $technical] = $this->scenario();
+        $matrix = $regular->courses()->first();
+        $course = $technical->courses()->first();
+        $outside = $this->enrollment($school, $person, 'Curso fora das datas', 'tecnico', 2023);
+        $otherSchool = School::create(['name' => 'Outra escola']);
+        $foreign = $this->enrollment($otherSchool, $person, 'Curso de outra escola', 'tecnico', 2026);
+        $screen = $this->get(route('academic-years.courses.show', [$matrix->academicYear, $matrix]))->assertOk();
+        $screen->assertSee('Curso técnico já cadastrado')->assertSee('Técnico em Móveis')->assertSee('1 de 1 alunos já matriculados');
+        $screen->assertDontSee('Curso fora das datas')->assertDontSee('Curso de outra escola');
+        $route = route('academic-years.courses.itinerary.update', [$matrix->academicYear, $matrix]);
+        foreach ([$outside, $foreign] as $invalid) {
+            $this->put($route, ['itinerary_kind' => 'technical', 'technical_itinerary_ids' => [$invalid->courses()->first()->id]])->assertSessionHasErrors('technical_itinerary_ids');
+        }
+        $this->assertCount(0, $matrix->technicalItineraries);
+        $matrix->academicYear->update(['closed_at' => '2026-12-20']);
+        $this->put($route, ['itinerary_kind' => 'technical', 'technical_itinerary_ids' => [$course->id]])->assertSessionHasErrors('itinerary_kind');
+        $unmanaged = $this->enrollment($otherSchool, $person, '3º Ano outra escola', 'medio', 2026)->courses()->first();
+        $this->put(route('academic-years.courses.itinerary.update', [$unmanaged->academicYear, $unmanaged]), ['itinerary_kind' => 'technical', 'technical_itinerary_ids' => [$foreign->courses()->first()->id]])->assertForbidden();
+        auth()->user()->person->schoolRoles()->create(['role' => PersonSchoolRole::ROLE_ADMINISTRATOR, 'active' => true]);
+        $this->actingAs(auth()->user()->fresh());
+        $this->put($route, ['itinerary_kind' => 'technical', 'technical_itinerary_ids' => [$course->id]])->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertSame(1, $matrix->technicalItineraries()->count());
     }
 
     public function test_old_manual_technical_years_require_course_identification_and_keep_their_values_and_ids(): void
@@ -168,7 +204,7 @@ class TechnicalItineraryTest extends TestCase
         $this->artisan('itineraries:link-liceu-third-year', ['--apply' => true, '--expected' => $snapshot['sha256']])->assertSuccessful();
         $this->artisan('itineraries:link-liceu-third-year', ['--apply' => true, '--expected' => $snapshot['sha256']])->assertSuccessful();
         foreach ([$regular, $previous] as $enrollment) {
-            $this->assertSame($technical->courses()->first()->id, $enrollment->fresh()->technical_itinerary_course_id);
+            $this->assertNull($enrollment->fresh()->technical_itinerary_course_id);
             $this->assertSame(1, $enrollment->courses()->first()->technicalItineraries()->count());
         }
         $this->assertSame($before, $first->fresh()->toArray());

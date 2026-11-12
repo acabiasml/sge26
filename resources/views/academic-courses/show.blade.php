@@ -27,6 +27,29 @@
 
     <x-structure-validation :issues="$structureIssues" title="{{ __('Validação da matriz') }}" empty="{{ __('Matriz sem inconsistências estruturais.') }}" />
 
+    <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="{{ __('Áreas da matriz curricular') }}" role="tablist" data-section-tabs data-default-tab="{{ $errors->hasAny(['itinerary_kind', 'itinerary_name', 'technical_itinerary_ids', 'technical_itinerary_ids.*']) ? 'itinerario' : ($errors->any() ? 'adicionar' : (request('section') === 'itinerario' ? 'itinerario' : 'resumo')) }}">
+        <a href="#section-resumo" class="sge-section-nav-item" data-academic-tab="resumo" role="tab"><i class="fas fa-clipboard-list"></i><span>{{ __('Resumo') }}</span></a>
+        @if($course->stage === \App\Models\AcademicCourse::STAGE_HIGH_SCHOOL)
+        <a href="#section-itinerario" class="sge-section-nav-item" data-academic-tab="itinerario" role="tab"><i class="fas fa-route" aria-hidden="true"></i><span>{{ __('Itinerário Formativo') }}</span></a>
+        @endif
+        <a href="#section-adicionar" class="sge-section-nav-item" data-academic-tab="adicionar" role="tab"><i class="fas fa-plus-circle"></i><span>{{ __('Adicionar') }}</span></a>
+        <a href="#section-componentes" class="sge-section-nav-item" data-academic-tab="componentes" role="tab"><i class="fas fa-book-open"></i><span>{{ __('Componentes') }}</span><small>{{ $course->components->count() }} {{ __('cadastrados') }}</small></a>
+    </nav>
+
+    <div class="row">
+        @if($course->stage === \App\Models\AcademicCourse::STAGE_HIGH_SCHOOL)
+        <div id="section-itinerario" class="col-12 mb-4 sge-anchor-section" data-academic-panel="itinerario" role="tabpanel">
+            <section class="card shadow mb-3"><div class="card-body">
+                @if(auth()->user()->isAdministrator() || (! $academicYear->isReadOnly() && ! $academicYear->approved_at))
+                <form method="post" action="{{ route('academic-years.courses.itinerary.update', [$academicYear, $course]) }}">@csrf @method('PUT')
+                    @include('academic-courses._itinerary-fields')
+                    <button type="submit" class="btn btn-primary">{{ __('Salvar itinerário da matriz') }}</button>
+                </form>
+                @else
+                <h2 class="h5">{{ __('Itinerário Formativo') }}</h2>
+                <p>{{ __('A identificação do itinerário de uma matriz aprovada ou encerrada requer a Administração.') }}</p>
+                @endif
+            </div></section>
     @if($course->technicalItineraries->isNotEmpty())
     <section class="card shadow mb-3"><div class="card-body">
         <h2 class="h5">{{ __('Itinerário técnico incorporado') }}</h2>
@@ -44,13 +67,8 @@
         @endforeach
     </div></section>
     @endif
-    <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="{{ __('Áreas da matriz curricular') }}" role="tablist" data-section-tabs data-default-tab="{{ $errors->any() ? 'adicionar' : 'resumo' }}">
-        <a href="#section-resumo" class="sge-section-nav-item" data-academic-tab="resumo" role="tab"><i class="fas fa-clipboard-list"></i><span>{{ __('Resumo') }}</span></a>
-        <a href="#section-adicionar" class="sge-section-nav-item" data-academic-tab="adicionar" role="tab"><i class="fas fa-plus-circle"></i><span>{{ __('Adicionar') }}</span></a>
-        <a href="#section-componentes" class="sge-section-nav-item" data-academic-tab="componentes" role="tab"><i class="fas fa-book-open"></i><span>{{ __('Componentes') }}</span><small>{{ $course->components->count() }} {{ __('cadastrados') }}</small></a>
-    </nav>
-
-    <div class="row">
+        </div>
+        @endif
         <div id="section-resumo" class="col-12 mb-4 sge-anchor-section" data-academic-panel="resumo" role="tabpanel">
             <div class="card shadow">
                 <div class="card-header py-3">

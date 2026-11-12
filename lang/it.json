@@ -2971,5 +2971,18 @@
     "Selecione o curso para lançamentos técnicos": "Seleziona il corso per i dati tecnici",
     "Conforme os cursos vinculados à turma": "Secondo i corsi collegati alla classe",
     "Matriz do Médio sem itinerário": "Piano della scuola secondaria superiore senza percorso formativo",
-    "Informe o itinerário próprio ou vincule a oferta técnica que integra esta matriz.": "Indica il percorso formativo oppure collega il corso tecnico che integra questo piano di studi."
+    "Informe o itinerário próprio ou vincule a oferta técnica que integra esta matriz.": "Indica il percorso formativo oppure collega il corso tecnico che integra questo piano di studi.",
+    "Indique quais componentes compõem o itinerário desta matriz de Ensino Médio. Você pode usar os componentes da própria matriz ou incorporar um curso técnico já cadastrado.": "Indica le materie che compongono il percorso di questo piano della scuola secondaria superiore. Puoi usare le materie del piano stesso o integrare un corso tecnico già registrato.",
+    "Como o itinerário será oferecido?": "Come verrà offerto il percorso?",
+    "Componentes da própria matriz ou turma": "Materie del piano di studi o della classe",
+    "Curso técnico já cadastrado": "Corso tecnico già registrato",
+    "Curso técnico que compõe o itinerário": "Corso tecnico che compone il percorso",
+    "Cadastre os componentes na formação Itinerário Formativo da própria matriz, ou utilize a oferta já vinculada à turma.": "Registra le materie nel percorso formativo del piano di studi oppure usa il corso già collegato alla classe.",
+    ":matched de :total alunos já matriculados": ":matched studenti su :total già iscritti",
+    "São listadas ofertas da mesma escola com datas compatíveis com esta matriz. A escolha vale para todas as turmas vinculadas. Os módulos são incorporados no ano em que terminam, usando os registros da matrícula técnica de cada estudante.": "Sono elencati i corsi della stessa scuola con date compatibili con questo piano di studi. La scelta vale per tutte le classi collegate. I moduli vengono integrati nell’anno in cui terminano, usando i dati dell’iscrizione tecnica di ciascuno studente.",
+    "Nenhuma oferta técnica compatível. Cadastre primeiro a matriz do curso técnico e confira suas datas.": "Nessun corso tecnico compatibile. Registra prima il piano del corso tecnico e controlla le date.",
+    "Salvar itinerário da matriz": "Salva il percorso del piano di studi",
+    "A identificação do itinerário de uma matriz aprovada ou encerrada requer a Administração.": "L’identificazione del percorso di un piano approvato o concluso richiede l’Amministrazione.",
+    "Itinerário da matriz atualizado para todas as turmas vinculadas.": "Percorso del piano aggiornato per tutte le classi collegate.",
+    "Selecione um curso técnico da mesma escola com duração compatível com a matriz do Médio.": "Seleziona un corso tecnico della stessa scuola con durata compatibile con il piano della scuola secondaria superiore."
 }

@@ -217,7 +217,7 @@ O escopo `liceu-itinerary` consulta as ofertas e o recorte da regularização
 expressamente autorizada: os alunos do 3º ano de 2026 e as matrículas desses
 mesmos estudantes no 2º ano de 2025. O 1º e o 2º ano atuais já integram o técnico
 na própria matrícula e não recebem novas associações nessa regularização.
-O relatório informa os vínculos explícitos e os componentes técnicos incorporados
+O relatório informa as associações nas matrizes e os componentes técnicos incorporados
 em cada ano, pelo término do módulo, sem sincronizar nem emitir documentos.
 
 O comando `php artisan itineraries:link-liceu-third-year` apenas confere esse
@@ -226,3 +226,6 @@ consultadas; salva uma cópia privada anterior e registra as associações em um
 transação auditada, sem alterar notas, frequência, períodos ou componentes.
 A opção específica do Diagnóstico Hostinger aplica somente o recorte conferido.
 Depois da aplicação, execute novamente a conferência e verifique `pending: 0`.
+A matriz é a fonte da definição do itinerário para todas as suas turmas. Não há
+seleção por estudante; o campo individual da regularização anterior é legado
+e não determina mais a composição ou a emissão dos documentos.

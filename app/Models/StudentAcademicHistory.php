@@ -46,8 +46,12 @@ class StudentAcademicHistory extends Model
                             })
                             ->whereNotExists(function ($links): void {
                                 $links->selectRaw('1')->from('student_enrollments as itinerary_links')
+                                    ->join('academic_course_student_enrollment as itinerary_enrollment_courses', 'itinerary_enrollment_courses.student_enrollment_id', '=', 'itinerary_links.id')
+                                    ->join('academic_courses as itinerary_regular_matrix', 'itinerary_regular_matrix.id', '=', 'itinerary_enrollment_courses.academic_course_id')
+                                    ->join('academic_course_technical_itinerary as matrix_itineraries', 'matrix_itineraries.academic_course_id', '=', 'itinerary_regular_matrix.id')
+                                    ->where('itinerary_regular_matrix.stage', AcademicCourse::STAGE_HIGH_SCHOOL)
                                     ->whereColumn('itinerary_links.person_id', 'student_academic_histories.person_id')
-                                    ->whereColumn('itinerary_links.technical_itinerary_course_id', 'student_academic_histories.technical_course_id');
+                                    ->whereColumn('matrix_itineraries.technical_course_id', 'student_academic_histories.technical_course_id');
                             });
                     });
             });

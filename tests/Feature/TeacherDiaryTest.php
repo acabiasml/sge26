@@ -1653,7 +1653,6 @@ class TeacherDiaryTest extends TestCase
         $technicalEnrollment->courses()->attach($technicalCourse);
 
         $regularEnrollment->courses()->where('stage', 'medio')->first()->technicalItineraries()->attach($technicalCourse);
-        $regularEnrollment->update(['technical_itinerary_course_id' => $technicalCourse->id]);
 
         $report = app(StudentReportCardBuilder::class)->build($regularEnrollment->fresh());
 

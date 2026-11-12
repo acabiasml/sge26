@@ -9,10 +9,18 @@ try {
     $legacy = app(App\Support\LegacyLiceuItineraryLinks::class);
     $snapshot = $legacy->snapshot();
     $snapshot['authorized_third_year'] = $legacy->authorizedThirdYearSnapshot();
+    $snapshot['authorized_third_year']['links'] = array_map(function ($row) {
+        $enrollment = App\Models\StudentEnrollment::findOrFail($row['enrollment_id']);
+        $row['effective_matrix_course_ids'] = app(App\Support\StudentTechnicalItinerary::class)->courseIdsForEnrollment($enrollment)->all();
+        return $row;
+    }, $snapshot['authorized_third_year']['links']);
     $snapshot['incorporated_matrices'] = collect($snapshot['authorized_third_year']['links'])
         ->unique('high_school_course_id')->map(function ($row) {
             $matrix = App\Models\AcademicCourse::findOrFail($row['high_school_course_id']);
             return ['matrix_id' => $matrix->id, 'reference_year' => $row['reference_year'],
+                'eligible_offers' => app(App\Support\MatrixTechnicalItinerary::class)->offers($matrix->academicYear, $matrix)->map(fn ($offer) => [
+                    'id' => $offer->id, 'matching_students_count' => $offer->matching_students_count, 'matrix_students_count' => $offer->matrix_students_count,
+                ])->all(),
                 'linked_offers' => $matrix->technicalItineraries->map(fn ($course) => [
                     'id' => $course->id, 'components' => $matrix->incorporatedTechnicalComponents($course)->pluck('name')->all(),
                 ])->all()];

@@ -27,11 +27,6 @@ class LinkLiceuThirdYearItineraries extends Command
             }
             $pending = 0;
             foreach ($snapshot['links'] as $row) {
-                $enrollment = $enrollments[$row['enrollment_id']];
-                if ($enrollment->technical_itinerary_course_id && $enrollment->technical_itinerary_course_id !== $row['technical_course_id']) {
-                    throw new \RuntimeException('Há um vínculo técnico diferente do recorte autorizado. Nenhum registro foi alterado.');
-                }
-                $pending += $enrollment->technical_itinerary_course_id !== $row['technical_course_id'] ? 1 : 0;
                 $pending += $matrices[$row['high_school_course_id']]->technicalItineraries()->where('academic_courses.id', $row['technical_course_id'])->exists() ? 0 : 1;
             }
             $this->info(json_encode(['students' => $snapshot['students'], 'enrollment_links' => $snapshot['count'], 'pending' => $pending, 'sha256' => $snapshot['sha256']], JSON_THROW_ON_ERROR));
@@ -51,7 +46,6 @@ class LinkLiceuThirdYearItineraries extends Command
             chmod($backup, 0600);
             foreach ($snapshot['links'] as $row) {
                 $matrices[$row['high_school_course_id']]->technicalItineraries()->syncWithoutDetaching([$row['technical_course_id']]);
-                $enrollments[$row['enrollment_id']]->update(['technical_itinerary_course_id' => $row['technical_course_id']]);
             }
             AuditLog::create(['school_id' => $snapshot['school_id'], 'auditable_type' => AcademicCourse::class,
                 'auditable_id' => $matrices->keys()->first(), 'action' => 'updated',

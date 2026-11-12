@@ -67,7 +67,6 @@ class StudentEnrollment extends Model
     ];
 
     protected $fillable = [
-        'technical_itinerary_course_id',
         'school_class_id',
         'person_id',
         'enrolled_by_person_id',
@@ -152,11 +151,6 @@ class StudentEnrollment extends Model
     public function schoolClass(): BelongsTo
     {
         return $this->belongsTo(SchoolClass::class);
-    }
-
-    public function technicalItinerary(): BelongsTo
-    {
-        return $this->belongsTo(AcademicCourse::class, 'technical_itinerary_course_id');
     }
 
     public function student(): BelongsTo

@@ -98,8 +98,6 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('pessoas/{person}/pdf', [RecordPdfController::class, 'person'])->name('people.pdf');
     Route::post('pessoas/{person}/google-workspace', [GoogleWorkspaceController::class, 'store'])->name('people.google-workspace.store');
     Route::get('pessoas/{person}/vida-escolar', [StudentMapController::class, 'show'])->name('people.student-map.show');
-    Route::get('pessoas/{person}/itinerarios', [\App\Http\Controllers\StudentTechnicalItineraryController::class, 'index'])->name('people.itineraries.index');
-    Route::put('pessoas/{person}/itinerarios/{enrollment}', [\App\Http\Controllers\StudentTechnicalItineraryController::class, 'update'])->name('people.itineraries.update');
     Route::get('historicos-escolares', [StudentAcademicHistoryController::class, 'index'])->name('student-histories.index');
     Route::get('historicos-escolares/{person}', [StudentAcademicHistoryController::class, 'student'])->name('student-histories.student');
     Route::post('pessoas/{person}/historicos/{history}/identificar-curso', [StudentAcademicHistoryController::class, 'identifyTechnicalCourse'])->name('people.histories.identify-course');
@@ -210,6 +208,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::post('anos-letivos/{academicYear}/cursos/{course}/duplicar', [AcademicCourseController::class, 'duplicate'])->name('academic-years.courses.duplicate');
     Route::get('anos-letivos/{academicYear}/cursos/{course}', [AcademicCourseController::class, 'show'])->name('academic-years.courses.show');
     Route::get('anos-letivos/{academicYear}/cursos/{course}/edit', [AcademicCourseController::class, 'edit'])->name('academic-years.courses.edit');
+    Route::put('anos-letivos/{academicYear}/cursos/{course}/itinerario', [AcademicCourseController::class, 'updateItinerary'])->name('academic-years.courses.itinerary.update');
     Route::put('anos-letivos/{academicYear}/cursos/{course}', [AcademicCourseController::class, 'update'])->name('academic-years.courses.update');
     Route::delete('anos-letivos/{academicYear}/cursos/{course}', [AcademicCourseController::class, 'destroy'])->name('academic-years.courses.destroy');
     Route::post('anos-letivos/{academicYear}/cursos/{course}/componentes', [CurriculumComponentController::class, 'store'])->name('academic-years.courses.components.store');

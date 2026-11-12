@@ -57,9 +57,6 @@
                 @endif
             </div>
             <div class="sge-history-stage-actions">
-                @if($stage === 'medio' && $stageIsAvailable)
-                    <a class="btn btn-outline-secondary sge-icon-action" href="{{ route('people.itineraries.index', $person) }}" title="{{ __('Definir itinerário do estudante') }}" aria-label="{{ __('Definir itinerário do estudante') }}"><i class="fas fa-route" aria-hidden="true"></i></a>
-                @endif
                 @if($history)
                     <a class="btn btn-primary" href="{{ route('people.histories.show', [$person, $history]) }}" aria-label="{{ __('Abrir histórico') }} — {{ $definition[0] }}">{{ __('Abrir histórico') }}<i class="fas fa-arrow-right ml-2" aria-hidden="true"></i></a>
                     <a class="btn btn-outline-secondary sge-icon-action" href="{{ route('people.histories.edit', [$person, $history]) }}" aria-label="{{ __('Editar anos externos') }} — {{ $definition[0] }}" title="{{ __('Editar anos externos') }}"><i class="fas fa-pen" aria-hidden="true"></i></a>

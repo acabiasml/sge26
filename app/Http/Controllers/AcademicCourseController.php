@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicCourse;
 use App\Models\AcademicYear;
+use App\Models\AuditLog;
 use App\Support\AcademicStructureValidator;
 use App\Support\CurriculumAreaStage;
 use App\Support\CurriculumCatalog;
+use App\Support\HistoryCurriculumCatalog;
+use App\Support\MatrixTechnicalItinerary;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +26,7 @@ class AcademicCourseController extends Controller
 
         return view('academic-courses.create', [
             'academicYear' => $academicYear->load('school', 'periods'),
+            'technicalOffers' => app(MatrixTechnicalItinerary::class)->offers($academicYear),
             'course' => new AcademicCourse([
                 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
                 'modality' => AcademicCourse::MODALITY_REGULAR,
@@ -46,6 +50,7 @@ class AcademicCourseController extends Controller
                 'classes.courses',
                 'classes.enrollments.student',
             ]),
+            'technicalOffers' => app(MatrixTechnicalItinerary::class)->offers($academicYear, $course),
             'structureIssues' => AcademicStructureValidator::forCourse($course),
             'knowledgeAreas' => CurriculumCatalog::knowledgeAreasForCourse($course),
             'curriculumSuggestions' => CurriculumCatalog::suggestionsForCourse($course),
@@ -60,6 +65,7 @@ class AcademicCourseController extends Controller
         return view('academic-courses.edit', [
             'academicYear' => $academicYear->load('school', 'periods'),
             'course' => $course,
+            'technicalOffers' => app(MatrixTechnicalItinerary::class)->offers($academicYear, $course),
         ]);
     }
 
@@ -74,6 +80,7 @@ class AcademicCourseController extends Controller
         $course = DB::transaction(function () use ($academicYear, $data, $technicalIds) {
             $course = $academicYear->courses()->create($data);
             $course->technicalItineraries()->sync($technicalIds);
+
             return $course;
         });
 
@@ -97,6 +104,36 @@ class AcademicCourseController extends Controller
 
         return redirect()->route('academic-years.courses.show', [$academicYear, $course])
             ->with('status', __('Matriz atualizada com sucesso.'));
+    }
+
+    public function updateItinerary(Request $request, AcademicYear $academicYear, AcademicCourse $course): RedirectResponse
+    {
+        abort_unless($course->academic_year_id === $academicYear->id && $course->stage === AcademicCourse::STAGE_HIGH_SCHOOL, 404);
+        abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
+        // A identificação administrativa de uma oferta histórica não reabre notas ou diários.
+        if (($academicYear->isReadOnly() || $academicYear->approved_at) && ! $request->user()->isAdministrator()) {
+            throw ValidationException::withMessages(['itinerary_kind' => __('A identificação do itinerário de uma matriz aprovada ou encerrada requer a Administração.')]);
+        }
+        $data = $request->validate([
+            'itinerary_kind' => ['required', Rule::in(['own', 'technical'])],
+            'itinerary_name' => ['required_if:itinerary_kind,own', 'nullable', 'string', 'max:255'],
+            'technical_itinerary_ids' => ['required_if:itinerary_kind,technical', 'nullable', 'array'],
+            'technical_itinerary_ids.*' => ['required', 'integer', 'distinct'],
+        ]);
+        $ids = $data['itinerary_kind'] === 'technical' ? $data['technical_itinerary_ids'] : [];
+        app(MatrixTechnicalItinerary::class)->validate($academicYear, $course, $ids);
+        DB::transaction(function () use ($course, $data, $ids, $request, $academicYear): void {
+            $old = $course->technicalItineraries()->pluck('academic_courses.id')->all();
+            $course->update(['itinerary_name' => $data['itinerary_kind'] === 'own' ? $data['itinerary_name'] : null]);
+            $course->technicalItineraries()->sync($ids);
+            AuditLog::create(['actor_user_id' => $request->user()->id, 'actor_person_id' => $request->user()->person_id,
+                'school_id' => $academicYear->school_id, 'auditable_type' => AcademicCourse::class, 'auditable_id' => $course->id,
+                'action' => 'updated', 'old_values' => ['technical_itinerary_ids' => $old], 'new_values' => ['technical_itinerary_ids' => $ids],
+                'metadata' => ['operation' => 'matrix-itinerary']]);
+        });
+
+        return redirect()->route('academic-years.courses.show', [$academicYear, $course, 'section' => 'itinerario'])
+            ->with('status', __('Itinerário da matriz atualizado para todas as turmas vinculadas.'));
     }
 
     public function destroy(Request $request, AcademicYear $academicYear, AcademicCourse $course): RedirectResponse
@@ -148,7 +185,7 @@ class AcademicCourseController extends Controller
                 if (! $definition) {
                     throw ValidationException::withMessages(['components' => __('Selecione um componente do catálogo com etapa, formação e área compatíveis.')]);
                 }
-                \App\Support\HistoryCurriculumCatalog::validateDefinition($definition, $duplicatedCourse->stage, 'components');
+                HistoryCurriculumCatalog::validateDefinition($definition, $duplicatedCourse->stage, 'components');
                 $copy = $duplicatedCourse->components()->make([
                     'knowledge_area_id' => $component->knowledge_area_id,
                     'starts_period_id' => $component->starts_period_id,
@@ -177,6 +214,11 @@ class AcademicCourseController extends Controller
      */
     private function validatedData(Request $request, AcademicYear $academicYear, ?AcademicCourse $course = null): array
     {
+        if ($request->input('itinerary_kind') === 'own') {
+            $request->merge(['technical_itinerary_ids' => []]);
+        } elseif ($request->input('itinerary_kind') === 'technical') {
+            $request->merge(['itinerary_name' => null]);
+        }
         $request->merge([
             'modality' => $this->normalizeModalityInput($request->input('modality')),
         ]);
@@ -217,14 +259,12 @@ class AcademicCourseController extends Controller
                 if (! $definition) {
                     throw ValidationException::withMessages(['stage' => __('Selecione um componente do catálogo com etapa, formação e área compatíveis.')]);
                 }
-                \App\Support\HistoryCurriculumCatalog::validateDefinition($definition, $data['stage'], 'stage');
+                HistoryCurriculumCatalog::validateDefinition($definition, $data['stage'], 'stage');
             }
         }
 
         $data['technical_itinerary_ids'] = $data['stage'] === AcademicCourse::STAGE_HIGH_SCHOOL ? ($data['technical_itinerary_ids'] ?? []) : [];
-        if ($course && $course->enrollments()->whereNotNull('technical_itinerary_course_id')->whereNotIn('technical_itinerary_course_id', $data['technical_itinerary_ids'])->exists()) {
-            throw ValidationException::withMessages(['technical_itinerary_ids' => __('Esta oferta técnica já é itinerário de estudantes da matriz. Ajuste os vínculos dos estudantes antes de removê-la.')]);
-        }
+        app(MatrixTechnicalItinerary::class)->validate($academicYear, $course, $data['technical_itinerary_ids']);
         $data['status'] = 'curricular';
         $data['active'] = true;
         $data['workload_hours'] = $course?->calculatedWorkloadHours() ?? 0;
