@@ -3,9 +3,11 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { size: A4 portrait; margin: 140px 18px 96px; }
+        @page { size: A4 portrait; margin: 140px 18px 126px; }
         body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 11px; line-height: 1.06; }
         @include('reports.partials.letterhead-styles')
+        /* Reserve the full footer height while preserving its position on the page. */
+        .document-footer { bottom: -85px !important; }
         .letterhead-repeat { top: -126px; }
         .letterhead-line, .document-title, .document-meta, .document-footer { line-height: 1.06; }
         .letterhead { padding-bottom: 6px; }

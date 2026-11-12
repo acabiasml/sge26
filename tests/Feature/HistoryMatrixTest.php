@@ -469,6 +469,65 @@ class HistoryMatrixTest extends TestCase
         $this->assertLessThan(35, $footers[1] - $bottoms[1], 'O espaço livre deve ser aproveitado por linhas vindas da página seguinte.');
     }
 
+    public function test_all_history_content_stays_above_the_footer_including_studies_and_formation_totals(): void
+    {
+        foreach ([13, 17, 21, 26, 33] as $componentCount) {
+            $data = $this->paginatedHistoryData($componentCount);
+            $data['history']->setRelation('years', $data['history']->years->take(1));
+            $data['history']->years->first()->fill([
+                'year' => '2026', 'grade_phase' => '1º Ano', 'school_name' => 'Escola de Ensino Médio de Teste',
+                'city' => 'Poxoréu', 'state' => 'MT', 'country' => 'Brasil', 'modality' => 'Regular',
+            ]);
+            foreach (range(1, 4) as $number) {
+                $component = new StudentAcademicHistoryComponent([
+                    'name' => 'Componente técnico '.$number, 'formation' => 'Itinerário Formativo',
+                    'knowledge_area' => 'Técnico em Móveis',
+                    'regulatory_reference' => 'Lei Federal nº 9.394/1996, arts. 36-B a 42; Resolução CNE/CP nº 1/2021.',
+                ]);
+                $component->setRelation('records', collect());
+                $data['history']->components->push($component);
+            }
+            $data['person']->fill([
+                'legacy_code' => 'PREVIA', 'birth_date' => '2007-09-19', 'birth_city' => 'Palmas', 'birth_state' => 'TO',
+                'personal_email' => 'teste@example.org', 'institutional_email' => 'teste@escola.example.org',
+                'address' => 'Rua da Escola', 'city' => 'Poxoréu', 'state' => 'MT',
+            ]);
+            $data['letterhead']['lines'] = ['Centro Técnico de Teste', 'Certificado de educação', 'Escola de teste', 'Cadastro da escola', 'Autorização de funcionamento'];
+            $data['letterhead']['footer_lines'] = [
+                'E-mail: escola@example.org | Endereço: Rua da Escola, 100, Poxoréu-MT, CEP 78800-000',
+                'Tel.: (66) 3000-0000 | Site: https://ctjj.org',
+            ];
+            $bottoms = $footers = [];
+            $pdf = app(StudentAcademicHistoryPdf::class)->make($data);
+            $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame, $canvas) use (&$bottoms, &$footers): void {
+                $node = $frame->get_node();
+                if (! $node instanceof \DOMElement) {
+                    return;
+                }
+                $page = $canvas->get_page_number();
+                $box = $frame->get_border_box();
+                if ($node->getAttribute('class') === 'document-footer') {
+                    $footers[$page] = $box['y'];
+                }
+                for ($ancestor = $node; $ancestor instanceof \DOMElement; $ancestor = $ancestor->parentNode) {
+                    if ($ancestor->tagName === 'footer' || $ancestor->tagName === 'header') {
+                        return;
+                    }
+                }
+                if (in_array($node->tagName, ['td', 'th', 'p'], true)) {
+                    $bottoms[$page] = max($bottoms[$page] ?? 0, $box['y'] + $box['h']);
+                }
+            }]]);
+            $this->assertStringStartsWith('%PDF-', $pdf->output());
+            $this->assertNotEmpty($bottoms);
+            foreach ($bottoms as $page => $bottom) {
+                $this->assertArrayHasKey($page, $footers);
+                $this->assertLessThan($footers[$page] - 5, $bottom,
+                    'Todo o conteúdo deve respeitar o rodapé: '.$componentCount.' componentes básicos, página '.$page.'.');
+            }
+        }
+    }
+
     private function paginatedHistoryData(int $componentCount): array
     {
         $history = new StudentAcademicHistory(['education_stage' => 'medio', 'title' => 'Histórico Escolar — Ensino Médio']);
