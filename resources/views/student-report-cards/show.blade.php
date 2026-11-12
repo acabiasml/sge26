@@ -289,7 +289,7 @@
                             @if($componentReport['convalidation'])
                                 <div class="sge-component-result">
                                     <div><strong>{{ __('Convalidação') }}</strong><span>{{ $componentReport['convalidation']->source_school ?: __('Resultado externo') }}</span></div>
-                                    <div class="sge-grade-pills"><span>{{ number_format((float) $componentReport['convalidation']->score, 1, ',', '.') }}</span></div>
+                                    <div class="sge-grade-pills"><span>{{ $scoreLabel($componentReport['convalidation']->score, $period->ends_at ?? $period->starts_at) }}</span></div>
                                 </div>
                             @endif
                             <div class="sge-component-result">

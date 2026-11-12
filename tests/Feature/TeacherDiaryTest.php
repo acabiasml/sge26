@@ -28,6 +28,7 @@ use App\Models\School;
 use App\Models\SchoolAssessmentRule;
 use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
+use App\Models\StudentBehaviorGrade;
 use App\Models\StudentEnrollment;
 use App\Models\User;
 use App\Support\AttendanceSummaryCalculator;
@@ -870,6 +871,100 @@ class TeacherDiaryTest extends TestCase
         $this->actingAs($manager)
             ->get(route('enrollments.report-card.pdf', $enrollment))
             ->assertOk();
+    }
+
+    #[DataProvider('studentScoreViews')]
+    public function test_student_only_sees_concepts_including_origin_grades_with_behavior_as_numeric_exception(string $conceptState, ?string $requestedView): void
+    {
+        [, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $student = User::query()->where('person_id', $enrollment->person_id)->firstOrFail();
+        $assessment = DiaryAssessment::query()->create([
+            'school_class_id' => $class->id,
+            'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id,
+            'title' => 'Avaliação protegida',
+            'assessment_date' => '2026-03-10',
+        ]);
+        $assessment->results()->create(['student_enrollment_id' => $enrollment->id, 'score' => 8.3]);
+        $enrollment->periodConvalidations()->create([
+            'academic_period_id' => $period->id,
+            'curriculum_component_id' => $component->id,
+            'score' => 7.4,
+            'source_school' => 'Escola de origem',
+            'convalidated_at' => '2026-03-01',
+        ]);
+        StudentBehaviorGrade::query()->create([
+            'academic_period_id' => $period->id,
+            'student_enrollment_id' => $enrollment->id,
+            'score' => 9.6,
+        ]);
+
+        if ($conceptState === 'available') {
+            $year->school->concepts()->createMany([
+                ['name' => 'Bom', 'abbreviation' => 'BOM', 'minimum_score' => 8, 'maximum_score' => 9,
+                    'effective_from' => '2025-01-01'],
+                ['name' => 'Suficiente', 'abbreviation' => 'SUF', 'minimum_score' => 7, 'maximum_score' => 8,
+                    'effective_from' => '2025-01-01'],
+            ]);
+        } elseif ($conceptState === 'unmapped') {
+            $year->school->concepts()->create([
+                'name' => 'Ótimo', 'abbreviation' => 'OT', 'minimum_score' => 9, 'maximum_score' => 10,
+                'effective_from' => '2025-01-01',
+            ]);
+        }
+
+        $query = $requestedView === null ? [] : ['notas' => $requestedView];
+        foreach ([
+            'report' => route('enrollments.report-card.show', ['enrollment' => $enrollment] + $query),
+            'map' => route('people.student-map.show', ['person' => $enrollment->person_id] + $query),
+            'diary' => route('student-diaries.show', ['enrollment' => $enrollment, 'component' => $component] + $query),
+        ] as $page => $url) {
+            $response = $this->actingAs($student)->get($url)->assertOk()
+                ->assertDontSee('8,3')->assertDontSee('8.3')
+                ->assertDontSee('7,4')->assertDontSee('7.4')
+                ->assertSee('Comportamento')->assertSee('9,6')
+                ->assertDontSee('sge-score-view-switch', false);
+
+            if ($conceptState === 'available') {
+                $response->assertSee('BOM');
+                if ($page !== 'diary') {
+                    $response->assertSee('SUF');
+                }
+            } else {
+                $response->assertSee('Conceito não definido');
+            }
+        }
+
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-conceitos@ctjj.org');
+        foreach ([
+            route('enrollments.report-card.show', ['enrollment' => $enrollment, 'notas' => 'numeros']),
+            route('people.student-map.show', ['person' => $enrollment->person_id, 'notas' => 'numeros']),
+        ] as $url) {
+            $this->actingAs($manager)->get($url)->assertOk()->assertSee('8,3')->assertSee('7,4')->assertSee('9,6');
+        }
+    }
+
+    public static function studentScoreViews(): array
+    {
+        $cases = [];
+        foreach (['available', 'missing', 'unmapped'] as $conceptState) {
+            foreach ([null, 'numeros', 'conceitos'] as $requestedView) {
+                $cases[$conceptState.'-'.($requestedView ?? 'default')] = [$conceptState, $requestedView];
+            }
+        }
+
+        return $cases;
+    }
+
+    public function test_student_cannot_access_management_grade_documents_even_by_direct_url(): void
+    {
+        [, , $class, $component, , $enrollment] = $this->diaryScenario();
+        $student = User::query()->where('person_id', $enrollment->person_id)->firstOrFail();
+        foreach (['enrollments.report-card.pdf', 'enrollments.individual-record.pdf', 'enrollments.progress.pdf'] as $route) {
+            $this->actingAs($student)->get(route($route, ['enrollment' => $enrollment, 'notas' => 'numeros']))->assertForbidden();
+        }
+        $this->get(route('teacher-diaries.pdf', [$class, $component, 'notas' => 'numeros']))->assertForbidden();
+        $this->assertDatabaseCount('issued_documents', 0);
     }
 
     public function test_management_can_emit_class_report_cards_and_grade_mirror_as_pdf(): void

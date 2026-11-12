@@ -15,18 +15,20 @@
         ->sortByDesc(fn ($item) => $item['convalidation']->convalidated_at?->toDateString())
         ->values();
 
-    $scoreLabel = function ($result) use ($scoreView): string {
-        if ($scoreView === 'conceitos') {
-            $school = $result->enrollment?->schoolClass?->academicYear?->school;
-            $referenceDate = $result->assessment?->period?->ends_at ?? $result->assessment?->period?->starts_at;
-            $concept = $school?->conceptForScore((float) $result->score, $referenceDate);
-
-            if ($concept) {
-                return $concept->shortLabel();
-            }
+    $scoreLabel = function ($score, $enrollment, $period) use ($scoreView): string {
+        if ($score === null || $score === '') {
+            return '-';
         }
 
-        return number_format((float) $result->score, 1, ',', '.');
+        if ($scoreView === 'conceitos') {
+            $school = $enrollment?->schoolClass?->academicYear?->school;
+            $referenceDate = $period?->ends_at ?? $period?->starts_at;
+            $concept = $school?->conceptForScore((float) $score, $referenceDate);
+
+            return $concept?->shortLabel() ?? __('Conceito não definido');
+        }
+
+        return number_format((float) $score, 1, ',', '.');
     };
 
     $behaviorLabel = fn ($grade): string => $grade?->formattedScore() ?? __('Pendente');
@@ -284,7 +286,7 @@
                             @foreach ($latestResults as $result)
                                 <article>
                                     <span>{{ $result->assessment?->component?->name ?? __('Componente') }}</span>
-                                    <strong>{{ $scoreLabel($result) }}</strong>
+                                    <strong>{{ $scoreLabel($result->score, $result->enrollment, $result->assessment?->period) }}</strong>
                                     <small>{{ $result->assessment?->period?->name ?? __('Sem período') }}</small>
                                 </article>
                             @endforeach
@@ -299,7 +301,7 @@
                                     <i class="fas fa-file-import" aria-hidden="true"></i>
                                     <div>
                                         <strong>{{ $convalidation->component?->name ?? __('Componente') }}</strong>
-                                        <span>{{ $convalidation->period?->name }} · {{ number_format((float) $convalidation->score, 1, ',', '.') }}</span>
+                                        <span>{{ $convalidation->period?->name }} · {{ $scoreLabel($convalidation->score, $item['enrollment'], $convalidation->period) }}</span>
                                         <small>{{ $convalidation->source_school ?: __('Escola de origem não informada') }}</small>
                                     </div>
                                 </article>
@@ -341,7 +343,7 @@
                                                 </div>
                                                 <div class="sge-grade-pills">
                                                     @foreach ($componentResults as $result)
-                                                        <span title="{{ $result->assessment?->title ?? __('Avaliação') }}">{{ $scoreLabel($result) }}</span>
+                                                        <span title="{{ $result->assessment?->title ?? __('Avaliação') }}">{{ $scoreLabel($result->score, $result->enrollment, $result->assessment?->period) }}</span>
                                                     @endforeach
                                                 </div>
                                             </div>
