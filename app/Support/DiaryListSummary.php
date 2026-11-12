@@ -6,6 +6,7 @@ use App\Models\AcademicPeriod;
 use App\Models\DiaryAssessment;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\DiaryContent;
+use App\Models\DiaryExcludedDate;
 use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
 use App\Models\StudentPeriodConvalidation;
@@ -44,7 +45,9 @@ class DiaryListSummary
             ->whereIn('curriculum_component_id', $assignments->pluck('curriculum_component_id')->unique())
             ->whereNotNull('score')->get();
 
-        return $assignments->mapWithKeys(function (SchoolClassComponent $assignment) use ($attendance, $contents, $assessments, $originGrades): array {
+        $excludedDates = DiaryExcludedDate::query()->whereIn('school_class_component_id', $assignments->pluck('id'))->get()->groupBy('school_class_component_id');
+
+        return $assignments->mapWithKeys(function (SchoolClassComponent $assignment) use ($attendance, $contents, $assessments, $originGrades, $excludedDates): array {
             $key = $this->key($assignment);
             $component = $assignment->component;
             $course = $component->course;
@@ -66,6 +69,9 @@ class DiaryListSummary
                     continue;
                 }
                 $date = $day->date->toDateString();
+                if ($excludedDates->get($assignment->id, collect())->contains(fn ($excluded) => $excluded->class_date->toDateString() === $date && $periods->contains('id', $excluded->academic_period_id))) {
+                    continue;
+                }
                 $lessons = $class->schedules->sum(fn ($schedule) => $schedule->starts_at->toDateString() <= $date && (! $schedule->ends_at || $schedule->ends_at->toDateString() >= $date)
                         ? $schedule->slots->where('type', 'aula')->where('weekday', $day->date->dayOfWeekIso)->where('school_class_component_id', $assignment->id)->count()
                         : 0

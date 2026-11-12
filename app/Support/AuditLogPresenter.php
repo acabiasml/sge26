@@ -18,6 +18,7 @@ use App\Models\DiaryAttendanceEntry;
 use App\Models\DiaryAttendanceJustification;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\DiaryContent;
+use App\Models\DiaryExcludedDate;
 use App\Models\DiaryPeriodConfirmation;
 use App\Models\IssuedDocument;
 use App\Models\KnowledgeArea;
@@ -70,6 +71,7 @@ class AuditLogPresenter
         DiaryAssessment::class => 'Avaliação do diário',
         DiaryAssessmentResult::class => 'Nota de avaliação',
         DiaryContent::class => 'Conteúdo do diário',
+        DiaryExcludedDate::class => 'Data removida do diário',
         DiaryPeriodConfirmation::class => 'Confirmação de diário',
         IssuedDocument::class => 'Documento emitido',
         KnowledgeArea::class => 'Área do conhecimento',
@@ -305,7 +307,7 @@ class AuditLogPresenter
             $parts[] = $record->reference_year;
         }
         if ($depth < 3) {
-            foreach (['person_id', 'teacher_person_id', 'school_class_id', 'academic_year_id', 'student_enrollment_id', 'student_academic_history_id', 'student_academic_history_component_id', 'academic_course_id', 'school_id', 'curriculum_component_id', 'diary_assessment_id', 'diary_attendance_record_id'] as $field) {
+            foreach (['person_id', 'teacher_person_id', 'school_class_id', 'school_class_component_id', 'academic_year_id', 'student_enrollment_id', 'student_academic_history_id', 'student_academic_history_component_id', 'academic_course_id', 'school_id', 'curriculum_component_id', 'diary_assessment_id', 'diary_attendance_record_id'] as $field) {
                 $id = $record->getAttribute($field);
                 $class = self::referenceClass($field);
                 if ($id && $class && ($related = $class::query()->find($id))) {

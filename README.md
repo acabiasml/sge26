@@ -87,6 +87,8 @@ Regras principais:
 
 O provisionamento de contas Google Workspace é opcional e depende de `GOOGLE_WORKSPACE_ENABLED` e das credenciais administrativas configuradas no ambiente.
 
+A tela de conteúdos oferece uma lixeira em cada data, inclusive nas caixas vazias. O modal avisa que a exclusão remove o conteúdo e todas as frequências do mesmo diário e período. A operação é transacional, registra as exclusões na auditoria e não salva outros textos do formulário. A data deixa de aparecer nos editores e na previsão do diário. Em **Datas removidas deste diário**, é possível restaurar a disponibilidade do dia, sem recuperar os registros apagados. As permissões e os bloqueios de fechamento continuam aplicáveis.
+
 ## Cadastro e conformidade
 
 O cadastro de pessoa mantém, conforme disponibilidade:

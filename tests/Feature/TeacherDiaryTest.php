@@ -17,6 +17,7 @@ use App\Models\DiaryAssessmentResult;
 use App\Models\DiaryAttendanceJustification;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\DiaryContent;
+use App\Models\DiaryExcludedDate;
 use App\Models\DiaryPeriodConfirmation;
 use App\Models\IssuedDocument;
 use App\Models\KnowledgeArea;
@@ -31,6 +32,7 @@ use App\Models\StudentEnrollment;
 use App\Models\User;
 use App\Support\AttendanceSummaryCalculator;
 use App\Support\CurriculumCatalog;
+use App\Support\DiaryListSummary;
 use App\Support\DiaryPeriodStatus;
 use App\Support\PdfLetterhead;
 use App\Support\SchoolClassEnrollmentCourses;
@@ -45,6 +47,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\View;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class TeacherDiaryTest extends TestCase
@@ -1045,7 +1048,7 @@ class TeacherDiaryTest extends TestCase
         return ['notas' => ['numeros'], 'conceitos' => ['conceitos']];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('individualRecordScoreViews')]
+    #[DataProvider('individualRecordScoreViews')]
     public function test_individual_record_keeps_signatures_above_footer_and_hours_follow_relative_attendance(string $scoreView): void
     {
         [, $year, $class, $component, , $enrollment] = $this->diaryScenario();
@@ -2557,6 +2560,121 @@ class TeacherDiaryTest extends TestCase
             ->assertSessionHasErrors('scheduled_dates');
     }
 
+    public function test_deleting_content_date_removes_attendance_and_audits_without_saving_other_fields(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $date = '2026-03-11';
+        $content = DiaryContent::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id, 'class_date' => $date, 'content' => 'Conteúdo a remover']);
+        $record = DiaryAttendanceRecord::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id, 'class_date' => $date, 'lesson_count' => 2]);
+        $entry = $record->entries()->create(['student_enrollment_id' => $enrollment->id, 'status' => 'presente', 'attended_lessons' => 2]);
+        $other = DiaryContent::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id, 'class_date' => '2026-03-18', 'content' => 'Preservar']);
+        $otherPeriod = $year->periods()->create(['name' => 'Outro período', 'position' => 2, 'starts_at' => '2026-04-11', 'ends_at' => '2026-06-30']);
+        $otherPeriodRecord = DiaryAttendanceRecord::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $otherPeriod->id, 'class_date' => '2026-05-20', 'lesson_count' => 1]);
+        $this->actingAs($teacher)->put(route('teacher-diaries.contents.update', [$class, $component]), [
+            'academic_period_id' => $period->id, 'delete_dates' => [$date],
+            'contents' => [$date => 'Não recriar', '2026-03-18' => str_repeat('x', 6000)],
+        ])->assertSessionHasNoErrors()->assertRedirect();
+        foreach ([$content, $record, $entry] as $deleted) {
+            $this->assertModelMissing($deleted);
+            $this->assertDatabaseHas('audit_logs', ['auditable_type' => $deleted::class, 'auditable_id' => $deleted->id,
+                'action' => 'deleted', 'actor_person_id' => $teacher->person_id, 'school_id' => $year->school_id]);
+        }
+        $this->assertSame('Preservar', $other->fresh()->content);
+        $this->assertModelExists($otherPeriodRecord);
+        $this->assertSame(1, AuditLog::where('auditable_type', DiaryContent::class)->where('auditable_id', $content->id)->where('action', 'created')->count());
+        $this->get(route('teacher-diaries.contents', [$class, $component, 'period' => $period->id]))
+            ->assertOk()->assertDontSee('name="contents['.$date.']"', false)->assertSee('Restaurar data');
+        $this->get(route('teacher-diaries.attendance', [$class, $component, 'period' => $period->id]))
+            ->assertOk()->assertDontSee('name="lesson_counts['.$date.']"', false);
+    }
+
+    public function test_empty_scheduled_date_can_be_removed_and_restored_without_recovering_deleted_records(): void
+    {
+        [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $date = '2026-03-11';
+        $assignment = SchoolClassComponent::where('school_class_id', $class->id)->firstOrFail();
+        $before = app(DiaryListSummary::class)->forAssignments(collect([$assignment]))->get($assignment->id)['planned'];
+        $this->actingAs($teacher)->get(route('teacher-diaries.contents', [$class, $component, 'period' => $period->id]))
+            ->assertOk()->assertSee('form="delete-content-date-'.$date.'"', false)->assertSee('frequências associadas');
+        $this->put(route('teacher-diaries.contents.update', [$class, $component]), ['academic_period_id' => $period->id, 'delete_dates' => [$date]])
+            ->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertSame(1, DiaryExcludedDate::count());
+        $after = app(DiaryListSummary::class)->forAssignments(collect([$assignment]))->get($assignment->id)['planned'];
+        $this->assertSame($before - 1, $after);
+        // Um formulário antigo não pode recriar os registros da data removida.
+        $this->put(route('teacher-diaries.contents.update', [$class, $component]), [
+            'academic_period_id' => $period->id, 'selected_dates' => [$date], 'contents' => [$date => 'Não recriar'],
+        ])->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('diary_contents', 0);
+        $this->put(route('teacher-diaries.contents.update', [$class, $component]), ['academic_period_id' => $period->id, 'restore_dates' => [$date]])
+            ->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertDatabaseCount('diary_excluded_dates', 0);
+        $this->get(route('teacher-diaries.contents', [$class, $component, 'period' => $period->id]))
+            ->assertOk()->assertSee('name="contents['.$date.']"', false);
+        $this->assertDatabaseCount('diary_contents', 0);
+        $this->assertDatabaseCount('diary_attendance_records', 0);
+    }
+
+    public function test_manual_date_deletion_is_idempotent_and_prevents_stale_attendance(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $class->schedules()->get()->each->delete();
+        $date = '2026-03-11';
+        $this->actingAs($teacher)->put(route('teacher-diaries.contents.update', [$class, $component]), [
+            'academic_period_id' => $period->id, 'selected_dates' => [$date], 'contents' => [$date => 'Manual'],
+        ])->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('diary_contents', 1);
+        for ($i = 0; $i < 2; $i++) {
+            $this->put(route('teacher-diaries.contents.update', [$class, $component]), ['academic_period_id' => $period->id, 'delete_dates' => [$date]])
+                ->assertSessionHasNoErrors();
+        }
+        $this->assertDatabaseCount('diary_excluded_dates', 1);
+        $this->assertDatabaseCount('diary_contents', 0);
+        $this->put(route('teacher-diaries.attendance.batch-update', [$class, $component]), [
+            'academic_period_id' => $period->id, 'starts_at' => $date, 'ends_at' => $date,
+            'lesson_counts' => [$date => 1], 'attendance' => [$date => [$enrollment->id => [1 => '1']]],
+        ]);
+        $this->assertDatabaseCount('diary_attendance_records', 0);
+        $this->get(route('teacher-diaries.contents', [$class, $component, 'period' => $period->id, 'dates' => $date]))
+            ->assertOk()->assertDontSee('name="contents['.$date.']"', false);
+    }
+
+    public function test_date_deletion_rejects_foreign_dates_and_confirmed_periods(): void
+    {
+        [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $this->actingAs($teacher)->put(route('teacher-diaries.contents.update', [$class, $component]), [
+            'academic_period_id' => $period->id, 'delete_dates' => ['2026-05-20'],
+        ])->assertSessionHasErrors('delete_dates');
+        $this->put(route('teacher-diaries.contents.update', [$class, $component]), [
+            'academic_period_id' => $period->id, 'delete_dates' => ['2026-03-11'], 'restore_dates' => ['2026-03-11'],
+        ])->assertSessionHasErrors();
+        DiaryPeriodConfirmation::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id, 'confirmed' => true, 'confirmed_by_person_id' => $teacher->person_id]);
+        $this->put(route('teacher-diaries.contents.update', [$class, $component]), [
+            'academic_period_id' => $period->id, 'delete_dates' => ['2026-03-11'],
+        ])->assertSessionHasErrors('academic_period_id');
+        $this->assertDatabaseCount('diary_excluded_dates', 0);
+    }
+
+    public function test_only_authorized_diary_users_can_delete_dates(): void
+    {
+        [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $otherTeacher = $this->userWithRole(PersonSchoolRole::ROLE_TEACHER, $year->school_id, 'outro-docente@ctjj.org');
+        $this->actingAs($otherTeacher)->put(route('teacher-diaries.contents.update', [$class, $component]), [
+            'academic_period_id' => $period->id, 'delete_dates' => ['2026-03-11'],
+        ])->assertForbidden();
+        $this->assertDatabaseCount('diary_excluded_dates', 0);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-diario@ctjj.org');
+        $this->actingAs($manager)->put(route('teacher-diaries.contents.update', [$class, $component]), [
+            'academic_period_id' => $period->id, 'delete_dates' => ['2026-03-11'],
+        ])->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('diary_excluded_dates', 1);
+    }
+
     public function test_saved_attendance_outside_current_schedule_remains_visible_and_can_be_completed_or_deleted(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
@@ -2592,9 +2710,6 @@ class TeacherDiaryTest extends TestCase
 
         $this->put(route('teacher-diaries.contents.update', [$class, $component]), [
             'academic_period_id' => $period->id, 'page' => 2, 'selected_dates' => [$date], 'delete_dates' => [$date],
-        ])->assertSessionHasNoErrors()->assertRedirect();
-        $this->put(route('teacher-diaries.attendance.batch-update', [$class, $component]), [
-            'academic_period_id' => $period->id, 'page' => 2, 'scheduled_dates' => [$date], 'lesson_counts' => [$date => 0],
         ])->assertSessionHasNoErrors()->assertRedirect();
         $this->assertModelMissing($record);
         $this->assertModelMissing($entry);

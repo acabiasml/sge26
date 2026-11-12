@@ -23,7 +23,7 @@
         <div class="card-body">
             @if($usesScheduledDiary)
                 <p class="mb-0 small text-muted">{{ __('Os dias abaixo são gerados automaticamente a partir do horário da turma e do calendário letivo. Registre um único conteúdo para cada data em que este componente está previsto.') }}</p>
-                <p class="small text-muted mt-2 mb-0">{{ __('Lançamentos existentes fora do horário atual também aparecem para conferência.') }}</p>
+                <p class="small text-muted mt-2 mb-0">{{ __('Lançamentos existentes fora do horário atual também aparecem para conferência. Use a lixeira para remover uma data deste diário, junto com o conteúdo e as frequências associadas.') }}</p>
             @else
                 <form method="GET" action="{{ route('teacher-diaries.contents', [$schoolClass, $component]) }}" class="row align-items-end"><input type="hidden" name="period" value="{{ $period->id }}"><input type="hidden" name="dates" value="{{ implode(',', $selectedDates) }}"><div class="col-md-5 form-group mb-md-0"><label for="content_add_date">{{ __('Dia letivo') }}</label><input id="content_add_date" name="add_date" type="date" min="{{ $diaryStartsAt->toDateString() }}" max="{{ $diaryEndsAt->toDateString() }}" class="form-control"></div><div class="col-md-7 form-group mb-0"><button class="btn btn-outline-primary" type="submit"><i class="fas fa-plus mr-1" aria-hidden="true"></i>{{ __('Adicionar dia à lista') }}</button></div></form><p class="small text-muted mb-0 mt-3">{{ __('Esta turma não possui horário para este componente. Adicione apenas os dias letivos que deseja registrar.') }}</p>
                 @if($period->allow_diary_entries_outside_period)<p class="small text-info mb-0 mt-2"><i class="fas fa-info-circle mr-1" aria-hidden="true"></i>{{ __('A gestão autorizou lançamentos em dias letivos fora das datas deste período.') }}</p>@endif
@@ -52,16 +52,44 @@
                             <textarea id="content_{{ $date }}" name="contents[{{ $date }}]" rows="2" class="form-control" placeholder="{{ __('Conteúdo ministrado neste dia') }}">{{ old('contents.'.$date, $content?->content) }}</textarea>
                             <div class="d-flex justify-content-between align-items-center flex-wrap mt-1 small text-muted">
                                 <span>@if($hasAttendance)<i class="fas fa-clipboard-check text-success" aria-hidden="true"></i> {{ __('Frequência lançada') }} @else <i class="fas fa-exclamation-circle text-warning" aria-hidden="true"></i> {{ __('Frequência pendente') }} @endif</span>
-                                <span>@if($content?->updatedBy){{ __('Última alteração:') }} {{ $content->updatedBy->full_name }}@endif @if($content)<button class="btn btn-link btn-sm text-danger sge-icon-action ml-2" name="delete_dates[]" value="{{ $date }}" type="submit" formnovalidate data-confirm-message="{{ __('Excluir o conteúdo lançado para este dia?') }}"><i class="fas fa-trash-alt" aria-hidden="true"></i><span class="sr-only">{{ __('Excluir conteúdo de') }} {{ $day->date->format('d/m/Y') }}</span></button>@endif</span>
+                                <span>@if($content?->updatedBy){{ __('Última alteração:') }} {{ $content->updatedBy->full_name }}@endif <button class="btn btn-link btn-sm text-danger sge-icon-action ml-2" form="delete-content-date-{{ $date }}" type="submit" title="{{ __('Remover data do diário') }}" data-confirm-message="{{ __('Remover :date deste diário? O conteúdo e todas as frequências associadas a esta data neste componente, se houver, também serão apagados. Esta ação não pode ser desfeita.', ['date' => $day->date->format('d/m/Y')]) }}"><i class="fas fa-trash-alt" aria-hidden="true"></i><span class="sr-only">{{ __('Remover data do diário') }} {{ $day->date->format('d/m/Y') }}</span></button></span>
                             </div>
                         </div>
                     </article>
                 @empty
-                    <div class="sge-empty-state"><i class="fas {{ $usesScheduledDiary ? 'fa-clock' : 'fa-calendar-plus' }}" aria-hidden="true"></i><p>{{ $usesScheduledDiary ? __('Não há dias previstos para este componente neste período. Cadastre o horário da turma para gerar os lançamentos automaticamente.') : __('Nenhum dia selecionado. Use o campo acima para incluir um dia letivo nesta folha.') }}</p></div>
+                    <div class="sge-empty-state"><i class="fas {{ $usesScheduledDiary ? 'fa-clock' : 'fa-calendar-plus' }}" aria-hidden="true"></i><p>{{ $usesScheduledDiary ? __('Não há datas disponíveis neste período. Confira o horário da turma ou as datas removidas abaixo.') : __('Nenhum dia selecionado. Use o campo acima para incluir um dia letivo nesta folha.') }}</p></div>
                 @endforelse
             </div>
             @if($days->isNotEmpty())<div class="card-footer bg-white text-right"><button class="btn btn-primary" type="submit"><i class="fas fa-save mr-1" aria-hidden="true"></i>{{ __('Salvar conteúdos') }}</button></div>@endif
         </section>
     </form>
+    @foreach($days as $day)
+        @php($deleteDate = $day->date->toDateString())
+        <form id="delete-content-date-{{ $deleteDate }}" method="POST" action="{{ route('teacher-diaries.contents.update', [$schoolClass, $component]) }}">
+            @csrf
+            @method('PUT')
+            <input type="hidden" name="academic_period_id" value="{{ $period->id }}">
+            <input type="hidden" name="page" value="{{ $page }}">
+            <input type="hidden" name="delete_dates[]" value="{{ $deleteDate }}">
+            @foreach($selectedDates as $selectedDate)<input type="hidden" name="selected_dates[]" value="{{ $selectedDate }}">@endforeach
+        </form>
+    @endforeach
+    @if($excludedDates !== [])
+        <details class="card shadow mt-4">
+            <summary class="card-header">{{ __('Datas removidas deste diário') }} ({{ count($excludedDates) }})</summary>
+            <div class="card-body">
+                <p class="small text-muted">{{ __('Restaurar uma data permite novos lançamentos. Os conteúdos e as frequências apagados não serão recuperados.') }}</p>
+                @foreach($excludedDates as $excludedDate)
+                    <form method="POST" action="{{ route('teacher-diaries.contents.update', [$schoolClass, $component]) }}" class="d-inline-block mr-2 mb-2">
+                        @csrf
+                        @method('PUT')
+                        <input type="hidden" name="academic_period_id" value="{{ $period->id }}">
+                        <input type="hidden" name="restore_dates[]" value="{{ $excludedDate }}">
+                        <button type="submit" class="btn btn-outline-secondary btn-sm"><i class="fas fa-undo mr-1" aria-hidden="true"></i>{{ __('Restaurar data') }} {{ \Illuminate\Support\Carbon::parse($excludedDate)->format('d/m/Y') }}</button>
+                    </form>
+                @endforeach
+            </div>
+        </details>
+    @endif
     @if($usesScheduledDiary && $totalPages > 1)<nav class="d-flex justify-content-between align-items-center mt-4" aria-label="{{ __('Navegação dos dias previstos') }}">@if($page > 1)<a class="btn btn-outline-secondary btn-sm" href="{{ route('teacher-diaries.contents', [$schoolClass, $component, 'period' => $period->id, 'page' => $page - 1]) }}"><i class="fas fa-arrow-left mr-1" aria-hidden="true"></i>{{ __('Anteriores') }}</a>@else<span></span>@endif<span class="small text-muted">{{ __('Página') }} {{ $page }} {{ __('de') }} {{ $totalPages }}</span>@if($page < $totalPages)<a class="btn btn-outline-secondary btn-sm" href="{{ route('teacher-diaries.contents', [$schoolClass, $component, 'period' => $period->id, 'page' => $page + 1]) }}">{{ __('Próximos') }}<i class="fas fa-arrow-right ml-1" aria-hidden="true"></i></a>@endif</nav>@endif
 @endsection

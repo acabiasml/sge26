@@ -31,9 +31,33 @@ class DiaryContent extends Model
         ];
     }
 
-    public function schoolClass(): BelongsTo { return $this->belongsTo(SchoolClass::class); }
-    public function component(): BelongsTo { return $this->belongsTo(CurriculumComponent::class, 'curriculum_component_id'); }
-    public function period(): BelongsTo { return $this->belongsTo(AcademicPeriod::class, 'academic_period_id'); }
-    public function createdBy(): BelongsTo { return $this->belongsTo(Person::class, 'created_by_person_id'); }
-    public function updatedBy(): BelongsTo { return $this->belongsTo(Person::class, 'updated_by_person_id'); }
+    public function schoolClass(): BelongsTo
+    {
+        return $this->belongsTo(SchoolClass::class);
+    }
+
+    public function component(): BelongsTo
+    {
+        return $this->belongsTo(CurriculumComponent::class, 'curriculum_component_id');
+    }
+
+    public function period(): BelongsTo
+    {
+        return $this->belongsTo(AcademicPeriod::class, 'academic_period_id');
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(Person::class, 'created_by_person_id');
+    }
+
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(Person::class, 'updated_by_person_id');
+    }
+
+    protected function auditSchoolId(): ?int
+    {
+        return $this->schoolClass?->academicYear?->school_id;
+    }
 }

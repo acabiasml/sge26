@@ -35,4 +35,9 @@ class DiaryAttendanceEntry extends Model
     {
         return $this->belongsTo(StudentEnrollment::class, 'student_enrollment_id');
     }
+
+    protected function auditSchoolId(): ?int
+    {
+        return $this->record?->schoolClass?->academicYear?->school_id;
+    }
 }

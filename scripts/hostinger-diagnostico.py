@@ -220,6 +220,8 @@ with tempfile.TemporaryDirectory() as directory:
                          'php artisan migrate --path=database/migrations/2026_11_06_000004_make_catalog_components_always_available.php --force --no-ansi'))
         commands.append(('Conferir cadastro socioeconômico das pessoas',
                          'php artisan migrate --path=database/migrations/2026_11_09_000001_add_socioeconomic_data_to_people.php --force --no-ansi'))
+        commands.append(('Conferir exclusões de datas dos diários',
+                         'php artisan migrate --path=database/migrations/2026_11_12_000001_create_diary_excluded_dates_table.php --force --no-ansi'))
         commands.append(('Conferir disponibilidade dos componentes do catálogo',
                          'php artisan tinker --execute=\'echo json_encode(["unavailable_catalog_components" => App\\Models\\HistoryCurriculumComponent::where("active", false)->count()]);\''))
         commands.append(('Conferir vínculos das matrizes no catálogo',

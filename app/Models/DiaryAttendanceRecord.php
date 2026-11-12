@@ -12,8 +12,11 @@ class DiaryAttendanceRecord extends Model
     use Auditable;
 
     public const STATUS_PRESENT = 'presente';
+
     public const STATUS_ABSENT = 'falta';
+
     public const STATUS_EXCUSED = 'justificada';
+
     public const STATUS_PARTIAL = 'parcial';
 
     public const STATUS_LABELS = [
@@ -74,5 +77,10 @@ class DiaryAttendanceRecord extends Model
     public function entries(): HasMany
     {
         return $this->hasMany(DiaryAttendanceEntry::class);
+    }
+
+    protected function auditSchoolId(): ?int
+    {
+        return $this->schoolClass?->academicYear?->school_id;
     }
 }

@@ -12,6 +12,7 @@ use App\Models\DiaryAssessment;
 use App\Models\DiaryAttendanceJustification;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\DiaryContent;
+use App\Models\DiaryExcludedDate;
 use App\Models\DiaryPeriodConfirmation;
 use App\Models\IssuedDocument;
 use App\Models\PersonSchoolRole;
@@ -566,6 +567,8 @@ class TeacherDiaryController extends Controller
             $days = CalendarDay::query()->where('academic_year_id', $academicYear->id)->whereDate('date', '>=', $startsAt->toDateString())->whereDate('date', '<=', $endsAt->toDateString())->where('counts_as_school_day', true)->orderBy('date')->get();
             $page = 1;
             $totalPages = 1;
+            $excludedDates = $this->excludedDiaryDates($assignment, $period);
+            $days = $days->reject(fn (CalendarDay $day): bool => in_array($day->date->toDateString(), $excludedDates, true))->values();
             $scheduledDays = $days;
         }
         $dayDates = $days->pluck('date')->map(fn ($date): string => $date->toDateString())->all();
@@ -674,9 +677,14 @@ class TeacherDiaryController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($days, $data, $schoolClass, $component, $period, $enrollmentIds, $request): void {
+        DB::transaction(function () use ($days, $data, $schoolClass, $component, $assignment, $period, $enrollmentIds, $request): void {
+            SchoolClassComponent::query()->whereKey($assignment->id)->lockForUpdate()->firstOrFail();
+            $excludedDates = $this->excludedDiaryDates($assignment, $period);
             foreach ($days as $day) {
                 $date = $day->date->toDateString();
+                if (in_array($date, $excludedDates, true)) {
+                    continue;
+                }
                 $lessonCount = (int) ($data['lesson_counts'][$date] ?? 0);
                 if ($lessonCount === 0) {
                     DiaryAttendanceRecord::query()
@@ -778,12 +786,15 @@ class TeacherDiaryController extends Controller
             $page = 1;
             $totalPages = 1;
         }
+        $excludedDates = $this->excludedDiaryDates($assignment, $period);
+        $days = $days->reject(fn (CalendarDay $day): bool => in_array($day->date->toDateString(), $excludedDates, true))->values();
+        $selectedDates = array_values(array_diff($selectedDates, $excludedDates));
         $contents = DiaryContent::query()->with('updatedBy')
             ->where('school_class_id', $schoolClass->id)->where('curriculum_component_id', $component->id)
             ->where('academic_period_id', $period->id)->get()
             ->keyBy(fn (DiaryContent $content): string => $content->class_date->toDateString());
 
-        return view('teacher-diaries.contents', compact('academicYear', 'course', 'schoolClass', 'component', 'periods', 'period', 'days', 'contents', 'attendanceDates', 'selectedDates', 'page', 'totalPages', 'usesScheduledDiary'));
+        return view('teacher-diaries.contents', compact('academicYear', 'course', 'schoolClass', 'component', 'periods', 'period', 'days', 'contents', 'attendanceDates', 'selectedDates', 'page', 'totalPages', 'usesScheduledDiary', 'excludedDates'));
     }
 
     public function updateContents(Request $request, SchoolClass $schoolClass, CurriculumComponent $component): RedirectResponse
@@ -794,13 +805,14 @@ class TeacherDiaryController extends Controller
         $this->ensureComponentActiveInPeriod($component, $period);
         $this->ensurePeriodOpen($schoolClass, $component, $period);
         $assignment = SchoolClassComponent::query()->where('school_class_id', $schoolClass->id)->where('curriculum_component_id', $component->id)->firstOrFail();
+        if ($request->has('delete_dates') || $request->has('restore_dates')) {
+            return $this->updateContentDates($request, $schoolClass, $component, $assignment, $period);
+        }
         $data = $request->validate([
             'academic_period_id' => ['required', Rule::in([$period->id])],
             'selected_dates' => ['required', 'array', 'min:1'],
             'selected_dates.*' => ['required', 'date'],
             'page' => ['nullable', 'integer', 'min:1'],
-            'delete_dates' => ['nullable', 'array'],
-            'delete_dates.*' => ['date'],
             'contents' => ['nullable', 'array'],
             'contents.*' => ['nullable', 'string', 'max:5000'],
         ]);
@@ -814,7 +826,7 @@ class TeacherDiaryController extends Controller
 
                 return CalendarDay::query()
                     ->where('academic_year_id', $course->academicYear->id)
-                    ->whereIn('date', $data['selected_dates'])
+                    ->where(fn (Builder $query) => $this->whereDates($query, 'date', $data['selected_dates']))
                     ->whereDate('date', '>=', $allowedStartsAt->toDateString())
                     ->whereDate('date', '<=', $allowedEndsAt->toDateString())
                     ->where('counts_as_school_day', true)
@@ -823,13 +835,15 @@ class TeacherDiaryController extends Controller
                     ->all();
             })();
 
-        DB::transaction(function () use ($data, $validDates, $schoolClass, $component, $period, $request): void {
+        DB::transaction(function () use ($data, $validDates, $schoolClass, $component, $assignment, $period, $request): void {
+            SchoolClassComponent::query()->whereKey($assignment->id)->lockForUpdate()->firstOrFail();
+            $validDates = array_diff($validDates, $this->excludedDiaryDates($assignment, $period));
             foreach (($data['contents'] ?? []) as $date => $content) {
                 if (! in_array($date, $validDates, true)) {
                     continue;
                 }
                 if (blank($content)) {
-                    DiaryContent::query()->where('school_class_id', $schoolClass->id)->where('curriculum_component_id', $component->id)->whereDate('class_date', $date)->delete();
+                    DiaryContent::query()->where('school_class_id', $schoolClass->id)->where('curriculum_component_id', $component->id)->where('academic_period_id', $period->id)->whereDate('class_date', $date)->get()->each->delete();
 
                     continue;
                 }
@@ -851,13 +865,6 @@ class TeacherDiaryController extends Controller
                 $record->updated_by_person_id = $request->user()->person_id;
                 $record->save();
             }
-
-            foreach (($data['delete_dates'] ?? []) as $date) {
-                if (! in_array($date, $validDates, true)) {
-                    continue;
-                }
-                DiaryContent::query()->where('school_class_id', $schoolClass->id)->where('curriculum_component_id', $component->id)->whereDate('class_date', $date)->delete();
-            }
         });
 
         $redirectParameters = ['schoolClass' => $schoolClass, 'component' => $component, 'period' => $period->id];
@@ -869,6 +876,74 @@ class TeacherDiaryController extends Controller
 
         return redirect()->route('teacher-diaries.contents', $redirectParameters)
             ->with('status', __('Conteúdos atualizados com sucesso.'));
+    }
+
+    /** @return list<string> */
+    private function excludedDiaryDates(SchoolClassComponent $assignment, AcademicPeriod $period): array
+    {
+        return DiaryExcludedDate::query()->where('school_class_component_id', $assignment->id)
+            ->where('academic_period_id', $period->id)->orderBy('class_date')->get()
+            ->map(fn (DiaryExcludedDate $date): string => $date->class_date->toDateString())->all();
+    }
+
+    private function updateContentDates(Request $request, SchoolClass $schoolClass, CurriculumComponent $component, SchoolClassComponent $assignment, AcademicPeriod $period): RedirectResponse
+    {
+        $data = $request->validate([
+            'delete_dates' => ['required_without:restore_dates', Rule::prohibitedIf($request->has('restore_dates')), 'array', 'list', 'size:1'],
+            'delete_dates.*' => ['required', 'date_format:Y-m-d'],
+            'restore_dates' => ['required_without:delete_dates', Rule::prohibitedIf($request->has('delete_dates')), 'array', 'list', 'size:1'],
+            'restore_dates.*' => ['required', 'date_format:Y-m-d'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'selected_dates' => ['nullable', 'array'],
+            'selected_dates.*' => ['date_format:Y-m-d'],
+        ]);
+        $restoring = isset($data['restore_dates']);
+        $date = ($data['restore_dates'] ?? $data['delete_dates'])[0];
+        DB::transaction(function () use ($schoolClass, $component, $assignment, $period, $date, $restoring): void {
+            SchoolClassComponent::query()->whereKey($assignment->id)->lockForUpdate()->firstOrFail();
+            $excluded = DiaryExcludedDate::query()->where('school_class_component_id', $assignment->id)
+                ->where('academic_period_id', $period->id)->whereDate('class_date', $date);
+            if ($restoring) {
+                $excluded->get()->each->delete();
+
+                return;
+            }
+            $allowed = $this->scheduledDiaryDays($period->academicYear, $schoolClass, $assignment, $period)
+                ->contains(fn (CalendarDay $day): bool => $day->date->toDateString() === $date);
+            [$startsAt, $endsAt] = $this->diaryDateBounds($period->academicYear, $period);
+            $manualDay = ! $this->usesScheduledDiary($schoolClass, $assignment, $period)
+                && $period->academicYear->days()->whereDate('date', $date)
+                    ->whereDate('date', '>=', $startsAt)->whereDate('date', '<=', $endsAt)
+                    ->where('counts_as_school_day', true)->exists();
+            if (! $allowed && ! $manualDay && ! $excluded->exists()) {
+                throw ValidationException::withMessages(['delete_dates' => __('Esta data não está disponível neste diário e período.')]);
+            }
+            DiaryContent::query()->where('school_class_id', $schoolClass->id)
+                ->where('curriculum_component_id', $component->id)->where('academic_period_id', $period->id)
+                ->whereDate('class_date', $date)->get()->each->delete();
+            $records = DiaryAttendanceRecord::query()->where('school_class_id', $schoolClass->id)
+                ->where('curriculum_component_id', $component->id)->where('academic_period_id', $period->id)
+                ->whereDate('class_date', $date)->with('entries')->get();
+            foreach ($records as $record) {
+                $record->entries->each->delete();
+                $record->delete();
+            }
+            if (! $excluded->exists()) {
+                DiaryExcludedDate::create([
+                    'school_class_component_id' => $assignment->id, 'academic_period_id' => $period->id, 'class_date' => $date,
+                ]);
+            }
+        });
+        $parameters = [$schoolClass, $component, 'period' => $period->id, 'page' => $data['page'] ?? 1];
+        $parameters['dates'] = implode(',', array_values(array_diff($data['selected_dates'] ?? [], [$date])));
+        if ($restoring) {
+            $parameters['add_date'] = $date;
+            $parameters['focus_date'] = $date;
+        }
+
+        return redirect()->route('teacher-diaries.contents', $parameters)->with('status', $restoring
+            ? __('Data restaurada. Os conteúdos e as frequências apagados não são recuperados.')
+            : __('Data removida do diário. O conteúdo e as frequências associadas foram apagados.'));
     }
 
     public function updateGrades(Request $request, SchoolClass $schoolClass, CurriculumComponent $component): RedirectResponse
@@ -1380,7 +1455,7 @@ class TeacherDiaryController extends Controller
         }
 
         [$allowedStartsAt, $allowedEndsAt] = $this->diaryDateBounds($academicYear, $period);
-        $availableDates = CalendarDay::query()->where('academic_year_id', $academicYear->id)->whereIn('date', $dates)
+        $availableDates = CalendarDay::query()->where('academic_year_id', $academicYear->id)->where(fn (Builder $query) => $this->whereDates($query, 'date', $dates->all()))
             ->whereDate('date', '>=', $allowedStartsAt->toDateString())->whereDate('date', '<=', $allowedEndsAt->toDateString())
             ->where('counts_as_school_day', true)->orderBy('date')->pluck('date')
             ->map(fn ($date): string => Carbon::parse($date)->toDateString())->all();
@@ -1442,7 +1517,9 @@ class TeacherDiaryController extends Controller
             $day->setAttribute('scheduled_lessons', max((int) $day->scheduled_lessons, (int) ($record->lesson_count ?? 0), 1));
         }
 
-        return $scheduledDays->sortKeys()->values();
+        $excludedDates = $this->excludedDiaryDates($assignment, $period);
+
+        return $scheduledDays->reject(fn (CalendarDay $day): bool => in_array($day->date->toDateString(), $excludedDates, true))->sortKeys()->values();
     }
 
     /** @return array{0: Collection<int, CalendarDay>, 1: int, 2: int} */
