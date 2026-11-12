@@ -99,11 +99,6 @@
 @include('reports.partials.history-formation-workloads', ['showAnnualFormationWorkloads' => $history->education_stage === 'medio', 'compactFormationWorkloads' => $history->education_stage === 'fundamental'])
 @endif
 
-@php($technicalRegulation = $history->components->pluck('regulatory_reference')->filter()->unique()->join(' '))
-@if($technicalRegulation)
-    <div class="muted" style="font-size:11px;line-height:1.06;margin:2px 2px 5px;"><strong>Nota legal da formação técnica:</strong> {{ $technicalRegulation }}</div>
-@endif
-
 <div class="studies-section">
 <div class="section-title">Estudos realizados</div>
 <table class="studies-table">
