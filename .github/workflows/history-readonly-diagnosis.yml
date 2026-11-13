@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
     paths:
+      - scripts/diary-workload-audit-query.php.stub
       - scripts/diary-progress-query.php.stub
       - app/Support/LegacyLiceuItineraryLinks.php
       - scripts/liceu-itinerary-query.php.stub

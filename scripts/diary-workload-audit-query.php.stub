@@ -1,0 +1,75 @@
+<?php
+
+// Auditoria somente de leitura: totais por diário, sem notas ou nomes de estudantes.
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$config = json_decode(file_get_contents('scripts/history-query.json'), true, flags: JSON_THROW_ON_ERROR);
+Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $today = now()->toDateString();
+    $query = App\Models\SchoolClassComponent::where('active', true)
+        ->whereHas('schoolClass', fn ($q) => $q->operational())
+        ->whereHas('component.course.academicYear', fn ($q) => $q->whereNotNull('approved_at')
+            ->whereDate('starts_at', '<=', $today)->whereDate('ends_at', '>=', $config['reference_year'].'-01-01')
+            ->whereHas('school', fn ($q) => $q->where('active', true)));
+    $checked = 0; $people = []; $alerts = []; $rubia = [];
+    $query->orderBy('id')->chunkById(25, function ($assignments) use (&$checked, &$people, &$alerts, &$rubia, $today) {
+        $assignments->load('teacher:id,full_name', 'component.course.academicYear.school');
+        $summaries = app(App\Support\DiaryListSummary::class)->forAssignments($assignments);
+        foreach ($assignments as $assignment) {
+            $checked++;
+            $people[$assignment->teacher_person_id] = true;
+            $summary = $summaries->get($assignment->id);
+            $periodIds = collect($summary['periods'])->pluck('period.id');
+            $scope = fn ($q) => $q->where('school_class_id', $assignment->school_class_id)
+                ->where('curriculum_component_id', $assignment->curriculum_component_id)->whereIn('academic_period_id', $periodIds);
+            $records = App\Models\DiaryAttendanceRecord::where($scope)->whereDate('class_date', '<=', $today)
+                ->where('lesson_count', '>', 0)->orderBy('class_date')->get(['academic_period_id', 'class_date', 'lesson_count']);
+            $registered = (int) $records->sum('lesson_count');
+            $planned = $summary['planned'];
+            $ratio = $planned > 0 ? round($registered * 100 / $planned, 1) : null;
+            $isRubia = str_starts_with(Illuminate\Support\Str::lower(Illuminate\Support\Str::ascii($assignment->teacher?->full_name ?? '')), 'rubia ');
+            if (! $isRubia && ($ratio === null || $ratio < 90)) { continue; }
+            $course = $assignment->component->course;
+            $year = $course->academicYear;
+            $schedules = $assignment->schoolClass->schedules->filter(fn ($schedule) => $schedule->slots->contains(fn ($slot) => $slot->type === 'aula' && $slot->school_class_component_id === $assignment->id));
+            $firstSchedule = $schedules->min('starts_at')?->toDateString();
+            $activePeriods = $year->periods->filter(fn ($period) => $assignment->component->isActiveInPeriod($period)
+                && (! $course->startsPeriod || $period->position >= $course->startsPeriod->position)
+                && (! $course->endsPeriod || $period->position <= $course->endsPeriod->position));
+            $matrixLessons = $course->class_hour_minutes > 0 && $activePeriods->isNotEmpty()
+                ? (int) round($assignment->component->calculatedWorkloadHours($course) * 60 / $course->class_hour_minutes * $periodIds->count() / $activePeriods->count()) : null;
+            $calendar = $year->days->where('counts_as_school_day', true);
+            $row = [
+                'assignment_id' => $assignment->id, 'teacher' => $assignment->teacher?->full_name, 'teacher_id' => $assignment->teacher_person_id,
+                'school' => $year->school->name, 'class' => $assignment->schoolClass->name, 'course' => $course->name,
+                'component' => $assignment->component->name, 'academic_year_id' => $year->id, 'reference_year' => $year->reference_year,
+                'school_year_end' => $year->ends_at?->toDateString(), 'component_end' => $activePeriods->max('ends_at')?->toDateString(),
+                'registered_lessons_to_date' => $registered, 'displayed_forecast' => $planned, 'displayed_percentage_to_date' => $ratio,
+                'forecast_source' => $summary['source'], 'matrix_lessons' => $matrixLessons,
+                'matrix_percentage_to_date' => $matrixLessons > 0 ? round($registered * 100 / $matrixLessons, 1) : null,
+                'component_workload_hours' => $assignment->component->workload_hours, 'weekly_lessons' => $assignment->component->weekly_lessons,
+                'class_hour_minutes' => $course->class_hour_minutes,
+                'first_lesson' => $records->first()?->class_date?->toDateString(), 'last_lesson' => $records->last()?->class_date?->toDateString(),
+                'future_lessons' => (int) App\Models\DiaryAttendanceRecord::where($scope)->whereDate('class_date', '>', $today)->sum('lesson_count'),
+                'duplicate_dates' => $records->groupBy(fn ($r) => $r->class_date->toDateString())->filter(fn ($rows) => $rows->count() > 1)->keys()->all(),
+                'first_schedule' => $firstSchedule,
+                'registered_before_first_schedule' => $firstSchedule ? (int) $records->filter(fn ($r) => $r->class_date->toDateString() < $firstSchedule)->sum('lesson_count') : null,
+                'calendar_school_days' => $calendar->count(), 'minimum_school_days' => $year->minimum_school_days,
+                'first_calendar_day' => $calendar->min('date')?->toDateString(), 'last_calendar_day' => $calendar->max('date')?->toDateString(),
+                'schedules' => $schedules->map(fn ($schedule) => [
+                    'id' => $schedule->id, 'starts_at' => $schedule->starts_at?->toDateString(), 'ends_at' => $schedule->ends_at?->toDateString(),
+                    'slots' => $schedule->slots->where('type', 'aula')->where('school_class_component_id', $assignment->id)->map->only(['weekday', 'starts_at', 'ends_at'])->values(),
+                ])->values(),
+            ];
+            if ($isRubia) { $rubia[] = $row; }
+            if ($ratio !== null && $ratio >= 90) { $alerts[] = $row; }
+        }
+    });
+    echo json_encode(['as_of' => now()->toIso8601String(), 'checked_diaries' => $checked, 'teacher_count' => count($people),
+        'rubia_diaries' => $rubia, 'near_or_over_limit' => $alerts], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally {
+    Illuminate\Support\Facades\DB::rollBack();
+}

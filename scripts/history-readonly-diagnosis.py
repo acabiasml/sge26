@@ -16,7 +16,8 @@ def main():
     config = pathlib.Path('scripts/history-query.json')
     query = json.loads(config.read_text()) if config.exists() else {'person_id': 0}
     scope = query.get('scope', 'student')
-    sources = {'diary-progress': 'scripts/diary-progress-query.php.stub',
+    sources = {'diary-workload-audit': 'scripts/diary-workload-audit-query.php.stub',
+               'diary-progress': 'scripts/diary-progress-query.php.stub',
                'student': 'scripts/history-readonly-diagnosis.php.stub',
                'liceu-itinerary': 'scripts/liceu-itinerary-query.php.stub',
                'high-school-diversified': 'scripts/high-school-diversified-query.php.stub',
@@ -33,6 +34,9 @@ def main():
     person_id = query['person_id']
     if type(person_id) is not int or person_id < 0:
         raise ValueError('Identificador de pessoa inválido.')
+    if scope == 'diary-workload-audit':
+        if type(query.get('reference_year')) is not int or not 1900 <= query['reference_year'] <= 2100:
+            raise ValueError('Ano inválido para auditoria das aulas previstas.')
     if scope == 'diary-progress':
         if 'teacher_first_name_sha256' in query:
             import re
