@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\AcademicPeriod;
+use App\Models\AcademicYear;
 use App\Models\DiaryAssessment;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\DiaryContent;
@@ -92,7 +93,7 @@ class DiaryListSummary
             }
             $recordsByDate = $records->keyBy(fn ($record) => $record->class_date->toDateString());
             $contentLessons = $dayContents->sum(fn ($record) => $recordsByDate->get($record->class_date->toDateString())?->lesson_count ?? $plannedByDate->get($record->class_date->toDateString(), 0));
-            $timeline = $this->timeline($periods, $class);
+            $timeline = $this->timeline($periods, $class, $year);
             $today = now()->toDateString();
             $schoolDays = $year->days->where('counts_as_school_day', true)->filter(fn ($day) => $periods->contains(fn (AcademicPeriod $period) => $day->date->betweenIncluded($period->starts_at, $period->ends_at))
             );
@@ -108,8 +109,10 @@ class DiaryListSummary
             $attendanceToday = (int) $records->filter(fn ($record) => $record->class_date->toDateString() <= $today)->sum('lesson_count');
             $contentToday = (int) $dayContents->filter(fn ($record) => $record->class_date->toDateString() <= $today)
                 ->sum(fn ($record) => $recordsByDate->get($record->class_date->toDateString())?->lesson_count ?? $plannedByDate->get($record->class_date->toDateString(), 0));
-            $contentPace = $this->pace($contentToday, $expectedToday, $timeline);
-            $attendancePace = $this->pace($attendanceToday, $expectedToday, $timeline);
+            $lastContent = $dayContents->filter(fn ($record) => $record->class_date->toDateString() <= $today)->max('class_date');
+            $lastAttendance = $records->filter(fn ($record) => $record->class_date->toDateString() <= $today)->max('class_date');
+            $contentPace = $this->pace($contentToday, $expectedToday, $timeline, $lastContent?->toDateString());
+            $attendancePace = $this->pace($attendanceToday, $expectedToday, $timeline, $lastAttendance?->toDateString());
             $periodIssues = $periods->map(function (AcademicPeriod $period) use ($class, $records, $dayContents, $assessments, $key, $originGrades): array {
                 $attendanceDates = $records->where('academic_period_id', $period->id)->toBase()->map(fn ($record) => $record->class_date->toDateString())->unique();
                 $contentDates = $dayContents->where('academic_period_id', $period->id)->toBase()->map(fn ($record) => $record->class_date->toDateString())->unique();
@@ -152,15 +155,12 @@ class DiaryListSummary
         return ['registered' => $registered, 'percentage' => $planned > 0 ? round($registered * 100 / $planned, 1) : null];
     }
 
-    private function timeline(Collection $periods, SchoolClass $class): array
+    private function timeline(Collection $periods, SchoolClass $class, AcademicYear $year): array
     {
         $start = ($periods->sortBy('starts_at')->first()?->starts_at ?? $class->starts_at)?->copy()->startOfDay();
-        $end = ($periods->sortByDesc('ends_at')->first()?->ends_at ?? $class->ends_at)?->copy()->startOfDay();
+        $end = $year->ends_at?->copy()->startOfDay();
         if ($class->starts_at && (! $start || $class->starts_at->gt($start))) {
             $start = $class->starts_at->copy()->startOfDay();
-        }
-        if ($class->ends_at && (! $end || $class->ends_at->lt($end))) {
-            $end = $class->ends_at->copy()->startOfDay();
         }
         $today = now()->startOfDay();
         $valid = $start && $end && $end->gte($start);
@@ -172,11 +172,14 @@ class DiaryListSummary
         ];
     }
 
-    private function pace(int $registeredToday, ?int $expectedToday, array $timeline): array
+    private function pace(int $registeredToday, ?int $expectedToday, array $timeline, ?string $lastDate): array
     {
         $missing = $expectedToday === null ? null : max(0, $expectedToday - $registeredToday);
+        $recent = ! $timeline['overdue'] && $lastDate !== null
+            && $lastDate >= now()->startOfDay()->subDays(10)->toDateString();
+        $delayed = $missing > 0 && ! $recent;
         $urgency = 0;
-        if ($missing > 0) {
+        if ($delayed) {
             $urgency = (int) round($missing / $expectedToday * $timeline['elapsed_fraction'] * 100);
             if ($timeline['elapsed_fraction'] >= .9) {
                 $urgency = max(50, $urgency);
@@ -186,7 +189,7 @@ class DiaryListSummary
             }
         }
 
-        return ['missing' => $missing, 'urgency' => $urgency];
+        return ['missing' => $missing, 'urgency' => $urgency, 'is_delayed' => $delayed, 'recent' => $recent, 'last_date' => $lastDate];
     }
 
     private function forDiaries(Builder $query, Collection $assignments): Builder

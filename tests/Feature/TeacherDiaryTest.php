@@ -361,7 +361,7 @@ class TeacherDiaryTest extends TestCase
             ->assertSee('Incongruenze: 2')->assertSee('lezioni', false)->assertDontSee('Ver pendências');
     }
 
-    public function test_diary_delay_grows_towards_class_deadline_and_zero_records_are_not_shown_as_healthy(): void
+    public function test_diary_delay_grows_towards_school_year_deadline_and_zero_records_are_not_shown_as_healthy(): void
     {
         [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
         $class->update(['ends_period_id' => $period->id]);
@@ -371,9 +371,9 @@ class TeacherDiaryTest extends TestCase
         $this->travelTo(CarbonImmutable::parse('2026-03-12'));
         $response = $this->get(route('teacher-diaries.index'))->assertOk()->assertSee('Lançamentos em atraso');
         $middle = $response->viewData('diaries')->sole()['summary']['timeliness']['urgency'];
-        $this->travelTo(CarbonImmutable::parse('2026-04-09'));
+        $this->travelTo(CarbonImmutable::parse('2026-12-17'));
         $response = $this->get(route('teacher-diaries.index'))->assertOk()->assertSee('Atraso crítico nos lançamentos')
-            ->assertSee('Nenhum lançamento de conteúdo ou frequência.')->assertSee('Encerramento previsto: 10/04/2026');
+            ->assertSee('Nenhum lançamento de conteúdo ou frequência.')->assertSee('Encerramento do ano letivo: 18/12/2026');
         $summary = $response->viewData('diaries')->sole()['summary'];
         $this->assertSame(0, $summary['issue_count']);
         $this->assertGreaterThan($middle, $summary['timeliness']['urgency']);
@@ -392,7 +392,7 @@ class TeacherDiaryTest extends TestCase
     public function test_diary_list_uses_accessible_traffic_lights_and_keeps_explanations_collapsed(): void
     {
         [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
-        $this->travelTo(CarbonImmutable::parse('2026-04-09'));
+        $this->travelTo(CarbonImmutable::parse('2026-12-17'));
         $response = $this->actingAs($teacher)->get(route('teacher-diaries.index'))->assertOk();
         $document = new \DOMDocument;
         @$document->loadHTML('<?xml encoding="utf-8" ?>'.$response->getContent());
@@ -422,7 +422,7 @@ class TeacherDiaryTest extends TestCase
         $this->assertStringContainsString('sge-diary-light-success', $active->item(0)->getAttribute('class'));
     }
 
-    public function test_matrix_delay_uses_class_end_and_remains_critical_after_deadline_even_with_one_missing_lesson(): void
+    public function test_matrix_delay_uses_school_year_end_and_remains_critical_after_deadline_even_with_one_missing_lesson(): void
     {
         [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
         $year->periods()->create(['name' => 'Segundo período', 'starts_at' => '2026-04-11', 'ends_at' => '2026-12-18', 'position' => 2]);
@@ -430,12 +430,12 @@ class TeacherDiaryTest extends TestCase
         $class->schedules()->get()->each->delete();
         $year->days()->delete();
         $component->update(['workload_hours' => 50]);
-        $this->travelTo(CarbonImmutable::parse('2026-04-11'));
+        $this->travelTo(CarbonImmutable::parse('2026-12-19'));
         $response = $this->actingAs($teacher)->get(route('teacher-diaries.index'))->assertOk()->assertSee('Atraso crítico nos lançamentos');
         $summary = $response->viewData('diaries')->sole()['summary'];
         $this->assertSame(30, $summary['planned']);
         $this->assertSame(30, $summary['timeliness']['expected_today']);
-        $this->assertSame('2026-04-10', $summary['timeliness']['ends_at']);
+        $this->assertSame('2026-12-18', $summary['timeliness']['ends_at']);
         $this->assertSame(100, $summary['timeliness']['urgency']);
         foreach ([['2026-03-11', 15], ['2026-03-12', 14]] as [$date, $count]) {
             DiaryAttendanceRecord::query()->create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => $date, 'lesson_count' => $count]);
@@ -445,6 +445,83 @@ class TeacherDiaryTest extends TestCase
         $pace = $response->viewData('diaries')->sole()['summary']['timeliness'];
         $this->assertSame(1, $pace['content']['missing']);
         $this->assertSame(100, $pace['urgency']);
+    }
+
+    public function test_recent_contents_and_attendance_keep_the_diary_regular_despite_matrix_estimate_and_period_end(): void
+    {
+        [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $class->schedules()->get()->each->delete();
+        $component->update(['workload_hours' => 100]);
+        $period->update(['ends_at' => '2026-03-10']);
+        $this->travelTo(CarbonImmutable::parse('2026-03-15'));
+        DiaryAttendanceRecord::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => '2026-03-05', 'lesson_count' => 1]);
+        DiaryContent::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => '2026-03-05', 'content' => 'Aula recente.']);
+        $response = $this->actingAs($teacher)->get(route('teacher-diaries.index'))->assertOk()->assertSee('Regular');
+        $summary = $response->viewData('diaries')->sole()['summary'];
+        $this->assertGreaterThan(1, $summary['timeliness']['expected_today']);
+        $this->assertTrue($summary['timeliness']['content']['recent']);
+        $this->assertFalse($summary['timeliness']['content']['is_delayed']);
+        $this->assertSame(0, $summary['timeliness']['urgency']);
+        $this->assertSame('2026-12-18', $summary['timeliness']['ends_at']);
+        $this->travelTo(CarbonImmutable::parse('2026-03-16'));
+        $response = $this->get(route('teacher-diaries.index'))->assertOk()->assertSee('Lançamentos em atraso');
+        $this->assertTrue($response->viewData('diaries')->sole()['summary']['timeliness']['content']['is_delayed']);
+    }
+
+    public function test_recent_content_does_not_hide_outdated_attendance_and_editing_an_old_lesson_does_not_make_it_recent(): void
+    {
+        [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $class->schedules()->get()->each->delete();
+        $component->update(['workload_hours' => 100]);
+        $this->travelTo(CarbonImmutable::parse('2026-03-15'));
+        $attendance = DiaryAttendanceRecord::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => '2026-03-01', 'lesson_count' => 1]);
+        DiaryContent::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => '2026-03-14', 'content' => 'Conteúdo recente.']);
+        $attendance->update(['notes' => 'Registro antigo editado hoje.']);
+        $response = $this->actingAs($teacher)->get(route('teacher-diaries.index'))->assertOk();
+        $pace = $response->viewData('diaries')->sole()['summary']['timeliness'];
+        $this->assertTrue($pace['content']['recent']);
+        $this->assertFalse($pace['content']['is_delayed']);
+        $this->assertFalse($pace['attendance']['recent']);
+        $this->assertTrue($pace['attendance']['is_delayed']);
+    }
+
+    public function test_recent_entries_can_be_regular_without_an_hour_forecast_and_future_entries_do_not_extend_the_window(): void
+    {
+        [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $class->schedules()->get()->each->delete();
+        $component->update(['workload_hours' => null, 'weekly_lessons' => null]);
+        $this->travelTo(CarbonImmutable::parse('2026-03-15'));
+        foreach (['2026-03-05', '2026-03-20'] as $date) {
+            DiaryAttendanceRecord::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => $date, 'lesson_count' => 1]);
+            DiaryContent::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => $date, 'content' => 'Conteúdo da aula.']);
+        }
+        $response = $this->actingAs($teacher)->get(route('teacher-diaries.index'))->assertOk()->assertSee('Regular');
+        $summary = $response->viewData('diaries')->sole()['summary'];
+        $this->assertNull($summary['planned']);
+        $this->assertNull($summary['attendance']['percentage']);
+        $this->assertSame('2026-03-05', $summary['timeliness']['content']['last_date']);
+        $this->travelTo(CarbonImmutable::parse('2026-03-16'));
+        $response = $this->get(route('teacher-diaries.index'))->assertOk()->assertSee('Sem previsão');
+        $this->assertFalse($response->viewData('diaries')->sole()['summary']['timeliness']['content']['recent']);
+    }
+
+    public function test_end_of_school_year_requires_the_full_forecast_even_with_a_recent_lesson(): void
+    {
+        [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $class->schedules()->get()->each->delete();
+        $component->update(['workload_hours' => 100]);
+        $period->update(['ends_at' => '2026-12-18']);
+        $this->travelTo(CarbonImmutable::parse('2026-12-17'));
+        DiaryAttendanceRecord::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => '2026-12-17', 'lesson_count' => 1]);
+        DiaryContent::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => '2026-12-17', 'content' => 'Aula recente.']);
+        $response = $this->actingAs($teacher)->get(route('teacher-diaries.index'))->assertOk()->assertSee('Regular');
+        $this->assertSame(0, $response->viewData('diaries')->sole()['summary']['timeliness']['urgency']);
+        $this->travelTo(CarbonImmutable::parse('2026-12-19'));
+        $response = $this->get(route('teacher-diaries.index'))->assertOk()->assertSee('Atraso crítico nos lançamentos');
+        $summary = $response->viewData('diaries')->sole()['summary'];
+        $this->assertSame($summary['planned'], $summary['timeliness']['expected_today']);
+        $this->assertSame(100, $summary['timeliness']['urgency']);
+        $this->assertFalse($summary['timeliness']['content']['recent']);
     }
 
     public function test_future_entries_do_not_hide_today_delay_and_calendar_days_drive_matrix_estimate(): void

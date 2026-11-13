@@ -2984,5 +2984,9 @@
     "Salvar itinerário da matriz": "Salva il percorso del piano di studi",
     "A identificação do itinerário de uma matriz aprovada ou encerrada requer a Administração.": "L’identificazione del percorso di un piano approvato o concluso richiede l’Amministrazione.",
     "Itinerário da matriz atualizado para todas as turmas vinculadas.": "Percorso del piano aggiornato per tutte le classi collegate.",
-    "Selecione um curso técnico da mesma escola com duração compatível com a matriz do Médio.": "Seleziona un corso tecnico della stessa scuola con durata compatibile con il piano della scuola secondaria superiore."
+    "Selecione um curso técnico da mesma escola com duração compatível com a matriz do Médio.": "Seleziona un corso tecnico della stessa scuola con durata compatibile con il piano della scuola secondaria superiore.",
+    "Chamada e conteúdo registrados nos últimos dez dias.": "Presenze e contenuti registrati negli ultimi dieci giorni.",
+    "Encerramento do ano letivo: :date": "Conclusione dell’anno scolastico: :date",
+    "Durante o ano letivo, lançamentos de chamada e conteúdo com datas de aula nos últimos dez dias mantêm a situação regular. Após o encerramento, são conferidas as aulas previstas.": "Durante l’anno scolastico, presenze e contenuti con date delle lezioni negli ultimi dieci giorni mantengono la situazione regolare. Dopo la conclusione, vengono verificate le lezioni previste.",
+    "Última data de aula registrada": "Ultima data di lezione registrata"
 }

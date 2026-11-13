@@ -2,13 +2,14 @@
     $summary = $diary['summary'];
     $summaryId = 'diary-summary-'.$diary['assignment']->id;
     $timeliness = $summary['timeliness'];
-    $hasDelay = $timeliness['content']['missing'] > 0 || $timeliness['attendance']['missing'] > 0;
-    $state = $timeliness['expected_today'] === null || $timeliness['expected_today'] === 0 ? 'neutral'
-        : ($hasDelay ? ($timeliness['urgency'] >= 65 ? 'critical' : 'warning') : 'success');
-    $paceLabel = $timeliness['expected_today'] === null ? __('Previsão indisponível')
+    $hasDelay = $timeliness['content']['is_delayed'] || $timeliness['attendance']['is_delayed'];
+    $bothRecent = $timeliness['content']['recent'] && $timeliness['attendance']['recent'];
+    $state = $bothRecent ? 'success' : ($timeliness['expected_today'] === null || $timeliness['expected_today'] === 0 ? 'neutral'
+        : ($hasDelay ? ($timeliness['urgency'] >= 65 ? 'critical' : 'warning') : 'success'));
+    $paceLabel = $bothRecent ? __('Chamada e conteúdo registrados nos últimos dez dias.') : ($timeliness['expected_today'] === null ? __('Previsão indisponível')
         : ($timeliness['expected_today'] === 0 ? __('Sem aulas previstas até hoje')
-        : ($hasDelay ? ($state === 'critical' ? __('Atraso crítico nos lançamentos') : __('Lançamentos em atraso')) : __('Lançamentos em dia')));
-    $shortLabel = ['neutral' => $timeliness['expected_today'] === null ? __('Sem previsão') : __('Aguardando'), 'success' => __('Em dia'), 'warning' => __('Atenção'), 'critical' => __('Crítico')][$state];
+        : ($hasDelay ? ($state === 'critical' ? __('Atraso crítico nos lançamentos') : __('Lançamentos em atraso')) : __('Lançamentos em dia'))));
+    $shortLabel = ['neutral' => $timeliness['expected_today'] === null ? __('Sem previsão') : __('Aguardando'), 'success' => __('Regular'), 'warning' => __('Atenção'), 'critical' => __('Crítico')][$state];
 @endphp
 <div class="sge-diary-overview" aria-label="{{ __('Acompanhamento dos lançamentos') }}" data-diary-state="{{ $state }}">
     <div class="sge-diary-progress-grid">
@@ -26,13 +27,13 @@
                 <div class="sge-diary-progress-label">
                     <strong><i class="fas {{ $kind === 'content' ? 'fa-book' : 'fa-clipboard-check' }}" aria-hidden="true"></i> {{ $label }}</strong>
                     <span class="sge-diary-progress-numbers">{{ $metric['registered'] }}/{{ $summary['planned'] ?? '—' }} <span class="sr-only">{{ __('aulas') }}</span> · {{ $percentageLabel }}</span>
-                    @if($pace['missing'] > 0)
+                    @if($pace['is_delayed'])
                         <i class="fas fa-clock sge-diary-pending-icon" aria-hidden="true" title="{{ __(':count aulas por registrar até hoje', ['count' => $pace['missing']]) }}"></i>
                     @endif
                 </div>
                 <progress max="100" value="{{ min(100, $percentage ?? 0) }}"
                     aria-label="{{ $label }} · {{ $diary['component']->name }} · {{ $diary['class']->name }}"
-                    aria-valuetext="{{ $valueText }} {{ $paceLabel }}{{ $pace['missing'] > 0 ? '; '.__(':count aulas por registrar até hoje', ['count' => $pace['missing']]) : '' }}">{{ $percentageLabel }}</progress>
+                    aria-valuetext="{{ $valueText }} {{ $paceLabel }}{{ $pace['is_delayed'] ? '; '.__(':count aulas por registrar até hoje', ['count' => $pace['missing']]) : '' }}">{{ $percentageLabel }}</progress>
                 @if($percentage > 100)<span class="sr-only">{{ __('Acima do previsto') }}</span>@endif
             </div>
         @endforeach
@@ -46,7 +47,7 @@
             </span>
             <span class="sge-diary-state-label">{{ $shortLabel }}</span>
             @if($timeliness['ends_at'])
-                <time datetime="{{ $timeliness['ends_at'] }}" title="{{ __('Encerramento previsto: :date', ['date' => \Carbon\Carbon::parse($timeliness['ends_at'])->format('d/m/Y')]) }}">
+                <time datetime="{{ $timeliness['ends_at'] }}" title="{{ __('Encerramento do ano letivo: :date', ['date' => \Carbon\Carbon::parse($timeliness['ends_at'])->format('d/m/Y')]) }}">
                     <i class="far fa-calendar-alt" aria-hidden="true"></i> {{ \Carbon\Carbon::parse($timeliness['ends_at'])->format('d/m/Y') }}
                 </time>
             @endif
@@ -60,9 +61,11 @@
             <p class="small mb-2">{{ $diary['course']->name }} · {{ $summary['source'] === 'schedule' ? __('Previsão pelo horário e calendário letivo') : ($summary['source'] === 'matrix' ? __('Previsão estimada pela carga horária da matriz') : __('Previsão de aulas não definida')) }}</p>
             @if($hasDelay && $summary['content']['registered'] === 0 && $summary['attendance']['registered'] === 0)<p class="small mb-2">{{ __('Nenhum lançamento de conteúdo ou frequência.') }}</p>@endif
             @if($timeliness['expected_today'] !== null)<p class="small mb-2">{{ __('Até hoje: :count aulas previstas', ['count' => $timeliness['expected_today']]) }}</p>@endif
+            <p class="small mb-2">{{ __('Durante o ano letivo, lançamentos de chamada e conteúdo com datas de aula nos últimos dez dias mantêm a situação regular. Após o encerramento, são conferidas as aulas previstas.') }}</p>
             <ul class="small">
                 @foreach(['content' => __('Conteúdo'), 'attendance' => __('Frequência')] as $kind => $label)
-                    @if($timeliness[$kind]['missing'] > 0)<li>{{ $label }}: <strong>{{ __(':count aulas por registrar até hoje', ['count' => $timeliness[$kind]['missing']]) }}</strong></li>@endif
+                    @if($timeliness[$kind]['last_date'])<li>{{ $label }} · {{ __('Última data de aula registrada') }}: <strong>{{ \Carbon\Carbon::parse($timeliness[$kind]['last_date'])->format('d/m/Y') }}</strong></li>@endif
+                    @if($timeliness[$kind]['is_delayed'])<li>{{ $label }}: <strong>{{ __(':count aulas por registrar até hoje', ['count' => $timeliness[$kind]['missing']]) }}</strong></li>@endif
                 @endforeach
                 <li>{{ __('Dias com frequência sem conteúdo') }}: <strong>{{ $summary['issues']['attendance_without_content'] }}</strong></li>
                 <li>{{ __('Dias com conteúdo sem frequência') }}: <strong>{{ $summary['issues']['content_without_attendance'] }}</strong></li>
