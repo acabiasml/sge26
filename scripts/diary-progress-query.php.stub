@@ -8,15 +8,26 @@ $config = json_decode(file_get_contents('scripts/history-query.json'), true, fla
 Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
 Illuminate\Support\Facades\DB::beginTransaction();
 try {
-    $courseIds = array_values(array_unique(array_merge([$config['course_id']], $config['comparison_course_ids'] ?? [])));
-    $courses = App\Models\AcademicCourse::whereIn('id', $courseIds)
-        ->whereHas('academicYear', fn ($q) => $q->where('school_id', $config['school_id']))
-        ->with('academicYear.periods', 'components.startsPeriod', 'components.endsPeriod')->get();
+    if (isset($config['teacher_first_name_sha256'])) {
+        $courseQuery = App\Models\AcademicCourse::whereHas('academicYear', fn ($q) => $q
+            ->where('legacy_source', $config['school_source'])->where('reference_year', $config['reference_year']));
+    } else {
+        $courseIds = array_values(array_unique(array_merge([$config['course_id']], $config['comparison_course_ids'] ?? [])));
+        $courseQuery = App\Models\AcademicCourse::whereIn('id', $courseIds)
+            ->whereHas('academicYear', fn ($q) => $q->where('school_id', $config['school_id']));
+    }
+    $courses = $courseQuery->with('academicYear.periods', 'components.startsPeriod', 'components.endsPeriod')->get();
     $course = $courses->firstOrFail();
-    $assignments = App\Models\SchoolClassComponent::whereHas('component', fn ($q) => $q->whereIn('academic_course_id', $courses->pluck('id')))
-        ->with('schoolClass.academicYear.periods', 'schoolClass.startsPeriod', 'schoolClass.endsPeriod')->get();
+    $assignmentsQuery = App\Models\SchoolClassComponent::whereHas('component', fn ($q) => $q->whereIn('academic_course_id', $courses->pluck('id')));
+    $availableTeachers = (clone $assignmentsQuery)->with('teacher:id,full_name')->get()->pluck('teacher')->filter()->unique('id')->values();
+    if (isset($config['teacher_first_name_sha256'])) {
+        $assignmentsQuery->whereHas('teacher', fn ($q) => $q->whereRaw("SHA2(LOWER(TRIM(SUBSTRING_INDEX(full_name, ' ', 1))), 256) = ?", [$config['teacher_first_name_sha256']]));
+    }
+    $assignments = $assignmentsQuery->with('schoolClass.academicYear.periods', 'schoolClass.startsPeriod', 'schoolClass.endsPeriod', 'teacher:id,full_name')->get();
     $summaries = app(App\Support\DiaryListSummary::class)->forAssignments($assignments);
     echo json_encode([
+        'matched_teachers' => $assignments->pluck('teacher')->filter()->unique('id')->map->only(['id', 'full_name'])->values(),
+        'available_teachers_when_unmatched' => $assignments->isEmpty() ? $availableTeachers->map->only(['id', 'full_name']) : [],
         'comparison_courses' => $courses->map->only(['id', 'name', 'academic_year_id']),
         'as_of' => now()->toIso8601String(), 'course' => $course->only(['id', 'name', 'academic_year_id', 'starts_period_id', 'ends_period_id', 'class_hour_minutes']),
         'calendar' => $course->academicYear->only(['id', 'reference_year', 'starts_at', 'ends_at']),

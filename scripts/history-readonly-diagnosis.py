@@ -34,11 +34,18 @@ def main():
     if type(person_id) is not int or person_id < 0:
         raise ValueError('Identificador de pessoa inválido.')
     if scope == 'diary-progress':
-        if any(type(query.get(key)) is not int or query[key] <= 0 for key in ('course_id', 'school_id')):
-            raise ValueError('Informe a escola e a oferta dos diários para conferência.')
-        comparisons = query.get('comparison_course_ids', [])
-        if not isinstance(comparisons, list) or len(comparisons) > 10 or any(type(item) is not int or item <= 0 for item in comparisons):
-            raise ValueError('Informe até dez ofertas da mesma escola para comparação.')
+        if 'teacher_first_name_sha256' in query:
+            import re
+            if (not re.fullmatch(r'[0-9a-f]{64}', query['teacher_first_name_sha256'])
+                    or query.get('school_source') not in ('lar', 'laura', 'beaba')
+                    or type(query.get('reference_year')) is not int or not 1900 <= query['reference_year'] <= 2100):
+                raise ValueError('Seletores da docência e escola inválidos.')
+        else:
+            if any(type(query.get(key)) is not int or query[key] <= 0 for key in ('course_id', 'school_id')):
+                raise ValueError('Informe a escola e a oferta dos diários para conferência.')
+            comparisons = query.get('comparison_course_ids', [])
+            if not isinstance(comparisons, list) or len(comparisons) > 10 or any(type(item) is not int or item <= 0 for item in comparisons):
+                raise ValueError('Informe até dez ofertas da mesma escola para comparação.')
     if scope == 'diary-batch':
         classes = query.get('classes', [])
         if query.get('source') not in ('lar', 'laura', 'beaba') or not isinstance(classes, list) or not 1 <= len(classes) <= 20:
