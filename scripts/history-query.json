@@ -1,1 +1,1 @@
-{"scope": "diary-workload-audit", "person_id": 0, "reference_year": 2026}
+{"scope": "diary-batch", "person_id": 0, "source": "beaba", "classes": [{"reference_year": 2026, "name": "1º Ano"}, {"reference_year": 2026, "name": "2º Ano"}], "transport_key_id": "c23c921603554b37b9fe93567a99d780"}

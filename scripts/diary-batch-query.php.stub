@@ -12,6 +12,23 @@ $canonical = static function (string $value): string {
 Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
 Illuminate\Support\Facades\DB::beginTransaction();
 try {
+    $public = null;
+    if (isset($config['transport_key_id'])) {
+        if (! preg_match('/^[a-f0-9]{32}$/', $config['transport_key_id'])) {
+            throw new RuntimeException('Identificador de transporte inválido.');
+        }
+        $keyPath = storage_path('app/private/diary-reconciliation/'.$config['transport_key_id'].'.pem');
+        if (! is_dir(dirname($keyPath))) { mkdir(dirname($keyPath), 0700, true); }
+        if (! is_file($keyPath)) {
+            $key = openssl_pkey_new(['private_key_bits' => 3072, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+            if (! $key || ! openssl_pkey_export($key, $private)) { throw new RuntimeException('Transporte indisponível.'); }
+            $stream = fopen($keyPath, 'x');
+            chmod($keyPath, 0600);
+            fwrite($stream, $private);
+            fclose($stream);
+        }
+        $public = openssl_pkey_get_details(openssl_pkey_get_private(file_get_contents($keyPath)))['key'];
+    }
     $requests = collect($config['classes'])->map(fn ($row) => $row + ['key' => $row['reference_year'].':'.$canonical($row['name'])]);
     $years = App\Models\AcademicYear::query()->where('legacy_source', $config['source'])
         ->whereIn('reference_year', $requests->pluck('reference_year')->unique())->with('periods')->get();
@@ -20,6 +37,7 @@ try {
         ->filter(fn ($row) => $requests->contains('key', $row->academicYear->reference_year.':'.$canonical($row->name)));
     $found = $classes->map(fn ($row) => $row->academicYear->reference_year.':'.$canonical($row->name));
     echo json_encode([
+        'transport_public_key' => $public,
         'source' => $config['source'],
         'missing' => $requests->reject(fn ($row) => $found->contains($row['key']))->values(),
         'classes' => $classes->map(function ($class) {
@@ -30,12 +48,17 @@ try {
                 'class' => $class->only(['id', 'name', 'academic_year_id', 'legacy_source', 'legacy_id']),
                 'academic_year' => $class->academicYear->only(['id', 'school_id', 'reference_year', 'class_hour_minutes', 'minimum_school_days']),
                 'periods' => $class->academicYear->periods->map->only(['id', 'position', 'name', 'starts_at', 'ends_at']),
+                'school_dates' => $class->academicYear->days->where('counts_as_school_day', true)->map(fn ($day) => $day->date->toDateString())->values(),
+                'assignments' => $class->componentAssignments()->with('teacher:id,full_name')->get()->map(fn ($assignment) =>
+                    $assignment->only(['id', 'school_class_id', 'curriculum_component_id', 'teacher_person_id', 'active'])
+                    + ['teacher' => $assignment->teacher?->full_name]),
                 'courses' => $class->courses->map(fn ($course) => [
                     'course' => $course->only(['id', 'name', 'stage', 'class_hour_minutes', 'workload_hours']),
                     'components' => $course->components->map->only(['id', 'name', 'weekly_lessons', 'workload_hours', 'active', 'legacy_source', 'legacy_id', 'legacy_metadata']),
                 ]),
                 'enrollments' => $class->enrollments->map(fn ($enrollment) => [
                     'enrollment' => $enrollment->only(['id', 'person_id', 'status', 'enrolled_at', 'transferred_at']),
+                    'attendance_ends_at' => $enrollment->attendanceEndsAt(),
                     'student' => $enrollment->student->only(['id', 'full_name', 'legacy_source', 'legacy_id']),
                 ]),
                 'attendance_records' => $records,
