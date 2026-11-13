@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
     paths:
+      - scripts/technical-grades-query.php.stub
       - scripts/diary-workload-audit-query.php.stub
       - scripts/diary-progress-query.php.stub
       - app/Support/LegacyLiceuItineraryLinks.php

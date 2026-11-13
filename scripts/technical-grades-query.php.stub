@@ -1,0 +1,38 @@
+<?php
+
+// Consulta técnica somente de leitura; o transporte externo permanece criptografado.
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $courses = App\Models\AcademicCourse::where('stage', App\Models\AcademicCourse::STAGE_TECHNICAL)
+        ->with(['academicYear.school', 'academicYear.periods.assessmentRules', 'components.startsPeriod', 'components.endsPeriod',
+            'classes.startsPeriod', 'classes.endsPeriod', 'classes.enrollments.courses', 'startsPeriod', 'endsPeriod'])->orderBy('id')->get();
+    echo json_encode(['as_of' => now()->toIso8601String(), 'courses' => $courses->map(function ($course) {
+        $classIds = $course->classes->pluck('id');
+        $componentIds = $course->components->pluck('id');
+        return [
+            'course' => $course->getAttributes(),
+            'academic_year' => $course->academicYear->getAttributes(),
+            'school' => $course->academicYear->school->only(['id', 'name']),
+            'periods' => $course->academicYear->periods,
+            'components' => $course->components,
+            'classes' => $course->classes->map(fn ($class) => [
+                'class' => $class->getAttributes(),
+                'enrollments' => $class->enrollments->map(fn ($enrollment) => [
+                    'enrollment' => $enrollment->getAttributes(),
+                    'course_ids' => $enrollment->courses->pluck('id'),
+                    'attendance_ends_at' => $enrollment->attendanceEndsAt(),
+                ]),
+            ]),
+            'assessments' => App\Models\DiaryAssessment::whereIn('school_class_id', $classIds)->whereIn('curriculum_component_id', $componentIds)
+                ->with('results')->orderBy('id')->get(),
+            'origin_grades' => App\Models\StudentPeriodConvalidation::whereIn('student_enrollment_id', $course->classes->flatMap->enrollments->pluck('id'))
+                ->whereIn('curriculum_component_id', $componentIds)->get(),
+        ];
+    })], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally {
+    Illuminate\Support\Facades\DB::rollBack();
+}

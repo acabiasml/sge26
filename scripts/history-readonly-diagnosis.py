@@ -16,7 +16,8 @@ def main():
     config = pathlib.Path('scripts/history-query.json')
     query = json.loads(config.read_text()) if config.exists() else {'person_id': 0}
     scope = query.get('scope', 'student')
-    sources = {'diary-workload-audit': 'scripts/diary-workload-audit-query.php.stub',
+    sources = {'technical-grades': 'scripts/technical-grades-query.php.stub',
+               'diary-workload-audit': 'scripts/diary-workload-audit-query.php.stub',
                'diary-progress': 'scripts/diary-progress-query.php.stub',
                'student': 'scripts/history-readonly-diagnosis.php.stub',
                'liceu-itinerary': 'scripts/liceu-itinerary-query.php.stub',
