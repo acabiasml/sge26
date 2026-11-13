@@ -1,1 +1,1 @@
-{"operation": "technical-grade-completion", "course_ids": [48, 49, 50], "mode": "apply", "expected_snapshot_sha256": "19a94ddd68ae9c2040c9919d5de2d2e5b08ce37113b41521b8391480e394d224"}
+{"operation": "technical-grade-completion", "course_ids": [48, 49, 50], "mode": "dry-run"}
