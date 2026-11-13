@@ -58,8 +58,17 @@
             <i class="fas fa-chevron-down sge-diary-details-chevron" aria-hidden="true"></i>
         </summary>
         <div id="{{ $summaryId }}-details" class="sge-diary-issues-body">
-            <p class="small mb-2">{{ $diary['course']->name }} · {{ $summary['source'] === 'schedule' ? __('Previsão pelo horário e calendário letivo') : ($summary['source'] === 'matrix' ? __('Previsão estimada pela carga horária da matriz') : __('Previsão de aulas não definida')) }}</p>
+            <p class="small mb-2">{{ $diary['course']->name }} · {{ match($summary['source']) {
+                'schedule' => __('Previsão pelo horário e calendário letivo'),
+                'matrix' => __('Previsão estimada pela carga horária da matriz'),
+                'matrix_partial_schedule' => __('Previsão anual pela matriz: o horário cadastrado cobre apenas parte das aulas.'),
+                'partial_schedule' => __('Previsão anual indisponível: complete o horário ou a carga horária da matriz.'),
+                default => __('Previsão de aulas não definida'),
+            } }}</p>
             @if($hasDelay && $summary['content']['registered'] === 0 && $summary['attendance']['registered'] === 0)<p class="small mb-2">{{ __('Nenhum lançamento de conteúdo ou frequência.') }}</p>@endif
+            @if($summary['future']['attendance_lessons'] > 0 || $summary['future']['content_dates'] > 0)
+                <p class="small mb-2">{{ __('Lançamentos futuros: :attendance aulas de frequência e :content datas de conteúdo. Entram no percentual a partir da data da aula.', ['attendance' => $summary['future']['attendance_lessons'], 'content' => $summary['future']['content_dates']]) }}</p>
+            @endif
             @if($timeliness['expected_today'] !== null)<p class="small mb-2">{{ __('Até hoje: :count aulas previstas', ['count' => $timeliness['expected_today']]) }}</p>@endif
             <p class="small mb-2">{{ __('Durante o ano letivo, lançamentos de chamada e conteúdo com datas de aula nos últimos dez dias mantêm a situação regular. Após o encerramento, são conferidas as aulas previstas.') }}</p>
             <ul class="small">

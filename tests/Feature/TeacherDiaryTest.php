@@ -332,6 +332,7 @@ class TeacherDiaryTest extends TestCase
     {
         $this->travelTo(CarbonImmutable::parse('2026-03-20'));
         [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $component->update(['weekly_lessons' => 2]);
         $schedule = $class->schedules()->firstOrFail();
         $slot = $schedule->slots()->firstOrFail()->replicate();
         $slot->starts_at = '09:00';
@@ -364,6 +365,7 @@ class TeacherDiaryTest extends TestCase
     public function test_diary_delay_grows_towards_school_year_deadline_and_zero_records_are_not_shown_as_healthy(): void
     {
         [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $component->update(['weekly_lessons' => 1]);
         $class->update(['ends_period_id' => $period->id]);
         $this->travelTo(CarbonImmutable::parse('2026-01-31'));
         $response = $this->actingAs($teacher)->get(route('teacher-diaries.index'))->assertOk()->assertSee('Sem aulas previstas até hoje');
@@ -392,6 +394,7 @@ class TeacherDiaryTest extends TestCase
     public function test_diary_list_uses_accessible_traffic_lights_and_keeps_explanations_collapsed(): void
     {
         [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $component->update(['weekly_lessons' => 1]);
         $this->travelTo(CarbonImmutable::parse('2026-12-17'));
         $response = $this->actingAs($teacher)->get(route('teacher-diaries.index'))->assertOk();
         $document = new \DOMDocument;
@@ -535,7 +538,9 @@ class TeacherDiaryTest extends TestCase
         DiaryContent::query()->create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => '2026-04-09', 'content' => 'Conteúdo futuro.']);
         $response = $this->actingAs($teacher)->get(route('teacher-diaries.index'))->assertOk();
         $summary = $response->viewData('diaries')->sole()['summary'];
-        $this->assertSame(100.0, $summary['attendance']['percentage']);
+        $this->assertSame(0.0, $summary['attendance']['percentage']);
+        $this->assertSame(6, $summary['future']['attendance_lessons']);
+        $this->assertSame(1, $summary['future']['content_dates']);
         $this->assertSame(3, $summary['timeliness']['expected_today']);
         $this->assertSame(3, $summary['timeliness']['attendance']['missing']);
         $this->assertGreaterThan(0, $summary['timeliness']['urgency']);
@@ -578,9 +583,92 @@ class TeacherDiaryTest extends TestCase
         $this->assertStringContainsString('previsão indisponível', $response->getContent());
     }
 
+    public function test_partial_schedule_does_not_reduce_the_yearly_matrix_forecast(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-11-13'));
+        [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $component->update(['weekly_lessons' => 6, 'workload_hours' => null]);
+        $period->update(['ends_at' => '2026-12-18']);
+        $schedule = $class->schedules()->firstOrFail();
+        $schedule->update(['starts_at' => '2026-08-03']);
+        $template = $schedule->slots()->firstOrFail();
+        foreach (range(1, 5) as $index) {
+            $copy = $template->replicate();
+            $copy->starts_at = sprintf('%02d:00', 9 + $index);
+            $copy->ends_at = sprintf('%02d:50', 9 + $index);
+            $copy->save();
+        }
+        foreach (['2026-08-05', '2026-11-04'] as $date) {
+            $year->days()->create(['date' => $date, 'type' => CalendarDay::TYPE_SCHOOL_DAY, 'counts_as_school_day' => true]);
+        }
+        foreach (range(0, 76) as $index) {
+            $date = Carbon::parse('2026-02-02')->addWeekdays($index)->toDateString();
+            DiaryAttendanceRecord::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => $date, 'lesson_count' => 2]);
+            DiaryContent::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => $date, 'content' => 'Conteúdo registrado.']);
+        }
+        $response = $this->actingAs($teacher)->get(route('teacher-diaries.index'))->assertOk()->assertSee('Previsão anual pela matriz');
+        $summary = $response->viewData('diaries')->sole()['summary'];
+        $this->assertSame('matrix_partial_schedule', $summary['source']);
+        $this->assertSame(240, $summary['planned']);
+        $this->assertSame(154, $summary['attendance']['registered']);
+        $this->assertSame(64.2, $summary['attendance']['percentage']);
+        $previous = $class->schedules()->create(['name' => 'Horário anterior', 'starts_at' => '2026-01-20', 'ends_at' => '2026-08-02']);
+        foreach ($schedule->slots()->get() as $slot) {
+            $copy = $slot->replicate();
+            $copy->school_class_schedule_id = $previous->id;
+            $copy->save();
+        }
+        $response = $this->get(route('teacher-diaries.index'))->assertOk();
+        $summary = $response->viewData('diaries')->sole()['summary'];
+        $this->assertSame('schedule', $summary['source']);
+        $this->assertSame(18, $summary['planned']);
+    }
+
+    public function test_incomplete_weekly_grid_uses_the_matrix_and_unknown_matrix_does_not_present_a_partial_annual_total(): void
+    {
+        [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $response = $this->actingAs($teacher)->get(route('teacher-diaries.index'))->assertOk();
+        $summary = $response->viewData('diaries')->sole()['summary'];
+        $this->assertSame('matrix_partial_schedule', $summary['source']);
+        $this->assertSame(192, $summary['planned']);
+        $component->update(['weekly_lessons' => null, 'workload_hours' => null]);
+        $class->schedules()->firstOrFail()->update(['starts_at' => '2026-08-03']);
+        $response = $this->get(route('teacher-diaries.index'))->assertOk()->assertSee('Previsão anual indisponível');
+        $summary = $response->viewData('diaries')->sole()['summary'];
+        $this->assertSame('partial_schedule', $summary['source']);
+        $this->assertNull($summary['planned']);
+        $this->assertNull($summary['attendance']['percentage']);
+    }
+
+    public function test_future_lesson_counts_are_separate_until_the_lesson_date_without_modifying_records(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-03-15'));
+        [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $class->schedules()->get()->each->delete();
+        $component->update(['workload_hours' => 40]);
+        foreach ([['2026-03-11', 2], ['2026-04-09', 4]] as [$date, $count]) {
+            DiaryAttendanceRecord::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => $date, 'lesson_count' => $count]);
+        }
+        DiaryContent::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => '2026-03-11', 'content' => 'Conteúdo da aula.']);
+        $response = $this->actingAs($teacher)->get(route('teacher-diaries.index'))->assertOk()->assertSee('Lançamentos futuros');
+        $summary = $response->viewData('diaries')->sole()['summary'];
+        $this->assertSame(2, $summary['attendance']['registered']);
+        $this->assertSame(4.2, $summary['attendance']['percentage']);
+        $this->assertSame(4, $summary['future']['attendance_lessons']);
+        $this->assertSame(0, $summary['issues']['attendance_without_content']);
+        $this->travelTo(CarbonImmutable::parse('2026-04-09'));
+        $response = $this->get(route('teacher-diaries.index'))->assertOk();
+        $summary = $response->viewData('diaries')->sole()['summary'];
+        $this->assertSame(6, $summary['attendance']['registered']);
+        $this->assertSame(0, $summary['future']['attendance_lessons']);
+        $this->assertSame(1, $summary['issues']['attendance_without_content']);
+        $this->assertDatabaseCount('diary_attendance_records', 2);
+    }
+
     public function test_diary_list_keeps_actual_counts_above_forecast_without_overflowing_progress_bars(): void
     {
         [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $component->update(['weekly_lessons' => 1]);
         DiaryAttendanceRecord::query()->create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => '2026-03-12', 'lesson_count' => 3]);
         DiaryContent::query()->create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'class_date' => '2026-03-12', 'content' => 'Aulas fora do horário atual.']);
         $response = $this->actingAs($teacher)->get(route('teacher-diaries.index'))->assertOk()->assertSee('300,0%')->assertSee('Acima do previsto');
@@ -599,6 +687,7 @@ class TeacherDiaryTest extends TestCase
     {
         $this->travelTo(CarbonImmutable::parse('2026-10-29'));
         [$teacher, $year, $class, $component, $first, $enrollment] = $this->diaryScenario();
+        $component->update(['weekly_lessons' => 1]);
         $second = $year->periods()->create(['name' => '2º Bimestre', 'starts_at' => '2026-04-11', 'ends_at' => '2026-06-30', 'position' => 2]);
         $future = $year->periods()->create(['name' => 'Último período', 'starts_at' => '2026-11-01', 'ends_at' => '2026-12-18', 'position' => 3]);
         $component->update(['starts_period_id' => $second->id]);
@@ -2769,6 +2858,7 @@ class TeacherDiaryTest extends TestCase
     public function test_empty_scheduled_date_can_be_removed_and_restored_without_recovering_deleted_records(): void
     {
         [$teacher, $year, $class, $component, $period] = $this->diaryScenario();
+        $component->update(['weekly_lessons' => 1]);
         $date = '2026-03-11';
         $assignment = SchoolClassComponent::where('school_class_id', $class->id)->firstOrFail();
         $before = app(DiaryListSummary::class)->forAssignments(collect([$assignment]))->get($assignment->id)['planned'];

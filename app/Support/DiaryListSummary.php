@@ -63,42 +63,48 @@ class DiaryListSummary
             );
             $records = $attendance->get($key, collect())->filter(fn ($record) => $periods->contains('id', $record->academic_period_id) && $record->lesson_count > 0);
             $dayContents = $contents->get($key, collect())->filter(fn ($record) => $periods->contains('id', $record->academic_period_id) && filled(trim($record->content)));
+            $schoolDays = $year->days->where('counts_as_school_day', true)->filter(fn ($day) => $periods->contains(
+                fn (AcademicPeriod $period) => $day->date->betweenIncluded($period->starts_at, $period->ends_at)
+            ));
+            $forecastDays = $schoolDays->reject(fn ($day) => $excludedDates->get($assignment->id, collect())->contains(
+                fn ($excluded) => $excluded->class_date->toDateString() === $day->date->toDateString()
+                    && $periods->contains('id', $excluded->academic_period_id)
+            ));
             $plannedByDate = collect();
-            $hasSchedule = $class->schedules->contains(fn ($schedule) => $schedule->slots->where('type', 'aula')->contains('school_class_component_id', $assignment->id));
-            foreach ($year->days->where('counts_as_school_day', true) as $day) {
-                if (! $periods->contains(fn (AcademicPeriod $period) => $day->date->betweenIncluded($period->starts_at, $period->ends_at))) {
-                    continue;
-                }
+            $assignmentSchedules = $class->schedules->filter(fn ($schedule) => $schedule->slots->where('type', 'aula')->contains('school_class_component_id', $assignment->id));
+            $completeSchedule = $assignmentSchedules->isNotEmpty() && $schoolDays->isNotEmpty();
+            foreach ($forecastDays as $day) {
                 $date = $day->date->toDateString();
-                if ($excludedDates->get($assignment->id, collect())->contains(fn ($excluded) => $excluded->class_date->toDateString() === $date && $periods->contains('id', $excluded->academic_period_id))) {
-                    continue;
+                $schedules = $assignmentSchedules->filter(fn ($schedule) => $schedule->starts_at->toDateString() <= $date
+                    && (! $schedule->ends_at || $schedule->ends_at->toDateString() >= $date));
+                $weeklySlots = $schedules->flatMap->slots->where('type', 'aula')->where('school_class_component_id', $assignment->id);
+                // Um horário parcial, inclusive uma grade semanal incompleta, não representa o ano inteiro.
+                if ($schedules->isEmpty() || ($component->weekly_lessons !== null && $weeklySlots->count() !== (int) $component->weekly_lessons)) {
+                    $completeSchedule = false;
                 }
-                $lessons = $class->schedules->sum(fn ($schedule) => $schedule->starts_at->toDateString() <= $date && (! $schedule->ends_at || $schedule->ends_at->toDateString() >= $date)
-                        ? $schedule->slots->where('type', 'aula')->where('weekday', $day->date->dayOfWeekIso)->where('school_class_component_id', $assignment->id)->count()
-                        : 0
-                );
+                $lessons = $weeklySlots->where('weekday', $day->date->dayOfWeekIso)->count();
                 if ($lessons > 0) {
                     $plannedByDate->put($date, $lessons);
                 }
             }
             $planned = null;
             $source = null;
-            if ($hasSchedule && $year->days->where('counts_as_school_day', true)->isNotEmpty()) {
+            if ($completeSchedule) {
                 $planned = (int) $plannedByDate->sum();
                 $source = 'schedule';
             } elseif ((int) $course->class_hour_minutes > 0 && $component->calculatedWorkloadHours($course) > 0) {
                 $classShare = $coursePeriods->isNotEmpty() ? $periods->count() / $coursePeriods->count() : 1;
-                $planned = (int) round($component->calculatedWorkloadHours($course) * 60 / $course->class_hour_minutes * $classShare);
-                $source = 'matrix';
+                $keptDaysShare = $schoolDays->isNotEmpty() ? $forecastDays->count() / $schoolDays->count() : 1;
+                $planned = (int) round($component->calculatedWorkloadHours($course) * 60 / $course->class_hour_minutes * $classShare * $keptDaysShare);
+                $source = $assignmentSchedules->isNotEmpty() ? 'matrix_partial_schedule' : 'matrix';
+            } elseif ($assignmentSchedules->isNotEmpty()) {
+                $source = 'partial_schedule';
             }
             $recordsByDate = $records->keyBy(fn ($record) => $record->class_date->toDateString());
-            $contentLessons = $dayContents->sum(fn ($record) => $recordsByDate->get($record->class_date->toDateString())?->lesson_count ?? $plannedByDate->get($record->class_date->toDateString(), 0));
             $timeline = $this->timeline($periods, $class, $year);
             $today = now()->toDateString();
-            $schoolDays = $year->days->where('counts_as_school_day', true)->filter(fn ($day) => $periods->contains(fn (AcademicPeriod $period) => $day->date->betweenIncluded($period->starts_at, $period->ends_at))
-            );
-            $dueFraction = $schoolDays->isNotEmpty()
-                ? $schoolDays->filter(fn ($day) => $day->date->toDateString() <= $today)->count() / $schoolDays->count()
+            $dueFraction = $forecastDays->isNotEmpty()
+                ? $forecastDays->filter(fn ($day) => $day->date->toDateString() <= $today)->count() / $forecastDays->count()
                 : $timeline['elapsed_fraction'];
             $expectedToday = $source === 'schedule'
                 ? (int) $plannedByDate->filter(fn ($lessons, $date) => $date <= $today)->sum()
@@ -113,9 +119,9 @@ class DiaryListSummary
             $lastAttendance = $records->filter(fn ($record) => $record->class_date->toDateString() <= $today)->max('class_date');
             $contentPace = $this->pace($contentToday, $expectedToday, $timeline, $lastContent?->toDateString());
             $attendancePace = $this->pace($attendanceToday, $expectedToday, $timeline, $lastAttendance?->toDateString());
-            $periodIssues = $periods->map(function (AcademicPeriod $period) use ($class, $records, $dayContents, $assessments, $key, $originGrades): array {
-                $attendanceDates = $records->where('academic_period_id', $period->id)->toBase()->map(fn ($record) => $record->class_date->toDateString())->unique();
-                $contentDates = $dayContents->where('academic_period_id', $period->id)->toBase()->map(fn ($record) => $record->class_date->toDateString())->unique();
+            $periodIssues = $periods->map(function (AcademicPeriod $period) use ($class, $records, $dayContents, $assessments, $key, $originGrades, $today): array {
+                $attendanceDates = $records->where('academic_period_id', $period->id)->filter(fn ($record) => $record->class_date->toDateString() <= $today)->toBase()->map(fn ($record) => $record->class_date->toDateString())->unique();
+                $contentDates = $dayContents->where('academic_period_id', $period->id)->filter(fn ($record) => $record->class_date->toDateString() <= $today)->toBase()->map(fn ($record) => $record->class_date->toDateString())->unique();
                 $missingGrades = $period->ends_at->copy()->startOfDay()->lte(now()->startOfDay())
                     ? $this->status->missingGrades($class->enrollments->filter->isActive(), $assessments->get($key, collect())->where('academic_period_id', $period->id), $originGrades)
                     : 0;
@@ -135,8 +141,12 @@ class DiaryListSummary
 
             return [$assignment->id => [
                 'planned' => $planned, 'source' => $source,
-                'content' => $this->progress((int) $contentLessons, $planned),
-                'attendance' => $this->progress((int) $records->sum('lesson_count'), $planned),
+                'content' => $this->progress($contentToday, $planned),
+                'attendance' => $this->progress($attendanceToday, $planned),
+                'future' => [
+                    'attendance_lessons' => (int) $records->filter(fn ($record) => $record->class_date->toDateString() > $today)->sum('lesson_count'),
+                    'content_dates' => $dayContents->filter(fn ($record) => $record->class_date->toDateString() > $today)->pluck('class_date')->unique()->count(),
+                ],
                 'issues' => $issues, 'issue_count' => array_sum($issues),
                 'periods' => $periodIssues,
                 'timeliness' => [
