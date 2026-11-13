@@ -25,7 +25,28 @@ try {
     }
     $assignments = $assignmentsQuery->with('schoolClass.academicYear.periods', 'schoolClass.startsPeriod', 'schoolClass.endsPeriod', 'teacher:id,full_name')->get();
     $summaries = app(App\Support\DiaryListSummary::class)->forAssignments($assignments);
+    $renderedDiaries = collect();
+    if (isset($config['teacher_first_name_sha256'])) {
+        foreach ($assignments->pluck('teacher')->filter()->unique('id') as $person) {
+            $user = App\Models\User::where('person_id', $person->id)->first();
+            if (! $user) { continue; }
+            // Somente a instância em memória assume a visão docente; não há login ou gravação.
+            $user->preferred_role_view = App\Models\PersonSchoolRole::ROLE_TEACHER;
+            Illuminate\Support\Facades\Auth::setUser($user);
+            $request = Illuminate\Http\Request::create('/diarios');
+            $request->setUserResolver(fn () => $user);
+            $data = app(App\Http\Controllers\TeacherDiaryController::class)->index($request)->getData();
+            foreach ($data['diaries'] ?? [] as $diary) {
+                $html = view('teacher-diaries.partials.list-summary', ['diary' => $diary])->render();
+                preg_match('/data-diary-state="([^"]+)"/', $html, $state);
+                $renderedDiaries->push(['class_id' => $diary['class']->id, 'component_id' => $diary['component']->id,
+                    'year' => $diary['academicYear']->reference_year, 'state' => $state[1] ?? null,
+                    'summary' => $diary['summary']]);
+            }
+        }
+    }
     echo json_encode([
+        'rendered_diaries' => $renderedDiaries,
         'matched_teachers' => $assignments->pluck('teacher')->filter()->unique('id')->map->only(['id', 'full_name'])->values(),
         'available_teachers_when_unmatched' => $assignments->isEmpty() ? $availableTeachers->map->only(['id', 'full_name']) : [],
         'comparison_courses' => $courses->map->only(['id', 'name', 'academic_year_id']),
