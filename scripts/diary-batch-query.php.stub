@@ -36,8 +36,18 @@ try {
         ->with(['academicYear', 'courses.components', 'enrollments.student'])->orderBy('id')->get()
         ->filter(fn ($row) => $requests->contains('key', $row->academicYear->reference_year.':'.$canonical($row->name)));
     $found = $classes->map(fn ($row) => $row->academicYear->reference_year.':'.$canonical($row->name));
+    $relatedEnrollments = App\Models\StudentEnrollment::whereIn('person_id', $classes->flatMap->enrollments->pluck('person_id')->unique())
+        ->with('schoolClass.academicYear')->orderBy('id')->get();
+    $workloadRecords = App\Models\DiaryAttendanceRecord::whereIn('school_class_id', $relatedEnrollments->pluck('school_class_id')->unique())
+        ->whereYear('class_date', '>=', $requests->min('reference_year'))->whereYear('class_date', '<=', $requests->max('reference_year'))
+        ->with('component.course')->orderBy('id')->get();
     echo json_encode([
         'transport_public_key' => $public,
+        'as_of' => now()->toIso8601String(),
+        'related_enrollments' => $relatedEnrollments->map(fn ($enrollment) => $enrollment->only(['id', 'person_id', 'school_class_id', 'enrolled_at'])
+            + ['attendance_ends_at' => $enrollment->attendanceEndsAt()]),
+        'daily_workload_records' => $workloadRecords->map(fn ($record) => $record->only(['id', 'school_class_id', 'curriculum_component_id', 'class_date', 'lesson_count'])
+            + ['class_hour_minutes' => $record->component->course->class_hour_minutes]),
         'source' => $config['source'],
         'missing' => $requests->reject(fn ($row) => $found->contains($row['key']))->values(),
         'classes' => $classes->map(function ($class) {
@@ -52,9 +62,10 @@ try {
                 'assignments' => $class->componentAssignments()->with('teacher:id,full_name')->get()->map(fn ($assignment) =>
                     $assignment->only(['id', 'school_class_id', 'curriculum_component_id', 'teacher_person_id', 'active'])
                     + ['teacher' => $assignment->teacher?->full_name]),
+                'excluded_diary_dates' => App\Models\DiaryExcludedDate::whereIn('school_class_component_id', $class->componentAssignments()->pluck('id'))->get(),
                 'courses' => $class->courses->map(fn ($course) => [
-                    'course' => $course->only(['id', 'name', 'stage', 'class_hour_minutes', 'workload_hours']),
-                    'components' => $course->components->map->only(['id', 'name', 'weekly_lessons', 'workload_hours', 'active', 'legacy_source', 'legacy_id', 'legacy_metadata']),
+                    'course' => $course->only(['id', 'name', 'stage', 'class_hour_minutes', 'workload_hours', 'starts_period_id', 'ends_period_id']),
+                    'components' => $course->components->map->only(['id', 'name', 'weekly_lessons', 'workload_hours', 'active', 'legacy_source', 'legacy_id', 'legacy_metadata', 'starts_period_id', 'ends_period_id']),
                 ]),
                 'enrollments' => $class->enrollments->map(fn ($enrollment) => [
                     'enrollment' => $enrollment->only(['id', 'person_id', 'status', 'enrolled_at', 'transferred_at']),
