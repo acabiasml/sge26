@@ -14,8 +14,8 @@ try {
         ->whereHas('component.course.academicYear', fn ($q) => $q->whereNotNull('approved_at')
             ->whereDate('starts_at', '<=', $today)->whereDate('ends_at', '>=', $config['reference_year'].'-01-01')
             ->whereHas('school', fn ($q) => $q->where('active', true)));
-    $checked = 0; $people = []; $alerts = []; $rubia = [];
-    $query->orderBy('id')->chunkById(25, function ($assignments) use (&$checked, &$people, &$alerts, &$rubia, $today) {
+    $checked = 0; $people = []; $alerts = []; $rubia = []; $diaries = [];
+    $query->orderBy('id')->chunkById(25, function ($assignments) use (&$checked, &$people, &$alerts, &$rubia, &$diaries, $today) {
         $assignments->load('teacher:id,full_name', 'component.course.academicYear.school');
         $summaries = app(App\Support\DiaryListSummary::class)->forAssignments($assignments);
         foreach ($assignments as $assignment) {
@@ -31,7 +31,6 @@ try {
             $planned = $summary['planned'];
             $ratio = $planned > 0 ? round($registered * 100 / $planned, 1) : null;
             $isRubia = str_starts_with(Illuminate\Support\Str::lower(Illuminate\Support\Str::ascii($assignment->teacher?->full_name ?? '')), 'rubia ');
-            if (! $isRubia && ($ratio === null || $ratio < 90)) { continue; }
             $course = $assignment->component->course;
             $year = $course->academicYear;
             $schedules = $assignment->schoolClass->schedules->filter(fn ($schedule) => $schedule->slots->contains(fn ($slot) => $slot->type === 'aula' && $slot->school_class_component_id === $assignment->id));
@@ -42,6 +41,14 @@ try {
             $matrixLessons = $course->class_hour_minutes > 0 && $activePeriods->isNotEmpty()
                 ? (int) round($assignment->component->calculatedWorkloadHours($course) * 60 / $course->class_hour_minutes * $periodIds->count() / $activePeriods->count()) : null;
             $calendar = $year->days->where('counts_as_school_day', true);
+            // Extração para projeções locais: calendário aplicável e aulas por data,
+            // inclusive para diários que ainda não atingiram 90% da previsão.
+            $selectedPeriods = $year->periods->whereIn('id', $periodIds);
+            $excludedDates = App\Models\DiaryExcludedDate::where('school_class_component_id', $assignment->id)
+                ->whereIn('academic_period_id', $periodIds)->get()->map(fn ($date) => $date->class_date->toDateString());
+            $applicableDates = $calendar->filter(fn ($day) => $selectedPeriods->contains(
+                fn ($period) => $day->date->betweenIncluded($period->starts_at, $period->ends_at)
+            ))->map(fn ($day) => $day->date->toDateString())->diff($excludedDates)->unique()->sort()->values();
             $row = [
                 'assignment_id' => $assignment->id, 'teacher' => $assignment->teacher?->full_name, 'teacher_id' => $assignment->teacher_person_id,
                 'school' => $year->school->name, 'class' => $assignment->schoolClass->name, 'course' => $course->name,
@@ -59,17 +66,21 @@ try {
                 'registered_before_first_schedule' => $firstSchedule ? (int) $records->filter(fn ($r) => $r->class_date->toDateString() < $firstSchedule)->sum('lesson_count') : null,
                 'calendar_school_days' => $calendar->count(), 'minimum_school_days' => $year->minimum_school_days,
                 'first_calendar_day' => $calendar->min('date')?->toDateString(), 'last_calendar_day' => $calendar->max('date')?->toDateString(),
+                'applicable_school_dates' => $applicableDates,
+                'attendance_by_date' => $records->groupBy(fn ($record) => $record->class_date->toDateString())
+                    ->map(fn ($rows) => (int) $rows->sum('lesson_count')),
                 'schedules' => $schedules->map(fn ($schedule) => [
                     'id' => $schedule->id, 'starts_at' => $schedule->starts_at?->toDateString(), 'ends_at' => $schedule->ends_at?->toDateString(),
                     'slots' => $schedule->slots->where('type', 'aula')->where('school_class_component_id', $assignment->id)->map->only(['weekday', 'starts_at', 'ends_at'])->values(),
                 ])->values(),
             ];
+            $diaries[] = $row;
             if ($isRubia) { $rubia[] = $row; }
             if ($ratio !== null && $ratio >= 90) { $alerts[] = $row; }
         }
     });
     echo json_encode(['as_of' => now()->toIso8601String(), 'checked_diaries' => $checked, 'teacher_count' => count($people),
-        'rubia_diaries' => $rubia, 'near_or_over_limit' => $alerts], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        'rubia_diaries' => $rubia, 'near_or_over_limit' => $alerts, 'diaries' => $diaries], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 } finally {
     Illuminate\Support\Facades\DB::rollBack();
 }
