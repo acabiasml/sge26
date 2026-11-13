@@ -7,6 +7,7 @@ use App\Models\DiaryAttendanceRecord;
 use App\Models\DiaryContent;
 use App\Models\DiaryExcludedDate;
 use App\Models\SchoolClassComponent;
+use App\Models\StudentEnrollment;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -97,8 +98,15 @@ final class DocumentedDiaryImporter
                     'sessions' => count($sessions), 'lessons' => array_sum(array_column($sessions, 'lesson_count')),
                     'hours' => $hours, 'students_count' => $class->enrollments->pluck('person_id')->unique()->count(), 'stats' => $stats];
             }
+            $dailyLoad = null;
+            if (isset($manifest['max_daily_minutes'])) {
+                $this->check(is_int($manifest['max_daily_minutes']) && $manifest['max_daily_minutes'] > 0
+                    && $manifest['max_daily_minutes'] <= 1440, 'Limite de carga diária inválido.');
+                [$loadSnapshot, $dailyLoad] = $this->checkDailyLoad($plans, $manifest['max_daily_minutes']);
+                $snapshots[] = $loadSnapshot;
+            }
             $hash = hash('sha256', json_encode([$manifest, $snapshots], JSON_THROW_ON_ERROR));
-            $result = ['mode' => $apply ? 'apply' : 'dry-run', 'snapshot_sha256' => $hash, 'diaries' => $results];
+            $result = ['mode' => $apply ? 'apply' : 'dry-run', 'snapshot_sha256' => $hash, 'diaries' => $results, 'daily_load' => $dailyLoad];
             if (! $apply) {
                 return $result;
             }
@@ -144,5 +152,51 @@ final class DocumentedDiaryImporter
         if (! $condition) {
             throw new RuntimeException($message);
         }
+    }
+
+    /** Considera aulas de todas as matrículas da pessoa, independentemente de presença. */
+    private function checkDailyLoad(array $plans, int $limit): array
+    {
+        $people = collect($plans)->flatMap(fn ($plan) => $plan['eligible']->pluck('person_id'))->unique();
+        $enrollments = StudentEnrollment::whereIn('person_id', $people)->orderBy('id')->get();
+        $byClass = $enrollments->groupBy('school_class_id');
+        $records = DiaryAttendanceRecord::whereIn('school_class_id', $enrollments->pluck('school_class_id')->unique())
+            ->where(function ($query) use ($plans) {
+                foreach (array_unique(array_column($plans, 'date')) as $date) {
+                    $query->orWhereDate('class_date', $date);
+                }
+            })
+            ->with('component.course')->orderBy('id')->get();
+        $minutesByStudentDate = [];
+        $recordSnapshot = [];
+        foreach ($records as $record) {
+            $minutes = (int) $record->component->course->class_hour_minutes;
+            $this->check($minutes > 0, 'Há aulas sem duração válida para conferir o limite diário.');
+            $recordSnapshot[] = [$record->getAttributes(), $minutes];
+            foreach ($byClass->get($record->school_class_id, collect())
+                ->filter(fn ($enrollment) => $enrollment->includesAttendanceDate($record->class_date))->unique('person_id') as $enrollment) {
+                $key = $enrollment->person_id.':'.$record->class_date->toDateString();
+                $minutesByStudentDate[$key] = ($minutesByStudentDate[$key] ?? 0) + $record->lesson_count * $minutes;
+            }
+        }
+        $checked = [];
+        foreach ($plans as $plan) {
+            $minutes = (int) $plan['assignment']->component->course->class_hour_minutes;
+            foreach ($plan['eligible'] as $enrollment) {
+                $key = $enrollment->person_id.':'.$plan['date'];
+                $minutesByStudentDate[$key] ??= 0;
+                if (! $plan['record']) {
+                    $minutesByStudentDate[$key] += $plan['count'] * $minutes;
+                }
+                $checked[$key] = true;
+            }
+        }
+        foreach (array_keys($checked) as $key) {
+            $this->check($minutesByStudentDate[$key] <= $limit, 'O lançamento ultrapassa o limite diário de aulas de um estudante.');
+        }
+        $maximum = collect(array_keys($checked))->max(fn ($key) => $minutesByStudentDate[$key]) ?? 0;
+
+        return [[$enrollments->toArray(), $recordSnapshot], ['limit_minutes' => $limit,
+            'maximum_minutes' => $maximum, 'student_days_checked' => count($checked)]];
     }
 }

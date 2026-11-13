@@ -200,6 +200,11 @@ inclusive cancelamento, reclassificação e rematrícula. Divergências com
 lançamentos existentes bloqueiam a operação. Exige simulação anterior e seu
 hash, guarda cópia privada e auditoria e grava o lote em uma transação.
 Depois de aplicar, volte a `dry-run` e confirme zero lançamentos pendentes.
+O campo opcional `max_daily_minutes` confere a soma das aulas existentes e
+novas para cada estudante e data, usando a duração da hora-aula de cada matriz,
+inclusive em matrículas de outras turmas. O limite não depende da marcação de
+presença. Essas chamadas e vínculos também integram o hash da simulação para
+impedir a aplicação de uma conferência desatualizada.
 
 O mesmo workflow aceita `operation: school-year-class-hours` na configuração,
 com `school_id`, `reference_year`, `class_hour_minutes: 60` e `mode: dry-run`.

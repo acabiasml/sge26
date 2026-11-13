@@ -156,6 +156,83 @@ class DocumentedDiaryImporterTest extends TestCase
         $this->assertDatabaseCount('diary_attendance_records', 0);
     }
 
+    public function test_daily_limit_uses_each_course_lesson_duration_and_counts_the_combined_new_diaries(): void
+    {
+        [$manifest, $year, $course, $component, $classes] = $this->scenario();
+        $manifest['max_daily_minutes'] = 480;
+        $general = $year->courses()->create(['name' => 'Formação geral', 'stage' => 'medio', 'class_hour_minutes' => 50]);
+        $other = $general->components()->create(['name' => 'Matemática', 'weekly_lessons' => 4, 'active' => true]);
+        $record = DiaryAttendanceRecord::create(['school_class_id' => $classes[0]->id, 'curriculum_component_id' => $other->id,
+            'academic_period_id' => $year->periods()->sole()->id, 'class_date' => '2026-02-12', 'lesson_count' => 4]);
+        $service = app(DocumentedDiaryImporter::class);
+        $plan = $service->reconcile($manifest);
+        $this->assertSame(440, $plan['daily_load']['maximum_minutes']);
+        $record->update(['lesson_count' => 5]); // 250 + 240 = 490 minutos, acima de oito horas.
+        try {
+            $service->reconcile($manifest);
+            $this->fail('A soma das durações precisa respeitar oito horas.');
+        } catch (RuntimeException $error) {
+            $this->assertStringContainsString('limite diário', $error->getMessage());
+        }
+        $record->update(['lesson_count' => 4]);
+        $extra = $course->components()->create(['name' => 'Outra disciplina técnica', 'workload_hours' => 20, 'active' => true]);
+        $assignment = $classes[0]->componentAssignments()->create(['curriculum_component_id' => $extra->id,
+            'teacher_person_id' => $manifest['diaries'][0]['teacher_person_id'], 'active' => true]);
+        $third = $manifest['diaries'][0];
+        $third['assignment_id'] = $assignment->id;
+        $third['component_id'] = $extra->id;
+        $third['expected_hours'] = 2;
+        $third['sessions'] = [['date' => '2026-02-12', 'lesson_count' => 2, 'content' => 'Atividade adicional.']];
+        $manifest['diaries'][] = $third;
+        $this->expectExceptionMessage('limite diário');
+        $service->reconcile($manifest);
+    }
+
+    public function test_other_class_lessons_are_counted_and_a_later_teacher_record_invalidates_the_preview(): void
+    {
+        [$manifest, $year, $course, $component, $classes] = $this->scenario();
+        $manifest['max_daily_minutes'] = 480;
+        $personId = $classes[0]->enrollments()->first()->person_id;
+        $parallel = $year->classes()->create(['name' => 'Atividades paralelas']);
+        $parallel->enrollments()->create(['person_id' => $personId, 'enrolled_at' => '2026-02-02', 'status' => 'matriculado']);
+        $record = DiaryAttendanceRecord::create(['school_class_id' => $parallel->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $year->periods()->sole()->id, 'class_date' => '2026-02-12', 'lesson_count' => 4]);
+        $service = app(DocumentedDiaryImporter::class);
+        $plan = $service->reconcile($manifest);
+        $this->assertSame(480, $plan['daily_load']['maximum_minutes']);
+        // Mesmo sem presenças registradas, a chamada consome a carga diária.
+        $record->update(['lesson_count' => 3]);
+        try {
+            $service->reconcile($manifest, true, $plan['snapshot_sha256']);
+            $this->fail('A mudança de outro diário precisa invalidar a conferência.');
+        } catch (RuntimeException $error) {
+            $this->assertStringContainsString('mudou', $error->getMessage());
+        }
+        $this->assertDatabaseCount('diary_contents', 0);
+        $this->assertDatabaseCount('diary_attendance_records', 1);
+        $record->update(['lesson_count' => 5]);
+        $this->expectExceptionMessage('limite diário');
+        $service->reconcile($manifest);
+    }
+
+    public function test_daily_limit_does_not_double_count_already_imported_calls_or_other_class_lessons_after_exit(): void
+    {
+        [$manifest, $year, $course, $component, $classes] = $this->scenario();
+        $manifest['max_daily_minutes'] = 480;
+        $parallel = $year->classes()->create(['name' => 'Turma anterior']);
+        $parallel->enrollments()->create(['person_id' => $classes[0]->enrollments()->first()->person_id,
+            'enrolled_at' => '2026-02-02', 'transferred_at' => '2026-02-04', 'status' => 'transferido']);
+        DiaryAttendanceRecord::create(['school_class_id' => $parallel->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $year->periods()->sole()->id, 'class_date' => '2026-02-12', 'lesson_count' => 8]);
+        $service = app(DocumentedDiaryImporter::class);
+        $plan = $service->reconcile($manifest);
+        $this->assertSame(240, $plan['daily_load']['maximum_minutes']);
+        $service->reconcile($manifest, true, $plan['snapshot_sha256']);
+        $after = $service->reconcile($manifest);
+        $this->assertSame(240, $after['daily_load']['maximum_minutes']);
+        $this->assertSame(0, $after['diaries'][0]['stats']['calls_to_create']);
+    }
+
     private function scenario(): array
     {
         $this->travelTo(now()->setDate(2026, 11, 13));
