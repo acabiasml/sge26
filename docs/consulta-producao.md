@@ -205,6 +205,13 @@ novas para cada estudante e data, usando a duração da hora-aula de cada matriz
 inclusive em matrículas de outras turmas. O limite não depende da marcação de
 presença. Essas chamadas e vínculos também integram o hash da simulação para
 impedir a aplicação de uma conferência desatualizada.
+Para redistribuir um lote recém-importado, `replace_previous_import` deve apontar
+para a cópia privada produzida naquela aplicação. A fonte, os alvos e as cargas
+precisam ser os mesmos; auditoria, integridade do lote e ausência de edições
+posteriores são obrigatórias. A simulação desconta somente esse lote ao conferir
+o limite diário, e a substituição é transacional, com nova cópia de segurança.
+Depois da aplicação, retire esse campo do manifesto e confira as pendências em
+`dry-run`. A redistribuição não altera notas nem registros de outras disciplinas.
 
 O mesmo workflow aceita `operation: school-year-class-hours` na configuração,
 com `school_id`, `reference_year`, `class_hour_minutes: 60` e `mode: dry-run`.

@@ -233,6 +233,86 @@ class DocumentedDiaryImporterTest extends TestCase
         $this->assertSame(0, $after['diaries'][0]['stats']['calls_to_create']);
     }
 
+    public function test_redistributes_only_its_previous_import_across_periods_without_changing_hours_or_grades(): void
+    {
+        [$manifest, $year, $course, $component, $classes] = $this->scenario();
+        $service = app(DocumentedDiaryImporter::class);
+        $original = $service->reconcile($manifest);
+        $applied = $service->reconcile($manifest, true, $original['snapshot_sha256']);
+        foreach ([[2, '2026-04-13', '2026-07-08'], [3, '2026-08-03', '2026-10-09'], [4, '2026-10-14', '2026-12-22']] as [$position, $start, $end]) {
+            $year->periods()->create(['name' => $position.'º Bimestre', 'position' => $position, 'starts_at' => $start, 'ends_at' => $end]);
+        }
+        foreach (['2026-05-05', '2026-08-05', '2026-10-15'] as $date) {
+            $year->days()->create(['date' => $date, 'type' => CalendarDay::TYPE_SCHOOL_DAY, 'counts_as_school_day' => true]);
+        }
+        $grades = DiaryAssessmentResult::get()->toArray();
+        $matrix = [$course->fresh()->getAttributes(), $component->fresh()->getAttributes()];
+        $manifest['replace_previous_import'] = $applied['backup_path'];
+        $manifest['max_daily_minutes'] = 480;
+        foreach ($manifest['diaries'] as &$diary) {
+            $diary['sessions'] = [
+                ['date' => '2026-02-05', 'lesson_count' => 2, 'content' => 'Instrumentos.'],
+                ['date' => '2026-05-05', 'lesson_count' => 2, 'content' => 'Escalas.'],
+                ['date' => '2026-08-05', 'lesson_count' => 1, 'content' => 'Perspectivas.'],
+                ['date' => '2026-10-15', 'lesson_count' => 1, 'content' => 'Vistas ortográficas.'],
+            ];
+        }
+        unset($diary);
+        $other = $course->components()->create(['name' => 'Outra disciplina', 'workload_hours' => 60]);
+        $untouched = DiaryAttendanceRecord::create(['school_class_id' => $classes[0]->id, 'curriculum_component_id' => $other->id,
+            'academic_period_id' => $year->periods()->where('position', 1)->sole()->id, 'class_date' => '2026-02-05', 'lesson_count' => 6]);
+        $plan = $service->reconcile($manifest);
+        $this->assertSame(480, $plan['daily_load']['maximum_minutes']);
+        $this->assertSame(2, $plan['diaries'][0]['stats']['calls_to_replace']);
+        $this->assertDatabaseCount('diary_attendance_records', 5);
+        $service->reconcile($manifest, true, $plan['snapshot_sha256']);
+        $this->assertDatabaseCount('diary_attendance_records', 9);
+        $this->assertDatabaseCount('diary_contents', 8);
+        $this->assertTrue($untouched->fresh()->exists);
+        foreach ($classes as $class) {
+            $records = DiaryAttendanceRecord::where('school_class_id', $class->id)->where('curriculum_component_id', $component->id)->get();
+            $this->assertSame(4, $records->pluck('academic_period_id')->unique()->count());
+            $this->assertSame(6, (int) $records->sum('lesson_count'));
+        }
+        $this->assertSame($grades, DiaryAssessmentResult::get()->toArray());
+        $this->assertSame($matrix, [$course->fresh()->getAttributes(), $component->fresh()->getAttributes()]);
+        unset($manifest['replace_previous_import']);
+        $verified = $service->reconcile($manifest);
+        $this->assertSame(0, $verified['diaries'][0]['stats']['calls_to_create']);
+        $this->assertSame(0, $verified['diaries'][0]['stats']['entries_to_create']);
+    }
+
+    public function test_redistribution_rejects_later_manual_notes_and_does_not_remove_existing_data(): void
+    {
+        [$manifest] = $this->scenario();
+        $service = app(DocumentedDiaryImporter::class);
+        $plan = $service->reconcile($manifest);
+        $applied = $service->reconcile($manifest, true, $plan['snapshot_sha256']);
+        $manifest['replace_previous_import'] = $applied['backup_path'];
+        DiaryAttendanceRecord::first()->update(['notes' => 'Observação posterior do docente']);
+        try {
+            $service->reconcile($manifest);
+            $this->fail('Uma edição posterior precisa impedir a substituição automática.');
+        } catch (RuntimeException $error) {
+            $this->assertStringContainsString('edições posteriores', $error->getMessage());
+        }
+        $this->assertDatabaseCount('diary_attendance_records', 4);
+        $this->assertDatabaseCount('diary_attendance_entries', 4);
+        $this->assertDatabaseCount('diary_contents', 4);
+    }
+
+    public function test_redistribution_cannot_change_the_original_teacher_or_total_hours(): void
+    {
+        [$manifest] = $this->scenario();
+        $service = app(DocumentedDiaryImporter::class);
+        $plan = $service->reconcile($manifest);
+        $applied = $service->reconcile($manifest, true, $plan['snapshot_sha256']);
+        $manifest['replace_previous_import'] = $applied['backup_path'];
+        $manifest['diaries'][1]['expected_hours'] = 60;
+        $this->expectExceptionMessage('alvo ou a carga');
+        $service->reconcile($manifest, true, $plan['snapshot_sha256']);
+    }
+
     private function scenario(): array
     {
         $this->travelTo(now()->setDate(2026, 11, 13));

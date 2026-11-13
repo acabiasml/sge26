@@ -26,6 +26,9 @@ final class DocumentedDiaryImporter
             $diaries = $manifest['diaries'] ?? [];
             $this->check(is_array($diaries) && count($diaries) >= 1 && count($diaries) <= 20
                 && count(array_unique(array_column($diaries, 'assignment_id'))) === count($diaries), 'Diários duplicados ou inválidos.');
+            $previous = $this->previousImport($manifest);
+            $replacedRecords = collect();
+            $replacedContents = collect();
             $snapshots = $plans = $results = [];
             foreach ($diaries as $diary) {
                 $assignment = SchoolClassComponent::when($apply, fn ($q) => $q->lockForUpdate())
@@ -50,11 +53,27 @@ final class DocumentedDiaryImporter
                 $snapshots[] = [$assignment->getAttributes(), $class->getAttributes(), $year->getAttributes(),
                     $course->getAttributes(), $component->getAttributes(), $year->periods->toArray(), $year->days->toArray(),
                     $class->enrollments->sortBy('id')->values()->toArray(), $records->toArray(), $contents->toArray(), $excluded->toArray()];
+                if ($previous) {
+                    $oldDiary = collect($previous['diaries'])->firstWhere('assignment_id', $assignment->id);
+                    $this->check($records->count() === count($oldDiary['sessions']) && $contents->count() === count($oldDiary['sessions'])
+                        && $records->every(fn ($record) => blank($record->notes)
+                            && $record->teacher_person_id === $assignment->teacher_person_id
+                            && $record->created_at->equalTo($record->updated_at)
+                            && $record->entries->every(fn ($entry) => $entry->created_at->equalTo($entry->updated_at)
+                                && count($entry->lesson_presence ?? []) === $record->lesson_count
+                                && collect($entry->lesson_presence)->every(fn ($present) => $present === true)))
+                        && $contents->every(fn ($content) => $content->created_at->equalTo($content->updated_at)),
+                        'Há edições posteriores ou registros fora da importação anterior.');
+                    $replacedRecords = $replacedRecords->concat($records);
+                    $replacedContents = $replacedContents->concat($contents);
+                }
                 $sessions = $diary['sessions'] ?? [];
                 $this->check(is_array($sessions) && count($sessions) >= 1 && count($sessions) <= 250
                     && count(array_unique(array_column($sessions, 'date'))) === count($sessions), 'Datas documentadas duplicadas ou inválidas.');
                 $stats = ['calls_to_create' => 0, 'contents_to_create' => 0, 'contents_to_fill' => 0,
-                    'entries_to_create' => 0, 'existing_entries_preserved' => 0, 'outside_enrollment' => 0];
+                    'entries_to_create' => 0, 'existing_entries_preserved' => 0, 'outside_enrollment' => 0,
+                    'calls_to_replace' => $previous ? $records->count() : 0, 'contents_to_replace' => $previous ? $contents->count() : 0];
+                $lessonsByPeriod = [];
                 foreach ($sessions as $session) {
                     $date = $session['date'] ?? '';
                     $count = $session['lesson_count'] ?? 0;
@@ -65,6 +84,7 @@ final class DocumentedDiaryImporter
                     $periods = $year->periods->filter(fn ($period) => $period->starts_at->toDateString() <= $date && $period->ends_at->toDateString() >= $date);
                     $this->check($periods->count() === 1, 'A data não corresponde a um único período letivo.');
                     $period = $periods->sole();
+                    $lessonsByPeriod[$period->id] = ($lessonsByPeriod[$period->id] ?? 0) + $count;
                     $this->check($component->isActiveInPeriod($period)
                         && (! $course->startsPeriod || $period->position >= $course->startsPeriod->position)
                         && (! $course->endsPeriod || $period->position <= $course->endsPeriod->position)
@@ -72,8 +92,8 @@ final class DocumentedDiaryImporter
                         && (! $class->endsPeriod || $period->position <= $class->endsPeriod->position)
                         && $year->days->contains(fn ($day) => $day->counts_as_school_day && $day->date->toDateString() === $date)
                         && ! $excluded->contains(fn ($day) => $day->class_date->toDateString() === $date), 'A data não é letiva para este diário.');
-                    $record = $records->first(fn ($row) => $row->class_date->toDateString() === $date);
-                    $storedContent = $contents->first(fn ($row) => $row->class_date->toDateString() === $date);
+                    $record = $previous ? null : $records->first(fn ($row) => $row->class_date->toDateString() === $date);
+                    $storedContent = $previous ? null : $contents->first(fn ($row) => $row->class_date->toDateString() === $date);
                     $this->check(! $record || ($record->lesson_count === $count && $record->academic_period_id === $period->id), 'Uma chamada existente diverge do lançamento.');
                     $this->check(! $storedContent || ($storedContent->academic_period_id === $period->id
                         && (trim((string) $storedContent->content) === '' || trim($storedContent->content) === $content)), 'Um conteúdo existente diverge do lançamento.');
@@ -90,19 +110,20 @@ final class DocumentedDiaryImporter
                     $plans[] = compact('assignment', 'period', 'date', 'count', 'content', 'record', 'storedContent', 'eligible');
                 }
                 $documentedDates = array_column($sessions, 'date');
-                $this->check($records->every(fn ($row) => in_array($row->class_date->toDateString(), $documentedDates, true)), 'Há chamadas não contempladas no documento.');
+                $this->check($previous || $records->every(fn ($row) => in_array($row->class_date->toDateString(), $documentedDates, true)), 'Há chamadas não contempladas no documento.');
                 $hours = array_sum(array_column($sessions, 'lesson_count')) * $course->class_hour_minutes / 60;
                 $this->check($course->class_hour_minutes > 0 && is_numeric($diary['expected_hours'] ?? null)
                     && abs($hours - $diary['expected_hours']) < 0.001, 'A quantidade de aulas não corresponde à carga conferida.');
                 $results[] = ['assignment_id' => $assignment->id, 'class_id' => $class->id, 'component_id' => $component->id, 'school_id' => $year->school_id,
                     'sessions' => count($sessions), 'lessons' => array_sum(array_column($sessions, 'lesson_count')),
-                    'hours' => $hours, 'students_count' => $class->enrollments->pluck('person_id')->unique()->count(), 'stats' => $stats];
+                    'hours' => $hours, 'lessons_by_period' => $lessonsByPeriod,
+                    'students_count' => $class->enrollments->pluck('person_id')->unique()->count(), 'stats' => $stats];
             }
             $dailyLoad = null;
             if (isset($manifest['max_daily_minutes'])) {
                 $this->check(is_int($manifest['max_daily_minutes']) && $manifest['max_daily_minutes'] > 0
                     && $manifest['max_daily_minutes'] <= 1440, 'Limite de carga diária inválido.');
-                [$loadSnapshot, $dailyLoad] = $this->checkDailyLoad($plans, $manifest['max_daily_minutes']);
+                [$loadSnapshot, $dailyLoad] = $this->checkDailyLoad($plans, $manifest['max_daily_minutes'], $replacedRecords->pluck('id')->all());
                 $snapshots[] = $loadSnapshot;
             }
             $hash = hash('sha256', json_encode([$manifest, $snapshots], JSON_THROW_ON_ERROR));
@@ -114,6 +135,13 @@ final class DocumentedDiaryImporter
             $backup = 'diary-reconciliation/documented-'.Str::uuid().'.json';
             $this->check(Storage::disk('local')->put($backup, json_encode(['manifest' => $manifest, 'before' => $snapshots], JSON_THROW_ON_ERROR)), 'Não foi possível guardar a cópia de segurança.');
             chmod(Storage::disk('local')->path($backup), 0600);
+            foreach ($replacedRecords as $record) {
+                $record->entries()->delete();
+                $record->delete();
+            }
+            foreach ($replacedContents as $content) {
+                $content->delete();
+            }
             foreach ($plans as $plan) {
                 $assignment = $plan['assignment'];
                 $record = $plan['record'] ?? DiaryAttendanceRecord::create([
@@ -155,7 +183,7 @@ final class DocumentedDiaryImporter
     }
 
     /** Considera aulas de todas as matrículas da pessoa, independentemente de presença. */
-    private function checkDailyLoad(array $plans, int $limit): array
+    private function checkDailyLoad(array $plans, int $limit, array $replacedRecordIds = []): array
     {
         $people = collect($plans)->flatMap(fn ($plan) => $plan['eligible']->pluck('person_id'))->unique();
         $enrollments = StudentEnrollment::whereIn('person_id', $people)->orderBy('id')->get();
@@ -173,6 +201,9 @@ final class DocumentedDiaryImporter
             $minutes = (int) $record->component->course->class_hour_minutes;
             $this->check($minutes > 0, 'Há aulas sem duração válida para conferir o limite diário.');
             $recordSnapshot[] = [$record->getAttributes(), $minutes];
+            if (in_array($record->id, $replacedRecordIds, true)) {
+                continue;
+            }
             foreach ($byClass->get($record->school_class_id, collect())
                 ->filter(fn ($enrollment) => $enrollment->includesAttendanceDate($record->class_date))->unique('person_id') as $enrollment) {
                 $key = $enrollment->person_id.':'.$record->class_date->toDateString();
@@ -198,5 +229,36 @@ final class DocumentedDiaryImporter
 
         return [[$enrollments->toArray(), $recordSnapshot], ['limit_minutes' => $limit,
             'maximum_minutes' => $maximum, 'student_days_checked' => count($checked)]];
+    }
+
+    /** Substitui somente um lote anterior íntegro, identificado pela cópia e auditoria. */
+    private function previousImport(array $manifest): ?array
+    {
+        $path = $manifest['replace_previous_import'] ?? null;
+        if ($path === null) {
+            return null;
+        }
+        $this->check(is_string($path) && preg_match('~^diary-reconciliation/documented-[a-f0-9-]{36}\.json$~', $path)
+            && Storage::disk('local')->exists($path), 'Cópia da importação anterior inválida.');
+        $backup = json_decode(Storage::disk('local')->get($path), true, flags: JSON_THROW_ON_ERROR);
+        $previous = $backup['manifest'] ?? [];
+        $this->check(($previous['format'] ?? '') === 'documented-diary-import-v1'
+            && ! isset($previous['replace_previous_import']) && $previous['source_sha256'] === $manifest['source_sha256'], 'A fonte da importação anterior diverge.');
+        $identity = fn ($diary) => collect($diary)->only(['assignment_id', 'teacher_person_id', 'class_id', 'component_id', 'school_id', 'reference_year', 'expected_hours'])->sortKeys()->all();
+        $this->check(collect($previous['diaries'])->keyBy('assignment_id')->map($identity)->sortKeys()->all()
+            === collect($manifest['diaries'])->keyBy('assignment_id')->map($identity)->sortKeys()->all(), 'O alvo ou a carga da redistribuição diverge.');
+        foreach ($previous['diaries'] as $diary) {
+            $this->check(AuditLog::where('auditable_type', SchoolClassComponent::class)->where('auditable_id', $diary['assignment_id'])
+                ->where('metadata->operation', 'documented-diary-import')->where('metadata->backup_path', $path)->exists(),
+                'A importação anterior não possui auditoria correspondente.');
+        }
+        $plan = $this->reconcile($previous);
+        foreach ($plan['diaries'] as $diary) {
+            $this->check($diary['stats']['calls_to_create'] === 0 && $diary['stats']['contents_to_create'] === 0
+                && $diary['stats']['contents_to_fill'] === 0 && $diary['stats']['entries_to_create'] === 0,
+                'A importação anterior não está íntegra para redistribuir.');
+        }
+
+        return $previous;
     }
 }
