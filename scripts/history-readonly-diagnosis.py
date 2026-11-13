@@ -16,7 +16,8 @@ def main():
     config = pathlib.Path('scripts/history-query.json')
     query = json.loads(config.read_text()) if config.exists() else {'person_id': 0}
     scope = query.get('scope', 'student')
-    sources = {'student': 'scripts/history-readonly-diagnosis.php.stub',
+    sources = {'diary-progress': 'scripts/diary-progress-query.php.stub',
+               'student': 'scripts/history-readonly-diagnosis.php.stub',
                'liceu-itinerary': 'scripts/liceu-itinerary-query.php.stub',
                'high-school-diversified': 'scripts/high-school-diversified-query.php.stub',
                'history-catalog-classification': 'scripts/history-catalog-classification-query.php.stub',
@@ -32,6 +33,9 @@ def main():
     person_id = query['person_id']
     if type(person_id) is not int or person_id < 0:
         raise ValueError('Identificador de pessoa inválido.')
+    if scope == 'diary-progress':
+        if any(type(query.get(key)) is not int or query[key] <= 0 for key in ('course_id', 'school_id')):
+            raise ValueError('Informe a escola e a oferta dos diários para conferência.')
     if scope == 'diary-batch':
         classes = query.get('classes', [])
         if query.get('source') not in ('lar', 'laura', 'beaba') or not isinstance(classes, list) or not 1 <= len(classes) <= 20:

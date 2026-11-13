@@ -1,0 +1,36 @@
+<?php
+
+// Somente leitura: contagens e datas dos diários de uma oferta, sem notas ou nomes de estudantes.
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$config = json_decode(file_get_contents('scripts/history-query.json'), true, flags: JSON_THROW_ON_ERROR);
+Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $course = App\Models\AcademicCourse::whereKey($config['course_id'])
+        ->whereHas('academicYear', fn ($q) => $q->where('school_id', $config['school_id']))
+        ->with('academicYear.periods', 'components.startsPeriod', 'components.endsPeriod')->firstOrFail();
+    $assignments = App\Models\SchoolClassComponent::whereHas('component', fn ($q) => $q->where('academic_course_id', $course->id))
+        ->with('schoolClass.academicYear.periods', 'schoolClass.startsPeriod', 'schoolClass.endsPeriod')->get();
+    $summaries = app(App\Support\DiaryListSummary::class)->forAssignments($assignments);
+    echo json_encode([
+        'as_of' => now()->toIso8601String(), 'course' => $course->only(['id', 'name', 'academic_year_id', 'starts_period_id', 'ends_period_id', 'class_hour_minutes']),
+        'calendar' => $course->academicYear->only(['id', 'reference_year', 'starts_at', 'ends_at']),
+        'periods' => $course->academicYear->periods->map->only(['id', 'name', 'position', 'starts_at', 'ends_at']),
+        'diaries' => $assignments->map(function ($assignment) use ($summaries) {
+            $scope = fn ($q) => $q->where('school_class_id', $assignment->school_class_id)->where('curriculum_component_id', $assignment->curriculum_component_id);
+            return [
+                'assignment' => $assignment->only(['id', 'school_class_id', 'curriculum_component_id', 'active']),
+                'component' => $assignment->component->only(['id', 'name', 'starts_period_id', 'ends_period_id', 'workload_hours', 'weekly_lessons']),
+                'class' => $assignment->schoolClass->only(['id', 'name', 'academic_year_id', 'starts_period_id', 'ends_period_id']),
+                'class_periods' => $assignment->schoolClass->academicYear->periods->map->only(['id', 'name', 'position', 'starts_at', 'ends_at']),
+                'summary' => $summaries->get($assignment->id),
+                'attendance' => App\Models\DiaryAttendanceRecord::where($scope)->orderBy('class_date')->get(['id', 'academic_period_id', 'class_date', 'lesson_count']),
+                'contents' => App\Models\DiaryContent::where($scope)->orderBy('class_date')->get(['id', 'academic_period_id', 'class_date', 'content'])->map(fn ($row) => $row->only(['id', 'academic_period_id', 'class_date']) + ['has_content' => filled(trim($row->content))]),
+            ];
+        })->values(),
+    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally {
+    Illuminate\Support\Facades\DB::rollBack();
+}
