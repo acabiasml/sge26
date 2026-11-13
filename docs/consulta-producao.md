@@ -230,6 +230,23 @@ Outras escolas, anos, históricos recebidos e calendários plurianuais ficam
 fora dessa correção. Ao concluir, retorne a `mode: dry-run` e confirme que não
 resta duração ou conversão por ajustar.
 
+## Preenchimento pontual de notas dos cursos técnicos
+
+O escopo de consulta `technical-grades` inventaria somente matrizes técnicas,
+turmas, vínculos, períodos e notas desses componentes. Não grava dados.
+No workflow de reconciliação, `operation: technical-grade-completion` recebe
+`course_ids`, `mode` e, para aplicar, `expected_snapshot_sha256` da simulação.
+O serviço rejeita qualquer matriz de outra etapa. Preenche apenas períodos já
+iniciados, ativos para o componente, matriz, turma e vínculo do estudante.
+Uma nota existente, inclusive zero ou ficha de origem, preserva o período;
+se vazio, utiliza a maior nota registrada da pessoa no mesmo componente e ano
+letivo, ou 7 quando não há nenhuma. As escalas das avaliações são respeitadas.
+São preenchidas somente avaliações regulares configuradas; não cria ou preenche
+recuperação e preserva componentes de outras etapas. A aplicação é transacional,
+com cópia privada, auditoria e conferência das notas existentes antes e depois.
+É uma operação manual pontual, não uma regra automática para lançamentos futuros.
+Ao concluir, retorne a `dry-run` e confira zero períodos pendentes.
+
 ## Classificação dos componentes de Móveis
 
 O escopo `--scope history-catalog-classification` consulta somente as áreas de
