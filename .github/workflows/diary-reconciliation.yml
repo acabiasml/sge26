@@ -8,6 +8,7 @@ on:
       - scripts/run-diary-reconciliation.py
       - scripts/run-diary-reconciliation.php.stub
       - app/Support/LegacyClassDiaryReconciler.php
+      - app/Support/DocumentedDiaryImporter.php
       - app/Support/LegacyDiaryBatchReconciler.php
       - app/Support/LegacyEnrollmentEpisodeRestorer.php
       - app/Support/SchoolYearClassHourCorrection.php

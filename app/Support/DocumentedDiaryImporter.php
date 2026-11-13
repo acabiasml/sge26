@@ -1,0 +1,148 @@
+<?php
+
+namespace App\Support;
+
+use App\Models\AuditLog;
+use App\Models\DiaryAttendanceRecord;
+use App\Models\DiaryContent;
+use App\Models\DiaryExcludedDate;
+use App\Models\SchoolClassComponent;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use RuntimeException;
+
+/** Importação restrita a chamadas e conteúdos, sem alterar matrizes ou notas. */
+final class DocumentedDiaryImporter
+{
+    public function reconcile(array $manifest, bool $apply = false, ?string $expectedSnapshot = null): array
+    {
+        return DB::transaction(function () use ($manifest, $apply, $expectedSnapshot): array {
+            $this->check(($manifest['format'] ?? '') === 'documented-diary-import-v1'
+                && preg_match('/^[a-f0-9]{64}$/', $manifest['source_sha256'] ?? '')
+                && is_string($manifest['source_file'] ?? null), 'Fonte documental inválida.');
+            $diaries = $manifest['diaries'] ?? [];
+            $this->check(is_array($diaries) && count($diaries) >= 1 && count($diaries) <= 20
+                && count(array_unique(array_column($diaries, 'assignment_id'))) === count($diaries), 'Diários duplicados ou inválidos.');
+            $snapshots = $plans = $results = [];
+            foreach ($diaries as $diary) {
+                $assignment = SchoolClassComponent::when($apply, fn ($q) => $q->lockForUpdate())
+                    ->with(['schoolClass.academicYear.periods', 'schoolClass.academicYear.days',
+                        'schoolClass.enrollments', 'schoolClass.startsPeriod', 'schoolClass.endsPeriod',
+                        'component.course.startsPeriod', 'component.course.endsPeriod'])
+                    ->findOrFail($diary['assignment_id'] ?? 0);
+                $class = $assignment->schoolClass;
+                $component = $assignment->component;
+                $course = $component->course;
+                $year = $class->academicYear;
+                $this->check($assignment->active && $assignment->teacher_person_id === ($diary['teacher_person_id'] ?? null)
+                    && $class->id === ($diary['class_id'] ?? null) && $component->id === ($diary['component_id'] ?? null)
+                    && $year->school_id === ($diary['school_id'] ?? null) && $year->reference_year === ($diary['reference_year'] ?? null)
+                    && $course->academic_year_id === $year->id && $class->courses()->whereKey($course->id)->exists(), 'O diário não corresponde ao alvo conferido.');
+                $scope = fn ($q) => $q->where('school_class_id', $class->id)->where('curriculum_component_id', $component->id);
+                $records = DiaryAttendanceRecord::where($scope)->with('entries')->orderBy('id')->get();
+                $contents = DiaryContent::where($scope)->orderBy('id')->get();
+                $excluded = DiaryExcludedDate::where('school_class_component_id', $assignment->id)->get();
+                $this->check($records->count() === $records->unique(fn ($row) => $row->class_date->toDateString())->count()
+                    && $contents->count() === $contents->unique(fn ($row) => $row->class_date->toDateString())->count(), 'Existem datas duplicadas no diário.');
+                $snapshots[] = [$assignment->getAttributes(), $class->getAttributes(), $year->getAttributes(),
+                    $course->getAttributes(), $component->getAttributes(), $year->periods->toArray(), $year->days->toArray(),
+                    $class->enrollments->sortBy('id')->values()->toArray(), $records->toArray(), $contents->toArray(), $excluded->toArray()];
+                $sessions = $diary['sessions'] ?? [];
+                $this->check(is_array($sessions) && count($sessions) >= 1 && count($sessions) <= 250
+                    && count(array_unique(array_column($sessions, 'date'))) === count($sessions), 'Datas documentadas duplicadas ou inválidas.');
+                $stats = ['calls_to_create' => 0, 'contents_to_create' => 0, 'contents_to_fill' => 0,
+                    'entries_to_create' => 0, 'existing_entries_preserved' => 0, 'outside_enrollment' => 0];
+                foreach ($sessions as $session) {
+                    $date = $session['date'] ?? '';
+                    $count = $session['lesson_count'] ?? 0;
+                    $content = trim((string) ($session['content'] ?? ''));
+                    $this->check(is_string($date) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
+                        && CarbonImmutable::parse($date)->toDateString() === $date && $date <= now()->toDateString()
+                        && is_int($count) && $count > 0 && $count <= 12 && $content !== '', 'Data, quantidade ou conteúdo inválido.');
+                    $periods = $year->periods->filter(fn ($period) => $period->starts_at->toDateString() <= $date && $period->ends_at->toDateString() >= $date);
+                    $this->check($periods->count() === 1, 'A data não corresponde a um único período letivo.');
+                    $period = $periods->sole();
+                    $this->check($component->isActiveInPeriod($period)
+                        && (! $course->startsPeriod || $period->position >= $course->startsPeriod->position)
+                        && (! $course->endsPeriod || $period->position <= $course->endsPeriod->position)
+                        && (! $class->startsPeriod || $period->position >= $class->startsPeriod->position)
+                        && (! $class->endsPeriod || $period->position <= $class->endsPeriod->position)
+                        && $year->days->contains(fn ($day) => $day->counts_as_school_day && $day->date->toDateString() === $date)
+                        && ! $excluded->contains(fn ($day) => $day->class_date->toDateString() === $date), 'A data não é letiva para este diário.');
+                    $record = $records->first(fn ($row) => $row->class_date->toDateString() === $date);
+                    $storedContent = $contents->first(fn ($row) => $row->class_date->toDateString() === $date);
+                    $this->check(! $record || ($record->lesson_count === $count && $record->academic_period_id === $period->id), 'Uma chamada existente diverge do lançamento.');
+                    $this->check(! $storedContent || ($storedContent->academic_period_id === $period->id
+                        && (trim((string) $storedContent->content) === '' || trim($storedContent->content) === $content)), 'Um conteúdo existente diverge do lançamento.');
+                    $eligible = $class->enrollments->filter(fn ($enrollment) => $enrollment->includesAttendanceDate(CarbonImmutable::parse($date)));
+                    $this->check($eligible->count() === $eligible->unique('person_id')->count(), 'Há matrículas sobrepostas na data.');
+                    $this->check(! $record || $record->entries->every(fn ($entry) => $eligible->contains('id', $entry->student_enrollment_id)
+                        && $entry->status === DiaryAttendanceRecord::STATUS_PRESENT && $entry->attended_lessons === $count), 'Existem marcações divergentes ou fora do vínculo.');
+                    $stats['calls_to_create'] += $record ? 0 : 1;
+                    $stats['contents_to_create'] += $storedContent ? 0 : 1;
+                    $stats['contents_to_fill'] += $storedContent && trim((string) $storedContent->content) === '' ? 1 : 0;
+                    $stats['existing_entries_preserved'] += $record?->entries->count() ?? 0;
+                    $stats['entries_to_create'] += $eligible->count() - ($record?->entries->count() ?? 0);
+                    $stats['outside_enrollment'] += $class->enrollments->count() - $eligible->count();
+                    $plans[] = compact('assignment', 'period', 'date', 'count', 'content', 'record', 'storedContent', 'eligible');
+                }
+                $documentedDates = array_column($sessions, 'date');
+                $this->check($records->every(fn ($row) => in_array($row->class_date->toDateString(), $documentedDates, true)), 'Há chamadas não contempladas no documento.');
+                $hours = array_sum(array_column($sessions, 'lesson_count')) * $course->class_hour_minutes / 60;
+                $this->check($course->class_hour_minutes > 0 && is_numeric($diary['expected_hours'] ?? null)
+                    && abs($hours - $diary['expected_hours']) < 0.001, 'A quantidade de aulas não corresponde à carga conferida.');
+                $results[] = ['assignment_id' => $assignment->id, 'class_id' => $class->id, 'component_id' => $component->id, 'school_id' => $year->school_id,
+                    'sessions' => count($sessions), 'lessons' => array_sum(array_column($sessions, 'lesson_count')),
+                    'hours' => $hours, 'students_count' => $class->enrollments->pluck('person_id')->unique()->count(), 'stats' => $stats];
+            }
+            $hash = hash('sha256', json_encode([$manifest, $snapshots], JSON_THROW_ON_ERROR));
+            $result = ['mode' => $apply ? 'apply' : 'dry-run', 'snapshot_sha256' => $hash, 'diaries' => $results];
+            if (! $apply) {
+                return $result;
+            }
+            $this->check($expectedSnapshot !== null && hash_equals($hash, $expectedSnapshot), 'O diário mudou após a conferência. Execute nova simulação.');
+            $backup = 'diary-reconciliation/documented-'.Str::uuid().'.json';
+            $this->check(Storage::disk('local')->put($backup, json_encode(['manifest' => $manifest, 'before' => $snapshots], JSON_THROW_ON_ERROR)), 'Não foi possível guardar a cópia de segurança.');
+            chmod(Storage::disk('local')->path($backup), 0600);
+            foreach ($plans as $plan) {
+                $assignment = $plan['assignment'];
+                $record = $plan['record'] ?? DiaryAttendanceRecord::create([
+                    'school_class_id' => $assignment->school_class_id, 'curriculum_component_id' => $assignment->curriculum_component_id,
+                    'teacher_person_id' => $assignment->teacher_person_id, 'academic_period_id' => $plan['period']->id,
+                    'class_date' => $plan['date'], 'lesson_count' => $plan['count'],
+                ]);
+                foreach ($plan['eligible'] as $enrollment) {
+                    if ($record->entries()->where('student_enrollment_id', $enrollment->id)->exists()) {
+                        continue;
+                    }
+                    $record->entries()->create(['student_enrollment_id' => $enrollment->id, 'status' => DiaryAttendanceRecord::STATUS_PRESENT,
+                        'attended_lessons' => $plan['count'], 'lesson_presence' => array_fill(0, $plan['count'], true)]);
+                }
+                $content = $plan['storedContent'] ?? new DiaryContent([
+                    'school_class_id' => $assignment->school_class_id, 'curriculum_component_id' => $assignment->curriculum_component_id,
+                    'academic_period_id' => $plan['period']->id, 'class_date' => $plan['date'],
+                ]);
+                if (trim((string) $content->content) === '') {
+                    $content->fill(['content' => $plan['content']])->save();
+                }
+            }
+            foreach ($results as $diary) {
+                AuditLog::create(['school_id' => $diary['school_id'], 'auditable_type' => SchoolClassComponent::class,
+                    'auditable_id' => $diary['assignment_id'], 'action' => 'updated',
+                    'metadata' => ['operation' => 'documented-diary-import', 'source_sha256' => $manifest['source_sha256'],
+                        'snapshot_sha256' => $hash, 'backup_path' => $backup, 'stats' => $diary['stats']]]);
+            }
+
+            return $result + ['backup_path' => $backup];
+        });
+    }
+
+    private function check(bool $condition, string $message): void
+    {
+        if (! $condition) {
+            throw new RuntimeException($message);
+        }
+    }
+}

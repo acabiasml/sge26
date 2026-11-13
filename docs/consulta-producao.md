@@ -58,6 +58,9 @@ O escopo `diary-batch` confere até 20 turmas expressamente selecionadas em
 Retorna matrizes, notas, chamadas e conteúdos do recorte em transação somente
 de leitura. Identidades, resultados e demais dados continuam restritos ao
 relatório criptografado; a conferência não executa importação ou correção.
+O parâmetro opcional `transport_key_id`, com 32 caracteres hexadecimais,
+prepara o mesmo transporte RSA privado no servidor para um lançamento posterior.
+O relatório inclui a chave pública, os vínculos, o calendário e as atribuições.
 
 O escopo `student-reenrollment` usa `person_id` positivo e `reference_year`.
 Consulta os vínculos desse estudante no ano e, se o dump privado original ainda
@@ -185,6 +188,18 @@ a reconciliação. O relatório atual já agrega a frequência do vínculo anter
 pela continuidade de matrículas no mesmo ano e série.
 
 ### Duração da aula para toda uma escola e ano
+
+Para lançar apenas conteúdos e presenças a partir de um documento fornecido,
+o workflow de reconciliação aceita `operation: documented-diary-import`.
+O manifesto criptografado `documented-diary-import-v1` identifica o hash da
+fonte e, por diário, a atribuição, escola, turma, componente, docente, ano,
+carga conferida e encontros. Admite turmas que compartilham a mesma matriz.
+Esse modo não altera matrizes, notas, matrículas nem insere observações nos
+diários. Confere dias letivos, períodos, exclusões e datas dos vínculos,
+inclusive cancelamento, reclassificação e rematrícula. Divergências com
+lançamentos existentes bloqueiam a operação. Exige simulação anterior e seu
+hash, guarda cópia privada e auditoria e grava o lote em uma transação.
+Depois de aplicar, volte a `dry-run` e confirme zero lançamentos pendentes.
 
 O mesmo workflow aceita `operation: school-year-class-hours` na configuração,
 com `school_id`, `reference_year`, `class_hour_minutes: 60` e `mode: dry-run`.
