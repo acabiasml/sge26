@@ -1,1 +1,1 @@
-{"operation": "documented-diary-import", "transport_key_id": "0486434b1f63413da8ad26361c9aeb58", "mode": "dry-run"}
+{"operation": "documented-diary-import", "transport_key_id": "0486434b1f63413da8ad26361c9aeb58", "mode": "apply", "expected_snapshot_sha256": "5f42565ebdada01dcbf3efbcdeda466b660fdf783474e5b604745b7a6ce27326"}
