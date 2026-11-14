@@ -1,6 +1,6 @@
 {
   "operation": "technical-matrix-workloads",
-  "mode": "dry-run",
+  "mode": "apply",
   "matrix": {
     "format": "documented-technical-matrix-workloads-v1",
     "user_confirmed": true,
@@ -68,5 +68,6 @@
         "workload_hours": 60
       }
     ]
-  }
+  },
+  "expected_snapshot_sha256": "6c105b43236797fe7989afe6ae08dfca51736f0b15e78e056698e0dd80fb51ba"
 }
