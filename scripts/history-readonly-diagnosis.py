@@ -16,7 +16,8 @@ def main():
     config = pathlib.Path('scripts/history-query.json')
     query = json.loads(config.read_text()) if config.exists() else {'person_id': 0}
     scope = query.get('scope', 'student')
-    sources = {'component-unification': 'scripts/component-unification-query.php.stub',
+    sources = {'technical-enrollment-review': 'scripts/technical-enrollment-review.php.stub',
+               'component-unification': 'scripts/component-unification-query.php.stub',
                'technical-grades': 'scripts/technical-grades-query.php.stub',
                'diary-workload-audit': 'scripts/diary-workload-audit-query.php.stub',
                'diary-progress': 'scripts/diary-progress-query.php.stub',
@@ -38,6 +39,12 @@ def main():
     if scope == 'technical-grades' and 'school_id' in query:
         if type(query['school_id']) is not int or query['school_id'] <= 0:
             raise ValueError('Escola inválida para conferir notas técnicas.')
+    if scope == 'technical-enrollment-review':
+        if any(type(query.get(key)) is not int or query[key] <= 0 for key in ('school_id', 'course_id', 'class_id')):
+            raise ValueError('Oferta técnica inválida.')
+        ids = query.get('person_ids', [])
+        if not isinstance(ids, list) or not 1 <= len(ids) <= 10 or len(set(ids)) != len(ids) or any(type(i) is not int or i <= 0 for i in ids):
+            raise ValueError('Selecione até dez pessoas para a conferência técnica.')
     source = pathlib.Path(sources[scope]).read_text()
     person_id = query['person_id']
     if type(person_id) is not int or person_id < 0:

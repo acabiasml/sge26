@@ -1,0 +1,82 @@
+<?php
+
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$config = json_decode(file_get_contents('scripts/history-query.json'), true, flags: JSON_THROW_ON_ERROR);
+$splitRows = static function (string $values): array {
+    $rows = []; $depth = 0; $quote = false; $escape = false; $buffer = '';
+    for ($i = 0, $length = strlen($values); $i < $length; $i++) {
+        $char = $values[$i];
+        if ($quote) {
+            $buffer .= $char;
+            if ($escape) { $escape = false; }
+            elseif ($char === '\\') { $escape = true; }
+            elseif ($char === "'") { $quote = false; }
+            continue;
+        }
+        if ($char === "'") { $quote = true; $buffer .= $char; continue; }
+        if ($char === '(') { if ($depth > 0) { $buffer .= $char; } $depth++; continue; }
+        if ($char === ')') {
+            $depth--;
+            if ($depth === 0) { $rows[] = $buffer; $buffer = ''; } else { $buffer .= $char; }
+            continue;
+        }
+        if ($depth > 0) { $buffer .= $char; }
+    }
+    if ($depth !== 0 || $quote) { throw new RuntimeException('Bloco legado incompleto.'); }
+    return $rows;
+};
+$readTable = static function (string $path, string $table) use ($splitRows): array {
+    $stream = fopen($path, 'rb'); $result = [];
+    try {
+        while (($line = fgets($stream)) !== false) {
+            if (! preg_match('/^INSERT INTO `'.preg_quote($table, '/').'` \((.*?)\) VALUES\s*(.*)$/', trim($line), $header)) { continue; }
+            $columns = array_map(fn ($name) => trim($name, " `\r\n\t"), explode(',', $header[1]));
+            $values = $header[2];
+            while (! preg_match('/;\s*$/', $values) && ($line = fgets($stream)) !== false) {
+                $values .= $line;
+                if (strlen($values) > 16 * 1024 * 1024) { throw new RuntimeException('Bloco legado excede o limite.'); }
+            }
+            foreach ($splitRows($values) as $row) {
+                $fields = str_getcsv($row, ',', "'", '\\');
+                if (count($fields) !== count($columns)) { throw new RuntimeException('Colunas legadas divergentes.'); }
+                $result[] = array_combine($columns, array_map(fn ($v) => trim((string) $v) === 'NULL' ? null : trim((string) $v), $fields));
+            }
+        }
+    } finally { fclose($stream); }
+    return $result;
+};
+Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $course = App\Models\AcademicCourse::whereKey($config['course_id'])->where('stage', App\Models\AcademicCourse::STAGE_TECHNICAL)
+        ->whereHas('academicYear', fn ($q) => $q->where('school_id', $config['school_id']))
+        ->with(['academicYear.periods', 'academicYear.school', 'components'])->firstOrFail();
+    $class = App\Models\SchoolClass::whereKey($config['class_id'])->whereHas('courses', fn ($q) => $q->whereKey($course->id))
+        ->with(['enrollments.student', 'enrollments.courses'])->firstOrFail();
+    $people = App\Models\Person::whereIn('id', $config['person_ids'])->get(['id', 'full_name', 'legacy_source', 'legacy_id']);
+    if ($people->count() !== count($config['person_ids'])) { throw new RuntimeException('Pessoa selecionada ausente.'); }
+    $source = $course->academicYear->school->legacy_source;
+    if (! in_array($source, ['beaba', 'lar', 'laura'], true) || $people->contains(fn ($p) => $p->legacy_source !== $source)) {
+        throw new RuntimeException('Identidade legada fora da escola selecionada.');
+    }
+    $path = storage_path('app/private/u810745753_'.$source.'.sql');
+    $legacyEnrollments = is_file($path) ? collect($readTable($path, 'turmas'))->filter(fn ($r) => $people->contains(fn ($p) => (int) $p->legacy_id === (int) $r['users_id']))->values() : collect();
+    $legacyCourses = is_file($path) ? collect($readTable($path, 'cursos'))->whereIn('id', $legacyEnrollments->pluck('cursos_id'))->map(fn ($r) =>
+        Illuminate\Support\Arr::only($r, ['id', 'nome', 'modalidade', 'status', 'calendarios_id', 'inicio', 'fim']))->values() : collect();
+    $enrollments = App\Models\StudentEnrollment::whereIn('person_id', $config['person_ids'])
+        ->with(['schoolClass.academicYear', 'courses'])->orderBy('id')->get();
+    echo json_encode([
+        'as_of' => now()->toIso8601String(), 'people' => $people, 'course' => $course, 'class' => $class,
+        'timeline' => $enrollments->map(fn ($e) => ['enrollment' => $e->getAttributes(), 'attendance_ends_at' => $e->attendanceEndsAt(),
+            'class' => $e->schoolClass->only(['id', 'name']), 'academic_year' => $e->schoolClass->academicYear->only(['id', 'school_id', 'reference_year', 'starts_at', 'ends_at']),
+            'course_ids' => $e->courses->pluck('id')]),
+        'school_roles' => App\Models\PersonSchoolRole::where('school_id', $config['school_id'])->whereIn('person_id', $config['person_ids'])->get(),
+        'legacy_dump_sha256' => is_file($path) ? hash_file('sha256', $path) : null,
+        'legacy_enrollments' => $legacyEnrollments, 'legacy_courses' => $legacyCourses,
+        'attendance_records' => App\Models\DiaryAttendanceRecord::where('school_class_id', $class->id)->whereIn('curriculum_component_id', $course->components->modelKeys())->with('entries')->orderBy('id')->get(),
+        'contents' => App\Models\DiaryContent::where('school_class_id', $class->id)->whereIn('curriculum_component_id', $course->components->modelKeys())->orderBy('id')->get(),
+        'assessments' => App\Models\DiaryAssessment::where('school_class_id', $class->id)->whereIn('curriculum_component_id', $course->components->modelKeys())->with('results')->orderBy('id')->get(),
+    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally { Illuminate\Support\Facades\DB::rollBack(); }

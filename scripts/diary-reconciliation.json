@@ -1,1 +1,1 @@
-{"operation": "diary-batch", "transport_key_id": "ecde46b7f7714ab29097433def5e0a18", "mode": "apply", "expected_snapshot_sha256": "61be763fc861437818d36a89ffe783b78af31848c2eb041aa573109aa8b2ffe7"}
+{"operation": "diary-batch", "transport_key_id": "ecde46b7f7714ab29097433def5e0a18", "mode": "dry-run"}
