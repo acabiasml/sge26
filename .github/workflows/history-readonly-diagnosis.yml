@@ -11,9 +11,11 @@ on:
           - history-pdf-verification
           - high-school-cohorts
           - school-diary-completion
+          - diary-restoration-proposal
   push:
     branches: [main]
     paths:
+      - scripts/diary-restoration-proposal-query.php.stub
       - scripts/school-diary-completion-query.php.stub
       - scripts/history-pdf-verification.php.stub
       - scripts/high-school-cohorts-query.php.stub

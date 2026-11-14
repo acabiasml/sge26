@@ -1,0 +1,49 @@
+<?php
+
+// Dados mínimos para uma PROPOSTA: não cria conteúdos, aulas ou presenças.
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $school = App\Models\School::where('id', 1)->where('legacy_source', 'beaba')->firstOrFail();
+    $audit = app(App\Support\SchoolDiaryCompletionAudit::class)->forSchool($school, 2022, 2025);
+    $targets = collect($audit['diaries'])->where('no_content', true)->values();
+    if ($targets->count() > 30) { throw new RuntimeException('Recorte de proposta excede trinta diários.'); }
+    $classes = App\Models\SchoolClass::whereIn('id', $targets->pluck('class_id')->unique())
+        ->with(['academicYear.days', 'academicYear.periods', 'enrollments.courses', 'courses.components', 'schedules.slots'])->get();
+    $personIds = $classes->flatMap->enrollments->pluck('person_id')->unique();
+    $enrollments = App\Models\StudentEnrollment::whereIn('person_id', $personIds)
+        ->whereHas('schoolClass.academicYear', fn ($q) => $q->whereBetween('reference_year', [2022, 2025]))
+        ->with('courses')->orderBy('id')->get();
+    $records = App\Models\DiaryAttendanceRecord::whereIn('school_class_id', $enrollments->pluck('school_class_id')->unique())
+        ->whereBetween('class_date', ['2022-01-01', '2025-12-31'])
+        ->with(['entries' => fn ($q) => $q->whereIn('student_enrollment_id', $enrollments->modelKeys())])->orderBy('id')->get();
+    $components = App\Models\CurriculumComponent::whereIn('id', $records->pluck('curriculum_component_id')
+        ->merge($targets->pluck('component_id'))->unique())->with('course.academicYear')->get();
+    echo json_encode([
+        'purpose' => 'draft_only_not_official_attendance', 'as_of' => now()->toIso8601String(),
+        'school_id' => $school->id, 'targets' => $targets,
+        'classes' => $classes->map(fn ($c) => [
+            'id' => $c->id, 'name' => $c->name, 'year' => $c->academicYear->reference_year,
+            'academic_year_id' => $c->academic_year_id,
+            'school_dates' => $c->academicYear->days->where('counts_as_school_day', true)
+                ->map(fn ($d) => $d->date->toDateString())->unique()->sort()->values(),
+            'periods' => $c->academicYear->periods->map->only(['id', 'name', 'position', 'starts_at', 'ends_at']),
+            'enrollment_ids' => $c->enrollments->pluck('id'),
+            'schedules' => $c->schedules->map(fn ($s) => $s->only(['id', 'starts_at', 'ends_at']) + [
+                'slots' => $s->slots->map->only(['weekday', 'type', 'school_class_component_id', 'starts_at', 'ends_at']),
+            ]),
+        ]),
+        'enrollments' => $enrollments->map(fn ($e) => $e->only([
+            'id', 'person_id', 'school_class_id', 'status', 'enrolled_at', 'transferred_at', 'cancelled_at', 'reclassified_at',
+        ]) + ['attendance_ends_at' => $e->attendanceEndsAt(), 'course_ids' => $e->courses->pluck('id')]),
+        'components' => $components->map(fn ($c) => $c->only(['id', 'name', 'academic_course_id', 'weekly_lessons', 'workload_hours'])
+            + ['minutes' => $c->course?->class_hour_minutes ?: $c->course?->academicYear?->class_hour_minutes]),
+        'records' => $records->map(fn ($r) => $r->only(['id', 'school_class_id', 'curriculum_component_id', 'academic_period_id', 'class_date', 'lesson_count'])
+            + ['entries' => $r->entries->map->only(['student_enrollment_id', 'status', 'attended_lessons', 'lesson_presence'])]),
+        'excluded_dates' => App\Models\DiaryExcludedDate::whereIn('school_class_component_id', $targets->pluck('assignment_id')->filter())
+            ->get()->map(fn ($d) => $d->only(['school_class_component_id', 'academic_period_id']) + ['date' => $d->class_date->toDateString()]),
+    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally { Illuminate\Support\Facades\DB::rollBack(); }
