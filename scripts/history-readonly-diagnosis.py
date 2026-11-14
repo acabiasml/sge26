@@ -52,6 +52,8 @@ def main():
             if not isinstance(comparisons, list) or len(comparisons) > 10 or any(type(item) is not int or item <= 0 for item in comparisons):
                 raise ValueError('Informe até dez ofertas da mesma escola para comparação.')
     if scope == 'diary-batch':
+        if 'matrix_only' in query and type(query['matrix_only']) is not bool:
+            raise ValueError('Seletor de conferência da matriz inválido.')
         classes = query.get('classes', [])
         if query.get('source') not in ('lar', 'laura', 'beaba') or not isinstance(classes, list) or not 1 <= len(classes) <= 20:
             raise ValueError('Recorte de diários inválido.')

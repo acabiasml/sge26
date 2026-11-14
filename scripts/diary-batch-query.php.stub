@@ -33,9 +33,44 @@ try {
     $years = App\Models\AcademicYear::query()->where('legacy_source', $config['source'])
         ->whereIn('reference_year', $requests->pluck('reference_year')->unique())->with('periods')->get();
     $classes = App\Models\SchoolClass::query()->whereIn('academic_year_id', $years->pluck('id'))
-        ->with(['academicYear', 'courses.components', 'enrollments.student'])->orderBy('id')->get()
+        ->with(['academicYear', 'courses.components'])->orderBy('id')->get()
         ->filter(fn ($row) => $requests->contains('key', $row->academicYear->reference_year.':'.$canonical($row->name)));
     $found = $classes->map(fn ($row) => $row->academicYear->reference_year.':'.$canonical($row->name));
+    if (($config['matrix_only'] ?? false) === true) {
+        $classes->loadMissing(['academicYear.days', 'schedules.slots', 'courses.components.area', 'courses.components.startsPeriod',
+            'courses.components.endsPeriod', 'courses.startsPeriod', 'courses.endsPeriod']);
+        echo json_encode([
+            'as_of' => now()->toIso8601String(), 'source' => $config['source'],
+            'missing' => $requests->reject(fn ($row) => $found->contains($row['key']))->values(),
+            'classes' => $classes->map(function ($class) {
+                $year = $class->academicYear;
+                return [
+                    'class' => $class->getAttributes(),
+                    'academic_year' => $year->only(['id', 'school_id', 'reference_year', 'class_hour_minutes', 'minimum_school_days', 'starts_at', 'ends_at', 'closed_at']),
+                    'periods' => $year->periods->map(fn ($period) => $period->only(['id', 'position', 'name', 'starts_at', 'ends_at'])
+                        + ['school_days' => $year->days->where('counts_as_school_day', true)->filter(fn ($day) => $day->date->betweenIncluded($period->starts_at, $period->ends_at))->count()]),
+                    'courses' => $class->courses->map(fn ($course) => [
+                        'course' => $course->getAttributes(),
+                        'calculated_hours' => $course->calculatedWorkloadHours(),
+                        'components' => $course->components->map(fn ($component) => [
+                            'component' => $component->getAttributes(),
+                            'area' => $component->area?->only(['id', 'name', 'formation']),
+                            'calculated_hours' => $component->calculatedWorkloadHours($course),
+                            'active_period_ids' => $year->periods->filter(fn ($period) => $component->isActiveInPeriod($period)
+                                && (! $course->startsPeriod || $period->position >= $course->startsPeriod->position)
+                                && (! $course->endsPeriod || $period->position <= $course->endsPeriod->position))->pluck('id'),
+                        ]),
+                        'technical_itineraries' => $course->technicalItineraries->map->only(['id', 'name', 'stage', 'academic_year_id']),
+                    ]),
+                    'assignments' => $class->componentAssignments()->get()->map->only(['id', 'curriculum_component_id', 'active']),
+                    'schedules' => $class->schedules->map(fn ($schedule) => $schedule->only(['id', 'name', 'starts_at', 'ends_at'])
+                        + ['slots' => $schedule->slots->map->only(['weekday', 'starts_at', 'ends_at', 'type', 'school_class_component_id'])]),
+                ];
+            }),
+        ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        return;
+    }
+    $classes->loadMissing('enrollments.student');
     $relatedEnrollments = App\Models\StudentEnrollment::whereIn('person_id', $classes->flatMap->enrollments->pluck('person_id')->unique())
         ->with('schoolClass.academicYear')->orderBy('id')->get();
     $workloadRecords = App\Models\DiaryAttendanceRecord::whereIn('school_class_id', $relatedEnrollments->pluck('school_class_id')->unique())
