@@ -25,6 +25,66 @@ class DocumentIssuancePanelTest extends TestCase
 
     private int $personSequence = 0;
 
+    public function test_manager_finds_former_student_without_prepared_history_or_school_role_and_can_open_the_archive(): void
+    {
+        $school = School::create(['name' => 'Escola do arquivo', 'active' => true]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $student = $this->personWithRole('Joaquim do Arquivo', PersonSchoolRole::ROLE_STUDENT, $school->id);
+        $student->update(['active' => false]);
+        $student->schoolRoles()->delete();
+        $year = AcademicYear::create(['school_id' => $school->id, 'name' => '2024', 'reference_year' => 2024,
+            'starts_at' => '2024-02-01', 'ends_at' => '2024-12-20', 'closed_at' => '2025-01-01', 'active' => false]);
+        $course = $year->courses()->create(['name' => '3º Ano', 'stage' => 'medio']);
+        $class = $year->classes()->create(['name' => '3º Ano', 'active' => false]);
+        $class->courses()->attach($course);
+        $enrollment = $class->enrollments()->create(['person_id' => $student->id, 'enrolled_at' => '2024-02-01',
+            'status' => 'matriculado', 'final_result_status' => 'aprovado']);
+        $enrollment->courses()->attach($course);
+        $before = $enrollment->fresh()->getAttributes();
+
+        $this->actingAs($manager)->getJson(route('document-issuance.targets', ['type' => 'academic-history', 'q' => 'Joaquim']))
+            ->assertOk()->assertJsonCount(1, 'targets')->assertJsonPath('targets.0.history_person_id', $student->id)
+            ->assertJsonPath('targets.0.enabled', true);
+        $this->assertDatabaseCount('student_academic_histories', 0);
+        $this->get(route('document-issuance.issue', ['type' => 'academic-history', 'target_id' => $student->id, 'history_person_id' => $student->id]))
+            ->assertRedirect(route('student-histories.student', $student));
+        $this->get(route('student-histories.student', $student))->assertOk()->assertSee('Joaquim do Arquivo');
+        $this->post(route('student-histories.unified', [$student, 'medio']))->assertRedirect();
+        $canonical = $student->academicHistories()->where('is_unified', true)->sole();
+        $this->getJson(route('document-issuance.targets', ['type' => 'academic-history', 'q' => 'Joaquim']))
+            ->assertOk()->assertJsonCount(1, 'targets')->assertJsonPath('targets.0.id', $canonical->id);
+        $this->get(route('document-issuance.issue', ['type' => 'academic-history', 'target_id' => $canonical->id]))
+            ->assertRedirect(route('people.histories.pdf', ['person' => $student, 'history' => $canonical]));
+        $this->assertFalse($student->fresh()->active);
+        $this->assertSame($before, $enrollment->fresh()->getAttributes());
+        $this->assertDatabaseCount('issued_documents', 0);
+    }
+
+    public function test_manager_searches_inactive_history_owner_and_cannot_open_a_former_student_from_another_school(): void
+    {
+        $school = School::create(['name' => 'Escola A', 'active' => true]);
+        $other = School::create(['name' => 'Escola B', 'active' => true]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $students = [];
+        foreach ([$school, $other] as $source) {
+            $student = $this->personWithRole('Joaquim Arquivo '.$source->id, PersonSchoolRole::ROLE_STUDENT, $source->id);
+            $student->schoolRoles()->delete();
+            $student->update(['active' => false]);
+            $history = $student->academicHistories()->create(['school_id' => $source->id, 'title' => 'Histórico escolar',
+                'education_stage' => 'medio', 'stage' => 'Ensino Médio', 'is_unified' => true, 'active' => true]);
+            $students[] = [$student, $history];
+        }
+        [$student, $history] = $students[0];
+        [$foreign, $foreignHistory] = $students[1];
+        $this->actingAs($manager)->getJson(route('document-issuance.targets', ['type' => 'academic-history', 'q' => 'Joaquim']))
+            ->assertOk()->assertJsonCount(1, 'targets')->assertJsonPath('targets.0.id', $history->id);
+        $this->get(route('document-issuance.issue', ['type' => 'academic-history', 'target_id' => $history->id]))->assertRedirect();
+        $this->get(route('student-histories.student', $student))->assertOk();
+        $this->get(route('document-issuance.issue', ['type' => 'academic-history', 'target_id' => $foreignHistory->id]))->assertNotFound();
+        $this->get(route('document-issuance.issue', ['type' => 'academic-history', 'target_id' => $foreign->id, 'history_person_id' => $foreign->id]))->assertNotFound();
+        $this->get(route('student-histories.student', $foreign))->assertForbidden();
+    }
+
     public function test_history_targets_offer_only_active_unified_documents_and_preserve_legacy_years(): void
     {
         $school = School::create(['name' => 'Escola A', 'active' => true]);

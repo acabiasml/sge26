@@ -121,6 +121,7 @@
                     <button type="button" id="target-more" class="btn btn-outline-primary mt-3" hidden>{{ __('Carregar mais pessoas') }}</button>
 
                     <input type="hidden" name="target_id" id="target-id" value="{{ old('target_id') }}" required>
+                    <input type="hidden" name="history_person_id" id="history-person-id" value="{{ old('history_person_id') }}" disabled>
                     <input type="hidden" name="confirm_missing_student_cpf" id="confirm-missing-student-cpf" value="0">
                     <div id="selected-target" class="sge-selected-target" hidden>
                         <span class="sge-selected-target-icon" aria-hidden="true"><i class="fas fa-check"></i></span>
@@ -313,6 +314,7 @@
             const moreButton = document.getElementById('target-more');
             const receiptSchool = document.getElementById('receipt-school');
             const targetId = document.getElementById('target-id');
+            const historyPersonId = document.getElementById('history-person-id');
             const missingCpfConfirmation = document.getElementById('confirm-missing-student-cpf');
             const missingCpfModal = document.getElementById('missing-student-cpf-modal');
             const confirmMissingCpfButton = document.getElementById('confirm-missing-student-cpf-button');
@@ -356,6 +358,8 @@
 
             const resetTarget = (message = @js(__('Use a busca para localizar o registro correto.'))) => {
                 targetId.value = '';
+                historyPersonId.value = '';
+                historyPersonId.disabled = true;
                 selectedTarget.hidden = true;
                 selectedTitle.textContent = '';
                 selectedSubtitle.textContent = '';
@@ -459,6 +463,8 @@
 
             const selectResult = (target) => {
                 targetId.value = target.id;
+                historyPersonId.value = target.history_person_id || '';
+                historyPersonId.disabled = !target.history_person_id;
                 selectedTitle.textContent = target.title;
                 selectedSubtitle.textContent = target.subtitle || '';
                 selectedAcademicYearId = target.academic_year_id ? String(target.academic_year_id) : '';

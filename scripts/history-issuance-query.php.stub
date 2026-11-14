@@ -10,8 +10,21 @@ try {
         ->withCount('years')->orderBy('id')->get();
     $eligible = App\Models\StudentAcademicHistory::query()->forIssuance()->where('person_id', __PERSON_ID__)
         ->with('years')->orderBy('id')->get();
+    $student = App\Models\Person::findOrFail(__PERSON_ID__);
+    $administrator = App\Models\User::whereHas('person.schoolRoles', fn ($q) => $q
+        ->where('role', App\Models\PersonSchoolRole::ROLE_ADMINISTRATOR)->where('active', true))->first();
+    $searchTargets = null;
+    if ($administrator) {
+        $administrator->preferred_role_view = App\Models\PersonSchoolRole::ROLE_ADMINISTRATOR;
+        Illuminate\Support\Facades\Auth::setUser($administrator);
+        $request = Illuminate\Http\Request::create('/emissao-de-documentos/destinatarios', 'GET', ['type' => 'academic-history', 'q' => $student->full_name]);
+        $request->setUserResolver(fn () => $administrator);
+        $searchTargets = app(App\Http\Controllers\DocumentIssuanceController::class)->targets($request)->getData(true);
+    }
     echo json_encode([
         'person_id' => __PERSON_ID__,
+        'person' => $student->only(['id', 'full_name', 'active']),
+        'panel_search' => $searchTargets,
         'registered_headers' => $histories->map->only(['id', 'title', 'stage', 'education_stage', 'is_unified', 'active', 'years_count']),
         'issuance_targets' => $eligible->map(fn ($history) => [
             'id' => $history->id, 'education_stage' => $history->education_stage,

@@ -18,8 +18,8 @@ use App\Support\PdfLetterhead;
 use App\Support\StudentAcademicHistoryCompleteness;
 use App\Support\StudentAcademicHistoryPdf;
 use App\Support\StudentHistoryConsolidator;
-use App\Support\StudentTechnicalItinerary;
 use App\Support\StudentHistoryEditGuard;
+use App\Support\StudentTechnicalItinerary;
 use App\Support\UnifiedStudentHistorySynchronizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -70,8 +70,7 @@ class StudentAcademicHistoryController extends Controller
         $unidentifiedTechnicalHistories = $person->academicHistories->filter(fn ($history) => ! $history->technical_course_id
             && app(StudentHistoryConsolidator::class)->stage($history) === AcademicCourse::STAGE_TECHNICAL
             && $history->years->contains(fn ($year) => $year->source !== 'system'));
-        $person->setRelation('academicHistories', $person->academicHistories->filter(fn ($history) =>
-            $history->education_stage !== AcademicCourse::STAGE_TECHNICAL || app(StudentTechnicalItinerary::class)->canIssue($history)));
+        $person->setRelation('academicHistories', $person->academicHistories->filter(fn ($history) => $history->education_stage !== AcademicCourse::STAGE_TECHNICAL || app(StudentTechnicalItinerary::class)->canIssue($history)));
         $unifiedHistories = $person->academicHistories->where('is_unified', true);
 
         return view('student-histories.student', [
@@ -100,8 +99,10 @@ class StudentAcademicHistoryController extends Controller
             // O documento antigo permanece arquivado; somente os anos manuais identificados
             // pela gestão são incorporados, com seus IDs e valores originais.
             $history->update(['is_unified' => false, 'education_stage' => null, 'technical_course_id' => $course->id]);
+
             return $synchronizer->synchronize($person, $course->academicYear->school_id, $request->user()->person_id, AcademicCourse::STAGE_TECHNICAL, $course->id);
         });
+
         return redirect()->route('people.histories.edit', [$person, $target])->with('status', __('Lançamentos técnicos identificados e preservados no histórico do curso.'));
     }
 
@@ -347,7 +348,7 @@ class StudentAcademicHistoryController extends Controller
                     $history->school_id,
                     $request->user()->person_id,
                     $history->education_stage,
-                $history->technical_course_id,
+                    $history->technical_course_id,
                 );
             }
 
@@ -509,7 +510,10 @@ class StudentAcademicHistoryController extends Controller
         abort_unless($request->user()->canManagePeople(), 403);
 
         if (! $request->user()->isAdministrator()) {
-            abort_unless($person->schoolRoles()->whereIn('school_id', $request->user()->manageableSchoolIds())->exists(), 403);
+            $schoolIds = $request->user()->manageableSchoolIds();
+            abort_unless($person->schoolRoles()->whereIn('school_id', $schoolIds)->exists()
+                || $person->studentEnrollments()->whereHas('schoolClass.academicYear', fn ($query) => $query->whereIn('school_id', $schoolIds))->exists()
+                || $person->academicHistories()->whereIn('school_id', $schoolIds)->exists(), 403);
         }
     }
 

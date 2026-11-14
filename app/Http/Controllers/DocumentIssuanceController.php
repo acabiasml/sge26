@@ -168,7 +168,7 @@ class DocumentIssuanceController extends Controller
         'academic-history' => [
             'group' => 'Estudante',
             'label' => 'Histórico escolar',
-            'description' => 'Emite um histórico previamente cadastrado e conferido.',
+            'description' => 'Localize estudantes atuais ou antigos para conferir e emitir seus históricos.',
             'target' => 'history',
             'icon' => 'fa-history',
         ],
@@ -370,6 +370,7 @@ class DocumentIssuanceController extends Controller
         $data = $request->validate([
             'type' => ['required', Rule::in(array_keys($types))],
             'target_id' => ['required', 'integer'],
+            'history_person_id' => ['nullable', 'integer', 'min:1'],
             'score_view' => ['nullable', Rule::in(['numeros', 'conceitos'])],
             'month' => ['nullable', 'date_format:Y-m'],
             'attendance_scope' => ['nullable', Rule::in(['annual', 'period', 'month'])],
@@ -750,13 +751,12 @@ class DocumentIssuanceController extends Controller
      */
     private function historyTargets(Request $request, array $schoolIds, string $term): Collection
     {
-        return StudentAcademicHistory::query()
+        $histories = StudentAcademicHistory::query()
             ->forIssuance()
             ->select('student_academic_histories.*')
             ->join('people', 'people.id', '=', 'student_academic_histories.person_id')
             ->with(['student:id,full_name,social_name,cpf', 'student.contacts:id,person_id,relationship_type,cpf', 'school:id,name'])
             ->whereIn('school_id', $schoolIds)
-            ->when(! $request->user()->isAdministrator(), fn (Builder $query) => $query->whereHas('student.schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $schoolIds)))
             ->when($request->filled('school_id'), fn (Builder $query) => $query->where('school_id', $request->integer('school_id')))
             ->when($term !== '', function (Builder $query) use ($term): void {
                 $query->where(function (Builder $search) use ($term): void {
@@ -781,6 +781,27 @@ class DocumentIssuanceController extends Controller
                     'missing_student_cpf' => OfficialDocumentCompliance::studentHasNoCpf($history->student),
                 ];
             });
+
+        // A matrícula antiga comprova o vínculo com a escola mesmo quando não
+        // existe mais um papel ativo nem um cabeçalho de histórico preparado.
+        $archiveSchoolIds = $request->filled('school_id') ? [$request->integer('school_id')] : $schoolIds;
+        $students = Person::query()
+            ->where(function (Builder $query) use ($archiveSchoolIds): void {
+                $query->whereHas('studentEnrollments.schoolClass.academicYear', fn (Builder $year) => $year->whereIn('school_id', $archiveSchoolIds))
+                    ->orWhereHas('academicHistories', fn (Builder $history) => $history->whereIn('school_id', $archiveSchoolIds)
+                        ->where('active', true)->whereHas('years'));
+            })
+            ->whereDoesntHave('academicHistories', fn (Builder $history) => $history->forIssuance()->whereIn('school_id', $archiveSchoolIds))
+            ->when($term !== '', fn (Builder $query) => $this->wherePersonName($query, $term))
+            ->orderBy('full_name')->limit(40)->get(['id', 'full_name', 'social_name'])
+            ->map(fn (Person $person): array => [
+                'id' => $person->id, 'history_person_id' => $person->id,
+                'title' => $person->social_name ?: $person->full_name,
+                'subtitle' => __('Registros escolares · Preparar e conferir o histórico'),
+                'enabled' => true, 'reason' => null,
+            ]);
+
+        return $histories->concat($students)->sortBy('title', SORT_NATURAL | SORT_FLAG_CASE)->take(40)->values();
     }
 
     /**
@@ -1037,12 +1058,22 @@ class DocumentIssuanceController extends Controller
     /** @param array<string, mixed> $data @param list<int> $schoolIds */
     private function issueHistory(array $data, User $user, array $schoolIds): RedirectResponse
     {
+        if (! empty($data['history_person_id'])) {
+            abort_unless((int) $data['target_id'] === (int) $data['history_person_id'], 404);
+            $person = Person::query()->whereKey($data['history_person_id'])
+                ->where(function (Builder $query) use ($schoolIds): void {
+                    $query->whereHas('studentEnrollments.schoolClass.academicYear', fn (Builder $year) => $year->whereIn('school_id', $schoolIds))
+                        ->orWhereHas('academicHistories', fn (Builder $history) => $history->whereIn('school_id', $schoolIds));
+                })->firstOrFail();
+
+            return redirect()->route('student-histories.student', $person);
+        }
+
         $history = StudentAcademicHistory::query()
             ->forIssuance()
             ->with('student.contacts')
             ->whereKey($data['target_id'])
             ->whereIn('school_id', $schoolIds)
-            ->when(! $user->isAdministrator(), fn (Builder $query) => $query->whereHas('student.schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $schoolIds)))
             ->firstOrFail();
 
         $this->ensureStudentCanIssue($history->student, (bool) ($data['confirm_missing_student_cpf'] ?? false));
