@@ -286,3 +286,25 @@ Depois da aplicação, execute novamente a conferência e verifique `pending: 0`
 A matriz é a fonte da definição do itinerário para todas as suas turmas. Não há
 seleção por estudante; o campo individual da regularização anterior é legado
 e não determina mais a composição ou a emissão dos documentos.
+
+## Unificação pontual de Inglês do 3º ano
+
+`operation: english-component-unification` recebe os dois componentes e a
+`period_loads` confirmada (2/2/1/1 aulas, com 15 horas em cada bimestre inicial).
+Mantém o primeiro cadastro no primeiro semestre e as avaliações de Inglês II no
+segundo. Exige a mesma matriz, área, docente e uma turma, sem conflitos de datas
+ou vínculos adicionais não revisados. Recusa históricos manuais ou concluídos.
+
+O fluxo é `dry-run`, revisão do relatório criptografado, `apply` com o hash da
+simulação e nova conferência em `dry-run`. Antes de fundir, guarda cópia privada
+com todas as notas e avaliações originais, inclusive as substituídas pela decisão
+confirmada. Reassocia chamadas, conteúdos e horário sem alterar seus valores;
+consolida somente os registros de Inglês do ano em andamento nos históricos.
+Confere a preservação da carga anual e das notas escolhidas. A operação é pontual,
+não uma regra automática para outras matrizes ou notas.
+
+No cadastro de qualquer componente, o modo **Por período letivo** permite
+quantidades semanais diferentes sem duplicar o componente. A carga opcional de
+cada período preserva o total aprovado quando a distribuição não segue a
+estimativa padrão de semanas. Versões de horário devem respeitar as faixas de
+períodos que têm a mesma quantidade semanal.

@@ -27,7 +27,7 @@
         <option value="">{{ __('Selecione') }}</option>
         @foreach($assignments as $assignment)
             @php($used = (int) $assignmentUsage->get($assignment->id, 0))
-            @php($limit = (int) ($assignment->component?->weekly_lessons ?? 0))
+            @php($limit = (int) ($assignment->component?->weeklyLessonsForSchedule($schedule) ?? 0))
             @php($currentSlotUsesThisAssignment = $slot && (int) $slot->school_class_component_id === (int) $assignment->id)
             @php($available = ($limit > 0 && $used < $limit) || $currentSlotUsesThisAssignment)
             <option value="{{ $assignment->id }}" @selected($selectedAssignmentId === $assignment->id) @disabled(! $available)>

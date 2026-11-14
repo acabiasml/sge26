@@ -2991,5 +2991,17 @@
     "Última data de aula registrada": "Ultima data di lezione registrata",
     "Previsão anual pela matriz: o horário cadastrado cobre apenas parte das aulas.": "Previsione annuale dal piano di studi: l’orario registrato copre solo una parte delle lezioni.",
     "Previsão anual indisponível: complete o horário ou a carga horária da matriz.": "Previsione annuale non disponibile: completa l’orario o il monte ore del piano di studi.",
-    "Lançamentos futuros: :attendance aulas de frequência e :content datas de conteúdo. Entram no percentual a partir da data da aula.": "Registrazioni future: :attendance lezioni di presenze e :content date di contenuti. Entrano nella percentuale a partire dalla data della lezione."
+    "Lançamentos futuros: :attendance aulas de frequência e :content datas de conteúdo. Entram no percentual a partir da data da aula.": "Registrazioni future: :attendance lezioni di presenze e :content date di contenuti. Entrano nella percentuale a partire dalla data della lezione.",
+    "Por período letivo": "Per periodo didattico",
+    "O componente continua único. Informe a quantidade semanal de cada período; use zero quando não houver aulas. Se necessário, informe a carga do período para manter o total aprovado.": "La disciplina rimane unica. Indica le lezioni settimanali di ogni periodo; usa zero se non sono previste lezioni. Se necessario, indica le ore del periodo per mantenere il totale approvato.",
+    "Distribuição das aulas e da carga horária por período": "Distribuzione delle lezioni e delle ore per periodo",
+    "Carga do período (h), opcional": "Ore del periodo (h), facoltativo",
+    "Carga total estimada": "Totale ore stimato",
+    "Informe somente períodos pertencentes à duração do componente nesta matriz.": "Indica solo periodi compresi nella durata della disciplina in questo piano di studi.",
+    "Uma carga de período requer pelo menos uma aula semanal.": "Le ore del periodo richiedono almeno una lezione settimanale.",
+    "Informe aulas semanais em pelo menos um período.": "Indica lezioni settimanali in almeno un periodo.",
+    "Horário abrange cargas diferentes": "L’orario comprende carichi diversi",
+    "Esta versão abrange períodos com quantidades diferentes de aulas. Cadastre uma versão de horário para cada faixa de períodos.": "Questa versione comprende periodi con un numero diverso di lezioni. Crea una versione dell’orario per ogni gruppo di periodi.",
+    "O cálculo usa :hours horas totais": "Il calcolo utilizza :hours ore totali",
+    "por período letivo": "per periodo didattico"
 }

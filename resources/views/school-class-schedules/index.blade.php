@@ -111,7 +111,7 @@
                     <div class="card-body">
                         @foreach($assignments as $assignment)
                             @php($used = (int) $assignmentUsage->get($assignment->id, 0))
-                            @php($limit = (int) ($assignment->component?->weekly_lessons ?? 0))
+                            @php($limit = (int) ($assignment->component?->weeklyLessonsForSchedule($schedule) ?? 0))
                             <div class="sge-schedule-limit-row">
                                 <span>
                                     <strong>{{ $assignment->component?->name }}</strong>

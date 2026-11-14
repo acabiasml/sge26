@@ -110,7 +110,7 @@
                                             @elseif($usesHours)
                                                 {{ number_format((float) $component['workload_hours'][$course->id], 2, ',', '.') }}@if($matrixGroup['value_mode'] !== 'hours') h @endif
                                             @else
-                                                {{ (int) $component['weekly_lessons'][$course->id] }}@if($matrixGroup['value_mode'] !== 'weekly') aula(s)/sem. @endif
+                                                {{ $component['weekly_lessons'][$course->id] }}@if($matrixGroup['value_mode'] !== 'weekly') aula(s)/sem. @endif
                                             @endif
                                         </td>
                                     @endforeach
@@ -132,6 +132,10 @@
                     </tr>
                 </tbody>
             </table>
+
+            @foreach ($matrixGroup['period_load_notes'] ?? [] as $note)
+                <p class="matrix-subtitle">{{ $note }}</p>
+            @endforeach
 
             <table class="meta-grid">
                 <tr>

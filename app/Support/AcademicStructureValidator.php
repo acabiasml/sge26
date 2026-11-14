@@ -80,7 +80,7 @@ class AcademicStructureValidator
                 $items[] = self::issue('warning', __('Componente sem área'), __(':component ainda não possui área do conhecimento.', ['component' => $component->name]), __('Abrir componente'), route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
             }
 
-            if ((int) $component->weekly_lessons < 1 && (int) $component->workload_hours < 1) {
+            if ($component->calculatedWorkloadHours($course) <= 0) {
                 $items[] = self::issue('warning', __('Componente sem carga horária'), __(':component precisa de aulas semanais ou carga horária total.', ['component' => $component->name]), __('Abrir componente'), route('academic-years.courses.components.show', [$course->academic_year_id, $course, $component]));
             }
 
@@ -146,21 +146,22 @@ class AcademicStructureValidator
             }
         }
 
-        $scheduledCounts = $class->schedules
-            ->flatMap(fn ($schedule) => $schedule->slots)
-            ->filter(fn ($slot) => $slot->type === SchoolClassScheduleSlot::TYPE_CLASS && $slot->school_class_component_id)
-            ->groupBy('school_class_component_id')
-            ->map->count();
-
         foreach ($class->componentAssignments->where('active', true) as $assignment) {
             if (self::isBehaviorComponentName($assignment->component?->name)) {
                 continue;
             }
 
-            $expected = (int) ($assignment->component?->weekly_lessons ?? 0);
+            foreach ($class->schedules as $schedule) {
+                $expected = $assignment->component?->weeklyLessonsForSchedule($schedule);
+                if ($expected === null && $assignment->component?->hasPeriodLoads()) {
+                    $items[] = self::issue('warning', __('Horário abrange cargas diferentes'), __('Esta versão abrange períodos com quantidades diferentes de aulas. Cadastre uma versão de horário para cada faixa de períodos.'), __('Gerenciar horário'), route('academic-years.classes.schedules.index', [$academicYear, $class]));
 
-            if ($expected > 0 && $class->schedules->isNotEmpty()) {
-                $scheduled = (int) ($scheduledCounts[$assignment->id] ?? 0);
+                    continue;
+                }
+                if (! $expected || $expected < 1) {
+                    continue;
+                }
+                $scheduled = $schedule->slots->where('type', SchoolClassScheduleSlot::TYPE_CLASS)->where('school_class_component_id', $assignment->id)->count();
 
                 if ($scheduled === 0) {
                     $items[] = self::issue('warning', __('Componente fora do horário'), __(':component ainda não aparece em nenhum bloco de horário.', ['component' => $assignment->component?->name ?? __('Componente sem nome')]), __('Gerenciar horário'), route('academic-years.classes.schedules.index', [$academicYear, $class]));

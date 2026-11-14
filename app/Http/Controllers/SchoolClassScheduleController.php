@@ -192,11 +192,13 @@ class SchoolClassScheduleController extends Controller
             ->with('component')
             ->whereKey($assignmentId)
             ->firstOrFail();
-        $weeklyLessons = $assignment->component?->weekly_lessons;
+        $weeklyLessons = $assignment->component?->weeklyLessonsForSchedule($schedule);
 
         if ($weeklyLessons === null) {
             throw ValidationException::withMessages([
-                'school_class_component_id' => __('Defina a quantidade de aulas semanais deste componente antes de montar o horário.'),
+                'school_class_component_id' => $assignment->component?->hasPeriodLoads()
+                    ? __('Esta versão abrange períodos com quantidades diferentes de aulas. Cadastre uma versão de horário para cada faixa de períodos.')
+                    : __('Defina a quantidade de aulas semanais deste componente antes de montar o horário.'),
             ]);
         }
 

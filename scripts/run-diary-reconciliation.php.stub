@@ -7,6 +7,15 @@ $app = require 'bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 try {
 $config = json_decode(file_get_contents('scripts/diary-reconciliation.json'), true, flags: JSON_THROW_ON_ERROR);
+if (($config['operation'] ?? '') === 'english-component-unification') {
+    if (! in_array($config['mode'] ?? '', ['dry-run', 'apply'], true)) { throw new RuntimeException('Modo inválido.'); }
+    $result = app(App\Support\EnglishComponentUnifier::class)->unify(
+        $config['keep_component_id'], $config['remove_component_id'], $config['period_loads'],
+        $config['mode'] === 'apply', $config['expected_snapshot_sha256'] ?? null,
+    );
+    echo json_encode($result, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+    return;
+}
 if (($config['operation'] ?? '') === 'english-semester-schedule') {
     if (! in_array($config['mode'] ?? '', ['dry-run', 'apply'], true)) { throw new RuntimeException('Modo inválido.'); }
     $result = app(App\Support\EnglishSemesterScheduleCorrection::class)->correct(

@@ -193,6 +193,7 @@ class AcademicCourseController extends Controller
                     'name' => $component->name,
                     'weekly_lessons' => $component->weekly_lessons,
                     'workload_hours' => $component->workload_hours,
+                    'period_loads' => $component->period_loads,
                     'notes' => $component->notes,
                     'active' => $component->active,
                 ]);

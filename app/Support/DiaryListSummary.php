@@ -79,7 +79,8 @@ class DiaryListSummary
                     && (! $schedule->ends_at || $schedule->ends_at->toDateString() >= $date));
                 $weeklySlots = $schedules->flatMap->slots->where('type', 'aula')->where('school_class_component_id', $assignment->id);
                 // Um horário parcial, inclusive uma grade semanal incompleta, não representa o ano inteiro.
-                if ($schedules->isEmpty() || ($component->weekly_lessons !== null && $weeklySlots->count() !== (int) $component->weekly_lessons)) {
+                $weeklyLessons = $component->weeklyLessonsForDate($day->date);
+                if ($schedules->isEmpty() || ($weeklyLessons !== null && $weeklySlots->count() !== $weeklyLessons)) {
                     $completeSchedule = false;
                 }
                 $lessons = $weeklySlots->where('weekday', $day->date->dayOfWeekIso)->count();
@@ -93,9 +94,8 @@ class DiaryListSummary
                 $planned = (int) $plannedByDate->sum();
                 $source = 'schedule';
             } elseif ((int) $course->class_hour_minutes > 0 && $component->calculatedWorkloadHours($course) > 0) {
-                $classShare = $coursePeriods->isNotEmpty() ? $periods->count() / $coursePeriods->count() : 1;
                 $keptDaysShare = $schoolDays->isNotEmpty() ? $forecastDays->count() / $schoolDays->count() : 1;
-                $planned = (int) round($component->calculatedWorkloadHours($course) * 60 / $course->class_hour_minutes * $classShare * $keptDaysShare);
+                $planned = (int) round($component->calculatedWorkloadHoursForPeriods($periods, $course) * 60 / $course->class_hour_minutes * $keptDaysShare);
                 $source = $assignmentSchedules->isNotEmpty() ? 'matrix_partial_schedule' : 'matrix';
             } elseif ($assignmentSchedules->isNotEmpty()) {
                 $source = 'partial_schedule';

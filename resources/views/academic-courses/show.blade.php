@@ -110,7 +110,7 @@
                         <dt>{{ __('Carga horária calculada') }}</dt>
                         <dd>{{ $course->formattedCalculatedWorkloadHours() }} {{ __('horas') }}</dd>
                         <dt>{{ __('Formas de carga horária') }}</dt>
-                        <dd>{{ $activeComponents->whereNotNull('weekly_lessons')->count() }} {{ __('por aulas semanais ·') }} {{ $activeComponents->whereNotNull('workload_hours')->count() }} {{ __('por carga total') }}</dd>
+                        <dd>{{ $activeComponents->whereNotNull('weekly_lessons')->count() }} {{ __('por aulas semanais ·') }} {{ $activeComponents->whereNotNull('workload_hours')->count() }} {{ __('por carga total') }} · {{ $activeComponents->filter(fn ($item) => $item->hasPeriodLoads())->count() }} {{ __('por período letivo') }}</dd>
                         <dt>{{ __('Turmas') }}</dt>
                         <dd>{{ $visibleClasses->sortBy('name')->pluck('name')->join(', ') ?: __('Nenhuma turma vinculada') }}</dd>
                         <dt>{{ __('Observações') }}</dt>
@@ -130,30 +130,12 @@
                         <form method="POST" action="{{ route('academic-years.courses.components.store', [$academicYear, $course]) }}">
                             @csrf
                             <div class="row">
-                                <div class="col-md-8 form-group">
+                                <div class="col-12 form-group">
                                     <label for="new_component_name">{{ __('Componente') }}</label>
                                     @include('curriculum-components.partials.catalog-selection', ['selectId' => 'new_component_name', 'component' => null])
                                 </div>
-                                <div class="col-md-4 form-group" data-workload-choice>
-                                    <label class="d-block">{{ __('Como informar a carga horária?') }}</label>
-                                    <div class="custom-control custom-radio custom-control-inline">
-                                        <input class="custom-control-input" type="radio" id="new_workload_mode_weekly" name="workload_mode" value="weekly_lessons" @checked(old('workload_mode', 'weekly_lessons') === 'weekly_lessons') required>
-                                        <label class="custom-control-label" for="new_workload_mode_weekly">{{ __('Aulas por semana') }}</label>
-                                    </div>
-                                    <div class="custom-control custom-radio custom-control-inline">
-                                        <input class="custom-control-input" type="radio" id="new_workload_mode_total" name="workload_mode" value="workload_hours" @checked(old('workload_mode') === 'workload_hours') required>
-                                        <label class="custom-control-label" for="new_workload_mode_total">{{ __('Total de horas') }}</label>
-                                    </div>
-                                    <div class="mt-2" data-workload-field="weekly_lessons">
-                                        <label for="new_component_weekly_lessons">{{ __('Aulas por semana') }}</label>
-                                        <input id="new_component_weekly_lessons" name="weekly_lessons" data-mask="digits" data-mask-max="2" inputmode="numeric" autocomplete="off" class="form-control" value="{{ old('weekly_lessons') }}">
-                                    </div>
-                                    <div class="mt-2" data-workload-field="workload_hours">
-                                        <label for="new_component_workload_hours">{{ __('Carga horária total') }}</label>
-                                        <div class="input-group"><input id="new_component_workload_hours" name="workload_hours" data-mask="digits" data-mask-max="5" inputmode="numeric" autocomplete="off" class="form-control" value="{{ old('workload_hours') }}"><div class="input-group-append"><span class="input-group-text">{{ __('horas') }}</span></div></div>
-                                    </div>
-                                </div>
                             </div>
+                            @include('curriculum-components.partials.workload-fields', ['workloadPrefix' => 'new_component', 'workloadComponent' => null, 'workloadPeriods' => $academicYear->periods])
                             <div class="row">
                                 <div class="col-md-4 form-group">
                                     <label for="new_component_starts_period_id">{{ __('Período inicial') }}</label>
@@ -206,7 +188,9 @@
                                     <strong>{{ $component->name }}</strong>
                                     <div class="small text-gray-600">
                                         {{ $component->formattedCalculatedWorkloadHours($course) }} {{ __('horas') }}
-                                        @if ($component->workload_hours !== null)
+                                        @if ($component->hasPeriodLoads())
+                                            · {{ __('Por período letivo') }}: {{ $component->weeklyLessonsLabel() }}
+                                        @elseif ($component->workload_hours !== null)
                                             · {{ __('Total de horas cadastrado') }}
                                         @elseif ($component->weekly_lessons !== null)
                                             · {{ $component->weekly_lessons }} {{ __('aulas semanais') }}
@@ -238,21 +222,3 @@
         </div>
     </div>
 @endsection
-
-@push('scripts')
-    <script>
-        document.querySelectorAll('[data-workload-choice]').forEach((choice) => {
-            const syncWorkloadChoice = () => {
-                const mode = choice.querySelector('input[name="workload_mode"]:checked')?.value;
-                choice.querySelectorAll('[data-workload-field]').forEach((field) => {
-                    const active = field.dataset.workloadField === mode;
-                    field.hidden = !active;
-                    field.querySelector('input').disabled = !active;
-                    field.querySelector('input').required = active;
-                });
-            };
-            choice.querySelectorAll('input[name="workload_mode"]').forEach((radio) => radio.addEventListener('change', syncWorkloadChoice));
-            syncWorkloadChoice();
-        });
-    </script>
-@endpush

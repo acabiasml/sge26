@@ -3,12 +3,15 @@
 namespace App\Models;
 
 use App\Models\Concerns\Auditable;
+use App\Support\HistoryCurriculumCatalog;
 use App\Support\MatrixHistoryCatalog;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class CurriculumComponent extends Model
 {
@@ -29,6 +32,7 @@ class CurriculumComponent extends Model
         'name',
         'weekly_lessons',
         'workload_hours',
+        'period_loads',
         'notes',
         'legacy_source',
         'legacy_id',
@@ -41,6 +45,7 @@ class CurriculumComponent extends Model
         return [
             'weekly_lessons' => 'integer',
             'legacy_metadata' => 'array',
+            'period_loads' => 'array',
             'active' => 'boolean',
         ];
     }
@@ -52,7 +57,7 @@ class CurriculumComponent extends Model
 
     public function adoptCatalogDefinition(HistoryCurriculumComponent $entry): void
     {
-        \App\Support\HistoryCurriculumCatalog::validateDefinition($entry, $this->course->stage);
+        HistoryCurriculumCatalog::validateDefinition($entry, $this->course->stage);
         $this->setRawAttributes(array_merge($this->getAttributes(), [
             'name' => $entry->name, 'knowledge_area_id' => $entry->knowledge_area_id,
         ]));
@@ -97,6 +102,11 @@ class CurriculumComponent extends Model
 
     public function calculatedWorkloadHours(?AcademicCourse $course = null): float
     {
+        if ($this->hasPeriodLoads()) {
+            $course ??= $this->course;
+
+            return $this->calculatedWorkloadHoursForPeriods($course->academicYear->periods, $course);
+        }
         if ($this->workload_hours !== null) {
             return (float) $this->workload_hours;
         }
@@ -143,6 +153,82 @@ class CurriculumComponent extends Model
             return false;
         }
 
+        if ($this->hasPeriodLoads()) {
+            $load = $this->period_loads[$period->id] ?? null;
+
+            return $load !== null && ((int) ($load['weekly_lessons'] ?? 0) > 0 || (float) ($load['workload_hours'] ?? 0) > 0);
+        }
+
         return true;
+    }
+
+    public function hasPeriodLoads(): bool
+    {
+        return is_array($this->period_loads) && $this->period_loads !== [];
+    }
+
+    public function weeklyLessonsForPeriod(AcademicPeriod $period): ?int
+    {
+        if (! $this->isActiveInPeriod($period)) {
+            return 0;
+        }
+
+        return $this->hasPeriodLoads() ? (int) ($this->period_loads[$period->id]['weekly_lessons'] ?? 0) : $this->weekly_lessons;
+    }
+
+    public function weeklyLessonsForDate(CarbonInterface $date): ?int
+    {
+        if (! $this->hasPeriodLoads()) {
+            return $this->weekly_lessons;
+        }
+        $period = $this->course->academicYear->periods->first(fn ($period) => $date->betweenIncluded($period->starts_at, $period->ends_at));
+
+        return $period ? $this->weeklyLessonsForPeriod($period) : 0;
+    }
+
+    public function weeklyLessonsForSchedule(SchoolClassSchedule $schedule): ?int
+    {
+        if (! $this->hasPeriodLoads()) {
+            return $this->weekly_lessons;
+        }
+        $end = $schedule->ends_at ?? $schedule->schoolClass->ends_at ?? $this->course->academicYear->ends_at;
+        $rates = $this->course->academicYear->periods->filter(fn ($period) => $period->ends_at->gte($schedule->starts_at)
+            && $period->starts_at->lte($end))->map(fn ($period) => $this->weeklyLessonsForPeriod($period))->unique()->values();
+
+        return $rates->count() === 1 ? $rates->first() : null;
+    }
+
+    public function calculatedWorkloadHoursForPeriods(Collection $periods, ?AcademicCourse $course = null): float
+    {
+        $course ??= $this->course;
+        $course->loadMissing('academicYear.periods', 'startsPeriod', 'endsPeriod');
+        $active = $periods->filter(fn ($period) => $this->isActiveInPeriod($period)
+            && (! $course->startsPeriod || $period->position >= $course->startsPeriod->position)
+            && (! $course->endsPeriod || $period->position <= $course->endsPeriod->position));
+        if (! $this->hasPeriodLoads()) {
+            $all = $course->academicYear->periods->filter(fn ($period) => $this->isActiveInPeriod($period)
+                && (! $course->startsPeriod || $period->position >= $course->startsPeriod->position)
+                && (! $course->endsPeriod || $period->position <= $course->endsPeriod->position));
+
+            return $all->isEmpty() ? 0 : round($this->calculatedWorkloadHours($course) * $active->count() / $all->count(), 2);
+        }
+        $weeks = ($course->academicYear->minimum_school_days ?: 200) / 5 / max(1, $course->academicYear->periods->count());
+
+        return round($active->sum(function ($period) use ($weeks, $course) {
+            $load = $this->period_loads[$period->id];
+
+            return isset($load['workload_hours']) && $load['workload_hours'] !== ''
+                ? (float) $load['workload_hours'] : (int) $load['weekly_lessons'] * $weeks * $course->class_hour_minutes / 60;
+        }), 2);
+    }
+
+    public function weeklyLessonsLabel(): string
+    {
+        if (! $this->hasPeriodLoads()) {
+            return (string) $this->weekly_lessons;
+        }
+
+        return $this->course->academicYear->periods->sortBy('position')
+            ->map(fn ($period) => (string) ($this->weeklyLessonsForPeriod($period) ?? '—'))->implode(' / ');
     }
 }

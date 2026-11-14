@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AcademicYear;
 use App\Models\AcademicCourse;
+use App\Models\AcademicYear;
 use App\Models\IssuedDocument;
 use App\Models\PersonSchoolRole;
 use App\Support\CurriculumCatalog;
 use App\Support\PdfLetterhead;
+use App\Support\PdfMetadata;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -47,7 +48,7 @@ class AcademicMatricesPdfController extends Controller
             'signatureDate' => $signatureDate,
         ])->setPaper('a4', 'portrait');
 
-        return \App\Support\PdfMetadata::stream($pdf, 'beaba-matrizes-'.$academicYear->id.'-'.now()->format('Ymd-His').'.pdf');
+        return PdfMetadata::stream($pdf, 'beaba-matrizes-'.$academicYear->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     private function matrixGroups(Collection $courses): Collection
@@ -82,7 +83,7 @@ class AcademicMatricesPdfController extends Controller
                                     'uses_total_workload' => [],
                                 ]);
 
-                                $row['weekly_lessons'][$course->id] = $component->weekly_lessons;
+                                $row['weekly_lessons'][$course->id] = $component->hasPeriodLoads() ? $component->weeklyLessonsLabel() : $component->weekly_lessons;
                                 $row['workload_hours'][$course->id] = $component->calculatedWorkloadHours($course);
                                 $row['uses_total_workload'][$course->id] = $component->workload_hours !== null;
                                 $rows->put($key, $row);
@@ -122,8 +123,13 @@ class AcademicMatricesPdfController extends Controller
                     'rows' => $this->groupRowsForPrinting($rows),
                     'value_mode' => $valueMode,
                     'total_weekly_lessons' => $stageCourses->mapWithKeys(
-                        fn (AcademicCourse $course): array => [$course->id => (int) $course->components->sum('weekly_lessons')]
+                        fn (AcademicCourse $course): array => [$course->id => $course->components->contains(fn ($component) => $component->hasPeriodLoads())
+                            ? $course->academicYear->periods->sortBy('position')->map(fn ($period) => $course->components->sum(fn ($component) => $component->weeklyLessonsForPeriod($period) ?? 0))->implode(' / ')
+                            : (int) $course->components->sum('weekly_lessons')]
                     ),
+                    'period_load_notes' => $stageCourses->flatMap(fn ($course) => $course->components->filter(fn ($component) => $component->hasPeriodLoads())
+                        ->map(fn ($component) => $course->name.' — '.$component->name.': '.$course->academicYear->periods->sortBy('position')
+                            ->map(fn ($period) => $period->name.': '.$component->weeklyLessonsForPeriod($period).' aula(s)/sem.')->implode('; '))),
                     'total_hours' => $stageCourses->mapWithKeys(
                         fn (AcademicCourse $course): array => [$course->id => $course->formattedCalculatedWorkloadHours()]
                     ),

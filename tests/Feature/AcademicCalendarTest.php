@@ -900,6 +900,67 @@ class AcademicCalendarTest extends TestCase
         ]);
     }
 
+    public function test_period_loads_keep_one_component_and_validate_matrix_periods(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear();
+        foreach ([['01-20', '04-10'], ['04-11', '07-10'], ['07-11', '09-30'], ['10-01', '12-18']] as $i => [$start, $end]) {
+            $year->periods()->create(['name' => 'Bimestre '.($i + 1), 'position' => $i + 1, 'starts_at' => '2026-'.$start, 'ends_at' => '2026-'.$end]);
+        }
+        $course = $year->courses()->create(['name' => '3º Ano', 'stage' => 'medio', 'class_hour_minutes' => 50]);
+        $area = KnowledgeArea::create(['name' => 'Linguagens e suas Tecnologias', 'formation' => 'Formação Geral Básica']);
+        $component = $course->components()->create(['knowledge_area_id' => $area->id, 'name' => 'Língua Inglesa', 'weekly_lessons' => 2]);
+        $periods = $year->periods()->orderBy('position')->get();
+        $loads = $periods->mapWithKeys(fn ($period, $index) => [$period->id => ['weekly_lessons' => $index < 2 ? 2 : 1, 'workload_hours' => $index < 2 ? 15 : null]])->all();
+        $definition = $component->historyCatalogEntries()->firstOrFail();
+        $url = route('academic-years.courses.components.update', [$year, $course, $component]);
+        $data = ['catalog_component_id' => $definition->id, 'workload_mode' => 'periods', 'period_loads' => $loads];
+        $this->actingAs($admin)->put($url, $data)->assertSessionHasNoErrors()->assertRedirect();
+        $component->refresh();
+        $this->assertNull($component->weekly_lessons);
+        $this->assertNull($component->workload_hours);
+        $this->assertEquals(46.67, $component->calculatedWorkloadHours());
+        $this->assertEquals(30, $component->calculatedWorkloadHoursForPeriods($periods->take(2)));
+        $this->assertSame('2 / 2 / 1 / 1', $component->weeklyLessonsLabel());
+        $matrixMethod = new ReflectionMethod(AcademicMatricesPdfController::class, 'matrixGroups');
+        $group = $matrixMethod->invoke(app(AcademicMatricesPdfController::class), collect([$course->fresh()]))->first();
+        $row = collect($group['rows'])->flatMap(fn ($formation) => $formation['areas'])->flatMap(fn ($area) => $area['components'])->first();
+        $this->assertSame('2 / 2 / 1 / 1', $row['weekly_lessons'][$course->id]);
+        $this->assertSame(2, $component->weeklyLessonsForDate($periods[0]->starts_at));
+        $this->assertSame(1, $component->weeklyLessonsForDate($periods[2]->starts_at));
+        $this->get(route('academic-years.courses.components.show', [$year, $course, $component]))->assertOk()->assertSee('Por período letivo');
+        $invalid = $data;
+        $invalid['period_loads'][999999] = ['weekly_lessons' => 1];
+        $this->put($url, $invalid)->assertSessionHasErrors('period_loads');
+        $invalid = $data;
+        $invalid['period_loads'][$periods[0]->id]['weekly_lessons'] = 0;
+        $this->put($url, $invalid)->assertSessionHasErrors('period_loads');
+        $this->put($url, ['catalog_component_id' => $definition->id, 'workload_mode' => 'weekly_lessons', 'weekly_lessons' => 2])->assertSessionHasNoErrors();
+        $this->assertNull($component->fresh()->period_loads);
+        $this->assertEquals(66.67, $component->fresh()->calculatedWorkloadHours());
+    }
+
+    public function test_period_loads_require_separate_schedule_versions_for_different_weekly_rates(): void
+    {
+        $year = $this->academicYear();
+        foreach ([['01-20', '04-10'], ['04-11', '07-10'], ['07-11', '09-30'], ['10-01', '12-18']] as $i => [$start, $end]) {
+            $year->periods()->create(['name' => 'Bimestre '.($i + 1), 'position' => $i + 1, 'starts_at' => '2026-'.$start, 'ends_at' => '2026-'.$end]);
+        }
+        $course = $year->courses()->create(['name' => '3º Ano', 'stage' => 'medio', 'class_hour_minutes' => 50]);
+        $periods = $year->periods()->orderBy('position')->get();
+        $loads = $periods->mapWithKeys(fn ($p, $i) => [$p->id => ['weekly_lessons' => $i < 2 ? 2 : 1]])->all();
+        $component = $course->components()->create(['name' => 'Inglês', 'period_loads' => $loads]);
+        $class = $year->classes()->create(['name' => '3º Ano']);
+        $schedule = $class->schedules()->create(['name' => 'Anual', 'starts_at' => $periods[0]->starts_at, 'ends_at' => $periods[3]->ends_at]);
+        $this->assertNull($component->weeklyLessonsForSchedule($schedule));
+        $schedule->update(['starts_at' => $periods[2]->starts_at]);
+        $this->assertSame(1, $component->weeklyLessonsForSchedule($schedule));
+        $component->update(['period_loads' => [$periods[0]->id => ['weekly_lessons' => 0], $periods[2]->id => ['weekly_lessons' => 1]]]);
+        $this->assertFalse($component->isActiveInPeriod($periods[0]));
+        $this->assertFalse($component->isActiveInPeriod($periods[1]));
+        $this->assertEquals(8.33, $component->calculatedWorkloadHours());
+    }
+
     public function test_legacy_component_workload_editor_matches_calculation_and_can_switch_to_weekly(): void
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);

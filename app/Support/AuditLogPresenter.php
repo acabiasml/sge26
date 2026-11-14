@@ -136,6 +136,7 @@ class AuditLogPresenter
         'legacy_id' => 'Referência na origem',
         'legacy_metadata' => 'Informações da importação',
         'weekly_lessons' => 'Aulas por semana',
+        'period_loads' => 'Aulas e cargas por período',
         'cancelled_at' => 'Cancelado em',
         'cancelled_by_person_id' => 'Cancelado por',
         'enrolled_by_person_id' => 'Matriculado por',
