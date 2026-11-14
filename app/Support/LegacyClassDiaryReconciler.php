@@ -32,6 +32,8 @@ final class LegacyClassDiaryReconciler
         $deferIncomplete = ($manifest['defer_incomplete_sessions'] ?? false) === true;
         $allowRounding = ($manifest['allow_grade_rounding'] ?? false) === true;
         $partialDocuments = ($manifest['allow_partial_documents'] ?? false) === true;
+        $partialStudents = ($manifest['allow_partial_students'] ?? false) === true;
+        $preserveMatrix = ($manifest['preserve_matrix'] ?? false) === true;
         $class = SchoolClass::with(['academicYear.periods', 'enrollments.student'])->when($apply, fn ($q) => $q->lockForUpdate())->findOrFail($target['class_id'] ?? 0);
         $course = AcademicCourse::with('components')->when($apply, fn ($q) => $q->lockForUpdate())->findOrFail($target['course_id'] ?? 0);
         $year = $class->academicYear;
@@ -43,6 +45,9 @@ final class LegacyClassDiaryReconciler
             && $course->academic_year_id === $year->id
             && $class->courses()->whereKey($course->id)->exists(), 'O alvo não corresponde à turma e à matriz.');
         $matrix = $manifest['matrix'] ?? [];
+        if ($preserveMatrix) {
+            $matrix = ['class_hour_minutes' => (int) $course->class_hour_minutes, 'components' => $course->components->map(fn ($row) => $row->only(['name', 'workload_hours', 'weekly_lessons']))->all()];
+        }
         $minutes = $matrix['class_hour_minutes'] ?? null;
         $this->require(is_int($minutes) && $minutes > 0 && $minutes <= 120, 'Duração da hora-aula inválida.');
         $components = $course->components->keyBy(fn ($row) => $this->normalized($row->name));
@@ -91,6 +96,7 @@ final class LegacyClassDiaryReconciler
         $documentedKeys = [];
         $gradeOnlyComponents = [];
         $deferred = [];
+        $undocumentedEnrollmentIds = [];
         foreach ($documents as $name => $document) {
             $component = $components[$name];
             $this->require(($document['reference_year'] ?? null) === $year->reference_year
@@ -113,7 +119,9 @@ final class LegacyClassDiaryReconciler
                     $this->require($current !== null && abs((float) $current - $expected) < 0.001, 'Há divergência nas notas; a reconciliação não altera notas existentes.');
                 }
             }
-            $this->require(count(array_unique($seenStudents)) === $class->enrollments->pluck('person_id')->unique()->count(), 'O diário não identifica todos os estudantes da turma.');
+            $this->require($partialStudents || count(array_unique($seenStudents)) === $class->enrollments->pluck('person_id')->unique()->count(), 'O diário não identifica todos os estudantes da turma.');
+            $notDocumentedIds = $partialStudents ? $class->enrollments->reject(fn ($row) => in_array($row->person_id, $seenStudents, true))->pluck('id')->all() : [];
+            $undocumentedEnrollmentIds = array_merge($undocumentedEnrollmentIds, $notDocumentedIds);
             if (empty($document['sessions']) && $deferIncomplete) {
                 $gradeOnlyComponents[] = $component->id;
             }
@@ -181,7 +189,7 @@ final class LegacyClassDiaryReconciler
                 }
                 $removals = $existing?->entries->whereIn('student_enrollment_id', $excludedIds)->pluck('id')->all() ?? [];
                 $stats['entries_to_remove'] += count($removals);
-                $this->require(! $existing || $existing->entries->pluck('student_enrollment_id')->diff(array_merge(array_keys($attendance), $outsideEnrollmentIds, $excludedIds))->isEmpty(), 'Há marcações sem correspondência explícita no documento.');
+                $this->require(! $existing || $existing->entries->pluck('student_enrollment_id')->diff(array_merge(array_keys($attendance), $outsideEnrollmentIds, $excludedIds, $notDocumentedIds))->isEmpty(), 'Há marcações sem correspondência explícita no documento.');
                 $content = trim((string) ($session['content'] ?? ''));
                 $existingContent = $contentMap->get($key);
                 if ($content !== '' && trim((string) $existingContent?->content) === '') {
@@ -192,7 +200,7 @@ final class LegacyClassDiaryReconciler
                 $stats['documented_lessons'] += $lessonCount;
             }
             $definition = $matrixComponents[$name];
-            $this->require(is_numeric($definition['workload_hours'] ?? null) && $definition['workload_hours'] > 0
+            $this->require(($preserveMatrix || (is_numeric($definition['workload_hours'] ?? null) && $definition['workload_hours'] > 0))
                 && array_key_exists('weekly_lessons', $definition)
                 && (($definition['weekly_lessons'] === null && $component->weekly_lessons === null)
                     || (is_int($definition['weekly_lessons']) && $definition['weekly_lessons'] > 0)), 'Definição inválida da matriz.');
@@ -201,7 +209,7 @@ final class LegacyClassDiaryReconciler
         $preservedComponentIds = array_merge($gradeOnlyComponents, $undocumented->pluck('id')->all());
         $this->require($records->reject(fn ($row) => in_array($row->curriculum_component_id, $preservedComponentIds, true))
             ->every(fn ($row) => isset($documentedKeys[$row->curriculum_component_id.':'.$row->class_date->toDateString()])), 'Há chamadas atuais sem correspondência nos documentos.');
-        $planned = (float) $matrixComponents->sum('workload_hours');
+        $planned = $preserveMatrix ? (float) $course->workload_hours : (float) $matrixComponents->sum('workload_hours');
         $stats['matrix_changes'] += (int) $course->class_hour_minutes !== $minutes || (float) $course->workload_hours !== $planned ? 1 : 0;
         $manifestHash = hash('sha256', json_encode($manifest, JSON_THROW_ON_ERROR));
         $result = ['mode' => $apply ? 'apply' : 'dry-run', 'class_id' => $class->id, 'reference_year' => $year->reference_year,
@@ -209,7 +217,8 @@ final class LegacyClassDiaryReconciler
             'planned_hours' => $planned, 'class_hour_minutes' => $minutes,
             'students_count' => $class->enrollments->pluck('person_id')->unique()->count(), 'enrollments_count' => $class->enrollments->count(),
             'deferred' => $deferred, 'grade_only_component_ids' => $gradeOnlyComponents,
-            'undocumented_component_ids' => $undocumented->pluck('id')->values()->all()];
+            'undocumented_component_ids' => $undocumented->pluck('id')->values()->all(),
+            'undocumented_enrollment_ids' => array_values(array_unique($undocumentedEnrollmentIds))];
         if (! $apply) {
             return $result;
         }
@@ -217,10 +226,12 @@ final class LegacyClassDiaryReconciler
         $backup = 'diary-reconciliation/backup-'.$class->id.'-'.Str::uuid().'.json';
         $this->require(Storage::disk('local')->put($backup, json_encode(['manifest_sha256' => $manifestHash, 'before' => $snapshot], JSON_THROW_ON_ERROR)), 'Não foi possível salvar a cópia de segurança.');
         chmod(Storage::disk('local')->path($backup), 0600);
-        Model::withoutEvents(function () use ($class, $course, $components, $matrixComponents, $minutes, $planned, $sessions, $historyYears): void {
-            $course->update(['class_hour_minutes' => $minutes, 'workload_hours' => $planned]);
-            foreach ($components as $name => $component) {
-                $component->update(['workload_hours' => $matrixComponents[$name]['workload_hours'], 'weekly_lessons' => $matrixComponents[$name]['weekly_lessons']]);
+        Model::withoutEvents(function () use ($class, $course, $components, $matrixComponents, $minutes, $planned, $sessions, $historyYears, $preserveMatrix): void {
+            if (! $preserveMatrix) {
+                $course->update(['class_hour_minutes' => $minutes, 'workload_hours' => $planned]);
+                foreach ($components as $name => $component) {
+                    $component->update(['workload_hours' => $matrixComponents[$name]['workload_hours'], 'weekly_lessons' => $matrixComponents[$name]['weekly_lessons']]);
+                }
             }
             $newEntries = [];
             $timestamp = now();

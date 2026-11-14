@@ -332,6 +332,30 @@ class LegacyClassDiaryReconcilerTest extends TestCase
         $service->reconcile($manifest);
     }
 
+    public function test_partial_roster_and_matrix_preservation_keep_unreported_students_and_rounding_of_total(): void
+    {
+        [$manifest, $course, $class] = $this->scenario();
+        $course->update(['workload_hours' => 203]);
+        $other = Person::create(['full_name' => 'Estudante não documentado', 'legacy_source' => 'laura', 'legacy_id' => 99]);
+        $enrollment = $class->enrollments()->create(['person_id' => $other->id, 'enrolled_at' => '2025-02-01', 'status' => 'matriculado']);
+        $call = DiaryAttendanceRecord::sole();
+        $entry = $call->entries()->create(['student_enrollment_id' => $enrollment->id, 'status' => 'presente', 'attended_lessons' => 1]);
+        $beforeCourse = $course->fresh('components')->toArray();
+        $beforeEntry = $entry->fresh()->getAttributes();
+        $manifest['preserve_matrix'] = true;
+        $manifest['allow_partial_students'] = true;
+        unset($manifest['matrix']);
+        $service = app(LegacyClassDiaryReconciler::class);
+        $plan = $service->reconcile($manifest);
+        $this->assertSame(203.0, $plan['planned_hours']);
+        $this->assertSame(0, $plan['stats']['matrix_changes']);
+        $this->assertSame([$enrollment->id], $plan['undocumented_enrollment_ids']);
+        $service->reconcile($manifest, true, $plan['snapshot_sha256']);
+        $this->assertSame($beforeCourse, $course->fresh('components')->toArray());
+        $this->assertSame($beforeEntry, $entry->fresh()->getAttributes());
+        $this->assertSame(0, $service->reconcile($manifest)['stats']['entries_to_create']);
+    }
+
     private function reenrollmentScenario(): array
     {
         [$manifest, $course, $class, $enrollment] = $this->scenario();

@@ -94,6 +94,30 @@ class SchoolYearClassHourCorrectionTest extends TestCase
         $this->assertEquals(33, $course->components()->where('name', 'Arte')->sole()->workload_hours);
     }
 
+    public function test_regular_scope_excludes_multiyear_technical_offer_and_recognizes_old_conversion_after_minutes_were_changed(): void
+    {
+        [$school, $year, $course] = $this->scenario();
+        $already = $year->courses()->create(['name' => 'Outra turma regular', 'stage' => 'medio', 'class_hour_minutes' => 60,
+            'workload_hours' => 33, 'legacy_source' => 'laura']);
+        $already->components()->create(['name' => 'Arte', 'workload_hours' => 33, 'weekly_lessons' => 1,
+            'legacy_source' => 'laura', 'legacy_metadata' => ['horas' => '40'], 'active' => true]);
+        $technicalYear = AcademicYear::create(['school_id' => $school->id, 'name' => '2025-2026', 'reference_year' => 2025,
+            'starts_at' => '2025-02-01', 'ends_at' => '2026-12-20', 'class_hour_minutes' => 50]);
+        $technical = $technicalYear->courses()->create(['name' => 'Técnico', 'stage' => 'tecnico', 'class_hour_minutes' => 50, 'workload_hours' => 100]);
+        $before = $technical->fresh()->getAttributes();
+        $service = app(SchoolYearClassHourCorrection::class);
+        $plan = $service->correct($school->id, 2025, 60, false, null, true, 50);
+        $service->correct($school->id, 2025, 60, true, $plan['snapshot_sha256'], true, 50);
+        $this->assertEquals(60, $course->fresh()->class_hour_minutes);
+        $this->assertEquals(40, $already->fresh()->workload_hours);
+        $this->assertEquals(40, $already->components()->sole()->workload_hours);
+        $this->assertSame($before, $technical->fresh()->getAttributes());
+        $this->assertEquals(50, $technicalYear->fresh()->class_hour_minutes);
+        $next = $service->correct($school->id, 2025, 60, false, null, true, 50);
+        $this->assertSame(0, $next['components_to_restore']);
+        $this->assertSame(0, $next['courses_to_update']);
+    }
+
     private function year(School $school, int $year): AcademicYear
     {
         return AcademicYear::create(['school_id' => $school->id, 'name' => 'Ano escolar', 'reference_year' => $year,

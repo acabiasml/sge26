@@ -16,31 +16,37 @@ use RuntimeException;
 
 final class SchoolYearClassHourCorrection
 {
-    public function correct(int $schoolId, int $referenceYear, int $minutes, bool $apply = false, ?string $expectedSnapshot = null): array
+    public function correct(int $schoolId, int $referenceYear, int $minutes, bool $apply = false, ?string $expectedSnapshot = null,
+        bool $regularOnly = false, ?int $originalImportMinutes = null): array
     {
-        if ($schoolId <= 0 || $referenceYear < 1900 || $referenceYear > 2100 || $minutes !== 60) {
+        if ($schoolId <= 0 || $referenceYear < 1900 || $referenceYear > 2100 || $minutes !== 60
+            || ($originalImportMinutes !== null && $originalImportMinutes !== 50)) {
             throw new RuntimeException('Escola, ano ou duração inválidos para esta correção.');
         }
 
         return $apply
-            ? DB::transaction(fn () => $this->execute($schoolId, $referenceYear, $minutes, true, $expectedSnapshot))
-            : $this->execute($schoolId, $referenceYear, $minutes, false, null);
+            ? DB::transaction(fn () => $this->execute($schoolId, $referenceYear, $minutes, true, $expectedSnapshot, $regularOnly, $originalImportMinutes))
+            : $this->execute($schoolId, $referenceYear, $minutes, false, null, $regularOnly, $originalImportMinutes);
     }
 
-    private function execute(int $schoolId, int $referenceYear, int $minutes, bool $apply, ?string $expectedSnapshot): array
+    private function execute(int $schoolId, int $referenceYear, int $minutes, bool $apply, ?string $expectedSnapshot,
+        bool $regularOnly, ?int $originalImportMinutes): array
     {
         $years = AcademicYear::where('school_id', $schoolId)->where('reference_year', $referenceYear)
+            ->when($regularOnly, fn ($q) => $q->whereHas('courses', fn ($courses) => $courses->whereIn('stage', ['fundamental', 'medio']))
+                ->whereDoesntHave('courses', fn ($courses) => $courses->where('stage', AcademicCourse::STAGE_TECHNICAL)))
             ->when($apply, fn ($q) => $q->lockForUpdate())->orderBy('id')->get();
         if ($years->isEmpty() || $years->contains(fn ($year) => $year->ends_at && $year->ends_at->year !== $referenceYear)) {
             throw new RuntimeException('Ano escolar ausente ou plurianual: a correção precisa de um calendário anual definido.');
         }
         $courses = AcademicCourse::with('components')->whereIn('academic_year_id', $years->pluck('id'))
+            ->when($regularOnly, fn ($q) => $q->whereIn('stage', ['fundamental', 'medio']))
             ->when($apply, fn ($q) => $q->lockForUpdate())->orderBy('id')->get();
         $classes = SchoolClass::whereIn('academic_year_id', $years->pluck('id'))->orderBy('id')->get();
         $enrollments = StudentEnrollment::whereIn('school_class_id', $classes->pluck('id'))->orderBy('id')->get();
         $histories = StudentAcademicHistoryYear::with('records.component')->whereIn('student_enrollment_id', $enrollments->pluck('id'))
             ->where('source', 'system')->orderBy('id')->get();
-        $snapshot = [
+        $snapshot = ['regular_only' => $regularOnly, 'original_import_minutes' => $originalImportMinutes,
             'years' => $years->map->getAttributes()->all(), 'classes' => $classes->map->getAttributes()->all(),
             'courses' => $courses->map(fn ($row) => $row->getAttributes() + ['components' => $row->components->sortBy('id')->map->getAttributes()->values()->all()])->all(),
             'enrollments' => $enrollments->map->getAttributes()->all(), 'histories' => $histories->toArray(),
@@ -51,6 +57,7 @@ final class SchoolYearClassHourCorrection
         $componentChanges = [];
         foreach ($courses as $course) {
             $oldMinutes = (int) $course->class_hour_minutes;
+            $importMinutes = $originalImportMinutes ?? $oldMinutes;
             $preview = clone $course;
             $preview->class_hour_minutes = $minutes;
             $hasCalculatedChange = false;
@@ -59,10 +66,10 @@ final class SchoolYearClassHourCorrection
                 $newWorkload = $component->workload_hours;
                 $newWeekly = $component->weekly_lessons;
                 $legacyHours = $component->legacy_metadata['horas'] ?? null;
-                if ($oldMinutes > 0 && $oldMinutes !== $minutes && is_numeric($legacyHours) && (float) $legacyHours > 0
+                if ($importMinutes > 0 && $importMinutes !== $minutes && is_numeric($legacyHours) && (float) $legacyHours > 0
                     && $component->legacy_source && $component->legacy_source === $course->legacy_source) {
-                    $importedWeekly = max(1, (int) round(((float) $legacyHours * 60) / ($oldMinutes * 40)));
-                    $importedHours = (int) round(($importedWeekly * $oldMinutes * 40) / 60);
+                    $importedWeekly = max(1, (int) round(((float) $legacyHours * 60) / ($importMinutes * 40)));
+                    $importedHours = (int) round(($importedWeekly * $importMinutes * 40) / 60);
                     // Reconhece exatamente a conversão produzida pelo importador.
                     // Valores já corrigidos ou editados manualmente são preservados.
                     if ($component->weekly_lessons === $importedWeekly && $component->workload_hours !== null
@@ -88,6 +95,7 @@ final class SchoolYearClassHourCorrection
         $result = [
             'mode' => $apply ? 'apply' : 'dry-run', 'school_id' => $schoolId, 'reference_year' => $referenceYear,
             'class_hour_minutes' => $minutes, 'snapshot_sha256' => $hash, 'diary_sha256' => $snapshot['diary_sha256'],
+            'regular_only' => $regularOnly, 'original_import_minutes' => $originalImportMinutes,
             'classes_count' => $classes->count(), 'courses_count' => $courses->count(),
             'academic_years_to_update' => $years->where('class_hour_minutes', '!=', $minutes)->count(),
             'courses_to_update' => count($changes), 'components_to_restore' => count($componentChanges),
