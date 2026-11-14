@@ -155,10 +155,14 @@ def main():
             stdin.flush()
             stdin.channel.shutdown_write()
             raw = stdout.read()
-            stderr.read()
+            private_error = stderr.read()
             code = stdout.channel.recv_exit_status()
             if code:
-                raise RuntimeError('Consulta remota falhou; saída privada omitida.')
+                # Falhas também ficam criptografadas, sem perder a causa real
+                # nem publicar registros escolares no log do Actions.
+                raw = json.dumps({'diagnosis_failed': True, 'exit_code': code,
+                                  'output': raw.decode(errors='replace'),
+                                  'error': private_error.decode(errors='replace')}).encode()
             json.loads(raw)
         finally:
             client.close()
