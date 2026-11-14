@@ -634,6 +634,7 @@ class TeacherDiaryController extends Controller
         $this->ensurePeriodOpen($schoolClass, $component, $period);
         $assignment = SchoolClassComponent::query()->where('school_class_id', $schoolClass->id)->where('curriculum_component_id', $component->id)->firstOrFail();
         $enrollmentIds = $this->activeEnrollments($schoolClass)->pluck('id')->all();
+        $attendanceEnrollments = StudentEnrollment::whereIn('id', $enrollmentIds)->get()->keyBy('id');
 
         $data = $request->validate([
             'academic_period_id' => ['required', Rule::in([$period->id])],
@@ -680,7 +681,7 @@ class TeacherDiaryController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($days, $data, $schoolClass, $component, $assignment, $period, $enrollmentIds, $request): void {
+        DB::transaction(function () use ($days, $data, $schoolClass, $component, $assignment, $period, $enrollmentIds, $attendanceEnrollments, $request): void {
             SchoolClassComponent::query()->whereKey($assignment->id)->lockForUpdate()->firstOrFail();
             $excludedDates = $this->excludedDiaryDates($assignment, $period);
             foreach ($days as $day) {
@@ -721,6 +722,9 @@ class TeacherDiaryController extends Controller
                 $record->save();
 
                 foreach ($enrollmentIds as $enrollmentId) {
+                    if (! $attendanceEnrollments[$enrollmentId]->includesAttendanceDate($day->date)) {
+                        continue;
+                    }
                     $unrecorded = in_array($enrollmentId, $record->legacy_metadata['unrecorded_enrollment_ids'] ?? [], true)
                         && ! $record->entries()->where('student_enrollment_id', $enrollmentId)->exists();
                     if ($unrecorded && empty($data['resolve_unrecorded'][$date][$enrollmentId])) {

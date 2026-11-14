@@ -55,6 +55,30 @@ class TeacherDiaryTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_every_component_rejects_attendance_before_the_receiving_enrollment_starts(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $other = $component->course->components()->create(['name' => 'Arte', 'weekly_lessons' => 1, 'active' => true]);
+        $class->componentAssignments()->create(['curriculum_component_id' => $other->id, 'teacher_person_id' => $teacher->person_id, 'active' => true]);
+        $enrollment->update(['enrolled_at' => '2026-03-12', 'reclassified_at' => '2026-03-12']);
+        $data = ['academic_period_id' => $period->id, 'scheduled_dates' => ['2026-03-11'],
+            'starts_at' => '2026-03-11', 'ends_at' => '2026-03-11',
+            'lesson_counts' => ['2026-03-11' => 1], 'attendance' => ['2026-03-11' => [$enrollment->id => [1 => '1']]]];
+        foreach ([$component, $other] as $subject) {
+            $this->actingAs($teacher)->put(route('teacher-diaries.attendance.batch-update', [$class, $subject]), $data)
+                ->assertSessionHasNoErrors();
+        }
+        $this->assertSame(0, $enrollment->attendanceEntries()->count());
+        $this->actingAs($teacher)->get(route('teacher-diaries.attendance', [$class, $component, 'period' => $period->id]))
+            ->assertOk()->assertSee('Fora do período da matrícula');
+        $enrollment->update(['enrolled_at' => '2026-03-11', 'reclassified_at' => '2026-03-11']);
+        foreach ([$component, $other] as $subject) {
+            $this->actingAs($teacher)->put(route('teacher-diaries.attendance.batch-update', [$class, $subject]), $data)
+                ->assertSessionHasNoErrors();
+        }
+        $this->assertSame(2, $enrollment->attendanceEntries()->count());
+    }
+
     public function test_unrecorded_attendance_is_not_silently_converted_into_absence_when_saving_other_calls(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();

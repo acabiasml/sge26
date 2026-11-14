@@ -78,8 +78,10 @@
                                             @php($entry = $record?->entries->firstWhere('student_enrollment_id', $enrollment->id))
                                             @php($presence = old('attendance.'.$date.'.'.$enrollment->id, $entry?->lesson_presence ?? []))
                                             @php($unrecorded = ! $entry && in_array($enrollment->id, $record?->legacy_metadata['unrecorded_enrollment_ids'] ?? [], true))
+                                            @php($outsideEnrollment = ! $enrollment->includesAttendanceDate($day->date))
                                             @php($justified = ($justifications->where('student_enrollment_id', $enrollment->id))->contains(fn ($justification) => $justification->appliesTo($date)))
                                             <td class="text-center {{ $justified ? 'sge-attendance-justified' : '' }}" data-attendance-cell data-date="{{ $date }}">
+                                                @if($outsideEnrollment)<span class="d-block small text-muted">{{ __('Fora do período da matrícula') }}</span>@endif
                                                 @if($unrecorded)
                                                     <span class="d-block small text-muted">{{ __('Sem lançamento') }}</span>
                                                     @unless($enrollmentLocked)
@@ -90,7 +92,7 @@
                                                     @for ($lesson = 1; $lesson <= 24; $lesson++)
                                                         @php($isPresent = array_is_list((array) $presence) ? (bool) data_get($presence, $lesson - 1, false) : (bool) data_get($presence, $lesson, false))
                                                         <span data-lesson-checkbox="{{ $lesson }}">
-                                                            <input id="attendance_{{ $date }}_{{ $enrollment->id }}_{{ $lesson }}" name="attendance[{{ $date }}][{{ $enrollment->id }}][{{ $lesson }}]" type="checkbox" value="1" data-locked="{{ $enrollmentLocked ? '1' : '0' }}" @checked($isPresent) @disabled($enrollmentLocked)>
+                                                            <input id="attendance_{{ $date }}_{{ $enrollment->id }}_{{ $lesson }}" name="attendance[{{ $date }}][{{ $enrollment->id }}][{{ $lesson }}]" type="checkbox" value="1" data-locked="{{ $enrollmentLocked || $outsideEnrollment ? '1' : '0' }}" @checked($isPresent) @disabled($enrollmentLocked || $outsideEnrollment)>
                                                             <label for="attendance_{{ $date }}_{{ $enrollment->id }}_{{ $lesson }}" title="{{ __('Aula') }} {{ $lesson }}"><span class="sr-only">{{ __('Presente na aula') }} {{ $lesson }}</span>{{ $lesson }}</label>
                                                         </span>
                                                     @endfor

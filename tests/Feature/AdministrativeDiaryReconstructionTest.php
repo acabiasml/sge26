@@ -37,6 +37,8 @@ class AdministrativeDiaryReconstructionTest extends TestCase
         $calls = DiaryAttendanceRecord::where('curriculum_component_id', $component->id)->orderBy('class_date')->get();
         $this->assertCount(3, $calls);
         $this->assertNull($calls[0]->teacher_person_id);
+        $this->assertNull($calls[0]->legacy_id);
+        $this->assertStringContainsString($manifest['batch_id'], $calls[0]->legacy_metadata['administrative_record_key']);
         $this->assertSame('presente', $calls[0]->entries->firstWhere('student_enrollment_id', $departed->id)->status);
         $this->assertSame('falta', $calls[1]->entries->sole()->status);
         $this->assertSame(0, $calls[1]->entries->sole()->attended_lessons);
@@ -111,6 +113,29 @@ class AdministrativeDiaryReconstructionTest extends TestCase
         $manifest['diaries'][0]['sessions'][1]['roster'][] = ['enrollment_id' => $departed->id, 'status' => 'presente', 'source_record_ids' => []];
         $this->expectExceptionMessage('vínculos vigentes');
         app(AdministrativeDiaryReconstruction::class)->reconcile($manifest);
+    }
+
+    public function test_new_first_period_hours_are_credited_to_the_receiving_class_without_creating_duplicate_calls(): void
+    {
+        [$manifest, $class, $component, $origin] = $this->scenario();
+        $year = $class->academicYear;
+        $year->periods()->create(['name' => 'II Bimestre', 'position' => 2, 'starts_at' => '2025-05-01', 'ends_at' => '2025-07-01']);
+        $origin->update(['status' => 'reclassificado', 'reclassified_at' => '2025-05-01']);
+        $course = $year->courses()->create(['name' => '1º Ano', 'stage' => 'medio', 'class_hour_minutes' => 60]);
+        $targetComponent = $course->components()->create(['name' => 'Arte', 'active' => true, 'workload_hours' => 4]);
+        $destinationClass = $year->classes()->create(['name' => '1º Ano']);
+        $destinationClass->courses()->attach($course);
+        $destination = $destinationClass->enrollments()->create(['person_id' => $origin->person_id, 'status' => 'matriculado',
+            'enrolled_at' => '2025-05-01', 'reclassified_at' => '2025-05-01', 'reclassified_from_enrollment_id' => $origin->id]);
+        $destination->courses()->attach($course);
+        $service = app(AdministrativeDiaryReconstruction::class);
+        $plan = $service->reconcile($manifest);
+        $service->reconcile($manifest, true, $plan['snapshot_sha256']);
+        $credit = $destination->periodConvalidations()->where('curriculum_component_id', $targetComponent->id)->sole();
+        $this->assertSame(120, $credit->verified_diary_attended_minutes);
+        $this->assertSame(3, $credit->attendance_lessons);
+        $this->assertStringContainsString('recomposição administrativa auditada', $credit->notes);
+        $this->assertSame(0, $destination->attendanceEntries()->count());
     }
 
     private function scenario(): array
