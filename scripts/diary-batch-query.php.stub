@@ -53,10 +53,20 @@ try {
         echo json_encode([
             'as_of' => now()->toIso8601String(), 'source' => $config['source'],
             'missing' => $requests->reject(fn ($row) => $found->contains($row['key']))->values(),
+            'selected_student' => ($config['person_id'] ?? 0) > 0 ? App\Models\StudentEnrollment::where('person_id', $config['person_id'])
+                ->whereHas('schoolClass.academicYear', fn ($q) => $q->where('legacy_source', $config['source']))
+                ->with(['schoolClass.academicYear', 'courses.components.area'])->orderBy('id')->get()->map(fn ($e) => [
+                    'enrollment' => $e->only(['id', 'person_id', 'school_class_id', 'status', 'final_result_status', 'final_result_details']),
+                    'reference_year' => $e->schoolClass->academicYear->reference_year,
+                    'course_ids' => $e->courses->pluck('id'),
+                    'calculated_result' => app(App\Support\StudentFinalResultCalculator::class)->calculate($e),
+                ]) : [],
             'classes' => $classes->map(function ($class) {
                 $year = $class->academicYear;
                 return [
                     'class' => $class->getAttributes(),
+                    'enrollment_count' => $class->enrollments()->count(),
+                    'attendance_record_count' => $class->diaryAttendanceRecords()->count(),
                     'academic_year' => $year->only(['id', 'school_id', 'reference_year', 'class_hour_minutes', 'minimum_school_days', 'starts_at', 'ends_at', 'closed_at']),
                     'periods' => $year->periods->map(fn ($period) => $period->only(['id', 'position', 'name', 'starts_at', 'ends_at'])
                         + ['school_days' => $year->days->where('counts_as_school_day', true)->filter(fn ($day) => $day->date->betweenIncluded($period->starts_at, $period->ends_at))->count()]),
@@ -66,6 +76,7 @@ try {
                         'components' => $course->components->map(fn ($component) => [
                             'component' => $component->getAttributes(),
                             'area' => $component->area?->only(['id', 'name', 'formation']),
+                            'catalog' => $component->historyCatalogEntries->map->only(['id', 'name', 'formation', 'education_stage', 'knowledge_area_id']),
                             'calculated_hours' => $component->calculatedWorkloadHours($course),
                             'active_period_ids' => $year->periods->filter(fn ($period) => $component->isActiveInPeriod($period)
                                 && (! $course->startsPeriod || $period->position >= $course->startsPeriod->position)
