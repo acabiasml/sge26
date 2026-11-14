@@ -65,10 +65,28 @@ try {
     $legacyEnrollments = is_file($path) ? collect($readTable($path, 'turmas'))->filter(fn ($r) => $people->contains(fn ($p) => (int) $p->legacy_id === (int) $r['users_id']))->values() : collect();
     $legacyCourses = is_file($path) ? collect($readTable($path, 'cursos'))->whereIn('id', $legacyEnrollments->pluck('cursos_id'))->map(fn ($r) =>
         Illuminate\Support\Arr::only($r, ['id', 'nome', 'modalidade', 'status', 'calendarios_id', 'inicio', 'fim']))->values() : collect();
-    $enrollments = App\Models\StudentEnrollment::whereIn('person_id', $config['person_ids'])
+    $normalizeName = fn ($name) => preg_replace('/[^a-z0-9]+/', '', strtolower(Illuminate\Support\Str::ascii($name)));
+    $names = $people->map(fn ($p) => $normalizeName($p->full_name));
+    $nameMatches = App\Models\Person::query()->where(function ($query) use ($people): void {
+        foreach ($people as $person) {
+            $prefix = implode(' ', array_slice(explode(' ', $person->full_name), 0, 2));
+            $query->orWhere('full_name', 'like', $prefix.'%');
+        }
+    })->get(['id', 'full_name', 'legacy_source', 'legacy_id'])->filter(fn ($p) => $names->contains($normalizeName($p->full_name)))->values();
+    $matchingIds = $people->pluck('id')->merge($nameMatches->pluck('id'))->unique()->values();
+    $enrollments = App\Models\StudentEnrollment::whereIn('person_id', $matchingIds)
         ->with(['schoolClass.academicYear', 'courses'])->orderBy('id')->get();
+    $classes2026 = App\Models\SchoolClass::whereHas('academicYear', fn ($q) => $q->where('school_id', $config['school_id'])->where('reference_year', 2026))
+        ->with(['academicYear', 'courses', 'enrollments' => fn ($q) => $q->whereIn('person_id', $matchingIds)])
+        ->withCount('enrollments')->orderBy('id')->get();
     echo json_encode([
-        'as_of' => now()->toIso8601String(), 'people' => $people, 'course' => $course, 'class' => $class,
+        'as_of' => now()->toIso8601String(), 'people' => $people, 'name_matches' => $nameMatches, 'course' => $course, 'class' => $class,
+        'diaries_2026' => $classes2026->map(fn ($c) => ['class' => $c->only(['id', 'name', 'enrollments_count']),
+            'academic_year' => $c->academicYear->only(['id', 'reference_year', 'school_id']),
+            'courses' => $c->courses->map->only(['id', 'name', 'stage']), 'matching_enrollments' => $c->enrollments]),
+        'matched_attendance_2026' => App\Models\DiaryAttendanceEntry::whereHas('enrollment', fn ($q) => $q->whereIn('person_id', $matchingIds))
+            ->whereHas('record', fn ($q) => $q->whereYear('class_date', 2026)->whereHas('schoolClass.academicYear', fn ($y) => $y->where('school_id', $config['school_id'])))
+            ->with('record')->orderBy('id')->get(),
         'timeline' => $enrollments->map(fn ($e) => ['enrollment' => $e->getAttributes(), 'attendance_ends_at' => $e->attendanceEndsAt(),
             'class' => $e->schoolClass->only(['id', 'name']), 'academic_year' => $e->schoolClass->academicYear->only(['id', 'school_id', 'reference_year', 'starts_at', 'ends_at']),
             'course_ids' => $e->courses->pluck('id')]),

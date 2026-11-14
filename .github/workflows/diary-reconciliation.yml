@@ -12,6 +12,7 @@ on:
       - app/Support/DocumentedDiaryImporter.php
       - app/Support/TechnicalGradeCompleter.php
       - app/Support/TechnicalPdfGradeCorrection.php
+      - app/Support/TechnicalLegacyEnrollmentRestorer.php
       - app/Support/EnglishSemesterScheduleCorrection.php
       - app/Support/EnglishComponentUnifier.php
       - app/Support/LegacyDiaryBatchReconciler.php
