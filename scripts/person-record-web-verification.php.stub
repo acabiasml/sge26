@@ -24,9 +24,29 @@ try {
         ->withHeaders(['Cookie' => $name.'='.rawurlencode($cookie), 'Accept' => 'application/pdf'])
         ->get('https://ctjj.org/sge/pessoas/'.$person->id.'/pdf');
     $body = $response->body();
+    $profile = Illuminate\Support\Facades\Http::withoutRedirecting()->timeout(30)
+        ->withHeaders(['Cookie' => $name.'='.rawurlencode($cookie)])
+        ->get('https://ctjj.org/sge/pessoas/'.$person->id);
+    $scriptStatus = null;
+    $scriptMatches = false;
+    if (preg_match('~<script src="([^"]*sge-pdf-emission\.js[^"]*)"~', $profile->body(), $matches)) {
+        $scriptUrl = html_entity_decode($matches[1], ENT_QUOTES);
+        if (str_starts_with($scriptUrl, 'https://ctjj.org/sge/')) {
+            $script = Illuminate\Support\Facades\Http::timeout(20)->get($scriptUrl);
+            $scriptStatus = $script->status();
+            $scriptMatches = $script->successful() && hash_equals(hash_file('sha256', public_path('template/js/sge-pdf-emission.js')), hash('sha256', $script->body()));
+        }
+    }
+    // Conferir o redirecionamento não emite outro PDF nem altera registros escolares.
+    $issuance = Illuminate\Support\Facades\Http::withoutRedirecting()->timeout(30)
+        ->withHeaders(['Cookie' => $name.'='.rawurlencode($cookie)])
+        ->get('https://ctjj.org/sge/emissao-de-documentos/emitir', ['type' => 'person-record', 'target_id' => $person->id,
+            'emissao' => (string) Illuminate\Support\Str::uuid()]);
     $latest = App\Models\IssuedDocument::where('type', 'person-record')->where('person_id', $person->id)->latest('id')->first();
     echo json_encode(['as_of' => now()->toIso8601String(), 'person_id' => $person->id, 'status' => $response->status(),
-        'headers' => collect($response->headers())->filter(fn ($v, $k) => in_array(strtolower($k), ['content-type', 'content-disposition', 'cache-control', 'age', 'x-litespeed-cache', 'cf-cache-status', 'location'], true)),
+        'headers' => collect($response->headers())->filter(fn ($v, $k) => in_array(strtolower($k), ['content-type', 'content-disposition', 'cache-control', 'pragma', 'expires', 'cdn-cache-control', 'age', 'x-litespeed-cache', 'cf-cache-status', 'location'], true)),
+        'profile_status' => $profile->status(), 'emission_script_status' => $scriptStatus, 'emission_script_matches_deploy' => $scriptMatches,
+        'issuance_status' => $issuance->status(), 'issuance_location' => $issuance->header('Location'),
         'pdf_base64' => str_starts_with($body, '%PDF-') ? base64_encode($body) : null,
         'issued_document_id_before' => $document->id, 'issued_document_id_after' => $latest?->id,
         'opcache_validate_timestamps_cli' => ini_get('opcache.validate_timestamps'),
