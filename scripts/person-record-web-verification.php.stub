@@ -1,0 +1,35 @@
+<?php
+
+// Emissão real pelo mesmo endereço web. Sessão temporária fica só no servidor
+// e é removida ao terminar; nenhum dado de autenticação integra o relatório.
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$person = App\Models\Person::findOrFail(__PERSON_ID__);
+$document = App\Models\IssuedDocument::where('type', 'person-record')->where('person_id', $person->id)->latest('id')->firstOrFail();
+$viewer = $document->issuedBy;
+if (! $viewer || ! $viewer->canManagePeople()) { throw new RuntimeException('Emissão de conferência limitada à gestão já identificada na emissão da pessoa.'); }
+Illuminate\Support\Facades\Auth::setUser($viewer);
+$session = app('session.store');
+$session->setId(Illuminate\Support\Str::random(40));
+$session->start();
+$session->put(Illuminate\Support\Facades\Auth::guard('web')->getName(), $viewer->id);
+$session->save();
+$sessionId = $session->getId();
+try {
+    $name = config('session.cookie');
+    $encrypter = app('encrypter');
+    $cookie = $encrypter->encrypt(Illuminate\Cookie\CookieValuePrefix::create($name, $encrypter->getKey()).$sessionId, false);
+    $response = Illuminate\Support\Facades\Http::withoutRedirecting()->timeout(45)
+        ->withHeaders(['Cookie' => $name.'='.rawurlencode($cookie), 'Accept' => 'application/pdf'])
+        ->get('https://ctjj.org/sge/pessoas/'.$person->id.'/pdf');
+    $body = $response->body();
+    $latest = App\Models\IssuedDocument::where('type', 'person-record')->where('person_id', $person->id)->latest('id')->first();
+    echo json_encode(['as_of' => now()->toIso8601String(), 'person_id' => $person->id, 'status' => $response->status(),
+        'headers' => collect($response->headers())->filter(fn ($v, $k) => in_array(strtolower($k), ['content-type', 'content-disposition', 'cache-control', 'age', 'x-litespeed-cache', 'cf-cache-status', 'location'], true)),
+        'pdf_base64' => str_starts_with($body, '%PDF-') ? base64_encode($body) : null,
+        'issued_document_id_before' => $document->id, 'issued_document_id_after' => $latest?->id,
+        'opcache_validate_timestamps_cli' => ini_get('opcache.validate_timestamps'),
+        'opcache_revalidate_freq_cli' => ini_get('opcache.revalidate_freq'),
+        'temporary_session_removed' => true], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally { $session->getHandler()->destroy($sessionId); }

@@ -15,6 +15,7 @@ on:
   push:
     branches: [main]
     paths:
+      - scripts/person-record-web-verification.php.stub
       - scripts/person-record-verification.php.stub
       - scripts/diary-restoration-proposal-query.php.stub
       - scripts/school-diary-completion-query.php.stub
