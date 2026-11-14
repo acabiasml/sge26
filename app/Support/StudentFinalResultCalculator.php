@@ -31,6 +31,21 @@ class StudentFinalResultCalculator
             return $this->movementResult(StudentEnrollment::FINAL_CANCELLED, 'Matrícula cancelada.');
         }
 
+        $verified = $enrollment->legacy_metadata['verified_final_result'] ?? [];
+        if ($enrollment->status === StudentEnrollment::STATUS_ENROLLED
+            && ($verified['confirmed_by_management'] ?? false) === true
+            && ($verified['status'] ?? null) === StudentEnrollment::FINAL_APPROVED
+            && ($verified['enrollment_id'] ?? null) === $enrollment->id
+            && ($verified['person_id'] ?? null) === $enrollment->person_id
+            && ($verified['school_class_id'] ?? null) === $enrollment->school_class_id
+            && ($verified['reference_year'] ?? null) === $enrollment->schoolClass->academicYear->reference_year
+            && ! empty($verified['source_documents'])) {
+            return ['status' => StudentEnrollment::FINAL_APPROVED, 'details' => [
+                'reason' => $verified['reason'], 'basis' => 'verified_legacy_result',
+                'source_documents' => $verified['source_documents'],
+            ]];
+        }
+
         $report = $this->reportCardBuilder->build($enrollment);
         $academicYear = $report['academicYear'];
         $school = $academicYear->school;

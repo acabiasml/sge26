@@ -65,6 +65,7 @@ $service = match ($config['operation'] ?? '') {
     'technical-legacy-enrollments' => App\Support\TechnicalLegacyEnrollmentRestorer::class,
     'enrollment-non-renewal' => App\Support\EnrollmentNonRenewalCorrection::class,
     'verified-matrix-correction' => App\Support\VerifiedMatrixCorrection::class,
+    'verified-legacy-approval' => App\Support\VerifiedLegacyOutcomeCorrection::class,
     default => App\Support\LegacyClassDiaryReconciler::class,
 };
 $result = app($service)->reconcile(

@@ -29,6 +29,7 @@ try {
         'issuance_targets' => $eligible->map(fn ($history) => [
             'id' => $history->id, 'education_stage' => $history->education_stage,
             'grades' => $history->years->pluck('grade_number')->filter()->unique()->sort()->values(),
+            'results' => $history->years->map->only(['id', 'student_enrollment_id', 'year', 'label', 'final_result']),
         ]),
     ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 } finally {

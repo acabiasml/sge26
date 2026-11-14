@@ -15,6 +15,7 @@ on:
       - app/Support/TechnicalLegacyEnrollmentRestorer.php
       - app/Support/EnrollmentNonRenewalCorrection.php
       - app/Support/VerifiedMatrixCorrection.php
+      - app/Support/VerifiedLegacyOutcomeCorrection.php
       - app/Support/EnglishSemesterScheduleCorrection.php
       - app/Support/EnglishComponentUnifier.php
       - app/Support/LegacyDiaryBatchReconciler.php
