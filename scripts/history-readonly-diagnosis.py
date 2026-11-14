@@ -21,7 +21,8 @@ def main():
             raise ValueError('Escopo manual inválido.')
         query['scope'] = requested_scope
     scope = query.get('scope', 'student')
-    sources = {'diary-restoration-proposal': 'scripts/diary-restoration-proposal-query.php.stub',
+    sources = {'person-record-verification': 'scripts/person-record-verification.php.stub',
+               'diary-restoration-proposal': 'scripts/diary-restoration-proposal-query.php.stub',
                'school-diary-completion': 'scripts/school-diary-completion-query.php.stub',
                'history-pdf-verification': 'scripts/history-pdf-verification.php.stub',
                'high-school-cohorts': 'scripts/high-school-cohorts-query.php.stub',
@@ -46,6 +47,8 @@ def main():
     if scope == 'history-pdf-verification':
         if type(query.get('person_id')) is not int or query['person_id'] <= 0 or type(query.get('history_id')) is not int or query['history_id'] <= 0:
             raise ValueError('Estudante e histórico obrigatórios para verificar a emissão com rollback.')
+    if scope == 'person-record-verification' and (type(query.get('person_id')) is not int or query['person_id'] <= 0):
+        raise ValueError('Pessoa obrigatória para conferir a ficha com rollback.')
     if scope == 'legacy-outcome-audit':
         for field, maximum in [('school_ids', 3), ('class_ids', 40), ('candidate_enrollment_ids', 500)]:
             ids = query.get(field, [])

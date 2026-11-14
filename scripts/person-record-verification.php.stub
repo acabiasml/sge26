@@ -1,0 +1,41 @@
+<?php
+
+// Confere a emissão da ficha indicada; nenhum protocolo ou cadastro é persistido.
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $person = App\Models\Person::findOrFail(__PERSON_ID__);
+    $recent = App\Models\IssuedDocument::where('person_id', $person->id)->where('type', 'person-record')->latest('id')->limit(3)->get();
+    $viewer = $recent->first()?->issuedBy ?? App\Models\User::whereHas('person.schoolRoles', fn ($q) => $q
+        ->where('role', 'administrador')->where('active', true))->firstOrFail();
+    Illuminate\Support\Facades\Auth::setUser($viewer);
+    $request = Illuminate\Http\Request::create('/pessoas/'.$person->id.'/pdf', 'GET');
+    $request->setUserResolver(fn () => $viewer);
+    $request->setLaravelSession(app('session.store'));
+    $path = app('view')->getFinder()->find('reports.records.person');
+    $compiled = app('blade.compiler')->getCompiledPath($path);
+    $files = static function () use ($path, $compiled): array {
+        return ['template_path' => $path, 'template_sha256' => hash_file('sha256', $path), 'template_mtime' => filemtime($path),
+            'template_has_trajectory' => str_contains(file_get_contents($path), 'Trajetória e movimentações'),
+            'compiled_path' => $compiled, 'compiled_exists' => is_file($compiled),
+            'compiled_mtime' => is_file($compiled) ? filemtime($compiled) : null,
+            'compiled_has_trajectory' => is_file($compiled) ? str_contains(file_get_contents($compiled), 'Trajetória e movimentações') : null];
+    };
+    $beforeFiles = $files();
+    $trajectory = app(App\Support\PersonTrajectory::class)->build($person, $viewer);
+    $response = app(App\Http\Controllers\RecordPdfController::class)->person($request, $person);
+    $content = $response->getContent();
+    echo json_encode(['as_of' => now()->toIso8601String(), 'person_id' => $person->id,
+        'viewer_role' => $viewer->currentView(), 'viewer_id' => $viewer->id,
+        'groups' => collect($trajectory['groups'])->map(fn ($g) => ['label' => $g['label'], 'entries' => $g['entries']]),
+        'recent_issued' => $recent->map->only(['id', 'issued_at', 'issued_by_user_id']),
+        'files_before' => $beforeFiles, 'files_after' => $files(),
+        'status' => $response->getStatusCode(), 'headers' => $response->headers->all(),
+        'pdf_base64' => str_starts_with($content, '%PDF-') ? base64_encode($content) : null,
+        'route_action' => app('router')->getRoutes()->match($request)->getActionName(),
+        'public_index_sha256' => hash_file('sha256', public_path('index.php')),
+        'opcache_cli_enabled' => ini_get('opcache.enable_cli'),
+        'rolled_back' => true], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally { Illuminate\Support\Facades\DB::rollBack(); }
