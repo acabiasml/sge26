@@ -28,7 +28,7 @@ final class DocumentedDiaryImporter
             $diaries = $manifest['diaries'] ?? [];
             $this->check(is_array($diaries) && count($diaries) >= 1 && count($diaries) <= 20
                 && count(array_unique(array_column($diaries, 'assignment_id'))) === count($diaries), 'Diários duplicados ou inválidos.');
-            $matrixChanges = $this->matrixChanges($manifest, $diaries);
+            $matrixChanges = $this->matrixChanges($manifest, $diaries, $apply);
             $previous = $this->previousImport($manifest);
             $replacedRecords = collect();
             $replacedContents = collect();
@@ -187,14 +187,14 @@ final class DocumentedDiaryImporter
     }
 
     /** Correção opcional e explícita, limitada aos componentes técnicos deste lote. */
-    private function matrixChanges(array $manifest, array $diaries): array
+    private function matrixChanges(array $manifest, array $diaries, bool $apply): array
     {
         $definitions = $manifest['matrix_workloads'] ?? [];
         $this->check(is_array($definitions) && count($definitions) <= 20
             && count(array_unique(array_column($definitions, 'component_id'))) === count($definitions), 'Correções de matriz inválidas.');
         $changes = [];
         foreach ($definitions as $definition) {
-            $component = CurriculumComponent::with('course.academicYear')->findOrFail($definition['component_id'] ?? 0);
+            $component = CurriculumComponent::with('course.academicYear')->when($apply, fn ($query) => $query->lockForUpdate())->findOrFail($definition['component_id'] ?? 0);
             $hours = $definition['workload_hours'] ?? null;
             $before = $definition['previous_calculated_hours'] ?? null;
             $current = $component->calculatedWorkloadHours();
