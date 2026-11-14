@@ -106,8 +106,12 @@ final class LegacyClassDiaryReconciler
             $seenStudents = [];
             foreach ($document['students'] as $student) {
                 $enrollment = $enrollments->get($this->normalized($student['student_name']));
-                $this->require($enrollment && $enrollment->student->legacy_source === $target['source']
-                    && (int) $enrollment->student->legacy_id === (int) $student['legacy_student_id'], 'A identidade de um estudante diverge do documento.');
+                $imported = $enrollment?->legacy_metadata['latest_imported_row'] ?? [];
+                $sourceIdentity = $enrollment && ($enrollment->student->legacy_source === $target['source']
+                    || ($enrollment->legacy_source === $target['source'] && $class->legacy_source === $target['source']
+                        && (int) ($imported['users_id'] ?? 0) === (int) ($student['original_legacy_student_id'] ?? $student['legacy_student_id'])
+                        && (int) ($imported['cursos_id'] ?? 0) === (int) $class->legacy_id));
+                $this->require($sourceIdentity && (int) $enrollment->student->legacy_id === (int) $student['legacy_student_id'], 'A identidade de um estudante diverge do documento.');
                 $seenStudents[] = $enrollment->person_id;
                 foreach ($student['grades'] as $position => $score) {
                     // A conferência compara as notas persistidas, inclusive as

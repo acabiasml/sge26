@@ -356,6 +356,20 @@ class LegacyClassDiaryReconcilerTest extends TestCase
         $this->assertSame(0, $service->reconcile($manifest)['stats']['entries_to_create']);
     }
 
+    public function test_person_shared_between_schools_requires_original_enrollment_identity_for_the_source(): void
+    {
+        [$manifest, , $class, $enrollment] = $this->scenario();
+        $class->update(['legacy_source' => 'laura', 'legacy_id' => 5]);
+        $enrollment->student->update(['legacy_source' => 'lar']);
+        $enrollment->update(['legacy_source' => 'laura', 'legacy_metadata' => ['latest_imported_row' => ['users_id' => '760', 'cursos_id' => '5']]]);
+        $manifest['documents'][0]['students'][0]['original_legacy_student_id'] = 760;
+        $service = app(LegacyClassDiaryReconciler::class);
+        $this->assertSame(1, $service->reconcile($manifest)['stats']['calls_to_create']);
+        $enrollment->update(['legacy_metadata' => ['latest_imported_row' => ['users_id' => '999', 'cursos_id' => '5']]]);
+        $this->expectExceptionMessage('identidade');
+        $service->reconcile($manifest);
+    }
+
     private function reenrollmentScenario(): array
     {
         [$manifest, $course, $class, $enrollment] = $this->scenario();
