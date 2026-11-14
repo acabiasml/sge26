@@ -1,5 +1,72 @@
 {
-  "operation": "management-grade-default",
-  "school_id": 1,
-  "mode": "dry-run"
+  "operation": "technical-matrix-workloads",
+  "mode": "dry-run",
+  "matrix": {
+    "format": "documented-technical-matrix-workloads-v1",
+    "user_confirmed": true,
+    "school_id": 1,
+    "course_id": 48,
+    "reference_year": 2025,
+    "source_pdf_sha256": "0b079b2d22f23e756fc609b18cdc8512b08dbf77d02ef210cb5c75226befe225",
+    "expected_module_hours": {
+      "48": 400,
+      "50": 400,
+      "51": 400
+    },
+    "expected_total_hours": 1200,
+    "components": [
+      {
+        "id": 554,
+        "workload_hours": 60
+      },
+      {
+        "id": 550,
+        "workload_hours": 60
+      },
+      {
+        "id": 549,
+        "workload_hours": 80
+      },
+      {
+        "id": 553,
+        "workload_hours": 80
+      },
+      {
+        "id": 542,
+        "workload_hours": 120
+      },
+      {
+        "id": 548,
+        "workload_hours": 80
+      },
+      {
+        "id": 543,
+        "workload_hours": 120
+      },
+      {
+        "id": 544,
+        "workload_hours": 60
+      },
+      {
+        "id": 545,
+        "workload_hours": 100
+      },
+      {
+        "id": 551,
+        "workload_hours": 120
+      },
+      {
+        "id": 555,
+        "workload_hours": 200
+      },
+      {
+        "id": 552,
+        "workload_hours": 60
+      },
+      {
+        "id": 557,
+        "workload_hours": 60
+      }
+    ]
+  }
 }

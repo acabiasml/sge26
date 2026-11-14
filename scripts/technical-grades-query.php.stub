@@ -12,7 +12,26 @@ try {
         ->when(isset($config['school_id']), fn ($q) => $q->whereHas('academicYear', fn ($year) => $year->where('school_id', $config['school_id'])))
         ->with(['academicYear.school', 'academicYear.periods.assessmentRules', 'components.startsPeriod', 'components.endsPeriod',
             'classes.startsPeriod', 'classes.endsPeriod', 'classes.enrollments.courses', 'classes.enrollments.student:id,full_name,legacy_source,legacy_id', 'startsPeriod', 'endsPeriod'])->orderBy('id')->get();
-    echo json_encode(['as_of' => now()->toIso8601String(), 'courses' => $courses->map(function ($course) {
+    $individualRecords = [];
+    if (($config['person_id'] ?? 0) > 0) {
+        foreach ($courses->flatMap->classes->flatMap->enrollments->where('person_id', $config['person_id'])->unique('id') as $enrollment) {
+            $report = app(App\Support\StudentReportCardBuilder::class)->build($enrollment);
+            $document = new App\Models\IssuedDocument(['issued_at' => now(), 'verification_code' => 'PREVIA-DIAGNOSTICO']);
+            $document->setRelation('issuedBy', null);
+            $pdf = Barryvdh\DomPDF\Facade\Pdf::loadView('reports.student-individual-record', [
+                'report' => $report, 'scoreView' => 'numeros', 'canChooseScoreView' => false,
+                'issuedDocument' => $document, 'verificationUrl' => '',
+                'letterhead' => App\Support\PdfLetterhead::make($report['academicYear']->school, $report['courses']->pluck('stage')->all()),
+            ])->setPaper('a4', 'portrait');
+            $individualRecords[] = ['enrollment_id' => $enrollment->id,
+                'planned_hours' => $report['annualComponents']->sum(fn ($row) => $row['planned_workload_hours'] ?? $row['component']->calculatedWorkloadHours()),
+                'completed_hours' => $report['annualComponents']->sum(fn ($row) => app(App\Support\AttendanceSummaryCalculator::class)->completedWorkloadHours($row['attendance'])),
+                'components' => $report['annualComponents']->map(fn ($row) => ['id' => $row['component']->id, 'name' => $row['component']->name,
+                    'planned_hours' => $row['planned_workload_hours'] ?? $row['component']->calculatedWorkloadHours()]),
+                'preview_pdf_base64' => base64_encode($pdf->output())];
+        }
+    }
+    echo json_encode(['as_of' => now()->toIso8601String(), 'individual_records' => $individualRecords, 'courses' => $courses->map(function ($course) {
         $classIds = $course->classes->pluck('id');
         $componentIds = $course->components->pluck('id');
         return [

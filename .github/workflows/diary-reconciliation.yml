@@ -20,6 +20,7 @@ on:
       - app/Support/TechnicalLegacyEnrollmentRestorer.php
       - app/Support/EnrollmentNonRenewalCorrection.php
       - app/Support/VerifiedMatrixCorrection.php
+      - app/Support/TechnicalMatrixWorkloadCorrection.php
       - app/Support/VerifiedLegacyOutcomeCorrection.php
       - app/Support/EnglishSemesterScheduleCorrection.php
       - app/Support/EnglishComponentUnifier.php
