@@ -1,1 +1,1 @@
-{"operation": "enrollment-non-renewal", "transport_key_id": "ecde46b7f7714ab29097433def5e0a18", "mode": "apply", "expected_snapshot_sha256": "572bc26fd6b3d0cdf1bd7cad73ffd53ee7d4353eadca52654e2a7cfb09c915c9"}
+{"operation": "enrollment-non-renewal", "transport_key_id": "ecde46b7f7714ab29097433def5e0a18", "mode": "dry-run"}
