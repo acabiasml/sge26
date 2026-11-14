@@ -10,6 +10,7 @@ on:
       - app/Support/LegacyClassDiaryReconciler.php
       - app/Support/DocumentedDiaryImporter.php
       - app/Support/TechnicalGradeCompleter.php
+      - app/Support/EnglishSemesterScheduleCorrection.php
       - app/Support/LegacyDiaryBatchReconciler.php
       - app/Support/LegacyEnrollmentEpisodeRestorer.php
       - app/Support/SchoolYearClassHourCorrection.php

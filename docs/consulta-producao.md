@@ -230,6 +230,17 @@ Outras escolas, anos, históricos recebidos e calendários plurianuais ficam
 fora dessa correção. Ao concluir, retorne a `mode: dry-run` e confirme que não
 resta duração ou conversão por ajustar.
 
+## Correção do horário de Inglês entre semestres
+
+A operação `english-semester-schedule` do workflow de reconciliação recebe
+`schedule_id`, `source_assignment_id`, `target_assignment_id`, `weekly_total`
+e `mode`. Confere a mesma turma, matriz, área e professora, com períodos sem
+sobreposição. Corrige somente a grade do segundo semestre para uma aula semanal
+de Inglês II e 14 aulas totais. Mantém as cargas, o calendário e todos os
+lançamentos, conferidos por hash antes e depois. Exige simulação, seu
+`expected_snapshot_sha256` para aplicar, cópia privada e auditoria. Após aplicar,
+retorne a `dry-run` e confirme zero horários a corrigir.
+
 ## Preenchimento pontual de notas dos cursos técnicos
 
 O escopo de consulta `technical-grades` inventaria somente matrizes técnicas,
