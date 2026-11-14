@@ -51,6 +51,8 @@ class ManagementGradeDefaultTest extends TestCase
         $this->assertSame(ManagementGradeDefault::SOURCE, $new->legacy_source);
         $this->assertTrue(AuditLog::where('metadata->operation', ManagementGradeDefault::SOURCE)->exists());
         $again = $service->complete($school->id);
+        $this->assertGreaterThan(0, $again['issued_report_verification']['checked']);
+        $this->assertSame([], $again['issued_report_verification']['zero_or_missing']);
         foreach (['zero_results_to_replace', 'null_results_to_fill', 'missing_results_to_create', 'assessments_to_create', 'origin_grades_to_fill'] as $stat) {
             $this->assertSame(0, $again['stats'][$stat], $stat);
         }

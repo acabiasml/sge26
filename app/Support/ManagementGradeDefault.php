@@ -159,6 +159,9 @@ final class ManagementGradeDefault
             $report = ['mode' => $apply ? 'apply' : 'dry-run', 'operation' => self::SOURCE, 'school_id' => $school->id,
                 'years' => [2022, 2023, 2024, 2025], 'normalized_default_grade' => 6, 'snapshot_sha256' => $hash,
                 'stats' => $stats, 'changes' => $details];
+            if (count($resultPlans) + count($creditPlans) === 0) {
+                $report['issued_report_verification'] = $this->verifyLatest($school->id);
+            }
             if (! $apply) {
                 return $report;
             }
@@ -202,6 +205,36 @@ final class ManagementGradeDefault
 
             return $report + ['batch_id' => $batch, 'backup_path' => $backup];
         });
+    }
+
+    /** Confere também a nota efetivamente apresentada na ficha, inclusive dos transferidos. */
+    private function verifyLatest(int $schoolId): array
+    {
+        $audit = AuditLog::where('school_id', $schoolId)->where('metadata->operation', self::SOURCE)->latest('id')->first();
+        if (! $audit) {
+            return ['checked' => 0, 'zero_or_missing' => []];
+        }
+        $path = $audit->metadata['backup_path'];
+        $this->check(preg_match('~^diary-reconciliation/management-grades-[a-f0-9-]{36}\.json$~', $path) === 1, 'Cópia de segurança inválida.');
+        $backup = json_decode(Storage::disk('local')->get($path), true, flags: JSON_THROW_ON_ERROR);
+        $changes = collect($backup['plan']['changes'])->unique(fn ($c) => $c['enrollment_id'].':'.$c['period_id'].':'.$c['component_id']);
+        $missing = [];
+        $checked = 0;
+        foreach ($changes->groupBy('enrollment_id') as $enrollmentId => $rows) {
+            DB::select('select 1');
+            $card = app(StudentReportCardBuilder::class)->build(StudentEnrollment::findOrFail($enrollmentId));
+            foreach ($rows as $row) {
+                $period = $card['periodReports']->first(fn ($p) => $p['period']->id === $row['period_id']);
+                $component = $period ? $period['components']->first(fn ($c) => $c['component']->id === $row['component_id']) : null;
+                $value = $component['average']['value'] ?? null;
+                $checked++;
+                if ($value === null || (float) $value === 0.0) {
+                    $missing[] = $row + ['displayed_value' => $value];
+                }
+            }
+        }
+
+        return ['checked' => $checked, 'zero_or_missing' => $missing];
     }
 
     private function check(bool $condition, string $message): void
