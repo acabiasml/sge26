@@ -28,6 +28,7 @@ on:
       - scripts/component-unification-query.php.stub
       - scripts/technical-grades-query.php.stub
       - scripts/technical-cad-reconstruction-query.php.stub
+      - scripts/diary-supplement-query.php.stub
       - scripts/technical-enrollment-review.php.stub
       - scripts/diary-workload-audit-query.php.stub
       - scripts/diary-progress-query.php.stub

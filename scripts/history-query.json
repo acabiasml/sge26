@@ -1,7 +1,15 @@
 {
-  "scope": "technical-grades",
+  "scope": "diary-supplement",
   "school_id": 1,
-  "person_id": 38,
-  "include_preview_html": true,
-  "enrollment_id": 638
+  "person_id": 0,
+  "assignment_ids": [
+    30,
+    35,
+    98,
+    166,
+    171,
+    160,
+    164
+  ],
+  "transport_key_id": "677186aa052ad29edcd5b3e13cb0649b"
 }

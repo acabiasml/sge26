@@ -1,0 +1,64 @@
+<?php
+
+// Consulta dos diários parciais selecionados, sem alterar registros escolares.
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$config = json_decode(file_get_contents('scripts/history-query.json'), true, flags: JSON_THROW_ON_ERROR);
+Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $assignments = App\Models\SchoolClassComponent::whereIn('id', $config['assignment_ids'])
+        ->with(['schoolClass.academicYear.periods', 'schoolClass.academicYear.days', 'schoolClass.enrollments.courses',
+            'schoolClass.startsPeriod', 'schoolClass.endsPeriod', 'component.course.startsPeriod', 'component.course.endsPeriod', 'teacher:id,full_name'])->orderBy('id')->get();
+    if ($assignments->count() !== count($config['assignment_ids'])) { throw new RuntimeException('Diário selecionado ausente.'); }
+    $targets = [];
+    foreach ($assignments as $assignment) {
+        $class = $assignment->schoolClass; $component = $assignment->component; $course = $component->course; $year = $class->academicYear;
+        if ($year->school_id !== $config['school_id'] || $year->reference_year < 2022 || $year->reference_year > 2025
+            || ! $assignment->active || ! $component->active || ! $class->courses()->whereKey($course->id)->exists()) { throw new RuntimeException('Diário fora do recorte autorizado.'); }
+        $periods = $year->periods->filter(fn ($p) => $component->isActiveInPeriod($p)
+            && (! $class->startsPeriod || $p->position >= $class->startsPeriod->position)
+            && (! $class->endsPeriod || $p->position <= $class->endsPeriod->position)
+            && (! $course->startsPeriod || $p->position >= $course->startsPeriod->position)
+            && (! $course->endsPeriod || $p->position <= $course->endsPeriod->position));
+        $targets[] = ['assignment_id' => $assignment->id, 'class_id' => $class->id, 'class' => $class->name,
+            'component_id' => $component->id, 'component' => $component->name, 'course_id' => $course->id, 'year' => $year->reference_year,
+            'minutes' => $course->class_hour_minutes, 'planned_hours' => $component->calculatedWorkloadHours($course),
+            'teacher' => $assignment->teacher?->full_name,
+            'periods' => $periods->map->only(['id', 'name', 'position', 'starts_at', 'ends_at'])->values(),
+            'school_dates' => $year->days->where('counts_as_school_day', true)->map(fn ($d) => $d->date->toDateString())->sort()->values(),
+            'contents' => App\Models\DiaryContent::where('school_class_id', $class->id)->where('curriculum_component_id', $component->id)->orderBy('id')->get(),
+            'attendance' => App\Models\DiaryAttendanceRecord::where('school_class_id', $class->id)->where('curriculum_component_id', $component->id)->with('entries')->orderBy('id')->get()];
+    }
+    $classes = $assignments->pluck('schoolClass')->unique('id');
+    $people = $classes->flatMap->enrollments->pluck('person_id')->unique();
+    $enrollments = App\Models\StudentEnrollment::whereIn('person_id', $people)->with('courses')->orderBy('id')->get();
+    $periods = collect($targets)->flatMap(fn ($t) => $t['periods']);
+    $first = substr($periods->min('starts_at'), 0, 10); $last = min(substr($periods->max('ends_at'), 0, 10), now()->toDateString());
+    $records = App\Models\DiaryAttendanceRecord::whereIn('school_class_id', $enrollments->pluck('school_class_id')->unique())
+        ->whereBetween('class_date', [$first, $last])
+        ->with(['entries' => fn ($q) => $q->whereIn('student_enrollment_id', $enrollments->modelKeys())])->orderBy('id')->get();
+    $components = App\Models\CurriculumComponent::whereIn('id', $records->pluck('curriculum_component_id')->merge(array_column($targets, 'component_id'))->unique())
+        ->with('course.academicYear')->get();
+    $keyPath = storage_path('app/private/diary-reconciliation/'.$config['transport_key_id'].'.pem');
+    if (! is_dir(dirname($keyPath))) { mkdir(dirname($keyPath), 0700, true); }
+    if (! is_file($keyPath)) {
+        $key = openssl_pkey_new(['private_key_bits' => 3072, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+        if (! $key || ! openssl_pkey_export($key, $private)) { throw new RuntimeException('Falha no transporte privado.'); }
+        $stream = fopen($keyPath, 'x'); chmod($keyPath, 0600); fwrite($stream, $private); fclose($stream);
+    }
+    $public = openssl_pkey_get_details(openssl_pkey_get_private(file_get_contents($keyPath)))['key'];
+    echo json_encode(['as_of' => now()->toIso8601String(), 'school_id' => $config['school_id'], 'transport_public_key' => $public,
+        'targets' => $targets,
+        'enrollments' => $enrollments->map(fn ($e) => $e->only(['id', 'person_id', 'school_class_id', 'status', 'enrolled_at', 'transferred_at', 'cancelled_at', 'reclassified_at'])
+            + ['attendance_ends_at' => $e->attendanceEndsAt(), 'course_ids' => $e->courses->pluck('id')]),
+        'components' => $components->map(fn ($c) => $c->only(['id', 'name', 'academic_course_id']) + [
+            'minutes' => $c->course->class_hour_minutes ?: $c->course->academicYear->class_hour_minutes,
+            'school_id' => $c->course->academicYear->school_id]),
+        'records' => $records->map(fn ($r) => $r->only(['id', 'school_class_id', 'curriculum_component_id', 'academic_period_id', 'class_date', 'lesson_count', 'legacy_source'])
+            + ['entries' => $r->entries->map->only(['student_enrollment_id', 'status', 'attended_lessons', 'lesson_presence'])]),
+        'excluded_dates' => App\Models\DiaryExcludedDate::whereIn('school_class_component_id', $config['assignment_ids'])->get()
+            ->map(fn ($d) => ['assignment_id' => $d->school_class_component_id, 'date' => $d->class_date->toDateString()]),
+    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally { Illuminate\Support\Facades\DB::rollBack(); }
