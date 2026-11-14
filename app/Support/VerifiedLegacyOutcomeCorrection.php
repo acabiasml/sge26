@@ -26,9 +26,9 @@ final class VerifiedLegacyOutcomeCorrection
         $targets = $request['enrollments'] ?? [];
         $this->check(($request['format'] ?? '') === 'verified-legacy-approval-v1'
             && ($request['confirmed_by_management'] ?? false) === true
-            && count($targets) >= 1 && count($targets) <= 10
+            && count($targets) >= 1 && count($targets) <= 500
             && count(array_unique(array_column($targets, 'enrollment_id'))) === count($targets), 'Aprovação original não confirmada ou duplicada.');
-        $rows = StudentEnrollment::with(['student', 'schoolClass.academicYear', 'courses.components'])
+        $rows = StudentEnrollment::with(['student', 'schoolClass.academicYear.school', 'courses.components'])
             ->whereIn('id', array_column($targets, 'enrollment_id'))->orderBy('id')
             ->when($apply, fn ($q) => $q->lockForUpdate())->get();
         $this->check($rows->count() === count($targets), 'Matrícula documentada ausente.');
@@ -40,13 +40,21 @@ final class VerifiedLegacyOutcomeCorrection
         foreach ($targets as $target) {
             $row = $rows->firstWhere('id', $target['enrollment_id']);
             $year = $row->schoolClass->academicYear;
-            $this->check($row->person_id === ($request['person_id'] ?? null)
-                && $year->school_id === ($request['school_id'] ?? null)
+            $source = $target['source'] ?? $request['source'] ?? null;
+            $legacyId = $target['legacy_student_id'] ?? $request['legacy_student_id'] ?? null;
+            $directIdentity = $row->student->legacy_source === $source && (int) $row->student->legacy_id === $legacyId;
+            $imported = $row->legacy_metadata['latest_imported_row'] ?? [];
+            $importedIdentity = $row->legacy_source === $source && $year->school->legacy_source === $source
+                && (int) ($imported['users_id'] ?? 0) === $legacyId
+                && (int) ($imported['cursos_id'] ?? 0) === (int) $row->courses->first()?->legacy_id;
+            $this->check($row->person_id === ($target['person_id'] ?? $request['person_id'] ?? null)
+                && $year->school_id === ($target['school_id'] ?? $request['school_id'] ?? null)
                 && $year->reference_year === ($target['reference_year'] ?? null) && $year->isClosed()
                 && $row->status === StudentEnrollment::STATUS_ENROLLED
-                && $row->courses->count() === 1 && $row->courses->first()->stage === AcademicCourse::STAGE_HIGH_SCHOOL
-                && $row->student->legacy_source === ($request['source'] ?? null)
-                && (int) $row->student->legacy_id === ($request['legacy_student_id'] ?? null), 'Aprovação fora do estudante, escola, ano ou situação confirmada.');
+                && in_array($row->final_result_status, [null, StudentEnrollment::FINAL_PENDING, StudentEnrollment::FINAL_APPROVED,
+                    StudentEnrollment::FINAL_DEPENDENCY, StudentEnrollment::FINAL_RETAINED_POINTS, StudentEnrollment::FINAL_RETAINED_ATTENDANCE], true)
+                && $row->courses->count() === 1 && in_array($row->courses->first()->stage, [AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL], true)
+                && ($directIdentity || $importedIdentity), 'Aprovação fora do estudante, escola, ano ou situação confirmada.');
             $components = $row->courses->flatMap->components->where('active', true)->pluck('id')->sort()->values()->all();
             $documents = $target['source_documents'] ?? [];
             $documentIds = array_column($documents, 'component_id');
@@ -57,6 +65,26 @@ final class VerifiedLegacyOutcomeCorrection
                     && ($document['reported_result'] ?? '') === StudentEnrollment::FINAL_APPROVED
                     && is_numeric($document['reported_average'] ?? null) && $document['reported_average'] >= 6 && $document['reported_average'] <= 10,
                     'O diário não comprova aprovação em todos os componentes.');
+            }
+            if (($request['validate_current_diary_grades'] ?? false) === true) {
+                $report = app(StudentReportCardBuilder::class)->build($row);
+                $this->check(($report['annualAttendance']['percentage'] ?? -1) >= $report['minimumAttendance'], 'Há conflito de frequência com a aprovação documentada.');
+                foreach ($report['annualComponents'] as $summary) {
+                    $this->check($summary['complete_periods'] === $summary['total_periods'], 'Há notas incompletas; a aprovação precisa de conferência individual.');
+                    if ($summary['component']->course?->stage === AcademicCourse::STAGE_TECHNICAL) {
+                        $this->check(ComponentApprovalCriteria::evaluate($summary, (float) $report['passingPoints'])['passed'], 'Há componente técnico abaixo de seis.');
+                    }
+                }
+                foreach ($documents as $document) {
+                    $summary = $report['annualComponents']->firstWhere('component.id', $document['component_id']);
+                    $this->check($summary !== null, 'Componente documentado ausente na ficha atual.');
+                    foreach ($document['period_grades'] ?? [] as $position => $sourceGrade) {
+                        $period = $summary['periods']->first(fn ($p) => (int) $p['period']->position === (int) $position);
+                        $current = $period['average']['value'] ?? null;
+                        $expected = app(DiaryGradeCalculator::class)->roundToNearestHalf((float) $sourceGrade);
+                        $this->check($current !== null && (float) $current >= $expected - 0.001, 'Uma nota atual está abaixo do diário aprovado; é necessária conferência da correção posterior.');
+                    }
+                }
             }
             $meta = $row->legacy_metadata ?? [];
             $meta['verified_final_result'] = ['enrollment_id' => $row->id, 'person_id' => $row->person_id,
@@ -98,7 +126,7 @@ final class VerifiedLegacyOutcomeCorrection
         });
         $this->check(hash_equals($protected, $this->protectedDigest($ids)), 'A correção alteraria notas, frequência ou lançamentos manuais.');
         foreach ($rows as $row) {
-            AuditLog::create(['school_id' => $request['school_id'], 'auditable_type' => StudentEnrollment::class,
+            AuditLog::create(['school_id' => $row->schoolClass->academicYear->school_id, 'auditable_type' => StudentEnrollment::class,
                 'auditable_id' => $row->id, 'action' => 'updated', 'old_values' => ['snapshot_sha256' => $hash],
                 'new_values' => ['final_result_status' => StudentEnrollment::FINAL_APPROVED],
                 'metadata' => ['operation' => 'verified-legacy-approval', 'backup_path' => $backup, 'source_documents' => $row->legacy_metadata['verified_final_result']['source_documents']]]);

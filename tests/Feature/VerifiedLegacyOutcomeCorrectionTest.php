@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AcademicYear;
 use App\Models\DiaryAssessment;
+use App\Models\DiaryAttendanceRecord;
 use App\Models\Person;
 use App\Models\School;
 use App\Models\StudentAcademicHistory;
@@ -62,7 +63,42 @@ class VerifiedLegacyOutcomeCorrectionTest extends TestCase
         $service->reconcile($request);
     }
 
-    private function scenario(): array
+    public function test_batch_accepts_documented_students_in_different_schools_and_elementary_stage(): void
+    {
+        [$first, $enrollment] = $this->scenario();
+        [$second, $elementary] = $this->scenario('laura');
+        $elementary->courses()->first()->update(['stage' => 'fundamental']);
+        $targets = [];
+        foreach ([[$first, $enrollment], [$second, $elementary]] as [$source, $row]) {
+            $target = $source['enrollments'][0];
+            foreach (['person_id', 'school_id', 'source', 'legacy_student_id'] as $field) {
+                $target[$field] = $source[$field];
+            }
+            $target['source_documents'][0]['period_grades'] = ['1' => 6, '2' => 5, '3' => 6, '4' => 6];
+            $targets[] = $target;
+        }
+        $request = ['format' => 'verified-legacy-approval-v1', 'confirmed_by_management' => true,
+            'validate_current_diary_grades' => true, 'enrollments' => $targets];
+        $service = app(VerifiedLegacyOutcomeCorrection::class);
+        $plan = $service->reconcile($request);
+        $this->assertSame(2, $plan['enrollments_to_update']);
+        $service->reconcile($request, true, $plan['snapshot_sha256']);
+        $this->assertSame('aprovado', $enrollment->fresh()->final_result_status);
+        $this->assertSame('aprovado', $elementary->fresh()->final_result_status);
+        $this->assertSame(0, $service->reconcile($request)['enrollments_to_update']);
+    }
+
+    public function test_batch_does_not_overrule_a_later_reduction_of_the_grade_recorded_in_the_approved_pdf(): void
+    {
+        [$request, $enrollment] = $this->scenario();
+        $request['validate_current_diary_grades'] = true;
+        $request['enrollments'][0]['source_documents'][0]['period_grades'] = ['1' => 6, '2' => 5, '3' => 6, '4' => 6];
+        $enrollment->assessmentResults()->first()->update(['score' => 4]);
+        $this->expectExceptionMessage('abaixo do diário aprovado');
+        app(VerifiedLegacyOutcomeCorrection::class)->reconcile($request);
+    }
+
+    private function scenario(string $source = 'beaba'): array
     {
         Storage::fake('local');
         $school = School::create(['name' => 'Escola']);
@@ -71,7 +107,7 @@ class VerifiedLegacyOutcomeCorrectionTest extends TestCase
         $course = $year->courses()->create(['name' => '3º Ano', 'stage' => 'medio', 'class_hour_minutes' => 60]);
         $class = $year->classes()->create(['name' => '3º Ano']);
         $class->courses()->attach($course);
-        $student = Person::create(['full_name' => 'Estudante', 'legacy_source' => 'beaba', 'legacy_id' => 34]);
+        $student = Person::create(['full_name' => 'Estudante', 'legacy_source' => $source, 'legacy_id' => 34]);
         $enrollment = $class->enrollments()->create(['person_id' => $student->id, 'status' => 'matriculado', 'final_result_status' => 'retido_por_pontos']);
         $enrollment->courses()->attach($course);
         $component = $course->components()->create(['name' => 'Matemática', 'active' => true, 'workload_hours' => 120]);
@@ -81,6 +117,9 @@ class VerifiedLegacyOutcomeCorrectionTest extends TestCase
                 'academic_period_id' => $period->id, 'title' => 'Avaliação', 'weight' => 10, 'maximum_score' => 10]);
             $assessment->results()->create(['student_enrollment_id' => $enrollment->id, 'score' => $score]);
         }
+        $call = DiaryAttendanceRecord::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id, 'class_date' => '2024-03-01', 'lesson_count' => 1]);
+        $call->entries()->create(['student_enrollment_id' => $enrollment->id, 'status' => 'presente', 'attended_lessons' => 1]);
         $history = StudentAcademicHistory::create(['person_id' => $student->id, 'school_id' => $school->id, 'education_stage' => 'medio', 'is_unified' => true, 'active' => true]);
         $historyYear = $history->years()->create(['source' => 'system', 'student_enrollment_id' => $enrollment->id,
             'label' => '3º Ano', 'year' => '2024', 'final_result' => 'Retido por Pontos']);
@@ -88,7 +127,7 @@ class VerifiedLegacyOutcomeCorrectionTest extends TestCase
         $record = $historyComponent->records()->create(['student_academic_history_year_id' => $historyYear->id,
             'curriculum_component_id' => $component->id, 'score_label' => '6,0', 'workload_hours' => 120, 'result' => 'Retido por Pontos']);
         $request = ['format' => 'verified-legacy-approval-v1', 'confirmed_by_management' => true,
-            'person_id' => $student->id, 'school_id' => $school->id, 'source' => 'beaba', 'legacy_student_id' => 34,
+            'person_id' => $student->id, 'school_id' => $school->id, 'source' => $source, 'legacy_student_id' => 34,
             'enrollments' => [['enrollment_id' => $enrollment->id, 'reference_year' => 2024, 'source_documents' => [
                 ['component_id' => $component->id, 'sha256' => str_repeat('a', 64), 'reported_average' => 6, 'reported_result' => 'aprovado'],
             ]]]];
