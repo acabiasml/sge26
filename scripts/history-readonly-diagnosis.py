@@ -17,11 +17,12 @@ def main():
     query = json.loads(config.read_text()) if config.exists() else {'person_id': 0}
     requested_scope = os.environ.get('HISTORY_QUERY_SCOPE', 'configured')
     if requested_scope != 'configured':
-        if requested_scope not in ('history-pdf-verification', 'high-school-cohorts'):
+        if requested_scope not in ('history-pdf-verification', 'high-school-cohorts', 'school-diary-completion'):
             raise ValueError('Escopo manual inválido.')
         query['scope'] = requested_scope
     scope = query.get('scope', 'student')
-    sources = {'history-pdf-verification': 'scripts/history-pdf-verification.php.stub',
+    sources = {'school-diary-completion': 'scripts/school-diary-completion-query.php.stub',
+               'history-pdf-verification': 'scripts/history-pdf-verification.php.stub',
                'high-school-cohorts': 'scripts/high-school-cohorts-query.php.stub',
                'legacy-outcome-audit': 'scripts/legacy-outcome-audit.php.stub',
                'technical-enrollment-review': 'scripts/technical-enrollment-review.php.stub',
@@ -155,7 +156,7 @@ def main():
                     if time.monotonic() >= deadline:
                         raise RuntimeError('O deploy da consulta ainda não chegou ao servidor.')
                     time.sleep(10)
-            stdin, stdout, stderr = client.exec_command('cd /home/u810745753/domains/ctjj.org/public_html/sge && php -d memory_limit=1G', timeout=180 if scope in ('legacy-outcome-audit', 'history-pdf-verification') else 60)
+            stdin, stdout, stderr = client.exec_command('cd /home/u810745753/domains/ctjj.org/public_html/sge && php -d memory_limit=1G', timeout=180 if scope in ('legacy-outcome-audit', 'history-pdf-verification', 'school-diary-completion') else 60)
             stdin.write(source)
             stdin.flush()
             stdin.channel.shutdown_write()

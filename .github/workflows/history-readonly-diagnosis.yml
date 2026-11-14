@@ -10,9 +10,11 @@ on:
           - configured
           - history-pdf-verification
           - high-school-cohorts
+          - school-diary-completion
   push:
     branches: [main]
     paths:
+      - scripts/school-diary-completion-query.php.stub
       - scripts/history-pdf-verification.php.stub
       - scripts/high-school-cohorts-query.php.stub
       - scripts/legacy-outcome-audit.php.stub

@@ -1,0 +1,12 @@
+<?php
+
+// Somente leitura, limitado ao Liceu; saída agregada sem notas ou estudantes.
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $school = App\Models\School::where('id', 1)->where('legacy_source', 'beaba')->firstOrFail();
+    echo json_encode(app(App\Support\SchoolDiaryCompletionAudit::class)->forSchool($school), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally { Illuminate\Support\Facades\DB::rollBack(); }
