@@ -61,7 +61,7 @@ class StudentFinalResultCalculator
 
         $attendancePercentage = (float) ($report['annualAttendance']['percentage'] ?? 0);
         $failedByPoints = $report['annualComponents']
-            ->filter(fn (array $summary): bool => (float) ($summary['points'] ?? 0) < $passingPoints)
+            ->filter(fn (array $summary): bool => ! ComponentApprovalCriteria::evaluate($summary, $passingPoints)['passed'])
             ->map(fn (array $summary): array => $this->componentSummary($summary, $passingPoints))
             ->values();
 
@@ -85,6 +85,21 @@ class StudentFinalResultCalculator
                 'details' => [
                     'reason' => 'Estudante alcançou a soma mínima de pontos e a frequência mínima.',
                     'attendance_percentage' => $attendancePercentage,
+                    'passing_points' => $passingPoints,
+                    'minimum_attendance_percentage' => $minimumAttendance,
+                    'dependency_component_limit' => $dependencyLimit,
+                ],
+            ];
+        }
+
+        if ($failedByPoints->contains('grading_basis', 'component_average')) {
+            return [
+                'status' => StudentEnrollment::FINAL_RETAINED_POINTS,
+                'details' => [
+                    'reason' => 'Média inferior a 6,0 em componente técnico. Cada componente técnico exige média mínima de 6,0.',
+                    'attendance_percentage' => $attendancePercentage,
+                    'failed_components' => $failedByPoints->all(),
+                    'technical_passing_average' => ComponentApprovalCriteria::TECHNICAL_PASSING_AVERAGE,
                     'passing_points' => $passingPoints,
                     'minimum_attendance_percentage' => $minimumAttendance,
                     'dependency_component_limit' => $dependencyLimit,
@@ -150,10 +165,13 @@ class StudentFinalResultCalculator
      */
     private function componentSummary(array $summary, float $passingPoints): array
     {
+        $criteria = ComponentApprovalCriteria::evaluate($summary, $passingPoints);
+
         return [
             'name' => $summary['component']->name,
-            'points' => round((float) ($summary['points'] ?? 0), 2),
-            'passing_points' => $passingPoints,
+            'points' => round((float) ($criteria['value'] ?? 0), 2),
+            'passing_points' => $criteria['target'],
+            'grading_basis' => $criteria['basis'],
         ];
     }
 }

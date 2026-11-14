@@ -26,7 +26,7 @@ table.components { width: 100%; margin: 9px 0; table-layout: fixed; }
 <strong>Escola:</strong> {{ $report['academicYear']->school?->name }} · <strong>Turma:</strong> {{ $report['schoolClass']->name }} · <strong>Ano letivo:</strong> {{ $report['academicYear']->referenceYearsLabel() }}<br>
 <strong>Matrícula:</strong> {{ $report['enrollment']->id }} · <strong>Situação registrada:</strong> {{ $report['finalResult']['label'] ?? $report['enrollment']->statusLabel() }}</p>
 <table class="summary">
-<tr><td class="label">Critérios anuais</td><td>{{ $formatPoints($progress['passing_points']) }} pontos por componente · frequência mínima geral de {{ $progress['minimum_attendance'] }}%</td></tr>
+<tr><td class="label">Critérios de aprovação</td><td>Ensino regular: {{ $formatPoints($progress['passing_points']) }} pontos anuais por componente. Técnico: média mínima de 6,0 em cada componente. Frequência mínima geral de {{ $progress['minimum_attendance'] }}%.</td></tr>
 <tr><td class="label">Frequência lançada</td><td>{{ $annualAttendance['percentage'] === null ? 'Sem lançamento' : number_format((float) $annualAttendance['percentage'], 1, ',', '.').'%' }} · {{ $annualAttendance['effective_attended'] }}/{{ $annualAttendance['lessons'] }} aulas com presença efetiva (inclui ausências justificadas)</td></tr>
 <tr><td class="label">Carga horária prevista</td><td>{{ $formatMinutes($progress['planned_minutes']) }}</td></tr>
 <tr><td class="label">Faltas lançadas</td><td>{{ $progress['raw_absences'] }} aulas · {{ $formatMinutes($progress['raw_absence_minutes']) }}</td></tr>
@@ -37,11 +37,11 @@ table.components { width: 100%; margin: 9px 0; table-layout: fixed; }
 </table>
 <p class="note subtle">As justificativas e os atestados abrangem os dias letivos informados; o abatimento é mostrado somente no total da matrícula. As horas de falta por componente abaixo são as lançadas antes do abatimento geral. A margem usa as faltas efetivas após esse abatimento. A projeção usa a carga horária curricular prevista e a duração da hora-aula de cada curso; pressupõe presença nas demais aulas previstas. A frequência oficial usa as aulas lançadas e pode mudar com novos registros ou ajustes de calendário.</p>
 <table class="components">
-<thead><tr><th width="44%">Componente</th><th class="number" width="9%">Pontos atuais</th><th class="number" width="11%">Pontos faltantes</th><th class="number" width="13%">Períodos completos</th><th class="number" width="10%">Frequência</th><th class="number" width="13%">Horas de falta</th></tr></thead>
+<thead><tr><th width="44%">Componente</th><th class="number" width="9%">Nota / pontos</th><th class="number" width="11%">Faltam</th><th class="number" width="13%">Períodos completos</th><th class="number" width="10%">Frequência</th><th class="number" width="13%">Horas de falta</th></tr></thead>
 <tbody>
 @forelse($progress['components'] as $row)
 <tr>
-<td width="44%"><strong>{{ $row['component']->name }}</strong>@if($row['course']?->name)<br><span class="subtle">{{ $row['course']->name }}</span>@endif</td>
+<td width="44%"><strong>{{ $row['component']->name }}</strong>@if($row['course']?->name)<br><span class="subtle">{{ $row['course']->name }}</span>@endif @if($row['grading_basis'] === 'component_average')<br><span class="subtle">Média do componente · mínimo 6,0</span>@endif</td>
 <td class="number">{{ $row['points'] === null ? '—' : $formatPoints($row['points']) }}</td>
 <td class="number">{{ $formatPoints($row['missing_points']) }}</td>
 <td class="number">{{ $row['complete_periods'] }}/{{ $row['total_periods'] }}</td>
@@ -52,6 +52,6 @@ table.components { width: 100%; margin: 9px 0; table-layout: fixed; }
 <tr><td colspan="6">Nenhum componente curricular vinculado à matrícula.</td></tr>
 @endforelse
 </tbody></table>
-<p class="note subtle">Pontos faltantes = meta anual menos pontos apurados, com mínimo de zero. Períodos sem notas não contam como nota zero. Médias parciais podem mudar com novos lançamentos ou recuperação; este relatório não substitui o resultado final registrado.</p>
+<p class="note subtle">No ensino regular, faltam pontos até a meta anual; no técnico, falta nota até a média 6,0 de cada componente. Períodos sem notas não contam como nota zero. Médias parciais podem mudar com novos lançamentos ou recuperação; este relatório não substitui o resultado final registrado.</p>
 @include('reports.partials.document-footer')
 </body></html>

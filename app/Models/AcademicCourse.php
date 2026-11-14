@@ -146,6 +146,7 @@ class AcademicCourse extends Model
             : $this->components()->with('area')->get();
 
         return $components
+            ->where('active', true)
             ->sort(function (CurriculumComponent $first, CurriculumComponent $second): int {
                 $areaComparison = strnatcasecmp(
                     $first->area?->name ?? 'Área não definida',
@@ -174,6 +175,7 @@ class AcademicCourse extends Model
             : $this->components()->with('area')->get();
 
         return $components
+            ->where('active', true)
             ->sort(function (CurriculumComponent $first, CurriculumComponent $second): int {
                 $firstFormation = CurriculumCatalog::formationLabelForComponent($first);
                 $secondFormation = CurriculumCatalog::formationLabelForComponent($second);
@@ -319,7 +321,7 @@ class AcademicCourse extends Model
             ? $this->components
             : $this->components()->get();
 
-        return round($components->sum(fn (CurriculumComponent $component): float => $component->calculatedWorkloadHours($this)), 2);
+        return round($components->where('active', true)->sum(fn (CurriculumComponent $component): float => $component->calculatedWorkloadHours($this)), 2);
     }
 
     public function formattedCalculatedWorkloadHours(): string

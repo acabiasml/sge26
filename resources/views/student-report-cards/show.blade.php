@@ -24,7 +24,12 @@
             return __('Em acompanhamento');
         }
 
-        return (float) $summary['points'] >= (float) $report['passingPoints'] ? __('Aprovado por pontos') : __('Abaixo dos pontos');
+        $criteria = \App\Support\ComponentApprovalCriteria::evaluate($summary, (float) $report['passingPoints']);
+        if ($criteria['basis'] === 'component_average') {
+            return $criteria['passed'] ? __('Aprovado por média') : __('Abaixo da média');
+        }
+
+        return $criteria['passed'] ? __('Aprovado por pontos') : __('Abaixo dos pontos');
     };
     $friendlyConceptRange = function ($concept): string {
         $minimum = $concept->minimum_score !== null ? rtrim(rtrim(number_format((float) $concept->minimum_score, 1, ',', '.'), '0'), ',') : null;

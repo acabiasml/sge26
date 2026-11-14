@@ -5,7 +5,7 @@ namespace App\Support;
 final class StudentProgressSummary
 {
     /** @param array<string, mixed> $report
-     *  @return array<string, mixed>
+     * @return array<string, mixed>
      */
     public function fromReport(array $report): array
     {
@@ -14,6 +14,7 @@ final class StudentProgressSummary
         $components = $report['annualComponents']->map(function (array $summary) use ($passingPoints): array {
             $component = $summary['component'];
             $course = $component->course;
+            $criteria = ComponentApprovalCriteria::evaluate($summary, $passingPoints);
             $attendance = $summary['attendance'];
             $lessonMinutes = (int) ($course?->class_hour_minutes ?: 0);
             $rawAbsences = max(0, (int) $attendance['absent']);
@@ -24,8 +25,10 @@ final class StudentProgressSummary
             return [
                 'component' => $component,
                 'course' => $course,
-                'points' => $hasScore ? (float) $summary['points'] : null,
-                'missing_points' => max(0, round($passingPoints - (float) $summary['points'], 2)),
+                'points' => $hasScore ? $criteria['value'] : null,
+                'missing_points' => $criteria['missing'],
+                'grading_basis' => $criteria['basis'],
+                'target' => $criteria['target'],
                 'complete_periods' => (int) $summary['complete_periods'],
                 'total_periods' => (int) $summary['total_periods'],
                 'attendance' => $attendance,

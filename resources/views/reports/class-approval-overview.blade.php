@@ -66,7 +66,8 @@ Frequência mínima: {{ $academicYear->minimum_attendance_percentage }}%.</p>
     $report = $row['report'];
     $summary = $row['summary'];
     $hasScore = $summary['periods']->contains(fn ($item) => ($item['average']['value'] ?? null) !== null);
-    $missing = max(0, $report['passingPoints'] - $summary['points']);
+    $criteria = \App\Support\ComponentApprovalCriteria::evaluate($summary, (float) $report['passingPoints']);
+    $missing = $criteria['missing'];
 @endphp
 <tr><td class="student-name">{{ $report['student']->full_name }}</td>
 @php $attendance = $teacherComponentScope ? $summary['attendance'] : $report['annualAttendance']; @endphp
@@ -78,7 +79,7 @@ Frequência mínima: {{ $academicYear->minimum_attendance_percentage }}%.</p>
 @endphp
 <td class="number">{{ $periodScore === null ? '—' : number_format($periodScore, 1, ',', '.') }}</td>
 @endforeach
-<td class="number">{{ $hasScore ? number_format($summary['points'], 1, ',', '.') : '—' }}</td>
+<td class="number">{{ $hasScore ? number_format($criteria['value'], 1, ',', '.') : '—' }}</td>
 <td class="number">{{ number_format($missing, 1, ',', '.') }}</td>
 <td class="number">{{ $summary['complete_periods'] }}/{{ $summary['total_periods'] }}</td>
 <td>{{ ! $hasScore ? 'Sem notas' : ($missing > 0 ? 'Abaixo da meta' : 'Meta atingida') }}</td></tr>
