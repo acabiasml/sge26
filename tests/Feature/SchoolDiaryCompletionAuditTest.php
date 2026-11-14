@@ -86,6 +86,29 @@ class SchoolDiaryCompletionAuditTest extends TestCase
         $this->assertSame('inactive_component', $report['excluded_components'][0]['reason']);
     }
 
+    public function test_full_year_audit_detects_legacy_end_id_that_became_second_period_without_saving_the_correction(): void
+    {
+        [$school, $class, $course, $component, $first, $student] = $this->scenario();
+        $year = $first->academicYear;
+        $year->periods()->create(['name' => 'III Bimestre', 'position' => 3, 'starts_at' => '2025-07-01', 'ends_at' => '2025-09-30']);
+        $fourth = $year->periods()->create(['name' => 'IV Bimestre', 'position' => 4, 'starts_at' => '2025-10-01', 'ends_at' => '2025-12-20']);
+        $second = $year->periods()->create(['name' => 'II Bimestre', 'position' => 2, 'starts_at' => '2025-04-01', 'ends_at' => '2025-06-30']);
+        $class->update(['ends_period_id' => $second->id, 'legacy_source' => 'beaba', 'legacy_metadata' => ['fim' => (string) $second->id]]);
+        $assessment = DiaryAssessment::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $fourth->id, 'title' => 'Média IV']);
+        $assessment->results()->create(['student_enrollment_id' => $student->id, 'score' => 0]);
+        $other = AcademicYear::create(['school_id' => $school->id, 'name' => '2026', 'reference_year' => 2026,
+            'starts_at' => '2026-02-01', 'ends_at' => '2026-12-20']);
+        $report = app(SchoolDiaryCompletionAudit::class)->forSchool($school, 2022, 2025);
+        $this->assertCount(1, $report['scope_adjustments']);
+        $this->assertSame('IV Bimestre', $report['scope_adjustments'][0]['audited_end']);
+        $this->assertSame(4, $report['diaries'][0]['planned_lessons']);
+        $this->assertSame(4, $report['diaries'][0]['grade_coverage']['expected']);
+        $this->assertSame(1, $report['diaries'][0]['grade_coverage']['complete']);
+        $this->assertSame($second->id, $class->fresh()->ends_period_id);
+        $this->assertSame([2025], $report['years']);
+    }
+
     private function scenario(): array
     {
         $this->travelTo(now()->setDate(2026, 11, 14));

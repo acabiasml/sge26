@@ -16,11 +16,13 @@ use Illuminate\Support\Str;
 /** Relatório agregado, somente leitura: não exporta notas nem nomes de estudantes. */
 final class SchoolDiaryCompletionAudit
 {
-    public function forSchool(School $school): array
+    public function forSchool(School $school, ?int $fromYear = null, ?int $throughYear = null): array
     {
-        $classes = SchoolClass::whereHas('academicYear', fn ($q) => $q->where('school_id', $school->id))
+        $classes = SchoolClass::whereHas('academicYear', fn ($q) => $q->where('school_id', $school->id)
+            ->when($fromYear !== null, fn ($q) => $q->where('reference_year', '>=', $fromYear))
+            ->when($throughYear !== null, fn ($q) => $q->where('reference_year', '<=', $throughYear)))
             ->whereHas('enrollments')->with([
-                'academicYear.periods', 'courses.components.area', 'courses.components.startsPeriod',
+                'academicYear.periods', 'startsPeriod', 'endsPeriod', 'courses.components.area', 'courses.components.startsPeriod',
                 'courses.components.endsPeriod', 'courses.startsPeriod', 'courses.endsPeriod',
                 'enrollments.courses',
             ])->orderBy('academic_year_id')->orderBy('name')->get();
@@ -28,8 +30,34 @@ final class SchoolDiaryCompletionAudit
             ->with('teacher:id,full_name')->get()->keyBy(fn ($a) => $a->school_class_id.':'.$a->curriculum_component_id);
         $assignments = collect();
         $excluded = [];
+        $scopeAdjustments = [];
         $virtualId = -1;
         foreach ($classes as $class) {
+            $yearPeriods = $class->academicYear->periods;
+            $last = $yearPeriods->sortBy('position')->last();
+            $end = $class->endsPeriod;
+            $legacy = $class->legacy_metadata ?? [];
+            // O importador antigo guardou o maior ID como fim da turma. Depois
+            // de ordenar I/II/III/IV, esse ID pode apontar para o II bimestre.
+            // Corrige apenas o escopo desta leitura, com lançamentos posteriores
+            // como evidência; nenhum cadastro ou diário é salvo aqui.
+            if ($class->academicYear->isClosed() && $class->legacy_source && $end && $last
+                && $yearPeriods->count() === 4 && $end->position < $last->position
+                && (int) $class->ends_period_id === (int) $yearPeriods->max('id')
+                && (int) ($legacy['fim'] ?? 0) === (int) $class->ends_period_id
+                && $class->courses->contains(fn ($c) => in_array($c->stage, ['fundamental', 'medio'], true))) {
+                $laterIds = $yearPeriods->where('position', '>', $end->position)->pluck('id');
+                $evidence = DiaryAssessment::where('school_class_id', $class->id)->whereIn('academic_period_id', $laterIds)
+                    ->whereHas('results', fn ($q) => $q->whereNotNull('score'))->exists()
+                    || DiaryContent::where('school_class_id', $class->id)->whereIn('academic_period_id', $laterIds)
+                        ->whereNotNull('content')->where('content', '!=', '')->exists();
+                if ($evidence) {
+                    $scopeAdjustments[$class->id] = ['class_id' => $class->id, 'class' => $class->name,
+                        'year' => $class->academicYear->reference_year, 'configured_end' => $end->name,
+                        'audited_end' => $last->name, 'basis' => 'legacy_end_id_with_later_recorded_activity'];
+                    $class->setRelation('endsPeriod', $last);
+                }
+            }
             foreach ($class->courses as $course) {
                 foreach ($course->components as $component) {
                     if (! $component->active || Str::lower(Str::ascii(trim($component->name))) === 'comportamento') {
@@ -68,7 +96,7 @@ final class SchoolDiaryCompletionAudit
             ->whereIn('curriculum_component_id', $componentIds)->whereNotNull('score')->get()
             ->keyBy(fn ($row) => $row->student_enrollment_id.':'.$row->curriculum_component_id.':'.$row->academic_period_id);
         $today = now()->toDateString();
-        $rows = $assignments->map(function ($assignment) use ($summaries, $contents, $attendance, $assessments, $originGrades, $today): array {
+        $rows = $assignments->map(function ($assignment) use ($summaries, $contents, $attendance, $assessments, $originGrades, $scopeAdjustments, $today): array {
             $class = $assignment->schoolClass;
             $component = $assignment->component;
             $course = $component->course;
@@ -108,6 +136,7 @@ final class SchoolDiaryCompletionAudit
 
             return [
                 'assignment_id' => $assignment->exists ? $assignment->id : null,
+                'audit_scope_adjustment' => $scopeAdjustments[$class->id] ?? null,
                 'assignment_active' => $assignment->exists ? $assignment->active : null,
                 'class_id' => $class->id, 'class' => $class->name, 'class_active' => $class->active,
                 'academic_year_id' => $class->academic_year_id, 'year' => $class->academicYear->reference_year,
@@ -135,11 +164,12 @@ final class SchoolDiaryCompletionAudit
                 'ends_at' => $periods->max('ends_at')?->toDateString(),
                 'periods' => $periods->map(fn ($p) => $p->only(['id', 'name', 'starts_at', 'ends_at']))->values(),
             ];
-        })->values()->all();
+        })->filter(fn ($row) => $throughYear === null || ($row['ends_at'] && $row['ends_at'] <= $throughYear.'-12-31'))
+            ->values()->all();
 
         return ['school_id' => $school->id, 'school' => $school->name, 'as_of' => now()->toIso8601String(),
             'years' => $classes->pluck('academicYear.reference_year')->unique()->sort()->values()->all(),
-            'diaries' => $rows, 'excluded_components' => $excluded];
+            'diaries' => $rows, 'excluded_components' => $excluded, 'scope_adjustments' => array_values($scopeAdjustments)];
     }
 
     private function hasContent(?string $content): bool
