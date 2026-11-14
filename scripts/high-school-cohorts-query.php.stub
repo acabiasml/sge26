@@ -10,7 +10,10 @@ try {
         ->whereHas('enrollments')->whereHas('courses', fn ($q) => $q->where('stage', 'medio'))
         ->with(['academicYear.school', 'courses.components.area', 'courses.components.historyCatalogEntries', 'courses.components.course'])
         ->withCount('enrollments')->orderBy('id')->get();
-    echo json_encode(['as_of' => now()->toIso8601String(), 'classes' => $classes->map(fn ($class) => [
+    $cohorts = $classes->flatMap->courses->where('stage', 'medio')->unique('id')
+        ->map(fn ($course) => ['course_id' => $course->id, 'school_id' => $course->academicYear->school_id,
+            'audit' => app(App\Support\HighSchoolCohortWorkload::class)->forCourse($course)])->values();
+    echo json_encode(['as_of' => now()->toIso8601String(), 'cohort_audits' => $cohorts, 'classes' => $classes->map(fn ($class) => [
         'id' => $class->id, 'name' => $class->name, 'school_id' => $class->academicYear->school_id,
         'school' => $class->academicYear->school->name, 'year' => $class->academicYear->reference_year,
         'enrollments_count' => $class->enrollments_count,
