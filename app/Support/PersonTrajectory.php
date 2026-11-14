@@ -75,7 +75,13 @@ final class PersonTrajectory
         });
         // Um vínculo sem matrícula permanece visível, mas não implica série cursada.
         foreach ($roles->where('role', PersonSchoolRole::ROLE_STUDENT) as $role) {
-            if ($enrollments->contains(fn ($e) => $e->schoolClass->academicYear->school_id === $role->school_id)) {
+            if ($enrollments->contains(function ($e) use ($role): bool {
+                $end = $e->attendanceEndsAt() ?? $e->schoolClass->ends_at?->toDateString();
+
+                return $e->schoolClass->academicYear->school_id === $role->school_id
+                    && (! $role->started_at || ! $end || $end >= $role->started_at->toDateString())
+                    && (! $role->ended_at || ! $e->enrolled_at || $e->enrolled_at->toDateString() <= $role->ended_at->toDateString());
+            })) {
                 continue;
             }
             $studies->push($this->roleItem($role, $today) + ['details' => [__('Série e turma não informadas no vínculo.')], 'url' => null, 'link_label' => null]);

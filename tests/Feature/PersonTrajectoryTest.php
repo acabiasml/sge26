@@ -160,6 +160,23 @@ class PersonTrajectoryTest extends TestCase
         $this->assertStringNotContainsString('Escola Restrita', $html);
     }
 
+    public function test_older_student_role_is_retained_when_only_a_later_enrollment_exists_at_the_school(): void
+    {
+        $school = School::create(['name' => 'Escola']);
+        [$class, $component] = $this->classroom($school, 2022, '1º Ano');
+        $person = Person::create(['full_name' => 'Estudante com vínculo antigo']);
+        $old = $person->schoolRoles()->create(['school_id' => $school->id, 'role' => 'aluno', 'active' => false,
+            'started_at' => '2010-02-01', 'ended_at' => '2015-12-20']);
+        $person->schoolRoles()->create(['school_id' => $school->id, 'role' => 'aluno', 'active' => false,
+            'started_at' => '2022-02-01', 'ended_at' => '2022-12-20']);
+        $enrollment = $class->enrollments()->create(['person_id' => $person->id, 'enrolled_at' => '2022-02-01', 'status' => 'matriculado']);
+        $enrollment->courses()->attach($component->course);
+        $rows = app(PersonTrajectory::class)->build($person, $this->viewer('administrador'), $this->today())['groups']['estudos']['entries'];
+        $this->assertCount(2, $rows);
+        $this->assertSame('2010-02-01', $rows->firstWhere('id', 'role-'.$old->id)['start']);
+        $this->assertSame(['Série e turma não informadas no vínculo.'], $rows->firstWhere('id', 'role-'.$old->id)['details']);
+    }
+
     private function today(): CarbonImmutable
     {
         return CarbonImmutable::parse('2026-11-14', 'America/Campo_Grande');
