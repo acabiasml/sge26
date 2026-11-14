@@ -197,12 +197,14 @@
                 <span class="sge-metric-note">{{ __('dashboard.review_notices') }}</span>
             </a>
 
-            <div class="sge-metric-card sge-metric-orange">
-                <span class="sge-metric-icon" aria-hidden="true"><i class="fas fa-calendar-check"></i></span>
-                <span class="sge-metric-label">{{ __('dashboard.school_years') }}</span>
-                <strong>{{ number_format($activeAcademicYearCount, 0, ',', '.') }}</strong>
-                <span class="sge-metric-note">{{ __('dashboard.active_in_period') }}</span>
-            </div>
+            @cannot('manage-schools')
+                <div class="sge-metric-card sge-metric-orange">
+                    <span class="sge-metric-icon" aria-hidden="true"><i class="fas fa-calendar-check"></i></span>
+                    <span class="sge-metric-label">{{ __('dashboard.school_years') }}</span>
+                    <strong>{{ number_format($activeAcademicYearCount, 0, ',', '.') }}</strong>
+                    <span class="sge-metric-note">{{ __('dashboard.active_in_period') }}</span>
+                </div>
+            @endcannot
         </section>
     @endcan
 
