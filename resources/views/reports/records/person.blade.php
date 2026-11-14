@@ -16,10 +16,10 @@
         thead { display: table-header-group; }
         tr { page-break-inside: avoid; }
         td { vertical-align: top; }
-        .trajectory-note { color: #655951; font-size: 10px; margin-top: 3px; }
+        .trajectory-note { color: #655951; font-size: 11px; margin-top: 3px; }
         .trajectory-table { table-layout: fixed; }
         .trajectory-entry { page-break-inside: avoid; }
-        .trajectory-kind { color: #44693D; font-size: 10px; font-weight: 600; margin-bottom: 4px; }
+        .trajectory-kind { color: #44693D; font-size: 11px; font-weight: 600; margin-bottom: 4px; }
         .document-footer { bottom: -87px !important; }
     </style>
 </head>
