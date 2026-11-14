@@ -1,5 +1,6 @@
 {
   "operation": "management-grade-default",
   "school_id": 1,
-  "mode": "dry-run"
+  "mode": "apply",
+  "expected_snapshot_sha256": "35c1d7b03f2146b4d9c0945ac3272b38e33270c9666f7b53aabe698b9264d4e9"
 }
