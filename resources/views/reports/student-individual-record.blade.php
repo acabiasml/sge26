@@ -108,7 +108,7 @@
         $stageLine,
         $academicYear->referenceYearsLabel(),
     ])->filter()->unique()->join(' · ');
-    $annualComponents = $report['annualComponents']
+    $annualComponents = $report['annualComponents']->concat($report['attendanceCreditComponents'] ?? collect())
         ->sort(function (array $first, array $second) use ($courses, $sortText): int {
             $firstComponent = $first['component'];
             $secondComponent = $second['component'];
@@ -145,7 +145,7 @@
                 ->values(),
         ])
         ->values();
-    $plannedHoursTotal = $annualComponents->sum(fn (array $summary): float => $summary['component']->calculatedWorkloadHours($summary['component']->course ?? $courses->first()));
+    $plannedHoursTotal = $annualComponents->sum(fn (array $summary): float => $summary['planned_workload_hours'] ?? $summary['component']->calculatedWorkloadHours($summary['component']->course ?? $courses->first()));
     $completedWorkload = app(\App\Support\AttendanceSummaryCalculator::class);
     $completedHoursTotal = $annualComponents->sum(function (array $summary) use ($completedWorkload): float {
         return $completedWorkload->completedWorkloadHours($summary['attendance']) ?? 0;
@@ -256,7 +256,7 @@
                     @php
                         $component = $summary['component'];
                         $course = $component->course ?? $courses->first();
-                        $plannedHours = $component->calculatedWorkloadHours($course);
+                        $plannedHours = $summary['planned_workload_hours'] ?? $component->calculatedWorkloadHours($course);
                         $completedHours = $completedWorkload->completedWorkloadHours($summary['attendance']);
                     @endphp
                     <tr>
@@ -269,10 +269,10 @@
                                 $periodComponent = $summary['periods']->first(fn (array $item): bool => $item['component']->id === $component->id && $period->is($item['period'] ?? $period));
                                 $periodDate = $period->ends_at ?? $period->starts_at;
                             @endphp
-                            <td class="center">{{ $periodComponent ? $scoreLabel($periodComponent['average']['value'], $periodDate) : '-' }}</td>
+                            <td class="center">{{ $periodComponent ? ($summary['score_label'] ?? $scoreLabel($periodComponent['average']['value'], $periodDate)) : '-' }}</td>
                             <td class="center">{{ $periodComponent ? (int) ($periodComponent['attendance']['absent'] ?? 0) : '-' }}</td>
                         @endforeach
-                        <td class="center">{{ $formatHours($summary['points'] ?? 0) }}</td>
+                        <td class="center">{{ $summary['score_label'] ?? $formatHours($summary['points'] ?? 0) }}</td>
                         <td class="center">{{ (int) ($summary['attendance']['absent'] ?? 0) }}</td>
                         <td class="center">{{ $summary['attendance']['percentage'] !== null ? number_format((float) $summary['attendance']['percentage'], 1, ',', '.').'%' : '-' }}</td>
                         <td class="center hours-cell">{{ $formatHours($plannedHours) }}</td>

@@ -7,6 +7,10 @@ $app = require 'bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 try {
 $config = json_decode(file_get_contents('scripts/diary-reconciliation.json'), true, flags: JSON_THROW_ON_ERROR);
+if (($config['operation'] ?? '') === 'first-period-reclassification-repair'
+    && ! Illuminate\Support\Facades\Schema::hasColumn('student_period_convalidations', 'verified_diary_attended_minutes')) {
+    Illuminate\Support\Facades\Artisan::call('migrate', ['--path' => 'database/migrations/2026_11_14_000001_allow_verified_attendance_only_credits.php', '--force' => true]);
+}
 if (($config['operation'] ?? '') === 'class-period-end-correction') {
     if (! in_array($config['mode'] ?? '', ['dry-run', 'apply'], true)) { throw new RuntimeException('Modo inválido.'); }
     $result = app(App\Support\SchoolClassPeriodEndCorrection::class)->correct(
@@ -76,6 +80,7 @@ $service = match ($config['operation'] ?? '') {
     'enrollment-non-renewal' => App\Support\EnrollmentNonRenewalCorrection::class,
     'verified-matrix-correction' => App\Support\VerifiedMatrixCorrection::class,
     'verified-legacy-approval' => App\Support\VerifiedLegacyOutcomeCorrection::class,
+    'first-period-reclassification-repair' => App\Support\FirstPeriodReclassificationRepair::class,
     default => App\Support\LegacyClassDiaryReconciler::class,
 };
 $result = app($service)->reconcile(

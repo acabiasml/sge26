@@ -230,7 +230,8 @@
                                                 </div>
                                                 <div class="form-group">
                                                     <label for="reclassified_at_{{ $enrollment->id }}">{{ __('Data de reclassificação') }}</label>
-                                                    <input id="reclassified_at_{{ $enrollment->id }}" name="reclassified_at" type="date" min="{{ $enrollment->enrolled_at?->format('Y-m-d') }}" max="{{ $enrollmentEndsAt }}" class="form-control" required>
+                                                    <input id="reclassified_at_{{ $enrollment->id }}" name="reclassified_at" type="date" min="{{ $enrollment->enrolled_at?->format('Y-m-d') }}" max="{{ $academicYear->periods->firstWhere('position', 1)?->ends_at?->format('Y-m-d') }}" class="form-control">
+                                                    <small class="form-text text-muted">{{ __('A reclassificação ocorre no I bimestre. Sem data informada, a efetivação será no início do II bimestre.') }}</small>
                                                 </div>
                                                 <div class="form-group">
                                                     <label for="reclassify_notes_{{ $enrollment->id }}">{{ __('Observações') }}</label>

@@ -112,10 +112,19 @@ class StudentEnrollment extends Model
 
     public function attendanceEndsAt(): ?string
     {
+        $reclassificationEnd = $this->status === self::STATUS_RECLASSIFIED && $this->reclassified_at
+            ? $this->reclassified_at->copy()->subDay()->toDateString() : null;
+        $transferEnd = $this->transferred_at?->toDateString();
+        if ($reclassificationEnd && $transferEnd && $transferEnd > $reclassificationEnd) {
+            $transferEnd = $reclassificationEnd;
+        }
         $dates = array_filter([
-            $this->transferred_at?->toDateString(),
+            $transferEnd,
             $this->cancelled_at?->toDateString(),
-            $this->reclassified_at?->toDateString(),
+            $reclassificationEnd,
+            $this->status !== self::STATUS_ENROLLED && $this->status !== self::STATUS_RECLASSIFIED && ! $this->reclassified_from_enrollment_id
+                && ! $this->transferred_at && ! $this->cancelled_at
+                ? $this->reclassified_at?->toDateString() : null,
             $this->status === self::STATUS_NOT_RENEWED
                 ? ($this->legacy_metadata['non_renewal']['attendance_ends_at'] ?? null) : null,
         ]);

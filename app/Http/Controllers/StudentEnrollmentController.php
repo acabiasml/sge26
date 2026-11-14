@@ -10,6 +10,7 @@ use App\Models\School;
 use App\Models\SchoolClass;
 use App\Models\StudentEnrollment;
 use App\Support\StudentFinalResultCalculator;
+use App\Support\ReclassificationAttendanceCredits;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -261,11 +262,22 @@ class StudentEnrollmentController extends Controller
 
         $window = $this->enrollmentWindow($academicYear, $class, $enrollment);
 
+        $firstPeriod = $academicYear->periods()->where('position', 1)->first();
+        $secondPeriod = $academicYear->periods()->where('position', 2)->first();
+        if (! $firstPeriod || ! $secondPeriod) {
+            throw ValidationException::withMessages(['reclassified_at' => __('Cadastre o I e o II bimestres antes de registrar a reclassificação.')]);
+        }
+        $defaultReclassificationDate = blank($request->input('reclassified_at'));
+        if ($defaultReclassificationDate) {
+            $request->merge(['reclassified_at' => $secondPeriod->starts_at->toDateString()]);
+        }
+        $reclassificationLimit = $defaultReclassificationDate ? $secondPeriod->starts_at : $firstPeriod->ends_at;
+
         $data = $request->validate([
             'target_school_class_id' => ['required', Rule::in($targetClassIds)],
             'course_ids' => ['required', 'array', 'min:1'],
             'course_ids.*' => ['required', 'distinct'],
-            'reclassified_at' => ['required', 'date', 'after_or_equal:'.$window['starts_at'], 'before_or_equal:'.$window['ends_at']],
+            'reclassified_at' => ['required', 'date', 'after_or_equal:'.$window['starts_at'], 'before_or_equal:'.min($window['ends_at'], $reclassificationLimit->toDateString())],
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
 
@@ -298,7 +310,7 @@ class StudentEnrollmentController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($targetClass, $enrollment, $request, $data, $selectedCourseIds, $academicYear): void {
+        DB::transaction(function () use ($targetClass, $enrollment, $request, $data, $selectedCourseIds, $academicYear, $defaultReclassificationDate): void {
             $newEnrollment = $targetClass->enrollments()->create([
                 'person_id' => $enrollment->person_id,
                 'enrolled_by_person_id' => $request->user()->person_id,
@@ -309,6 +321,7 @@ class StudentEnrollmentController extends Controller
                 'status' => StudentEnrollment::STATUS_ENROLLED,
                 'type' => $enrollment->type,
                 'notes' => $data['notes'] ?? null,
+                'legacy_metadata' => ['reclassification_date_basis' => $defaultReclassificationDate ? 'effective_start_second_period' : 'recorded_first_period_date'],
             ]);
             $newEnrollment->courses()->sync($selectedCourseIds);
 
@@ -326,6 +339,7 @@ class StudentEnrollmentController extends Controller
             ]);
 
             $this->syncStudentRole($enrollment->student()->firstOrFail(), $academicYear->school_id);
+            app(ReclassificationAttendanceCredits::class)->synchronize($enrollment->fresh(), $newEnrollment->fresh());
         });
 
         return redirect()->route('classes.enrollments.index', $class)

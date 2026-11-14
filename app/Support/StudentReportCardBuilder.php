@@ -63,7 +63,7 @@ class StudentReportCardBuilder
             ->values();
         $report['periods'] = $report['periodReports']->pluck('period')->values();
         $report['annualAttendance'] = $this->attendanceCalculator->aggregate(
-            $report['annualComponents']->pluck('attendance')
+            $report['annualComponents']->pluck('attendance')->concat(($report['attendanceCreditComponents'] ?? collect())->pluck('attendance'))
         );
 
         return $report;
@@ -120,7 +120,8 @@ class StudentReportCardBuilder
         }
 
         $report['annualComponents'] = $this->annualComponentSummary($report['annualComponents']->pluck('component'), $report['periodReports']);
-        $report['annualAttendance'] = $this->attendanceCalculator->aggregate($report['annualComponents']->pluck('attendance'));
+        $report['annualAttendance'] = $this->attendanceCalculator->aggregate($report['annualComponents']->pluck('attendance')
+            ->concat(($report['attendanceCreditComponents'] ?? collect())->pluck('attendance')));
 
         return $report;
     }
@@ -197,8 +198,8 @@ class StudentReportCardBuilder
             ->get()
             ->keyBy('academic_period_id');
 
-        $convalidations = $enrollment->periodConvalidations
-            ->whereIn('academic_period_id', $periodIds)
+        $allConvalidations = $enrollment->periodConvalidations->whereIn('academic_period_id', $periodIds);
+        $convalidations = $allConvalidations
             ->whereIn('curriculum_component_id', $componentIds)
             ->keyBy(fn (StudentPeriodConvalidation $convalidation): string => $convalidation->academic_period_id.'-'.$convalidation->curriculum_component_id);
 
@@ -217,7 +218,8 @@ class StudentReportCardBuilder
                         // automaticamente com o fim do bimestre. Ela não indica
                         // quando o estudante realizou a avaliação e não pode
                         // ocultar a nota de um período que ele frequentou.
-                        ->filter(fn (DiaryAssessment $assessment): bool => $periodWithinEnrollment
+                        ->filter(fn (DiaryAssessment $assessment): bool => ($periodWithinEnrollment
+                            || ($enrollment->reclassified_from_enrollment_id && $enrollment->enrolled_at && $period->ends_at?->lt($enrollment->enrolled_at)))
                             && (! $endsAt || ! $assessment->assessment_date
                                 || (! $assessment->is_recovery && $assessment->school_assessment_rule_id !== null)
                                 || $assessment->assessment_date->toDateString() <= $endsAt))
@@ -225,7 +227,7 @@ class StudentReportCardBuilder
                     $average = $this->gradeCalculator->averages(collect([$enrollment]), $componentAssessments)[$enrollment->id];
                     $convalidation = $convalidations->get($period->id.'-'.$component->id);
 
-                    if ($convalidation && ! ($average['complete'] ?? false)) {
+                    if ($convalidation && $convalidation->score !== null && ! ($average['complete'] ?? false)) {
                         $average = [
                             'value' => (float) $convalidation->score,
                             'completed_assessments' => 1,
@@ -248,7 +250,8 @@ class StudentReportCardBuilder
                                 (int) $convalidation->attendance_lessons,
                                 max(0, (int) $convalidation->attendance_lessons - (int) ($convalidation->attendance_absences ?? 0)),
                                 (int) ($convalidation->attendance_justified_absences ?? 0),
-                            ),
+                            ) + ($convalidation->verified_diary_attended_minutes !== null
+                                ? ['diary_attended_minutes' => $convalidation->verified_diary_attended_minutes] : []),
                         ]));
                     }
 
@@ -272,7 +275,28 @@ class StudentReportCardBuilder
         })->values();
 
         $annualComponents = $this->annualComponentSummary($components, $periodReports);
-        $annualAttendance = $this->attendanceCalculator->aggregate($annualComponents->pluck('attendance'));
+        // Horas efetivamente cursadas em componente sem correspondência na
+        // matriz de destino continuam como aproveitamento, sem criar exigência
+        // curricular ou nota fictícia nessa matriz.
+        $attendanceCredits = $enrollment->reclassified_from_enrollment_id
+            ? $allConvalidations->whereNotIn('curriculum_component_id', $componentIds)
+                ->filter(fn ($c) => $c->verified_diary_attended_minutes !== null && $c->attendance_lessons > 0)
+                ->groupBy('curriculum_component_id')->map(function ($credits) use ($periods): array {
+                    $items = $credits->map(function ($credit) use ($periods): array {
+                        $attendance = $this->attendanceCalculator->fromTotals((int) $credit->attendance_lessons,
+                            max(0, (int) $credit->attendance_lessons - (int) $credit->attendance_absences), (int) $credit->attendance_justified_absences)
+                            + ['diary_attended_minutes' => $credit->verified_diary_attended_minutes];
+
+                        return ['period' => $periods->firstWhere('id', $credit->academic_period_id), 'component' => $credit->component,
+                            'average' => ['value' => null], 'attendance' => $attendance];
+                    })->values();
+
+                    return ['component' => $credits->first()->component, 'periods' => $items,
+                        'attendance' => $this->attendanceCalculator->aggregate($items->pluck('attendance')),
+                        'points' => 0, 'complete_periods' => 0, 'total_periods' => $items->count(),
+                        'credited_attendance_only' => true, 'planned_workload_hours' => 0, 'score_label' => 'AP'];
+                })->values() : collect();
+        $annualAttendance = $this->attendanceCalculator->aggregate($annualComponents->pluck('attendance')->concat($attendanceCredits->pluck('attendance')));
 
         return [
             'enrollment' => $enrollment,
@@ -283,6 +307,7 @@ class StudentReportCardBuilder
             'periods' => $periods,
             'periodReports' => $periodReports,
             'annualComponents' => $annualComponents,
+            'attendanceCreditComponents' => $attendanceCredits,
             'annualAttendance' => $annualAttendance,
             'passingPoints' => (float) $academicYear->passing_points,
             'minimumAttendance' => (int) $academicYear->minimum_attendance_percentage,

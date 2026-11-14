@@ -177,7 +177,8 @@ class UnifiedStudentHistorySynchronizer
         $report = $this->reportCardBuilder->build($enrollment);
         $course = $history->technical_course_id ? $report['courses']->firstWhere('id', $history->technical_course_id) : $report['courses']->firstWhere('stage', $stage);
         $stageComponents = $report['annualComponents']->filter(fn (array $item): bool => $item['component']->course?->stage === $stage
-            && (! $history->technical_course_id || $item['component']->academic_course_id === $history->technical_course_id));
+            && (! $history->technical_course_id || $item['component']->academic_course_id === $history->technical_course_id))
+            ->concat(($report['attendanceCreditComponents'] ?? collect())->filter(fn ($item) => $item['component']->course?->stage === $stage));
         $year = $report['academicYear'];
         $referenceYear = (int) ($year->reference_year ?: $year->starts_at?->year);
         $itineraryCourseIds = $stage === AcademicCourse::STAGE_HIGH_SCHOOL
@@ -216,7 +217,7 @@ class UnifiedStudentHistorySynchronizer
                 'country' => 'Brasil',
                 'transcript_mode' => $withoutTranscription ? 'no_transcription' : 'detailed',
                 'final_result' => $finalResult,
-                'workload_hours' => $withoutTranscription ? 0 : $historyComponents->sum(fn (array $item) => $this->historicalWorkloadHours($item['component'])),
+                'workload_hours' => $withoutTranscription ? 0 : $historyComponents->sum(fn (array $item) => $item['planned_workload_hours'] ?? $this->historicalWorkloadHours($item['component'])),
                 'school_days' => $isTransferred || $enrollment->status === StudentEnrollment::STATUS_NOT_RENEWED
                     ? $year->days()->where('counts_as_school_day', true)
                         ->when($enrollment->enrolled_at, fn ($query) => $query->whereDate('date', '>=', $enrollment->enrolled_at->toDateString()))
@@ -306,11 +307,11 @@ class UnifiedStudentHistorySynchronizer
                 ['student_academic_history_year_id' => $yearRow->id],
                 [
                     'curriculum_component_id' => $component->id,
-                    'score_label' => $score !== null ? number_format($score, $usesLegacyScale ? 1 : 2, ',', '.') : '-',
+                    'score_label' => $componentReport['score_label'] ?? ($score !== null ? number_format($score, $usesLegacyScale ? 1 : 2, ',', '.') : '-'),
                     'score_numeric' => $score,
                     'workload_hours' => $stage === AcademicCourse::STAGE_TECHNICAL && $isInProgress && ! $moduleConcluded
                         ? null
-                        : $this->historicalWorkloadHours($component),
+                        : ($componentReport['planned_workload_hours'] ?? $this->historicalWorkloadHours($component)),
                     'completed_workload_hours' => $stage === AcademicCourse::STAGE_TECHNICAL && $isInProgress && ! $moduleConcluded
                         ? null
                         : app(AttendanceSummaryCalculator::class)->completedWorkloadHours($componentAttendance),

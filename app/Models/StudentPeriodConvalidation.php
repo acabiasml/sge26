@@ -20,6 +20,7 @@ class StudentPeriodConvalidation extends Model
         'attendance_lessons',
         'attendance_absences',
         'attendance_justified_absences',
+        'verified_diary_attended_minutes',
         'source_school',
         'notes',
         'convalidated_at',
@@ -32,6 +33,7 @@ class StudentPeriodConvalidation extends Model
             'attendance_lessons' => 'integer',
             'attendance_absences' => 'integer',
             'attendance_justified_absences' => 'integer',
+            'verified_diary_attended_minutes' => 'integer',
             'convalidated_at' => 'date',
         ];
     }

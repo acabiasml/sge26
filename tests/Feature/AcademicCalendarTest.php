@@ -1650,6 +1650,7 @@ class AcademicCalendarTest extends TestCase
     {
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
         $year = $this->academicYear();
+        $this->reclassificationPeriods($year);
         $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'aluno.reclassificacao@ctjj.org');
         $courseA = $year->courses()->create([
             'name' => '1º Ano',
@@ -1706,6 +1707,13 @@ class AcademicCalendarTest extends TestCase
         $this->assertNotNull($enrollment->fresh()->final_result_calculated_at);
         $this->assertNull($newEnrollment->final_result_status);
 
+        $secondPeriod = $year->periods()->where('position', 2)->firstOrFail();
+        $assessment = DiaryAssessment::create(['school_class_id' => $classB->id,
+            'curriculum_component_id' => $courseB->components()->firstOrFail()->id,
+            'academic_period_id' => $secondPeriod->id, 'school_assessment_rule_id' => $secondPeriod->assessmentRules()->firstOrFail()->id,
+            'title' => 'Avaliação do período da transferência', 'assessment_date' => '2026-05-01']);
+        $assessment->results()->create(['student_enrollment_id' => $newEnrollment->id, 'score' => 8]);
+
         $this->actingAs($manager)
             ->patch(route('enrollments.transfer', $newEnrollment), [
                 'transferred_at' => '2026-05-01',
@@ -1730,6 +1738,29 @@ class AcademicCalendarTest extends TestCase
             'person_id' => $student->person_id,
             'school_id' => $year->school_id,
         ]);
+    }
+
+    public function test_reclassification_is_limited_to_first_period_and_missing_date_defaults_to_second_period_start(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $year = $this->academicYear();
+        $this->reclassificationPeriods($year);
+        $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'regra.reclassificacao@ctjj.org');
+        $course = $year->courses()->create(['name' => 'Ensino Médio', 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL, 'active' => true]);
+        $from = $year->classes()->create(['name' => 'Origem', 'active' => true]); $from->courses()->attach($course);
+        $to = $year->classes()->create(['name' => 'Destino', 'active' => true]); $to->courses()->attach($course);
+        $enrollment = $from->enrollments()->create(['person_id' => $student->person_id, 'enrolled_at' => '2026-02-01', 'status' => 'matriculado']);
+        $enrollment->courses()->attach($course);
+        $payload = ['target_school_class_id' => $to->id, 'course_ids' => [$course->id]];
+        $this->actingAs($admin)->post(route('enrollments.reclassify', $enrollment), $payload + ['reclassified_at' => '2026-06-01'])
+            ->assertSessionHasErrors('reclassified_at');
+        $this->assertDatabaseMissing('student_enrollments', ['school_class_id' => $to->id, 'person_id' => $student->person_id]);
+        $this->flushSession();
+        $this->actingAs($admin)->post(route('enrollments.reclassify', $enrollment), $payload)->assertSessionHasNoErrors();
+        $destination = $to->enrollments()->firstOrFail();
+        $this->assertSame('2026-04-22', $destination->enrolled_at->toDateString());
+        $this->assertSame('2026-04-21', $enrollment->fresh()->attendanceEndsAt());
+        $this->assertNull($destination->attendanceEndsAt());
     }
 
     public function test_reclassification_result_backfill_only_updates_unfinished_historical_results(): void
@@ -2477,6 +2508,7 @@ class AcademicCalendarTest extends TestCase
     {
         $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
         $year = $this->academicYear(['active' => false, 'closed_at' => now()]);
+        $this->reclassificationPeriods($year);
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'manager.reopen@ctjj.org');
         $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'student.reopen@ctjj.org');
         $course = $year->courses()->create(['name' => 'Matriz', 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL, 'status' => 'iniciado', 'active' => true]);
@@ -2761,6 +2793,12 @@ class AcademicCalendarTest extends TestCase
         $this->assertSame($year->school_id, $document->school_id);
         $this->assertSame(1, $document->payload['rows_count']);
         $this->assertStringStartsWith('BEABA-', $document->verification_code);
+    }
+
+    private function reclassificationPeriods(AcademicYear $year): void
+    {
+        $year->periods()->create(['name' => 'I Bimestre', 'position' => 1, 'starts_at' => '2026-01-20', 'ends_at' => '2026-04-17']);
+        $year->periods()->create(['name' => 'II Bimestre', 'position' => 2, 'starts_at' => '2026-04-22', 'ends_at' => '2026-07-03']);
     }
 
     private function academicYear(array $overrides = []): AcademicYear
