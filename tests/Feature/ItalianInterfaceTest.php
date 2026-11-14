@@ -95,7 +95,7 @@ class ItalianInterfaceTest extends TestCase
             'type' => 'report-card',
             'target_id' => $enrollment->id,
             'score_view' => 'numeros',
-        ]))->assertRedirect(route('enrollments.report-card.pdf', [
+        ]))->assertRedirectContains(route('enrollments.report-card.pdf', [
             'enrollment' => $enrollment, 'notas' => 'numeros',
         ]));
     }

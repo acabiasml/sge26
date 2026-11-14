@@ -351,7 +351,7 @@ class TeacherDiaryTest extends TestCase
         $this->getJson(route('document-issuance.targets', ['type' => 'teacher-diary']))->assertOk()
             ->assertJsonCount(1, 'targets')->assertJsonPath('targets.0.id', $own->id);
         $this->get(route('document-issuance.issue', ['type' => 'teacher-diary', 'target_id' => $own->id]))
-            ->assertRedirect(route('teacher-diaries.pdf', ['schoolClass' => $class, 'component' => $component, 'notas' => 'numeros']));
+            ->assertRedirectContains(route('teacher-diaries.pdf', ['schoolClass' => $class, 'component' => $component, 'notas' => 'numeros']));
         $this->get(route('document-issuance.issue', ['type' => 'teacher-diary', 'target_id' => $other->id]))->assertNotFound();
     }
 
@@ -3372,7 +3372,7 @@ class TeacherDiaryTest extends TestCase
         $this->actingAs($manager)->get(route('document-issuance.index'))->assertOk()->assertSee('value="class-approval-overview"', false);
         $this->actingAs($manager)->get(route('document-issuance.issue', [
             'type' => 'class-approval-overview', 'target_id' => $class->id,
-        ]))->assertRedirect($url);
+        ]))->assertRedirectContains($url);
     }
 
     public function test_teacher_can_issue_only_own_person_record_in_teacher_view(): void
@@ -3397,7 +3397,7 @@ class TeacherDiaryTest extends TestCase
 
         $this->get(route('document-issuance.issue', [
             'type' => 'person-record', 'target_id' => $teacher->person_id,
-        ]))->assertRedirect(route('people.pdf', $teacher->person_id));
+        ]))->assertRedirectContains(route('people.pdf', $teacher->person_id));
         $this->get(route('people.pdf', $teacher->person_id))
             ->assertOk()->assertHeader('content-type', 'application/pdf');
         $this->get(route('document-issuance.issue', [
@@ -3479,7 +3479,7 @@ class TeacherDiaryTest extends TestCase
         $this->getJson(route('document-issuance.targets', ['type' => 'student-progress']))
             ->assertOk()->assertJsonPath('targets.0.id', $enrollment->id);
         $this->get(route('document-issuance.issue', ['type' => 'student-progress', 'target_id' => $enrollment->id]))
-            ->assertRedirect($url);
+            ->assertRedirectContains($url);
         $this->get($url)->assertOk()->assertHeader('content-type', 'application/pdf');
         $this->assertDatabaseHas('issued_documents', [
             'type' => 'student-progress', 'person_id' => $enrollment->person_id,

@@ -31,7 +31,7 @@ class VolunteerReceiptTest extends TestCase
         $this->getJson(route('document-issuance.targets', ['type' => 'volunteer-receipt', 'q' => 'Voluntária']))
             ->assertOk()->assertJsonPath('targets.0.id', $volunteer->id);
         $this->get(route('document-issuance.issue', array_merge($params, ['type' => 'volunteer-receipt', 'target_id' => $volunteer->id])))
-            ->assertRedirect(route('people.volunteer-receipt', array_merge(['person' => $volunteer], $params)));
+            ->assertRedirectContains(route('people.volunteer-receipt', array_merge(['person' => $volunteer], $params)));
         $response = $this->get(route('people.volunteer-receipt', array_merge(['person' => $volunteer], $params)));
         $response->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->assertStringStartsWith('%PDF', $response->getContent());

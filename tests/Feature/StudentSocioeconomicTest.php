@@ -72,7 +72,7 @@ class StudentSocioeconomicTest extends TestCase
         $previous->update(['status' => StudentEnrollment::STATUS_TRANSFERRED, 'transferred_at' => '2025-10-01']);
         $this->actingAs($manager)->get(route('document-issuance.index'))->assertOk()->assertSee('value="socioeconomic-form"', false);
         $this->getJson(route('document-issuance.targets', ['type' => 'socioeconomic-form']))->assertOk()->assertJsonCount(2, 'targets');
-        $this->get(route('document-issuance.issue', ['type' => 'socioeconomic-form', 'target_id' => $enrollment->id]))->assertRedirect(route('enrollments.socioeconomic.pdf', $enrollment));
+        $this->get(route('document-issuance.issue', ['type' => 'socioeconomic-form', 'target_id' => $enrollment->id]))->assertRedirectContains(route('enrollments.socioeconomic.pdf', $enrollment));
         $this->get(route('enrollments.socioeconomic.pdf', $other))->assertForbidden();
         $renderData = null;
         $renderer = null;

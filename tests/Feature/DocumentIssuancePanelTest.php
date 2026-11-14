@@ -17,6 +17,7 @@ use App\Models\StudentAcademicHistory;
 use App\Models\StudentEnrollment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class DocumentIssuancePanelTest extends TestCase
@@ -24,6 +25,22 @@ class DocumentIssuancePanelTest extends TestCase
     use RefreshDatabase;
 
     private int $personSequence = 0;
+
+    public function test_each_pdf_issuance_has_a_new_url_preserves_filters_and_cannot_be_cached(): void
+    {
+        $school = School::create(['name' => 'Escola', 'active' => true]);
+        $this->actingAs($this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id));
+        $url = route('document-issuance.issue', ['type' => 'listing-people', 'target_id' => 1]);
+        $first = $this->get($url)->assertRedirect()->assertHeader('Pragma', 'no-cache')->assertHeader('CDN-Cache-Control', 'no-store');
+        $second = $this->get($url)->assertRedirect();
+        $this->assertNotSame($first->headers->get('Location'), $second->headers->get('Location'));
+        $this->assertStringStartsWith(route('reports.pdf', 'people').'?emissao=', $first->headers->get('Location'));
+        parse_str(parse_url($first->headers->get('Location'), PHP_URL_QUERY), $query);
+        $this->assertTrue(Str::isUuid($query['emissao']));
+        $this->assertStringContainsString('no-store', $first->headers->get('Cache-Control'));
+        $this->get(route('document-issuance.issue', ['type' => 'listing-people', 'target_id' => 2]))
+            ->assertRedirect(route('reports.excel', 'people'));
+    }
 
     public function test_manager_finds_former_student_without_prepared_history_or_school_role_and_can_open_the_archive(): void
     {
@@ -166,7 +183,7 @@ class DocumentIssuancePanelTest extends TestCase
         $this->actingAs($student)->get(route('document-issuance.index'))->assertOk()
             ->assertSee('value="student-schedule"', false)->assertDontSee('value="report-card"', false)->assertDontSee('value="academic-history"', false);
         $this->getJson(route('document-issuance.targets', ['type' => 'student-schedule']))->assertOk()->assertJsonCount(1, 'targets')->assertJsonPath('targets.0.id', $enrollments[0]->id);
-        $this->get(route('document-issuance.issue', ['type' => 'student-schedule', 'target_id' => $enrollments[0]->id]))->assertRedirect(route('student-diaries.schedule-pdf', $enrollments[0]));
+        $this->get(route('document-issuance.issue', ['type' => 'student-schedule', 'target_id' => $enrollments[0]->id]))->assertRedirectContains(route('student-diaries.schedule-pdf', $enrollments[0]));
         $this->get(route('document-issuance.issue', ['type' => 'student-schedule', 'target_id' => $enrollments[1]->id]))->assertNotFound();
         foreach (['report-card', 'individual-record', 'academic-history', 'teacher-diary', 'class-grade-mirror', 'person-record', 'class-approval-overview'] as $type) {
             $this->getJson(route('document-issuance.targets', ['type' => $type]))->assertUnprocessable();
@@ -187,7 +204,7 @@ class DocumentIssuancePanelTest extends TestCase
             $this->getJson(route('document-issuance.targets', ['type' => $type]))->assertOk()->assertJsonCount(2, 'targets');
             foreach ([1 => 'pdf', 2 => 'excel'] as $id => $format) {
                 $this->get(route('document-issuance.issue', ['type' => $type, 'target_id' => $id]))
-                    ->assertRedirect(route('reports.'.$format, ['type' => $listing]));
+                    ->assertRedirectContains(route('reports.'.$format, ['type' => $listing]));
             }
         }
         foreach (['teacher-schedule' => 'teacher-schedules.pdf', 'compliance-report' => 'data-quality.pdf', 'official-editor' => 'official-documents.create'] as $type => $route) {
@@ -198,7 +215,7 @@ class DocumentIssuancePanelTest extends TestCase
                 $page->assertDontSee('value="'.$type.'"', false);
             }
             $this->getJson(route('document-issuance.targets', ['type' => $type]))->assertOk()->assertJsonCount(1, 'targets');
-            $this->get(route('document-issuance.issue', ['type' => $type, 'target_id' => 1]))->assertRedirect(route($route));
+            $this->get(route('document-issuance.issue', ['type' => $type, 'target_id' => 1]))->assertRedirectContains(route($route));
         }
         $this->getJson(route('document-issuance.targets', ['type' => 'student-schedule']))->assertOk()->assertJsonCount(0, 'targets');
         $this->get(route('document-issuance.issue', ['type' => 'student-schedule', 'target_id' => 999]))->assertNotFound();
@@ -233,7 +250,7 @@ class DocumentIssuancePanelTest extends TestCase
         $this->get(route('document-issuance.issue', [
             'type' => 'transfer-certificate',
             'target_id' => $enrollment->id,
-        ]))->assertRedirect(route('enrollments.transfer-certificate.pdf', $enrollment));
+        ]))->assertRedirectContains(route('enrollments.transfer-certificate.pdf', $enrollment));
         $this->assertSame(StudentEnrollment::STATUS_ENROLLED, $enrollment->fresh()->status);
 
         $enrollment->update(['status' => StudentEnrollment::STATUS_TRANSFERRED, 'transferred_at' => '2026-04-01']);
@@ -257,7 +274,7 @@ class DocumentIssuancePanelTest extends TestCase
         $this->actingAs($manager)->getJson(route('document-issuance.targets', ['type' => 'course-matrix']))
             ->assertOk()->assertJsonCount(1, 'targets')->assertJsonPath('targets.0.id', $courses[0]->id);
         $this->get(route('document-issuance.issue', ['type' => 'course-matrix', 'target_id' => $courses[0]->id]))
-            ->assertRedirect(route('academic-years.courses.matrix-pdf', [$courses[0]->academic_year_id, $courses[0]]));
+            ->assertRedirectContains(route('academic-years.courses.matrix-pdf', [$courses[0]->academic_year_id, $courses[0]]));
         $this->get(route('document-issuance.issue', ['type' => 'course-matrix', 'target_id' => $courses[1]->id]))->assertNotFound();
     }
 
@@ -452,7 +469,7 @@ class DocumentIssuancePanelTest extends TestCase
                 'attendance_scope' => 'period',
                 'academic_period_id' => $period->id,
             ]))
-            ->assertRedirect(route('academic-years.attendance-report.pdf', [
+            ->assertRedirectContains(route('academic-years.attendance-report.pdf', [
                 'academicYear' => $year,
                 'attendance_scope' => 'period',
                 'academic_period_id' => $period->id,
@@ -481,7 +498,7 @@ class DocumentIssuancePanelTest extends TestCase
                 'attendance_month' => '2026-06',
                 'federal_aid_only' => 1,
             ]))
-            ->assertRedirect(route('academic-years.attendance-report.pdf', [
+            ->assertRedirectContains(route('academic-years.attendance-report.pdf', [
                 'academicYear' => $year,
                 'attendance_scope' => 'month',
                 'academic_period_id' => null,
@@ -578,7 +595,7 @@ class DocumentIssuancePanelTest extends TestCase
                 'target_id' => $enrollment->id,
                 'score_view' => 'conceitos',
             ]))
-            ->assertRedirect(route('enrollments.report-card.pdf', [
+            ->assertRedirectContains(route('enrollments.report-card.pdf', [
                 'enrollment' => $enrollment,
                 'notas' => 'conceitos',
             ]));
@@ -920,7 +937,7 @@ class DocumentIssuancePanelTest extends TestCase
 
         $this->actingAs($administrator)
             ->get(route('document-issuance.issue', ['type' => 'class-student-contacts', 'target_id' => $class->id]))
-            ->assertRedirect(route('classes.student-contacts.pdf', ['class' => $class]));
+            ->assertRedirectContains(route('classes.student-contacts.pdf', ['class' => $class]));
 
         $this->actingAs($administrator)
             ->get(route('document-issuance.issue', [
@@ -928,7 +945,7 @@ class DocumentIssuancePanelTest extends TestCase
                 'target_id' => $class->id,
                 'score_view' => 'numeros',
             ]))
-            ->assertRedirect(route('classes.report-cards.pdf', [
+            ->assertRedirectContains(route('classes.report-cards.pdf', [
                 'class' => $class,
                 'notas' => 'numeros',
             ]));
@@ -939,7 +956,7 @@ class DocumentIssuancePanelTest extends TestCase
                 'target_id' => $class->id,
                 'score_view' => 'conceitos',
             ]))
-            ->assertRedirect(route('classes.grade-mirror.pdf', [
+            ->assertRedirectContains(route('classes.grade-mirror.pdf', [
                 'class' => $class,
                 'notas' => 'conceitos',
             ]));
@@ -985,7 +1002,7 @@ class DocumentIssuancePanelTest extends TestCase
                 'attendance_scope' => 'period',
                 'academic_period_id' => $period->id,
             ]))
-            ->assertRedirect(route('enrollments.attendance-certificate.pdf', [
+            ->assertRedirectContains(route('enrollments.attendance-certificate.pdf', [
                 'enrollment' => $enrollment,
                 'attendance_scope' => 'period',
                 'academic_period_id' => $period->id,
@@ -1027,7 +1044,7 @@ class DocumentIssuancePanelTest extends TestCase
                 'attendance_scope' => 'month',
                 'attendance_month' => '2026-05',
             ]))
-            ->assertRedirect(route('classes.attendance-certificates.pdf', [
+            ->assertRedirectContains(route('classes.attendance-certificates.pdf', [
                 'class' => $class,
                 'attendance_scope' => 'month',
                 'academic_period_id' => null,
@@ -1136,7 +1153,7 @@ class DocumentIssuancePanelTest extends TestCase
                 'target_id' => $enrollment->id,
                 'confirm_missing_student_cpf' => 1,
             ]))
-            ->assertRedirect(route('enrollments.pdf', [
+            ->assertRedirectContains(route('enrollments.pdf', [
                 'enrollment' => $enrollment,
                 'confirm_missing_student_cpf' => 1,
             ]));
