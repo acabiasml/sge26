@@ -15,6 +15,11 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 def main():
     config = pathlib.Path('scripts/history-query.json')
     query = json.loads(config.read_text()) if config.exists() else {'person_id': 0}
+    requested_scope = os.environ.get('HISTORY_QUERY_SCOPE', 'configured')
+    if requested_scope != 'configured':
+        if requested_scope not in ('history-pdf-verification', 'high-school-cohorts'):
+            raise ValueError('Escopo manual inválido.')
+        query['scope'] = requested_scope
     scope = query.get('scope', 'student')
     sources = {'history-pdf-verification': 'scripts/history-pdf-verification.php.stub',
                'high-school-cohorts': 'scripts/high-school-cohorts-query.php.stub',
@@ -163,7 +168,12 @@ def main():
                 raw = json.dumps({'diagnosis_failed': True, 'exit_code': code,
                                   'output': raw.decode(errors='replace'),
                                   'error': private_error.decode(errors='replace')}).encode()
-            json.loads(raw)
+            try:
+                json.loads(raw)
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                raw = json.dumps({'diagnosis_failed': True, 'exit_code': code,
+                                  'output': raw.decode(errors='replace'),
+                                  'error': private_error.decode(errors='replace')}).encode()
         finally:
             client.close()
     public = serialization.load_pem_public_key(pathlib.Path('scripts/history-report-public.pem').read_bytes())

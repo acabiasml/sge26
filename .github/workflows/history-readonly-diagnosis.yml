@@ -1,6 +1,15 @@
 name: Consulta protegida de histórico
 on:
   workflow_dispatch:
+    inputs:
+      scope:
+        description: Recorte do diagnóstico protegido
+        type: choice
+        default: configured
+        options:
+          - configured
+          - history-pdf-verification
+          - high-school-cohorts
   push:
     branches: [main]
     paths:
@@ -40,6 +49,7 @@ jobs:
       - name: Consultar sem persistir alterações de diagnóstico
         env:
           EXPECTED_COMMIT: ${{ github.sha }}
+          HISTORY_QUERY_SCOPE: ${{ inputs.scope || 'configured' }}
           HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
         run: python scripts/history-readonly-diagnosis.py
