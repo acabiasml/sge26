@@ -1,1 +1,1 @@
-{"operation": "first-period-reclassification-repair", "transport_key_id": "ecde46b7f7714ab29097433def5e0a18", "mode": "dry-run"}
+{"operation": "first-period-reclassification-repair", "transport_key_id": "ecde46b7f7714ab29097433def5e0a18", "mode": "apply", "expected_snapshot_sha256": "5fdaec4f61f50a0f314e435808ee80bd7ece60d0a3aebb6e7e30bb3b0dd42a67"}
