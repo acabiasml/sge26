@@ -21,6 +21,10 @@
         .trajectory-entry { page-break-inside: avoid; }
         .trajectory-kind { color: #44693D; font-size: 11px; font-weight: 600; margin-bottom: 4px; }
         .document-footer { bottom: -87px !important; }
+        .trajectory-overview { table-layout: fixed; margin-bottom: 14px; }
+        .trajectory-overview td { background: #f6f0ea; border: 1px solid #e6d9cf; vertical-align: top; }
+        .trajectory-overview ul { margin: 5px 0 0; padding-left: 13px; }
+        .person-reference { font-size: 13px; margin: 0 0 8px; }
     </style>
 </head>
 <body>
@@ -30,6 +34,29 @@
         'issuedDocument' => $issuedDocument,
         'verificationUrl' => $verificationUrl,
     ])
+
+    <p class="person-reference"><strong>{{ $person->full_name }}</strong></p>
+    <h2>Resumo da trajetória</h2>
+    <table class="trajectory-overview"><tr>
+        @foreach ($trajectory['groups'] as $group)
+            <td>
+                <strong>{{ $group['label'] }}</strong>
+                <div>{{ trans_choice(':count registro|:count registros', $group['entries']->count(), ['count' => $group['entries']->count()]) }}</div>
+                @if ($group['entries']->isNotEmpty())
+                    <ul>
+                        @foreach ($group['entries']->take(3) as $entry)
+                            <li>{{ $entry['title'] }}@if ($entry['year']) · {{ $entry['year'] }}@endif
+                                @if ($entry['subtitle'] && $entry['subtitle'] !== $entry['title'])<div>{{ $entry['subtitle'] }}</div>@endif
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <div>Nenhum registro cadastrado.</div>
+                @endif
+            </td>
+        @endforeach
+    </tr></table>
+    <p class="trajectory-note">Os períodos, as datas e a duração de cada vínculo estão detalhados na seção Trajetória e movimentações.</p>
 
     <h2>Dados pessoais</h2>
     <table>

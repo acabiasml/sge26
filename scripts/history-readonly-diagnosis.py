@@ -17,10 +17,12 @@ def main():
     query = json.loads(config.read_text()) if config.exists() else {'person_id': 0}
     requested_scope = os.environ.get('HISTORY_QUERY_SCOPE', 'configured')
     if requested_scope != 'configured':
-        if requested_scope not in ('history-pdf-verification', 'high-school-cohorts', 'school-diary-completion', 'diary-restoration-proposal'):
+        if requested_scope not in ('person-record-verification', 'person-record-web-verification', 'history-pdf-verification', 'high-school-cohorts', 'school-diary-completion', 'diary-restoration-proposal'):
             raise ValueError('Escopo manual inválido.')
         query['scope'] = requested_scope
     scope = query.get('scope', 'student')
+    if scope == 'person-record-web-verification' and requested_scope != 'person-record-web-verification':
+        raise ValueError('A emissão web exige seleção manual explícita desse escopo.')
     sources = {'person-record-web-verification': 'scripts/person-record-web-verification.php.stub',
                'person-record-verification': 'scripts/person-record-verification.php.stub',
                'diary-restoration-proposal': 'scripts/diary-restoration-proposal-query.php.stub',

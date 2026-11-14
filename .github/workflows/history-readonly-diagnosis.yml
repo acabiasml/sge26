@@ -8,6 +8,8 @@ on:
         default: configured
         options:
           - configured
+          - person-record-verification
+          - person-record-web-verification
           - history-pdf-verification
           - high-school-cohorts
           - school-diary-completion

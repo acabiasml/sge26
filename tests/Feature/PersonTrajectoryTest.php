@@ -150,6 +150,7 @@ class PersonTrajectoryTest extends TestCase
         $response = $this->actingAs($this->viewer('administrador'))->get(route('people.pdf', $target))->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->assertStringStartsWith('%PDF-', $response->getContent());
         $html = view('reports.records.person', $data)->render();
+        $this->assertLessThan(strpos($html, '<h2>Dados pessoais</h2>'), strpos($html, '<h2>Resumo da trajetória</h2>'));
         foreach (['Trajetória e movimentações', 'Estudos', 'Vínculos profissionais', 'Docência', 'Turma Permitida', 'Turma Restrita', 'Monitoria', '10/09/2022', '2 anos'] as $value) {
             $this->assertStringContainsString($value, $html);
         }
