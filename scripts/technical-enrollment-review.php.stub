@@ -87,6 +87,14 @@ try {
         'matched_attendance_2026' => App\Models\DiaryAttendanceEntry::whereHas('enrollment', fn ($q) => $q->whereIn('person_id', $matchingIds))
             ->whereHas('record', fn ($q) => $q->whereYear('class_date', 2026)->whereHas('schoolClass.academicYear', fn ($y) => $y->where('school_id', $config['school_id'])))
             ->with('record')->orderBy('id')->get(),
+        'enrollment_audit' => App\Models\AuditLog::where('auditable_type', App\Models\StudentEnrollment::class)
+            ->where(function ($q) use ($matchingIds, $people): void {
+                $q->whereIn('old_values->person_id', $matchingIds)->orWhereIn('new_values->person_id', $matchingIds);
+                foreach ($people as $p) {
+                    $prefix = implode(' ', array_slice(explode(' ', $p->full_name), 0, 2));
+                    $q->orWhere('metadata->record_description', 'like', '%'.$prefix.'%');
+                }
+            })->orderBy('id')->limit(300)->get(),
         'timeline' => $enrollments->map(fn ($e) => ['enrollment' => $e->getAttributes(), 'attendance_ends_at' => $e->attendanceEndsAt(),
             'class' => $e->schoolClass->only(['id', 'name']), 'academic_year' => $e->schoolClass->academicYear->only(['id', 'school_id', 'reference_year', 'starts_at', 'ends_at']),
             'course_ids' => $e->courses->pluck('id')]),

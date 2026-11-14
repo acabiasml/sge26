@@ -1,1 +1,1 @@
-{"operation": "technical-legacy-enrollments", "transport_key_id": "ecde46b7f7714ab29097433def5e0a18", "mode": "dry-run"}
+{"operation": "technical-legacy-enrollments", "transport_key_id": "ecde46b7f7714ab29097433def5e0a18", "mode": "apply", "expected_snapshot_sha256": "1c005fe23ea2d949f411b3663fca870002d0370f5a6c676c0d5e08fdb4f8b1cd"}
