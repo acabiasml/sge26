@@ -69,6 +69,49 @@ class EnglishSemesterScheduleCorrectionTest extends TestCase
         app(EnglishSemesterScheduleCorrection::class)->correct($schedule->id, $source->id, $target->id, 14);
     }
 
+    public function test_relinks_old_second_semester_attendance_and_content_without_changing_values_or_grades(): void
+    {
+        [$schedule, $source, $target] = $this->scenario();
+        $existing = DiaryAttendanceRecord::first();
+        $orphan = $existing->replicate();
+        $orphan->curriculum_component_id = $source->curriculum_component_id;
+        $orphan->class_date = '2026-08-17';
+        $orphan->lesson_count = 2;
+        $orphan->save();
+        $orphan->entries()->create(['student_enrollment_id' => $existing->entries()->sole()->student_enrollment_id,
+            'status' => 'parcial', 'attended_lessons' => 1, 'lesson_presence' => [true, false]]);
+        $content = DiaryContent::first()->replicate();
+        $content->curriculum_component_id = $source->curriculum_component_id;
+        $content->class_date = '2026-08-17';
+        $content->save();
+        $entries = $orphan->entries()->get()->toArray();
+        $grades = DiaryAssessment::with('results')->get()->toArray();
+        $service = app(EnglishSemesterScheduleCorrection::class);
+        $plan = $service->correct($schedule->id, $source->id, $target->id, 14);
+        $this->assertSame(1, $plan['attendance_records_to_relink']);
+        $this->assertSame(2, $plan['attendance_lessons_to_relink']);
+        $this->assertSame(1, $plan['content_records_to_relink']);
+        $service->correct($schedule->id, $source->id, $target->id, 14, true, $plan['snapshot_sha256']);
+        $this->assertSame($target->curriculum_component_id, $orphan->fresh()->curriculum_component_id);
+        $this->assertSame($target->curriculum_component_id, $content->fresh()->curriculum_component_id);
+        $this->assertSame(2, $orphan->fresh()->lesson_count);
+        $this->assertSame($entries, $orphan->entries()->get()->toArray());
+        $this->assertSame($grades, DiaryAssessment::with('results')->get()->toArray());
+        $verified = $service->correct($schedule->id, $source->id, $target->id, 14);
+        $this->assertSame(0, $verified['attendance_records_to_relink']);
+        $this->assertSame(0, $verified['content_records_to_relink']);
+    }
+
+    public function test_conflicting_dates_between_both_components_prevent_relinking_or_schedule_changes(): void
+    {
+        [$schedule, $source, $target] = $this->scenario();
+        $orphan = DiaryAttendanceRecord::first()->replicate();
+        $orphan->curriculum_component_id = $source->curriculum_component_id;
+        $orphan->save();
+        $this->expectExceptionMessage('conflitantes na mesma data');
+        app(EnglishSemesterScheduleCorrection::class)->correct($schedule->id, $source->id, $target->id, 14);
+    }
+
     private function scenario(): array
     {
         Storage::fake('local');

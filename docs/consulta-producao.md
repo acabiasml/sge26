@@ -236,8 +236,10 @@ A operação `english-semester-schedule` do workflow de reconciliação recebe
 `schedule_id`, `source_assignment_id`, `target_assignment_id`, `weekly_total`
 e `mode`. Confere a mesma turma, matriz, área e professora, com períodos sem
 sobreposição. Corrige somente a grade do segundo semestre para uma aula semanal
-de Inglês II e 14 aulas totais. Mantém as cargas, o calendário e todos os
-lançamentos, conferidos por hash antes e depois. Exige simulação, seu
+de Inglês II e 14 aulas totais. Reassocia chamadas e conteúdos do semestre que
+ainda estejam no componente anterior, sem colisão de datas. Preserva IDs,
+presenças, quantidades, notas, cargas e calendário; o hash permite somente os
+vínculos e seus horários de atualização expressamente corrigidos. Exige simulação, seu
 `expected_snapshot_sha256` para aplicar, cópia privada e auditoria. Após aplicar,
 retorne a `dry-run` e confirme zero horários a corrigir.
 

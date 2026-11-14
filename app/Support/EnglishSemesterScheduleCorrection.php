@@ -57,7 +57,24 @@ final class EnglishSemesterScheduleCorrection
             $this->check($newTotal === $weeklyTotal, 'O total das outras disciplinas não corresponde à matriz.');
             $course = $source->component->course;
             $protected = $this->protectedState($schedule->school_class_id, $course->id);
-            $protectedHash = hash('sha256', json_encode($protected, JSON_THROW_ON_ERROR));
+            $periods = $course->academicYear->periods->keyBy('id');
+            $moves = [];
+            foreach (['attendance', 'contents'] as $type) {
+                $moves[$type] = collect($protected[$type])->filter(function ($row) use ($source, $target, $periods) {
+                    $period = $periods->get($row['academic_period_id']);
+
+                    return $row['curriculum_component_id'] === $source->curriculum_component_id && $period
+                        && ! $source->component->isActiveInPeriod($period) && $target->component->isActiveInPeriod($period)
+                        && substr($row['class_date'], 0, 10) >= $period->starts_at->toDateString()
+                        && substr($row['class_date'], 0, 10) <= $period->ends_at->toDateString();
+                })->pluck('id')->all();
+                foreach (collect($protected[$type])->whereIn('id', $moves[$type]) as $row) {
+                    $this->check(! collect($protected[$type])->contains(fn ($other) => $other['id'] !== $row['id']
+                        && in_array($other['curriculum_component_id'], [$source->curriculum_component_id, $target->curriculum_component_id], true)
+                        && $other['class_date'] === $row['class_date']), 'Há lançamentos de Inglês conflitantes na mesma data; confira os dois diários.');
+                }
+            }
+            $protectedHash = $this->protectedDigest($protected, $moves);
             $snapshot = ['schedule' => $schedule->getAttributes(), 'slots' => $schedule->slots->sortBy('id')->map->getAttributes()->values()->all(),
                 'assignments' => $assignments->sortKeys()->map->getAttributes()->values()->all(), 'protected' => $protected];
             $hash = hash('sha256', json_encode($snapshot, JSON_THROW_ON_ERROR));
@@ -65,6 +82,8 @@ final class EnglishSemesterScheduleCorrection
             $result = ['mode' => $apply ? 'apply' : 'dry-run', 'snapshot_sha256' => $hash, 'schedule_id' => $scheduleId,
                 'class_id' => $schedule->school_class_id, 'teacher_person_id' => $target->teacher_person_id,
                 'slots_to_reassign' => $reassign ? 1 : 0, 'slots_to_remove' => $remove->count(),
+                'attendance_records_to_relink' => count($moves['attendance']), 'content_records_to_relink' => count($moves['contents']),
+                'attendance_lessons_to_relink' => collect($protected['attendance'])->whereIn('id', $moves['attendance'])->sum('lesson_count'),
                 'weekly_classes_before' => $schedule->slots->where('type', 'aula')->count(), 'weekly_classes_after' => $newTotal,
                 'annual_hours' => $course->calculatedWorkloadHours(),
                 'retained_time' => $keep->only(['weekday', 'starts_at', 'ends_at']), 'protected_sha256' => $protectedHash,
@@ -77,7 +96,7 @@ final class EnglishSemesterScheduleCorrection
                 return $result;
             }
             $this->check($expectedSnapshot !== null && hash_equals($hash, $expectedSnapshot), 'O horário ou os registros mudaram após a conferência. Execute nova simulação.');
-            if (! $reassign && $remove->isEmpty()) {
+            if (! $reassign && $remove->isEmpty() && $moves['attendance'] === [] && $moves['contents'] === []) {
                 return $result;
             }
             $backup = 'diary-reconciliation/english-schedule-'.Str::uuid().'.json';
@@ -89,11 +108,21 @@ final class EnglishSemesterScheduleCorrection
             foreach ($remove as $slot) {
                 $slot->delete();
             }
-            $this->check($protectedHash === hash('sha256', json_encode($this->protectedState($schedule->school_class_id, $course->id), JSON_THROW_ON_ERROR)),
+            foreach ([DiaryAttendanceRecord::class => $moves['attendance'], DiaryContent::class => $moves['contents']] as $model => $ids) {
+                foreach ($model::whereIn('id', $ids)->get() as $record) {
+                    $record->update(['curriculum_component_id' => $target->curriculum_component_id]);
+                }
+            }
+            $after = $this->protectedState($schedule->school_class_id, $course->id);
+            foreach (['attendance', 'contents'] as $type) {
+                $this->check(collect($after[$type])->whereIn('id', $moves[$type])->every(fn ($row) => $row['curriculum_component_id'] === $target->curriculum_component_id),
+                    'Um lançamento não foi vinculado ao componente de destino.');
+            }
+            $this->check($protectedHash === $this->protectedDigest($after, $moves),
                 'Uma carga, vínculo ou lançamento escolar foi alterado.');
             AuditLog::create(['school_id' => $course->academicYear->school_id, 'auditable_type' => SchoolClassSchedule::class,
                 'auditable_id' => $scheduleId, 'action' => 'updated', 'metadata' => ['operation' => 'english-semester-schedule',
-                    'backup_path' => $backup, 'snapshot_sha256' => $hash, 'protected_sha256' => $protectedHash]]);
+                    'backup_path' => $backup, 'snapshot_sha256' => $hash, 'protected_sha256' => $protectedHash, 'relinked_ids' => $moves]]);
 
             return $result + ['backup_path' => $backup];
         });
@@ -115,5 +144,20 @@ final class EnglishSemesterScheduleCorrection
         if (! $condition) {
             throw new RuntimeException($message);
         }
+    }
+
+    private function protectedDigest(array $state, array $moves): string
+    {
+        foreach (['attendance', 'contents'] as $type) {
+            foreach ($state[$type] as &$row) {
+                if (in_array($row['id'], $moves[$type], true)) {
+                    $row['curriculum_component_id'] = 'english-semester';
+                    unset($row['updated_at']);
+                }
+            }
+            unset($row);
+        }
+
+        return hash('sha256', json_encode($state, JSON_THROW_ON_ERROR));
     }
 }
