@@ -15,6 +15,10 @@ class StudentFinalResultCalculator
     {
         $enrollment->loadMissing('schoolClass.academicYear.school');
 
+        if ($enrollment->status === StudentEnrollment::STATUS_NOT_RENEWED) {
+            return $this->movementResult(StudentEnrollment::FINAL_NOT_RENEWED, $enrollment->notes ?: 'Matrícula não renovada no ano seguinte.');
+        }
+
         if ($enrollment->status === StudentEnrollment::STATUS_TRANSFERRED) {
             return $this->movementResult(StudentEnrollment::FINAL_TRANSFERRED, 'Matrícula encerrada por transferência.');
         }

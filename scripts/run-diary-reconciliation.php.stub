@@ -63,6 +63,7 @@ $service = match ($config['operation'] ?? '') {
     'documented-diary-import' => App\Support\DocumentedDiaryImporter::class,
     'diary-batch' => App\Support\LegacyDiaryBatchReconciler::class,
     'technical-legacy-enrollments' => App\Support\TechnicalLegacyEnrollmentRestorer::class,
+    'enrollment-non-renewal' => App\Support\EnrollmentNonRenewalCorrection::class,
     default => App\Support\LegacyClassDiaryReconciler::class,
 };
 $result = app($service)->reconcile(

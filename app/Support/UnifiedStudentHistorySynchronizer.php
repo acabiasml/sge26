@@ -12,6 +12,7 @@ use App\Models\StudentEnrollment;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class UnifiedStudentHistorySynchronizer
 {
@@ -26,11 +27,12 @@ class UnifiedStudentHistorySynchronizer
             $eligible = app(StudentTechnicalItinerary::class)->independentCourses($student);
             $technicalCourseId ??= $eligible->count() === 1 ? $eligible->first()->id : null;
             if (! $technicalCourseId || ! $eligible->contains('id', $technicalCourseId)) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['technical_course_id' => __('Selecione o curso técnico independente. Cursos usados como itinerário integram o histórico do Médio.')]);
+                throw ValidationException::withMessages(['technical_course_id' => __('Selecione o curso técnico independente. Cursos usados como itinerário integram o histórico do Médio.')]);
             }
         } else {
             $technicalCourseId = null;
         }
+
         return DB::transaction(function () use ($student, $schoolId, $personId, $stage, $technicalCourseId): StudentAcademicHistory {
             $school = School::query()->findOrFail($schoolId);
             $stageLabel = $stage === AcademicCourse::STAGE_TECHNICAL
@@ -149,6 +151,7 @@ class UnifiedStudentHistorySynchronizer
                             $processed[$key] = true;
                         }
                     }
+
                     continue;
                 }
                 $key = $history->school_id.':'.$stage;
@@ -214,17 +217,17 @@ class UnifiedStudentHistorySynchronizer
                 'transcript_mode' => $withoutTranscription ? 'no_transcription' : 'detailed',
                 'final_result' => $finalResult,
                 'workload_hours' => $withoutTranscription ? 0 : $historyComponents->sum(fn (array $item) => $this->historicalWorkloadHours($item['component'])),
-                'school_days' => $isTransferred
+                'school_days' => $isTransferred || $enrollment->status === StudentEnrollment::STATUS_NOT_RENEWED
                     ? $year->days()->where('counts_as_school_day', true)
                         ->when($enrollment->enrolled_at, fn ($query) => $query->whereDate('date', '>=', $enrollment->enrolled_at->toDateString()))
-                        ->when($enrollment->transferred_at, fn ($query) => $query->whereDate('date', '<=', $enrollment->transferred_at->toDateString()))
+                        ->when($enrollment->attendanceEndsAt(), fn ($query, $endsAt) => $query->whereDate('date', '<=', $endsAt))
                         ->count()
                     : $year->schoolDayCount(),
                 'attendance_label' => ! $withoutTranscription && $percentage !== null ? number_format((float) $percentage, 2, ',', '.').'%' : null,
                 'minimum_attendance_percentage' => $year->minimum_attendance_percentage,
                 'notes' => $enrollment->status === StudentEnrollment::STATUS_TRANSFERRED && $enrollment->transferred_at
                     ? 'Transferido em '.$enrollment->transferred_at->format('d/m/Y').'.'
-                    : null,
+                    : ($enrollment->status === StudentEnrollment::STATUS_NOT_RENEWED ? $enrollment->notes : null),
             ],
         );
 

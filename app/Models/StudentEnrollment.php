@@ -23,6 +23,8 @@ class StudentEnrollment extends Model
 
     public const STATUS_CANCELLED = 'cancelado';
 
+    public const STATUS_NOT_RENEWED = 'nao_renovado';
+
     public const TYPE_REGULAR = 'regular';
 
     public const TYPE_LISTENER = 'ouvinte';
@@ -43,11 +45,14 @@ class StudentEnrollment extends Model
 
     public const FINAL_CANCELLED = 'cancelado';
 
+    public const FINAL_NOT_RENEWED = 'nao_renovado';
+
     public const STATUS_LABELS = [
         self::STATUS_ENROLLED => 'Matriculado',
         self::STATUS_TRANSFERRED => 'Transferido',
         self::STATUS_RECLASSIFIED => 'Reclassificado',
         self::STATUS_CANCELLED => 'Cancelado',
+        self::STATUS_NOT_RENEWED => 'Não renovada',
     ];
 
     public const TYPE_LABELS = [
@@ -64,6 +69,7 @@ class StudentEnrollment extends Model
         self::FINAL_TRANSFERRED => 'Transferido',
         self::FINAL_RECLASSIFIED => 'Reclassificado',
         self::FINAL_CANCELLED => 'Cancelado',
+        self::FINAL_NOT_RENEWED => 'Não renovada',
     ];
 
     protected $fillable = [
@@ -110,6 +116,8 @@ class StudentEnrollment extends Model
             $this->transferred_at?->toDateString(),
             $this->cancelled_at?->toDateString(),
             $this->reclassified_at?->toDateString(),
+            $this->status === self::STATUS_NOT_RENEWED
+                ? ($this->legacy_metadata['non_renewal']['attendance_ends_at'] ?? null) : null,
         ]);
 
         return $dates === [] ? null : min($dates);
