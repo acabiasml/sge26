@@ -33,10 +33,12 @@ final class AdministrativeDiaryReconstruction
                 && preg_match('/^[a-f0-9]{64}$/', $manifest['source_snapshot_sha256'] ?? '')
                 && preg_match('/^[a-f0-9-]{36}$/', $manifest['batch_id'] ?? ''), 'Recomposição administrativa não autorizada ou sem identificação.');
             $diaries = $manifest['diaries'] ?? [];
+            $supplement = ($manifest['supplement_existing'] ?? false) === true;
             $this->check(is_array($diaries) && count($diaries) > 0 && count($diaries) <= 20
                 && count(array_unique(array_column($diaries, 'assignment_id'))) === count($diaries), 'Recorte de diários inválido.');
             $plans = $snapshots = $summaries = [];
             $ownedIds = [];
+            $ignoredEvidenceEntries = [];
             $manifestHash = hash('sha256', json_encode($manifest, JSON_THROW_ON_ERROR));
             foreach ($diaries as $diary) {
                 $assignment = SchoolClassComponent::when($apply, fn ($q) => $q->lockForUpdate())
@@ -57,15 +59,28 @@ final class AdministrativeDiaryReconstruction
                 $scope = fn ($q) => $q->where('school_class_id', $class->id)->where('curriculum_component_id', $component->id);
                 $records = DiaryAttendanceRecord::where($scope)->with('entries')->orderBy('id')->get();
                 $contents = DiaryContent::where($scope)->orderBy('id')->get();
+                $baselineRecordIds = $supplement ? ($diary['baseline_record_ids'] ?? []) : [];
+                $baselineContentIds = $supplement ? ($diary['baseline_content_ids'] ?? []) : [];
+                $baselineEntryIds = $supplement ? ($diary['baseline_entry_ids'] ?? []) : [];
+                foreach ([[$baselineRecordIds, $records->modelKeys()], [$baselineContentIds, $contents->modelKeys()], [$baselineEntryIds, $records->flatMap->entries->pluck('id')->all()]] as [$ids, $currentIds]) {
+                    $this->check(is_array($ids) && count($ids) === count(array_unique($ids))
+                        && collect($ids)->every(fn ($id) => is_int($id) && $id > 0) && array_diff($ids, $currentIds) === [], 'O registro original do complemento não corresponde à conferência.');
+                }
+                $owned = fn ($row) => $row->legacy_source === self::SOURCE && ($row->legacy_metadata['batch_id'] ?? '') === $manifest['batch_id'];
+                $baselineRecords = $records->whereIn('id', $baselineRecordIds)->reject($owned);
+                $baselineContents = $contents->whereIn('id', $baselineContentIds)->reject($owned);
                 foreach ($records->concat($contents) as $row) {
-                    $this->check($row->legacy_source === self::SOURCE
-                        && ($row->legacy_metadata['batch_id'] ?? '') === $manifest['batch_id']
+                    if ($row instanceof DiaryAttendanceRecord ? $baselineRecords->contains('id', $row->id) : $baselineContents->contains('id', $row->id)) {
+                        continue;
+                    }
+                    $this->check($owned($row)
                         && ($row->legacy_metadata['manifest_sha256'] ?? '') === $manifestHash,
                         'O diário já contém registros de outra origem; nenhuma substituição automática é permitida.');
                 }
                 $this->check($records->count() === $records->unique(fn ($r) => $r->class_date->toDateString())->count()
                     && $contents->count() === $contents->unique(fn ($r) => $r->class_date->toDateString())->count(), 'Diário com datas duplicadas.');
-                $ownedIds = array_merge($ownedIds, $records->modelKeys());
+                $ownedIds = array_merge($ownedIds, $records->filter($owned)->modelKeys());
+                $ignoredEvidenceEntries = array_merge($ignoredEvidenceEntries, $baselineRecords->flatMap->entries->whereNotIn('id', $baselineEntryIds)->pluck('id')->all());
                 $excluded = DiaryExcludedDate::where('school_class_component_id', $assignment->id)->get();
                 $snapshots[] = [$assignment->getAttributes(), $class->getAttributes(), $year->getAttributes(),
                     $component->getAttributes(), $course->getAttributes(), $year->periods->toArray(), $year->days->toArray(),
@@ -73,9 +88,10 @@ final class AdministrativeDiaryReconstruction
                 $sessions = $diary['sessions'] ?? [];
                 $this->check(is_array($sessions) && count($sessions) > 0 && count($sessions) <= 250
                     && count(array_unique(array_column($sessions, 'date'))) === count($sessions), 'Datas de recomposição inválidas.');
-                $this->check($records->every(fn ($r) => in_array($r->class_date->toDateString(), array_column($sessions, 'date'), true))
-                    && $contents->every(fn ($r) => in_array($r->class_date->toDateString(), array_column($sessions, 'date'), true)), 'Há registros não contemplados no lote.');
+                $this->check($records->filter($owned)->every(fn ($r) => in_array($r->class_date->toDateString(), array_column($sessions, 'date'), true))
+                    && $contents->filter($owned)->every(fn ($r) => in_array($r->class_date->toDateString(), array_column($sessions, 'date'), true)), 'Há registros não contemplados no lote.');
                 $lessons = 0;
+                $newCallLessons = 0;
                 foreach ($sessions as $session) {
                     $this->heartbeat();
                     $date = $session['date'] ?? '';
@@ -111,26 +127,42 @@ final class AdministrativeDiaryReconstruction
                     $this->check($expectedIds === $rosterIds, 'A relação de estudantes diverge dos vínculos vigentes.');
                     $record = $records->first(fn ($r) => $r->class_date->toDateString() === $date);
                     $storedContent = $contents->first(fn ($r) => $r->class_date->toDateString() === $date);
+                    $recordIsBaseline = $record && $baselineRecords->contains('id', $record->id);
+                    $fillBaselineContent = $storedContent && $baselineContents->contains('id', $storedContent->id);
+                    $this->check(! $fillBaselineContent || ! $this->hasContent($storedContent->content), 'Um conteúdo original preenchido não pode ser substituído.');
                     $this->check(! $record || ($record->lesson_count === $count && $record->academic_period_id === $period->id), 'Chamada do lote foi alterada.');
-                    $this->check(! $storedContent || ($storedContent->content === $text && $storedContent->academic_period_id === $period->id), 'Conteúdo do lote foi alterado.');
-                    $plans[] = compact('assignment', 'date', 'count', 'text', 'references', 'eligible', 'roster', 'record', 'storedContent', 'period');
+                    $this->check(! $storedContent || (($fillBaselineContent || $storedContent->content === $text) && $storedContent->academic_period_id === $period->id), 'Conteúdo do lote foi alterado.');
+                    $plans[] = compact('assignment', 'date', 'count', 'text', 'references', 'eligible', 'roster', 'record', 'storedContent', 'period', 'recordIsBaseline', 'fillBaselineContent');
                     $lessons += $count;
+                    $newCallLessons += $recordIsBaseline ? 0 : $count;
                 }
-                $this->check($lessons === ($diary['expected_lessons'] ?? null)
-                    && abs($lessons * $course->class_hour_minutes / 60 - $component->calculatedWorkloadHours()) < .01,
+                $activePeriods = $year->periods->filter(fn ($p) => $component->isActiveInPeriod($p)
+                    && (! $class->startsPeriod || $p->position >= $class->startsPeriod->position)
+                    && (! $class->endsPeriod || $p->position <= $class->endsPeriod->position)
+                    && (! $course->startsPeriod || $p->position >= $course->startsPeriod->position)
+                    && (! $course->endsPeriod || $p->position <= $course->endsPeriod->position))->modelKeys();
+                $baselineContentLessons = $baselineContents->whereIn('academic_period_id', $activePeriods)
+                    ->filter(fn ($c) => $this->hasContent($c->content))
+                    ->sum(fn ($c) => $baselineRecords->first(fn ($r) => $r->class_date->equalTo($c->class_date))?->lesson_count ?? 0);
+                $totalLessons = $baselineContentLessons + $lessons;
+                $this->check($totalLessons === ($diary['expected_lessons'] ?? null)
+                    && abs($totalLessons * $course->class_hour_minutes / 60 - $component->calculatedWorkloadHours()) < .01
+                    && (! $supplement || ($baselineContentLessons === ($diary['baseline_content_lessons'] ?? null)
+                        && $baselineRecords->whereIn('academic_period_id', $activePeriods)->sum('lesson_count') + $newCallLessons === $totalLessons)),
                     'A recomposição diverge da carga prevista na matriz.');
                 $summaries[] = ['class_id' => $class->id, 'component_id' => $component->id,
-                    'year' => $year->reference_year, 'sessions' => count($sessions), 'lessons' => $lessons];
+                    'year' => $year->reference_year, 'sessions' => count($sessions), 'lessons' => $totalLessons, 'supplemented_lessons' => $lessons];
             }
-            [$evidence, $load, $sourceSnapshot] = $this->sources($plans, $ownedIds, $manifest['school_id']);
+            [$evidence, $load, $sourceSnapshot] = $this->sources($plans, $ownedIds, $manifest['school_id'], $ignoredEvidenceEntries);
             $snapshots[] = $sourceSnapshot;
-            $stats = ['calls_to_create' => 0, 'contents_to_create' => 0, 'entries_to_create' => 0,
+            $stats = ['calls_to_create' => 0, 'contents_to_create' => 0, 'contents_to_fill' => 0, 'entries_to_create' => 0, 'existing_entries_preserved' => 0,
                 'present_entries' => 0, 'absent_entries' => 0, 'unrecorded_entries' => 0];
             $touched = [];
             foreach ($plans as &$plan) {
                 $this->heartbeat();
                 $stats['calls_to_create'] += $plan['record'] ? 0 : 1;
                 $stats['contents_to_create'] += $plan['storedContent'] ? 0 : 1;
+                $stats['contents_to_fill'] += $plan['fillBaselineContent'] ? 1 : 0;
                 $entries = [];
                 $unrecorded = [];
                 foreach ($plan['roster'] as $item) {
@@ -140,7 +172,7 @@ final class AdministrativeDiaryReconstruction
                     $claimed = $item['source_record_ids'] ?? [];
                     sort($claimed);
                     $this->check(($item['status'] ?? null) === $status && $claimed === $sourceIds, 'Frequência ou evidência do dia mudou; recalcule a proposta.');
-                    $load[$key] = ($load[$key] ?? 0) + $plan['count'] * $plan['assignment']->component->course->class_hour_minutes;
+                    $load[$key] = ($load[$key] ?? 0) + ($plan['recordIsBaseline'] ? 0 : $plan['count'] * $plan['assignment']->component->course->class_hour_minutes);
                     $touched[$key] = true;
                     $this->check($load[$key] <= 420, 'A recomposição excede sete horas diárias para um estudante.');
                     if ($status === null) {
@@ -155,9 +187,15 @@ final class AdministrativeDiaryReconstruction
                     $stats[$status === DiaryAttendanceRecord::STATUS_PRESENT ? 'present_entries' : 'absent_entries']++;
                 }
                 if ($plan['record']) {
-                    $current = $plan['record']->entries->sortBy('student_enrollment_id')->map->only(['student_enrollment_id', 'status', 'attended_lessons', 'lesson_presence'])->values()->all();
-                    $expected = collect($entries)->sortBy('student_enrollment_id')->values()->all();
-                    $this->check($current === $expected, 'Há edição posterior de frequência; preservar e conferir manualmente.');
+                    if ($plan['recordIsBaseline']) {
+                        $stats['existing_entries_preserved'] += $plan['record']->entries->count();
+                        $entries = array_values(array_filter($entries, fn ($entry) => ! $plan['record']->entries->contains('student_enrollment_id', $entry['student_enrollment_id'])));
+                        $stats['entries_to_create'] += count($entries);
+                    } else {
+                        $current = $plan['record']->entries->sortBy('student_enrollment_id')->map->only(['student_enrollment_id', 'status', 'attended_lessons', 'lesson_presence'])->values()->all();
+                        $expected = collect($entries)->sortBy('student_enrollment_id')->values()->all();
+                        $this->check($current === $expected, 'Há edição posterior de frequência; preservar e conferir manualmente.');
+                    }
                 } else {
                     $stats['entries_to_create'] += count($entries);
                 }
@@ -173,7 +211,7 @@ final class AdministrativeDiaryReconstruction
                 return $result;
             }
             $this->check($expectedSnapshot && hash_equals($hash, $expectedSnapshot), 'Os registros mudaram desde a simulação.');
-            if ($stats['calls_to_create'] + $stats['contents_to_create'] + $stats['entries_to_create'] === 0) {
+            if ($stats['calls_to_create'] + $stats['contents_to_create'] + $stats['contents_to_fill'] + $stats['entries_to_create'] === 0) {
                 return $result + ['idempotent' => true];
             }
             $backup = 'diary-reconciliation/administrative-'.Str::uuid().'.json';
@@ -193,10 +231,13 @@ final class AdministrativeDiaryReconstruction
                             'attendance_evidence' => $plan['roster'], 'unrecorded_enrollment_ids' => $plan['unrecorded']]];
                     if (! $plan['storedContent']) {
                         DiaryContent::create($base + ['content' => $plan['text']]);
+                    } elseif ($plan['fillBaselineContent']) {
+                        $plan['storedContent']->update(['content' => $plan['text'], 'legacy_source' => self::SOURCE,
+                            'legacy_metadata' => $base['legacy_metadata'] + ['original_content_attributes' => $plan['storedContent']->getAttributes()]]);
                     }
-                    if (! $plan['record']) {
-                        $record = DiaryAttendanceRecord::create($base + ['lesson_count' => $plan['count']]);
-                        foreach ($plan['entries'] as $entry) {
+                    $record = $plan['record'] ?: DiaryAttendanceRecord::create($base + ['lesson_count' => $plan['count']]);
+                    foreach ($plan['entries'] as $entry) {
+                        if (! $record->entries()->where('student_enrollment_id', $entry['student_enrollment_id'])->exists()) {
                             $record->entries()->create($entry);
                         }
                     }
@@ -226,8 +267,15 @@ final class AdministrativeDiaryReconstruction
             && (! in_array($enrollment->status, ['transferido', 'cancelado', 'reclassificado', 'nao_renovado'], true) || $enrollment->attendanceEndsAt());
     }
 
+    private function hasContent(?string $content): bool
+    {
+        $text = html_entity_decode(strip_tags((string) $content), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        return preg_replace('/[\s\x{00a0}\x{200b}]+/u', '', $text) !== '';
+    }
+
     /** Carga conservadora em todas as escolas; evidência de internato somente na escola-alvo. */
-    private function sources(array $plans, array $ownedIds, int $schoolId): array
+    private function sources(array $plans, array $ownedIds, int $schoolId, array $ignoredEvidenceEntries = []): array
     {
         $people = collect($plans)->flatMap(fn ($p) => $p['eligible']->pluck('person_id'))->unique();
         $enrollments = StudentEnrollment::whereIn('person_id', $people)->with('courses')->orderBy('id')->get();
@@ -262,7 +310,7 @@ final class AdministrativeDiaryReconstruction
                     $load[$key] = ($load[$key] ?? 0) + $minutes * $record->lesson_count;
                     $seen[$dedup] = true;
                 }
-                if ($entry && $record->component->course->academicYear->school_id === $schoolId && $record->legacy_source !== self::SOURCE) {
+                if ($entry && ! in_array($entry->id, $ignoredEvidenceEntries, true) && $record->component->course->academicYear->school_id === $schoolId && $record->legacy_source !== self::SOURCE) {
                     $evidence[$key][] = [$record->id, $entry, $record->lesson_count];
                 }
             }

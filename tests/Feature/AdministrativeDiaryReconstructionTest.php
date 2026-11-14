@@ -165,6 +165,73 @@ class AdministrativeDiaryReconstructionTest extends TestCase
         $this->assertSame('falta', $enrollment->attendanceEntries()->whereHas('record', fn ($q) => $q->where('curriculum_component_id', $component->id)->whereDate('class_date', '2026-02-02'))->sole()->status);
     }
 
+    public function test_supplement_preserves_existing_text_and_calls_and_fills_a_blank_content_without_duplicating_it(): void
+    {
+        [$manifest, $class, $component, $enrollment, $departed] = $this->scenario();
+        $period = $class->academicYear->periods()->sole();
+        $original = DiaryAttendanceRecord::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id, 'class_date' => '2025-03-10', 'lesson_count' => 2, 'legacy_source' => 'diario-original']);
+        foreach ([$enrollment, $departed] as $student) {
+            $original->entries()->create(['student_enrollment_id' => $student->id, 'status' => 'presente', 'attended_lessons' => 2]);
+        }
+        $content = DiaryContent::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id, 'class_date' => '2025-03-10', 'content' => 'Texto original preservado.']);
+        $blank = DiaryContent::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id, 'class_date' => '2025-03-11', 'content' => '<p>&nbsp;</p>']);
+        $before = [$original->fresh()->getAttributes(), $original->entries()->get()->toArray(), $content->fresh()->getAttributes(), $enrollment->assessmentResults()->get()->toArray()];
+        $manifest['supplement_existing'] = true;
+        $diary = &$manifest['diaries'][0];
+        $diary['baseline_record_ids'] = [$original->id];
+        $diary['baseline_content_ids'] = [$content->id, $blank->id];
+        $diary['baseline_entry_ids'] = $original->entries()->pluck('id')->all();
+        $diary['baseline_content_lessons'] = 2;
+        array_shift($diary['sessions']);
+        unset($diary);
+        $service = app(AdministrativeDiaryReconstruction::class);
+        $plan = $service->reconcile($manifest);
+        $this->assertSame(2, $plan['stats']['calls_to_create']);
+        $this->assertSame(1, $plan['stats']['contents_to_create']);
+        $this->assertSame(1, $plan['stats']['contents_to_fill']);
+        $service->reconcile($manifest, true, $plan['snapshot_sha256']);
+        $this->assertSame($before, [$original->fresh()->getAttributes(), $original->entries()->get()->toArray(), $content->fresh()->getAttributes(), $enrollment->assessmentResults()->get()->toArray()]);
+        $this->assertSame('Formas geométricas e composição.', $blank->fresh()->content);
+        $this->assertSame('<p>&nbsp;</p>', $blank->fresh()->legacy_metadata['original_content_attributes']['content']);
+        $again = $service->reconcile($manifest);
+        $this->assertSame(0, $again['stats']['calls_to_create'] + $again['stats']['contents_to_create'] + $again['stats']['contents_to_fill'] + $again['stats']['entries_to_create']);
+    }
+
+    public function test_filling_existing_six_hour_call_counts_its_load_once_and_can_add_missing_attendance_from_daily_evidence(): void
+    {
+        [$manifest, $class, $component, $enrollment] = $this->scenario();
+        $component->update(['workload_hours' => 6]);
+        $period = $class->academicYear->periods()->sole();
+        $original = DiaryAttendanceRecord::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id, 'class_date' => '2025-03-11', 'lesson_count' => 6, 'legacy_source' => 'diario-original']);
+        $before = $original->fresh()->getAttributes();
+        $manifest['supplement_existing'] = true;
+        $diary = &$manifest['diaries'][0];
+        $diary['expected_lessons'] = 6;
+        $diary['baseline_record_ids'] = [$original->id];
+        $diary['baseline_content_ids'] = $diary['baseline_entry_ids'] = [];
+        $diary['baseline_content_lessons'] = 0;
+        $diary['sessions'] = [$diary['sessions'][1]];
+        $diary['sessions'][0]['lesson_count'] = 6;
+        unset($diary);
+        $service = app(AdministrativeDiaryReconstruction::class);
+        $plan = $service->reconcile($manifest);
+        $this->assertSame(420, $plan['maximum_daily_minutes']);
+        $this->assertSame(0, $plan['stats']['calls_to_create']);
+        $this->assertSame(1, $plan['stats']['entries_to_create']);
+        $service->reconcile($manifest, true, $plan['snapshot_sha256']);
+        $this->assertSame($before, $original->fresh()->getAttributes());
+        $entry = $original->entries()->sole();
+        $this->assertSame('falta', $entry->status);
+        $this->assertSame(array_fill(0, 6, false), $entry->lesson_presence);
+        $again = $service->reconcile($manifest);
+        $this->assertSame(0, $again['stats']['entries_to_create']);
+        $this->assertSame(420, $again['maximum_daily_minutes']);
+    }
+
     private function scenario(): array
     {
         Storage::fake('local');
