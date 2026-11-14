@@ -29,7 +29,11 @@ try {
         'issuance_targets' => $eligible->map(fn ($history) => [
             'id' => $history->id, 'education_stage' => $history->education_stage,
             'grades' => $history->years->pluck('grade_number')->filter()->unique()->sort()->values(),
-            'results' => $history->years->map->only(['id', 'student_enrollment_id', 'year', 'label', 'final_result']),
+            'results' => $history->years->map(fn ($year) => $year->only(['id', 'student_enrollment_id', 'year', 'label', 'final_result']) + [
+                'calculated_status' => $year->student_enrollment_id
+                    ? app(App\Support\StudentFinalResultCalculator::class)->calculate($year->enrollment)['status'] : null,
+                'record_results' => $year->records->pluck('result')->filter()->unique()->values(),
+            ]),
         ]),
     ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 } finally {
