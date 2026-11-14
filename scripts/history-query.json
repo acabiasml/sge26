@@ -1,1 +1,5 @@
-{"scope": "person-record-verification", "person_id": 38}
+{
+  "scope": "technical-grades",
+  "person_id": 38,
+  "school_id": 1
+}
