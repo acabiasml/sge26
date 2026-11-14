@@ -25,10 +25,6 @@
         }
 
         $criteria = \App\Support\ComponentApprovalCriteria::evaluate($summary, (float) $report['passingPoints']);
-        if ($criteria['basis'] === 'component_average') {
-            return $criteria['passed'] ? __('Aprovado por média') : __('Abaixo da média');
-        }
-
         return $criteria['passed'] ? __('Aprovado por pontos') : __('Abaixo dos pontos');
     };
     $friendlyConceptRange = function ($concept): string {

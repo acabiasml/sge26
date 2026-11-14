@@ -107,14 +107,14 @@ class StudentFinalResultCalculator
             ];
         }
 
-        if ($failedByPoints->contains('grading_basis', 'component_average')) {
+        if ($failedByPoints->contains('grading_basis', 'period_points')) {
             return [
                 'status' => StudentEnrollment::FINAL_RETAINED_POINTS,
                 'details' => [
-                    'reason' => 'Média inferior a 6,0 em componente técnico. Cada componente técnico exige média mínima de 6,0.',
+                    'reason' => 'Soma de pontos inferior à meta do componente técnico: 6,0 pontos por período previsto para esse componente.',
                     'attendance_percentage' => $attendancePercentage,
                     'failed_components' => $failedByPoints->all(),
-                    'technical_passing_average' => ComponentApprovalCriteria::TECHNICAL_PASSING_AVERAGE,
+                    'technical_passing_points_per_period' => ComponentApprovalCriteria::TECHNICAL_PASSING_POINTS_PER_PERIOD,
                     'passing_points' => $passingPoints,
                     'minimum_attendance_percentage' => $minimumAttendance,
                     'dependency_component_limit' => $dependencyLimit,

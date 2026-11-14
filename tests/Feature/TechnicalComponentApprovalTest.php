@@ -39,7 +39,7 @@ class TechnicalComponentApprovalTest extends TestCase
         $this->assertSame('retido_por_pontos', $calculated['status']);
         $this->assertSame(5.5, $calculated['details']['failed_components'][0]['points']);
         $this->assertSame(6.0, $calculated['details']['failed_components'][0]['passing_points']);
-        $this->assertSame('component_average', $calculated['details']['failed_components'][0]['grading_basis']);
+        $this->assertSame('period_points', $calculated['details']['failed_components'][0]['grading_basis']);
     }
 
     public function test_missing_technical_grade_remains_pending_and_modular_points_are_not_added_to_reach_six(): void
@@ -51,8 +51,27 @@ class TechnicalComponentApprovalTest extends TestCase
             ['average' => ['value' => 4]], ['average' => ['value' => 4]],
         ])];
         $criteria = ComponentApprovalCriteria::evaluate($summary, 24);
-        $this->assertSame(4.0, $criteria['value']);
+        $this->assertSame(8.0, $criteria['value']);
+        $this->assertSame(12.0, $criteria['target']);
         $this->assertFalse($criteria['passed']);
+    }
+
+    public function test_points_are_summed_and_targets_follow_school_rule_or_number_of_technical_periods(): void
+    {
+        [$enrollment, $technical] = $this->scenario();
+        foreach ([1 => 6.0, 2 => 12.0, 4 => 24.0] as $periods => $points) {
+            $criteria = ComponentApprovalCriteria::evaluate(['component' => $technical, 'points' => $points, 'total_periods' => $periods,
+                'periods' => collect(array_fill(0, $periods, ['average' => ['value' => 6.0]]))], 24);
+            $this->assertSame($points, $criteria['value']);
+            $this->assertSame($points, $criteria['target']);
+            $this->assertTrue($criteria['passed']);
+        }
+        $regular = $enrollment->courses()->first()->components()->first();
+        $criteria = ComponentApprovalCriteria::evaluate(['component' => $regular, 'points' => 22.5, 'total_periods' => 4,
+            'periods' => collect([['average' => ['value' => 5.5]], ['average' => ['value' => 5.5]], ['average' => ['value' => 5.5]], ['average' => ['value' => 6.0]]])], 22.5);
+        $this->assertSame(22.5, $criteria['target']);
+        $this->assertSame(22.5, $criteria['value']);
+        $this->assertTrue($criteria['passed']);
     }
 
     public function test_inactive_component_is_removed_from_matrix_totals_and_reports_while_source_results_remain(): void
