@@ -24,6 +24,7 @@ def main():
     if scope == 'person-record-web-verification' and requested_scope != 'person-record-web-verification':
         raise ValueError('A emissão web exige seleção manual explícita desse escopo.')
     sources = {'person-record-web-verification': 'scripts/person-record-web-verification.php.stub',
+               'technical-cad-reconstruction': 'scripts/technical-cad-reconstruction-query.php.stub',
                'person-record-verification': 'scripts/person-record-verification.php.stub',
                'diary-restoration-proposal': 'scripts/diary-restoration-proposal-query.php.stub',
                'school-diary-completion': 'scripts/school-diary-completion-query.php.stub',
@@ -47,6 +48,10 @@ def main():
                'student-reenrollment': 'scripts/student-reenrollment-query.php.stub'}
     if scope not in sources:
         raise ValueError('Escopo de consulta inválido.')
+    if scope == 'technical-cad-reconstruction':
+        import re
+        if type(query.get('school_id')) is not int or query['school_id'] <= 0 or not re.fullmatch(r'[0-9a-f]{32}', query.get('transport_key_id', '')):
+            raise ValueError('Escola ou transporte inválido para conferir o CAD I.')
     if scope == 'history-pdf-verification':
         if type(query.get('person_id')) is not int or query['person_id'] <= 0 or type(query.get('history_id')) is not int or query['history_id'] <= 0:
             raise ValueError('Estudante e histórico obrigatórios para verificar a emissão com rollback.')
