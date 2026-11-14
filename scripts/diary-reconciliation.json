@@ -1,1 +1,1 @@
-{"operation":"class-period-end-correction","school_id":1,"reference_year":2025,"class_ids":[11,12],"expected_end_period_id":16,"new_end_period_id":15,"mode":"dry-run"}
+{"operation":"class-period-end-correction","school_id":1,"reference_year":2025,"class_ids":[11,12],"expected_end_period_id":16,"new_end_period_id":15,"mode":"apply","expected_snapshot_sha256":"6f0a02877dba3224c53b1cb59988aa0afb6790ada7bdef21512c24691de9a78e"}
