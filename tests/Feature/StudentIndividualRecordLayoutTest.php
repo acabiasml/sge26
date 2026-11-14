@@ -56,8 +56,27 @@ class StudentIndividualRecordLayoutTest extends TestCase
             'issuedDocument' => $document, 'verificationUrl' => '', 'letterhead' => PdfLetterhead::make($school, ['tecnico']),
         ])->render();
         $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
+        $signatureTop = $footerTop = INF;
+        $signatureBottom = $dateBottom = 0;
+        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame) use (&$signatureTop, &$footerTop, &$signatureBottom, &$dateBottom): void {
+            $node = $frame->get_node();
+            if (! $node instanceof \DOMElement) {
+                return;
+            }
+            $box = $frame->get_border_box();
+            match ($node->getAttribute('class')) {
+                'signature-line' => $signatureTop = min($signatureTop, $box[1]),
+                'signature-role' => $signatureBottom = max($signatureBottom, $box[1] + $box[3]),
+                'issue-place-date' => $dateBottom = max($dateBottom, $box[1] + $box[3]),
+                'document-footer' => $footerTop = min($footerTop, $box[1]),
+                default => null,
+            };
+        }]]);
         $pdf->render();
         $this->assertSame(1, $pdf->getDomPDF()->getCanvas()->get_page_count());
+        $this->assertGreaterThan(0, $signatureBottom);
+        $this->assertGreaterThanOrEqual($dateBottom + 30, $signatureTop);
+        $this->assertGreaterThanOrEqual($signatureBottom + 6, $footerTop);
         $this->assertStringContainsString('Turma e curso', $html);
         $this->assertStringContainsString('Diretora Fictícia de Teste', $html);
         $this->assertStringContainsString('Secretária Fictícia de Teste', $html);

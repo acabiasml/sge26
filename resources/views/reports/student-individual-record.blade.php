@@ -27,8 +27,8 @@
         .area-cell { font-size: 11px; text-align: center; width: 22%; word-wrap: break-word; }
         .formation-area-label { display: block; font-size: 11px; font-weight: 600; margin-top: 3px; }
         .component-cell { width: 20%; word-wrap: break-word; }
-        .technical-table .area-cell { width: 16%; }
-        .technical-table .component-cell { width: 26%; }
+        .technical-table .area-cell { width: 12%; }
+        .technical-table .component-cell { width: 30%; }
         .center { text-align: center; }
         .legend-table { border-collapse: collapse; font-size: 11px; line-height: 1.06; margin-top: 3px; width: 100%; }
         .legend-table th, .legend-table td { border: .45px solid #d8ccc4; padding: 2px 5px; text-align: left; vertical-align: top; }
@@ -38,7 +38,7 @@
         .document-closing { padding-bottom: 0; page-break-inside: avoid; }
         .issue-place-date { margin: 2px 0 0; text-align: center; }
         .signatures { border-collapse: collapse; margin-top: 2px; page-break-inside: avoid; width: 100%; }
-        .signatures td { border: 0; font-size: 11px; padding-top: 24px; text-align: center; width: 50%; }
+        .signatures td { border: 0; font-size: 11px; padding-top: 40px; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 285px; padding-top: 6px; }
         .signature-name { display: block; font-weight: 600; }
         .signature-role { display: block; margin-top: 2px; }
