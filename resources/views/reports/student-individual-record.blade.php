@@ -27,16 +27,18 @@
         .area-cell { font-size: 11px; text-align: center; width: 22%; word-wrap: break-word; }
         .formation-area-label { display: block; font-size: 11px; font-weight: 600; margin-top: 3px; }
         .component-cell { width: 20%; word-wrap: break-word; }
+        .technical-table .area-cell { width: 16%; }
+        .technical-table .component-cell { width: 26%; }
         .center { text-align: center; }
-        .legend-table { border-collapse: collapse; font-size: 11px; line-height: 1.06; margin-top: 5px; width: 100%; }
+        .legend-table { border-collapse: collapse; font-size: 11px; line-height: 1.06; margin-top: 3px; width: 100%; }
         .legend-table th, .legend-table td { border: .45px solid #d8ccc4; padding: 2px 5px; text-align: left; vertical-align: top; }
         .legend-table th { background: #f3eee9; font-weight: 600; width: 10%; }
         .legend-table td { background: #faf8f6; }
         .legend-table span { display: inline-block; margin-right: 8px; white-space: normal; }
-        .document-closing { padding-bottom: 12px; page-break-inside: avoid; }
-        .issue-place-date { margin: 9px 0 0; text-align: center; }
-        .signatures { border-collapse: collapse; margin-top: 6px; page-break-inside: avoid; width: 100%; }
-        .signatures td { border: 0; font-size: 11px; padding-top: 48px; text-align: center; width: 50%; }
+        .document-closing { padding-bottom: 0; page-break-inside: avoid; }
+        .issue-place-date { margin: 2px 0 0; text-align: center; }
+        .signatures { border-collapse: collapse; margin-top: 2px; page-break-inside: avoid; width: 100%; }
+        .signatures td { border: 0; font-size: 11px; padding-top: 24px; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 285px; padding-top: 6px; }
         .signature-name { display: block; font-weight: 600; }
         .signature-role { display: block; margin-top: 2px; }
@@ -57,6 +59,7 @@
     );
     $courses = $report['courses'];
     $technicalCourses = $courses->where('stage', \App\Models\AcademicCourse::STAGE_TECHNICAL)->unique('id')->values();
+    $onlyTechnical = $courses->isNotEmpty() && $courses->count() === $technicalCourses->count();
     $school = $academicYear->school;
     $issuePlace = collect([$school?->city, $school?->state ? mb_strtoupper($school->state, 'UTF-8') : null])->filter()->join('-') ?: 'Poxoréu-MT';
     $issueDate = ($issuedDocument->issued_at ?? now('America/Cuiaba'))->timezone('America/Cuiaba')->format('d/m/Y');
@@ -129,6 +132,7 @@
         ->groupBy(fn (array $summary): string => CurriculumCatalog::formationLabelForComponent($summary['component']))
         ->map(fn ($formationItems, string $formation): array => [
             'formation' => $formation,
+            'technical' => $formationItems->every(fn (array $summary): bool => $summary['component']->course?->stage === \App\Models\AcademicCourse::STAGE_TECHNICAL),
             'rowspan' => $formationItems->count(),
             'periods' => $formationItems
                 ->flatMap(fn (array $summary) => $summary['periods']->pluck('period'))
@@ -185,8 +189,8 @@
     <tr>
         <td class="label">Escola</td>
         <td>{{ $school->name }}</td>
-        <td class="label">Turma e etapa</td>
-        <td>{{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $courses) }}@if($courses->count() !== 1 || $courses->first()?->name !== $schoolClass->name)<br>Matrizes: {{ $courses->pluck('name')->join(' + ') ?: '-' }}@endif</td>
+        <td class="label">{{ $onlyTechnical ? 'Turma e curso' : 'Turma e etapa' }}</td>
+        <td>@if($onlyTechnical){{ collect([$schoolClass->name, $courses->pluck('name')->join(' + ')])->filter()->unique()->join(' · ') }}@else{{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $courses) }}@if($courses->count() !== 1 || $courses->first()?->name !== $schoolClass->name)<br>Matrizes: {{ $courses->pluck('name')->join(' + ') ?: '-' }}@endif @endif</td>
     </tr>
     <tr>
         <td class="label">Ano letivo</td>
@@ -221,7 +225,7 @@
     @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY && $technicalCourses->isNotEmpty())
         @include('reports.partials.technical-course-regulations', ['technicalCourses' => $technicalCourses])
     @endif
-    <table class="report-table">
+    <table @class(['report-table', 'technical-table' => $formationGroup['technical']])>
         <thead>
             <tr>
                 <th colspan="2" rowspan="2">
