@@ -233,7 +233,7 @@
                                         <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.histories.show', [$person, $history]) }}" aria-label="{{ __('screens.open_history', ['title' => $history->title]) }}" title="{{ __('screens.open_history_title') }}">
                                             <i class="fas fa-folder-open" aria-hidden="true"></i>
                                         </a>
-                                        <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('people.histories.pdf', [$person, $history]) }}" aria-label="{{ __('screens.issue_history_pdf') }}" title="{{ __('screens.history_pdf') }}">
+                                        <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ $history->freshPdfUrl() }}" aria-label="{{ __('screens.issue_history_pdf') }}" title="{{ __('screens.history_pdf') }}">
                                             <i class="fas fa-file-pdf" aria-hidden="true"></i>
                                         </a>
                                     </td>

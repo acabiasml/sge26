@@ -391,7 +391,7 @@ class StudentAcademicHistoryController extends Controller
         $this->authorizeHistory($request, $person, $history);
         if (! $history->is_unified) {
             if ($canonical = $this->canonicalHistory($request, $person, $history, $synchronizer)) {
-                return redirect()->route('people.histories.pdf', [$person, $canonical]);
+                return redirect()->to($canonical->freshPdfUrl());
             }
 
             return redirect()->route('student-histories.student', $person)
@@ -458,7 +458,12 @@ class StudentAcademicHistoryController extends Controller
             'Author' => $issuedDocument->person?->full_name ?? 'Beabá',
         ]);
 
-        return $pdf->stream('beaba-historico-escolar-'.$person->id.'-'.$history->id.'-'.now()->format('Ymd-His').'.pdf');
+        return $pdf->stream('beaba-historico-escolar-'.$person->id.'-'.$history->id.'-'.now()->format('Ymd-His').'.pdf')
+            ->withHeaders([
+                'Cache-Control' => 'private, no-store, no-cache, max-age=0, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+            ]);
     }
 
     private function technicalPeriodDurations(StudentAcademicHistory $history)

@@ -15,6 +15,12 @@ class StudentAcademicHistory extends Model
 {
     use Auditable, HasFactory, HasTitleCaseAttributes;
 
+    public function freshPdfUrl(): string
+    {
+        return route('people.histories.pdf', ['person' => $this->person_id, 'history' => $this,
+            'emissao' => (string) \Illuminate\Support\Str::uuid()]);
+    }
+
     public function scopeForIssuance(Builder $query): Builder
     {
         return $query->where($this->qualifyColumn('is_unified'), true)

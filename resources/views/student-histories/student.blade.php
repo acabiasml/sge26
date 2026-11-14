@@ -61,7 +61,7 @@
                     <a class="btn btn-primary" href="{{ route('people.histories.show', [$person, $history]) }}" aria-label="{{ __('Abrir histórico') }} — {{ $definition[0] }}">{{ __('Abrir histórico') }}<i class="fas fa-arrow-right ml-2" aria-hidden="true"></i></a>
                     <a class="btn btn-outline-secondary sge-icon-action" href="{{ route('people.histories.edit', [$person, $history]) }}" aria-label="{{ __('Editar anos externos') }} — {{ $definition[0] }}" title="{{ __('Editar anos externos') }}"><i class="fas fa-pen" aria-hidden="true"></i></a>
                     @if($completeness && $completeness['complete'])
-                        <a class="btn btn-outline-primary sge-icon-action" href="{{ route('people.histories.pdf', [$person, $history]) }}" target="_blank" rel="noopener" aria-label="{{ __('Emitir histórico em PDF') }} — {{ $definition[0] }}" title="{{ __('Emitir histórico em PDF') }}"><i class="fas fa-file-pdf" aria-hidden="true"></i></a>
+                        <a class="btn btn-outline-primary sge-icon-action" href="{{ $history->freshPdfUrl() }}" target="_blank" rel="noopener" aria-label="{{ __('Emitir histórico em PDF') }} — {{ $definition[0] }}" title="{{ __('Emitir histórico em PDF') }}"><i class="fas fa-file-pdf" aria-hidden="true"></i></a>
                     @endif
                 @elseif($stageIsAvailable)
                     <form method="post" action="{{ route('student-histories.unified', [$person, $stage]) }}">

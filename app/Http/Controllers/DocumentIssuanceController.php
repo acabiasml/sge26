@@ -22,6 +22,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -1082,6 +1083,7 @@ class DocumentIssuanceController extends Controller
             'person' => $history->student,
             'history' => $history,
             'confirm_missing_student_cpf' => ! empty($data['confirm_missing_student_cpf']) ? 1 : null,
+            'emissao' => (string) Str::uuid(),
         ]);
     }
 

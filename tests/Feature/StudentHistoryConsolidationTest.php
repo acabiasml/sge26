@@ -96,7 +96,7 @@ class StudentHistoryConsolidationTest extends TestCase
         $this->addYear($source, 1);
         $this->get(route('people.histories.pdf', [$source->person_id, $source]))->assertRedirect();
         $canonical = $source->student->academicHistories()->where('is_unified', true)->sole();
-        $this->get(route('people.histories.pdf', [$source->person_id, $source]))->assertRedirect(route('people.histories.pdf', [$source->person_id, $canonical]));
+        $this->get(route('people.histories.pdf', [$source->person_id, $source]))->assertRedirectContains(route('people.histories.pdf', [$source->person_id, $canonical]).'?emissao=');
         $this->get(route('people.histories.edit', [$source->person_id, $source]))->assertRedirect(route('people.histories.edit', [$source->person_id, $canonical]));
         $this->assertDatabaseCount('issued_documents', 0);
         $this->put(route('people.histories.update', [$source->person_id, $source]), [])->assertSessionHasErrors('history');

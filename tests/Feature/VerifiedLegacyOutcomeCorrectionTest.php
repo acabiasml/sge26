@@ -6,8 +6,10 @@ use App\Models\AcademicYear;
 use App\Models\DiaryAssessment;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\Person;
+use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\StudentAcademicHistory;
+use App\Models\User;
 use App\Support\StudentFinalResultCalculator;
 use App\Support\VerifiedLegacyOutcomeCorrection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -61,6 +63,48 @@ class VerifiedLegacyOutcomeCorrectionTest extends TestCase
         $request['enrollments'][0]['source_documents'][0]['reported_result'] = 'reprovado';
         $this->expectExceptionMessage('não comprova aprovação');
         $service->reconcile($request);
+    }
+
+    public function test_real_pdf_emission_preserves_verified_approval_after_synchronization_and_cannot_be_stored_in_cache(): void
+    {
+        [$request, $enrollment, $year] = $this->scenario();
+        $service = app(VerifiedLegacyOutcomeCorrection::class);
+        $plan = $service->reconcile($request);
+        $service->reconcile($request, true, $plan['snapshot_sha256']);
+        $history = $year->history;
+        $student = $enrollment->student;
+        $student->update(['cpf' => '12345678901', 'birth_date' => '2006-01-01', 'mother_name' => 'Maria']);
+        $school = $history->school;
+        $school->update(['legal_name' => 'Escola', 'cnpj' => '12345678000199', 'inep' => '12345678',
+            'founded_at' => '2000-01-01', 'phone' => '66999999999', 'email' => 'escola@example.org',
+            'letterhead_text' => 'Autorização de funcionamento', 'address' => 'Rua A',
+            'city' => 'Poxoréu', 'state' => 'MT', 'postal_code' => '78700000']);
+        $actor = Person::create(['full_name' => 'Administrador', 'cpf' => '98765432100', 'birth_date' => '1990-01-01',
+            'birth_city' => 'Poxoréu', 'birth_state' => 'MT', 'nationality' => 'Brasileira',
+            'mother_name' => 'Maria', 'address' => 'Rua A', 'city' => 'Poxoréu', 'state' => 'MT',
+            'postal_code' => '78700000', 'profile_completed_at' => now()]);
+        $actor->schoolRoles()->create(['role' => PersonSchoolRole::ROLE_ADMINISTRATOR, 'active' => true]);
+        $this->actingAs(User::factory()->create(['person_id' => $actor->id]));
+        foreach ([1, 2] as $grade) {
+            $history->years()->create(['source' => 'external', 'grade_number' => $grade, 'grade_phase' => $grade.'º Ano',
+                'label' => $grade.'º Ano', 'year' => (string) (2021 + $grade), 'final_result' => 'Aprovado',
+                'transcript_mode' => 'detailed', 'stage' => 'Ensino Médio']);
+        }
+        $renderedResults = [];
+        view()->composer('reports.student-academic-history', function ($view) use (&$renderedResults): void {
+            $renderedResults = $view->getData()['history']->years->pluck('final_result')->all();
+        });
+        $scores = $enrollment->assessmentResults()->get()->toArray();
+        $firstUrl = $history->freshPdfUrl();
+        $this->assertNotSame($firstUrl, $history->freshPdfUrl());
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            $response = $this->get($history->freshPdfUrl())->assertOk()->assertHeader('content-type', 'application/pdf');
+            $this->assertStringStartsWith('%PDF-', $response->getContent());
+            $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+            $this->assertSame(['Aprovado', 'Aprovado', 'Aprovado'], $renderedResults);
+            $this->assertSame('Aprovado', $year->fresh()->final_result);
+        }
+        $this->assertSame($scores, $enrollment->assessmentResults()->get()->toArray());
     }
 
     public function test_batch_accepts_documented_students_in_different_schools_and_elementary_stage(): void

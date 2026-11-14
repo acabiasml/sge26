@@ -54,7 +54,7 @@ class DocumentIssuancePanelTest extends TestCase
         $this->getJson(route('document-issuance.targets', ['type' => 'academic-history', 'q' => 'Joaquim']))
             ->assertOk()->assertJsonCount(1, 'targets')->assertJsonPath('targets.0.id', $canonical->id);
         $this->get(route('document-issuance.issue', ['type' => 'academic-history', 'target_id' => $canonical->id]))
-            ->assertRedirect(route('people.histories.pdf', ['person' => $student, 'history' => $canonical]));
+            ->assertRedirectContains(route('people.histories.pdf', ['person' => $student, 'history' => $canonical]).'?emissao=');
         $this->assertFalse($student->fresh()->active);
         $this->assertSame($before, $enrollment->fresh()->getAttributes());
         $this->assertDatabaseCount('issued_documents', 0);
@@ -117,7 +117,7 @@ class DocumentIssuancePanelTest extends TestCase
         $this->assertSame($yearBefore, $year->fresh()->getAttributes());
         $this->assertSame($recordBefore, $record->fresh()->getAttributes());
         $this->get(route('document-issuance.issue', ['type' => 'academic-history', 'target_id' => $canonical->id]))
-            ->assertRedirect(route('people.histories.pdf', ['person' => $student, 'history' => $canonical]));
+            ->assertRedirectContains(route('people.histories.pdf', ['person' => $student, 'history' => $canonical]).'?emissao=');
     }
 
     public function test_history_issuance_rejects_legacy_and_inactive_ids_and_keeps_other_stages_available(): void
