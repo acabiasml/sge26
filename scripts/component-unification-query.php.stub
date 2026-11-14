@@ -1,0 +1,31 @@
+<?php
+
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$config = json_decode(file_get_contents('scripts/history-query.json'), true, flags: JSON_THROW_ON_ERROR);
+$ids = [$config['keep_component_id'], $config['remove_component_id']];
+Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $components = App\Models\CurriculumComponent::whereIn('id', $ids)->with('course.academicYear.periods', 'historyCatalogEntries')->get();
+    $assignments = App\Models\SchoolClassComponent::whereIn('curriculum_component_id', $ids)->get();
+    $assessments = App\Models\DiaryAssessment::whereIn('curriculum_component_id', $ids)->with('results')->get();
+    $tables = [];
+    foreach (['diary_contents', 'diary_period_confirmations', 'diary_alerts', 'student_period_convalidations', 'curriculum_component_substitutions'] as $table) {
+        if (Illuminate\Support\Facades\Schema::hasTable($table)) {
+            $tables[$table] = Illuminate\Support\Facades\DB::table($table)->whereIn('curriculum_component_id', $ids)->orderBy('id')->get();
+        }
+    }
+    foreach (['school_class_schedule_slots', 'school_class_component_substitutions', 'diary_excluded_dates'] as $table) {
+        if (Illuminate\Support\Facades\Schema::hasTable($table)) {
+            $tables[$table] = Illuminate\Support\Facades\DB::table($table)->whereIn('school_class_component_id', $assignments->pluck('id'))->orderBy('id')->get();
+        }
+    }
+    echo json_encode(['components' => $components, 'assignments' => $assignments,
+        'assessments' => $assessments, 'attendance' => App\Models\DiaryAttendanceRecord::whereIn('curriculum_component_id', $ids)->with('entries')->get(),
+        'history_records' => App\Models\StudentAcademicHistoryRecord::whereIn('curriculum_component_id', $ids)->with('component', 'year')->get(),
+        'tables' => $tables], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally {
+    Illuminate\Support\Facades\DB::rollBack();
+}

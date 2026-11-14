@@ -16,7 +16,8 @@ def main():
     config = pathlib.Path('scripts/history-query.json')
     query = json.loads(config.read_text()) if config.exists() else {'person_id': 0}
     scope = query.get('scope', 'student')
-    sources = {'technical-grades': 'scripts/technical-grades-query.php.stub',
+    sources = {'component-unification': 'scripts/component-unification-query.php.stub',
+               'technical-grades': 'scripts/technical-grades-query.php.stub',
                'diary-workload-audit': 'scripts/diary-workload-audit-query.php.stub',
                'diary-progress': 'scripts/diary-progress-query.php.stub',
                'student': 'scripts/history-readonly-diagnosis.php.stub',
@@ -31,6 +32,9 @@ def main():
                'student-reenrollment': 'scripts/student-reenrollment-query.php.stub'}
     if scope not in sources:
         raise ValueError('Escopo de consulta inválido.')
+    if scope == 'component-unification':
+        if any(type(query.get(key)) is not int or query[key] <= 0 for key in ('keep_component_id', 'remove_component_id')):
+            raise ValueError('Componentes inválidos para conferência de unificação.')
     source = pathlib.Path(sources[scope]).read_text()
     person_id = query['person_id']
     if type(person_id) is not int or person_id < 0:
