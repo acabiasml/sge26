@@ -327,3 +327,26 @@ lista as diferenças, sem gravar. A aplicação guarda o estado anterior e corri
 somente essas cargas, na mesma transação dos lançamentos. Módulos, docentes,
 notas e componentes fora do lote são preservados. Na conferência final, tanto
 os lançamentos quanto as correções de carga devem estar sem pendências.
+
+## PDFs antigos e preservação do escopo técnico
+
+O extrator lê a ordem dos bimestres impressa no quadro de notas, inclusive
+`I, III, IV, II`, e mantém cada valor e falta no período identificado.
+No lote, `preserve_matrix: true` mantém a matriz vigente durante a reconciliação
+das chamadas. `allow_partial_students: true` preserva matrículas e marcações de
+pessoas que não aparecem no documento, sem inventar chamadas para elas.
+
+As correções anuais podem informar `regular_only: true`, excluindo calendários
+que possuem matrizes técnicas, e `original_import_minutes: 50`. Esse último
+seletor reconhece a fórmula original mesmo quando apenas a duração já havia
+sido alterada para 60. Cargas manuais e matrizes que não correspondem à fórmula
+continuam preservadas. A correção abrange as turmas regulares do ano selecionado.
+
+`technical_pdf_grade_corrections` contém substituições individuais confirmadas:
+resultado, estudante, matrícula, componente, módulo, nota atual, nota aprovada e
+SHA-256 do PDF. Usa a média final do documento, sem converter bimestres antigos
+em módulos novos. Rejeita componente de outra etapa, avaliação com outra escala,
+mais de uma avaliação no módulo ou nota que mudou desde a conferência. Protege
+por hash todas as outras notas, chamadas, conteúdos, matrizes e calendário da
+turma técnica. Atualiza somente a nota aprovada e sua exibição em históricos
+com origem `system`, sem alterar as cargas ou os resultados registrados.
