@@ -1,0 +1,46 @@
+<?php
+
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$config = json_decode(file_get_contents('scripts/history-query.json'), true, flags: JSON_THROW_ON_ERROR);
+Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $classes = App\Models\SchoolClass::whereIn('id', $config['class_ids'])
+        ->whereHas('academicYear', fn ($q) => $q->whereIn('school_id', $config['school_ids']))
+        ->with(['academicYear.school', 'courses.components'])->withCount('enrollments')->orderBy('id')->get();
+    if ($classes->count() !== count($config['class_ids'])) { throw new RuntimeException('Turma fora das escolas selecionadas.'); }
+    $rows = App\Models\StudentEnrollment::whereIn('id', $config['candidate_enrollment_ids'])
+        ->whereIn('school_class_id', $classes->modelKeys())->with('student')->orderBy('id')->get();
+    $results = [];
+    foreach ($rows as $row) {
+        $class = $classes->firstWhere('id', $row->school_class_id);
+        $item = ['enrollment' => $row->only(['id', 'person_id', 'school_class_id', 'status', 'final_result_status', 'final_result_details', 'legacy_source', 'legacy_id', 'legacy_metadata']),
+            'student' => $row->student->only(['id', 'full_name', 'legacy_source', 'legacy_id']),
+            'school_id' => $class->academicYear->school_id, 'source' => $class->academicYear->school->legacy_source,
+            'reference_year' => $class->academicYear->reference_year, 'closed' => $class->academicYear->isClosed()];
+        if ($row->status === App\Models\StudentEnrollment::STATUS_ENROLLED) {
+            $report = app(App\Support\StudentReportCardBuilder::class)->build($row);
+            $calculated = app(App\Support\StudentFinalResultCalculator::class)->calculate($row);
+            $item['calculated'] = ['status' => $calculated['status'], 'details' => Illuminate\Support\Arr::only($calculated['details'], ['reason', 'basis', 'failed_components', 'pending_components'])];
+            $item['attendance'] = $report['annualAttendance'];
+            $item['minimum_attendance'] = $report['minimumAttendance'];
+            $item['components'] = $report['annualComponents']->map(fn ($summary) => [
+                'id' => $summary['component']->id, 'name' => $summary['component']->name,
+                'stage' => $summary['component']->course?->stage,
+                'complete_periods' => $summary['complete_periods'], 'total_periods' => $summary['total_periods'],
+                'criteria' => App\Support\ComponentApprovalCriteria::evaluate($summary, (float) $report['passingPoints']),
+                'periods' => $summary['periods']->map(fn ($p) => ['position' => $p['period']->position,
+                    'value' => $p['average']['value'], 'complete' => $p['average']['complete']]),
+            ]);
+        }
+        $results[] = $item;
+    }
+    echo json_encode(['as_of' => now()->toIso8601String(), 'classes' => $classes->map(fn ($c) => [
+        'id' => $c->id, 'name' => $c->name, 'school_id' => $c->academicYear->school_id,
+        'source' => $c->academicYear->school->legacy_source, 'reference_year' => $c->academicYear->reference_year,
+        'enrollments_count' => $c->enrollments_count, 'course_ids' => $c->courses->pluck('id'),
+        'active_component_ids' => $c->courses->flatMap->components->where('active', true)->pluck('id'),
+    ]), 'students' => $results], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally { Illuminate\Support\Facades\DB::rollBack(); }

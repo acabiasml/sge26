@@ -16,7 +16,8 @@ def main():
     config = pathlib.Path('scripts/history-query.json')
     query = json.loads(config.read_text()) if config.exists() else {'person_id': 0}
     scope = query.get('scope', 'student')
-    sources = {'technical-enrollment-review': 'scripts/technical-enrollment-review.php.stub',
+    sources = {'legacy-outcome-audit': 'scripts/legacy-outcome-audit.php.stub',
+               'technical-enrollment-review': 'scripts/technical-enrollment-review.php.stub',
                'component-unification': 'scripts/component-unification-query.php.stub',
                'technical-grades': 'scripts/technical-grades-query.php.stub',
                'diary-workload-audit': 'scripts/diary-workload-audit-query.php.stub',
@@ -33,6 +34,11 @@ def main():
                'student-reenrollment': 'scripts/student-reenrollment-query.php.stub'}
     if scope not in sources:
         raise ValueError('Escopo de consulta inválido.')
+    if scope == 'legacy-outcome-audit':
+        for field, maximum in [('school_ids', 3), ('class_ids', 40), ('candidate_enrollment_ids', 500)]:
+            ids = query.get(field, [])
+            if not isinstance(ids, list) or not 1 <= len(ids) <= maximum or len(set(ids)) != len(ids) or any(type(i) is not int or i <= 0 for i in ids):
+                raise ValueError('Seletores inválidos para conferência de resultados originais.')
     if scope == 'component-unification':
         if any(type(query.get(key)) is not int or query[key] <= 0 for key in ('keep_component_id', 'remove_component_id')):
             raise ValueError('Componentes inválidos para conferência de unificação.')
@@ -139,7 +145,7 @@ def main():
                     if time.monotonic() >= deadline:
                         raise RuntimeError('O deploy da consulta ainda não chegou ao servidor.')
                     time.sleep(10)
-            stdin, stdout, stderr = client.exec_command('cd /home/u810745753/domains/ctjj.org/public_html/sge && php', timeout=60)
+            stdin, stdout, stderr = client.exec_command('cd /home/u810745753/domains/ctjj.org/public_html/sge && php', timeout=180 if scope == 'legacy-outcome-audit' else 60)
             stdin.write(source)
             stdin.flush()
             stdin.channel.shutdown_write()

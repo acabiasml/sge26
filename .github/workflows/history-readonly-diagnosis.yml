@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - scripts/legacy-outcome-audit.php.stub
       - scripts/component-unification-query.php.stub
       - scripts/technical-grades-query.php.stub
       - scripts/technical-enrollment-review.php.stub
