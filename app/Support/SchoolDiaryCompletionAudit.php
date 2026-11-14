@@ -81,6 +81,7 @@ final class SchoolDiaryCompletionAudit
             $diaryAssessments = $assessments->get($key, collect())->whereIn('academic_period_id', $periodIds);
             $scoreCount = $diaryAssessments->sum(fn ($a) => $a->results->whereNotNull('score')->count());
             $grades = $this->gradeCoverage($class, $course->id, $component->id, $periods, $diaryAssessments, $originGrades, $today);
+            $totalGrades = $this->gradeCoverage($class, $course->id, $component->id, $periods, $diaryAssessments, $originGrades, '9999-12-31');
             $originCount = $originGrades->where('curriculum_component_id', $component->id)
                 ->whereIn('student_enrollment_id', $class->enrollments->pluck('id'))->whereIn('academic_period_id', $periodIds)->count();
             $recordsByDate = $attendance->get($key, collect())->whereIn('academic_period_id', $periodIds)
@@ -124,8 +125,12 @@ final class SchoolDiaryCompletionAudit
                 'unweighted_content_dates' => $unweighted, 'content_percentage_uncertain' => $contentUncertain,
                 'attendance_lessons' => $summary['attendance']['registered'],
                 'future_entries' => $summary['future'], 'grade_coverage' => $grades,
+                'grade_coverage_total' => $totalGrades,
                 'below_90_content' => ! $contentUncertain && $expected > 0 && $registered < $expected * .9,
                 'below_90_grades' => $grades['expected'] > 0 && $grades['complete'] < $grades['expected'] * .9,
+                'below_90_content_total' => $summary['planned'] > 0
+                    ? ($registered >= $summary['planned'] * .9 ? false : ($contentUncertain ? null : true)) : null,
+                'below_90_grades_total' => $totalGrades['expected'] > 0 ? $totalGrades['complete'] < $totalGrades['expected'] * .9 : null,
                 'starts_at' => $periods->min('starts_at')?->toDateString(),
                 'ends_at' => $periods->max('ends_at')?->toDateString(),
                 'periods' => $periods->map(fn ($p) => $p->only(['id', 'name', 'starts_at', 'ends_at']))->values(),

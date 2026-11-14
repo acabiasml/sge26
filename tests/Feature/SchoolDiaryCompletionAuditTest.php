@@ -34,6 +34,8 @@ class SchoolDiaryCompletionAuditTest extends TestCase
         $this->assertTrue($row['below_90_content']);
         $this->assertFalse($row['no_scores']);
         $this->assertSame(100.0, $row['grade_coverage']['percentage']);
+        $this->assertTrue($row['below_90_content_total']);
+        $this->assertFalse($row['below_90_grades_total']);
         $this->assertStringNotContainsString('Nome restrito', json_encode($report));
         $this->assertArrayNotHasKey('score', $row);
     }
@@ -66,6 +68,10 @@ class SchoolDiaryCompletionAuditTest extends TestCase
         $this->assertTrue($row['no_scores']);
         $this->assertSame(1, $row['origin_grade_entries']);
         $this->assertSame(100.0, $row['grade_coverage']['percentage']);
+        $this->assertSame(1, $row['grade_coverage']['expected']);
+        $this->assertSame(2, $row['grade_coverage_total']['expected']);
+        $this->assertSame(50.0, $row['grade_coverage_total']['percentage']);
+        $this->assertTrue($row['below_90_grades_total']);
     }
 
     public function test_inactive_components_are_excluded_and_missing_teacher_assignment_does_not_hide_an_offered_diary(): void
