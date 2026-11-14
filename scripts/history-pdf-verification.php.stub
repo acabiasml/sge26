@@ -32,7 +32,7 @@ try {
     );
     $content = $response->getContent();
     echo json_encode([
-        'as_of' => now()->toIso8601String(), 'commit' => trim(shell_exec('git rev-parse HEAD')),
+        'as_of' => now()->toIso8601String(),
         'before' => $before, 'after' => $snapshot($history),
         'status' => $response->getStatusCode(), 'headers' => $response->headers->all(),
         'pdf_base64' => str_starts_with($content, '%PDF-') ? base64_encode($content) : null,
