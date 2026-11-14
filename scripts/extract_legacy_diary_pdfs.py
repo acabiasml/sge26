@@ -55,6 +55,7 @@ def score(value: str) -> float | None:
 def parse_progress(lines: list[str], student_names: dict[int, str] | None = None) -> list[dict]:
     results: list[dict] = []
     in_progress = False
+    period_order = [1, 2, 3, 4]
     for line in lines:
         if "FICHA DE REGISTRO DE PROGRESSÃO" in line:
             in_progress = True
@@ -66,6 +67,13 @@ def parse_progress(lines: list[str], student_names: dict[int, str] | None = None
                 break
         if not in_progress:
             continue
+        labels = re.findall(r"(?<!\w)(IV|III|II|I|[1-4])\s*[°ºo]?\s*BIMESTRE", line, re.IGNORECASE)
+        if len(labels) >= 4:
+            order = [int(label) if label.isdigit() else ROMAN_PERIODS[label.upper()] for label in labels[:4]]
+            if set(order) != {1, 2, 3, 4}:
+                raise ValueError("Cabeçalho com ordem de bimestres ambígua")
+            period_order = order
+            continue
         match = PROGRESS_RE.match(line)
         if not match:
             continue
@@ -73,9 +81,10 @@ def parse_progress(lines: list[str], student_names: dict[int, str] | None = None
         results.append({
             "legacy_student_id": int(match.group(1)),
             "student_name": (student_names or {}).get(int(match.group(1))) or match.group(2).strip(),
-            "grades": {str(index): value for index, value in enumerate(notes, 1) if value is not None},
+            "grades": {str(position): value for position, value in zip(period_order, notes) if value is not None},
+            "grade_column_order": period_order.copy(),
             "reported_average": score(match.group(7)),
-            "reported_absences": {str(index): score(value) for index, value in enumerate(match.groups()[7:11], 1)},
+            "reported_absences": {str(position): score(value) for position, value in zip(period_order, match.groups()[7:11])},
             "reported_total_absences": score(match.group(12)),
             "reported_result": match.group(13),
         })

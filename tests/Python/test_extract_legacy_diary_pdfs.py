@@ -107,6 +107,23 @@ CONTEÚDOS II BIMESTRE
             result = extract.parse_document(Path('example.pdf'), 'pdftotext')
         self.assertEqual([53, 54], [student['legacy_student_id'] for student in result['students']])
 
+    def test_progress_uses_printed_period_order_instead_of_column_position(self):
+        text = self.document(2025, 'I').replace('FICHA DE REGISTRO DE PROGRESSÃO',
+            'FICHA DE REGISTRO DE PROGRESSÃO\nI Bimestre III Bimestre IV Bimestre II Bimestre I Bimestre III Bimestre IV Bimestre II Bimestre')
+        with patch.object(extract, 'pdf_text', return_value=text):
+            result = extract.parse_document(Path('example.pdf'), 'pdftotext')
+        student = result['students'][0]
+        self.assertEqual({'1': 0.0, '3': 8.0, '2': 9.0}, student['grades'])
+        self.assertEqual({'1': 1.0, '3': None, '4': 2.0, '2': None}, student['reported_absences'])
+        self.assertEqual([1, 3, 4, 2], student['grade_column_order'])
+
+    def test_progress_rejects_ambiguous_period_order(self):
+        text = self.document(2025, 'I').replace('FICHA DE REGISTRO DE PROGRESSÃO',
+            'FICHA DE REGISTRO DE PROGRESSÃO\nI Bimestre I Bimestre III Bimestre IV Bimestre')
+        with patch.object(extract, 'pdf_text', return_value=text):
+            with self.assertRaisesRegex(ValueError, 'ambígua'):
+                extract.parse_document(Path('example.pdf'), 'pdftotext')
+
     def test_2026_roman_period_keeps_its_original_year(self):
         with patch.object(extract, 'pdf_text', return_value=self.document(2026, 'I')):
             result = extract.parse_document(Path('example.pdf'), 'pdftotext')

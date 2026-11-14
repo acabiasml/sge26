@@ -35,6 +35,9 @@ def main():
     if scope == 'component-unification':
         if any(type(query.get(key)) is not int or query[key] <= 0 for key in ('keep_component_id', 'remove_component_id')):
             raise ValueError('Componentes inválidos para conferência de unificação.')
+    if scope == 'technical-grades' and 'school_id' in query:
+        if type(query['school_id']) is not int or query['school_id'] <= 0:
+            raise ValueError('Escola inválida para conferir notas técnicas.')
     source = pathlib.Path(sources[scope]).read_text()
     person_id = query['person_id']
     if type(person_id) is not int or person_id < 0:

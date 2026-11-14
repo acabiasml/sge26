@@ -4,12 +4,14 @@
 require 'vendor/autoload.php';
 $app = require 'bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$config = json_decode(file_get_contents('scripts/history-query.json'), true, flags: JSON_THROW_ON_ERROR);
 Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
 Illuminate\Support\Facades\DB::beginTransaction();
 try {
     $courses = App\Models\AcademicCourse::where('stage', App\Models\AcademicCourse::STAGE_TECHNICAL)
+        ->when(isset($config['school_id']), fn ($q) => $q->whereHas('academicYear', fn ($year) => $year->where('school_id', $config['school_id'])))
         ->with(['academicYear.school', 'academicYear.periods.assessmentRules', 'components.startsPeriod', 'components.endsPeriod',
-            'classes.startsPeriod', 'classes.endsPeriod', 'classes.enrollments.courses', 'startsPeriod', 'endsPeriod'])->orderBy('id')->get();
+            'classes.startsPeriod', 'classes.endsPeriod', 'classes.enrollments.courses', 'classes.enrollments.student:id,full_name,legacy_source,legacy_id', 'startsPeriod', 'endsPeriod'])->orderBy('id')->get();
     echo json_encode(['as_of' => now()->toIso8601String(), 'courses' => $courses->map(function ($course) {
         $classIds = $course->classes->pluck('id');
         $componentIds = $course->components->pluck('id');
@@ -23,6 +25,7 @@ try {
                 'class' => $class->getAttributes(),
                 'enrollments' => $class->enrollments->map(fn ($enrollment) => [
                     'enrollment' => $enrollment->getAttributes(),
+                    'student' => $enrollment->student->only(['id', 'full_name', 'legacy_source', 'legacy_id']),
                     'course_ids' => $enrollment->courses->pluck('id'),
                     'attendance_ends_at' => $enrollment->attendanceEndsAt(),
                 ]),
