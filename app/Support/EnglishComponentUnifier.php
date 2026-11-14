@@ -152,9 +152,10 @@ final class EnglishComponentUnifier
                 $year->update(['workload_hours' => $year->records()->sum('workload_hours')]);
             }
             $this->check(abs($keep->course->fresh()->calculatedWorkloadHours() - $annualHours) < .01, 'A carga total da matriz mudou.');
-            $this->check($this->preserved($attendance->fresh(), 'curriculum_component_id') === $protected[0]
-                && $this->preserved($contents->fresh(), 'curriculum_component_id') === $protected[1]
-                && $this->preserved($authoritative->fresh(), 'curriculum_component_id') === $protected[2], 'Uma nota, chamada ou conteúdo foi alterado.');
+            foreach ([$attendance, $contents, $authoritative] as $index => $protectedRows) {
+                $this->check($this->preserved($protectedRows->fresh(), 'curriculum_component_id') === $protected[$index],
+                    'A verificação de integridade divergiu em '.['chamadas', 'conteúdos', 'notas'][$index].'. A transação será desfeita.');
+            }
             AuditLog::create(['school_id' => $keep->course->academicYear->school_id, 'auditable_type' => CurriculumComponent::class,
                 'auditable_id' => $keepId, 'action' => 'updated', 'metadata' => ['operation' => 'english-component-unification', 'backup_path' => $backup, 'snapshot_sha256' => $hash,
                     'grade_authority' => 'first_semester_original_second_semester_english_ii', 'removed_component_id' => $removeId]]);
@@ -165,15 +166,20 @@ final class EnglishComponentUnifier
 
     private function preserved($rows, string $relinked): string
     {
-        return hash('sha256', json_encode($rows->map(function ($row) use ($relinked) {
+        return hash('sha256', json_encode($rows->sortBy('id')->map(function ($row) use ($relinked) {
             $attributes = $row->getAttributes();
-            if ($row instanceof DiaryAssessment) {
-                $attributes['results'] = $row->results->map->getAttributes()->all();
-            }
-            if ($row instanceof DiaryAttendanceRecord) {
-                $attributes['entries'] = $row->entries->map->getAttributes()->all();
+            foreach (['results', 'entries'] as $relation) {
+                if (($relation === 'results' && $row instanceof DiaryAssessment) || ($relation === 'entries' && $row instanceof DiaryAttendanceRecord)) {
+                    $attributes[$relation] = $row->$relation->sortBy('id')->map(function ($related) {
+                        $values = $related->getAttributes();
+                        ksort($values);
+
+                        return $values;
+                    })->values()->all();
+                }
             }
             unset($attributes[$relinked], $attributes['updated_at']);
+            ksort($attributes);
 
             return $attributes;
         })->values()->all(), JSON_THROW_ON_ERROR));

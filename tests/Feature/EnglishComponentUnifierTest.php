@@ -51,6 +51,29 @@ class EnglishComponentUnifierTest extends TestCase
         $this->assertSame(0, $service->unify($keep->id, $remove->id, $loads)['pending']);
     }
 
+    public function test_integrity_comparison_accepts_a_different_database_order_of_students(): void
+    {
+        [$keep, $remove, $loads, $enrollment] = $this->scenario();
+        $otherPerson = Person::create(['full_name' => 'Outro estudante']);
+        $otherEnrollment = $enrollment->replicate();
+        $otherEnrollment->person_id = $otherPerson->id;
+        $otherEnrollment->save();
+        $assessment = DiaryAssessment::where('curriculum_component_id', $remove->id)->firstOrFail();
+        $assessment->results()->delete();
+        $assessment->results()->create(['student_enrollment_id' => $otherEnrollment->id, 'score' => 8]);
+        $assessment->results()->create(['student_enrollment_id' => $enrollment->id, 'score' => 5]);
+        $call = DiaryAttendanceRecord::where('curriculum_component_id', $remove->id)->firstOrFail();
+        $call->entries()->delete();
+        $call->entries()->create(['student_enrollment_id' => $otherEnrollment->id, 'status' => 'presente', 'attended_lessons' => 1]);
+        $call->entries()->create(['student_enrollment_id' => $enrollment->id, 'status' => 'presente', 'attended_lessons' => 1]);
+        $service = app(EnglishComponentUnifier::class);
+        $plan = $service->unify($keep->id, $remove->id, $loads);
+        $result = $service->unify($keep->id, $remove->id, $loads, true, $plan['snapshot_sha256']);
+        $this->assertSame(0, $result['pending']);
+        $this->assertDatabaseHas('diary_assessment_results', ['diary_assessment_id' => $assessment->id, 'student_enrollment_id' => $enrollment->id, 'score' => 5]);
+        $this->assertDatabaseHas('diary_assessment_results', ['diary_assessment_id' => $assessment->id, 'student_enrollment_id' => $otherEnrollment->id, 'score' => 8]);
+    }
+
     public function test_stale_snapshot_prevents_any_grade_or_matrix_changes(): void
     {
         [$keep, $remove, $loads] = $this->scenario();
