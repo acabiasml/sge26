@@ -318,3 +318,12 @@ em lugar dos nomes de turmas. Seleciona todas as turmas diretamente vinculadas
 Retorna os módulos, cargas calculadas, conteúdos existentes e aulas das outras
 matrículas das mesmas pessoas para conferir o limite diário. Esse recorte
 continua somente de leitura e usa o mesmo relatório e transporte criptografados.
+
+Quando houver confirmação expressa das cargas documentais, o manifesto de
+`documented-diary-import` pode incluir `matrix_workloads`: componente, matriz,
+carga calculada anterior e total inteiro aprovado. A correção aceita apenas
+componentes técnicos presentes no próprio lote e na mesma escola. A simulação
+lista as diferenças, sem gravar. A aplicação guarda o estado anterior e corrige
+somente essas cargas, na mesma transação dos lançamentos. Módulos, docentes,
+notas e componentes fora do lote são preservados. Na conferência final, tanto
+os lançamentos quanto as correções de carga devem estar sem pendências.

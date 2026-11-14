@@ -2,7 +2,9 @@
 
 namespace App\Support;
 
+use App\Models\AcademicCourse;
 use App\Models\AuditLog;
+use App\Models\CurriculumComponent;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\DiaryContent;
 use App\Models\DiaryExcludedDate;
@@ -26,6 +28,7 @@ final class DocumentedDiaryImporter
             $diaries = $manifest['diaries'] ?? [];
             $this->check(is_array($diaries) && count($diaries) >= 1 && count($diaries) <= 20
                 && count(array_unique(array_column($diaries, 'assignment_id'))) === count($diaries), 'Diários duplicados ou inválidos.');
+            $matrixChanges = $this->matrixChanges($manifest, $diaries);
             $previous = $this->previousImport($manifest);
             $replacedRecords = collect();
             $replacedContents = collect();
@@ -127,7 +130,7 @@ final class DocumentedDiaryImporter
                 $snapshots[] = $loadSnapshot;
             }
             $hash = hash('sha256', json_encode([$manifest, $snapshots], JSON_THROW_ON_ERROR));
-            $result = ['mode' => $apply ? 'apply' : 'dry-run', 'snapshot_sha256' => $hash, 'diaries' => $results, 'daily_load' => $dailyLoad];
+            $result = ['mode' => $apply ? 'apply' : 'dry-run', 'snapshot_sha256' => $hash, 'diaries' => $results, 'daily_load' => $dailyLoad, 'matrix_changes' => array_map(fn ($change) => ['component_id' => $change['component']->id, 'hours_before' => $change['before'], 'hours_after' => $change['hours'], 'pending' => $change['pending']], $matrixChanges)];
             if (! $apply) {
                 return $result;
             }
@@ -135,6 +138,14 @@ final class DocumentedDiaryImporter
             $backup = 'diary-reconciliation/documented-'.Str::uuid().'.json';
             $this->check(Storage::disk('local')->put($backup, json_encode(['manifest' => $manifest, 'before' => $snapshots], JSON_THROW_ON_ERROR)), 'Não foi possível guardar a cópia de segurança.');
             chmod(Storage::disk('local')->path($backup), 0600);
+            foreach ($matrixChanges as $change) {
+                if ($change['pending']) {
+                    $change['component']->update(['workload_hours' => $change['hours'], 'weekly_lessons' => null, 'period_loads' => null]);
+                }
+            }
+            foreach (collect($matrixChanges)->pluck('component')->pluck('academic_course_id')->unique() as $courseId) {
+                AcademicCourse::findOrFail($courseId)->refreshWorkloadHours();
+            }
             foreach ($replacedRecords as $record) {
                 $record->entries()->delete();
                 $record->delete();
@@ -173,6 +184,31 @@ final class DocumentedDiaryImporter
 
             return $result + ['backup_path' => $backup];
         });
+    }
+
+    /** Correção opcional e explícita, limitada aos componentes técnicos deste lote. */
+    private function matrixChanges(array $manifest, array $diaries): array
+    {
+        $definitions = $manifest['matrix_workloads'] ?? [];
+        $this->check(is_array($definitions) && count($definitions) <= 20
+            && count(array_unique(array_column($definitions, 'component_id'))) === count($definitions), 'Correções de matriz inválidas.');
+        $changes = [];
+        foreach ($definitions as $definition) {
+            $component = CurriculumComponent::with('course.academicYear')->findOrFail($definition['component_id'] ?? 0);
+            $hours = $definition['workload_hours'] ?? null;
+            $before = $definition['previous_calculated_hours'] ?? null;
+            $current = $component->calculatedWorkloadHours();
+            $this->check($component->course->stage === 'tecnico' && $component->academic_course_id === ($definition['course_id'] ?? null)
+                && collect($diaries)->contains(fn ($diary) => ($diary['component_id'] ?? null) === $component->id
+                    && ($diary['school_id'] ?? null) === $component->course->academicYear->school_id)
+                && is_int($hours) && $hours > 0 && $hours <= 99999 && is_numeric($before)
+                && (abs($current - $before) < .01 || abs($current - $hours) < .01), 'A correção de carga não corresponde à matriz técnica conferida.');
+            $this->check(collect($diaries)->where('component_id', $component->id)->every(fn ($diary) => abs($diary['expected_hours'] - $hours) < .001), 'As aulas precisam corresponder à carga técnica confirmada.');
+            $changes[] = ['component' => $component, 'before' => $current, 'hours' => $hours,
+                'pending' => abs($current - $hours) >= .01 || $component->workload_hours === null];
+        }
+
+        return $changes;
     }
 
     private function check(bool $condition, string $message): void

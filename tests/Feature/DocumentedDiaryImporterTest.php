@@ -49,6 +49,46 @@ class DocumentedDiaryImporterTest extends TestCase
         $this->assertDatabaseCount('diary_attendance_entries', 4);
     }
 
+    public function test_confirmed_matrix_workload_is_corrected_only_for_components_in_the_batch(): void
+    {
+        [$manifest, , $course, $component] = $this->scenario();
+        $untouched = $course->components()->create(['name' => 'Outro componente', 'workload_hours' => 80]);
+        $component->update(['workload_hours' => 2]);
+        $grades = DiaryAssessmentResult::orderBy('id')->get()->toArray();
+        $manifest['matrix_workloads'] = [['course_id' => $course->id, 'component_id' => $component->id, 'previous_calculated_hours' => 2, 'workload_hours' => 6]];
+        $service = app(DocumentedDiaryImporter::class);
+        $plan = $service->reconcile($manifest);
+        $this->assertTrue($plan['matrix_changes'][0]['pending']);
+        $this->assertEquals(2, $component->fresh()->calculatedWorkloadHours());
+        $applied = $service->reconcile($manifest, true, $plan['snapshot_sha256']);
+        $this->assertEquals(6, $component->fresh()->calculatedWorkloadHours());
+        $this->assertEquals(80, $untouched->fresh()->calculatedWorkloadHours());
+        $this->assertEquals(86, $course->fresh()->workload_hours);
+        $this->assertSame($grades, DiaryAssessmentResult::orderBy('id')->get()->toArray());
+        Storage::disk('local')->assertExists($applied['backup_path']);
+        $verified = $service->reconcile($manifest);
+        $this->assertFalse($verified['matrix_changes'][0]['pending']);
+        $this->assertSame(0, $verified['diaries'][0]['stats']['calls_to_create']);
+    }
+
+    public function test_workload_correction_cannot_touch_a_component_outside_the_batch(): void
+    {
+        [$manifest, , $course] = $this->scenario();
+        $other = $course->components()->create(['name' => 'Fora do lote', 'workload_hours' => 80]);
+        $manifest['matrix_workloads'] = [['course_id' => $course->id, 'component_id' => $other->id, 'previous_calculated_hours' => 80, 'workload_hours' => 120]];
+        $this->expectExceptionMessage('matriz técnica conferida');
+        app(DocumentedDiaryImporter::class)->reconcile($manifest);
+    }
+
+    public function test_module_dates_are_enforced_even_for_a_documented_import(): void
+    {
+        [$manifest, $year, , $component] = $this->scenario();
+        $later = $year->periods()->create(['name' => 'Módulo II', 'position' => 2, 'starts_at' => '2026-04-11', 'ends_at' => '2026-08-31']);
+        $component->update(['starts_period_id' => $later->id, 'ends_period_id' => $later->id]);
+        $this->expectExceptionMessage('data não é letiva para este diário');
+        app(DocumentedDiaryImporter::class)->reconcile($manifest);
+    }
+
     public function test_presence_respects_entry_transfer_cancellation_reclassification_and_return_episodes(): void
     {
         [$manifest, , , , $classes] = $this->scenario();
