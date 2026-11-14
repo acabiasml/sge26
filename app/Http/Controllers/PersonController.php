@@ -6,6 +6,7 @@ use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Support\BrazilianStates;
+use App\Support\PersonTrajectory;
 use App\Support\SocioeconomicProfile;
 use App\Support\UnifiedStudentHistorySynchronizer;
 use Illuminate\Http\RedirectResponse;
@@ -75,6 +76,7 @@ class PersonController extends Controller
     public function show(Request $request, Person $person): View
     {
         abort_unless($this->canSeePerson($request, $person), 403);
+        $schoolIds = $request->user()->isAdministrator() ? null : $request->user()->manageableSchoolIds();
 
         if ($request->user()->canManagePeople()) {
             app(UnifiedStudentHistorySynchronizer::class)->synchronizeExisting(
@@ -84,11 +86,15 @@ class PersonController extends Controller
         }
 
         return view('people.show', [
+            'trajectory' => app(PersonTrajectory::class)->build($person, $request->user()),
             'person' => $person->load([
+                'schoolRoles' => fn ($q) => $q->when($schoolIds !== null, fn ($q) => $q->whereIn('school_id', $schoolIds)),
                 'schoolRoles.school',
                 'contacts',
+                'academicHistories' => fn ($q) => $q->when($schoolIds !== null, fn ($q) => $q->whereIn('school_id', $schoolIds)),
                 'academicHistories.school',
-                'issuedDocuments',
+                'issuedDocuments' => fn ($q) => $q->when($schoolIds !== null, fn ($q) => $q->whereIn('school_id', $schoolIds)),
+                'studentEnrollments' => fn ($q) => $q->when($schoolIds !== null, fn ($q) => $q->whereHas('schoolClass.academicYear', fn ($q) => $q->whereIn('school_id', $schoolIds))),
                 'studentEnrollments.schoolClass.academicYear.school',
                 'studentEnrollments.courses',
                 'user',

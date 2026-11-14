@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { size: A4 portrait; margin: 150px 24px 96px; }
+        @page { size: A4 portrait; margin: 150px 24px 128px; }
         body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 11px; line-height: 1.32; }
         @include('reports.partials.letterhead-styles')
         h2 { color: #44693D; font-size: 13px; margin: 16px 0 7px; }
@@ -11,6 +11,16 @@
         th { text-align: left; background: #f6f0ea; padding: 6px 7px; }
         td { padding: 6px 7px; border-bottom: .6px solid #eee2dc; }
         .label { width: 30%; }
+        h2, h3 { page-break-after: avoid; }
+        h3 { font-size: 11px; margin: 12px 0 5px; }
+        thead { display: table-header-group; }
+        tr { page-break-inside: avoid; }
+        td { vertical-align: top; }
+        .trajectory-note { color: #655951; font-size: 10px; margin-top: 3px; }
+        .trajectory-table { table-layout: fixed; }
+        .trajectory-entry { page-break-inside: avoid; }
+        .trajectory-kind { color: #44693D; font-size: 10px; font-weight: 600; margin-bottom: 4px; }
+        .document-footer { bottom: -87px !important; }
     </style>
 </head>
 <body>
@@ -51,31 +61,28 @@
         <tr><th class="label">Situação</th><td>{{ $person->hasActiveRoleForDate() ? 'Ativa' : 'Inativa' }}</td></tr>
     </table>
 
-    <h2>Vínculos e papéis</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Papel</th>
-                <th>Escola</th>
-                <th>Início</th>
-                <th>Fim</th>
-                <th>Situação</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse ($person->schoolRoles as $role)
-                <tr>
-                    <td>{{ $role->label() }}</td>
-                    <td>{{ $role->school?->name ?? 'Global' }}</td>
-                    <td>{{ $role->started_at?->format('d/m/Y') ?? '-' }}</td>
-                    <td>{{ $role->ended_at?->format('d/m/Y') ?? 'Indeterminado' }}</td>
-                    <td>{{ $role->isActiveForDate() ? 'Ativo' : 'Inativo' }}</td>
-                </tr>
-            @empty
-                <tr><td colspan="5">Nenhum vínculo cadastrado.</td></tr>
-            @endforelse
-        </tbody>
-    </table>
+    <h2>Trajetória e movimentações</h2>
+    <p class="trajectory-note">Na docência, os intervalos das turmas seguem o calendário letivo. As substituições usam as datas cadastradas; o tempo do vínculo profissional consta em Vínculos profissionais.</p>
+    @foreach ($trajectory['groups'] as $key => $group)
+        @forelse ($group['entries'] as $entry)
+            <div class="trajectory-entry">
+                <table class="trajectory-table"><tbody>
+                    <tr>
+                        <td style="width: 66%">
+                            <div class="trajectory-kind">{{ $group['label'] }}</div>
+                            <strong>{{ $entry['title'] }}</strong> · {{ $entry['status'] }}
+                            @if ($entry['subtitle'] && $entry['subtitle'] !== $entry['title'])<div>{{ $entry['subtitle'] }}</div>@endif
+                            <div class="trajectory-note">{{ $entry['school'] }}@if ($entry['year']) · {{ $entry['year'] }}@endif</div>
+                            @foreach ($entry['details'] as $detail)<div class="trajectory-note">{{ $detail }}</div>@endforeach
+                        </td>
+                        <td><div class="trajectory-kind">Período e duração</div>{{ $entry['period'] }}<div class="trajectory-note">{{ $entry['duration'] }}</div></td>
+                    </tr>
+                </tbody></table>
+            </div>
+        @empty
+            <p><strong>{{ $group['label'] }}:</strong> nenhum registro cadastrado nesta área.</p>
+        @endforelse
+    @endforeach
 
     <h2>Responsáveis e contatos</h2>
     <table>

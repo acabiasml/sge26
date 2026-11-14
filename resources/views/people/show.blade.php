@@ -250,6 +250,8 @@
         </div>
 
         <div class="col-xl-8 col-lg-7">
+            @include('people._trajectory')
+
             <div class="card shadow mb-4">
                 <div class="card-header font-weight-bold">{{ __('screens.new_relationship') }}</div>
                 <div class="card-body">

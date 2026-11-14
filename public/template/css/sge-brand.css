@@ -2121,6 +2121,19 @@ details[open] > summary > .sge-history-year-chevron { transform: rotate(180deg);
 .sge-history-year-extra > summary { color: var(--sge-ink); cursor: pointer; font-weight: 700; }
 .sge-history-year-actions { display: flex; justify-content: flex-end; margin-top: 1rem; }
 .sge-history-section-summary { cursor: pointer; list-style: none; }
+.sge-person-trajectory .sge-panel-header { align-items: center; gap: 1rem; }
+.sge-person-trajectory .sge-panel-header > i { color: var(--sge-muted); font-size: 1.5rem; }
+.sge-person-trajectory-table td { padding: 1rem .5rem; vertical-align: top; }
+.sge-person-trajectory-title { color: var(--sge-ink); margin-right: .75rem; }
+.sge-person-trajectory-period { min-width: 11rem; width: 32%; }
+.sge-person-trajectory-details { color: var(--sge-muted); list-style: none; padding-left: 0; }
+.sge-person-trajectory-details li + li { margin-top: .25rem; }
+@media (max-width: 767.98px) {
+    .sge-person-trajectory .table-responsive > .sge-person-trajectory-table { display: block; min-width: 0; width: 100%; }
+    .sge-person-trajectory-table tbody, .sge-person-trajectory-table tr, .sge-person-trajectory-table td { display: block; width: 100%; }
+    .sge-person-trajectory-table td + td { border-top: 0; padding-top: 0; }
+    .sge-person-trajectory-period { min-width: 0; }
+}
 details.sge-panel-card { display: block; }
 .sge-history-matrix-toolbar { align-items: flex-end; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; margin-bottom: 1rem; }
 .sge-history-matrix-toolbar .form-group { flex: 0 1 22rem; }

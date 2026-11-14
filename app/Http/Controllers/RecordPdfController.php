@@ -11,6 +11,7 @@ use App\Support\BrazilianMoney;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
 use App\Support\PdfMetadata;
+use App\Support\PersonTrajectory;
 use App\Support\TeacherAccess;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
@@ -109,8 +110,11 @@ class RecordPdfController extends Controller
     {
         abort_unless($this->canSeePerson($request, $person), 403);
 
-        $person->load(['schoolRoles.school', 'contacts']);
         $isTeacher = $request->user()->currentView() === PersonSchoolRole::ROLE_TEACHER;
+        $teacherSchool = $isTeacher ? TeacherAccess::schoolForTeacher($request->user()) : null;
+        $schoolIds = $request->user()->isAdministrator() ? null : ($isTeacher ? array_filter([$teacherSchool?->id]) : $request->user()->manageableSchoolIds());
+        $person->load(['schoolRoles' => fn ($q) => $q->when($schoolIds !== null, fn ($q) => $q->whereIn('school_id', $schoolIds)),
+            'schoolRoles.school', 'contacts']);
 
         if (! $person->hasActiveRoleForDate() && ! $person->hasRequiredIdentityForOfficialUse()) {
             return redirect()->route($isTeacher ? 'document-issuance.index' : 'people.show', $isTeacher ? [] : $person)
@@ -118,7 +122,7 @@ class RecordPdfController extends Controller
         }
 
         $school = $isTeacher
-            ? TeacherAccess::schoolForTeacher($request->user())
+            ? $teacherSchool
             : $this->schoolForPerson($person);
         if ($isTeacher) {
             $person->setRelation('schoolRoles', $person->schoolRoles
@@ -141,6 +145,7 @@ class RecordPdfController extends Controller
 
         $pdf = Pdf::loadView('reports.records.person', [
             'person' => $person,
+            'trajectory' => app(PersonTrajectory::class)->build($person, $request->user(), restrictSchoolIds: $isTeacher ? $schoolIds : null),
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
             'letterhead' => PdfLetterhead::make($school),
