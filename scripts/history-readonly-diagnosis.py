@@ -16,7 +16,9 @@ def main():
     config = pathlib.Path('scripts/history-query.json')
     query = json.loads(config.read_text()) if config.exists() else {'person_id': 0}
     scope = query.get('scope', 'student')
-    sources = {'legacy-outcome-audit': 'scripts/legacy-outcome-audit.php.stub',
+    sources = {'history-pdf-verification': 'scripts/history-pdf-verification.php.stub',
+               'high-school-cohorts': 'scripts/high-school-cohorts-query.php.stub',
+               'legacy-outcome-audit': 'scripts/legacy-outcome-audit.php.stub',
                'technical-enrollment-review': 'scripts/technical-enrollment-review.php.stub',
                'component-unification': 'scripts/component-unification-query.php.stub',
                'technical-grades': 'scripts/technical-grades-query.php.stub',
@@ -34,6 +36,9 @@ def main():
                'student-reenrollment': 'scripts/student-reenrollment-query.php.stub'}
     if scope not in sources:
         raise ValueError('Escopo de consulta inválido.')
+    if scope == 'history-pdf-verification':
+        if type(query.get('person_id')) is not int or query['person_id'] <= 0 or type(query.get('history_id')) is not int or query['history_id'] <= 0:
+            raise ValueError('Estudante e histórico obrigatórios para verificar a emissão com rollback.')
     if scope == 'legacy-outcome-audit':
         for field, maximum in [('school_ids', 3), ('class_ids', 40), ('candidate_enrollment_ids', 500)]:
             ids = query.get(field, [])
@@ -145,7 +150,7 @@ def main():
                     if time.monotonic() >= deadline:
                         raise RuntimeError('O deploy da consulta ainda não chegou ao servidor.')
                     time.sleep(10)
-            stdin, stdout, stderr = client.exec_command('cd /home/u810745753/domains/ctjj.org/public_html/sge && php', timeout=180 if scope == 'legacy-outcome-audit' else 60)
+            stdin, stdout, stderr = client.exec_command('cd /home/u810745753/domains/ctjj.org/public_html/sge && php -d memory_limit=1G', timeout=180 if scope in ('legacy-outcome-audit', 'history-pdf-verification') else 60)
             stdin.write(source)
             stdin.flush()
             stdin.channel.shutdown_write()

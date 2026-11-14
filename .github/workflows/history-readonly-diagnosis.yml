@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
     paths:
+      - scripts/history-pdf-verification.php.stub
+      - scripts/high-school-cohorts-query.php.stub
       - scripts/legacy-outcome-audit.php.stub
       - scripts/component-unification-query.php.stub
       - scripts/technical-grades-query.php.stub
@@ -35,7 +37,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - run: python -m pip install 'paramiko==3.5.1'
-      - name: Consultar em transação somente de leitura
+      - name: Consultar sem persistir alterações de diagnóstico
         env:
           EXPECTED_COMMIT: ${{ github.sha }}
           HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}

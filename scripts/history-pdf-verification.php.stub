@@ -1,0 +1,43 @@
+<?php
+
+// Exercita a emissão real, mas desfaz inclusive o protocolo de emissão ao terminar.
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$config = json_decode(file_get_contents('scripts/history-query.json'), true, flags: JSON_THROW_ON_ERROR);
+$snapshot = static function ($history) {
+    return $history->fresh()->years()->with('records')->orderBy('position')->get()->map(fn ($year) =>
+        $year->only(['id', 'source', 'student_enrollment_id', 'year', 'label', 'final_result']) + [
+            'record_results' => $year->records->pluck('result')->unique()->values(),
+            'enrollment' => $year->enrollment?->only(['id', 'final_result_status', 'legacy_metadata']),
+        ]);
+};
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $student = App\Models\Person::findOrFail(__PERSON_ID__);
+    $history = $student->academicHistories()->findOrFail($config['history_id']);
+    $administrator = App\Models\User::whereHas('person.schoolRoles', fn ($q) => $q
+        ->where('role', App\Models\PersonSchoolRole::ROLE_ADMINISTRATOR)->where('active', true))->firstOrFail();
+    $administrator->preferred_role_view = App\Models\PersonSchoolRole::ROLE_ADMINISTRATOR;
+    Illuminate\Support\Facades\Auth::setUser($administrator);
+    $request = Illuminate\Http\Request::create('/pessoas/'.$student->id.'/historicos/'.$history->id.'/pdf', 'GET', [
+        'confirm_missing_student_cpf' => true,
+    ]);
+    $request->setUserResolver(fn () => $administrator);
+    $request->setLaravelSession(app('session.store'));
+    $before = $snapshot($history);
+    $response = app(App\Http\Controllers\StudentAcademicHistoryController::class)->pdf(
+        $request, $student, $history, app(App\Support\UnifiedStudentHistorySynchronizer::class),
+        app(App\Support\StudentAcademicHistoryCompleteness::class),
+    );
+    $content = $response->getContent();
+    echo json_encode([
+        'as_of' => now()->toIso8601String(), 'commit' => trim(shell_exec('git rev-parse HEAD')),
+        'before' => $before, 'after' => $snapshot($history),
+        'status' => $response->getStatusCode(), 'headers' => $response->headers->all(),
+        'pdf_base64' => str_starts_with($content, '%PDF-') ? base64_encode($content) : null,
+        'flash' => session()->all(), 'rolled_back' => true,
+    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally {
+    Illuminate\Support\Facades\DB::rollBack();
+}

@@ -1,0 +1,29 @@
+<?php
+
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
+Illuminate\Support\Facades\DB::beginTransaction();
+try {
+    $classes = App\Models\SchoolClass::whereHas('academicYear', fn ($q) => $q->whereBetween('reference_year', [2022, 2028]))
+        ->whereHas('enrollments')->whereHas('courses', fn ($q) => $q->where('stage', 'medio'))
+        ->with(['academicYear.school', 'courses.components.area', 'courses.components.historyCatalogEntries', 'courses.components.course'])
+        ->withCount('enrollments')->orderBy('id')->get();
+    echo json_encode(['as_of' => now()->toIso8601String(), 'classes' => $classes->map(fn ($class) => [
+        'id' => $class->id, 'name' => $class->name, 'school_id' => $class->academicYear->school_id,
+        'school' => $class->academicYear->school->name, 'year' => $class->academicYear->reference_year,
+        'enrollments_count' => $class->enrollments_count,
+        'courses' => $class->courses->where('stage', 'medio')->map(fn ($course) => [
+            'id' => $course->id, 'name' => $course->name, 'class_hour_minutes' => $course->class_hour_minutes,
+            'stored_workload_hours' => $course->workload_hours,
+            'components' => $course->components->map(fn ($component) => [
+                'id' => $component->id, 'name' => $component->name, 'active' => $component->active,
+                'weekly_lessons' => $component->weekly_lessons, 'workload_hours' => $component->workload_hours,
+                'period_loads' => $component->period_loads,
+                'formation' => App\Support\CurriculumCatalog::formationLabelForComponent($component),
+                'calculated_hours' => $component->calculatedWorkloadHours($course),
+            ]),
+        ])->values(),
+    ])], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally { Illuminate\Support\Facades\DB::rollBack(); }
