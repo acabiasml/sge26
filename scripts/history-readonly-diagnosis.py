@@ -17,13 +17,14 @@ def main():
     query = json.loads(config.read_text()) if config.exists() else {'person_id': 0}
     requested_scope = os.environ.get('HISTORY_QUERY_SCOPE', 'configured')
     if requested_scope != 'configured':
-        if requested_scope not in ('person-record-verification', 'person-record-web-verification', 'history-pdf-verification', 'high-school-cohorts', 'school-diary-completion', 'diary-restoration-proposal'):
+        if requested_scope not in ('person-record-verification', 'person-record-web-verification', 'enrollment-record-web-verification', 'history-pdf-verification', 'high-school-cohorts', 'school-diary-completion', 'diary-restoration-proposal'):
             raise ValueError('Escopo manual inválido.')
         query['scope'] = requested_scope
     scope = query.get('scope', 'student')
-    if scope == 'person-record-web-verification' and requested_scope != 'person-record-web-verification':
+    if scope in ('person-record-web-verification', 'enrollment-record-web-verification') and requested_scope != scope:
         raise ValueError('A emissão web exige seleção manual explícita desse escopo.')
     sources = {'person-record-web-verification': 'scripts/person-record-web-verification.php.stub',
+               'enrollment-record-web-verification': 'scripts/person-record-web-verification.php.stub',
                'technical-cad-reconstruction': 'scripts/technical-cad-reconstruction-query.php.stub',
                'person-record-verification': 'scripts/person-record-verification.php.stub',
                'diary-restoration-proposal': 'scripts/diary-restoration-proposal-query.php.stub',
@@ -55,8 +56,10 @@ def main():
     if scope == 'history-pdf-verification':
         if type(query.get('person_id')) is not int or query['person_id'] <= 0 or type(query.get('history_id')) is not int or query['history_id'] <= 0:
             raise ValueError('Estudante e histórico obrigatórios para verificar a emissão com rollback.')
-    if scope in ('person-record-verification', 'person-record-web-verification') and (type(query.get('person_id')) is not int or query['person_id'] <= 0):
+    if scope in ('person-record-verification', 'person-record-web-verification', 'enrollment-record-web-verification') and (type(query.get('person_id')) is not int or query['person_id'] <= 0):
         raise ValueError('Pessoa obrigatória para conferir a ficha com rollback.')
+    if scope == 'enrollment-record-web-verification' and (type(query.get('enrollment_id')) is not int or query['enrollment_id'] <= 0):
+        raise ValueError('Matrícula obrigatória para conferir a ficha individual pelo acesso web.')
     if scope == 'legacy-outcome-audit':
         for field, maximum in [('school_ids', 3), ('class_ids', 40), ('candidate_enrollment_ids', 500)]:
             ids = query.get(field, [])
@@ -75,6 +78,7 @@ def main():
         if not isinstance(ids, list) or not 1 <= len(ids) <= 10 or len(set(ids)) != len(ids) or any(type(i) is not int or i <= 0 for i in ids):
             raise ValueError('Selecione até dez pessoas para a conferência técnica.')
     source = pathlib.Path(sources[scope]).read_text()
+    source = source.replace('__ENROLLMENT_ID__', str(query['enrollment_id'] if scope == 'enrollment-record-web-verification' else 0))
     person_id = query['person_id']
     if type(person_id) is not int or person_id < 0:
         raise ValueError('Identificador de pessoa inválido.')

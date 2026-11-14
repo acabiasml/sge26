@@ -6,9 +6,14 @@ require 'vendor/autoload.php';
 $app = require 'bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 $person = App\Models\Person::findOrFail(__PERSON_ID__);
-$document = App\Models\IssuedDocument::where('type', 'person-record')->where('person_id', $person->id)->latest('id')->firstOrFail();
+$enrollmentId = __ENROLLMENT_ID__;
+$enrollment = $enrollmentId ? App\Models\StudentEnrollment::where('person_id', $person->id)->findOrFail($enrollmentId) : null;
+$type = $enrollment ? 'student-individual-record' : 'person-record';
+$path = $enrollment ? '/matriculas/'.$enrollment->id.'/ficha-individual-pdf' : '/pessoas/'.$person->id.'/pdf';
+$document = App\Models\IssuedDocument::where('type', $type)->where('person_id', $person->id)->latest('id')->firstOrFail();
 $viewer = $document->issuedBy;
 if (! $viewer || ! $viewer->canManagePeople()) { throw new RuntimeException('Emissão de conferência limitada à gestão já identificada na emissão da pessoa.'); }
+if ($enrollment && ! $viewer->canManageSchool($enrollment->schoolClass->academicYear->school_id)) { throw new RuntimeException('Matrícula fora da gestão já identificada.'); }
 Illuminate\Support\Facades\Auth::setUser($viewer);
 $session = app('session.store');
 $session->setId(Illuminate\Support\Str::random(40));
@@ -22,7 +27,7 @@ try {
     $cookie = $encrypter->encrypt(Illuminate\Cookie\CookieValuePrefix::create($name, $encrypter->getKey()).$sessionId, false);
     $response = Illuminate\Support\Facades\Http::withoutRedirecting()->timeout(45)
         ->withHeaders(['Cookie' => $name.'='.rawurlencode($cookie), 'Accept' => 'application/pdf'])
-        ->get('https://ctjj.org/sge/pessoas/'.$person->id.'/pdf');
+        ->get('https://ctjj.org/sge'.$path, ['notas' => 'numeros', 'emissao' => (string) Illuminate\Support\Str::uuid()]);
     $body = $response->body();
     $profile = Illuminate\Support\Facades\Http::withoutRedirecting()->timeout(30)
         ->withHeaders(['Cookie' => $name.'='.rawurlencode($cookie)])
@@ -40,10 +45,10 @@ try {
     // Conferir o redirecionamento não emite outro PDF nem altera registros escolares.
     $issuance = Illuminate\Support\Facades\Http::withoutRedirecting()->timeout(30)
         ->withHeaders(['Cookie' => $name.'='.rawurlencode($cookie)])
-        ->get('https://ctjj.org/sge/emissao-de-documentos/emitir', ['type' => 'person-record', 'target_id' => $person->id,
+        ->get('https://ctjj.org/sge/emissao-de-documentos/emitir', ['type' => $enrollment ? 'individual-record' : 'person-record', 'target_id' => $enrollment?->id ?? $person->id,
             'emissao' => (string) Illuminate\Support\Str::uuid()]);
-    $latest = App\Models\IssuedDocument::where('type', 'person-record')->where('person_id', $person->id)->latest('id')->first();
-    echo json_encode(['as_of' => now()->toIso8601String(), 'person_id' => $person->id, 'status' => $response->status(),
+    $latest = App\Models\IssuedDocument::where('type', $type)->where('person_id', $person->id)->latest('id')->first();
+    echo json_encode(['as_of' => now()->toIso8601String(), 'person_id' => $person->id, 'enrollment_id' => $enrollment?->id, 'path' => $path, 'status' => $response->status(),
         'headers' => collect($response->headers())->filter(fn ($v, $k) => in_array(strtolower($k), ['content-type', 'content-disposition', 'cache-control', 'pragma', 'expires', 'cdn-cache-control', 'age', 'x-litespeed-cache', 'cf-cache-status', 'location'], true)),
         'profile_status' => $profile->status(), 'emission_script_status' => $scriptStatus, 'emission_script_matches_deploy' => $scriptMatches,
         'issuance_status' => $issuance->status(), 'issuance_location' => $issuance->header('Location'),

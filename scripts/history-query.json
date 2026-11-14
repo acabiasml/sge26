@@ -2,5 +2,6 @@
   "scope": "technical-grades",
   "school_id": 1,
   "person_id": 38,
-  "include_preview_html": true
+  "include_preview_html": true,
+  "enrollment_id": 638
 }
