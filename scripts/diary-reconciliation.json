@@ -1,5 +1,6 @@
 {
   "operation": "administrative-diary-reconstruction",
-  "mode": "dry-run",
-  "transport_key_id": "677186aa052ad29edcd5b3e13cb0649b"
+  "mode": "apply",
+  "transport_key_id": "677186aa052ad29edcd5b3e13cb0649b",
+  "expected_snapshot_sha256": "2937b9118635fa138361bfa51660664b3ce53482b4396bf0bd390502e14e245e"
 }
