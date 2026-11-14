@@ -138,6 +138,33 @@ class AdministrativeDiaryReconstructionTest extends TestCase
         $this->assertSame(0, $destination->attendanceEntries()->count());
     }
 
+    public function test_technical_module_crosses_the_year_and_stops_attendance_for_students_who_did_not_renew(): void
+    {
+        [$manifest, $class, $component, $enrollment, $departed] = $this->scenario();
+        $class->academicYear->update(['ends_at' => '2026-05-14']);
+        $period = $class->academicYear->periods()->sole();
+        $period->update(['name' => 'Módulo II', 'position' => 2, 'starts_at' => '2025-09-16', 'ends_at' => '2026-05-14']);
+        $component->course->update(['stage' => 'tecnico']);
+        $component->update(['starts_period_id' => $period->id, 'ends_period_id' => $period->id]);
+        $departed->update(['status' => 'nao_renovado', 'transferred_at' => null,
+            'legacy_metadata' => ['non_renewal' => ['attendance_ends_at' => '2025-12-31']]]);
+        $dates = ['2025-03-10' => '2025-09-17', '2025-03-11' => '2026-02-02', '2025-03-12' => '2026-03-03'];
+        foreach ($dates as $old => $new) {
+            $class->academicYear->days()->whereDate('date', $old)->update(['date' => $new]);
+            DiaryAttendanceRecord::whereDate('class_date', $old)->update(['class_date' => $new]);
+        }
+        foreach ($manifest['diaries'][0]['sessions'] as &$session) {
+            $session['date'] = $dates[$session['date']];
+        }
+        unset($session);
+        $service = app(AdministrativeDiaryReconstruction::class);
+        $plan = $service->reconcile($manifest);
+        $service->reconcile($manifest, true, $plan['snapshot_sha256']);
+        $this->assertSame(1, $departed->attendanceEntries()->whereHas('record', fn ($q) => $q->where('curriculum_component_id', $component->id))->count());
+        $this->assertSame(0, $departed->attendanceEntries()->whereHas('record', fn ($q) => $q->whereYear('class_date', 2026))->count());
+        $this->assertSame('falta', $enrollment->attendanceEntries()->whereHas('record', fn ($q) => $q->where('curriculum_component_id', $component->id)->whereDate('class_date', '2026-02-02'))->sole()->status);
+    }
+
     private function scenario(): array
     {
         Storage::fake('local');

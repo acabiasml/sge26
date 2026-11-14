@@ -18,17 +18,20 @@ try {
             $report = app(App\Support\StudentReportCardBuilder::class)->build($enrollment);
             $document = new App\Models\IssuedDocument(['issued_at' => now(), 'verification_code' => 'PREVIA-DIAGNOSTICO']);
             $document->setRelation('issuedBy', null);
-            $pdf = Barryvdh\DomPDF\Facade\Pdf::loadView('reports.student-individual-record', [
+            $viewData = [
                 'report' => $report, 'scoreView' => 'numeros', 'canChooseScoreView' => false,
                 'issuedDocument' => $document, 'verificationUrl' => '',
                 'letterhead' => App\Support\PdfLetterhead::make($report['academicYear']->school, $report['courses']->pluck('stage')->all()),
-            ])->setPaper('a4', 'portrait');
+            ];
+            $html = view('reports.student-individual-record', $viewData)->render();
+            $pdf = Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4', 'portrait');
             $individualRecords[] = ['enrollment_id' => $enrollment->id,
                 'planned_hours' => $report['annualComponents']->sum(fn ($row) => $row['planned_workload_hours'] ?? $row['component']->calculatedWorkloadHours()),
                 'completed_hours' => $report['annualComponents']->sum(fn ($row) => app(App\Support\AttendanceSummaryCalculator::class)->completedWorkloadHours($row['attendance'])),
                 'components' => $report['annualComponents']->map(fn ($row) => ['id' => $row['component']->id, 'name' => $row['component']->name,
                     'planned_hours' => $row['planned_workload_hours'] ?? $row['component']->calculatedWorkloadHours()]),
-                'preview_pdf_base64' => base64_encode($pdf->output())];
+                'preview_pdf_base64' => base64_encode($pdf->output()),
+                'preview_html' => ($config['include_preview_html'] ?? false) ? $html : null];
         }
     }
     echo json_encode(['as_of' => now()->toIso8601String(), 'individual_records' => $individualRecords, 'courses' => $courses->map(function ($course) {
