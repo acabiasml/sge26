@@ -25,11 +25,25 @@ try {
     };
     $beforeFiles = $files();
     $trajectory = app(App\Support\PersonTrajectory::class)->build($person, $viewer);
+    $words = preg_split('/\s+/', trim($person->full_name));
+    $candidates = App\Models\Person::where('full_name', 'like', $words[0].'%')
+        ->when(isset($words[1]), fn ($q) => $q->where('full_name', 'like', '%'.$words[1].'%'))->limit(15)->get();
+    $teacherCandidates = $candidates->pluck('id')->merge(App\Models\User::where('person_id', $person->id)->pluck('id'))->unique();
+    $assignmentEvidence = App\Models\SchoolClassComponent::whereIn('teacher_person_id', $teacherCandidates)
+        ->with('teacher:id,full_name', 'schoolClass.academicYear.school', 'component')->get();
     $response = app(App\Http\Controllers\RecordPdfController::class)->person($request, $person);
     $content = $response->getContent();
     echo json_encode(['as_of' => now()->toIso8601String(), 'person_id' => $person->id,
         'viewer_role' => $viewer->currentView(), 'viewer_id' => $viewer->id,
         'groups' => collect($trajectory['groups'])->map(fn ($g) => ['label' => $g['label'], 'entries' => $g['entries']]),
+        'teacher_candidates' => $candidates->map->only(['id', 'full_name', 'birth_date', 'mother_name', 'legacy_source', 'legacy_id']),
+        'candidate_assignments' => $assignmentEvidence->map(fn ($a) => ['id' => $a->id, 'teacher_id' => $a->teacher_person_id,
+            'teacher' => $a->teacher?->full_name, 'class' => $a->schoolClass->name, 'class_id' => $a->school_class_id,
+            'year' => $a->schoolClass->academicYear->reference_year, 'school' => $a->schoolClass->academicYear->school->name,
+            'component' => $a->component->name, 'component_id' => $a->curriculum_component_id, 'active' => $a->active]),
+        'teacher_user_ids' => App\Models\User::where('person_id', $person->id)->pluck('id'),
+        'diary_activity' => ['attendance' => App\Models\DiaryAttendanceRecord::where('teacher_person_id', $person->id)->count(),
+            'assessments' => App\Models\DiaryAssessment::where('teacher_person_id', $person->id)->count()],
         'recent_issued' => $recent->map->only(['id', 'issued_at', 'issued_by_user_id']),
         'files_before' => $beforeFiles, 'files_after' => $files(),
         'status' => $response->getStatusCode(), 'headers' => $response->headers->all(),
