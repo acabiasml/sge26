@@ -648,6 +648,9 @@ class TeacherDiaryController extends Controller
             'attendance.*' => ['nullable', 'array'],
             'attendance.*.*' => ['nullable', 'array'],
             'attendance.*.*.*' => ['nullable', 'accepted'],
+            'resolve_unrecorded' => ['nullable', 'array'],
+            'resolve_unrecorded.*' => ['nullable', 'array'],
+            'resolve_unrecorded.*.*' => ['nullable', 'accepted'],
         ]);
 
         $usesScheduledDiary = $this->usesScheduledDiary($schoolClass, $assignment, $period);
@@ -718,6 +721,11 @@ class TeacherDiaryController extends Controller
                 $record->save();
 
                 foreach ($enrollmentIds as $enrollmentId) {
+                    $unrecorded = in_array($enrollmentId, $record->legacy_metadata['unrecorded_enrollment_ids'] ?? [], true)
+                        && ! $record->entries()->where('student_enrollment_id', $enrollmentId)->exists();
+                    if ($unrecorded && empty($data['resolve_unrecorded'][$date][$enrollmentId])) {
+                        continue;
+                    }
                     $lessonPresence = $this->lessonPresence($data['attendance'][$date][$enrollmentId] ?? [], $lessonCount);
                     $attendedLessons = count(array_filter($lessonPresence));
                     $record->entries()->updateOrCreate(

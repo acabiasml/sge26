@@ -81,6 +81,7 @@ $service = match ($config['operation'] ?? '') {
     'verified-matrix-correction' => App\Support\VerifiedMatrixCorrection::class,
     'verified-legacy-approval' => App\Support\VerifiedLegacyOutcomeCorrection::class,
     'first-period-reclassification-repair' => App\Support\FirstPeriodReclassificationRepair::class,
+    'administrative-diary-reconstruction' => App\Support\AdministrativeDiaryReconstruction::class,
     default => App\Support\LegacyClassDiaryReconciler::class,
 };
 $result = app($service)->reconcile(

@@ -55,6 +55,26 @@ class TeacherDiaryTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_unrecorded_attendance_is_not_silently_converted_into_absence_when_saving_other_calls(): void
+    {
+        [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $record = DiaryAttendanceRecord::create(['school_class_id' => $class->id,
+            'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id,
+            'class_date' => '2026-03-11', 'lesson_count' => 1,
+            'legacy_metadata' => ['unrecorded_enrollment_ids' => [$enrollment->id]]]);
+        $this->actingAs($teacher)->get(route('teacher-diaries.attendance', [$class, $component, 'period' => $period->id]))
+            ->assertOk()->assertSee('Sem lançamento');
+        $data = ['academic_period_id' => $period->id, 'scheduled_dates' => ['2026-03-11'],
+            'lesson_counts' => ['2026-03-11' => 1]];
+        $this->actingAs($teacher)->put(route('teacher-diaries.attendance.batch-update', [$class, $component]), $data)
+            ->assertSessionHasNoErrors();
+        $this->assertSame(0, $record->entries()->count());
+        $data['resolve_unrecorded'] = ['2026-03-11' => [$enrollment->id => '1']];
+        $this->actingAs($teacher)->put(route('teacher-diaries.attendance.batch-update', [$class, $component]), $data)
+            ->assertSessionHasNoErrors();
+        $this->assertSame('falta', $record->entries()->sole()->status);
+    }
+
     public function test_returning_student_report_combines_prior_enrollment_origin_sheet_and_current_diary(): void
     {
         [$teacher, $year, $class, $component, $first, $original] = $this->diaryScenario();

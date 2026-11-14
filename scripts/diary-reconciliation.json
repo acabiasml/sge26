@@ -1,1 +1,5 @@
-{"operation": "first-period-reclassification-repair", "transport_key_id": "ecde46b7f7714ab29097433def5e0a18", "mode": "dry-run"}
+{
+  "operation": "administrative-diary-reconstruction",
+  "transport_key_id": "ecde46b7f7714ab29097433def5e0a18",
+  "mode": "dry-run"
+}
