@@ -1,1 +1,1 @@
-{"operation": "english-semester-schedule", "schedule_id": 8, "source_assignment_id": 220, "target_assignment_id": 582, "weekly_total": 14, "mode": "apply", "expected_snapshot_sha256": "14418ba50b39b0028b3d8fd796eca7e6a6684484dba882e142dc7c0633635780"}
+{"operation": "english-semester-schedule", "schedule_id": 8, "source_assignment_id": 220, "target_assignment_id": 582, "weekly_total": 14, "mode": "dry-run"}
