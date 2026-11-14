@@ -1,1 +1,1 @@
-{"operation": "verified-legacy-approval", "transport_key_id": "ecde46b7f7714ab29097433def5e0a18", "mode": "apply", "expected_snapshot_sha256": "e5639c265fe16be7d8885ba59027652eef40f059f2c4d405b71f892ba1d86ec6"}
+{"operation": "verified-legacy-approval", "transport_key_id": "ecde46b7f7714ab29097433def5e0a18", "mode": "dry-run"}
