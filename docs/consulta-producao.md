@@ -311,3 +311,10 @@ quantidades semanais diferentes sem duplicar o componente. A carga opcional de
 cada período preserva o total aprovado quando a distribuição não segue a
 estimativa padrão de semanas. Versões de horário devem respeitar as faixas de
 períodos que têm a mesma quantidade semanal.
+
+O escopo `diary-batch` também aceita `school_id` e até dez `course_ids` técnicos,
+em lugar dos nomes de turmas. Seleciona todas as turmas diretamente vinculadas
+às matrizes informadas, incluindo ofertas sem identificador de importação.
+Retorna os módulos, cargas calculadas, conteúdos existentes e aulas das outras
+matrículas das mesmas pessoas para conferir o limite diário. Esse recorte
+continua somente de leitura e usa o mesmo relatório e transporte criptografados.

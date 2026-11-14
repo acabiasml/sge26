@@ -58,14 +58,21 @@ def main():
     if scope == 'diary-batch':
         if 'matrix_only' in query and type(query['matrix_only']) is not bool:
             raise ValueError('Seletor de conferência da matriz inválido.')
-        classes = query.get('classes', [])
-        if query.get('source') not in ('lar', 'laura', 'beaba') or not isinstance(classes, list) or not 1 <= len(classes) <= 20:
-            raise ValueError('Recorte de diários inválido.')
-        for row in classes:
-            if (not isinstance(row, dict) or type(row.get('reference_year')) is not int
-                    or not 1900 <= row['reference_year'] <= 2100
-                    or not isinstance(row.get('name'), str) or not 1 <= len(row['name']) <= 80):
-                raise ValueError('Turma ou ano inválido no recorte.')
+        if 'course_ids' in query:
+            ids = query['course_ids']
+            if (not isinstance(ids, list) or not 1 <= len(ids) <= 10 or len(set(ids)) != len(ids)
+                    or any(type(item) is not int or item <= 0 for item in ids)
+                    or type(query.get('school_id')) is not int or query['school_id'] <= 0):
+                raise ValueError('Selecione até dez matrizes técnicas da mesma escola.')
+        else:
+            classes = query.get('classes', [])
+            if query.get('source') not in ('lar', 'laura', 'beaba') or not isinstance(classes, list) or not 1 <= len(classes) <= 20:
+                raise ValueError('Recorte de diários inválido.')
+            for row in classes:
+                if (not isinstance(row, dict) or type(row.get('reference_year')) is not int
+                        or not 1900 <= row['reference_year'] <= 2100
+                        or not isinstance(row.get('name'), str) or not 1 <= len(row['name']) <= 80):
+                    raise ValueError('Turma ou ano inválido no recorte.')
     if scope == 'class-diary-reconciliation':
         import re
         key_id = query.get('transport_key_id', '')

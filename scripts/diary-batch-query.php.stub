@@ -29,12 +29,23 @@ try {
         }
         $public = openssl_pkey_get_details(openssl_pkey_get_private(file_get_contents($keyPath)))['key'];
     }
-    $requests = collect($config['classes'])->map(fn ($row) => $row + ['key' => $row['reference_year'].':'.$canonical($row['name'])]);
-    $years = App\Models\AcademicYear::query()->where('legacy_source', $config['source'])
-        ->whereIn('reference_year', $requests->pluck('reference_year')->unique())->with('periods')->get();
-    $classes = App\Models\SchoolClass::query()->whereIn('academic_year_id', $years->pluck('id'))
-        ->with(['academicYear', 'courses.components'])->orderBy('id')->get()
-        ->filter(fn ($row) => $requests->contains('key', $row->academicYear->reference_year.':'.$canonical($row->name)));
+    if (isset($config['course_ids'])) {
+        $courses = App\Models\AcademicCourse::whereIn('id', $config['course_ids'])
+            ->where('stage', App\Models\AcademicCourse::STAGE_TECHNICAL)
+            ->whereHas('academicYear', fn ($q) => $q->where('school_id', $config['school_id']))->get();
+        if ($courses->count() !== count($config['course_ids'])) { throw new RuntimeException('Matriz técnica fora do recorte autorizado.'); }
+        $classes = App\Models\SchoolClass::whereHas('courses', fn ($q) => $q->whereIn('academic_courses.id', $courses->modelKeys()))
+            ->with(['academicYear.periods', 'courses.components'])->orderBy('id')->get();
+        $requests = $classes->map(fn ($row) => ['reference_year' => $row->academicYear->reference_year, 'name' => $row->name,
+            'key' => $row->academicYear->reference_year.':'.$canonical($row->name)]);
+    } else {
+        $requests = collect($config['classes'])->map(fn ($row) => $row + ['key' => $row['reference_year'].':'.$canonical($row['name'])]);
+        $years = App\Models\AcademicYear::query()->where('legacy_source', $config['source'])
+            ->whereIn('reference_year', $requests->pluck('reference_year')->unique())->with('periods')->get();
+        $classes = App\Models\SchoolClass::query()->whereIn('academic_year_id', $years->pluck('id'))
+            ->with(['academicYear', 'courses.components'])->orderBy('id')->get()
+            ->filter(fn ($row) => $requests->contains('key', $row->academicYear->reference_year.':'.$canonical($row->name)));
+    }
     $found = $classes->map(fn ($row) => $row->academicYear->reference_year.':'.$canonical($row->name));
     if (($config['matrix_only'] ?? false) === true) {
         $classes->loadMissing(['academicYear.days', 'schedules.slots', 'courses.components.area', 'courses.components.startsPeriod',
@@ -91,7 +102,7 @@ try {
 
             return [
                 'class' => $class->only(['id', 'name', 'academic_year_id', 'legacy_source', 'legacy_id']),
-                'academic_year' => $class->academicYear->only(['id', 'school_id', 'reference_year', 'class_hour_minutes', 'minimum_school_days']),
+                'academic_year' => $class->academicYear->only(['id', 'school_id', 'reference_year', 'class_hour_minutes', 'minimum_school_days', 'starts_at', 'ends_at', 'closed_at']),
                 'periods' => $class->academicYear->periods->map->only(['id', 'position', 'name', 'starts_at', 'ends_at']),
                 'school_dates' => $class->academicYear->days->where('counts_as_school_day', true)->map(fn ($day) => $day->date->toDateString())->values(),
                 'assignments' => $class->componentAssignments()->with('teacher:id,full_name')->get()->map(fn ($assignment) =>
@@ -100,7 +111,8 @@ try {
                 'excluded_diary_dates' => App\Models\DiaryExcludedDate::whereIn('school_class_component_id', $class->componentAssignments()->pluck('id'))->get(),
                 'courses' => $class->courses->map(fn ($course) => [
                     'course' => $course->only(['id', 'name', 'stage', 'class_hour_minutes', 'workload_hours', 'starts_period_id', 'ends_period_id']),
-                    'components' => $course->components->map->only(['id', 'name', 'weekly_lessons', 'workload_hours', 'active', 'legacy_source', 'legacy_id', 'legacy_metadata', 'starts_period_id', 'ends_period_id']),
+                    'components' => $course->components->map(fn ($component) => $component->only(['id', 'name', 'weekly_lessons', 'workload_hours', 'period_loads', 'active', 'legacy_source', 'legacy_id', 'legacy_metadata', 'starts_period_id', 'ends_period_id'])
+                        + ['calculated_hours' => $component->calculatedWorkloadHours($course)]),
                 ]),
                 'enrollments' => $class->enrollments->map(fn ($enrollment) => [
                     'enrollment' => $enrollment->only(['id', 'person_id', 'status', 'enrolled_at', 'transferred_at']),
