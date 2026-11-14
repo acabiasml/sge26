@@ -7,6 +7,14 @@ $app = require 'bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 try {
 $config = json_decode(file_get_contents('scripts/diary-reconciliation.json'), true, flags: JSON_THROW_ON_ERROR);
+if (($config['operation'] ?? '') === 'management-grade-default') {
+    if (! in_array($config['mode'] ?? '', ['dry-run', 'apply'], true)) { throw new RuntimeException('Modo inválido.'); }
+    $result = app(App\Support\ManagementGradeDefault::class)->complete(
+        $config['school_id'], $config['mode'] === 'apply', $config['expected_snapshot_sha256'] ?? null,
+    );
+    echo json_encode($result, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+    return;
+}
 if (($config['operation'] ?? '') === 'first-period-reclassification-repair'
     && ! Illuminate\Support\Facades\Schema::hasColumn('student_period_convalidations', 'verified_diary_attended_minutes')) {
     Illuminate\Support\Facades\Artisan::call('migrate', ['--path' => 'database/migrations/2026_11_14_000001_allow_verified_attendance_only_credits.php', '--force' => true]);
