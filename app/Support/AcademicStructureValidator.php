@@ -62,6 +62,25 @@ class AcademicStructureValidator
         $items = [];
         $baseUrl = route('academic-years.courses.show', [$course->academic_year_id, $course]);
 
+        if ($cohort = app(HighSchoolCohortWorkload::class)->forCourse($course)) {
+            $target = number_format($cohort['target_hours'], 0, ',', '.');
+            $hours = number_format($cohort['registered_hours'], 2, ',', '.');
+            $description = __('Ingresso em :year: :hours h cadastradas de :target h de formação geral básica nos três anos.', [
+                'year' => $cohort['entry_year'], 'hours' => $hours, 'target' => $target,
+            ]);
+            if ($cohort['status'] === 'incomplete') {
+                $description .= ' '.__('Ainda faltam as matrizes do :grades. Saldo para completar a formação básica: :hours h.', [
+                    'grades' => collect($cohort['missing_grades'])->map(fn ($grade) => $grade.'º ano')->join(', '),
+                    'hours' => number_format($cohort['remaining_hours'], 2, ',', '.'),
+                ]);
+            } elseif ($cohort['status'] === 'ambiguous') {
+                $description .= ' '.__('Há matrizes da mesma série com cargas diferentes; confira o percurso de cada turma.');
+            }
+            $items[] = self::issue(in_array($cohort['status'], ['exceeded', 'mismatch', 'ambiguous'], true) ? 'danger' : 'info',
+                $cohort['status'] === 'complete' ? __('Formação básica dos três anos conferida') : __('Conferência da formação básica dos três anos'),
+                $description);
+        }
+
         if ($course->stage === AcademicCourse::STAGE_HIGH_SCHOOL && blank($course->itinerary_name)
             && ! $course->technicalItineraries()->exists()
             && ! $course->classes()->whereHas('courses', fn ($q) => $q->where('stage', AcademicCourse::STAGE_TECHNICAL))->exists()) {
