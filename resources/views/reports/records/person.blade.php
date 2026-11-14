@@ -51,7 +51,7 @@
                         @endforeach
                     </ul>
                 @else
-                    <div>Nenhum registro cadastrado.</div>
+                    <div>{{ $group['empty_message'] ?? __('Nenhum registro cadastrado.') }}</div>
                 @endif
             </td>
         @endforeach
@@ -107,7 +107,7 @@
                 </tbody></table>
             </div>
         @empty
-            <p><strong>{{ $group['label'] }}:</strong> nenhum registro cadastrado nesta área.</p>
+            <p><strong>{{ $group['label'] }}:</strong> {{ $group['empty_message'] ?? __('Nenhum registro cadastrado nesta área.') }}</p>
         @endforelse
     @endforeach
 

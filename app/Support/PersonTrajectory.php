@@ -86,9 +86,6 @@ final class PersonTrajectory
             }
             $studies->push($this->roleItem($role, $today) + ['details' => [__('Série e turma não informadas no vínculo.')], 'url' => null, 'link_label' => null]);
         }
-        $work = $roles->where('role', '!=', PersonSchoolRole::ROLE_STUDENT)->map(fn ($r) => $this->roleItem($r, $today)
-            + ['details' => [], 'url' => null, 'link_label' => null]);
-
         $relations = ['schoolClass.academicYear.school', 'schoolClass.academicYear.periods', 'schoolClass.startsPeriod', 'schoolClass.endsPeriod',
             'component.startsPeriod', 'component.endsPeriod', 'component.course.startsPeriod', 'component.course.endsPeriod'];
         $assignments = SchoolClassComponent::where('teacher_person_id', $person->id)
@@ -111,11 +108,26 @@ final class PersonTrajectory
 
                 return $item;
             })->values();
+        $work = $roles->where('role', '!=', PersonSchoolRole::ROLE_STUDENT)->map(function ($role) use ($today, $teaching, $viewer, $person): array {
+            $item = $this->roleItem($role, $today) + ['details' => [], 'url' => null, 'link_label' => null];
+            if ($role->role === PersonSchoolRole::ROLE_TEACHER) {
+                $classes = $teaching->where('school_id', $role->school_id);
+                $item['title'] = __('Professor');
+                $item['subtitle'] = $classes->isEmpty() ? __('Sem associação com turma') : __('Turmas e componentes cadastrados');
+                $item['details'] = $classes->map(fn ($entry) => __('Turma').': '.$entry['title'].' · '.$entry['year'].' — '.__('Componentes').': '.$entry['subtitle'])->unique()->values()->all();
+                if ($classes->isEmpty() && $viewer->canAssignRoles($role->school_id)) {
+                    $item['remove_role_url'] = route('people.roles.destroy', [$person, $role]);
+                }
+            }
+
+            return $item;
+        });
         $sort = fn (Collection $items) => $items->sortByDesc(fn ($i) => ($i['start'] ?? ($i['year'] ? $i['year'].'-01-01' : '0000-00-00')).'|'.$i['id'])->values();
         $groups = [
             'estudos' => ['label' => __('Estudos'), 'icon' => 'fas fa-user-graduate', 'entries' => $sort($studies)],
             'trabalho' => ['label' => __('Vínculos profissionais'), 'icon' => 'fas fa-briefcase', 'entries' => $sort($work)],
-            'docencia' => ['label' => __('Docência'), 'icon' => 'fas fa-chalkboard-teacher', 'entries' => $sort($teaching)],
+            'docencia' => ['label' => __('Docência'), 'icon' => 'fas fa-chalkboard-teacher', 'entries' => $sort($teaching),
+                'empty_message' => __('Sem associação com turma')],
         ];
 
         return ['groups' => $groups, 'default_tab' => collect($groups)->search(fn ($g) => $g['entries']->isNotEmpty()) ?: 'estudos',
@@ -171,7 +183,7 @@ final class PersonTrajectory
             $item['duration'] = __('Referência do calendário letivo');
         }
 
-        return $item + ['details' => $details, 'class_id' => $class->id, 'mode' => $substitution ? 'substitute' : 'assigned',
+        return $item + ['details' => $details, 'school_id' => $year->school_id, 'class_id' => $class->id, 'mode' => $substitution ? 'substitute' : 'assigned',
             'periods' => $periods->modelKeys(), 'url' => route('academic-years.classes.show', [$year, $class]), 'link_label' => __('Abrir turma')];
     }
 

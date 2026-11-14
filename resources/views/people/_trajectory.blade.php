@@ -39,6 +39,14 @@
                                             </ul>
                                         @endif
                                         @if($entry['url'])<a class="small d-inline-block mt-2" href="{{ $entry['url'] }}" aria-label="{{ $entry['link_label'] }}: {{ $entry['title'] }}@if($entry['year']) · {{ $entry['year'] }}@endif">{{ $entry['link_label'] }} <i class="fas fa-arrow-right ml-1" aria-hidden="true"></i></a>@endif
+                                        @if(!empty($entry['remove_role_url']))
+                                            <form method="POST" action="{{ $entry['remove_role_url'] }}" class="mt-2">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('Remover vínculo de professor') }}</button>
+                                                <div class="text-muted small mt-1">{{ __('Remove apenas este vínculo; preserva a pessoa e seus registros escolares.') }}</div>
+                                            </form>
+                                        @endif
                                     </td>
                                     <td class="sge-person-trajectory-period">
                                         <span class="d-block">{{ $entry['period'] }}</span>
@@ -46,7 +54,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="2" class="text-muted text-center py-4">{{ __('Nenhum registro cadastrado nesta área.') }}</td></tr>
+                                <tr><td colspan="2" class="text-muted text-center py-4">{{ $group['empty_message'] ?? __('Nenhum registro cadastrado nesta área.') }}</td></tr>
                             @endforelse
                         </tbody>
                     </table>

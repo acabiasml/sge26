@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AcademicYear;
 use App\Models\AuditLog;
+use App\Models\DiaryAssessment;
 use App\Models\Person;
 use App\Models\School;
 use App\Models\SchoolClassComponent;
@@ -159,6 +160,11 @@ class PersonTrajectoryTest extends TestCase
         $this->assertStringContainsString('Turma Permitida', $html);
         $this->assertStringNotContainsString('Turma Restrita', $html);
         $this->assertStringNotContainsString('Escola Restrita', $html);
+        $unassigned = $this->viewer('professor', $school->id)->person;
+        $this->actingAs($this->viewer('administrador'))->get(route('people.pdf', $unassigned))->assertOk();
+        $html = view('reports.records.person', $data)->render();
+        $this->assertStringContainsString('Sem associação com turma', $html);
+        $this->assertStringNotContainsString('Remover vínculo de professor', $html);
     }
 
     public function test_older_student_role_is_retained_when_only_a_later_enrollment_exists_at_the_school(): void
@@ -176,6 +182,50 @@ class PersonTrajectoryTest extends TestCase
         $this->assertCount(2, $rows);
         $this->assertSame('2010-02-01', $rows->firstWhere('id', 'role-'.$old->id)['start']);
         $this->assertSame(['Série e turma não informadas no vínculo.'], $rows->firstWhere('id', 'role-'.$old->id)['details']);
+    }
+
+    public function test_unassigned_teacher_is_explicit_and_can_be_removed_without_deleting_the_person_or_academic_records(): void
+    {
+        $school = School::create(['name' => 'Escola']);
+        [$class, $component, $period] = $this->classroom($school, 2022, '1º Ano');
+        $person = Person::create(['full_name' => 'Pessoa sem atribuição']);
+        $role = $person->schoolRoles()->create(['school_id' => $school->id, 'role' => 'professor', 'active' => true, 'started_at' => '2026-05-01']);
+        $enrollment = $class->enrollments()->create(['person_id' => $person->id, 'enrolled_at' => '2022-02-01', 'status' => 'matriculado']);
+        $enrollment->courses()->attach($component->course);
+        $history = $person->academicHistories()->create(['school_id' => $school->id, 'title' => 'Histórico escolar', 'stage' => 'medio', 'active' => true]);
+        $assessment = DiaryAssessment::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id, 'title' => 'Avaliação', 'assessment_date' => '2022-03-01']);
+        $grade = $assessment->results()->create(['student_enrollment_id' => $enrollment->id, 'score' => 8]);
+        $viewer = $this->viewer('gestor', $school->id);
+        $this->actingAs($viewer)->get(route('people.show', $person))->assertOk()
+            ->assertSee('Sem associação com turma')->assertSee('Remover vínculo de professor')
+            ->assertSee(route('people.roles.destroy', [$person, $role]), false);
+        $this->actingAs($this->viewer('gestor', School::create(['name' => 'Outra escola'])->id))
+            ->delete(route('people.roles.destroy', [$person, $role]))->assertForbidden();
+        $this->assertModelExists($role);
+        $this->actingAs($viewer)->delete(route('people.roles.destroy', [$person, $role]))
+            ->assertRedirect(route('people.index'))->assertSessionHasNoErrors();
+        $this->assertModelMissing($role);
+        foreach ([$person, $enrollment, $history, $grade] as $record) {
+            $this->assertModelExists($record);
+        }
+        $this->assertSame('8.00', $grade->fresh()->score);
+        $this->assertDatabaseHas('academic_course_student_enrollment', ['student_enrollment_id' => $enrollment->id, 'academic_course_id' => $component->academic_course_id]);
+        $this->get(route('people.index'))->assertOk();
+    }
+
+    public function test_teacher_work_entry_lists_the_associated_class_and_subject_instead_of_an_unassigned_message(): void
+    {
+        $school = School::create(['name' => 'Escola']);
+        [$class, $component] = $this->classroom($school, 2024, '6º Ano A');
+        $person = $this->viewer('professor', $school->id)->person;
+        SchoolClassComponent::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'teacher_person_id' => $person->id, 'active' => true]);
+        $entry = app(PersonTrajectory::class)->build($person, $this->viewer('administrador'), $this->today())['groups']['trabalho']['entries']->first();
+        $this->assertSame('Professor', $entry['title']);
+        $this->assertSame('Turmas e componentes cadastrados', $entry['subtitle']);
+        $this->assertSame(['Turma: 6º Ano A · 2024 — Componentes: Matemática'], $entry['details']);
+        $this->assertArrayNotHasKey('remove_role_url', $entry);
     }
 
     private function today(): CarbonImmutable

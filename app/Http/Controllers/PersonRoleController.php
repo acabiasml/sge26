@@ -86,6 +86,11 @@ class PersonRoleController extends Controller
 
         $role->delete();
 
+        if (! $request->user()->isAdministrator() && ! $person->schoolRoles()->whereIn('school_id', $request->user()->manageableSchoolIds())->exists()) {
+            return redirect()->route('people.index')
+                ->with('status', __('Vínculo removido com sucesso.'));
+        }
+
         return redirect()->route('people.show', $person)
             ->with('status', __('Vínculo removido com sucesso.'));
     }
@@ -129,7 +134,7 @@ class PersonRoleController extends Controller
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     private function authorizeRoleChange(Request $request, array $data): void
     {
@@ -143,7 +148,7 @@ class PersonRoleController extends Controller
     }
 
     /**
-     * @param array<string, mixed>|null $newData
+     * @param  array<string, mixed>|null  $newData
      */
     private function preventRemovingLastActiveAdministrator(PersonSchoolRole $role, ?array $newData = null): void
     {
