@@ -89,5 +89,8 @@ $result = app($service)->reconcile(
 );
 echo json_encode($result, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 } catch (Throwable $error) {
-    echo json_encode(['mode' => 'error', 'exception' => get_class($error), 'message' => $error->getMessage()], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+    echo json_encode(['mode' => 'error', 'exception' => get_class($error), 'message' => $error->getMessage(),
+        'trace' => array_map(fn ($frame) => ['file' => basename($frame['file'] ?? ''), 'line' => $frame['line'] ?? null,
+            'class' => $frame['class'] ?? null, 'function' => $frame['function'] ?? null], array_slice($error->getTrace(), 0, 12)),
+    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 }

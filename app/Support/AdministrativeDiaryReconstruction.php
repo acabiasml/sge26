@@ -20,9 +20,12 @@ final class AdministrativeDiaryReconstruction
 {
     public const SOURCE = 'administrative_diary_reconstruction';
 
+    private float $lastHeartbeat = 0;
+
     public function reconcile(array $manifest, bool $apply = false, ?string $expectedSnapshot = null): array
     {
         return DB::transaction(function () use ($manifest, $apply, $expectedSnapshot): array {
+            $this->lastHeartbeat = microtime(true);
             $this->check(($manifest['format'] ?? '') === 'administrative-diary-reconstruction-v1'
                 && ($manifest['management_confirms_classes_taught'] ?? false) === true
                 && ($manifest['original_records_available'] ?? true) === false
@@ -74,6 +77,7 @@ final class AdministrativeDiaryReconstruction
                     && $contents->every(fn ($r) => in_array($r->class_date->toDateString(), array_column($sessions, 'date'), true)), 'Há registros não contemplados no lote.');
                 $lessons = 0;
                 foreach ($sessions as $session) {
+                    $this->heartbeat();
                     $date = $session['date'] ?? '';
                     $count = $session['lesson_count'] ?? 0;
                     $text = trim((string) ($session['content'] ?? ''));
@@ -124,6 +128,7 @@ final class AdministrativeDiaryReconstruction
                 'present_entries' => 0, 'absent_entries' => 0, 'unrecorded_entries' => 0];
             $touched = [];
             foreach ($plans as &$plan) {
+                $this->heartbeat();
                 $stats['calls_to_create'] += $plan['record'] ? 0 : 1;
                 $stats['contents_to_create'] += $plan['storedContent'] ? 0 : 1;
                 $entries = [];
@@ -237,6 +242,7 @@ final class AdministrativeDiaryReconstruction
             ->orderBy('id')->get();
         $evidence = $load = $seen = [];
         foreach ($records as $record) {
+            $this->heartbeat();
             if (in_array($record->id, $ownedIds, true)) {
                 continue;
             }
@@ -262,7 +268,20 @@ final class AdministrativeDiaryReconstruction
             }
         }
 
-        return [$evidence, $load, [$enrollments->toArray(), $records->map(fn ($r) => [$r->getAttributes(), $r->entries->toArray(), $r->component->course->getAttributes()])->all()]];
+        return [$evidence, $load, [$enrollments->toArray(), $records->map(function ($r): array {
+            $this->heartbeat();
+
+            return [$r->getAttributes(), $r->entries->toArray(), $r->component->course->getAttributes()];
+        })->all()]];
+    }
+
+    /** Evita expirar a conexão durante a conferência em memória de milhares de chamadas. */
+    private function heartbeat(): void
+    {
+        if (microtime(true) - $this->lastHeartbeat >= 3) {
+            DB::select('select 1');
+            $this->lastHeartbeat = microtime(true);
+        }
     }
 
     private function classify(array $items): array
