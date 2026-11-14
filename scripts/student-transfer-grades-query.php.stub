@@ -38,6 +38,17 @@ try {
 
             return [
                 'enrollment' => $enrollment->only(['id', 'school_class_id', 'status', 'enrolled_at', 'transferred_at', 'cancelled_at', 'reclassified_at', 'updated_at']),
+                'stored_final_result' => $enrollment->only(['final_result_status', 'final_result_details', 'final_result_calculated_at']),
+                'calculated_final_result' => app(App\Support\StudentFinalResultCalculator::class)->calculate($reportEnrollment),
+                'criteria' => ['passing_points' => $report['passingPoints'], 'minimum_attendance' => $report['minimumAttendance'],
+                    'dependency_component_limit' => $report['academicYear']->school->dependencyComponentLimitForDate($report['academicYear']->ends_at)],
+                'annual_attendance' => $report['annualAttendance'],
+                'annual_components' => $report['annualComponents']->map(fn ($item) => [
+                    'id' => $item['component']->id, 'name' => $item['component']->name,
+                    'course_id' => $item['component']->academic_course_id, 'stage' => $item['component']->course?->stage,
+                    'points' => $item['points'], 'complete_periods' => $item['complete_periods'], 'total_periods' => $item['total_periods'],
+                    'attendance' => $item['attendance'],
+                ]),
                 'report_mode' => $simulatedTransferDate !== '' ? 'simulated_transfer_readonly' : 'stored_enrollment',
                 'report_enrollment' => $reportEnrollment->only(['id', 'status', 'transferred_at']),
                 'class' => $enrollment->schoolClass->name,
