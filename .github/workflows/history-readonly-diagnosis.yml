@@ -1,5 +1,6 @@
 name: Consulta protegida de histórico
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:

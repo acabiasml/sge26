@@ -20,7 +20,10 @@ não salva modelos e não restaura ou altera dados.
 3. Revise e publique `scripts/history-query.json` e
    `scripts/history-report-public.pem` na `main`. O push dispara a consulta.
    A preparação gera uma chave nova mesmo quando a pessoa não muda.
-4. Confirme a execução em GitHub Actions. Se a API estiver bloqueada, a página
+4. Confirme a execução em GitHub Actions. Se o disparo pelo push não ocorrer,
+   inicie **Run workflow** na **Consulta protegida de histórico**, selecionando
+   a `main` atual; a consulta usa a configuração já publicada e mantém o mesmo
+   relatório criptografado. Se a API estiver bloqueada, a página
    pública de Actions permite conferir o estado. A criação de uma branch
    `consulta-historico-ID_DA_EXECUCAO-NUMERO_DA_TENTATIVA` confirma que o resultado
    foi produzido. O nome exato aparece no resumo da execução. Cada reexecução
