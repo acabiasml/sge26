@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - app/Support/SchoolClassPeriodEndCorrection.php
       - scripts/diary-reconciliation.json
       - scripts/diary-reconciliation.encrypted.json
       - scripts/run-diary-reconciliation.py

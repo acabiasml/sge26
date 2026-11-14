@@ -1,1 +1,1 @@
-{"operation": "verified-legacy-approval", "transport_key_id": "ecde46b7f7714ab29097433def5e0a18", "mode": "dry-run"}
+{"operation":"class-period-end-correction","school_id":1,"reference_year":2025,"class_ids":[11,12],"expected_end_period_id":16,"new_end_period_id":15,"mode":"dry-run"}
