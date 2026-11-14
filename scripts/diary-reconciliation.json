@@ -1,1 +1,1 @@
-{"operation": "verified-matrix-correction", "transport_key_id": "ecde46b7f7714ab29097433def5e0a18", "mode": "apply", "expected_snapshot_sha256": "1e3565055bf8a2801a3107192405b91fa78e804ad73a8b14ceadbfb84a815847"}
+{"operation": "verified-matrix-correction", "transport_key_id": "ecde46b7f7714ab29097433def5e0a18", "mode": "dry-run"}
