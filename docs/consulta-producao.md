@@ -369,3 +369,21 @@ A execução usa transação MySQL somente de leitura, sem chamar controllers de
 emissão nem sincronizadores. Os valores reais, PDFs e medidas de transbordamento
 ficam exclusivamente no relatório criptografado; nenhuma emissão é registrada.
 Históricos são prévias dos dados persistidos, sem sincronização.
+
+Para revisar a paginação de boletins e históricos, acrescente
+`"review_scope": "report-cards-and-histories"` à configuração desse escopo.
+A consulta gera boletins com todas as matrizes não vazias e verifica todos os
+históricos persistidos que têm escola e componentes, combinando-os com os
+maiores campos de identificação. Não sincroniza nem altera os históricos.
+O relatório mede, por documento e página, se cada assinatura está acompanhada
+do resumo do próprio estudante ou de um registro de estudos, além da separação
+do rodapé. Boletins de turma também são conferidos por estudante.
+Somente amostras extremas e falhas incluem os bytes do PDF, para limitar o
+tamanho do relatório criptografado; os demais casos preservam as medidas.
+
+A revisão também mede os maiores nomes de disciplinas, matrizes, turmas e
+combinações de turma/curso da base, em vez de limitar a análise à identificação
+civil. As matrículas 28 e 143 têm prévias próprias, incluindo contagem de linhas
+das células de turma/etapa e disciplina. Os dados da matrícula da ficha individual
+usam uma linha larga para turma/curso e uma segunda linha com ano, período,
+situação e dias letivos.

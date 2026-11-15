@@ -21,7 +21,7 @@
     $identityCpf = strlen($identityCpfDigits) === 11
         ? substr($identityCpfDigits, 0, 3).'.'.substr($identityCpfDigits, 3, 3).'.'.substr($identityCpfDigits, 6, 3).'-'.substr($identityCpfDigits, 9, 2)
         : ($identityStudent->cpf ?: '-');
-    $identitySpans = ['CPF' => 2, 'Naturalidade' => 4];
+    $identitySpans = ['CPF' => 2, 'Naturalidade' => 4, 'Ano letivo' => 2, 'Turma e etapa' => 4];
     $identityFields = $bulletinIdentity
         ? [
             ['Nascimento', $identityStudent->birth_date?->format('d/m/Y') ?? '-'],
@@ -35,6 +35,10 @@
             ['Telefone', $identityStudent->phone ?: '-'],
             ['Código da pasta', $identityStudent->legacy_code ?: '-'],
         ];
+    if ($bulletinIdentity && isset($academicYear, $schoolClass, $courses)) {
+        $identityFields[] = ['Ano letivo', $academicYear->referenceYearsLabel()];
+        $identityFields[] = ['Turma e etapa', \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $courses)];
+    }
     if (! $bulletinIdentity) {
         if ($identityStudent->nis || $identityStudent->receives_federal_aid) {
             $identityFields[] = ['NIS', $identityStudent->nis ?: '-'];
@@ -78,7 +82,7 @@
             <td colspan="6"><strong>Pai:</strong> {{ $identityStudent->father_name ?: '-' }}</td>
         </tr>
     @endif
-    @if(($mode ?? 'full') !== 'individual' && isset($academicYear, $schoolClass, $courses))
+    @if(($mode ?? 'full') === 'full' && isset($academicYear, $schoolClass, $courses))
         <tr>
             <td colspan="8"><strong>Turma e etapa:</strong> {{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $courses) }}</td>
             <td colspan="4"><strong>Ano letivo:</strong> {{ $academicYear->referenceYearsLabel() }}</td>

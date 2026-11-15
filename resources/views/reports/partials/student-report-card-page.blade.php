@@ -237,7 +237,8 @@
     </table>
 @endforelse
 
-<table class="report-summary-table">
+<section class="report-conclusion">
+<table class="report-summary-table" data-pdf-content="{{ $reportDocumentKey ?? 0 }}">
     <tr>
         <td class="summary-label">Dias letivos</td>
         <td>{{ $academicYear->schoolDayCount() }}</td>
@@ -279,8 +280,9 @@
     @endif
 </table>
 
-<table class="signatures{{ $annualComponents->count() <= 18 ? ' spacious' : '' }}">
+<table class="signatures{{ $annualComponents->count() <= 18 ? ' spacious' : '' }}" data-pdf-signatures="{{ $reportDocumentKey ?? 0 }}">
     <tr>
         @include('reports.partials.signature-staff', ['school' => $academicYear->school, 'signatureType' => 'secretarial', 'signatureDate' => $issuedDocument->issued_at ?? now()])
     </tr>
 </table>
+</section>

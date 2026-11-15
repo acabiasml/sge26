@@ -19,7 +19,7 @@
         .label { font-weight: 600; }
         .history-table { margin: 0 0 4px; table-layout: fixed; }
         .history-table th, .history-table td, .studies-table th, .studies-table td { border: .55px solid #111; padding: 1px 2px; vertical-align: middle; }
-        .history-table th, .studies-table th { background: #f1ede9; font-size: 11px; text-transform: uppercase; }
+        .history-table th, .studies-table > thead > tr > th { background: #f1ede9; font-size: 11px; text-transform: uppercase; }
         .history-table td, .studies-table td { font-size: 11px; }
         .basic-history-matrix, .technical-history-matrix { page-break-inside: auto; }
         .basic-history-matrix th, .basic-history-matrix td { font-size: 11px; padding: 1px 2px; line-height: 1.12; }
@@ -53,16 +53,19 @@
         .general-total-label { border-right: 0 !important; white-space: normal; }
         .general-total-label-space { border-left: 0 !important; }
         .studies-table { page-break-inside: auto; }
-        .studies-table td { padding-top: 0; padding-bottom: 0; }
-        .studies-table tr { page-break-inside: avoid; }
+        .studies-table > tbody > tr > td { padding-top: 0; padding-bottom: 0; }
+        .studies-table > tbody > tr { page-break-inside: avoid; }
         .studies-nowrap { white-space: normal; }
+        .last-study-row { page-break-after: avoid; }
+        .history-closing-row { page-break-before: avoid; }
+        .studies-table > tbody > tr > .history-closing-cell { border: 0; padding: 0; }
         .notes { margin: 3px 0 0; }
         .legend-table { border-collapse: collapse; font-size: 11px; line-height: 1.06; margin-top: 3px; width: 100%; }
         .legend-table th, .legend-table td { border: .45px solid #d8ccc4; padding: 1px 5px; text-align: left; vertical-align: top; }
         .legend-table th { background: #f3eee9; font-weight: 600; width: 10%; }
         .legend-table td { background: #faf8f6; }
         .signatures { border-collapse: collapse; margin-top: 6px; page-break-inside: avoid; width: 100%; }
-        .studies-section > p.center { margin: 2px 0; }
+        .history-closing-cell > p.center { margin: 2px 0; }
         .signatures td { border: 0; padding-top: 36px; text-align: center; width: 50%; }
         .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 220px; padding-top: 6px; }
         .signature-name { display: block; font-weight: 600; }
@@ -99,6 +102,19 @@
 @include('reports.partials.history-formation-workloads', ['showAnnualFormationWorkloads' => $history->education_stage === 'medio', 'compactFormationWorkloads' => $history->education_stage === 'fundamental'])
 @endif
 
+@if($history->notes)
+    <p class="notes"><span class="label">Observações:</span> {{ $history->notes }}</p>
+@endif
+
+@if($history->years->contains(fn ($year) => filled($year->notes)))
+    <p class="notes">
+        <span class="label">Observações por ano/série:</span>
+        @foreach($history->years->filter(fn ($year) => filled($year->notes)) as $year)
+            <strong>{{ $year->label }}:</strong> {{ $year->notes }}@if(! $loop->last) · @endif
+        @endforeach
+    </p>
+@endif
+
 <div class="studies-section">
 <div class="section-title">Estudos realizados</div>
 <table class="studies-table">
@@ -114,7 +130,7 @@
         @if($history->education_stage === 'tecnico' && ($technicalPeriodDurations ?? collect())->isNotEmpty())
         @foreach($technicalPeriodDurations as $period)
             @php($moduleResult = $period->ends_at?->copy()->endOfDay()->isPast() ? 'Concluído' : ($period->starts_at?->isFuture() ? 'A cursar' : 'Cursando'))
-            <tr>
+            <tr data-pdf-content="history" @if($loop->last) class="last-study-row" @endif>
                 <td class="studies-nowrap">{{ $period->name }}</td>
                 <td class="studies-nowrap"><strong>{{ $history->school?->name ?: '-' }}</strong>@if($location = collect([$history->school?->city, $history->school?->state ? mb_strtoupper($history->school->state, 'UTF-8') : null, 'Brasil'])->filter()->join(' / ')) — {{ $location }}@endif</td>
                 <td>EPT</td>
@@ -123,7 +139,7 @@
         @endforeach
         @else
         @foreach($history->years as $year)
-            <tr>
+            <tr data-pdf-content="history" @if($loop->last) class="last-study-row" @endif>
                 <td class="studies-nowrap">{{ collect([$year->year ?: null, $year->grade_phase ?: $year->label])->filter()->join(' — ') ?: '-' }}</td>
                 <td class="studies-nowrap"><strong>{{ $year->school_name ?: '-' }}</strong>@if($location = collect([$year->city, $year->state ? mb_strtoupper($year->state, 'UTF-8') : null, $year->country])->filter()->join(' / ')) — {{ $location }}@endif</td>
                 <td>{{ $year->modality ?: '-' }}</td>
@@ -131,21 +147,10 @@
             </tr>
         @endforeach
         @endif
-    </tbody>
-</table>
-
-@if($history->notes)
-    <p class="notes"><span class="label">Observações:</span> {{ $history->notes }}</p>
-@endif
-
-@if($history->years->contains(fn ($year) => filled($year->notes)))
-    <p class="notes">
-        <span class="label">Observações por ano/série:</span>
-        @foreach($history->years->filter(fn ($year) => filled($year->notes)) as $year)
-            <strong>{{ $year->label }}:</strong> {{ $year->notes }}@if(! $loop->last) · @endif
-        @endforeach
-    </p>
-@endif
+        @if($history->years->isEmpty() && ($technicalPeriodDurations ?? collect())->isEmpty())
+            <tr class="last-study-row" data-pdf-content="history"><td colspan="4">Nenhum estudo registrado.</td></tr>
+        @endif
+    <tr class="history-closing-row"><td colspan="4" class="history-closing-cell">
 
 <table class="legend-table">
     <tr>
@@ -161,10 +166,13 @@
     {{ ($issuedDocument->issued_at ?? now())->copy()->timezone('America/Cuiaba')->format('d/m/Y') }}.
 </p>
 
-<table class="signatures">
+<table class="signatures" data-pdf-signatures="history">
     <tr>
         @include('reports.partials.signature-staff', ['school' => $history->school, 'signatureType' => 'secretarial', 'signatureDate' => $issuedDocument->issued_at ?? now()])
     </tr>
+</table>
+</td></tr>
+</tbody>
 </table>
 </div>
 

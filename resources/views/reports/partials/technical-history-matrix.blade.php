@@ -13,8 +13,8 @@
 <table class="history-table technical-history-matrix">
     <thead>
         <tr>
-            <th rowspan="2" style="width:5%;"><div class="vertical-heading"><span>Formação</span></div></th><th rowspan="2" style="width:15%;">Área</th>
-            <th rowspan="2" style="width:28%;">Componente curricular</th>
+            <th rowspan="2" style="width:5%;"><div class="vertical-heading"><span>Formação</span></div></th><th rowspan="2" style="width:10%;">Área</th>
+            <th rowspan="2" style="width:36%;">Componente curricular</th>
             @foreach($modules as $module)
                 <th colspan="2" class="center">{{ \Illuminate\Support\Str::before($module, ' —') }}</th>
             @endforeach
@@ -28,7 +28,7 @@
             @php($record = $component->records->firstWhere('student_academic_history_year_id', $historyYear?->id))
             <tr>
                 @if($loop->first)<td rowspan="{{ $sectionComponents->count() }}" class="center"><div class="vertical-formation"><span>Formação Técnica Profissional</span></div></td><td rowspan="{{ $sectionComponents->count() }}">@include('partials.knowledge-area-label', ['labelName' => $technicalArea, 'labelArea' => $historyKnowledgeAreas->get(mb_strtolower(trim($technicalArea)))])</td>@endif
-                <td>{{ $component->name }}</td>
+                <td class="component-cell">{{ $component->name }}</td>
                 @foreach($modules as $module)
                     @if($component->module_label === $module)
                         <td class="center score-cell">{{ $record?->score_label ?: '-' }}</td>

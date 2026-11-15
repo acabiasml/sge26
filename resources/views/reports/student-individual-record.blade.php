@@ -27,14 +27,15 @@
         .area-cell { font-size: 11px; text-align: center; width: 22%; word-wrap: break-word; }
         .formation-area-label { display: block; font-size: 11px; font-weight: 600; margin-top: 3px; }
         .component-cell { width: 20%; word-wrap: break-word; }
-        .technical-table .area-cell { width: 12%; }
-        .technical-table .component-cell { width: 30%; }
+        .technical-table .area-cell { width: 8%; }
+        .technical-table .component-cell { width: 38%; }
         .center { text-align: center; }
         .legend-table { border-collapse: collapse; font-size: 11px; line-height: 1.06; margin-top: 3px; width: 100%; }
         .legend-table th, .legend-table td { border: .45px solid #d8ccc4; padding: 2px 5px; text-align: left; vertical-align: top; }
         .legend-table th { background: #f3eee9; font-weight: 600; width: 10%; }
         .legend-table td { background: #faf8f6; }
         .legend-table span { display: inline-block; margin-right: 8px; white-space: normal; }
+        .record-conclusion { page-break-inside: avoid; }
         .document-closing { padding-bottom: 0; page-break-inside: avoid; }
         .issue-place-date { margin: 2px 0 0; text-align: center; }
         .signatures { border-collapse: collapse; margin-top: 2px; page-break-inside: avoid; width: 100%; }
@@ -186,9 +187,9 @@
 
 <div class="section-title">DADOS DA MATRÍCULA</div>
 <table class="meta-table enrollment-identification">
-    <colgroup><col style="width: 33.33%"><col style="width: 33.33%"><col style="width: 33.34%"></colgroup>
+    <colgroup>@for($column = 0; $column < 12; $column++)<col style="width: {{ 100 / 12 }}%">@endfor</colgroup>
     <tr>
-        <td><strong>{{ $onlyTechnical ? 'Turma e curso' : 'Turma e etapa' }}:</strong>
+        <td colspan="9"><strong>{{ $onlyTechnical ? 'Turma e curso' : 'Turma e etapa' }}:</strong>
             @if($onlyTechnical)
                 {{ collect([$schoolClass->name, $courses->pluck('name')->join(' + ')])->filter()->unique()->join(' · ') }}
             @else
@@ -196,13 +197,13 @@
                 @if($courses->count() !== 1 || $courses->first()?->name !== $schoolClass->name)<br>Matrizes: {{ $courses->pluck('name')->join(' + ') ?: '-' }}@endif
             @endif
         </td>
-        <td><strong>Ano letivo:</strong> {{ $academicYear->referenceYearsLabel() }}</td>
-        <td><strong>Data da matrícula:</strong> {{ $enrollment->enrolled_at?->format('d/m/Y') ?? '-' }}</td>
+        <td colspan="3"><strong>Data da matrícula:</strong> {{ $enrollment->enrolled_at?->format('d/m/Y') ?? '-' }}</td>
     </tr>
     <tr>
-        <td><strong>Período letivo:</strong> {{ $academicYear->starts_at?->format('d/m/Y') ?? '-' }} a {{ $academicYear->ends_at?->format('d/m/Y') ?? '-' }}</td>
-        <td><strong>Situação:</strong> {{ $enrollment->statusLabel() }} · {{ $enrollment->typeLabel() }}</td>
-        <td><strong>Dias letivos:</strong> {{ $academicYear->schoolDayCount() }}</td>
+        <td colspan="3"><strong>Ano letivo:</strong> {{ $academicYear->referenceYearsLabel() }}</td>
+        <td colspan="4"><strong>Período letivo:</strong> {{ $academicYear->starts_at?->format('d/m/Y') ?? '-' }} a {{ $academicYear->ends_at?->format('d/m/Y') ?? '-' }}</td>
+        <td colspan="3"><strong>Situação:</strong> {{ $enrollment->statusLabel() }} · {{ $enrollment->typeLabel() }}</td>
+        <td colspan="2"><strong>Dias letivos:</strong> {{ $academicYear->schoolDayCount() }}</td>
     </tr>
 </table>
 
@@ -306,7 +307,8 @@
     </table>
 @endforelse
 
-<table class="summary-table">
+<section class="record-conclusion">
+<table class="summary-table" data-pdf-content="record">
     <tr>
         <td colspan="2"><strong>Total de faltas justificadas (Atestados Médicos):</strong> {{ (int) ($report['annualAttendance']['justified'] ?? 0) }}</td>
         <td colspan="2"><strong>Período letivo:</strong> {{ $currentAcademicPeriod ? 'Em andamento: '.$currentAcademicPeriod->name : 'Nenhum período em andamento' }}</td>
@@ -359,13 +361,14 @@
 
 <section class="document-closing">
     <p class="issue-place-date">{{ $issuePlace }}, {{ $issueDate }}.</p>
-    <table class="signatures">
+    <table class="signatures" data-pdf-signatures="record">
         <tr>
             @include('reports.partials.signature-staff', ['signatureType' => 'secretarial', 'signatureDate' => $issuedDocument->issued_at ?? now()])
         </tr>
     </table>
 </section>
 
+</section>
 @include('reports.partials.document-footer', ['issuedDocument' => $issuedDocument])
 </body>
 </html>

@@ -88,11 +88,14 @@ class StudentIndividualRecordLayoutTest extends TestCase
         $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
         $signatureTop = $footerTop = INF;
         $signatureBottom = $dateBottom = 0;
-        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame) use (&$signatureTop, &$footerTop, &$signatureBottom, &$dateBottom): void {
+        $safetyLines = $classLines = null;
+        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame) use (&$signatureTop, &$footerTop, &$signatureBottom, &$dateBottom, &$safetyLines, &$classLines): void {
             $node = $frame->get_node();
             if (! $node instanceof \DOMElement) {
                 return;
             }
+            if ($node->tagName === 'td' && trim($node->textContent) === 'Segurança do Trabalho, Meio Ambiente e Saúde') $safetyLines = count($frame->get_line_boxes());
+            if ($node->tagName === 'td' && str_starts_with(trim($node->textContent), 'Turma e curso:')) $classLines = count($frame->get_line_boxes());
             $box = $frame->get_border_box();
             match ($node->getAttribute('class')) {
                 'signature-line' => $signatureTop = min($signatureTop, $box[1]),
@@ -107,6 +110,10 @@ class StudentIndividualRecordLayoutTest extends TestCase
         $this->assertGreaterThan(0, $signatureBottom);
         $this->assertGreaterThanOrEqual($dateBottom + 30, $signatureTop);
         $this->assertGreaterThanOrEqual($signatureBottom + 6, $footerTop);
+        if ($stage === 'tecnico') {
+            $this->assertSame(1, $safetyLines, 'O nome completo da disciplina de segurança deve caber em uma linha.');
+            $this->assertSame(1, $classLines, 'Turma e curso devem caber na célula ampliada.');
+        }
         $this->assertStringContainsString($stage === 'tecnico' ? 'Turma e curso' : 'Turma e etapa', $html);
         $this->assertStringContainsString('Diretora Fictícia de Teste', $html);
         $this->assertStringContainsString('Secretária Fictícia de Teste', $html);
