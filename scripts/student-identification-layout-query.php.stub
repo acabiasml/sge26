@@ -72,7 +72,7 @@ try {
     $document = new App\Models\IssuedDocument(['issued_at' => now(), 'verification_code' => 'PREVIA-LAYOUT-SEM-EMISSAO']);
     $document->setRelation('issuedBy', null);
     $render = static function (string $view, array $data, array $metadata) use (&$results, $document, $reviewClosing, $snapshotMatrixIds): void {
-        if ($reviewClosing && ! in_array($view, ['reports.student-report-card', 'reports.class-report-cards', 'reports.student-academic-history'], true) && ! in_array($metadata['enrollment_id'] ?? null, [28, 143], true)) return;
+        if ($reviewClosing && ! in_array($view, ['reports.student-report-card', 'reports.class-report-cards', 'reports.student-academic-history', 'reports.student-individual-record'], true) && ! in_array($metadata['enrollment_id'] ?? null, [28, 143], true)) return;
         try {
         $data += ['issuedDocument' => $document, 'verificationUrl' => '', 'scoreView' => 'numeros', 'canChooseScoreView' => false];
         $pdf = $view === 'reports.student-academic-history'
@@ -172,6 +172,13 @@ try {
             ->unique(fn ($e) => $e['enrollment']->id);
         $summary['enrollment_combinations'] = ['count' => $enrollments->count(), 'mean' => $mean,
             'min' => $enrollments->min('components'), 'max' => $enrollments->max('components')];
+        if ($reviewClosing) {
+            foreach (['class_and_stage', 'class_and_courses'] as $field) {
+                $target = App\Models\StudentEnrollment::with('courses')->where('school_class_id', $academicMaxima[$field]['id'])->orderByDesc('id')->first();
+                if ($target) $samples->push(['enrollment' => $target, 'components' => $target->courses->sum(fn ($c) => $matrixCounts[$c->id] ?? 0)]);
+            }
+            $samples = $samples->unique(fn ($e) => $e['enrollment']->id);
+        }
         foreach ($samples as $sample) {
             $report = app(App\Support\StudentReportCardBuilder::class)->build($sample['enrollment']);
             $report['student'] = $worst;

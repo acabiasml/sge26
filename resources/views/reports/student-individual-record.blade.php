@@ -31,7 +31,7 @@
         .technical-table .component-cell { width: 38%; }
         .center { text-align: center; }
         .legend-table { border-collapse: collapse; font-size: 11px; line-height: 1.06; margin-top: 3px; width: 100%; }
-        .legend-table th, .legend-table td { border: .45px solid #d8ccc4; padding: 2px 5px; text-align: left; vertical-align: top; }
+        .legend-table th, .legend-table td { border: .45px solid #d8ccc4; padding: .5px 4px; text-align: left; vertical-align: top; }
         .legend-table th { background: #f3eee9; font-weight: 600; width: 10%; }
         .legend-table td { background: #faf8f6; }
         .legend-table span { display: inline-block; margin-right: 8px; white-space: normal; }
@@ -345,7 +345,7 @@
 <table class="legend-table">
     <tr>
         <th>Legenda</th>
-        <td>N (nota) · F (falta) · PT (pontos totais) · TF (total de faltas) · Freq. (frequência efetiva) · CHP (carga horária prevista) · CHC (carga horária cursada).</td>
+        <td>N: nota · F: faltas · PT: pontos totais · TF: faltas totais · Freq.: frequência efetiva · CHP/CHC: horas previstas/cursadas.</td>
     </tr>
     @if($conceptLegend->isNotEmpty())
         <tr>

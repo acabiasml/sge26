@@ -387,3 +387,8 @@ civil. As matrículas 28 e 143 têm prévias próprias, incluindo contagem de li
 das células de turma/etapa e disciplina. Os dados da matrícula da ficha individual
 usam uma linha larga para turma/curso e uma segunda linha com ano, período,
 situação e dias letivos.
+
+A revisão percorre também todas as matrizes na ficha individual e inclui
+matrículas das turmas com os maiores rótulos de turma/etapa e turma/curso.
+A legenda da ficha usa descrições concisas para as mesmas siglas, preservando
+a fonte e o espaço para assinar.
