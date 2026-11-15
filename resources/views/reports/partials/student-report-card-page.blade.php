@@ -89,6 +89,7 @@
         ->groupBy(fn (array $summary): string => CurriculumCatalog::formationLabelForComponent($summary['component']))
         ->map(fn ($formationItems, string $formation): array => [
             'formation' => $formation,
+            'technical' => $formationItems->every(fn (array $summary): bool => $summary['component']->course?->stage === \App\Models\AcademicCourse::STAGE_TECHNICAL),
             'rowspan' => $formationItems->count(),
             'periods' => $formationItems
                 ->flatMap(fn (array $summary) => $summary['periods']->pluck('period'))
@@ -158,7 +159,7 @@
     @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY && $technicalCourses->isNotEmpty())
         @include('reports.partials.technical-course-regulations', ['technicalCourses' => $technicalCourses])
     @endif
-    <table class="report-table">
+    <table @class(['report-table', 'technical-table' => $formationGroup['technical']])>
         <thead>
             <tr>
                 <th colspan="2" rowspan="2">

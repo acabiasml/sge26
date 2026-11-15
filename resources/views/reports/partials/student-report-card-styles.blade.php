@@ -19,6 +19,8 @@
         .area-cell { font-size: 11px; text-align: center; width: 22%; word-wrap: break-word; }
         .formation-area-label { display: block; font-size: 11px; font-weight: 600; margin-top: 3px; }
         .component-cell { width: 20%; word-wrap: break-word; }
+        .technical-table .area-cell { width: 8%; }
+        .technical-table .component-cell { width: 38%; }
         .center { text-align: center; }
         .right { text-align: right; }
         .report-summary-table { border-collapse: collapse; font-size: 11px; margin: 5px 0; page-break-inside: avoid; width: 100%; }

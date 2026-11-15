@@ -44,13 +44,14 @@ class DocumentSignaturePaginationTest extends TestCase
         });
         $attendance = app(AttendanceSummaryCalculator::class)->fromTotals(80, 78, 0);
         foreach ([14, 18, 22, 25, 29, 35, 45] as $count) {
+            $course->stage = $count === 14 ? 'tecnico' : 'medio';
             $report = [
                 'enrollment' => (new StudentEnrollment(['status' => 'matriculado', 'type' => 'regular']))->setRelation('schoolClass', $class),
                 'student' => new Person(['full_name' => 'Estudante com Nome de Teste Bastante Extenso', 'student_inep' => '123456789012', 'birth_date' => '2007-12-31', 'legacy_code' => 'SES-0001']),
                 'schoolClass' => $class, 'academicYear' => $year, 'courses' => collect([$course]), 'periods' => $periods,
                 'periodReports' => collect(), 'annualAttendance' => $attendance, 'finalResult' => ['label' => 'Aprovado'],
                 'annualComponents' => collect(range(1, $count))->map(function ($number) use ($course, $periods, $attendance) {
-                    $component = new CurriculumComponent(['name' => 'Componente curricular '.$number, 'workload_hours' => 80]);
+                    $component = new CurriculumComponent(['name' => $number === 14 && $course->stage === 'tecnico' ? 'Segurança do Trabalho, Meio Ambiente e Saúde' : 'Componente curricular '.$number, 'workload_hours' => 80]);
                     $component->id = $number;
                     $component->setRelation('course', $course)->setRelation('area', null);
 
@@ -104,6 +105,9 @@ class DocumentSignaturePaginationTest extends TestCase
         $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame, $canvas) use (&$contents, &$signatures, &$bottoms, &$footers): void {
             $node = $frame->get_node();
             if (! $node instanceof \DOMElement) return;
+            if ($node->getAttribute('class') === 'component-cell' && str_contains($node->textContent, 'Segurança do Trabalho')) {
+                $this->assertCount(1, $frame->get_line_boxes(), 'O maior nome de disciplina deve caber em uma linha nos boletins técnicos.');
+            }
             $page = $canvas->get_page_number();
             if ($node->hasAttribute('data-pdf-content')) $contents[$node->getAttribute('data-pdf-content')][$page] = true;
             if ($node->hasAttribute('data-pdf-signatures')) $signatures[$node->getAttribute('data-pdf-signatures')][$page] = true;
