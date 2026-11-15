@@ -6,6 +6,7 @@ use App\Http\Controllers;
 use App\Models\KnowledgeArea;
 use App\Models\School;
 use App\Models\SchoolClass;
+use App\Support\ListingInitialData;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -154,8 +155,11 @@ class ScreenListing extends Component
         } elseif ($this->screen === 'enrollments') {
             $arguments[] = SchoolClass::findOrFail($this->context['class'] ?? null);
         }
-        $result = app($controller)->{$method}(...$arguments);
-        $source = $result instanceof View ? $result : $result->getOriginalContent();
+        $source = ListingInitialData::get($this->screen, $listingRequest, $allowed, $this->context);
+        if (! $source) {
+            $result = app($controller)->{$method}(...$arguments);
+            $source = $result instanceof View ? $result : $result->getOriginalContent();
+        }
         $data = $source->getData();
         $data['listingRequest'] = $listingRequest;
         $data['listingScreen'] = $this->screen;

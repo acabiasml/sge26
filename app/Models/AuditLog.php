@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\AuditLogGroupIndex;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -9,6 +10,13 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 class AuditLog extends Model
 {
     public const UPDATED_AT = null;
+
+    protected static function booted(): void
+    {
+        static::created(fn () => AuditLogGroupIndex::forgetRequest());
+        static::updated(fn () => app(AuditLogGroupIndex::class)->invalidate());
+        static::deleted(fn () => app(AuditLogGroupIndex::class)->invalidate());
+    }
 
     protected $fillable = [
         'actor_user_id',

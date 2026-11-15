@@ -2,10 +2,24 @@
 
 namespace App\Providers;
 
+use App\Models\AcademicCourse;
+use App\Models\AcademicYear;
 use App\Models\Announcement;
+use App\Models\CurriculumComponent;
 use App\Models\DiaryAlert;
+use App\Models\DiaryAssessment;
+use App\Models\DiaryAssessmentResult;
+use App\Models\DiaryAttendanceEntry;
+use App\Models\DiaryAttendanceRecord;
+use App\Models\Person;
 use App\Models\PersonSchoolRole;
+use App\Models\School;
+use App\Models\SchoolClass;
+use App\Models\StudentEnrollment;
 use App\Models\User;
+use App\Support\ActiveRoleContext;
+use App\Support\AuditLogGroupIndex;
+use App\Support\ListingInitialData;
 use App\Support\UserLastAccess;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Database\Eloquent\Builder;
@@ -31,6 +45,25 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        View::composer(ListingInitialData::views(), fn ($view) => ListingInitialData::capture($view));
+        // Foreign-key cascades can also remove legacy diary context without model events.
+        foreach ([User::class, Person::class, School::class, AcademicYear::class, AcademicCourse::class,
+            SchoolClass::class, CurriculumComponent::class, StudentEnrollment::class,
+            DiaryAssessment::class, DiaryAttendanceRecord::class] as $model) {
+            $model::deleted(function (): void {
+                ActiveRoleContext::forget();
+                app(AuditLogGroupIndex::class)->invalidate();
+            });
+        }
+        foreach ([DiaryAttendanceEntry::class => 'diary_attendance_record_id', DiaryAssessmentResult::class => 'diary_assessment_id'] as $model => $contextField) {
+            $model::deleted(fn () => app(AuditLogGroupIndex::class)->invalidate());
+            $model::updated(function ($record) use ($contextField): void {
+                if ($record->wasChanged($contextField)) {
+                    app(AuditLogGroupIndex::class)->invalidate();
+                }
+            });
+        }
+
         Event::listen(Login::class, function (Login $event): void {
             session()->forget('announcements_presented');
             if ($event->user instanceof User) {

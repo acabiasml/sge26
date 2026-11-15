@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasTitleCaseAttributes;
+use App\Support\ActiveRoleContext;
 use App\Support\TextNormalizer;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -115,16 +116,7 @@ class User extends Authenticatable
             return [];
         }
 
-        return $this->person->schoolRoles()
-            ->where('active', true)
-            ->where(function ($query): void {
-                $query->whereNull('started_at')
-                    ->orWhereDate('started_at', '<=', now()->toDateString());
-            })
-            ->where(function ($query): void {
-                $query->whereNull('ended_at')
-                    ->orWhereDate('ended_at', '>=', now()->toDateString());
-            })
+        return ActiveRoleContext::for($this)
             ->pluck('role')
             ->unique()
             ->filter(fn (string $role): bool => isset(PersonSchoolRole::ROLE_PRIORITY[$role]))
@@ -144,19 +136,7 @@ class User extends Authenticatable
 
     private function hasActualActiveRole(string $role, int $schoolId): bool
     {
-        return $this->person->schoolRoles()
-            ->where('role', $role)
-            ->where('school_id', $schoolId)
-            ->where('active', true)
-            ->where(function ($query): void {
-                $query->whereNull('started_at')
-                    ->orWhereDate('started_at', '<=', now()->toDateString());
-            })
-            ->where(function ($query): void {
-                $query->whereNull('ended_at')
-                    ->orWhereDate('ended_at', '>=', now()->toDateString());
-            })
-            ->exists();
+        return ActiveRoleContext::for($this)->contains(fn (PersonSchoolRole $assignment): bool => $assignment->role === $role && (int) $assignment->school_id === $schoolId);
     }
 
     /**
@@ -168,18 +148,9 @@ class User extends Authenticatable
             return [];
         }
 
-        return $this->person->schoolRoles()
+        return ActiveRoleContext::for($this)
             ->where('role', PersonSchoolRole::ROLE_MANAGER)
-            ->where('active', true)
             ->whereNotNull('school_id')
-            ->where(function ($query): void {
-                $query->whereNull('started_at')
-                    ->orWhereDate('started_at', '<=', now()->toDateString());
-            })
-            ->where(function ($query): void {
-                $query->whereNull('ended_at')
-                    ->orWhereDate('ended_at', '>=', now()->toDateString());
-            })
             ->pluck('school_id')
             ->map(fn ($schoolId): int => (int) $schoolId)
             ->all();
@@ -196,18 +167,9 @@ class User extends Authenticatable
 
         $view = $this->currentView();
 
-        return $this->person->schoolRoles()
-            ->where('active', true)
+        return ActiveRoleContext::for($this)
             ->whereNotNull('school_id')
             ->when($view !== null, fn ($query) => $query->where('role', $view))
-            ->where(function ($query): void {
-                $query->whereNull('started_at')
-                    ->orWhereDate('started_at', '<=', now()->toDateString());
-            })
-            ->where(function ($query): void {
-                $query->whereNull('ended_at')
-                    ->orWhereDate('ended_at', '>=', now()->toDateString());
-            })
             ->pluck('school_id')
             ->map(fn ($schoolId): int => (int) $schoolId)
             ->unique()
@@ -316,12 +278,13 @@ class User extends Authenticatable
     public function activeRoleLabel(bool $abbreviateSchool = false): string
     {
         $view = $this->currentView();
-        $role = $this->person?->loadMissing('schoolRoles.school')->schoolRoles
-            ->first(fn (PersonSchoolRole $role): bool => $role->role === $view && $role->isActiveForDate());
+        $role = $this->person ? ActiveRoleContext::for($this)->firstWhere('role', $view) : null;
 
         if (! $role) {
             return __('roles.no_active_role');
         }
+
+        $role->loadMissing('school');
 
         $schoolLabel = $role->school
             ? ($abbreviateSchool ? TextNormalizer::initials($role->school->name) : $role->school->name)

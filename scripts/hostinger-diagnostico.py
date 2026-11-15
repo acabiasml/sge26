@@ -29,10 +29,10 @@ def encrypt_report(output, public_key_text):
     })
 
 
-def run_remote(client, command):
+def run_remote(client, command, timeout=45):
     stdin, stdout, stderr = client.exec_command(
         'cd /home/u810745753/domains/ctjj.org/public_html/sge && ' + command,
-        timeout=45,
+        timeout=timeout,
     )
     stdin.close()
     try:
@@ -259,6 +259,10 @@ with tempfile.TemporaryDirectory() as directory:
                          'php artisan migrate --path=database/migrations/2026_11_12_000003_add_stage_letterhead_texts_to_schools.php --force --no-ansi'))
         commands.append(('Conferir distribuição de aulas por período',
                          'php artisan migrate --path=database/migrations/2026_11_13_000001_add_period_loads_to_curriculum_components.php --force --no-ansi'))
+        commands.append(('Preparar estrutura do índice da auditoria',
+                         'php artisan migrate --path=database/migrations/2026_11_15_000001_create_audit_log_group_index.php --force --no-ansi'))
+        commands.append(('Preparar índices da auditoria e medir consulta',
+                         'php artisan audit:refresh-index --benchmark --no-ansi'))
         commands.append(('Migrations', 'php artisan migrate:status --no-ansi'))
         expected_commit = os.environ['EXPECTED_COMMIT']
         deadline = time.monotonic() + 180
@@ -277,7 +281,7 @@ with tempfile.TemporaryDirectory() as directory:
 
         for label, command in commands[1:]:
             print(f'\n--- {label} ---', flush=True)
-            output, code = run_remote(client, command)
+            output, code = run_remote(client, command, timeout=180 if label in ('Preparar estrutura do índice da auditoria', 'Preparar índices da auditoria e medir consulta') else 45)
             if label in ('Resultados pendentes para relatório criptografado', 'Pendências de fechamento de Inglês para relatório criptografado'):
                 if code:
                     raise RuntimeError('Não foi possível consultar os resultados pendentes.')

@@ -15,11 +15,18 @@ class AuditLogGroups
     /** Group consecutive records before pagination, preserving the original audit trail. */
     public static function query(User $user): Builder
     {
+        if ($scope = app(AuditLogGroupIndex::class)->ensure($user)) {
+            return AuditLog::query()
+                ->join('audit_log_group_rows as audit_groups', 'audit_logs.id', '=', 'audit_groups.last_id')
+                ->where('audit_groups.scope_key', $scope)
+                ->with(['actorUser', 'actorPerson', 'school']);
+        }
+
         return AuditLog::query()->joinSub(self::groups($user), 'audit_groups', fn ($join) => $join->on('audit_logs.id', '=', 'audit_groups.last_id'))
             ->with(['actorUser', 'actorPerson', 'school']);
     }
 
-    public static function groups(User $user): QueryBuilder
+    public static function groups(User $user, ?int $fromId = null, ?int $throughId = null): QueryBuilder
     {
         $sqlite = DB::connection()->getDriverName() === 'sqlite';
         $json = static fn (string $column, string $key): string => $sqlite
@@ -33,6 +40,8 @@ class AuditLogGroups
         }
         $base = DB::table('audit_logs')->select(['id', 'created_at', 'actor_user_id', 'actor_person_id', 'school_id', 'auditable_type', 'action', 'actor_role', 'actor_position'])
             ->selectRaw('case '.implode(' ', $context).' else 0 end as context_id', $bindings)
+            ->when($fromId !== null, fn (QueryBuilder $query) => $query->where('id', '>=', $fromId))
+            ->when($throughId !== null, fn (QueryBuilder $query) => $query->where('id', '<=', $throughId))
             ->when(! $user->isAdministrator(), fn (QueryBuilder $query) => $query->whereIn('school_id', $user->manageableSchoolIds()));
         $keys = ['actor_user_id', 'actor_person_id', 'school_id', 'auditable_type', 'action', 'actor_role', 'actor_position', 'context_id'];
         $keyed = DB::query()->fromSub($base, 'source')->select('id', 'created_at')

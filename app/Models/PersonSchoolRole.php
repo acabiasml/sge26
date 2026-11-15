@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\Auditable;
+use App\Support\ActiveRoleContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,13 +14,19 @@ class PersonSchoolRole extends Model
     use Auditable;
 
     public const ROLE_ADMINISTRATOR = 'administrador';
+
     public const ROLE_MANAGER = 'gestor';
+
     public const ROLE_TEACHER = 'professor';
+
     public const ROLE_STUDENT = 'aluno';
+
     public const ROLE_EMPLOYEE = 'funcionário';
 
     public const POSITION_DIRECTOR = 'diretor';
+
     public const POSITION_COORDINATOR = 'coordenador';
+
     public const POSITION_SECRETARY = 'secretário';
 
     public const ROLE_PRIORITY = [
@@ -71,6 +78,8 @@ class PersonSchoolRole extends Model
 
     private static function syncPersonActive(PersonSchoolRole $role): bool
     {
+        ActiveRoleContext::forget();
+
         return Person::query()
             ->find($role->person_id)
             ?->syncActiveFromRoles() ?? true;
