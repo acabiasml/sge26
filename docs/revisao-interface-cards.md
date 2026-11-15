@@ -29,6 +29,8 @@ O componente `section-tabs` reutiliza o estilo e a navegação por teclado exist
 
 A validação nativa revela a seção e os detalhes que contêm o primeiro campo inválido antes de o navegador focá-lo. Os links do resumo de erros priorizam o campo na seção visível quando vários formulários usam o mesmo nome de campo.
 
+No celular, a faixa de navegação acompanha o card selecionado, inclusive ao restaurar uma seção ou revelar um campo inválido.
+
 Os novos textos também possuem tradução italiana. As mudanças são de apresentação e navegação, sem migrations ou alterações nas regras de autorização e de cálculo.
 
 ## Validação

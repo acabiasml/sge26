@@ -843,6 +843,18 @@
             validationSummary.focus();
         }
 
+        const revealActiveSectionTab = (tabList) => {
+            const active = tabList.querySelector('[data-academic-tab].is-active');
+            if (!active || !tabList.clientWidth) return;
+            const bounds = tabList.getBoundingClientRect();
+            const selected = active.getBoundingClientRect();
+            if (selected.left < bounds.left + 8) {
+                tabList.scrollLeft += selected.left - bounds.left - 8;
+            } else if (selected.right > bounds.right - 8) {
+                tabList.scrollLeft += selected.right - bounds.right + 8;
+            }
+        };
+
         const initializeSectionTabs = (root = document) => {
             root.querySelectorAll?.('[data-section-tabs]').forEach((tabList) => {
                 if (tabList.dataset.sectionTabsReady === '1') {
@@ -863,7 +875,10 @@
                     scrollHint.hidden = !overflows || atEnd;
                 };
                 tabList.addEventListener('scroll', updateScrollHint, { passive: true });
-                window.addEventListener('resize', updateScrollHint);
+                window.addEventListener('resize', () => {
+                    revealActiveSectionTab(tabList);
+                    updateScrollHint();
+                });
                 requestAnimationFrame(updateScrollHint);
                 const names = tabs.map((tab) => tab.dataset.academicTab);
                 const defaultName = names.includes(tabList.dataset.defaultTab) ? tabList.dataset.defaultTab : names[0];
@@ -917,6 +932,10 @@
                     if (!tabList.closest('[data-academic-panel][hidden]')) {
                         window.sgeNavigation?.rememberSection(selected);
                     }
+                    requestAnimationFrame(() => {
+                        container.querySelectorAll('[data-section-tabs]').forEach(revealActiveSectionTab);
+                        updateScrollHint();
+                    });
                 };
 
                 tabs.forEach((tab) => tab.addEventListener('click', (event) => {
