@@ -21,6 +21,7 @@
     $identityCpf = strlen($identityCpfDigits) === 11
         ? substr($identityCpfDigits, 0, 3).'.'.substr($identityCpfDigits, 3, 3).'.'.substr($identityCpfDigits, 6, 3).'-'.substr($identityCpfDigits, 9, 2)
         : ($identityStudent->cpf ?: '-');
+    $identitySpans = ['CPF' => 2, 'Naturalidade' => 4];
     $identityFields = $bulletinIdentity
         ? [
             ['Nascimento', $identityStudent->birth_date?->format('d/m/Y') ?? '-'],
@@ -61,7 +62,7 @@
     @foreach(array_chunk($identityFields, 4) as $identityRow)
         <tr>
             @foreach($identityRow as [$identityLabel, $identityValue])
-                <td colspan="{{ 12 / count($identityRow) }}"><strong>{{ $identityLabel }}:</strong> {{ $identityValue }}</td>
+                <td colspan="{{ count($identityRow) === 4 ? ($identitySpans[$identityLabel] ?? 3) : 12 / count($identityRow) }}"><strong>{{ $identityLabel }}:</strong> {{ $identityValue }}</td>
             @endforeach
         </tr>
     @endforeach

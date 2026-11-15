@@ -63,9 +63,10 @@ try {
             : Barryvdh\DomPDF\Facade\Pdf::loadView($view, $data)->setPaper('a4', 'portrait');
         $overflow = [];
         $identificationHeight = 0;
+        $birthplaceLines = 0;
         $signatureBottom = 0;
         $footerTop = INF;
-        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => static function ($frame) use (&$overflow, &$identificationHeight, &$signatureBottom, &$footerTop): void {
+        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => static function ($frame) use (&$overflow, &$identificationHeight, &$signatureBottom, &$footerTop, &$birthplaceLines): void {
             $node = $frame->get_node();
             if (! $node instanceof DOMElement) return;
             $nodeClass = $node->getAttribute('class');
@@ -79,6 +80,7 @@ try {
             $ancestor = $node->parentNode;
             while ($ancestor && (! $ancestor instanceof DOMElement || $ancestor->nodeName !== 'table')) $ancestor = $ancestor->parentNode;
             if (! $ancestor || ! preg_match('/(?:student|enrollment)-identification/', $ancestor->getAttribute('class'))) return;
+            if (str_starts_with(trim($node->textContent), 'Naturalidade:')) $birthplaceLines = max($birthplaceLines, count($frame->get_line_boxes()));
             $box = $frame->get_content_box();
             foreach ($frame->get_line_boxes() as $line) {
                 if ($line->w > $box[2] + 1) $overflow[] = ['text' => $node->textContent, 'width' => $box[2], 'line_width' => $line->w];
@@ -86,7 +88,7 @@ try {
         }]]);
         $bytes = $pdf->output();
         $results[] = $metadata + ['view' => $view, 'pages' => $pdf->getDomPDF()->getCanvas()->get_page_count(),
-            'identity_height_pt' => $identificationHeight, 'signature_footer_gap_pt' => is_finite($footerTop) ? $footerTop - $signatureBottom : null, 'identity_overflow' => $overflow, 'pdf_base64' => base64_encode($bytes)];
+            'identity_height_pt' => $identificationHeight, 'birthplace_lines' => $birthplaceLines, 'signature_footer_gap_pt' => is_finite($footerTop) ? $footerTop - $signatureBottom : null, 'identity_overflow' => $overflow, 'pdf_base64' => base64_encode($bytes)];
         unset($pdf);
         gc_collect_cycles();
     };

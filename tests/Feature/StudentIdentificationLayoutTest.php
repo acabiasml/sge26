@@ -14,18 +14,18 @@ class StudentIdentificationLayoutTest extends TestCase
 {
     public static function modes(): array
     {
-        return [['full'], ['individual'], ['bulletin']];
+        return [['full'], ['individual'], ['bulletin'], ['individual', 'Santo Antônio do Leste']];
     }
 
     #[DataProvider('modes')]
-    public function test_long_identification_values_wrap_inside_the_page_in_every_document_mode(string $mode): void
+    public function test_long_identification_values_wrap_inside_the_page_in_every_document_mode(string $mode, string $birthCity = 'Município de Nascimento de Nome Muito Comprido'): void
     {
         $student = new Person([
             'full_name' => 'Estudante de Teste com Nome Completo Bastante Extenso para Conferência de Impressão',
             'social_name' => 'Nome Social de Teste Também Extenso',
             'birth_date' => '2004-12-31', 'cpf' => '12345678909', 'student_inep' => '123456789012',
             'legacy_code' => '123456789012345', 'nis' => '12345678901', 'receives_federal_aid' => true,
-            'birth_city' => 'Município de Nascimento de Nome Muito Comprido', 'birth_state' => 'MT',
+            'birth_city' => $birthCity, 'birth_state' => 'MT',
             'nationality' => 'Brasileira naturalizada', 'phone' => '(66) 99999-9999',
             'personal_email' => str_repeat('estudante', 8).'@example.test',
             'institutional_email' => str_repeat('institucional', 6).'@example.test',
@@ -46,12 +46,15 @@ class StudentIdentificationLayoutTest extends TestCase
             ])->render();
         $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
         $cells = 0;
-        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame) use (&$cells): void {
+        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame) use (&$cells, $birthCity): void {
             $node = $frame->get_node();
             if (! $node instanceof \DOMElement || $node->nodeName !== 'td') {
                 return;
             }
             $cells++;
+            if ($birthCity === 'Santo Antônio do Leste' && str_starts_with(trim($node->textContent), 'Naturalidade:')) {
+                $this->assertCount(1, $frame->get_line_boxes(), 'A maior naturalidade cadastrada deve caber em uma linha.');
+            }
             $box = $frame->get_content_box();
             foreach ($frame->get_line_boxes() as $line) {
                 $this->assertLessThanOrEqual($box[2] + 1, $line->w, 'O texto deve quebrar dentro da célula.');
