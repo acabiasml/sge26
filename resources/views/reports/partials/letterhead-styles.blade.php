@@ -25,6 +25,8 @@ strong, b, th { font-weight: 600; }
 table { border-collapse: collapse; }
 th, td { word-wrap: break-word; }
 thead { display: table-header-group; }
+.student-identification { table-layout: fixed; }
+.student-identification td { overflow-wrap: anywhere; word-wrap: break-word; }
 .letterhead { border-bottom: 1.4px solid #6B3D2E; margin-bottom: 12px; padding-bottom: 7px; }
 .letterhead-repeat { position: fixed; top: -136px; left: 0; right: 0; margin-bottom: 0; }
 .letterhead-table { width: 100%; border-collapse: collapse; }

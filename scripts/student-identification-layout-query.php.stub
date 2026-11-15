@@ -1,0 +1,153 @@
+<?php
+
+// Prévia de impressão com a base real: SELECTs em transação somente de leitura.
+// Nenhum controller de emissão, sincronizador, cadastro ou protocolo é executado.
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$db = Illuminate\Support\Facades\DB::connection();
+if ($db->getDriverName() === 'mysql') {
+    $db->statement('SET TRANSACTION READ ONLY');
+}
+$db->beginTransaction();
+try {
+    $fields = ['full_name', 'social_name', 'cpf', 'student_inep', 'legacy_code', 'nis', 'birth_city', 'birth_state',
+        'nationality', 'phone', 'personal_email', 'institutional_email', 'mother_name', 'father_name',
+        'address', 'number', 'address_complement', 'district', 'city', 'state', 'postal_code'];
+    $maxima = [];
+    $fontPdf = Barryvdh\DomPDF\Facade\Pdf::loadHTML('<style>'.view('reports.partials.letterhead-styles')->render().'</style>Prévia');
+    $fontPdf->render();
+    $fontMetrics = $fontPdf->getDomPDF()->getFontMetrics();
+    $font = $fontMetrics->getFont('Atkinson Hyperlegible Next', 'normal');
+    $people = App\Models\Person::query()->where(fn ($q) => $q->whereHas('studentEnrollments')->orWhereHas('academicHistories'))
+        ->select(array_merge(['id', 'birth_date', 'legacy_metadata'], $fields))->get();
+    foreach ($people as $person) {
+        foreach ($fields as $field) {
+            $value = (string) ($person->{$field} ?: match ($field) {
+                'birth_city' => $person->legacy_metadata['naturalidade'] ?? '',
+                'birth_state' => $person->legacy_metadata['naturalidade_uf'] ?? '',
+                'nationality' => $person->legacy_metadata['nacionalidade'] ?? '',
+                default => '',
+            });
+            $width = $fontMetrics->getTextWidth($value, $font, 8.25);
+            if ($width > ($maxima[$field]['width_pt'] ?? -1)) {
+                $maxima[$field] = ['length' => mb_strlen($value), 'width_pt' => $width, 'value' => $value];
+            }
+        }
+    }
+    $worst = new App\Models\Person(collect($maxima)->map(fn ($m) => $m['value'])->all());
+    $worst->birth_date = '2000-12-31';
+    $worst->receives_federal_aid = true;
+    $matrices = App\Models\AcademicCourse::query()->withCount('components')->orderBy('components_count')->orderBy('id')->get();
+    $nonempty = $matrices->where('components_count', '>', 0)->values();
+    $selected = collect();
+    $distribution = static function ($items) use (&$selected): array {
+        $items = $items->sortBy('components_count')->values();
+        if ($items->isEmpty()) return [];
+        $mean = $items->avg('components_count');
+        $samples = ['menor' => $items->first(), 'mediana' => $items[intdiv($items->count(), 2)],
+            'proxima_media' => $items->sortBy(fn ($m) => abs($m->components_count - $mean))->first(), 'maior' => $items->last()];
+        foreach ($samples as $matrix) $selected->put($matrix->id, $matrix);
+        return ['count' => $items->count(), 'min' => $items->min('components_count'), 'mean' => $mean,
+            'max' => $items->max('components_count'), 'samples' => collect($samples)->map->only(['id', 'name', 'stage', 'components_count'])->all()];
+    };
+    $summary = ['all' => $distribution($nonempty)];
+    foreach ($nonempty->groupBy('stage') as $stage => $items) $summary[$stage] = $distribution($items);
+    $results = [];
+    $document = new App\Models\IssuedDocument(['issued_at' => now(), 'verification_code' => 'PREVIA-LAYOUT-SEM-EMISSAO']);
+    $document->setRelation('issuedBy', null);
+    $render = static function (string $view, array $data, array $metadata) use (&$results, $document): void {
+        $data += ['issuedDocument' => $document, 'verificationUrl' => '', 'scoreView' => 'numeros', 'canChooseScoreView' => false];
+        $pdf = $view === 'reports.student-academic-history'
+            ? app(App\Support\StudentAcademicHistoryPdf::class)->make($data)
+            : Barryvdh\DomPDF\Facade\Pdf::loadView($view, $data)->setPaper('a4', 'portrait');
+        $overflow = [];
+        $identificationHeight = 0;
+        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => static function ($frame) use (&$overflow, &$identificationHeight): void {
+            $node = $frame->get_node();
+            if (! $node instanceof DOMElement) return;
+            if ($node->nodeName === 'table' && str_contains($node->getAttribute('class'), 'student-identification')) {
+                $identificationHeight += $frame->get_border_box()[3];
+            }
+            if ($node->nodeName !== 'td') return;
+            $ancestor = $node->parentNode;
+            while ($ancestor && (! $ancestor instanceof DOMElement || $ancestor->nodeName !== 'table')) $ancestor = $ancestor->parentNode;
+            if (! $ancestor || ! str_contains($ancestor->getAttribute('class'), 'student-identification')) return;
+            $box = $frame->get_content_box();
+            foreach ($frame->get_line_boxes() as $line) {
+                if ($line->w > $box[2] + 1) $overflow[] = ['text' => $node->textContent, 'width' => $box[2], 'line_width' => $line->w];
+            }
+        }]]);
+        $bytes = $pdf->output();
+        $results[] = $metadata + ['view' => $view, 'pages' => $pdf->getDomPDF()->getCanvas()->get_page_count(),
+            'identity_height_pt' => $identificationHeight, 'identity_overflow' => $overflow, 'pdf_base64' => base64_encode($bytes)];
+        unset($pdf);
+        gc_collect_cycles();
+    };
+    $attendance = app(App\Support\AttendanceSummaryCalculator::class)->fromTotals(0, 0, 0);
+    foreach ($selected as $matrix) {
+        $matrix->load('components.area', 'components.course', 'academicYear.school', 'academicYear.periods');
+        $year = $matrix->academicYear;
+        if (! $year?->school) continue;
+        $periods = $year->periods;
+        $class = new App\Models\SchoolClass(['name' => $matrix->name]);
+        $enrollment = new App\Models\StudentEnrollment(['enrolled_at' => $year->starts_at, 'status' => 'matriculado', 'type' => 'regular']);
+        $report = ['enrollment' => $enrollment, 'student' => $worst, 'schoolClass' => $class, 'academicYear' => $year,
+            'courses' => collect([$matrix]), 'periods' => $periods, 'periodReports' => collect(), 'annualAttendance' => $attendance,
+            'finalResult' => ['label' => 'Prévia de impressão'], 'annualComponents' => $matrix->components->map(fn ($component) => [
+                'component' => $component, 'attendance' => $attendance, 'points' => 0,
+                'periods' => $periods->map(fn ($period) => ['period' => $period, 'component' => $component, 'average' => ['value' => null], 'attendance' => $attendance]),
+            ])];
+        $data = ['report' => $report, 'letterhead' => App\Support\PdfLetterhead::make($year->school, [$matrix->stage])];
+        $metadata = ['scenario' => 'matriz_real_identificacao_extrema_sintetica', 'matrix_id' => $matrix->id, 'stage' => $matrix->stage,
+            'components' => $matrix->components_count, 'periods' => $periods->count()];
+        $render('reports.student-individual-record', $data, $metadata);
+        $render('reports.student-report-card', $data, $metadata);
+        if ($matrix->id === $nonempty->last()->id) {
+            $render('reports.class-report-cards', ['reports' => collect([$report, $report]), 'letterhead' => $data['letterhead']], $metadata + ['students' => 2]);
+        }
+    }
+    // Matrículas podem combinar mais de uma matriz: confere também essas combinações reais.
+    $matrixCounts = $matrices->pluck('components_count', 'id');
+    $enrollments = App\Models\StudentEnrollment::with('courses:id')->get()
+        ->map(fn ($e) => ['enrollment' => $e, 'components' => $e->courses->sum(fn ($c) => $matrixCounts[$c->id] ?? 0)])
+        ->where('components', '>', 0)->sortBy('components')->values();
+    if ($enrollments->isNotEmpty()) {
+        $mean = $enrollments->avg('components');
+        $samples = collect([$enrollments->first(), $enrollments[intdiv($enrollments->count(), 2)],
+            $enrollments->sortBy(fn ($e) => abs($e['components'] - $mean))->first(), $enrollments->last()])
+            ->unique(fn ($e) => $e['enrollment']->id);
+        $summary['enrollment_combinations'] = ['count' => $enrollments->count(), 'mean' => $mean,
+            'min' => $enrollments->min('components'), 'max' => $enrollments->max('components')];
+        foreach ($samples as $sample) {
+            $report = app(App\Support\StudentReportCardBuilder::class)->build($sample['enrollment']);
+            $report['student'] = $worst;
+            $data = ['report' => $report, 'letterhead' => App\Support\PdfLetterhead::make($report['academicYear']->school, $report['courses']->pluck('stage')->all())];
+            $metadata = ['scenario' => 'combinacao_real_identificacao_extrema_sintetica', 'components' => $report['annualComponents']->count(), 'matrix_ids' => $report['courses']->pluck('id')->all()];
+            $render('reports.student-individual-record', $data, $metadata);
+            $render('reports.student-report-card', $data, $metadata);
+        }
+    }
+    if ($enrollment = App\Models\StudentEnrollment::find(28)) {
+        $report = app(App\Support\StudentReportCardBuilder::class)->build($enrollment);
+        $render('reports.student-individual-record', ['report' => $report,
+            'letterhead' => App\Support\PdfLetterhead::make($report['academicYear']->school, $report['courses']->pluck('stage')->all())],
+            ['scenario' => 'matricula_real_28', 'components' => $report['annualComponents']->count()]);
+    }
+    $histories = App\Models\StudentAcademicHistory::query()->withCount('components')->whereHas('school')->whereHas('components')->orderBy('components_count')->get();
+    $historySelected = collect([$histories->first(), $histories[intdiv($histories->count(), 2)] ?? null, $histories->last()])->filter()->unique('id');
+    foreach ($historySelected as $history) {
+        $history->load('school', 'years.records', 'components.records.year');
+        $method = new ReflectionMethod(App\Http\Controllers\StudentAcademicHistoryController::class, 'technicalPeriodDurations');
+        $render('reports.student-academic-history', ['person' => $worst, 'history' => $history,
+            'technicalPeriodDurations' => $method->invoke(app(App\Http\Controllers\StudentAcademicHistoryController::class), $history),
+            'historyKnowledgeAreas' => App\Models\KnowledgeArea::withSubtitlesByName(),
+            'letterhead' => App\Support\PdfLetterhead::make($history->school, $history->education_stage)],
+            ['scenario' => 'historico_real_identificacao_extrema_sintetica', 'components' => $history->components_count, 'years' => $history->years->count()]);
+    }
+    echo json_encode(['as_of' => now()->toIso8601String(), 'read_only' => true, 'students_scanned' => $people->count(),
+        'maxima' => $maxima, 'matrix_distribution' => $summary, 'empty_matrices' => $matrices->where('components_count', 0)->count(),
+        'results' => $results], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally {
+    $db->rollBack();
+}

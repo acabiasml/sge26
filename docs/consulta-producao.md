@@ -350,3 +350,20 @@ mais de uma avaliação no módulo ou nota que mudou desde a conferência. Prote
 por hash todas as outras notas, chamadas, conteúdos, matrizes e calendário da
 turma técnica. Atualiza somente a nota aprovada e sua exibição em históricos
 com origem `system`, sem alterar as cargas ou os resultados registrados.
+
+## Verificação da identificação do estudante e matrizes extremas
+
+O escopo `student-identification-layout` mede os maiores valores dos campos de
+identificação dos estudantes com matrícula ou histórico pela largura tipográfica
+na fonte do PDF e seleciona matrizes
+não vazias mínima, mediana, próxima da média e máxima, globalmente e por etapa.
+A prévia combina os valores extremos em uma pessoa sintética, sem representar
+um cadastro real, e usa componentes e períodos das matrizes cadastradas.
+Também confere a matrícula 28 e históricos pequeno, mediano e grande.
+
+Prepare com `python3 scripts/prepare-history-query.py --scope
+student-identification-layout --key-directory /CAMINHO_PRIVADO_FORA_DO_REPOSITORIO`.
+A execução usa transação MySQL somente de leitura, sem chamar controllers de
+emissão nem sincronizadores. Os valores reais, PDFs e medidas de transbordamento
+ficam exclusivamente no relatório criptografado; nenhuma emissão é registrada.
+Históricos são prévias dos dados persistidos, sem sincronização.

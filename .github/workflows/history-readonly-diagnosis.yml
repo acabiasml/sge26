@@ -18,6 +18,7 @@ on:
   push:
     branches: [main]
     paths:
+      - scripts/student-identification-layout-query.php.stub
       - scripts/person-record-web-verification.php.stub
       - scripts/person-record-verification.php.stub
       - scripts/diary-restoration-proposal-query.php.stub
@@ -53,7 +54,7 @@ permissions:
 jobs:
   consultar:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
       - run: python -m pip install 'paramiko==3.5.1'

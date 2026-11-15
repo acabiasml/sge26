@@ -23,7 +23,8 @@ def main():
     scope = query.get('scope', 'student')
     if scope in ('person-record-web-verification', 'enrollment-record-web-verification') and requested_scope != scope:
         raise ValueError('A emissão web exige seleção manual explícita desse escopo.')
-    sources = {'person-record-web-verification': 'scripts/person-record-web-verification.php.stub',
+    sources = {'student-identification-layout': 'scripts/student-identification-layout-query.php.stub',
+               'person-record-web-verification': 'scripts/person-record-web-verification.php.stub',
                'enrollment-record-web-verification': 'scripts/person-record-web-verification.php.stub',
                'technical-cad-reconstruction': 'scripts/technical-cad-reconstruction-query.php.stub',
                'diary-supplement': 'scripts/diary-supplement-query.php.stub',
@@ -178,7 +179,7 @@ def main():
                     if time.monotonic() >= deadline:
                         raise RuntimeError('O deploy da consulta ainda não chegou ao servidor.')
                     time.sleep(10)
-            stdin, stdout, stderr = client.exec_command('cd /home/u810745753/domains/ctjj.org/public_html/sge && php -d memory_limit=1G', timeout=180 if scope in ('legacy-outcome-audit', 'history-pdf-verification', 'school-diary-completion', 'diary-restoration-proposal', 'diary-supplement') else 60)
+            stdin, stdout, stderr = client.exec_command('cd /home/u810745753/domains/ctjj.org/public_html/sge && php -d memory_limit=1G', timeout=180 if scope in ('student-identification-layout', 'legacy-outcome-audit', 'history-pdf-verification', 'school-diary-completion', 'diary-restoration-proposal', 'diary-supplement') else 60)
             stdin.write(source)
             stdin.flush()
             stdin.channel.shutdown_write()

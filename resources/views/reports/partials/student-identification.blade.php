@@ -1,6 +1,6 @@
 @php
     $identityStudent = $student ?? $person;
-    $compactIdentity = ($mode ?? 'full') === 'individual';
+    $bulletinIdentity = ($mode ?? 'full') === 'bulletin';
     $identityBirthPlace = collect([
         $identityStudent->birth_city ?: ($identityStudent->legacy_metadata['naturalidade'] ?? null),
         mb_strtoupper((string) ($identityStudent->birth_state ?: ($identityStudent->legacy_metadata['naturalidade_uf'] ?? null)), 'UTF-8') ?: null,
@@ -21,132 +21,68 @@
     $identityCpf = strlen($identityCpfDigits) === 11
         ? substr($identityCpfDigits, 0, 3).'.'.substr($identityCpfDigits, 3, 3).'.'.substr($identityCpfDigits, 6, 3).'-'.substr($identityCpfDigits, 9, 2)
         : ($identityStudent->cpf ?: '-');
+    $identityFields = $bulletinIdentity
+        ? [
+            ['Nascimento', $identityStudent->birth_date?->format('d/m/Y') ?? '-'],
+            ['Código da pasta', $identityStudent->legacy_code ?: '-'],
+            ['INEP', $identityStudent->student_inep ?: '-'],
+        ]
+        : [
+            ['Nascimento', $identityStudent->birth_date?->format('d/m/Y') ?? '-'],
+            ['CPF', $identityCpf],
+            ['INEP', $identityStudent->student_inep ?: '-'],
+            ['Naturalidade', $identityBirthPlace ?: '-'],
+            ['Nacionalidade', $identityNationality ?: '-'],
+            ['Telefone', $identityStudent->phone ?: '-'],
+            ['Código da pasta', $identityStudent->legacy_code ?: '-'],
+        ];
+    if (! $bulletinIdentity) {
+        if ($identityStudent->nis || $identityStudent->receives_federal_aid) {
+            $identityFields[] = ['NIS', $identityStudent->nis ?: '-'];
+            $identityFields[] = ['Auxílio federal', $identityStudent->receives_federal_aid ? 'Sim' : 'Não'];
+        }
+        if ($identityStudent->personal_email || $identityStudent->institutional_email) {
+            $identityFields[] = ['E-mail', $identityStudent->personal_email ?: '-'];
+            $identityFields[] = ['E-mail institucional', $identityStudent->institutional_email ?: '-'];
+        }
+    }
 @endphp
 
 @if($showTitle ?? true)
     <div class="section-title">IDENTIFICAÇÃO DO ESTUDANTE</div>
 @endif
 <table class="meta-table student-identification">
-    @if(($mode ?? 'full') === 'bulletin')
-        <colgroup>
-            <col style="width: 16%">
-            <col style="width: 53%">
-            <col style="width: 16%">
-            <col style="width: 15%">
-        </colgroup>
-        <tr>
-            <td class="label">Estudante</td>
-            <td>{{ $identityStudent->full_name }}</td>
-            <td class="label">Nascimento</td>
-            <td>{{ $identityStudent->birth_date?->format('d/m/Y') ?? '-' }}</td>
-        </tr>
-        @if($identityStudent->social_name)
-            <tr>
-                <td class="label">Nome social</td>
-                <td colspan="3">{{ $identityStudent->social_name }}</td>
-            </tr>
-        @endif
-        <tr>
-            <td class="label">Código da pasta</td>
-            <td>{{ $identityStudent->legacy_code ?: '-' }}</td>
-            <td class="label">INEP</td>
-            <td>{{ $identityStudent->student_inep ?: '-' }}</td>
-        </tr>
-        @if(isset($academicYear, $schoolClass, $courses))
-            <tr>
-                <td class="label">Turma e etapa</td>
-                <td>{{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $courses) }}</td>
-                <td class="label">Ano letivo</td>
-                <td>{{ $academicYear->referenceYearsLabel() }}</td>
-            </tr>
-        @endif
-    @else
+    <colgroup>
+        @for($identityColumn = 0; $identityColumn < 6; $identityColumn++)
+            <col style="width: {{ 100 / 6 }}%">
+        @endfor
+    </colgroup>
     <tr>
-        <td class="label">Estudante</td>
-        <td @unless($compactIdentity) colspan="3" @endunless>{{ $identityStudent->full_name }}</td>
-        @if($compactIdentity)
-            <td class="label">Nascimento</td>
-            <td>{{ $identityStudent->birth_date?->format('d/m/Y') ?? '-' }}</td>
-        @endif
+        <td colspan="6"><strong>Estudante:</strong> {{ $identityStudent->full_name }}</td>
     </tr>
-    @if($compactIdentity && $identityStudent->social_name)
-        <tr><td class="label">Nome social</td><td colspan="3">{{ $identityStudent->social_name }}</td></tr>
+    @if($identityStudent->social_name)
+        <tr><td colspan="6"><strong>Nome social:</strong> {{ $identityStudent->social_name }}</td></tr>
     @endif
-    @if(! $compactIdentity && ($identityStudent->social_name || $identityStudent->legacy_code))
+    @foreach(array_chunk($identityFields, 3) as $identityRow)
         <tr>
-            <td class="label">Nome social</td>
-            <td>{{ $identityStudent->social_name ?: '-' }}</td>
-            <td class="label">Código da pasta</td>
-            <td>{{ $identityStudent->legacy_code ?: '-' }}</td>
+            @foreach($identityRow as [$identityLabel, $identityValue])
+                <td colspan="{{ 6 / count($identityRow) }}"><strong>{{ $identityLabel }}:</strong> {{ $identityValue }}</td>
+            @endforeach
+        </tr>
+    @endforeach
+    @if(! $bulletinIdentity)
+        <tr>
+            <td colspan="3"><strong>Mãe:</strong> {{ $identityStudent->mother_name ?: '-' }}</td>
+            <td colspan="3"><strong>Pai:</strong> {{ $identityStudent->father_name ?: '-' }}</td>
         </tr>
     @endif
-    <tr>
-        <td class="label">CPF</td>
-        <td>{{ $identityCpf }}</td>
-        <td class="label">INEP</td>
-        <td>{{ $identityStudent->student_inep ?: '-' }}</td>
-    </tr>
-    @if($identityStudent->nis || $identityStudent->receives_federal_aid)
+    @if(($mode ?? 'full') !== 'individual' && isset($academicYear, $schoolClass, $courses))
         <tr>
-            <td class="label">NIS</td>
-            <td>{{ $identityStudent->nis ?: '-' }}</td>
-            <td class="label">Auxílio federal</td>
-            <td>{{ $identityStudent->receives_federal_aid ? 'Sim' : 'Não' }}</td>
+            <td colspan="4"><strong>Turma e etapa:</strong> {{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $courses) }}</td>
+            <td colspan="2"><strong>Ano letivo:</strong> {{ $academicYear->referenceYearsLabel() }}</td>
         </tr>
     @endif
-    <tr>
-        @if($compactIdentity)
-        <td class="label">Naturalidade</td>
-        <td>{{ $identityBirthPlace ?: '-' }}</td>
-        <td class="label">Nacionalidade</td>
-        <td>{{ $identityNationality ?: '-' }}</td>
-        @else
-        <td class="label">Nascimento</td>
-        <td>{{ $identityStudent->birth_date?->format('d/m/Y') ?? '-' }}</td>
-        <td class="label">Naturalidade</td>
-        <td>{{ $identityBirthPlace ?: '-' }}</td>
-        @endif
-    </tr>
-    <tr>
-        @if($compactIdentity)
-        <td class="label">Telefone</td>
-        <td>{{ $identityStudent->phone ?: '-' }}</td>
-        <td class="label">Código da pasta</td>
-        <td>{{ $identityStudent->legacy_code ?: '-' }}</td>
-        @else
-        <td class="label">Nacionalidade</td>
-        <td>{{ $identityNationality ?: '-' }}</td>
-        <td class="label">Telefone</td>
-        <td>{{ $identityStudent->phone ?: '-' }}</td>
-        @endif
-    </tr>
-    @if($identityStudent->personal_email || $identityStudent->institutional_email)
-        <tr>
-            <td class="label">E-mail</td>
-            <td>{{ $identityStudent->personal_email ?: '-' }}</td>
-            <td class="label">E-mail institucional</td>
-            <td>{{ $identityStudent->institutional_email ?: '-' }}</td>
-        </tr>
-    @endif
-    <tr>
-        <td class="label">Mãe</td>
-        <td>{{ $identityStudent->mother_name ?: '-' }}</td>
-        <td class="label">Pai</td>
-        <td>{{ $identityStudent->father_name ?: '-' }}</td>
-    </tr>
-    @if(! $compactIdentity && isset($academicYear, $schoolClass, $courses))
-        <tr>
-            <td class="label">Turma e etapa</td>
-            <td>{{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $courses) }}</td>
-            <td class="label">Ano letivo</td>
-            <td>{{ $academicYear->referenceYearsLabel() }}</td>
-        </tr>
-    @endif
-    @if($identityAddress)
-        <tr>
-            <td class="label">Endereço</td>
-            <td colspan="3">{{ $identityAddress }}</td>
-        </tr>
-    @endif
+    @if(! $bulletinIdentity && $identityAddress)
+        <tr><td colspan="6"><strong>Endereço:</strong> {{ $identityAddress }}</td></tr>
     @endif
 </table>
