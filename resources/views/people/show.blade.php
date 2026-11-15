@@ -4,6 +4,8 @@
     $roles = \App\Models\PersonSchoolRole::ROLE_LABELS;
     $positions = \App\Models\PersonSchoolRole::POSITION_LABELS;
     $primaryRole = $person->primaryActiveRole();
+    $issuableHistories = $person->academicHistories->where('is_unified', true)
+        ->filter(fn ($history) => app(\App\Support\StudentTechnicalItinerary::class)->canIssue($history));
     $socioeconomicEnrollment = $person->studentEnrollments
         ->filter(fn ($enrollment) => auth()->user()->canManageSchool($enrollment->schoolClass?->academicYear?->school_id))
         ->sortByDesc(fn ($enrollment) => ($enrollment->enrolled_at?->format('Y-m-d') ?? '').'|'.str_pad($enrollment->id, 12, '0', STR_PAD_LEFT))->first();
@@ -57,33 +59,46 @@
 @endsection
 
 @section('content')
-    @if(auth()->user()->canManagePeople() && $person->socioeconomic_data)
-        <details class="card sge-panel-card mb-4">
-            <summary class="sge-panel-header sge-history-section-summary"><h2>{{ __('Ficha socioeconômica') }}</h2><i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
-            <div class="card-body"><dl class="sge-definition-list mb-3">
-                @foreach(\App\Support\SocioeconomicProfile::fields() as $key => $field)
-                    @if(isset($person->socioeconomic_data[$key]) && $person->socioeconomic_data[$key] !== [] && $person->socioeconomic_data[$key] !== '')
-                        <dt>{{ __($field['label']) }}</dt><dd>{{ __(\App\Support\SocioeconomicProfile::label($key, $person->socioeconomic_data[$key])) }}</dd>
-                    @endif
-                @endforeach
-            </dl><a class="btn btn-outline-primary" href="{{ route('people.edit', $person) }}"><i class="fas fa-edit mr-1" aria-hidden="true"></i>{{ __('Editar dados socioeconômicos') }}</a></div>
-        </details>
-    @endif
-    <div class="row">
-        <div class="col-xl-4 col-lg-5">
-            <div class="card shadow mb-4">
-                <div class="card-body">
-                    <div class="sge-person-summary">
-                        <div class="sge-avatar-lg">{{ mb_substr($person->social_name ?: $person->full_name, 0, 1) }}</div>
-                        <div>
-                            <div class="sge-page-kicker">{{ $person->hasActiveRoleForDate() ? __('screens.active_relationship') : __('screens.no_active_relationship') }}</div>
-                            <h2 class="h5 mb-1">{{ $person->social_name ?: $person->full_name }}</h2>
-                            <p class="mb-0 text-gray-600">{{ $person->institutional_email ?: __('screens.no_institutional_email') }}</p>
-                        </div>
-                    </div>
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <div class="sge-person-summary">
+                <div class="sge-avatar-lg">{{ mb_substr($person->social_name ?: $person->full_name, 0, 1) }}</div>
+                <div>
+                    <div class="sge-page-kicker">{{ $person->hasActiveRoleForDate() ? __('screens.active_relationship') : __('screens.no_active_relationship') }}</div>
+                    <h2 class="h5 mb-1">{{ $person->social_name ?: $person->full_name }}</h2>
+                    <p class="mb-0 text-gray-600">{{ $person->institutional_email ?: __('screens.no_institutional_email') }}</p>
                 </div>
             </div>
+        </div>
+    </div>
 
+    @php
+        $personTabs = [
+            'dados' => ['label' => __('screens.personal_data'), 'icon' => 'fa-id-card'],
+            'trajetoria' => ['label' => __('Trajetória e movimentações'), 'icon' => 'fa-route'],
+            'matriculas' => ['label' => __('screens.academic_enrollments'), 'icon' => 'fa-user-graduate', 'count' => $person->studentEnrollments->count()],
+            'historicos' => ['label' => __('screens.school_histories'), 'icon' => 'fa-folder-open', 'count' => $issuableHistories->count()],
+            'vinculos' => ['label' => __('screens.roles_relationships'), 'icon' => 'fa-user-tag', 'count' => $person->schoolRoles->count()],
+            'contatos' => ['label' => __('screens.guardians_contacts'), 'icon' => 'fa-address-book', 'count' => $person->contacts->count()],
+        ];
+        $defaultPersonTab = request('edit_contact') ? 'contatos' : 'dados';
+        if ($errors->any()) {
+            $defaultPersonTab = $errors->hasAny(['role', 'school_id', 'position', 'started_at', 'ended_at', 'active']) ? 'vinculos' : 'contatos';
+        }
+    @endphp
+    <div>
+        <nav class="sge-section-nav sge-academic-tabs mb-4" aria-label="{{ __('Seções do cadastro da pessoa') }}" role="tablist" data-section-tabs data-default-tab="{{ $defaultPersonTab }}">
+            @foreach ($personTabs as $key => $tab)
+                <a href="#section-{{ $key }}" class="sge-section-nav-item" data-academic-tab="{{ $key }}" role="tab" aria-controls="section-{{ $key }}">
+                    <i class="fas {{ $tab['icon'] }}" aria-hidden="true"></i>
+                    <span>{{ $tab['label'] }}</span>
+                    @isset($tab['count'])
+                        <small>{{ trans_choice(':count registro|:count registros', $tab['count'], ['count' => $tab['count']]) }}</small>
+                    @endisset
+                </a>
+            @endforeach
+        </nav>
+        <div id="section-dados" data-academic-panel="dados" role="tabpanel">
             <div class="card shadow mb-4">
                 <div class="card-header font-weight-bold">{{ __('screens.personal_data') }}</div>
                 <div class="card-body">
@@ -153,6 +168,25 @@
                 </div>
             </div>
 
+            @if(auth()->user()->canManagePeople() && $person->socioeconomic_data)
+                <details class="card sge-panel-card mb-4">
+                    <summary class="sge-panel-header sge-history-section-summary"><h2>{{ __('Ficha socioeconômica') }}</h2><i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
+                    <div class="card-body"><dl class="sge-definition-list mb-3">
+                        @foreach(\App\Support\SocioeconomicProfile::fields() as $key => $field)
+                            @if(isset($person->socioeconomic_data[$key]) && $person->socioeconomic_data[$key] !== [] && $person->socioeconomic_data[$key] !== '')
+                                <dt>{{ __($field['label']) }}</dt><dd>{{ __(\App\Support\SocioeconomicProfile::label($key, $person->socioeconomic_data[$key])) }}</dd>
+                            @endif
+                        @endforeach
+                    </dl><a class="btn btn-outline-primary" href="{{ route('people.edit', $person) }}"><i class="fas fa-edit mr-1" aria-hidden="true"></i>{{ __('Editar dados socioeconômicos') }}</a></div>
+                </details>
+            @endif
+        </div>
+
+        <div id="section-trajetoria" data-academic-panel="trajetoria" role="tabpanel">
+            @include('people._trajectory')
+        </div>
+
+        <div id="section-matriculas" data-academic-panel="matriculas" role="tabpanel">
             <div class="card shadow mb-4">
                 <div class="card-header font-weight-bold">{{ __('screens.academic_enrollments') }}</div>
                 <div class="table-responsive">
@@ -204,7 +238,9 @@
                     </table>
                 </div>
             </div>
+        </div>
 
+        <div id="section-historicos" data-academic-panel="historicos" role="tabpanel">
             <div class="card shadow mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <a class="font-weight-bold" href="{{ route('student-histories.student', $person) }}">{{ __('screens.school_histories') }}</a>
@@ -222,7 +258,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse ($person->academicHistories->where('is_unified', true)->filter(fn ($h) => app(\App\Support\StudentTechnicalItinerary::class)->canIssue($h)) as $history)
+                            @forelse ($issuableHistories as $history)
                                 <tr>
                                     <td>
                                         {{ $history->title }}
@@ -249,9 +285,7 @@
             </div>
         </div>
 
-        <div class="col-xl-8 col-lg-7">
-            @include('people._trajectory')
-
+        <div id="section-vinculos" data-academic-panel="vinculos" role="tabpanel">
             <div class="card shadow mb-4">
                 <div class="card-header font-weight-bold">{{ __('screens.new_relationship') }}</div>
                 <div class="card-body">
@@ -380,7 +414,9 @@
                     </div>
                 </div>
             @endforeach
+        </div>
 
+        <div id="section-contatos" data-academic-panel="contatos" role="tabpanel">
             <div class="card shadow mb-4">
                 <div class="card-header font-weight-bold">{{ __('screens.guardians_contacts') }}</div>
                 <div class="card-body">

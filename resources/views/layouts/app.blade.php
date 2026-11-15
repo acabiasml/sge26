@@ -867,6 +867,11 @@
                 requestAnimationFrame(updateScrollHint);
                 const names = tabs.map((tab) => tab.dataset.academicTab);
                 const defaultName = names.includes(tabList.dataset.defaultTab) ? tabList.dataset.defaultTab : names[0];
+                const sectionForTarget = (target) => {
+                    for (let panel = target?.closest('[data-academic-panel]'); panel; panel = panel.parentElement?.closest('[data-academic-panel]')) {
+                        if (names.includes(panel.dataset.academicPanel)) return panel.dataset.academicPanel;
+                    }
+                };
                 const nameFromHash = (preferValidation = false) => {
                     if (preferValidation && document.querySelector('[data-validation-summary]')) return defaultName;
                     const hash = window.location.hash.replace('#section-', '');
@@ -874,15 +879,16 @@
                     // Links para um campo também precisam abrir o painel que o contém.
                     try {
                         const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
-                        const panel = target?.closest('[data-academic-panel]')?.dataset.academicPanel;
-                        if (names.includes(panel)) return panel;
+                        const section = sectionForTarget(target);
+                        if (section) return section;
                     } catch (_) {}
                     const saved = window.sgeNavigation?.section();
-                    return names.includes(saved) ? saved : defaultName;
+                    return names.includes(saved) ? saved : sectionForTarget(document.getElementById('section-' + saved)) || defaultName;
                 };
 
                 const activate = (name, updateHash = false) => {
-                    const panels = [...container.querySelectorAll('[data-academic-panel]')];
+                    const panels = [...container.querySelectorAll('[data-academic-panel]')]
+                        .filter((panel) => names.includes(panel.dataset.academicPanel));
                     const selected = names.includes(name) ? name : defaultName;
 
                     tabs.forEach((tab) => {
@@ -908,7 +914,9 @@
                     if (updateHash) {
                         history.replaceState(history.state, '', '#section-' + selected);
                     }
-                    window.sgeNavigation?.rememberSection(selected);
+                    if (!tabList.closest('[data-academic-panel][hidden]')) {
+                        window.sgeNavigation?.rememberSection(selected);
+                    }
                 };
 
                 tabs.forEach((tab) => tab.addEventListener('click', (event) => {
