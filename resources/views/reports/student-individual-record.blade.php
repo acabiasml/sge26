@@ -3,10 +3,10 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { size: A4 portrait; margin: 150px 24px 110px; }
+        @page { size: A4 portrait; margin: 150px 24px 116px; }
         body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #111; font-size: 11px; line-height: 1.06; }
         @include('reports.partials.letterhead-styles')
-        .document-footer { bottom: -78px !important; }
+        .document-footer { bottom: -84px !important; }
         .letterhead-line, .document-title, .document-meta, .document-footer { line-height: 1.06; }
         .letterhead { margin-bottom: 2px; padding-bottom: 5px; }
         .letterhead-logo img { max-width: 66px; max-height: 50px; }
@@ -19,7 +19,7 @@
         .meta-table .label, .summary-table .label { background: #f3eee9; font-weight: 600; width: 18%; }
         .student-identification td { line-height: 1.06; padding: .5px 3px; }
         .report-table { margin: 4px 0; }
-        .report-table th, .report-table td { border: .55px solid #111; padding: .7px 2.2px; vertical-align: middle; }
+        .report-table th, .report-table td { border: .55px solid #111; padding: .5px 2.2px; vertical-align: middle; }
         .report-table th { background: #f1ede9; font-size: 11px; font-weight: 600; text-align: center; }
         .report-table td { font-size: 11px; }
         .report-table .hours-cell { white-space: nowrap; word-wrap: normal; }
