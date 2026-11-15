@@ -848,10 +848,9 @@
             if (!active || !tabList.clientWidth) return;
             const bounds = tabList.getBoundingClientRect();
             const selected = active.getBoundingClientRect();
-            if (selected.left < bounds.left + 8) {
+            // Alinhe o início do card para respeitar o snap horizontal da faixa.
+            if (selected.left < bounds.left + 8 || selected.right > bounds.right - 8) {
                 tabList.scrollLeft += selected.left - bounds.left - 8;
-            } else if (selected.right > bounds.right - 8) {
-                tabList.scrollLeft += selected.right - bounds.right + 8;
             }
         };
 
