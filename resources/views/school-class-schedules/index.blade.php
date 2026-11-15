@@ -57,21 +57,25 @@
         </div>
     </div>
 
-    @if($schedules->isNotEmpty())
         <section id="section-versoes" class="card shadow mb-4" aria-labelledby="schedule-versions-title" data-academic-panel="versoes" role="tabpanel">
             <div class="card-header py-3"><h2 id="schedule-versions-title" class="h6 m-0 font-weight-bold text-primary">{{ __('Versões cadastradas') }}</h2></div>
             <div class="card-body">
                 <div class="sge-schedule-version-list">
-                    @foreach($schedules as $availableSchedule)
+                    @forelse($schedules as $availableSchedule)
                         <a class="sge-schedule-version {{ $schedule?->id === $availableSchedule->id ? 'is-active' : '' }}" href="{{ route('academic-years.classes.schedules.index', [$academicYear, $class, 'schedule' => $availableSchedule->id]) }}">
                             <span><strong>{{ $availableSchedule->name }}</strong><small>{{ $availableSchedule->starts_at?->format('d/m/Y') }} {{ __('até') }} {{ $availableSchedule->ends_at?->format('d/m/Y') ?? __('indeterminado') }}</small></span>
                             <i class="fas fa-chevron-right" aria-hidden="true"></i>
                         </a>
-                    @endforeach
+                    @empty
+                        <div class="sge-empty-state">
+                            <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                            <p>{{ __('Nenhuma versão de horário cadastrada.') }}</p>
+                            <a href="#section-nova" class="btn btn-outline-primary">{{ __('Criar versão') }}</a>
+                        </div>
+                    @endforelse
                 </div>
             </div>
         </section>
-    @endif
 
     @if($schedule)
         <div id="section-grade" class="row" data-academic-panel="grade" role="tabpanel">

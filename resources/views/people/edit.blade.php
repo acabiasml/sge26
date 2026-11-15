@@ -16,9 +16,11 @@
                 @csrf
                 @method('PUT')
 
+                @include('people._form-tabs')
                 @include('people._form', [
                     'person' => $person,
                     'lockInstitutionalEmail' => $lockInstitutionalEmail ?? false,
+                    'useProfileTabs' => true,
                 ])
 
                 <button class="btn btn-primary" type="submit">{{ __('screens.save_changes') }}</button>

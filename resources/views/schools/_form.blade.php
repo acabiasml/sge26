@@ -1,3 +1,12 @@
+@php
+    $schoolTabs = [
+        'identificacao' => ['label' => __('Dados e contatos'), 'icon' => 'fa-school', 'fields' => ['name', 'legal_name', 'cnpj', 'inep', 'phone', 'email']],
+        'documentos' => ['label' => __('Dados para documentos'), 'icon' => 'fa-file-alt', 'fields' => ['founded_at', 'website', 'letterhead_text', 'letterhead_text_elementary', 'letterhead_text_high_school', 'logo']],
+        'endereco' => ['label' => __('Endereço'), 'icon' => 'fa-map-marker-alt', 'fields' => ['address', 'number', 'district', 'city', 'state', 'postal_code']],
+    ];
+@endphp
+<x-section-tabs :tabs="$schoolTabs" :label="__('Seções do cadastro da escola')" />
+<section id="section-identificacao" data-academic-panel="identificacao" role="tabpanel">
 <div class="form-row">
     <div class="form-group col-md-6">
         <label for="name">{{ __('screens.school_name') }}</label>
@@ -38,7 +47,9 @@
     @error('email') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
 </div>
 
-<h2 class="h6 text-gray-800 mt-4">{{ __('screens.institutional_document_data') }}</h2>
+</section>
+
+<section id="section-documentos" data-academic-panel="documentos" role="tabpanel">
 
 <div class="form-row">
     <div class="form-group col-md-4">
@@ -95,7 +106,9 @@
     @endif
 </div>
 
-<h2 class="h6 text-gray-800 mt-4">{{ __('screens.address') }}</h2>
+</section>
+
+<section id="section-endereco" data-academic-panel="endereco" role="tabpanel">
 
 <div class="form-row">
     <div class="form-group col-md-6">
@@ -142,6 +155,8 @@
         @error('postal_code') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
 </div>
+
+</section>
 
 <div class="form-group form-check">
     <input type="hidden" name="active" value="0">

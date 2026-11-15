@@ -45,8 +45,17 @@
         </div>
     </section>
 
-    <div class="row">
-        <div class="col-xl-8">
+    @php
+        $conceptTabs = [
+            'conceitos' => ['label' => __('Tabela de conceitos'), 'icon' => 'fa-list', 'count' => $school->concepts->count()],
+            'edicao' => ['label' => $editingConcept ? __('Editar conceito') : __('Novo conceito'), 'icon' => 'fa-pen'],
+            'dependencia' => ['label' => __('Dependência e padrão sugerido'), 'icon' => 'fa-sliders-h'],
+        ];
+        $defaultConceptTab = old('criteria_form') === 'dependencia' ? 'dependencia' : ($editingConcept || $errors->any() ? 'edicao' : 'conceitos');
+    @endphp
+    <div>
+        <x-section-tabs :tabs="$conceptTabs" :label="__('Seções dos conceitos e critérios')" :default-tab="$defaultConceptTab" />
+        <div id="section-edicao" data-academic-panel="edicao" role="tabpanel">
             @if ($editingConcept)
                 <div class="card shadow mb-4 sge-concept-edit-card">
                     <div class="card-header d-flex justify-content-between align-items-start flex-wrap">
@@ -55,7 +64,7 @@
                             <h3 class="h5 mb-1">{{ $editingConcept->name }}</h3>
                             <p class="text-gray-600 mb-0">{{ __('Altere abreviatura, faixa de notas, ordem ou vigência deste conceito.') }}</p>
                         </div>
-                        <a class="btn btn-sm btn-outline-secondary sge-icon-action" href="{{ route('schools.concepts.index', $school) }}" aria-label="{{ __('Cancelar edição de conceito') }}" title="{{ __('Cancelar edição') }}">
+                        <a class="btn btn-sm btn-outline-secondary sge-icon-action" href="{{ route('schools.concepts.index', $school) }}#section-conceitos" aria-label="{{ __('Cancelar edição de conceito') }}" title="{{ __('Cancelar edição') }}">
                             <i class="fas fa-times" aria-hidden="true"></i>
                         </a>
                     </div>
@@ -84,6 +93,8 @@
                 </div>
             @endif
 
+        </div>
+        <div id="section-conceitos" data-academic-panel="conceitos" role="tabpanel">
             <div class="card shadow mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span class="font-weight-bold">{{ __('Tabela de conceitos') }}</span>
@@ -106,7 +117,7 @@
                                     <strong>{{ $concept->rangeLabel() }}</strong>
                                 </div>
                                 <div class="sge-concept-actions">
-                                    <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('schools.concepts.index', ['school' => $school, 'edit_concept' => $concept->id]) }}" aria-label="{{ __('Editar conceito') }} {{ $concept->name }}" title="{{ __('Editar conceito') }}">
+                                    <a class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('schools.concepts.index', ['school' => $school, 'edit_concept' => $concept->id]) }}#section-edicao" aria-label="{{ __('Editar conceito') }} {{ $concept->name }}" title="{{ __('Editar conceito') }}">
                                         <i class="fas fa-pen" aria-hidden="true"></i>
                                     </a>
 
@@ -129,14 +140,14 @@
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-4">
+        <div id="section-dependencia" data-academic-panel="dependencia" role="tabpanel">
             <div class="card shadow mb-4">
                 <div class="card-header font-weight-bold">{{ __('Dependência') }}</div>
                 <div class="card-body">
                     <p class="text-gray-600">{{ __('Defina quantos componentes curriculares o estudante pode ficar abaixo da pontuação mínima sem retenção automática.') }}</p>
                     <form method="POST" action="{{ route('schools.academic-criteria.update', $school) }}">
                         @csrf
+                        <input type="hidden" name="criteria_form" value="dependencia">
                         @method('PUT')
 
                         <div class="form-group">
@@ -182,6 +193,7 @@
                     <p class="text-gray-600">{{ __('Preenche uma vigência com os conceitos do exemplo enviado: Ótimo, Bom, Suficiente, Insuficiente e Insuficiente Grave.') }}</p>
                     <form method="POST" action="{{ route('schools.concepts.default', $school) }}" data-confirm-message="{{ __('Substituir a tabela desta vigência pelos conceitos padrão?') }}">
                         @csrf
+                        <input type="hidden" name="criteria_form" value="dependencia">
                         <div class="form-group">
                             <label for="default_effective_from">{{ __('Vigente a partir de') }}</label>
                             <input id="default_effective_from" name="effective_from" type="date" class="form-control" value="{{ now()->toDateString() }}" required>

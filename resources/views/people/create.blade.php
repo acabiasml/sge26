@@ -8,9 +8,10 @@
         <div class="card-body">
             <form method="POST" action="{{ route('people.store') }}">
                 @csrf
-                @include('people._form', ['person' => new \App\Models\Person()])
+                @include('people._form-tabs', ['includeInitialRole' => true])
+                @include('people._form', ['person' => new \App\Models\Person(), 'useProfileTabs' => true])
 
-                <hr>
+                <section id="section-vinculo" data-academic-panel="vinculo" role="tabpanel">
                 <h2 class="h5 text-gray-900">{{ __('screens.initial_relationship') }}</h2>
 
                 @if (! $requiresInitialRole)
@@ -67,6 +68,8 @@
                         @error('initial_ended_at') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
                     </div>
                 </div>
+
+                </section>
 
                 <button class="btn btn-primary" type="submit">{{ __('screens.save_person') }}</button>
                 <a data-navigation-return class="btn btn-secondary" href="{{ route('people.index') }}">{{ __('screens.cancel') }}</a>

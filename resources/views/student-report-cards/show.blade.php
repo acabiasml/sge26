@@ -107,6 +107,18 @@
         </div>
     </section>
 
+    @php
+        $reportTabs = ['resumo' => ['label' => __('Resumo anual'), 'icon' => 'fa-chart-line']];
+        foreach ($report['periodReports'] as $periodReport) {
+            $reportTabs['periodo-'.$periodReport['period']->id] = ['label' => $periodReport['period']->name, 'icon' => 'fa-calendar-alt'];
+        }
+        if (auth()->user()->canManageSchool($academicYear->school_id)) {
+            $reportTabs['origem'] = ['label' => __('Escola de origem'), 'icon' => 'fa-file-import', 'count' => $convalidations->count()];
+        }
+    @endphp
+    <div>
+        <x-section-tabs :tabs="$reportTabs" :label="__('Seções do boletim escolar')" />
+        <div id="section-resumo" data-academic-panel="resumo" role="tabpanel">
     <section class="sge-dashboard-metrics mb-4" aria-label="{{ __('Resumo do boletim') }}">
         <article class="sge-metric-card sge-metric-blue">
             <div class="sge-metric-icon"><i class="fas fa-book-open" aria-hidden="true"></i></div>
@@ -164,8 +176,92 @@
         </section>
     @endif
 
+    <section class="card shadow sge-panel-card mb-4" aria-labelledby="annual-summary-title">
+        <div class="sge-panel-header">
+            <div>
+                <h2 id="annual-summary-title">{{ __('Resumo anual por componente') }}</h2>
+                <p>{{ __('Soma dos pontos já calculados nos períodos e frequência efetiva, contando faltas justificadas como presença para aprovação.') }}</p>
+            </div>
+        </div>
+        <div class="card-body table-responsive">
+            <table class="table table-sm" data-sge-client-pagination="10">
+                <thead>
+                    <tr>
+                        <th>{{ __('Componente') }}</th>
+                        <th>{{ __('Área') }}</th>
+                        <th class="text-center">{{ __('Pontos') }}</th>
+                        <th class="text-center">{{ __('Frequência') }}</th>
+                        <th>{{ __('Situação') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($report['annualComponents'] as $summary)
+                        <tr>
+                            <td>{{ $summary['component']->name }}</td>
+                            <td>@include('partials.knowledge-area-label', ['labelArea' => $summary['component']->area])</td>
+                            <td class="text-center">{{ $scoreView === 'conceitos' ? '-' : number_format((float) $summary['points'], 1, ',', '.') }}</td>
+                            <td class="text-center">{{ $attendanceLabel($summary['attendance']['percentage']) }}</td>
+                            <td>{{ $componentStatus($summary) }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5">{{ __('Nenhum componente no boletim.') }}</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+        </div>
+
+    @foreach($report['periodReports'] as $periodReport)
+        @php($period = $periodReport['period'])
+        <section id="section-periodo-{{ $period->id }}" data-academic-panel="periodo-{{ $period->id }}" role="tabpanel" class="card shadow sge-panel-card mb-4" aria-labelledby="period-report-{{ $period->id }}">
+            <div class="sge-panel-header">
+                <div>
+                    <h2 id="period-report-{{ $period->id }}">{{ $period->name }}</h2>
+                    <p>{{ $period->starts_at?->format('d/m/Y') }} {{ __('a') }} {{ $period->ends_at?->format('d/m/Y') }}</p>
+                </div>
+                <span class="badge badge-light">{{ __('Comportamento:') }} {{ ($periodReport['behavior'] ?? null)?->formattedScore() ?? '-' }}</span>
+            </div>
+            <div class="card-body">
+                <div class="sge-period-result-grid">
+                    @forelse($periodReport['components'] as $componentReport)
+                        <article class="sge-period-result-card">
+                            <header>
+                                <strong>{{ $componentReport['component']->name }}</strong>
+                                <span>@include('partials.knowledge-area-label', ['labelArea' => $componentReport['component']->area])</span>
+                            </header>
+                            <div class="sge-component-result">
+                                <div><strong>{{ __('Média') }}</strong><span>{{ $componentReport['average']['complete'] ? __('Completa') : $componentReport['average']['completed_assessments'].__(' de ').$componentReport['average']['total_assessments'].__(' lançada(s)') }}</span></div>
+                                <div class="sge-grade-pills"><span>{{ $scoreLabel($componentReport['average']['value'], $period->ends_at ?? $period->starts_at) }}</span></div>
+                            </div>
+                            @if($componentReport['convalidation'])
+                                <div class="sge-component-result">
+                                    <div><strong>{{ __('Convalidação') }}</strong><span>{{ $componentReport['convalidation']->source_school ?: __('Resultado externo') }}</span></div>
+                                    <div class="sge-grade-pills"><span>{{ $scoreLabel($componentReport['convalidation']->score, $period->ends_at ?? $period->starts_at) }}</span></div>
+                                </div>
+                            @endif
+                            <div class="sge-component-result">
+                                <div><strong>{{ __('Frequência') }}</strong><span>{{ $componentReport['attendance']['absent'] }} {{ __('falta(s),') }} {{ $componentReport['attendance']['justified'] }} {{ __('justificada(s)') }}</span></div>
+                                <div class="sge-grade-pills"><span>{{ $attendanceLabel($componentReport['attendance']['percentage']) }}</span></div>
+                            </div>
+                            @foreach($componentReport['assessments'] as $assessment)
+                                @php($result = $assessment->results->first())
+                                <div class="sge-component-result">
+                                    <div><strong>{{ $assessment->title }}</strong><span>{{ $assessment->is_recovery ? __('Recuperação') : __('Avaliação') }}</span></div>
+                                    <div class="sge-grade-pills"><span>{{ $scoreLabel($result?->score, $period->ends_at ?? $period->starts_at) }}</span></div>
+                                </div>
+                            @endforeach
+                        </article>
+                    @empty
+                        <div class="sge-empty-state"><i class="fas fa-clipboard-list" aria-hidden="true"></i><p>{{ __('Nenhum componente ativo neste período.') }}</p></div>
+                    @endforelse
+                </div>
+            </div>
+        </section>
+    @endforeach
     @if(auth()->user()->canManageSchool($academicYear->school_id))
-        <section class="card shadow sge-panel-card mb-4" aria-labelledby="convalidation-title">
+        <section id="section-origem" data-academic-panel="origem" role="tabpanel" class="card shadow sge-panel-card mb-4" aria-labelledby="convalidation-title">
             <div class="sge-panel-header">
                 <div>
                     <h2 id="convalidation-title">{{ __('Notas e faltas da escola de origem') }}</h2>
@@ -230,86 +326,5 @@
         </section>
     @endif
 
-    <section class="card shadow sge-panel-card mb-4" aria-labelledby="annual-summary-title">
-        <div class="sge-panel-header">
-            <div>
-                <h2 id="annual-summary-title">{{ __('Resumo anual por componente') }}</h2>
-                <p>{{ __('Soma dos pontos já calculados nos períodos e frequência efetiva, contando faltas justificadas como presença para aprovação.') }}</p>
-            </div>
-        </div>
-        <div class="card-body table-responsive">
-            <table class="table table-sm" data-sge-client-pagination="10">
-                <thead>
-                    <tr>
-                        <th>{{ __('Componente') }}</th>
-                        <th>{{ __('Área') }}</th>
-                        <th class="text-center">{{ __('Pontos') }}</th>
-                        <th class="text-center">{{ __('Frequência') }}</th>
-                        <th>{{ __('Situação') }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($report['annualComponents'] as $summary)
-                        <tr>
-                            <td>{{ $summary['component']->name }}</td>
-                            <td>@include('partials.knowledge-area-label', ['labelArea' => $summary['component']->area])</td>
-                            <td class="text-center">{{ $scoreView === 'conceitos' ? '-' : number_format((float) $summary['points'], 1, ',', '.') }}</td>
-                            <td class="text-center">{{ $attendanceLabel($summary['attendance']['percentage']) }}</td>
-                            <td>{{ $componentStatus($summary) }}</td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="5">{{ __('Nenhum componente no boletim.') }}</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </section>
-
-    @foreach($report['periodReports'] as $periodReport)
-        @php($period = $periodReport['period'])
-        <section class="card shadow sge-panel-card mb-4" aria-labelledby="period-report-{{ $period->id }}">
-            <div class="sge-panel-header">
-                <div>
-                    <h2 id="period-report-{{ $period->id }}">{{ $period->name }}</h2>
-                    <p>{{ $period->starts_at?->format('d/m/Y') }} {{ __('a') }} {{ $period->ends_at?->format('d/m/Y') }}</p>
-                </div>
-                <span class="badge badge-light">{{ __('Comportamento:') }} {{ ($periodReport['behavior'] ?? null)?->formattedScore() ?? '-' }}</span>
-            </div>
-            <div class="card-body">
-                <div class="sge-period-result-grid">
-                    @forelse($periodReport['components'] as $componentReport)
-                        <article class="sge-period-result-card">
-                            <header>
-                                <strong>{{ $componentReport['component']->name }}</strong>
-                                <span>@include('partials.knowledge-area-label', ['labelArea' => $componentReport['component']->area])</span>
-                            </header>
-                            <div class="sge-component-result">
-                                <div><strong>{{ __('Média') }}</strong><span>{{ $componentReport['average']['complete'] ? __('Completa') : $componentReport['average']['completed_assessments'].__(' de ').$componentReport['average']['total_assessments'].__(' lançada(s)') }}</span></div>
-                                <div class="sge-grade-pills"><span>{{ $scoreLabel($componentReport['average']['value'], $period->ends_at ?? $period->starts_at) }}</span></div>
-                            </div>
-                            @if($componentReport['convalidation'])
-                                <div class="sge-component-result">
-                                    <div><strong>{{ __('Convalidação') }}</strong><span>{{ $componentReport['convalidation']->source_school ?: __('Resultado externo') }}</span></div>
-                                    <div class="sge-grade-pills"><span>{{ $scoreLabel($componentReport['convalidation']->score, $period->ends_at ?? $period->starts_at) }}</span></div>
-                                </div>
-                            @endif
-                            <div class="sge-component-result">
-                                <div><strong>{{ __('Frequência') }}</strong><span>{{ $componentReport['attendance']['absent'] }} {{ __('falta(s),') }} {{ $componentReport['attendance']['justified'] }} {{ __('justificada(s)') }}</span></div>
-                                <div class="sge-grade-pills"><span>{{ $attendanceLabel($componentReport['attendance']['percentage']) }}</span></div>
-                            </div>
-                            @foreach($componentReport['assessments'] as $assessment)
-                                @php($result = $assessment->results->first())
-                                <div class="sge-component-result">
-                                    <div><strong>{{ $assessment->title }}</strong><span>{{ $assessment->is_recovery ? __('Recuperação') : __('Avaliação') }}</span></div>
-                                    <div class="sge-grade-pills"><span>{{ $scoreLabel($result?->score, $period->ends_at ?? $period->starts_at) }}</span></div>
-                                </div>
-                            @endforeach
-                        </article>
-                    @empty
-                        <div class="sge-empty-state"><i class="fas fa-clipboard-list" aria-hidden="true"></i><p>{{ __('Nenhum componente ativo neste período.') }}</p></div>
-                    @endforelse
-                </div>
-            </div>
-        </section>
-    @endforeach
+    </div>
 @endsection

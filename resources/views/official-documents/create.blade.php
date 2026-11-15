@@ -4,9 +4,16 @@
 @section('page-title', __('Documentos oficiais'))
 
 @section('content')
-    <div class="row">
+    <div>
         @if (auth()->user()->canManagePeople())
-        <div class="col-xl-8 mb-4">
+        @php
+            $documentTabs = [
+                'emitidos' => ['label' => __('Emitidos'), 'icon' => 'fa-folder-open'],
+                'novo' => ['label' => $sourceDocument ? __('Editar cópia do documento') : __('Novo documento'), 'icon' => 'fa-file-signature'],
+            ];
+        @endphp
+        <x-section-tabs :tabs="$documentTabs" :label="__('Seções dos documentos oficiais')" :default-tab="$sourceDocument || $errors->any() ? 'novo' : 'emitidos'" />
+        <div id="section-novo" data-academic-panel="novo" role="tabpanel" class="mb-4">
             <div class="card shadow">
                 <div class="card-header py-3">
                     <h2 class="h6 m-0 font-weight-bold text-primary">{{ $sourceDocument ? __('Editar cópia do documento') : __('Novo documento em papel timbrado') }}</h2>
@@ -86,7 +93,7 @@
         </div>
         @endif
 
-        <div class="{{ auth()->user()->canManagePeople() ? 'col-xl-4' : 'col-12' }} mb-4">
+        <div id="section-emitidos" @if(auth()->user()->canManagePeople()) data-academic-panel="emitidos" role="tabpanel" @endif class="mb-4">
             <div class="card shadow">
                 <div class="card-header py-3">
                     <h2 class="h6 m-0 font-weight-bold text-primary">{{ __('Emitidos') }}</h2>

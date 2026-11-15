@@ -14,8 +14,11 @@
         ? field.nextElementSibling?.querySelector('.note-editable') || field
         : field;
     const fields = () => [...root.querySelectorAll('input:not([type="hidden"]), select, textarea')];
-    const resolve = (name, controls) => controls.find((field) =>
-        field.name === name || field.name === name.replace(/\.([^.]+)/g, '[$1]'));
+    const resolve = (name, controls) => {
+        const matches = controls.filter((field) =>
+            field.name === name || field.name === name.replace(/\.([^.]+)/g, '[$1]'));
+        return matches.find((field) => !field.closest('[hidden]')) || matches[0];
+    };
     const sync = () => {
         const controls = fields();
         const summaries = new Map();
@@ -62,6 +65,20 @@
             });
         });
     };
+    const reveal = (target) => {
+        for (let parent = target.parentElement; parent; parent = parent.parentElement) {
+            if (parent.matches('details')) parent.open = true;
+            if (parent.hidden && parent.dataset.academicPanel) {
+                root.querySelector(`[data-academic-tab="${CSS.escape(parent.dataset.academicPanel)}"]`)?.click();
+            }
+        }
+    };
+    // Revele o primeiro campo inválido antes de o navegador tentar focá-lo.
+    root.addEventListener('invalid', (event) => {
+        const form = event.target.form;
+        const first = form?.querySelector('input:invalid, select:invalid, textarea:invalid');
+        if (event.target === first) reveal(first);
+    }, true);
     root.addEventListener('click', (event) => {
         const link = event.target.closest('a[data-validation-field]');
         if (!link) return;
@@ -69,12 +86,7 @@
         if (!field) return;
         event.preventDefault();
         const target = editableFor(field);
-        for (let parent = target.parentElement; parent; parent = parent.parentElement) {
-            if (parent.matches('details')) parent.open = true;
-            if (parent.hidden && parent.dataset.academicPanel) {
-                root.querySelector(`[data-academic-tab="${CSS.escape(parent.dataset.academicPanel)}"]`)?.click();
-            }
-        }
+        reveal(target);
         target.focus();
         target.scrollIntoView({block: 'center'});
     });
