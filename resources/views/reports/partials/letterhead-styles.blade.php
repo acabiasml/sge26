@@ -27,7 +27,7 @@ th, td { word-wrap: break-word; }
 thead { display: table-header-group; }
 .student-identification, .enrollment-identification { table-layout: fixed; }
 .student-identification td { overflow-wrap: anywhere; word-wrap: break-word; }
-.student-identification .identity-inep { text-align: right; white-space: nowrap; }
+.student-identification .identity-inep { text-align: left; white-space: nowrap; }
 .letterhead { border-bottom: 1.4px solid #6B3D2E; margin-bottom: 12px; padding-bottom: 7px; }
 .letterhead-repeat { position: fixed; top: -136px; left: 0; right: 0; margin-bottom: 0; }
 .letterhead-table { width: 100%; border-collapse: collapse; }
