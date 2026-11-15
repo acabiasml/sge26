@@ -1244,7 +1244,7 @@ class TeacherDiaryTest extends TestCase
         ] as [$template, $reportData]) {
             $html = View::make($template, $data + $reportData)->render();
 
-            $this->assertMatchesRegularExpression('/<td colspan="6"><strong>Estudante:<\/strong>[^<]+<\/td>/u', $html);
+            $this->assertMatchesRegularExpression('/<td colspan="9"><strong>Estudante:<\/strong>[^<]+<\/td>/u', $html);
             $this->assertStringContainsString('<strong>Nascimento:</strong>', $html);
             $this->assertStringContainsString('Helena Albuquerque', $html);
             $this->assertStringContainsString('Beatriz Ferreira', $html);

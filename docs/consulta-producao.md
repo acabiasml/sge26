@@ -359,7 +359,9 @@ na fonte do PDF e seleciona matrizes
 não vazias mínima, mediana, próxima da média e máxima, globalmente e por etapa.
 A prévia combina os valores extremos em uma pessoa sintética, sem representar
 um cadastro real, e usa componentes e períodos das matrizes cadastradas.
-Também confere a matrícula 28 e históricos pequeno, mediano e grande.
+Também confere as fichas individual e de matrícula, a matrícula 28 e históricos
+pequeno, mediano e grande. Mede eventuais transbordamentos da identificação
+e dos dados da matrícula e a distância entre assinaturas e rodapé.
 
 Prepare com `python3 scripts/prepare-history-query.py --scope
 student-identification-layout --key-directory /CAMINHO_PRIVADO_FORA_DO_REPOSITORIO`.

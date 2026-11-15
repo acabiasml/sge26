@@ -25,12 +25,10 @@
         ? [
             ['Nascimento', $identityStudent->birth_date?->format('d/m/Y') ?? '-'],
             ['Código da pasta', $identityStudent->legacy_code ?: '-'],
-            ['INEP', $identityStudent->student_inep ?: '-'],
         ]
         : [
             ['Nascimento', $identityStudent->birth_date?->format('d/m/Y') ?? '-'],
             ['CPF', $identityCpf],
-            ['INEP', $identityStudent->student_inep ?: '-'],
             ['Naturalidade', $identityBirthPlace ?: '-'],
             ['Nacionalidade', $identityNationality ?: '-'],
             ['Telefone', $identityStudent->phone ?: '-'],
@@ -41,10 +39,6 @@
             $identityFields[] = ['NIS', $identityStudent->nis ?: '-'];
             $identityFields[] = ['Auxílio federal', $identityStudent->receives_federal_aid ? 'Sim' : 'Não'];
         }
-        if ($identityStudent->personal_email || $identityStudent->institutional_email) {
-            $identityFields[] = ['E-mail', $identityStudent->personal_email ?: '-'];
-            $identityFields[] = ['E-mail institucional', $identityStudent->institutional_email ?: '-'];
-        }
     }
 @endphp
 
@@ -53,36 +47,43 @@
 @endif
 <table class="meta-table student-identification">
     <colgroup>
-        @for($identityColumn = 0; $identityColumn < 6; $identityColumn++)
-            <col style="width: {{ 100 / 6 }}%">
+        @for($identityColumn = 0; $identityColumn < 12; $identityColumn++)
+            <col style="width: {{ 100 / 12 }}%">
         @endfor
     </colgroup>
     <tr>
-        <td colspan="6"><strong>Estudante:</strong> {{ $identityStudent->full_name }}</td>
+        <td colspan="9"><strong>Estudante:</strong> {{ $identityStudent->full_name }}</td>
+        <td colspan="3" class="identity-inep"><strong>INEP:</strong> {{ $identityStudent->student_inep ?: '-' }}</td>
     </tr>
     @if($identityStudent->social_name)
-        <tr><td colspan="6"><strong>Nome social:</strong> {{ $identityStudent->social_name }}</td></tr>
+        <tr><td colspan="12"><strong>Nome social:</strong> {{ $identityStudent->social_name }}</td></tr>
     @endif
-    @foreach(array_chunk($identityFields, 3) as $identityRow)
+    @foreach(array_chunk($identityFields, 4) as $identityRow)
         <tr>
             @foreach($identityRow as [$identityLabel, $identityValue])
-                <td colspan="{{ 6 / count($identityRow) }}"><strong>{{ $identityLabel }}:</strong> {{ $identityValue }}</td>
+                <td colspan="{{ 12 / count($identityRow) }}"><strong>{{ $identityLabel }}:</strong> {{ $identityValue }}</td>
             @endforeach
         </tr>
     @endforeach
+    @if(! $bulletinIdentity && ($identityStudent->personal_email || $identityStudent->institutional_email))
+        <tr>
+            <td colspan="6"><strong>E-mail:</strong> {{ $identityStudent->personal_email ?: '-' }}</td>
+            <td colspan="6"><strong>E-mail institucional:</strong> {{ $identityStudent->institutional_email ?: '-' }}</td>
+        </tr>
+    @endif
     @if(! $bulletinIdentity)
         <tr>
-            <td colspan="3"><strong>Mãe:</strong> {{ $identityStudent->mother_name ?: '-' }}</td>
-            <td colspan="3"><strong>Pai:</strong> {{ $identityStudent->father_name ?: '-' }}</td>
+            <td colspan="6"><strong>Mãe:</strong> {{ $identityStudent->mother_name ?: '-' }}</td>
+            <td colspan="6"><strong>Pai:</strong> {{ $identityStudent->father_name ?: '-' }}</td>
         </tr>
     @endif
     @if(($mode ?? 'full') !== 'individual' && isset($academicYear, $schoolClass, $courses))
         <tr>
-            <td colspan="4"><strong>Turma e etapa:</strong> {{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $courses) }}</td>
-            <td colspan="2"><strong>Ano letivo:</strong> {{ $academicYear->referenceYearsLabel() }}</td>
+            <td colspan="8"><strong>Turma e etapa:</strong> {{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $courses) }}</td>
+            <td colspan="4"><strong>Ano letivo:</strong> {{ $academicYear->referenceYearsLabel() }}</td>
         </tr>
     @endif
     @if(! $bulletinIdentity && $identityAddress)
-        <tr><td colspan="6"><strong>Endereço:</strong> {{ $identityAddress }}</td></tr>
+        <tr><td colspan="12"><strong>Endereço:</strong> {{ $identityAddress }}</td></tr>
     @endif
 </table>

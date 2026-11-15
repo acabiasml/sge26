@@ -15,11 +15,11 @@
         .section-title { color: #6f3a29; font-size: 11px; font-weight: 600; margin: 3px 0 2px; }
         .meta-table, .report-table, .summary-table { border-collapse: collapse; width: 100%; }
         .summary-table { page-break-inside: avoid; }
-        .meta-table td, .summary-table td { border: .45px solid #d8ccc4; padding: 1.5px 3.5px; vertical-align: top; }
+        .meta-table td, .summary-table td { border: .45px solid #d8ccc4; padding: .5px 3.5px; vertical-align: top; }
         .meta-table .label, .summary-table .label { background: #f3eee9; font-weight: 600; width: 18%; }
-        .student-identification td { line-height: 1.06; padding: 1.5px 3px; }
+        .student-identification td { line-height: 1.06; padding: .5px 3px; }
         .report-table { margin: 4px 0; }
-        .report-table th, .report-table td { border: .55px solid #111; padding: 1.2px 2.2px; vertical-align: middle; }
+        .report-table th, .report-table td { border: .55px solid #111; padding: .7px 2.2px; vertical-align: middle; }
         .report-table th { background: #f1ede9; font-size: 11px; font-weight: 600; text-align: center; }
         .report-table td { font-size: 11px; }
         .report-table .hours-cell { white-space: nowrap; word-wrap: normal; }
@@ -185,24 +185,24 @@
 ])
 
 <div class="section-title">DADOS DA MATRÍCULA</div>
-<table class="meta-table">
+<table class="meta-table enrollment-identification">
+    <colgroup><col style="width: 33.33%"><col style="width: 33.33%"><col style="width: 33.34%"></colgroup>
     <tr>
-        <td class="label">Escola</td>
-        <td>{{ $school->name }}</td>
-        <td class="label">{{ $onlyTechnical ? 'Turma e curso' : 'Turma e etapa' }}</td>
-        <td>@if($onlyTechnical){{ collect([$schoolClass->name, $courses->pluck('name')->join(' + ')])->filter()->unique()->join(' · ') }}@else{{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $courses) }}@if($courses->count() !== 1 || $courses->first()?->name !== $schoolClass->name)<br>Matrizes: {{ $courses->pluck('name')->join(' + ') ?: '-' }}@endif @endif</td>
+        <td><strong>{{ $onlyTechnical ? 'Turma e curso' : 'Turma e etapa' }}:</strong>
+            @if($onlyTechnical)
+                {{ collect([$schoolClass->name, $courses->pluck('name')->join(' + ')])->filter()->unique()->join(' · ') }}
+            @else
+                {{ \App\Support\AcademicContextLabel::classWithStages($schoolClass->name, $courses) }}
+                @if($courses->count() !== 1 || $courses->first()?->name !== $schoolClass->name)<br>Matrizes: {{ $courses->pluck('name')->join(' + ') ?: '-' }}@endif
+            @endif
+        </td>
+        <td><strong>Ano letivo:</strong> {{ $academicYear->referenceYearsLabel() }}</td>
+        <td><strong>Data da matrícula:</strong> {{ $enrollment->enrolled_at?->format('d/m/Y') ?? '-' }}</td>
     </tr>
     <tr>
-        <td class="label">Ano letivo</td>
-        <td>{{ $academicYear->referenceYearsLabel() }} · {{ $academicYear->starts_at?->format('d/m/Y') ?? '-' }} a {{ $academicYear->ends_at?->format('d/m/Y') ?? '-' }}</td>
-        <td class="label">Data da matrícula</td>
-        <td>{{ $enrollment->enrolled_at?->format('d/m/Y') ?? '-' }}</td>
-    </tr>
-    <tr>
-        <td class="label">Situação</td>
-        <td>{{ $enrollment->statusLabel() }} · {{ $enrollment->typeLabel() }}</td>
-        <td class="label">Dias letivos</td>
-        <td>{{ $academicYear->schoolDayCount() }}</td>
+        <td><strong>Período letivo:</strong> {{ $academicYear->starts_at?->format('d/m/Y') ?? '-' }} a {{ $academicYear->ends_at?->format('d/m/Y') ?? '-' }}</td>
+        <td><strong>Situação:</strong> {{ $enrollment->statusLabel() }} · {{ $enrollment->typeLabel() }}</td>
+        <td><strong>Dias letivos:</strong> {{ $academicYear->schoolDayCount() }}</td>
     </tr>
 </table>
 

@@ -63,16 +63,22 @@ try {
             : Barryvdh\DomPDF\Facade\Pdf::loadView($view, $data)->setPaper('a4', 'portrait');
         $overflow = [];
         $identificationHeight = 0;
-        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => static function ($frame) use (&$overflow, &$identificationHeight): void {
+        $signatureBottom = 0;
+        $footerTop = INF;
+        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => static function ($frame) use (&$overflow, &$identificationHeight, &$signatureBottom, &$footerTop): void {
             $node = $frame->get_node();
             if (! $node instanceof DOMElement) return;
+            $nodeClass = $node->getAttribute('class');
+            $border = $frame->get_border_box();
+            if ($nodeClass === 'signature-role') $signatureBottom = max($signatureBottom, $border[1] + $border[3]);
+            if ($nodeClass === 'document-footer') $footerTop = min($footerTop, $border[1]);
             if ($node->nodeName === 'table' && str_contains($node->getAttribute('class'), 'student-identification')) {
                 $identificationHeight += $frame->get_border_box()[3];
             }
             if ($node->nodeName !== 'td') return;
             $ancestor = $node->parentNode;
             while ($ancestor && (! $ancestor instanceof DOMElement || $ancestor->nodeName !== 'table')) $ancestor = $ancestor->parentNode;
-            if (! $ancestor || ! str_contains($ancestor->getAttribute('class'), 'student-identification')) return;
+            if (! $ancestor || ! preg_match('/(?:student|enrollment)-identification/', $ancestor->getAttribute('class'))) return;
             $box = $frame->get_content_box();
             foreach ($frame->get_line_boxes() as $line) {
                 if ($line->w > $box[2] + 1) $overflow[] = ['text' => $node->textContent, 'width' => $box[2], 'line_width' => $line->w];
@@ -80,7 +86,7 @@ try {
         }]]);
         $bytes = $pdf->output();
         $results[] = $metadata + ['view' => $view, 'pages' => $pdf->getDomPDF()->getCanvas()->get_page_count(),
-            'identity_height_pt' => $identificationHeight, 'identity_overflow' => $overflow, 'pdf_base64' => base64_encode($bytes)];
+            'identity_height_pt' => $identificationHeight, 'signature_footer_gap_pt' => is_finite($footerTop) ? $footerTop - $signatureBottom : null, 'identity_overflow' => $overflow, 'pdf_base64' => base64_encode($bytes)];
         unset($pdf);
         gc_collect_cycles();
     };
@@ -91,7 +97,9 @@ try {
         if (! $year?->school) continue;
         $periods = $year->periods;
         $class = new App\Models\SchoolClass(['name' => $matrix->name]);
+        $class->setRelation('academicYear', $year)->setRelation('courses', collect([$matrix]));
         $enrollment = new App\Models\StudentEnrollment(['enrolled_at' => $year->starts_at, 'status' => 'matriculado', 'type' => 'regular']);
+        $enrollment->setRelation('student', $worst)->setRelation('courses', collect([$matrix]))->setRelation('schoolClass', $class);
         $report = ['enrollment' => $enrollment, 'student' => $worst, 'schoolClass' => $class, 'academicYear' => $year,
             'courses' => collect([$matrix]), 'periods' => $periods, 'periodReports' => collect(), 'annualAttendance' => $attendance,
             'finalResult' => ['label' => 'Prévia de impressão'], 'annualComponents' => $matrix->components->map(fn ($component) => [
@@ -104,6 +112,7 @@ try {
         $render('reports.student-individual-record', $data, $metadata);
         $render('reports.student-report-card', $data, $metadata);
         if ($matrix->id === $nonempty->last()->id) {
+            $render('reports.records.enrollment', ['enrollment' => $enrollment, 'class' => $class, 'academicYear' => $year, 'letterhead' => $data['letterhead']], $metadata);
             $render('reports.class-report-cards', ['reports' => collect([$report, $report]), 'letterhead' => $data['letterhead']], $metadata + ['students' => 2]);
         }
     }
@@ -130,6 +139,8 @@ try {
     }
     if ($enrollment = App\Models\StudentEnrollment::find(28)) {
         $report = app(App\Support\StudentReportCardBuilder::class)->build($enrollment);
+        $render('reports.records.enrollment', ['enrollment' => $enrollment, 'class' => $report['schoolClass'], 'academicYear' => $report['academicYear'],
+            'letterhead' => App\Support\PdfLetterhead::make($report['academicYear']->school, $report['courses']->pluck('stage')->all())], ['scenario' => 'matricula_real_28']);
         $render('reports.student-individual-record', ['report' => $report,
             'letterhead' => App\Support\PdfLetterhead::make($report['academicYear']->school, $report['courses']->pluck('stage')->all())],
             ['scenario' => 'matricula_real_28', 'components' => $report['annualComponents']->count()]);

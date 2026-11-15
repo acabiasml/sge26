@@ -10,6 +10,7 @@
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; background: #f6f0ea; padding: 6px 7px; width: 32%; }
         td { padding: 6px 7px; border-bottom: .6px solid #eee2dc; }
+        .meta-table td { border: .45px solid #d8ccc4; padding: 1.5px 3px; vertical-align: top; line-height: 1.06; }
         .signature { margin-top: 42px; width: 100%; }
         .signature td { border: 0; text-align: center; padding-top: 48px; }
         .line { border-top: 1px solid #6B3D2E; display: inline-block; min-width: 230px; padding-top: 5px; }
@@ -24,29 +25,36 @@
         'issuedDocument' => $issuedDocument,
     ])
 
+    <h2>IDENTIFICAÇÃO DO ESTUDANTE</h2>
+    @include('reports.partials.student-identification', ['student' => $enrollment->student, 'mode' => 'individual', 'showTitle' => false])
+
+    @php
+        $enrollmentFields = [
+            ['Ano letivo', $academicYear->referenceYearsLabel()],
+            ['Turma e etapa', \App\Support\AcademicContextLabel::classWithStages($class->name, $class->courses)],
+            ['Matriz(es)', $enrollment->courses->pluck('name')->join(' + ') ?: '-'],
+            ['Data de matrícula', $enrollment->enrolled_at?->format('d/m/Y') ?? '-'],
+            ['Situação', $enrollment->statusLabel().' · '.$enrollment->typeLabel()],
+        ];
+        if ($enrollment->transferred_at) $enrollmentFields[] = ['Data de saída', $enrollment->transferred_at->format('d/m/Y')];
+        if ($enrollment->cancelled_at) $enrollmentFields[] = ['Data de cancelamento', $enrollment->cancelled_at->format('d/m/Y')];
+    @endphp
     <h2>DADOS DA MATRÍCULA</h2>
-    <table>
-        <tr><th>Estudante</th><td>{{ $enrollment->student?->full_name }}</td></tr>
-        <tr><th>CPF</th><td>{{ $enrollment->student?->cpf ?: '-' }}</td></tr>
-        <tr><th>Data de nascimento</th><td>{{ $enrollment->student?->birth_date?->format('d/m/Y') ?? '-' }}</td></tr>
-        <tr><th>Nome da mãe</th><td>{{ $enrollment->student?->mother_name ?: '-' }}</td></tr>
-        <tr><th>Nome do pai</th><td>{{ $enrollment->student?->father_name ?: '-' }}</td></tr>
-        <tr><th>Escola</th><td>{{ $academicYear->school?->name }}</td></tr>
-        <tr><th>Ano letivo</th><td>{{ $academicYear->referenceYearsLabel() }}</td></tr>
-        <tr><th>Turma e etapa</th><td>{{ \App\Support\AcademicContextLabel::classWithStages($class->name, $class->courses) }}</td></tr>
-        <tr><th>Matriz(es)</th><td>{{ $enrollment->courses->pluck('name')->join(' + ') ?: '-' }}</td></tr>
-        <tr><th>Data de matrícula</th><td>{{ $enrollment->enrolled_at?->format('d/m/Y') ?? '-' }}</td></tr>
-        <tr><th>Situação</th><td>{{ $enrollment->statusLabel() }} · {{ $enrollment->typeLabel() }}</td></tr>
-        @if ($enrollment->transferred_at)
-            <tr><th>Data de saída</th><td>{{ $enrollment->transferred_at->format('d/m/Y') }}</td></tr>
-        @endif
-        @if ($enrollment->cancelled_at)
-            <tr><th>Data de cancelamento</th><td>{{ $enrollment->cancelled_at->format('d/m/Y') }}</td></tr>
-        @endif
+    <table class="meta-table enrollment-identification">
+        <colgroup>
+            @for($column = 0; $column < 6; $column++)<col style="width: {{ 100 / 6 }}%">@endfor
+        </colgroup>
+        @foreach(array_chunk($enrollmentFields, 3) as $fields)
+            <tr>
+                @foreach($fields as [$label, $value])
+                    <td colspan="{{ 6 / count($fields) }}"><strong>{{ $label }}:</strong> {{ $value }}</td>
+                @endforeach
+            </tr>
+        @endforeach
         @if ($enrollment->reclassifiedFrom)
-            <tr><th>Reclassificação de origem</th><td>{{ \App\Support\AcademicContextLabel::classWithStages($enrollment->reclassifiedFrom->schoolClass?->name, $enrollment->reclassifiedFrom->schoolClass?->courses ?? collect()) }} em {{ $enrollment->reclassified_at?->format('d/m/Y') ?? '-' }}</td></tr>
+            <tr><td colspan="6"><strong>Reclassificação de origem:</strong> {{ \App\Support\AcademicContextLabel::classWithStages($enrollment->reclassifiedFrom->schoolClass?->name, $enrollment->reclassifiedFrom->schoolClass?->courses ?? collect()) }} em {{ $enrollment->reclassified_at?->format('d/m/Y') ?? '-' }}</td></tr>
         @endif
-        <tr><th>Observações</th><td>{{ $enrollment->notes ?: '-' }}</td></tr>
+        <tr><td colspan="6"><strong>Observações:</strong> {{ $enrollment->notes ?: '-' }}</td></tr>
     </table>
 
     <h2>Responsáveis e contatos</h2>
