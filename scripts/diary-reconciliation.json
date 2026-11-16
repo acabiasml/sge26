@@ -1,6 +1,6 @@
 {
   "operation": "non-school-day-diary-removal",
-  "mode": "apply",
+  "mode": "dry-run",
   "school_id": 1,
   "reference_year": 2026,
   "targets": [
@@ -140,6 +140,5 @@
       "period_id": 18,
       "date": "2026-05-09"
     }
-  ],
-  "expected_snapshot_sha256": "8bb4aab4c3d65c1020cf7091080e39c5fd17ddff5171a5f2ecf557daae5fad10"
+  ]
 }
