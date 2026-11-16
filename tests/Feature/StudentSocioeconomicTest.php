@@ -116,6 +116,75 @@ class StudentSocioeconomicTest extends TestCase
         }
     }
 
+    public function test_long_letterhead_and_filled_profile_keep_the_front_and_back_on_two_pages(): void
+    {
+        [$manager, $enrollment] = $this->fixture();
+        $school = $enrollment->schoolClass->academicYear->school;
+        $school->update([
+            'name' => 'Escola Fictícia de Ensino Fundamental e Médio',
+            'letterhead_text' => 'Ato autorizativo da educação básica: Resolução nº 123/2026 do Conselho Estadual de Educação de Mato Grosso. '
+                .'Credenciamento e autorização de funcionamento do Ensino Fundamental e do Ensino Médio, conforme Parecer nº 456/2026. '
+                .'Reconhecimento institucional e renovação dos atos legais da unidade escolar mantida pelo Centro Técnico Juvenil de Jarudore.',
+        ]);
+        $student = $enrollment->student;
+        $student->update([
+            'full_name' => 'Estudante Fictício de Oliveira e Souza',
+            'mother_name' => 'Responsável Fictícia de Oliveira e Souza',
+            'father_name' => 'Responsável Fictício de Oliveira e Souza',
+            'address' => 'Rua Fictícia das Famílias da Comunidade Rural',
+            'address_complement' => 'Próximo à escola da comunidade',
+            'socioeconomic_data' => [
+                'sex' => 'feminino', 'rg_number' => '00000000', 'rg_issued_at' => '2022-07-22', 'rg_issuer' => 'SSP/MT',
+                'sus_card' => '000000000000000', 'blood_type' => 'O+', 'has_disability' => true,
+                'disability_details' => 'Necessita de acompanhamento individualizado durante as atividades escolares e apoio na locomoção.',
+                'consumer_unit' => '0000', 'residential_zone' => 'rural', 'race' => 'parda', 'lives_with' => ['mae', 'pai'],
+                'family_income_range' => '2_a_3', 'receives_bolsa_familia' => true, 'bolsa_familia_nis' => '00000000000',
+                'has_allergies' => true, 'allergy_details' => 'Alergia a poeira e produtos de limpeza perfumados.',
+                'has_medication_food_allergies' => true,
+                'medication_food_allergy_details' => 'Alergia a antibióticos e alimentos com leite; orientar a equipe responsável antes de oferecer medicamentos ou alimentação.',
+                'guardians_work_outside' => true, 'uses_school_transport' => true, 'image_use_authorized' => true,
+                'authorized_pickup' => 'Responsável Fictícia de Oliveira e Souza; Responsável Fictício de Oliveira e Souza.',
+                'benefit_year' => 2026, 'benefits' => array_keys(\App\Support\SocioeconomicProfile::fields()['benefits']['options']),
+                'notes' => 'Registro fictício para conferir a paginação com todos os campos preenchidos.',
+                'assessed_at' => now()->toIso8601String(),
+            ],
+        ]);
+        $student->contacts()->create(['name' => 'Responsável Fictícia de Oliveira e Souza', 'relationship_type' => 'mae', 'legal_guardian' => true]);
+        $this->enrollment($student, $school, 2024, '7º Ano do Ensino Fundamental — Turma A');
+        $this->enrollment($student, $school, 2025, '8º Ano do Ensino Fundamental — Turma A');
+        $renderer = null;
+        $layout = [];
+        app()->afterResolving('dompdf.wrapper', function ($pdf) use (&$renderer, &$layout): void {
+            $renderer = $pdf;
+            $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => function ($frame, $canvas) use (&$layout): void {
+                $node = $frame->get_node();
+                if (! $node instanceof \DOMElement) {
+                    return;
+                }
+                $class = $node->getAttribute('class');
+                $key = match (true) {
+                    $node->tagName === 'header' => 'header',
+                    in_array($class, ['declaration', 'signatures', 'document-footer'], true) => $class,
+                    $class === 'subtitle' || ($node->tagName === 'h2' && trim($node->textContent) === 'Matrículas') => 'body',
+                    default => null,
+                };
+                if ($key) {
+                    $box = $frame->get_border_box();
+                    $layout[$canvas->get_page_number()][$key] = ['top' => $box['y'], 'bottom' => $box['y'] + $box['h']];
+                }
+            }]]);
+        });
+        $this->actingAs($manager)->get(route('enrollments.socioeconomic.pdf', $enrollment))
+            ->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertSame(2, $renderer->getDomPDF()->getCanvas()->get_page_count());
+        $this->assertArrayHasKey('declaration', $layout[1]);
+        $this->assertArrayHasKey('signatures', $layout[2]);
+        foreach ([1 => 'declaration', 2 => 'signatures'] as $page => $block) {
+            $this->assertGreaterThan($layout[$page]['header']['bottom'] + 3, $layout[$page]['body']['top']);
+            $this->assertLessThan($layout[$page]['document-footer']['top'] - 5, $layout[$page][$block]['bottom']);
+        }
+    }
+
     public function test_teachers_students_and_other_schools_cannot_read_change_or_issue_the_profile(): void
     {
         [$manager, $enrollment] = $this->fixture();

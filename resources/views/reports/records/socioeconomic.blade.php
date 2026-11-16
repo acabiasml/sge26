@@ -9,17 +9,18 @@
         .letterhead-repeat { top: -{{ ($contentTopMargin ?? 195) - 14 }}px; }
         .document-footer { bottom: -87px !important; }
         .document-title { font-size: 13px; }
-        h2 { font-size: 12px; margin: 6px 0 3px; }
-        p { margin: 4px 0; }
+        h2 { font-size: 12px; margin: 5px 0 2px; }
+        p { margin: 2px 0; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .letterhead-table { table-layout: auto; }
         td, th { border: .5px solid #777; padding: 1px 3px; vertical-align: top; }
         th { text-align: left; background: #f1ede9; font-weight: 600; }
         tr { page-break-inside: avoid; }
         .center { text-align: center; }
-        .subtitle { text-align: center; margin: 0 0 6px; }
-        .choices { border: .5px solid #777; padding: 4px; }
+        .subtitle { text-align: center; margin: 0 0 4px; }
+        .choices { border: .5px solid #777; padding: 3px; }
         .choices span { display: inline-block; width: 48%; margin: 1px 0; }
-        .declaration { border: .5px solid #777; padding: 5px; margin-top: 6px; page-break-inside: avoid; }
+        .declaration { border: .5px solid #777; padding: 4px; margin-top: 4px; page-break-inside: avoid; }
         .enrollment-page { page-break-before: always; }
         .enrollment-table th { text-align: center; }
         .enrollment-table td { height: 30px; }
