@@ -274,6 +274,18 @@ with tempfile.TemporaryDirectory() as directory:
                 raise RuntimeError(f'Commit publicado: comando falhou com código {code}')
             if output.strip() == expected_commit:
                 break
+            # Limpeza de histórico autorizada: os dois commits têm árvores idênticas.
+            # O reset soft preserva arquivos e modificações locais; a publicação é ff-only.
+            if output.strip() == 'bf8f775eaf2febbc9f7db39d1640ecc14ebe355f':
+                cleaned = '768803b869fee47d1f298d8123913e893156ac17'
+                repair = ('git fetch origin main && git diff --quiet HEAD ' + cleaned +
+                          ' -- && git reset --soft ' + cleaned +
+                          ' && git merge --ff-only ' + shlex.quote(expected_commit))
+                repaired, repair_code = run_remote(client, repair)
+                print(repaired, flush=True)
+                if repair_code:
+                    raise RuntimeError('Não foi possível alinhar o deploy após a limpeza autorizada do histórico.')
+                continue
             if time.monotonic() >= deadline:
                 raise RuntimeError('O commit esperado não foi publicado após três minutos de espera.')
             print('Aguardando o deploy automático antes de continuar o diagnóstico.', flush=True)

@@ -51,7 +51,8 @@
     <tr><td><strong>RG:</strong> {{ $value('rg_number') }}</td><td><strong>Emissão:</strong> {{ $dateValue('rg_issued_at') }}</td><td><strong>Órgão expedidor:</strong> {{ $value('rg_issuer') }}</td><td><strong>CPF:</strong> {{ $student->cpf ?: 'Não informado' }}</td></tr>
     <tr><td><strong>NIS:</strong> {{ $student->nis ?: 'Não informado' }}</td><td><strong>Cartão do SUS:</strong> {{ $value('sus_card') }}</td><td colspan="2"><strong>Possui deficiência (PCD):</strong> {{ $value('has_disability') }}@if(filled($profile['disability_details'] ?? null)) — {{ $profile['disability_details'] }}@endif</td></tr>
     <tr><td><strong>CEP:</strong> {{ $student->postal_code ?: 'Não informado' }}</td><td colspan="3"><strong>Endereço:</strong> {{ $student->address ?: 'Não informado' }} · {{ collect([$student->city, $student->state])->filter()->join(' / ') }}</td></tr>
-    <tr><td><strong>Nº:</strong> {{ $student->number ?: 'Não informado' }}</td><td colspan="2"><strong>Complemento:</strong> {{ $student->address_complement ?: 'Não informado' }}</td><td><strong>Unidade consumidora:</strong> {{ $value('consumer_unit') }}</td></tr>
+    <tr><td><strong>Nº:</strong> {{ $student->number ?: 'Não informado' }}</td><td colspan="3"><strong>Complemento:</strong> {{ $student->address_complement ?: 'Não informado' }}</td></tr>
+    <tr><td colspan="4" class="consumer-unit"><strong>Unidade consumidora:</strong> {{ $value('consumer_unit') }}</td></tr>
     <tr><td colspan="2"><strong>Bairro:</strong> {{ $student->district ?: 'Não informado' }}</td><td colspan="2"><strong>Localização residencial:</strong> {{ $value('residential_zone') }}</td></tr>
     <tr><td colspan="4"><strong>Cor / raça declarada:</strong> {{ $value('race') }}</td></tr>
     <tr><td colspan="4"><strong>Filiação — Mãe:</strong> {{ $student->mother_name ?: 'Não informado' }}<br><strong>Pai:</strong> {{ $student->father_name ?: 'Não informado' }}</td></tr>

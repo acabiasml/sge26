@@ -12,6 +12,7 @@ use App\Models\StudentEnrollment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 class StudentSocioeconomicTest extends TestCase
 {
@@ -116,7 +117,21 @@ class StudentSocioeconomicTest extends TestCase
         }
     }
 
-    public function test_long_letterhead_and_filled_profile_keep_the_front_and_back_on_two_pages(): void
+    public static function consumerUnitSamples(): array
+    {
+        return [
+            'em branco' => [''],
+            '8 caracteres com zeros iniciais' => ['00001234'],
+            '20 caracteres' => [str_repeat('8', 20)],
+            '30 caracteres' => [str_repeat('8', 30)],
+            '60 algarismos' => [str_repeat('8', 60)],
+            '60 caracteres com separadores' => [str_repeat('AB/0-', 12)],
+            '60 caracteres largos' => [str_repeat('W', 60)],
+        ];
+    }
+
+    #[DataProvider('consumerUnitSamples')]
+    public function test_long_letterhead_and_filled_profile_keep_the_front_and_back_on_two_pages(string $consumerUnit): void
     {
         [$manager, $enrollment] = $this->fixture();
         $school = $enrollment->schoolClass->academicYear->school;
@@ -137,7 +152,7 @@ class StudentSocioeconomicTest extends TestCase
                 'sex' => 'feminino', 'rg_number' => '00000000', 'rg_issued_at' => '2022-07-22', 'rg_issuer' => 'SSP/MT',
                 'sus_card' => '000000000000000', 'blood_type' => 'O+', 'has_disability' => true,
                 'disability_details' => 'Necessita de acompanhamento individualizado durante as atividades escolares e apoio na locomoção.',
-                'consumer_unit' => '0000', 'residential_zone' => 'rural', 'race' => 'parda', 'lives_with' => ['mae', 'pai'],
+                'consumer_unit' => $consumerUnit, 'residential_zone' => 'rural', 'race' => 'parda', 'lives_with' => ['mae', 'pai'],
                 'family_income_range' => '2_a_3', 'receives_bolsa_familia' => true, 'bolsa_familia_nis' => '00000000000',
                 'has_allergies' => true, 'allergy_details' => 'Alergia a poeira e produtos de limpeza perfumados.',
                 'has_medication_food_allergies' => true,
@@ -164,19 +179,23 @@ class StudentSocioeconomicTest extends TestCase
                 $class = $node->getAttribute('class');
                 $key = match (true) {
                     $node->tagName === 'header' => 'header',
-                    in_array($class, ['declaration', 'signatures', 'document-footer'], true) => $class,
+                    in_array($class, ['declaration', 'signatures', 'document-footer', 'consumer-unit'], true) => $class,
                     $class === 'subtitle' || ($node->tagName === 'h2' && trim($node->textContent) === 'Matrículas') => 'body',
                     default => null,
                 };
                 if ($key) {
                     $box = $frame->get_border_box();
-                    $layout[$canvas->get_page_number()][$key] = ['top' => $box['y'], 'bottom' => $box['y'] + $box['h']];
+                    $layout[$canvas->get_page_number()][$key] = ['top' => $box['y'], 'bottom' => $box['y'] + $box['h'], 'text' => $node->textContent];
                 }
             }]]);
         });
         $this->actingAs($manager)->get(route('enrollments.socioeconomic.pdf', $enrollment))
             ->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->assertSame(2, $renderer->getDomPDF()->getCanvas()->get_page_count());
+        $this->assertArrayHasKey('consumer-unit', $layout[1]);
+        if ($consumerUnit !== '') {
+            $this->assertStringContainsString($consumerUnit, $layout[1]['consumer-unit']['text']);
+        }
         $this->assertArrayHasKey('declaration', $layout[1]);
         $this->assertArrayHasKey('signatures', $layout[2]);
         foreach ([1 => 'declaration', 2 => 'signatures'] as $page => $block) {
