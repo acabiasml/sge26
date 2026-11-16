@@ -108,7 +108,14 @@ def main():
     if scope == 'diary-batch':
         if 'matrix_only' in query and type(query['matrix_only']) is not bool:
             raise ValueError('Seletor de conferência da matriz inválido.')
-        if 'course_ids' in query:
+        if 'all_school_classes' in query:
+            if (query['all_school_classes'] is not True
+                    or type(query.get('school_id')) is not int or query['school_id'] <= 0
+                    or type(query.get('reference_year')) is not int or not 1900 <= query['reference_year'] <= 2100
+                    or query.get('source') not in ('lar', 'laura', 'beaba')
+                    or 'classes' in query or 'course_ids' in query):
+                raise ValueError('Selecione uma escola e um ano válidos para a conferência das turmas.')
+        elif 'course_ids' in query:
             ids = query['course_ids']
             if (not isinstance(ids, list) or not 1 <= len(ids) <= 10 or len(set(ids)) != len(ids)
                     or any(type(item) is not int or item <= 0 for item in ids)

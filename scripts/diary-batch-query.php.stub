@@ -29,7 +29,14 @@ try {
         }
         $public = openssl_pkey_get_details(openssl_pkey_get_private(file_get_contents($keyPath)))['key'];
     }
-    if (isset($config['course_ids'])) {
+    if (($config['all_school_classes'] ?? false) === true) {
+        $classes = App\Models\SchoolClass::whereHas('academicYear', fn ($q) => $q
+            ->where('school_id', $config['school_id'])->where('reference_year', $config['reference_year']))
+            ->whereHas('enrollments')->with(['academicYear.periods', 'courses.components'])->orderBy('id')->get();
+        if ($classes->count() > 30) { throw new RuntimeException('Recorte limitado a trinta turmas.'); }
+        $requests = $classes->map(fn ($row) => ['reference_year' => $row->academicYear->reference_year, 'name' => $row->name,
+            'key' => $row->academicYear->reference_year.':'.$canonical($row->name)]);
+    } elseif (isset($config['course_ids'])) {
         $courses = App\Models\AcademicCourse::whereIn('id', $config['course_ids'])
             ->where('stage', App\Models\AcademicCourse::STAGE_TECHNICAL)
             ->whereHas('academicYear', fn ($q) => $q->where('school_id', $config['school_id']))->get();
@@ -92,7 +99,7 @@ try {
         ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
         return;
     }
-    $classes->loadMissing('enrollments.student');
+    $classes->loadMissing(['enrollments.student', 'enrollments.courses', 'academicYear.days', 'academicYear.periods.assessmentRules', 'schedules.slots']);
     $relatedEnrollments = App\Models\StudentEnrollment::whereIn('person_id', $classes->flatMap->enrollments->pluck('person_id')->unique())
         ->with('schoolClass.academicYear')->orderBy('id')->get();
     $workloadRecords = App\Models\DiaryAttendanceRecord::whereIn('school_class_id', $relatedEnrollments->pluck('school_class_id')->unique())
@@ -101,7 +108,7 @@ try {
     echo json_encode([
         'transport_public_key' => $public,
         'as_of' => now()->toIso8601String(),
-        'related_enrollments' => $relatedEnrollments->map(fn ($enrollment) => $enrollment->only(['id', 'person_id', 'school_class_id', 'enrolled_at'])
+        'related_enrollments' => $relatedEnrollments->map(fn ($enrollment) => $enrollment->only(['id', 'person_id', 'school_class_id', 'status', 'enrolled_at', 'transferred_at', 'cancelled_at', 'reclassified_at'])
             + ['attendance_ends_at' => $enrollment->attendanceEndsAt()]),
         'daily_workload_records' => $workloadRecords->map(fn ($record) => $record->only(['id', 'school_class_id', 'curriculum_component_id', 'class_date', 'lesson_count'])
             + ['class_hour_minutes' => $record->component->course->class_hour_minutes]),
@@ -112,9 +119,12 @@ try {
             $assessments = App\Models\DiaryAssessment::where('school_class_id', $class->id)->with('results')->orderBy('id')->get();
 
             return [
-                'class' => $class->only(['id', 'name', 'academic_year_id', 'legacy_source', 'legacy_id']),
+                'class' => $class->only(['id', 'name', 'academic_year_id', 'legacy_source', 'legacy_id', 'starts_period_id', 'ends_period_id', 'active']),
                 'academic_year' => $class->academicYear->only(['id', 'school_id', 'reference_year', 'class_hour_minutes', 'minimum_school_days', 'starts_at', 'ends_at', 'closed_at']),
-                'periods' => $class->academicYear->periods->map->only(['id', 'position', 'name', 'starts_at', 'ends_at']),
+                'periods' => $class->academicYear->periods->map(fn ($period) => $period->only(['id', 'position', 'name', 'starts_at', 'ends_at'])
+                    + ['assessment_rules' => $period->assessmentRules->map->only(['id', 'name', 'position', 'weight', 'maximum_score'])]),
+                'schedules' => $class->schedules->map(fn ($schedule) => $schedule->only(['id', 'name', 'starts_at', 'ends_at'])
+                    + ['slots' => $schedule->slots->map->only(['weekday', 'starts_at', 'ends_at', 'type', 'school_class_component_id'])]),
                 'school_dates' => $class->academicYear->days->where('counts_as_school_day', true)->map(fn ($day) => $day->date->toDateString())->values(),
                 'assignments' => $class->componentAssignments()->with('teacher:id,full_name')->get()->map(fn ($assignment) =>
                     $assignment->only(['id', 'school_class_id', 'curriculum_component_id', 'teacher_person_id', 'active'])
@@ -123,10 +133,19 @@ try {
                 'courses' => $class->courses->map(fn ($course) => [
                     'course' => $course->only(['id', 'name', 'stage', 'class_hour_minutes', 'workload_hours', 'starts_period_id', 'ends_period_id']),
                     'components' => $course->components->map(fn ($component) => $component->only(['id', 'name', 'weekly_lessons', 'workload_hours', 'period_loads', 'active', 'legacy_source', 'legacy_id', 'legacy_metadata', 'starts_period_id', 'ends_period_id'])
-                        + ['calculated_hours' => $component->calculatedWorkloadHours($course)]),
+                        + ['calculated_hours' => $component->calculatedWorkloadHours($course),
+                            'period_forecasts' => $class->academicYear->periods->map(fn ($period) => [
+                                'period_id' => $period->id,
+                                'active' => $component->isActiveInPeriod($period)
+                                    && (! $course->startsPeriod || $period->position >= $course->startsPeriod->position)
+                                    && (! $course->endsPeriod || $period->position <= $course->endsPeriod->position),
+                                'weekly_lessons' => $component->weeklyLessonsForPeriod($period),
+                                'hours' => $component->calculatedWorkloadHoursForPeriods(collect([$period]), $course),
+                            ])]),
                 ]),
                 'enrollments' => $class->enrollments->map(fn ($enrollment) => [
-                    'enrollment' => $enrollment->only(['id', 'person_id', 'status', 'enrolled_at', 'transferred_at']),
+                    'enrollment' => $enrollment->only(['id', 'person_id', 'status', 'enrolled_at', 'transferred_at', 'cancelled_at', 'reclassified_at']),
+                    'course_ids' => $enrollment->courses->pluck('id'),
                     'attendance_ends_at' => $enrollment->attendanceEndsAt(),
                     'student' => $enrollment->student->only(['id', 'full_name', 'legacy_source', 'legacy_id']),
                 ]),
