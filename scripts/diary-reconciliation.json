@@ -1,5 +1,144 @@
 {
-  "operation": "administrative-diary-reconstruction",
+  "operation": "non-school-day-diary-removal",
   "mode": "dry-run",
-  "transport_key_id": "677186aa052ad29edcd5b3e13cb0649b"
+  "school_id": 1,
+  "reference_year": 2026,
+  "targets": [
+    {
+      "attendance_id": 7010,
+      "content_id": 6693,
+      "class_id": 15,
+      "component_id": 214,
+      "period_id": 17,
+      "date": "2026-02-17"
+    },
+    {
+      "attendance_id": 1713,
+      "content_id": 1707,
+      "class_id": 14,
+      "component_id": 185,
+      "period_id": 17,
+      "date": "2026-02-17"
+    },
+    {
+      "attendance_id": 7011,
+      "content_id": 6694,
+      "class_id": 15,
+      "component_id": 214,
+      "period_id": 17,
+      "date": "2026-02-18"
+    },
+    {
+      "attendance_id": 1684,
+      "content_id": 1678,
+      "class_id": 17,
+      "component_id": 193,
+      "period_id": 17,
+      "date": "2026-04-03"
+    },
+    {
+      "attendance_id": 1667,
+      "content_id": 1661,
+      "class_id": 15,
+      "component_id": 213,
+      "period_id": 17,
+      "date": "2026-04-06"
+    },
+    {
+      "attendance_id": 1697,
+      "content_id": 1691,
+      "class_id": 16,
+      "component_id": 201,
+      "period_id": 17,
+      "date": "2026-04-06"
+    },
+    {
+      "attendance_id": 7076,
+      "content_id": 6759,
+      "class_id": 16,
+      "component_id": 202,
+      "period_id": 17,
+      "date": "2026-04-06"
+    },
+    {
+      "attendance_id": 1685,
+      "content_id": 1679,
+      "class_id": 17,
+      "component_id": 193,
+      "period_id": 17,
+      "date": "2026-04-06"
+    },
+    {
+      "attendance_id": 7037,
+      "content_id": 6720,
+      "class_id": 15,
+      "component_id": 214,
+      "period_id": 17,
+      "date": "2026-04-07"
+    },
+    {
+      "attendance_id": 1794,
+      "content_id": 1788,
+      "class_id": 16,
+      "component_id": 207,
+      "period_id": 17,
+      "date": "2026-04-07"
+    },
+    {
+      "attendance_id": 7077,
+      "content_id": 6760,
+      "class_id": 16,
+      "component_id": 202,
+      "period_id": 17,
+      "date": "2026-04-07"
+    },
+    {
+      "attendance_id": 1642,
+      "content_id": 1636,
+      "class_id": 17,
+      "component_id": 194,
+      "period_id": 17,
+      "date": "2026-04-07"
+    },
+    {
+      "attendance_id": 7038,
+      "content_id": 6721,
+      "class_id": 15,
+      "component_id": 214,
+      "period_id": 17,
+      "date": "2026-04-08"
+    },
+    {
+      "attendance_id": 7315,
+      "content_id": 6998,
+      "class_id": 17,
+      "component_id": 195,
+      "period_id": 17,
+      "date": "2026-04-08"
+    },
+    {
+      "attendance_id": 1846,
+      "content_id": 1840,
+      "class_id": 14,
+      "component_id": 191,
+      "period_id": 17,
+      "date": "2026-04-08"
+    },
+    {
+      "attendance_id": 7083,
+      "content_id": 6766,
+      "class_id": 16,
+      "component_id": 202,
+      "period_id": 18,
+      "date": "2026-04-21"
+    },
+    {
+      "attendance_id": 7443,
+      "content_id": 7126,
+      "class_id": 15,
+      "component_id": 219,
+      "period_id": 18,
+      "date": "2026-05-09"
+    }
+  ]
 }
