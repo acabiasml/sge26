@@ -18,6 +18,9 @@ body { margin: 0; font-family: 'Open Sans', DejaVu Sans, sans-serif; color: #2f2
 .address { font-size:9.5pt; line-height:11.5pt; font-weight:normal; }
 .title { position:absolute; top:202pt; left:45pt; width:752pt; text-align:center; font-family:'Great Vibes'; font-size:51pt; color:{{ $data['kind']==='diploma' ? '#59334e' : '#a34724' }}; line-height:52pt; }
 .main { position:absolute; top:281pt; left:48pt; width:746pt; font-size:{{ mb_strlen(implode(' ', $data['student']))>310 ? 10.9 : 11.5 }}pt; line-height:14.5pt; text-align:justify; font-style:italic; }
+.with-preview-label .main { top:302pt; }
+.with-preview-label .place { top:438pt; }
+.with-preview-label .provisional { top:276pt; font-size:9.5pt; }
 .student-name { font-family:'Great Vibes'; font-style:normal; font-size:18pt; }
 .place { position:absolute; top:416pt; right:48pt; width:510pt; text-align:right; font-size:10.5pt; }
 .signature { position:absolute; top:480pt; width:200pt; text-align:center; font-size:10pt; }
@@ -61,7 +64,7 @@ body { margin: 0; font-family: 'Open Sans', DejaVu Sans, sans-serif; color: #2f2
  $verificationUrl=$preview?$data['preview_url']:route('documents.verify',$document->verification_code);
  $verificationQr=(new \chillerlan\QRCode\QRCode)->render($verificationUrl);
 @endphp
-<div class="sheet">
+<div class="sheet {{ ($preview || !$final)?'with-preview-label':'' }}">
 @if($bg)<img class="paper" src="{{ $bg }}" alt="">@endif<div class="frame"></div>
 <img class="coat" src="{{ $image('mt-coat.png') }}" alt="Brasão de Mato Grosso"><img class="seal" src="{{ $image('brazil-seal.png') }}" alt="Selo da República">
 <div class="header"><strong>REPÚBLICA FEDERATIVA DO BRASIL<br>{{ $program['state_heading'] }}<br>{{ $program['education_system'] }}</strong><div class="institution">{{ mb_strtoupper($data['school_name']) }}</div><div class="address">{{ $program['front_address'] }}<br>Ato legal de criação: {{ $program['creation_act'] }}<br>Autorização do curso: {{ $program['authorization_act'] }}</div></div>
