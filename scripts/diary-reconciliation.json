@@ -1,8 +1,7 @@
 {
   "operation": "external-history-clock-hours",
-  "mode": "apply",
+  "mode": "dry-run",
   "person_id": 597,
   "history_id": 12,
-  "year_id": 118,
-  "expected_snapshot_sha256": "bfa43910d0ff23a4ae932b14c0988dcb7376c67c1d6b2306289bcd5bc1846550"
+  "year_id": 118
 }
