@@ -18,7 +18,7 @@
 <p>Informe a carga em horas-relógio. Deixe a qualificação intermediária vazia no módulo que conclui o diploma. Alterações de nome e carga serão refletidas nos componentes vinculados às matrizes.</p>
 <div id="program-modules"></div><button type="button" id="add-module" class="btn btn-outline-primary">Adicionar módulo</button>
 </div></div>
-<div class="d-flex justify-content-between"><a class="btn btn-outline-secondary" href="{{ route('technical-programs.index') }}">Voltar aos cursos técnicos</a><button class="btn btn-primary">Salvar cadastro do curso</button></div>
+<div class="d-flex justify-content-between"><a class="btn btn-outline-secondary" href="{{ route('technical-programs.index',['school_id'=>$program->school_id]) }}">Voltar aos cursos técnicos</a><button class="btn btn-primary">Salvar cadastro do curso</button></div>
 </form>
 @if($program->exists)<div class="card mt-4"><div class="card-header">Matrizes vinculadas</div><ul class="list-group list-group-flush">@forelse($program->matrices()->with('academicYear')->get() as $matrix)<li class="list-group-item"><a href="{{ route('academic-years.courses.show', [$matrix->academic_year_id,$matrix]) }}">{{ $matrix->name }} · {{ $matrix->academicYear->referenceYearsLabel() }}</a></li>@empty<li class="list-group-item">Nenhuma matriz vinculada.</li>@endforelse</ul></div>@endif
 @endsection

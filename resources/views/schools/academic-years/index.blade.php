@@ -21,5 +21,6 @@
 @endsection
 
 @section('content')
+    @include('schools.partials.technical-programs')
     <livewire:screen-listing screen="school-years" :context="['school' => $school->id]" />
 @endsection

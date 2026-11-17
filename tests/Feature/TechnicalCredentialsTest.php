@@ -317,6 +317,23 @@ class TechnicalCredentialsTest extends TestCase
         $this->assertDatabaseCount('issued_documents', 0);
     }
 
+    public function test_school_filter_keeps_programs_and_creation_scoped_to_an_accessible_school(): void
+    {
+        $s = $this->scenario();
+        $second = School::create(['name' => 'Outra unidade acessível']);
+        $s['user']->person->schoolRoles()->create(['school_id' => $second->id, 'role' => PersonSchoolRole::ROLE_MANAGER, 'active' => true]);
+        $other = TechnicalProgram::create(['school_id' => $second->id, 'name' => 'Curso técnico exclusivo da outra unidade',
+            'graduate_title' => 'Técnico de teste', 'modules' => $s['program']->modules, 'active' => true]);
+        $this->actingAs($s['user']->fresh())->get(route('technical-programs.index'))->assertOk()->assertSee($s['program']->name)->assertSee($other->name);
+        $this->get(route('technical-programs.index', ['school_id' => $s['school']->id]))->assertOk()
+            ->assertSee($s['program']->name)->assertDontSee($other->name)
+            ->assertSee(route('technical-programs.create', ['school_id' => $s['school']->id]));
+        $this->get(route('schools.academic-years.index', $s['school']))->assertOk()
+            ->assertSee(route('technical-programs.index', ['school_id' => $s['school']->id]));
+        $foreign = School::create(['name' => 'Unidade fora da gestão']);
+        $this->get(route('technical-programs.index', ['school_id' => $foreign->id]))->assertForbidden();
+    }
+
     private function completeHighSchool(array $s): void
     {
         $history = $s['student']->academicHistories()->create(['school_id' => $s['school']->id, 'title' => 'Ensino Médio', 'education_stage' => 'medio', 'stage' => 'Ensino Médio']);

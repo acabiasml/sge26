@@ -18,7 +18,17 @@ class TechnicalProgramController extends Controller
         abort_unless($request->user()->canManagePeople(), 403);
         $ids = $request->user()->isAdministrator() ? School::pluck('id')->all() : $request->user()->manageableSchoolIds();
 
-        return view('technical-programs.index', ['programs' => TechnicalProgram::with('school')->whereIn('school_id', $ids)->orderBy('name')->get()]);
+        $data = $request->validate(['school_id' => ['nullable', 'integer', 'exists:schools,id']]);
+        $selectedSchool = filled($data['school_id'] ?? null) ? School::findOrFail($data['school_id']) : null;
+        if ($selectedSchool) {
+            abort_unless($request->user()->canManageSchool($selectedSchool->id), 403);
+        }
+
+        return view('technical-programs.index', [
+            'programs' => TechnicalProgram::with('school')->whereIn('school_id', $ids)
+                ->when($selectedSchool, fn ($query) => $query->where('school_id', $selectedSchool->id))->orderBy('name')->get(),
+            'schools' => School::whereIn('id', $ids)->orderBy('name')->get(), 'selectedSchool' => $selectedSchool,
+        ]);
     }
 
     public function create(Request $request)
