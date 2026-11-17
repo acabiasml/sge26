@@ -29,6 +29,7 @@ class CurriculumComponent extends Model
         'knowledge_area_id',
         'starts_period_id',
         'ends_period_id',
+        'technical_program_component_key',
         'name',
         'weekly_lessons',
         'workload_hours',

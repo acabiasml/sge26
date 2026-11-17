@@ -40,6 +40,8 @@
             @include('academic-courses._itinerary-fields')
             <section id="technical-regulation" class="card border-left-primary mb-4" @if(old('stage', $course->stage) !== \App\Models\AcademicCourse::STAGE_TECHNICAL) hidden @endif>
                 <div class="card-body">
+                    <div class="form-group"><label for="technical_program_id">Cadastro do curso técnico da escola</label><select class="form-control" id="technical_program_id" name="technical_program_id"><option value="">Selecione o curso técnico</option>@foreach(\App\Models\TechnicalProgram::where('school_id',$academicYear->school_id)->where(fn($q)=>$q->where('active',true)->orWhere('id',$course->technical_program_id))->get() as $program)<option value="{{ $program->id }}" @selected(old('technical_program_id',$course->technical_program_id)==$program->id)>{{ $program->name }} · {{ $program->offer_forms }}</option>@endforeach</select><a href="{{ route('technical-programs.index') }}">Cadastrar ou revisar cursos técnicos da escola</a><p class="text-muted">Ao vincular um curso, a autorização, a oferta e os módulos vêm desse cadastro.</p></div>
+                    <div id="legacy-technical-fields" hidden><fieldset disabled>
                     <h3 class="h6 font-weight-bold text-primary">{{ __('Regulamentação da oferta técnica nesta escola') }}</h3>
                     <p class="text-muted">{{ __('Estes dados pertencem a esta oferta e serão impressos nos documentos em que o curso técnico aparecer.') }}</p>
                     <div class="form-group">
@@ -59,6 +61,7 @@
                         <div class="col-md-6 form-group"><label for="module_certifications">{{ __('Certificações intermediárias por período avaliativo') }}</label><textarea id="module_certifications" name="module_certifications" class="form-control" rows="3" placeholder="{{ __('Uma certificação por linha, na ordem dos períodos avaliativos') }}">{{ old('module_certifications', $course->module_certifications) }}</textarea></div>
                     </div>
                 </div>
+                    </fieldset></div>
             </section>
 
             <div class="row">
@@ -90,7 +93,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const sync = () => {
         regulation.hidden = stage.value !== @json(\App\Models\AcademicCourse::STAGE_TECHNICAL);
     };
-    stage.addEventListener('change', sync);
+    const program = document.getElementById('technical_program_id');
+    const syncProgram = () => { document.getElementById('legacy-technical-fields').hidden = true; program.required = stage.value === 'tecnico'; };
+    program.addEventListener('change', syncProgram); syncProgram();
+    stage.addEventListener('change', () => {sync(); syncProgram();});
     sync();
 });
 </script>

@@ -23,6 +23,15 @@
 @endsection
 
 @section('content')
+@if($course->technicalProgram)
+<div class="card mb-4"><div class="card-header">Curso técnico de referência</div><div class="card-body"><a href="{{ route('technical-programs.edit',$course->technicalProgram) }}">{{ $course->technicalProgram->name }} · {{ $course->technicalProgram->offer_forms }}</a><p>Autorização: {{ $course->technicalProgram->authorization_act ?: 'Preencha no cadastro do curso' }}</p>
+@if($canChangeAcademicStructure && !$academicYear->isReadOnly())<details><summary>Trazer componentes dos módulos para esta matriz</summary><form method="POST" action="{{ route('academic-years.courses.technical-components',[$academicYear,$course]) }}">@csrf
+@foreach($course->technicalProgram->modules as $i=>$module)<div class="border rounded p-2 my-2"><label><input type="checkbox" data-module-select> Módulo {{ $module['position'] }} — {{ $module['name'] }}</label><div class="row"><input data-module-field type="hidden" name="modules[{{ $i }}][key]" value="{{ $module['key'] }}" disabled>@foreach(['start'=>'Primeiro período','end'=>'Último período'] as $field=>$label)<div class="col-md-6"><label>{{ $label }}<select data-module-field class="form-control" name="modules[{{ $i }}][{{ $field }}]" disabled>@foreach($academicYear->periods as $period)<option value="{{ $period->id }}" @selected(count($academicYear->periods)==count($course->technicalProgram->modules) ? $period->position==$module['position'] : ($field==='start' ? $loop->first : $loop->last))>{{ $period->name }}</option>@endforeach</select></label></div>@endforeach</div></div>@endforeach
+<button class="btn btn-outline-primary mt-2">Adicionar ou atualizar módulos selecionados</button></form></details>@endif
+</div></div>
+@push('scripts')<script>document.querySelectorAll('[data-module-select]').forEach(el=>el.addEventListener('change',()=>el.closest('.border').querySelectorAll('[data-module-field]').forEach(f=>f.disabled=!el.checked)));</script>@endpush
+@endif
+
     <x-academic-trail :school="$academicYear->school" :academic-year="$academicYear" :course="$course" />
 
     <x-structure-validation :issues="$structureIssues" title="{{ __('Validação da matriz') }}" empty="{{ __('Matriz sem inconsistências estruturais.') }}" />

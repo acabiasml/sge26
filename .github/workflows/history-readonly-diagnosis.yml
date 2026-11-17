@@ -27,6 +27,7 @@ on:
       - scripts/high-school-cohorts-query.php.stub
       - scripts/legacy-outcome-audit.php.stub
       - scripts/component-unification-query.php.stub
+      - scripts/technical-credential-query.php.stub
       - scripts/technical-grades-query.php.stub
       - scripts/technical-cad-reconstruction-query.php.stub
       - scripts/diary-supplement-query.php.stub

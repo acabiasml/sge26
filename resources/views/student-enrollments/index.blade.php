@@ -116,6 +116,11 @@
                                 <input id="enrollment_notes" name="notes" class="form-control" value="{{ old('notes') }}">
                             </div>
                         </div>
+                        @if(!$availableCourses->contains('stage', 'medio'))
+                        @foreach($availableCourses->where('stage','tecnico') as $technicalCourse)
+                        <div class="form-group"><label for="technical-form-{{ $technicalCourse->id }}">{{ $technicalCourse->name }} — forma de oferta do estudante</label><select class="form-control" id="technical-form-{{ $technicalCourse->id }}" name="technical_offer_forms[{{ $technicalCourse->id }}]" @if($technicalCourse->technical_program_id) required @endif><option value="">Selecione</option><option value="concomitante" @selected(old('technical_offer_forms.'.$technicalCourse->id)==='concomitante')>Concomitante — cursa ou cursou o Ensino Médio durante o técnico</option><option value="subsequente" @selected(old('technical_offer_forms.'.$technicalCourse->id)==='subsequente')>Subsequente — já havia concluído o Ensino Médio ao ingressar</option></select></div>
+                        @endforeach
+                        @elseif($availableCourses->contains('stage','tecnico'))<p>Oferta técnica concomitante, identificada automaticamente pela matrícula com Formação Geral Básica.</p>@endif
                         @if ($availableCourses->isEmpty())
                             <p class="text-muted small mb-3">{{ __('Vincule uma matriz curricular a esta turma antes de cadastrar novas matrículas.') }}</p>
                         @else

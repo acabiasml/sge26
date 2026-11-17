@@ -62,6 +62,11 @@ class School extends Model
         ];
     }
 
+    public function technicalPrograms(): HasMany
+    {
+        return $this->hasMany(TechnicalProgram::class);
+    }
+
     public function roles(): HasMany
     {
         return $this->hasMany(PersonSchoolRole::class);

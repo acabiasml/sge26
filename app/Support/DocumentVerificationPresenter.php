@@ -69,6 +69,9 @@ class DocumentVerificationPresenter
     public static function typeLabel(string $type): string
     {
         return match (true) {
+            $type === 'technical-intermediate-certificate' => __('Certificado Técnico Intermediário'),
+            $type === 'technical-course-diploma' => __('Diploma de Curso Técnico'),
+            $type === 'technical-course-diploma-preview' => __('Diploma de Curso Técnico — AINDA NÃO FINALIZADO'),
             $type === 'person-record' => __('Ficha de cadastro de pessoa'),
             $type === 'student-socioeconomic' => __('Ficha socioeconômica'),
             $type === 'volunteer-receipt' => __('Recibo de atividade voluntária'),
@@ -105,6 +108,9 @@ class DocumentVerificationPresenter
     private static function description(string $type): string
     {
         return match (true) {
+            $type === 'technical-course-diploma-preview' => __('Esta é uma prévia de acompanhamento: o curso ainda não foi finalizado. Não comprova a conclusão nem a obtenção do título.'),
+            $type === 'technical-course-diploma' => __('Este código confirma a emissão de um diploma de curso técnico concluído.'),
+            $type === 'technical-intermediate-certificate' => __('Este código confirma a emissão de um certificado de qualificação intermediária após a conclusão do módulo.'),
             $type === 'person-record' => __('Este código confirma que uma ficha cadastral de pessoa foi emitida pelo Beabá.'),
             $type === 'student-socioeconomic' => __('Este código confirma a emissão de uma ficha socioeconômica pelo Beabá.'),
             $type === 'volunteer-receipt' => __('Este código confirma que um recibo de atividade voluntária foi emitido pelo Beabá.'),

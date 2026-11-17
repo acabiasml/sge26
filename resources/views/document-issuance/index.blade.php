@@ -12,6 +12,8 @@
 @endsection
 
 @section('content')
+@if(auth()->user()->canManagePeople())<div class="mb-3"><a href="{{ route('technical-programs.index') }}">Cursos técnicos da escola: cadastro, autorizações e módulos</a></div>@endif
+
     @php
         $sortLabel = fn (string $label): string => mb_strtolower(\Illuminate\Support\Str::ascii(__($label)));
         $typeGroups = collect($documentTypes)
@@ -335,6 +337,7 @@
             const federalAidOnlyInput = federalAidOnlyOption.querySelector('input');
             const targetsUrl = @json(route('document-issuance.targets'));
             const targetCopy = {
+                technical_enrollment: [@js(__('Localize a matrícula técnica')), @js(__('Nome ou CPF do estudante'))],
                 enrollment: [@js(__('Localize a matrícula')), @js(__('Nome ou CPF do estudante'))],
                 course: [@js(__('Localize a matriz')), @js(__('Nome da matriz'))],
                 direct: [@js(__('Abrir documento')), @js(__('Opções disponíveis'))],

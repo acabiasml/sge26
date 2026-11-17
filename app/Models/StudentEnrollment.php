@@ -207,7 +207,7 @@ class StudentEnrollment extends Model
 
     public function courses(): BelongsToMany
     {
-        return $this->belongsToMany(AcademicCourse::class, 'academic_course_student_enrollment')->withTimestamps();
+        return $this->belongsToMany(AcademicCourse::class, 'academic_course_student_enrollment')->withPivot('technical_offer_form')->withTimestamps();
     }
 
     public function assessmentResults(): HasMany

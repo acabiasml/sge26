@@ -10,6 +10,7 @@ use App\Support\CurriculumAreaStage;
 use App\Support\CurriculumCatalog;
 use App\Support\HistoryCurriculumCatalog;
 use App\Support\MatrixTechnicalItinerary;
+use App\Support\TechnicalProgramMatrix;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -80,6 +81,9 @@ class AcademicCourseController extends Controller
         $course = DB::transaction(function () use ($academicYear, $data, $technicalIds) {
             $course = $academicYear->courses()->create($data);
             $course->technicalItineraries()->sync($technicalIds);
+            if ($course->technicalProgram) {
+                app(TechnicalProgramMatrix::class)->linkExisting($course, $course->technicalProgram);
+            }
 
             return $course;
         });
@@ -100,6 +104,9 @@ class AcademicCourseController extends Controller
         DB::transaction(function () use ($course, $data, $technicalIds) {
             $course->update($data);
             $course->technicalItineraries()->sync($technicalIds);
+            if ($course->technicalProgram) {
+                app(TechnicalProgramMatrix::class)->linkExisting($course, $course->technicalProgram);
+            }
         });
 
         return redirect()->route('academic-years.courses.show', [$academicYear, $course])
@@ -160,6 +167,7 @@ class AcademicCourseController extends Controller
             $duplicatedCourse = $academicYear->courses()->create([
                 'name' => $this->nextDuplicateName($academicYear, $course->name),
                 'itinerary_name' => $course->itinerary_name,
+                'technical_program_id' => $course->technical_program_id,
                 'technical_legal_basis' => $course->technical_legal_basis,
                 'accreditation_act' => $course->accreditation_act,
                 'authorization_act' => $course->authorization_act,
@@ -237,14 +245,15 @@ class AcademicCourseController extends Controller
             'itinerary_name' => [Rule::requiredIf($request->input('stage') === AcademicCourse::STAGE_HIGH_SCHOOL && empty($request->input('technical_itinerary_ids', []))), 'nullable', 'string', 'max:255'],
             'technical_itinerary_ids' => ['nullable', 'array'],
             'technical_itinerary_ids.*' => ['integer', 'distinct', Rule::exists('academic_courses', 'id')->where('stage', AcademicCourse::STAGE_TECHNICAL)->whereIn('academic_year_id', AcademicYear::where('school_id', $academicYear->school_id)->select('id'))],
-            'technical_legal_basis' => ['required_if:stage,'.AcademicCourse::STAGE_TECHNICAL, 'nullable', 'string', 'max:5000'],
-            'accreditation_act' => ['required_if:stage,'.AcademicCourse::STAGE_TECHNICAL, 'nullable', 'string', 'max:5000'],
-            'authorization_act' => ['required_if:stage,'.AcademicCourse::STAGE_TECHNICAL, 'nullable', 'string', 'max:5000'],
+            'technical_program_id' => [Rule::requiredIf($request->input('stage') === 'tecnico' && $request->has('technical_program_id')), 'nullable', 'integer', Rule::exists('technical_programs', 'id')->where('school_id', $academicYear->school_id)],
+            'technical_legal_basis' => [Rule::requiredIf($request->input('stage') === 'tecnico' && ! $request->filled('technical_program_id')), 'nullable', 'string', 'max:5000'],
+            'accreditation_act' => [Rule::requiredIf($request->input('stage') === 'tecnico' && ! $request->filled('technical_program_id')), 'nullable', 'string', 'max:5000'],
+            'authorization_act' => [Rule::requiredIf($request->input('stage') === 'tecnico' && ! $request->filled('technical_program_id')), 'nullable', 'string', 'max:5000'],
             'regulatory_process' => ['nullable', 'string', 'max:255'],
             'regulatory_opinion' => ['nullable', 'string', 'max:255'],
             'technological_axis' => ['nullable', 'string', 'max:255'],
             'offer_forms' => ['nullable', 'string', 'max:255'],
-            'official_gazette_reference' => ['required_if:stage,'.AcademicCourse::STAGE_TECHNICAL, 'nullable', 'string', 'max:500'],
+            'official_gazette_reference' => [Rule::requiredIf($request->input('stage') === 'tecnico' && ! $request->filled('technical_program_id')), 'nullable', 'string', 'max:500'],
             'authorization_starts_at' => ['nullable', 'date'],
             'authorization_ends_at' => ['nullable', 'date', 'after_or_equal:authorization_starts_at'],
             'module_certifications' => ['nullable', 'string', 'max:5000'],
@@ -264,6 +273,10 @@ class AcademicCourseController extends Controller
             }
         }
 
+        if ($course && $course->technical_program_id && (int) ($data['technical_program_id'] ?? 0) !== (int) $course->technical_program_id && $course->components()->whereNotNull('technical_program_component_key')->exists()) {
+            throw ValidationException::withMessages(['technical_program_id' => 'Esta matriz já utiliza componentes do curso técnico vinculado. Crie outra matriz para trocar o curso de referência.']);
+        }
+
         $data['technical_itinerary_ids'] = $data['stage'] === AcademicCourse::STAGE_HIGH_SCHOOL ? ($data['technical_itinerary_ids'] ?? []) : [];
         app(MatrixTechnicalItinerary::class)->validate($academicYear, $course, $data['technical_itinerary_ids']);
         $data['status'] = 'curricular';
@@ -274,6 +287,10 @@ class AcademicCourseController extends Controller
             foreach (['technical_legal_basis', 'accreditation_act', 'authorization_act', 'regulatory_process', 'regulatory_opinion', 'technological_axis', 'offer_forms', 'official_gazette_reference', 'authorization_starts_at', 'authorization_ends_at', 'module_certifications'] as $field) {
                 $data[$field] = null;
             }
+        }
+
+        if ($data['stage'] !== 'tecnico') {
+            $data['technical_program_id'] = null;
         }
 
         return $data;

@@ -166,6 +166,14 @@ class DocumentIssuanceController extends Controller
             'icon' => 'fa-file-alt',
             'score_view' => true,
         ],
+        'technical-intermediate-certificate' => [
+            'group' => 'Estudante', 'label' => 'Emissão de Certificado Técnico Intermediário',
+            'description' => 'Preencha os dados do registro. Disponível somente após a conclusão do módulo.', 'target' => 'technical_enrollment', 'icon' => 'fa-award',
+        ],
+        'technical-course-diploma' => [
+            'group' => 'Estudante', 'label' => 'Emissão de Diploma de Curso Técnico',
+            'description' => 'Prepare o diploma. Antes da conclusão, será identificado como AINDA NÃO FINALIZADO.', 'target' => 'technical_enrollment', 'icon' => 'fa-graduation-cap',
+        ],
         'academic-history' => [
             'group' => 'Estudante',
             'label' => 'Histórico escolar',
@@ -349,6 +357,7 @@ class DocumentIssuanceController extends Controller
             'course' => $this->courseTargets($request, $schoolIds, $term),
             'own_enrollment' => StudentEnrollment::query()->with('schoolClass')->where('person_id', $request->user()->person_id)->get()->map(fn ($enrollment) => ['id' => $enrollment->id, 'title' => $enrollment->schoolClass?->name ?? '-', 'subtitle' => $enrollment->enrolled_at?->format('d/m/Y'), 'enabled' => true]),
             'direct', 'listing' => collect($types[$data['type']]['target'] === 'listing' ? [1 => 'PDF', 2 => 'Excel'] : [1 => $types[$data['type']]['label']])->map(fn ($label, $id) => ['id' => $id, 'title' => __($label), 'subtitle' => __($types[$data['type']]['description']), 'enabled' => true]),
+            'technical_enrollment' => $this->technicalEnrollmentTargets($request, $schoolIds, $term),
             'enrollment' => $this->enrollmentTargets($request, $schoolIds, $term, $data['type']),
             'person' => $this->personTargets($request, $schoolIds, $term),
             'history' => $this->historyTargets($request, $schoolIds, $term),
@@ -389,6 +398,7 @@ class DocumentIssuanceController extends Controller
             'course' => $this->issueCourse($data, $schoolIds),
             'own_enrollment' => redirect()->route('student-diaries.schedule-pdf', StudentEnrollment::query()->where('person_id', $request->user()->person_id)->findOrFail($data['target_id'])),
             'direct', 'listing' => $this->issueDirect($data),
+            'technical_enrollment' => $this->issueTechnical($data, $schoolIds),
             'enrollment' => $this->issueEnrollment($data, $schoolIds),
             'person' => $this->issuePerson($data, $request->user(), $schoolIds),
             'history' => $this->issueHistory($data, $request->user(), $schoolIds),
@@ -398,6 +408,29 @@ class DocumentIssuanceController extends Controller
             'diary' => $this->issueDiary($data, $schoolIds, $request->user()),
             default => abort(404),
         };
+    }
+
+    private function technicalEnrollmentTargets(Request $request, array $schoolIds, string $term): Collection
+    {
+        return StudentEnrollment::whereHas('schoolClass.academicYear', fn ($q) => $q->whereIn('school_id', $schoolIds))
+            ->whereHas('courses', fn ($q) => $q->where('stage', 'tecnico')->whereNotNull('technical_program_id'))
+            ->when($request->filled('school_id'), fn ($q) => $q->whereHas('schoolClass.academicYear', fn ($y) => $y->where('school_id', $request->integer('school_id'))))
+            ->when($request->filled('academic_year_id'), fn ($q) => $q->whereHas('schoolClass', fn ($c) => $c->where('academic_year_id', $request->integer('academic_year_id'))))
+            ->when($request->filled('class_id'), fn ($q) => $q->where('school_class_id', $request->integer('class_id')))
+            ->when($term !== '', fn ($q) => $q->whereHas('student', fn ($p) => $p->where('full_name', 'like', '%'.$term.'%')->orWhere('cpf', 'like', '%'.$term.'%')))
+            ->with('student', 'schoolClass.academicYear.school')->orderByDesc('id')->limit(40)->get()->map(fn ($e) => [
+                'id' => $e->id, 'title' => $e->student->full_name,
+                'subtitle' => $e->schoolClass->name.' · '.$e->schoolClass->academicYear->referenceYearsLabel().' · '.$e->schoolClass->academicYear->school->name,
+                'enabled' => true, 'academic_year_id' => $e->schoolClass->academic_year_id,
+            ]);
+    }
+
+    private function issueTechnical(array $data, array $schoolIds): RedirectResponse
+    {
+        $enrollment = StudentEnrollment::whereHas('schoolClass.academicYear', fn ($q) => $q->whereIn('school_id', $schoolIds))
+            ->whereHas('courses', fn ($q) => $q->where('stage', 'tecnico')->whereNotNull('technical_program_id'))->findOrFail($data['target_id']);
+
+        return redirect()->route('technical-credentials.prepare', ['enrollment' => $enrollment, 'kind' => $data['type'] === 'technical-course-diploma' ? 'diploma' : 'certificate']);
     }
 
     private function courseTargets(Request $request, array $schoolIds, string $term): Collection

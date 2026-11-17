@@ -79,6 +79,7 @@ class AcademicCourse extends Model
         'ends_period_id',
         'name',
         'itinerary_name',
+        'technical_program_id',
         'technical_legal_basis',
         'accreditation_act',
         'authorization_act',
@@ -262,6 +263,66 @@ class AcademicCourse extends Model
     {
         return $this->stage === self::STAGE_TECHNICAL
             || $this->modality === self::MODALITY_PROFESSIONAL_TECHNOLOGICAL;
+    }
+
+    public function technicalProgram(): BelongsTo
+    {
+        return $this->belongsTo(TechnicalProgram::class);
+    }
+
+    public function getTechnicalLegalBasisAttribute($value)
+    {
+        return $this->technical_program_id ? $this->technicalProgram?->legal_basis : $value;
+    }
+
+    public function getAccreditationActAttribute($value)
+    {
+        return $this->technical_program_id ? $this->technicalProgram?->accreditation_act : $value;
+    }
+
+    public function getAuthorizationActAttribute($value)
+    {
+        return $this->technical_program_id ? $this->technicalProgram?->authorization_act : $value;
+    }
+
+    public function getRegulatoryProcessAttribute($value)
+    {
+        return $this->technical_program_id ? $this->technicalProgram?->regulatory_process : $value;
+    }
+
+    public function getRegulatoryOpinionAttribute($value)
+    {
+        return $this->technical_program_id ? $this->technicalProgram?->regulatory_opinion : $value;
+    }
+
+    public function getTechnologicalAxisAttribute($value)
+    {
+        return $this->technical_program_id ? $this->technicalProgram?->technological_axis : $value;
+    }
+
+    public function getOfferFormsAttribute($value)
+    {
+        return $this->technical_program_id ? $this->technicalProgram?->offer_forms : $value;
+    }
+
+    public function getOfficialGazetteReferenceAttribute($value)
+    {
+        return $this->technical_program_id ? $this->technicalProgram?->official_gazette_reference : $value;
+    }
+
+    public function getAuthorizationStartsAtAttribute($value)
+    {
+        return $this->technical_program_id ? $this->technicalProgram?->authorization_starts_at : ($value ? $this->asDateTime($value) : null);
+    }
+
+    public function getAuthorizationEndsAtAttribute($value)
+    {
+        return $this->technical_program_id ? $this->technicalProgram?->authorization_ends_at : ($value ? $this->asDateTime($value) : null);
+    }
+
+    public function getModuleCertificationsAttribute($value)
+    {
+        return $this->technical_program_id ? collect($this->technicalProgram?->modules)->pluck('qualification')->filter()->join("\n") : $value;
     }
 
     public function technicalLegalBasis(): string

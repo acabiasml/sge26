@@ -3,14 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
+use App\Models\AuditLog;
 use App\Models\DiaryAssessment;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\SchoolClass;
 use App\Models\StudentEnrollment;
-use App\Support\StudentFinalResultCalculator;
 use App\Support\ReclassificationAttendanceCredits;
+use App\Support\StudentFinalResultCalculator;
+use App\Support\TechnicalEnrollmentOffer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -125,7 +127,8 @@ class StudentEnrollmentController extends Controller
 
         $data = $this->validatedData($request, $academicYear, $class);
         $courseIds = $data['course_ids'];
-        unset($data['course_ids']);
+        $technicalForms = $data['technical_offer_forms'] ?? [];
+        unset($data['course_ids'], $data['technical_offer_forms']);
 
         $student = Person::query()->findOrFail($data['person_id']);
 
@@ -150,15 +153,27 @@ class StudentEnrollmentController extends Controller
         $data['enrolled_by_person_id'] = $request->user()->person_id;
         $data['status'] = StudentEnrollment::STATUS_ENROLLED;
 
-        DB::transaction(function () use ($class, $data, $courseIds, $student, $academicYear): void {
+        DB::transaction(function () use ($class, $data, $courseIds, $student, $academicYear, $technicalForms): void {
             $enrollment = $class->enrollments()->create($data);
             $enrollment->courses()->sync($courseIds);
+            app(TechnicalEnrollmentOffer::class)->record($enrollment, $technicalForms, $enrollment->courses()->whereNotNull('technical_program_id')->exists());
 
             $this->syncStudentRole($student, $academicYear->school_id);
         });
 
         return redirect()->route('classes.enrollments.index', $class)
             ->with('status', __('Matrícula cadastrada com sucesso.'));
+    }
+
+    public function technicalOffer(Request $request, StudentEnrollment $enrollment): RedirectResponse
+    {
+        abort_unless($request->user()->canManageSchool($enrollment->schoolClass->academicYear->school_id), 403);
+        $data = $request->validate(['technical_offer_forms' => ['required', 'array'], 'technical_offer_forms.*' => ['required', Rule::in(['concomitante', 'subsequente'])]]);
+        app(TechnicalEnrollmentOffer::class)->record($enrollment, $data['technical_offer_forms']);
+        AuditLog::create(['school_id' => $enrollment->schoolClass->academicYear->school_id, 'auditable_type' => StudentEnrollment::class,
+            'auditable_id' => $enrollment->id, 'actor_user_id' => $request->user()->id, 'action' => 'updated', 'metadata' => ['technical_offer_forms' => $data['technical_offer_forms']]]);
+
+        return back()->with('status', 'Forma de oferta técnica da matrícula atualizada.');
     }
 
     public function transfer(Request $request, StudentEnrollment $enrollment): RedirectResponse
@@ -176,6 +191,8 @@ class StudentEnrollmentController extends Controller
             'transferred_at' => ['required', 'date', 'after_or_equal:'.$window['starts_at'], 'before_or_equal:'.$window['ends_at']],
             'confirm_transfer' => ['accepted'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'technical_offer_forms' => ['nullable', 'array'],
+            'technical_offer_forms.*' => ['nullable', Rule::in(['concomitante', 'subsequente'])],
         ], [
             'transferred_at.required' => __('Informe a data da transferência.'),
             'transferred_at.after_or_equal' => __('A data da transferência não pode ser anterior ao início da matrícula.'),

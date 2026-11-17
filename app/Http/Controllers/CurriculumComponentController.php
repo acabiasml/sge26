@@ -66,7 +66,16 @@ class CurriculumComponentController extends Controller
         abort_unless($request->user()->canManageSchool($academicYear->school_id), 403);
         $this->ensureCanChangeApprovedCalendar($request, $academicYear);
 
+        if ($component->technical_program_component_key && $course->technicalProgram) {
+            $canonical = $course->technicalProgram->componentDefinitions()->get($component->technical_program_component_key);
+            if ($request->input('workload_mode') !== 'workload_hours' || (float) $request->input('workload_hours') !== (float) $canonical['hours']) {
+                throw ValidationException::withMessages(['workload_hours' => 'A carga deste componente é definida no cadastro do curso técnico.']);
+            }
+        }
         [$data, $definition] = $this->validatedData($request, $academicYear, $course, $component);
+        if ($component->technical_program_component_key && $course->technicalProgram && $definition->name !== $course->technicalProgram->componentDefinitions()->get($component->technical_program_component_key)['name']) {
+            throw ValidationException::withMessages(['catalog_component_id' => 'O nome é definido no cadastro do curso técnico.']);
+        }
         DB::transaction(function () use ($component, $data, $definition, $course): void {
             $component->fill($data)->adoptCatalogDefinition($definition);
             $course->refreshWorkloadHours();

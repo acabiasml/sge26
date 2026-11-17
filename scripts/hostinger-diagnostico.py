@@ -263,6 +263,10 @@ with tempfile.TemporaryDirectory() as directory:
                          'php artisan migrate --path=database/migrations/2026_11_15_000001_create_audit_log_group_index.php --force --no-ansi'))
         commands.append(('Preparar índices da auditoria e medir consulta',
                          'php artisan audit:refresh-index --benchmark --no-ansi'))
+        commands.append(('Preparar cadastro central dos cursos técnicos',
+                         'php artisan migrate --path=database/migrations/2026_11_17_180000_create_technical_programs.php --force --no-ansi'))
+        commands.append(('Vincular as ofertas existentes ao projeto técnico',
+                         'php artisan migrate --path=database/migrations/2026_11_17_180100_link_existing_furniture_technical_program.php --force --no-ansi'))
         commands.append(('Migrations', 'php artisan migrate:status --no-ansi'))
         expected_commit = os.environ['EXPECTED_COMMIT']
         deadline = time.monotonic() + 180

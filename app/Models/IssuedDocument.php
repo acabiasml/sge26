@@ -11,6 +11,7 @@ class IssuedDocument extends Model
     use Auditable;
 
     protected $fillable = [
+        'registration_key',
         'uuid',
         'verification_code',
         'type',
