@@ -1,0 +1,36 @@
+name: Obter brasões públicos dos modelos técnicos
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  obter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Baixar os arquivos públicos de referência
+        run: |
+          mkdir -p /tmp/public-emblems
+          curl --fail --location --retry 2 --user-agent 'Beaba-Technical-Credentials/1.0' 'https://upload.wikimedia.org/wikipedia/commons/0/04/Bras%C3%A3o_de_Mato_Grosso.png' -o /tmp/public-emblems/mt-coat.png
+          curl --fail --location --retry 2 --user-agent 'Beaba-Technical-Credentials/1.0' 'https://upload.wikimedia.org/wikipedia/commons/f/f6/National_Seal_of_Brazil.svg' -o /tmp/public-emblems/brazil-seal.svg
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+          root = Path('/tmp/public-emblems')
+          assert (root/'mt-coat.png').read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
+          assert b'<svg' in (root/'brazil-seal.svg').read_bytes()
+          (root/'manifest.json').write_text(json.dumps({p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in root.iterdir()},indent=2))
+          PY
+      - name: Guardar somente os arquivos públicos em branch de obtenção
+        env:
+          FETCH_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout --orphan "brasoes-publicos-$FETCH_RUN_ID"
+          git rm -rf --ignore-unmatch .
+          cp /tmp/public-emblems/* .
+          git add mt-coat.png brazil-seal.svg manifest.json
+          git commit -m 'guarda brasões públicos de referência em alta resolução'
+          git push origin "HEAD:refs/heads/brasoes-publicos-$FETCH_RUN_ID"
