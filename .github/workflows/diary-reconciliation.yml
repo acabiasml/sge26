@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - app/Support/ExternalHistoryClockHourConversion.php
       - app/Support/NonSchoolDayDiaryRemoval.php
       - app/Support/ManagementGradeDefault.php
       - app/Support/AdministrativeDiaryReconstruction.php
