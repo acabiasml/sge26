@@ -32,6 +32,8 @@ body { margin: 0; font-family: 'Open Sans', DejaVu Sans, sans-serif; color: #2f2
 .course-heading { position:absolute; left:42pt; top:114pt; right:42pt; font-size:11pt; line-height:13pt; }
 .components { position:absolute; left:225pt; width:390pt; border-collapse:collapse; font-size:9pt; }
 .components th,.components td { border:.55pt solid #4f4650; padding:.8pt 4pt; line-height:10.8pt; }
+.components.compact { font-size:8.5pt; }
+.components.compact th,.components.compact td { padding:.25pt 4pt; line-height:8.5pt; }
 .components th { text-align:left; background:#fffaf1; }
 .components .hours { text-align:center; width:78pt; }
 .components .average { text-align:center; width:62pt; }
@@ -53,7 +55,7 @@ body { margin: 0; font-family: 'Open Sans', DejaVu Sans, sans-serif; color: #2f2
  $image=fn($name)=>'data:image/png;base64,'.base64_encode(file_get_contents(resource_path('images/technical-credentials/'.$name)));
  $bgFile=$diploma?'background-diploma.png':'background-certificate.png';
  $bg=file_exists(resource_path('images/technical-credentials/'.$bgFile))?$image($bgFile):null;
- $chunks=array_chunk($data['components'],13);
+ $chunks=array_chunk($data['components'],15);
  $formatHours=fn($v)=>number_format($v,abs((float)$v-round((float)$v))<.001?0:2,',','.');
  $total=$formatHours($data['total_hours']);
  $modulePalette=['#f3e5c4','#e9deeb','#f4dcd0','#e2ebe6','#eadfcf','#e5dfe9','#f2e5dd','#e9e7cf','#e4d8de','#eee0c8','#e4e8dc','#eadfe3'];
@@ -93,7 +95,7 @@ A Direção do {{ $data['school_name'] }}, mantida pelo {{ $program['maintainer'
 <div class="contact">@if($preview)Prévia para conferência, sem emissão ou registro definitivo no @elseif($final)Todos os {{ $diploma?'diplomas':'certificados' }} podem ter sua autenticidade comprovada e estão registrados no @else Prévia de acompanhamento, sem registro definitivo ou comprovação de conclusão no @endif<br><strong>{{ mb_strtoupper($data['school_name']) }}</strong> — CNPJ: {{ $data['school_cnpj'] }}.<br>Endereço: {{ $program['back_address'] }}</div>
 <div class="course-heading"><strong>{{ mb_strtoupper($diploma?$program['name']:$data['module']['qualification']) }} — {{ $total }}h</strong>@if((int)$data['total_hours']===1200) (mil e duzentas horas).@elseif((int)$data['total_hours']===400) (quatrocentas horas).@endif<br>EIXO DE {{ mb_strtoupper($program['technological_axis']) }}@if(count($chunks)>1)<br>Componentes — parte {{ $loop->iteration }} de {{ count($chunks) }}@endif</div>
 <table class="module-legend" aria-label="Legenda de cores dos módulos" style="top:{{ $diploma?156:175 }}pt;font-size:{{ $shownModules->count()>4?6:8 }}pt"><tr>@foreach($shownModules as $position)<td style="background-color:{{ $moduleColor($position) }}">Módulo {{ $roman[$position-1]??$position }}</td>@endforeach</tr></table>
-<table class="components" style="top:{{ $diploma?178:197 }}pt;@if(count($chunk)>13)font-size:9pt;@endif"><thead><tr><th>Componente Curricular</th><th class="hours">Carga horária</th><th class="average">Média final</th></tr></thead><tbody>@foreach($chunk as $index=>$component)<tr style="background-color:{{ $moduleColor($modulePosition($component)) }}"><td>{{ $component['name'] }}</td><td class="hours">{{ $formatHours($component['hours']) }}h</td><td class="average">{{ isset($component['final_average'])?number_format($component['final_average'],1,',','.'):'—' }}</td></tr>@endforeach</tbody></table>
+<table class="components {{ count($chunk)>13?'compact':'' }}" style="top:{{ $diploma?178:197 }}pt;"><thead><tr><th>Componente Curricular</th><th class="hours">Carga horária</th><th class="average">Média final</th></tr></thead><tbody>@foreach($chunk as $index=>$component)<tr style="background-color:{{ $moduleColor($modulePosition($component)) }}"><td>{{ $component['name'] }}</td><td class="hours">{{ $formatHours($component['hours']) }}h</td><td class="average">{{ isset($component['final_average'])?number_format($component['final_average'],1,',','.'):'—' }}</td></tr>@endforeach</tbody></table>
 @if($last)<div class="registry" style="top:{{ $diploma?455:(count($chunk)>6?455:327) }}pt;@if(mb_strlen(implode(' ', $registry))>300)font-size:8pt;line-height:11pt;@endif">
 @if($preview)<strong>Prévia para conferência — sem registro definitivo.</strong><br>Livro, folha, número, responsável e data do registro serão preenchidos antes da emissão oficial.
 @else
