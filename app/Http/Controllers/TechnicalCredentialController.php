@@ -157,6 +157,36 @@ class TechnicalCredentialController extends Controller
         }
     }
 
+    public function preview(Request $request, StudentEnrollment $enrollment, TechnicalCredentialEligibility $eligibility)
+    {
+        [$course, $courses, $kind] = $this->context($request, $enrollment);
+        $state = $eligibility->evaluate($enrollment, $course);
+        $module = $kind === 'certificate' ? ($state['modules'][$request->input('module_key')] ?? null) : null;
+        if ($kind === 'certificate') {
+            abort_unless($module && filled($module['qualification']) && $module['eligible'], 422, 'A prévia deste certificado só está disponível após a conclusão do módulo e o cumprimento dos requisitos.');
+        }
+        abort_unless($enrollment->student->birth_date, 422, 'Complete a data de nascimento do estudante antes de visualizar o documento.');
+        $school = $course->academicYear->school;
+        $staff = $school->roles()->with('person')->where('active', true)->get()->filter(fn ($role) => $role->isActiveForDate());
+        $rows = $module ? $module['components'] : collect($state['modules'])->flatMap(fn ($item) => $item['components'])->values()->all();
+        $data = ['layout_preview' => true, 'kind' => $kind, 'is_final' => $kind === 'certificate' || $state['final'],
+            'program' => $course->technicalProgram->toArray(), 'module' => $module, 'components' => $rows,
+            'total_hours' => $module['hours'] ?? $course->technicalProgram->totalHours(),
+            'completed_at' => $module['completed_at'] ?? $state['completed_at'],
+            'offer_form' => app(TechnicalEnrollmentOffer::class)->resolve($enrollment, $course) ?: 'forma de oferta pendente na matrícula',
+            'student' => $enrollment->student->only(['full_name', 'birth_date', 'nationality', 'birth_city', 'birth_state', 'mother_name', 'father_name']),
+            'school_name' => $school->name, 'school_cnpj' => $school->cnpj,
+            'preview_url' => route('technical-credentials.preview', ['enrollment' => $enrollment->id, 'course_id' => $course->id, 'kind' => $kind, 'module_key' => $module['key'] ?? null]),
+            'registration' => ['registry_number' => '', 'registry_book' => '', 'registry_folio' => '', 'registered_by' => '', 'registration_date' => '', 'observations' => '',
+                'secretary_name' => $staff->firstWhere('position', PersonSchoolRole::POSITION_SECRETARY)?->person?->full_name ?: 'Nome completo a preencher',
+                'director_name' => $staff->firstWhere('position', PersonSchoolRole::POSITION_DIRECTOR)?->person?->full_name ?: 'Nome completo a preencher',
+                'issued_place' => collect([$school->district, $school->city.'-'.$school->state])->filter()->join(', '), 'issued_date' => now('America/Cuiaba')->toDateString()]];
+        $document = new IssuedDocument(['verification_code' => 'PREVIA-SEM-REGISTRO']);
+        $pdf = Pdf::loadView('reports.technical-credential', compact('data', 'document'))->setPaper('a4', 'landscape');
+
+        return PdfMetadata::stream($pdf, 'beaba-previa-'.$kind.'-'.$enrollment->id.'.pdf', 'Prévia para conferência — sem registro');
+    }
+
     private static function fullName(string $value): bool
     {
         return count(preg_split('/\s+/u', trim($value))) >= 2 && ! str_contains($value, '.')

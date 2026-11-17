@@ -285,6 +285,38 @@ class TechnicalCredentialsTest extends TestCase
         $this->assertEquals(7, IssuedDocument::sole()->payload['components'][0]['final_average']);
     }
 
+    public function test_real_enrollment_preview_uses_current_data_without_creating_a_document_or_registry(): void
+    {
+        $s = $this->scenario();
+        $response = $this->actingAs($s['user'])->get(route('technical-credentials.preview', ['enrollment' => $s['enrollment'], 'course_id' => $s['course']->id, 'kind' => 'diploma']));
+        $response->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertSame(2, preg_match_all('/\/Type\s*\/Page\b/', $response->getContent()));
+        $this->assertDatabaseCount('issued_documents', 0);
+        if (is_dir('/setup')) {
+            file_put_contents('/setup/technical-real-layout-preview.pdf', $response->getContent());
+        }
+        $other = $this->manager(School::create(['name' => 'Outra escola de prévias']));
+        $this->actingAs($other)->get(route('technical-credentials.preview', ['enrollment' => $s['enrollment'], 'kind' => 'diploma']))->assertForbidden();
+    }
+
+    public function test_certificate_preview_obeys_completion_dates_and_grades_and_does_not_register_an_issuance(): void
+    {
+        $s = $this->scenario();
+        $url = route('technical-credentials.preview', ['enrollment' => $s['enrollment'], 'kind' => 'certificate', 'module_key' => $s['program']->modules[0]['key']]);
+        $response = $this->actingAs($s['user'])->get($url)->assertOk();
+        $this->assertSame(2, preg_match_all('/\/Type\s*\/Page\b/', $response->getContent()));
+        $this->assertDatabaseCount('issued_documents', 0);
+        if (is_dir('/setup')) {
+            file_put_contents('/setup/technical-real-certificate-preview.pdf', $response->getContent());
+        }
+        $this->travelTo(now()->setDate(2025, 3, 30));
+        $this->get($url)->assertStatus(422);
+        $this->travelTo(now()->setDate(2026, 11, 17));
+        $s['assessments'][0]->results()->update(['score' => 5]);
+        $this->get($url)->assertStatus(422);
+        $this->assertDatabaseCount('issued_documents', 0);
+    }
+
     private function completeHighSchool(array $s): void
     {
         $history = $s['student']->academicHistories()->create(['school_id' => $s['school']->id, 'title' => 'Ensino Médio', 'education_stage' => 'medio', 'stage' => 'Ensino Médio']);

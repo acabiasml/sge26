@@ -148,6 +148,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('cursos-tecnicos/{program}/edit', [TechnicalProgramController::class, 'edit'])->name('technical-programs.edit');
     Route::put('cursos-tecnicos/{program}', [TechnicalProgramController::class, 'update'])->name('technical-programs.update');
     Route::get('emissao-de-documentos/tecnico/documentos/{document}/pdf', [TechnicalCredentialController::class, 'pdf'])->name('technical-credentials.pdf');
+    Route::get('emissao-de-documentos/tecnico/{enrollment}/previa-pdf', [TechnicalCredentialController::class, 'preview'])->name('technical-credentials.preview');
     Route::get('emissao-de-documentos/tecnico/{enrollment}', [TechnicalCredentialController::class, 'prepare'])->name('technical-credentials.prepare');
     Route::post('emissao-de-documentos/tecnico/{enrollment}', [TechnicalCredentialController::class, 'store'])->name('technical-credentials.store');
     Route::get('emissao-de-documentos', [DocumentIssuanceController::class, 'index'])->name('document-issuance.index');

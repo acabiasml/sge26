@@ -42,7 +42,7 @@ body { margin: 0; font-family: 'Open Sans', DejaVu Sans, sans-serif; color: #2f2
 .verification { position:absolute; left:43pt; right:43pt; bottom:39pt; text-align:center; font-size:6.7pt; color:#6b3d2e; }
 </style></head><body>
 @php
- $program=$data['program'];$student=$data['student'];$registry=$data['registration'];$diploma=$data['kind']==='diploma';$final=$data['is_final'];
+ $program=$data['program'];$student=$data['student'];$registry=$data['registration'];$diploma=$data['kind']==='diploma';$final=$data['is_final'];$preview=$data['layout_preview']??false;
  $longDate=fn($v)=>\Carbon\CarbonImmutable::parse($v)->locale('pt_BR')->translatedFormat('d \d\e F \d\e Y');
  $signatureBlank=fn($name)=>mb_strlen($name)>120?0:(mb_strlen($name)>95?12:24);
  $signatureSize=fn($name)=>mb_strlen($name)>90?7.2:(mb_strlen($name)>60?8:9.2);
@@ -58,7 +58,7 @@ body { margin: 0; font-family: 'Open Sans', DejaVu Sans, sans-serif; color: #2f2
  $moduleByComponent=collect($program['modules'])->flatMap(fn($m)=>collect($m['components'])->mapWithKeys(fn($c)=>[$c['key']=>$m['position']]));
  $modulePosition=fn($c)=>(int)($moduleByComponent[$c['key']]??($data['module']['position']??1));
  $moduleColor=fn($position)=>$modulePalette[($position-1)%count($modulePalette)];
- $verificationUrl=route('documents.verify',$document->verification_code);
+ $verificationUrl=$preview?$data['preview_url']:route('documents.verify',$document->verification_code);
  $verificationQr=(new \chillerlan\QRCode\QRCode)->render($verificationUrl);
 @endphp
 <div class="sheet">
@@ -66,7 +66,7 @@ body { margin: 0; font-family: 'Open Sans', DejaVu Sans, sans-serif; color: #2f2
 <img class="coat" src="{{ $image('mt-coat.png') }}" alt="Brasão de Mato Grosso"><img class="seal" src="{{ $image('brazil-seal.png') }}" alt="Selo da República">
 <div class="header"><strong>REPÚBLICA FEDERATIVA DO BRASIL<br>{{ $program['state_heading'] }}<br>{{ $program['education_system'] }}</strong><div class="institution">{{ mb_strtoupper($data['school_name']) }}</div><div class="address">{{ $program['front_address'] }}<br>Ato legal de criação: {{ $program['creation_act'] }}<br>Autorização do curso: {{ $program['authorization_act'] }}</div></div>
 <div class="title">{{ $diploma ? 'Diploma' : 'Certificado' }}</div>
-@if(!$final)<div class="watermark">AINDA NÃO FINALIZADO</div><div class="provisional">AINDA NÃO FINALIZADO — PRÉVIA PARA ACOMPANHAMENTO</div>@endif
+@if($preview || !$final)<div class="watermark">{{ !$final?'AINDA NÃO FINALIZADO':'PRÉVIA SEM REGISTRO' }}</div><div class="provisional">{{ !$final?'AINDA NÃO FINALIZADO — ':'' }}PRÉVIA PARA CONFERÊNCIA — SEM REGISTRO</div>@endif
 <div class="main">
 @if($diploma && !$final)
 A Direção do {{ $data['school_name'] }}, mantida pelo {{ $program['maintainer'] }}, apresenta, para acompanhamento, esta prévia do diploma do {{ $program['name'] }}, {{ mb_strtolower($program['education_mode']) }}, <u>{{ $data['offer_form'] }}</u>, no Eixo de {{ $program['technological_axis'] }}, em nome de <span class="student-name">{{ $student['full_name'] }}</span>, nascido(a) em {{ $longDate($student['birth_date']) }}, nacionalidade {{ mb_strtolower($student['nationality']) }}, natural de {{ $student['birth_city'] }}-{{ $student['birth_state'] }}, filho(a) de {{ $parents }}. <strong>O curso ainda não foi finalizado. Esta prévia não confere título nem comprova conclusão.</strong>
@@ -86,17 +86,20 @@ A Direção do {{ $data['school_name'] }}, mantida pelo {{ $program['maintainer'
 @php($shownModules=collect($chunk)->map($modulePosition)->unique()->sort()->values())
 <div class="sheet {{ $last?'last':'' }}">
 @if($bg)<img class="paper" src="{{ $bg }}" alt="">@endif<div class="frame"></div>
-@if(!$final)<div class="watermark">AINDA NÃO FINALIZADO</div><div class="provisional" style="top:145pt">AINDA NÃO FINALIZADO — PRÉVIA PARA ACOMPANHAMENTO</div>@endif
-<div class="contact">@if($final)Todos os {{ $diploma?'diplomas':'certificados' }} podem ter sua autenticidade comprovada e estão registrados no @else Prévia de acompanhamento, sem registro definitivo ou comprovação de conclusão no @endif<br><strong>{{ mb_strtoupper($data['school_name']) }}</strong> — CNPJ: {{ $data['school_cnpj'] }}.<br>Endereço: {{ $program['back_address'] }}</div>
+@if($preview || !$final)<div class="watermark">{{ !$final?'AINDA NÃO FINALIZADO':'PRÉVIA SEM REGISTRO' }}</div><div class="provisional" style="top:32pt;font-size:7.5pt">{{ !$final?'AINDA NÃO FINALIZADO — ':'' }}PRÉVIA PARA CONFERÊNCIA — SEM REGISTRO</div>@endif
+<div class="contact">@if($preview)Prévia para conferência, sem emissão ou registro definitivo no @elseif($final)Todos os {{ $diploma?'diplomas':'certificados' }} podem ter sua autenticidade comprovada e estão registrados no @else Prévia de acompanhamento, sem registro definitivo ou comprovação de conclusão no @endif<br><strong>{{ mb_strtoupper($data['school_name']) }}</strong> — CNPJ: {{ $data['school_cnpj'] }}.<br>Endereço: {{ $program['back_address'] }}</div>
 <div class="course-heading"><strong>{{ mb_strtoupper($diploma?$program['name']:$data['module']['qualification']) }} — {{ $total }}h</strong>@if((int)$data['total_hours']===1200) (mil e duzentas horas).@elseif((int)$data['total_hours']===400) (quatrocentas horas).@endif<br>EIXO DE {{ mb_strtoupper($program['technological_axis']) }}@if(count($chunks)>1)<br>Componentes — parte {{ $loop->iteration }} de {{ count($chunks) }}@endif</div>
 <table class="module-legend" aria-label="Legenda de cores dos módulos" style="top:{{ $diploma?156:175 }}pt;font-size:{{ $shownModules->count()>4?6:8 }}pt"><tr>@foreach($shownModules as $position)<td style="background-color:{{ $moduleColor($position) }}">Módulo {{ $roman[$position-1]??$position }}</td>@endforeach</tr></table>
 <table class="components" style="top:{{ $diploma?178:197 }}pt;@if(count($chunk)>13)font-size:9pt;@endif"><thead><tr><th>Componente Curricular</th><th class="hours">Carga horária</th><th class="average">Média final</th></tr></thead><tbody>@foreach($chunk as $index=>$component)<tr style="background-color:{{ $moduleColor($modulePosition($component)) }}"><td>{{ $component['name'] }}</td><td class="hours">{{ $formatHours($component['hours']) }}h</td><td class="average">{{ isset($component['final_average'])?number_format($component['final_average'],1,',','.'):'—' }}</td></tr>@endforeach</tbody></table>
 @if($last)<div class="registry" style="top:{{ $diploma?455:(count($chunk)>6?455:327) }}pt;@if(mb_strlen(implode(' ', $registry))>300)font-size:8pt;line-height:11pt;@endif">
+@if($preview)<strong>Prévia para conferência — sem registro definitivo.</strong><br>Livro, folha, número, responsável e data do registro serão preenchidos antes da emissão oficial.
+@else
 @if(!$final)<strong>PRÉVIA — dados de registro para conferência, sem registro definitivo.</strong><br>@else Nos termos da {{ $program['registry_resolution'] }}, {{ $diploma?'diploma':'certificado' }} registrado sob o<br>@endif
 nº <strong>{{ $registry['registry_number'] }}</strong>, Folha nº <strong>{{ $registry['registry_folio'] }}</strong>, Livro nº <strong>{{ $registry['registry_book'] }}</strong>,<br>por {{ $registry['registered_by'] }}, em {{ $longDate($registry['registration_date']) }}.<br>Observações: {{ ($registry['observations'] ?? null) ?: '—' }}
+@endif
 </div>@endif
-<div class="authentication-qr"><a href="{{ $verificationUrl }}"><img src="{{ $verificationQr }}" alt="QR Code de autenticação no site"></a><br>{{ $final?'Autenticação no site':'Autenticar prévia' }}</div>
-<div class="verification">{{ $final?'Autenticidade':'Prévia de acompanhamento — ainda não finalizado' }}: {{ $document->verification_code }} · {{ route('documents.verify',$document->verification_code) }}</div>
+<div class="authentication-qr"><a href="{{ $verificationUrl }}"><img src="{{ $verificationQr }}" alt="QR Code de autenticação no site"></a><br>{{ $preview?'Conferir prévia no site':($final?'Autenticação no site':'Autenticar prévia') }}</div>
+<div class="verification">@if($preview)Prévia para conferência — sem registro · {{ $verificationUrl }}@else{{ $final?'Autenticidade':'Prévia de acompanhamento — ainda não finalizado' }}: {{ $document->verification_code }} · {{ $verificationUrl }}@endif</div>
 </div>
 @endforeach
 </body></html>
