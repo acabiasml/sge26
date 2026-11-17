@@ -1,9 +1,1 @@
-{
-  "scope": "diary-batch",
-  "person_id": 0,
-  "source": "beaba",
-  "school_id": 1,
-  "reference_year": 2026,
-  "all_school_classes": true,
-  "verification": "non-school-day-removal"
-}
+{"scope": "student", "person_id": 597}
