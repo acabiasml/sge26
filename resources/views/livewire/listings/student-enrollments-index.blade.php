@@ -1,6 +1,6 @@
-<div>
+<div class="card-body">
 @include('livewire.listings.search')
-        <div class="card-body table-responsive">
+        <div class="table-responsive">
             <table class="table table-sm">
                 <thead>
                     <tr>

@@ -11,7 +11,8 @@
 
 @section('content')
     <div class="card shadow mb-4">
-        <div class="card-body table-responsive">
+        <div class="card-body">
+            <div class="table-responsive">
             <table class="table">
                 <thead>
                     <tr>
@@ -59,7 +60,8 @@
                 </tbody>
             </table>
 
-            {{ $years->links() }}
+            </div>
+            <div class="mt-3">{{ $years->links() }}</div>
         </div>
     </div>
 @endsection

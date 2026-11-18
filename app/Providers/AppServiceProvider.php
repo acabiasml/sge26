@@ -23,6 +23,7 @@ use App\Support\ListingInitialData;
 use App\Support\UserLastAccess;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
@@ -45,6 +46,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Paginator::useBootstrapFour();
         View::composer(ListingInitialData::views(), fn ($view) => ListingInitialData::capture($view));
         // Foreign-key cascades can also remove legacy diary context without model events.
         foreach ([User::class, Person::class, School::class, AcademicYear::class, AcademicCourse::class,

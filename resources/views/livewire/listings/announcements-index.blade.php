@@ -4,7 +4,8 @@
         <div class="card-header py-3">
             <h2 class="h6 m-0 font-weight-bold text-primary">{{ __('screens.registered_announcements') }}</h2>
         </div>
-        <div class="card-body table-responsive">
+        <div class="card-body">
+            <div class="table-responsive">
             <table class="table">
                 <thead>
                     <tr>
@@ -48,7 +49,8 @@
                 </tbody>
             </table>
 
-            {{ $announcements->links('livewire::bootstrap') }}
+            </div>
+            <div class="mt-3">{{ $announcements->links('livewire::bootstrap') }}</div>
         </div>
     </div>
 

@@ -76,7 +76,7 @@ html button.close {
     text-shadow: none;
 }
 html .modal-header .close { margin: -.25rem -.25rem -.25rem .75rem; padding: 0; }
-html .pagination { flex-wrap: wrap; gap: .25rem; }
+html .pagination { flex-wrap: wrap; gap: .25rem; margin-bottom: 0; }
 html .pagination .page-item .page-link {
     display: inline-flex;
     align-items: center;

@@ -3015,5 +3015,11 @@
     "Horário abrange cargas diferentes": "L’orario comprende carichi diversi",
     "Esta versão abrange períodos com quantidades diferentes de aulas. Cadastre uma versão de horário para cada faixa de períodos.": "Questa versione comprende periodi con un numero diverso di lezioni. Crea una versione dell’orario per ogni gruppo di periodi.",
     "O cálculo usa :hours horas totais": "Il calcolo utilizza :hours ore totali",
-    "por período letivo": "per periodo didattico"
+    "por período letivo": "per periodo didattico",
+    "Showing": "Visualizzazione da",
+    "to": "a",
+    "of": "di",
+    "results": "risultati",
+    "Pagination Navigation": "Paginazione",
+    "Go to page :page": "Vai alla pagina :page"
 }
