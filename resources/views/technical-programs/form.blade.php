@@ -13,7 +13,6 @@
     ];
 @endphp
 <p class="text-muted">Salve primeiro os dados do curso. Depois vincule os componentes já cadastrados na área curricular correspondente.</p>
-@if(session('status'))<div class="alert alert-success">{{ session('status') }}</div>@endif
 <form method="POST" action="{{ $program->exists ? route('technical-programs.update', $program) : route('technical-programs.store') }}">
 @csrf @if($program->exists) @method('PUT') @endif
 <x-section-tabs :tabs="$programTabs" label="Seções do cadastro do curso técnico" />
