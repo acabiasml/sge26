@@ -24,6 +24,13 @@ try {
     echo json_encode([
         'person_id' => __PERSON_ID__,
         'person' => $student->only(['id', 'full_name', 'active']),
+        'enrollments' => $student->studentEnrollments()->with(['schoolClass.academicYear', 'courses'])->get()->map(fn ($enrollment) => [
+            'id' => $enrollment->id, 'status' => $enrollment->status,
+            'class' => $enrollment->schoolClass?->name,
+            'school_id' => $enrollment->schoolClass?->academicYear?->school_id,
+            'reference_year' => $enrollment->schoolClass?->academicYear?->reference_year,
+            'courses' => $enrollment->courses->map->only(['id', 'name', 'stage']),
+        ]),
         'panel_search' => $searchTargets,
         'registered_headers' => $histories->map->only(['id', 'title', 'stage', 'education_stage', 'is_unified', 'active', 'years_count']),
         'issuance_targets' => $eligible->map(fn ($history) => [
