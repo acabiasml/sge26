@@ -9,6 +9,7 @@ use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\SchoolClass;
+use App\Models\SchoolClassComponent;
 use App\Models\StudentEnrollment;
 use App\Support\ReclassificationAttendanceCredits;
 use App\Support\StudentFinalResultCalculator;
@@ -638,10 +639,23 @@ class StudentEnrollmentController extends Controller
             ->whereHas('results', fn ($results) => $results->where('student_enrollment_id', $enrollment->id)->whereNotNull('score'))
             ->pluck('curriculum_component_id')->unique();
         $gradedComponents = $gradedComponents->concat($enrollment->periodConvalidations()->where('academic_period_id', $period->id)->whereNotNull('score')->pluck('curriculum_component_id'))->unique();
-        $missing = $components->whereNotIn('id', $gradedComponents)->pluck('name')->values();
+        $missing = $components->whereNotIn('id', $gradedComponents)->values();
         if ($missing->isNotEmpty()) {
+            $assignments = SchoolClassComponent::where('school_class_id', $class->id)
+                ->whereIn('curriculum_component_id', $missing->pluck('id'))->where('active', true)
+                ->with(['teacher', 'substitutions' => fn ($query) => $query->whereDate('starts_at', '<=', $transferDate)
+                    ->where(fn ($dates) => $dates->whereNull('ends_at')->orWhereDate('ends_at', '>=', $transferDate)), 'substitutions.substituteTeacher'])
+                ->get()->groupBy('curriculum_component_id');
+            $pending = $missing->map(function ($component) use ($assignments): string {
+                $teachers = $assignments->get($component->id, collect())->flatMap(function ($assignment) {
+                    return collect([$assignment->teacher?->full_name])->merge($assignment->substitutions
+                        ->map(fn ($substitution) => $substitution->substituteTeacher?->full_name ? $substitution->substituteTeacher->full_name.' (substituição)' : null));
+                })->filter()->unique()->values();
+
+                return $component->name.' — '.($teachers->isNotEmpty() ? 'Professor: '.$teachers->join(' / ') : 'Professor não associado à turma').'.';
+            });
             throw ValidationException::withMessages([
-                'transferred_at' => 'Antes de transferir, registre pelo menos uma nota parcial por componente no período '.$period->name.'. Sem nota parcial: '.$missing->take(5)->join(', ').($missing->count() > 5 ? '...' : '').'.',
+                'transferred_at' => ['Para transferir '.$enrollment->student->full_name.', falta lançar pelo menos uma nota parcial nos componentes abaixo, no período '.$period->name.':', ...$pending->all()],
             ]);
         }
     }

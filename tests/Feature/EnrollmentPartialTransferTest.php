@@ -8,6 +8,7 @@ use App\Models\DiaryAssessmentResult;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
+use App\Models\SchoolClassComponent;
 use App\Models\StudentEnrollment;
 use App\Models\User;
 use App\Models\UserOperationFailure;
@@ -84,6 +85,40 @@ class EnrollmentPartialTransferTest extends TestCase
         $before = $credit->fresh()->getAttributes();
         $this->actingAs($s['user'])->patch(route('enrollments.transfer', $s['enrollment']), $this->fields())->assertSessionHasNoErrors()->assertRedirect();
         $this->assertSame($before, $credit->fresh()->getAttributes());
+    }
+
+    public function test_transfer_error_lists_each_missing_component_and_its_teacher_without_truncation(): void
+    {
+        $s = $this->scenario();
+        $teacher = Person::create(['full_name' => 'Professora Maria Aparecida da Silva']);
+        SchoolClassComponent::create(['school_class_id' => $s['class']->id, 'curriculum_component_id' => $s['components'][1]->id, 'teacher_person_id' => $teacher->id, 'active' => true]);
+        for ($i = 1; $i <= 5; $i++) {
+            $s['course']->components()->create(['name' => 'Componente pendente '.$i, 'active' => true]);
+        }
+        $response = $this->actingAs($s['user'])->patch(route('enrollments.transfer', $s['enrollment']), $this->fields())->assertSessionHasErrors('transferred_at');
+        $messages = session('errors')->get('transferred_at');
+        $this->assertCount(8, $messages);
+        $this->assertStringContainsString($s['student']->full_name, $messages[0]);
+        $this->assertStringContainsString('Português — Professor: Professora Maria Aparecida da Silva', implode(' ', $messages));
+        $this->assertStringContainsString('Matemática — Professor não associado à turma', implode(' ', $messages));
+        $this->assertStringContainsString('Componente pendente 5', implode(' ', $messages));
+        $this->get(route('classes.enrollments.index', $s['class']))->assertOk()->assertSee('Português — Professor: Professora Maria Aparecida da Silva')->assertSee('Componente pendente 5');
+    }
+
+    public function test_substitute_teacher_is_only_listed_when_the_transfer_date_is_within_the_substitution(): void
+    {
+        $s = $this->scenario();
+        $main = Person::create(['full_name' => 'Professora Titular Fictícia']);
+        $current = Person::create(['full_name' => 'Professora Substituta Vigente']);
+        $former = Person::create(['full_name' => 'Professor Substituto Antigo']);
+        $assignment = SchoolClassComponent::create(['school_class_id' => $s['class']->id, 'curriculum_component_id' => $s['components'][0]->id, 'teacher_person_id' => $main->id, 'active' => true]);
+        $assignment->substitutions()->create(['substitute_teacher_person_id' => $current->id, 'starts_at' => '2026-03-01', 'ends_at' => '2026-03-31']);
+        $assignment->substitutions()->create(['substitute_teacher_person_id' => $former->id, 'starts_at' => '2026-02-01', 'ends_at' => '2026-02-28']);
+        $this->actingAs($s['user'])->patch(route('enrollments.transfer', $s['enrollment']), $this->fields())->assertSessionHasErrors('transferred_at');
+        $messages = implode(' ', session('errors')->get('transferred_at'));
+        $this->assertStringContainsString($main->full_name, $messages);
+        $this->assertStringContainsString($current->full_name.' (substituição)', $messages);
+        $this->assertStringNotContainsString($former->full_name, $messages);
     }
 
     private function fields(): array
