@@ -24,7 +24,7 @@
 </div><p class="text-muted mb-0">Os números serão sequenciais, na ordem de cadastro dos participantes selecionados. Depois da emissão, o sistema abrirá os arquivos prontos para consulta e impressão.</p></div></div>
 <button class="btn btn-primary" @disabled(!$logosReady)>Emitir e arquivar certificados oficiais</button><a class="btn btn-outline-secondary" href="{{ route('document-issuance.index') }}">Voltar à central</a>
 </form>
-@if($recent->isNotEmpty())<div class="card mt-4"><div class="card-header">Certificados já emitidos nesta turma</div><ul class="list-group list-group-flush">@foreach($recent as $document)<li class="list-group-item">{{ $document->payload['participant_name'] }} · {{ $document->issued_at->timezone('America/Cuiaba')->format('d/m/Y H:i') }} · <a href="{{ route('credential-archive.pdf',$document) }}" target="_blank" rel="noopener">Abrir PDF original</a></li>@endforeach</ul></div>@endif
+@if($recent->isNotEmpty())<div class="card mt-4"><div class="card-header">Certificados já emitidos nesta turma</div><ul class="list-group list-group-flush">@foreach($recent as $document)<li class="list-group-item">{{ $document->payload['participant_name'] }} · {{ $document->issued_at->timezone('America/Cuiaba')->format('d/m/Y H:i') }} · <a href="{{ route('credential-archive.pdf',$document) }}" target="_blank" rel="noopener">Abrir PDF original</a> @include('partials.credential-delete',['document'=>$document])</li>@endforeach</ul></div>@endif
 @endsection
 @push('scripts')
 <script>document.getElementById('select-graduates').onclick=()=>{const boxes=[...document.querySelectorAll('input[name="participant_ids[]"]:not(:disabled)')],mark=boxes.some(el=>!el.checked);boxes.forEach(el=>el.checked=mark);};</script>

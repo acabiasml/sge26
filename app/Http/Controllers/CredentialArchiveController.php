@@ -4,11 +4,31 @@ namespace App\Http\Controllers;
 
 use App\Models\IssuedDocument;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class CredentialArchiveController extends Controller
 {
+    public function destroy(Request $request, IssuedDocument $document)
+    {
+        abort_unless($request->user()->isAdministrator(), 403);
+        abort_unless(in_array($document->type, IssuedDocument::CREDENTIAL_TYPES, true), 404);
+        $personId = $document->person_id;
+        DB::transaction(function () use ($document): void {
+            $document = IssuedDocument::whereKey($document->id)->lockForUpdate()->firstOrFail();
+            $path = $document->file_path;
+            $document->delete();
+            if ($path && Storage::disk('local')->exists($path) && ! Storage::disk('local')->delete($path)) {
+                throw new \RuntimeException('Não foi possível excluir o arquivo original. A exclusão foi cancelada.');
+            }
+        });
+
+        $redirect = $personId ? redirect()->to(route('people.show', $personId).'#section-certificados') : redirect()->route('document-issuance.index');
+
+        return $redirect->with('status', 'Documento excluído. A exclusão foi registrada na auditoria.');
+    }
+
     public function pdf(Request $request, IssuedDocument $document)
     {
         $this->authorizeDocument($request, $document);

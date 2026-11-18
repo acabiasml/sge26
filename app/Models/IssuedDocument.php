@@ -12,6 +12,15 @@ class IssuedDocument extends Model
 
     public const CREDENTIAL_TYPES = ['free-course-certificate', 'technical-intermediate-certificate', 'technical-course-diploma', 'technical-course-diploma-preview'];
 
+    protected static function booted(): void
+    {
+        static::deleting(function (self $document): void {
+            if (in_array($document->type, self::CREDENTIAL_TYPES, true)) {
+                abort_unless(auth()->user()?->isAdministrator(), 403);
+            }
+        });
+    }
+
     protected $fillable = [
         'batch_uuid',
         'file_sha256',

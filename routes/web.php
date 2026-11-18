@@ -160,6 +160,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('emissao-de-documentos/curso-livre/{offering}/previa/{participant}', [FreeCourseCertificateController::class, 'preview'])->name('free-course-certificates.preview');
     Route::post('emissao-de-documentos/curso-livre/{offering}', [FreeCourseCertificateController::class, 'store'])->name('free-course-certificates.store');
     Route::get('certificados/arquivo/{document}/pdf', [CredentialArchiveController::class, 'pdf'])->name('credential-archive.pdf');
+    Route::delete('certificados/arquivo/{document}', [CredentialArchiveController::class, 'destroy'])->name('credential-archive.destroy');
     Route::get('certificados/lotes/{batch}', [CredentialArchiveController::class, 'batch'])->name('credential-archive.batch');
     Route::get('certificados/lotes/{batch}/zip', [CredentialArchiveController::class, 'zip'])->name('credential-archive.zip');
     Route::get('cursos-tecnicos', [TechnicalProgramController::class, 'index'])->name('technical-programs.index');
