@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Support\AcademicContextLabel;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\TeacherAccess;
+use App\Support\UnifiedStudentHistorySynchronizer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -390,6 +391,7 @@ class DocumentIssuanceController extends Controller
             'type' => ['required', Rule::in(array_keys($types))],
             'target_id' => ['required', 'integer'],
             'history_person_id' => ['nullable', 'integer', 'min:1'],
+            'history_stage' => ['nullable', Rule::in([AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL])],
             'score_view' => ['nullable', Rule::in(['numeros', 'conceitos'])],
             'month' => ['nullable', 'date_format:Y-m'],
             'attendance_scope' => ['nullable', Rule::in(['annual', 'period', 'month'])],
@@ -833,8 +835,8 @@ class DocumentIssuanceController extends Controller
                 ];
             });
 
-        // A matrícula antiga comprova o vínculo com a escola mesmo quando não
-        // existe mais um papel ativo nem um cabeçalho de histórico preparado.
+        // Cada etapa cursada precisa continuar disponível, mesmo que somente
+        // o histórico de outra etapa tenha sido preparado anteriormente.
         $archiveSchoolIds = $request->filled('school_id') ? [$request->integer('school_id')] : $schoolIds;
         $students = Person::query()
             ->where(function (Builder $query) use ($archiveSchoolIds): void {
@@ -842,15 +844,39 @@ class DocumentIssuanceController extends Controller
                     ->orWhereHas('academicHistories', fn (Builder $history) => $history->whereIn('school_id', $archiveSchoolIds)
                         ->where('active', true)->whereHas('years'));
             })
-            ->whereDoesntHave('academicHistories', fn (Builder $history) => $history->forIssuance()->whereIn('school_id', $archiveSchoolIds))
+            ->with([
+                'contacts:id,person_id,relationship_type,cpf',
+                'academicHistories' => fn ($query) => $query->forIssuance()->whereIn('school_id', $archiveSchoolIds),
+                'studentEnrollments' => fn ($query) => $query
+                    ->whereHas('schoolClass.academicYear', fn ($year) => $year->whereIn('school_id', $archiveSchoolIds))
+                    ->with(['courses', 'schoolClass.academicYear.school'])->orderByDesc('enrolled_at')->orderByDesc('id'),
+            ])
             ->when($term !== '', fn (Builder $query) => $this->wherePersonName($query, $term))
-            ->orderBy('full_name')->limit(40)->get(['id', 'full_name', 'social_name'])
-            ->map(fn (Person $person): array => [
-                'id' => $person->id, 'history_person_id' => $person->id,
-                'title' => $person->social_name ?: $person->full_name,
-                'subtitle' => __('Registros escolares · Preparar e conferir o histórico'),
-                'enabled' => true, 'reason' => null,
-            ]);
+            ->orderBy('full_name')->limit(40)->get(['id', 'full_name', 'social_name', 'cpf'])
+            ->flatMap(function (Person $person): Collection {
+                $availableStages = $person->academicHistories->pluck('education_stage');
+                $stages = $person->studentEnrollments->flatMap->courses->pluck('stage')->unique()
+                    ->intersect([AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL])
+                    ->diff($availableStages);
+                [$enabled, $reason] = $this->applyStudentAvailability($person, true, null);
+                $base = [
+                    'id' => $person->id, 'history_person_id' => $person->id,
+                    'title' => $person->social_name ?: $person->full_name,
+                    'enabled' => $enabled, 'reason' => $reason,
+                    'missing_student_cpf' => OfficialDocumentCompliance::studentHasNoCpf($person),
+                ];
+
+                if ($stages->isNotEmpty()) {
+                    return $stages->map(fn (string $stage): array => $base + [
+                        'history_stage' => $stage,
+                        'subtitle' => __('Histórico Escolar').' · '.AcademicCourse::STAGE_LABELS[$stage],
+                    ]);
+                }
+
+                return $person->academicHistories->isEmpty()
+                    ? collect([$base + ['subtitle' => __('Registros escolares · Preparar e conferir o histórico')]])
+                    : collect();
+            });
 
         return $histories->concat($students)->sortBy('title', SORT_NATURAL | SORT_FLAG_CASE)->take(40)->values();
     }
@@ -1117,7 +1143,24 @@ class DocumentIssuanceController extends Controller
                         ->orWhereHas('academicHistories', fn (Builder $history) => $history->whereIn('school_id', $schoolIds));
                 })->firstOrFail();
 
-            return redirect()->route('student-histories.student', $person);
+            if (empty($data['history_stage'])) {
+                return redirect()->route('student-histories.student', $person);
+            }
+
+            $enrollment = $person->studentEnrollments()
+                ->whereHas('courses', fn ($query) => $query->where('stage', $data['history_stage']))
+                ->whereHas('schoolClass.academicYear', fn ($query) => $query->whereIn('school_id', $schoolIds))
+                ->with('schoolClass.academicYear')->orderByDesc('enrolled_at')->orderByDesc('id')->firstOrFail();
+            $this->ensureStudentCanIssue($person, (bool) ($data['confirm_missing_student_cpf'] ?? false));
+            $history = app(UnifiedStudentHistorySynchronizer::class)->synchronize(
+                $person, $enrollment->schoolClass->academicYear->school_id, $user->person_id, $data['history_stage'],
+            );
+
+            return redirect()->route('people.histories.pdf', [
+                'person' => $person, 'history' => $history,
+                'confirm_missing_student_cpf' => ! empty($data['confirm_missing_student_cpf']) ? 1 : null,
+                'emissao' => (string) Str::uuid(),
+            ]);
         }
 
         $history = StudentAcademicHistory::query()

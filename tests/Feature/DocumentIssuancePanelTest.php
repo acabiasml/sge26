@@ -26,6 +26,74 @@ class DocumentIssuancePanelTest extends TestCase
 
     private int $personSequence = 0;
 
+    public function test_existing_elementary_history_does_not_hide_high_school_and_issuance_prepares_it_once(): void
+    {
+        $school = School::create(['name' => 'Escola das etapas', 'active' => true]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $student = $this->personWithRole('Estudante das duas etapas', PersonSchoolRole::ROLE_STUDENT, $school->id);
+        $elementary = $student->academicHistories()->create([
+            'school_id' => $school->id, 'title' => 'Histórico Escolar - Ensino Fundamental',
+            'stage' => 'Ensino Fundamental', 'education_stage' => 'fundamental', 'is_unified' => true, 'active' => true,
+        ]);
+        $year = $school->academicYears()->create(['name' => '2026', 'reference_year' => 2026,
+            'starts_at' => '2026-02-01', 'ends_at' => '2026-12-20']);
+        $course = $year->courses()->create(['name' => '1º Ano', 'stage' => 'medio']);
+        $class = $year->classes()->create(['name' => '1º Ano', 'active' => true]);
+        $class->courses()->attach($course);
+        $enrollment = $class->enrollments()->create(['person_id' => $student->id,
+            'enrolled_at' => '2026-02-01', 'status' => 'matriculado']);
+        $enrollment->courses()->attach($course);
+        $before = $enrollment->fresh()->getAttributes();
+
+        $targets = $this->actingAs($manager)->getJson(route('document-issuance.targets', [
+            'type' => 'academic-history', 'q' => $student->full_name,
+        ]))->assertOk()->assertJsonCount(2, 'targets')->json('targets');
+        $pending = collect($targets)->firstWhere('history_stage', 'medio');
+        $this->assertNotNull($pending);
+        $this->assertStringContainsString('Ensino Médio', $pending['subtitle']);
+        $this->assertFalse($pending['missing_student_cpf']);
+        $this->assertSame($student->id, $pending['history_person_id']);
+        $this->assertDatabaseCount('student_academic_histories', 1);
+        $issue = route('document-issuance.issue', ['type' => 'academic-history',
+            'target_id' => $student->id, 'history_person_id' => $student->id, 'history_stage' => 'medio']);
+        $response = $this->get($issue)->assertRedirect();
+        $history = $student->academicHistories()->where('education_stage', 'medio')->sole();
+        $response->assertRedirectContains(route('people.histories.pdf', [$student, $history]).'?emissao=');
+        $this->assertSame($enrollment->id, $history->years()->sole()->student_enrollment_id);
+        $this->get($issue)->assertRedirect();
+        $this->assertDatabaseCount('student_academic_histories', 2);
+        $this->getJson(route('document-issuance.targets', ['type' => 'academic-history', 'q' => $student->full_name]))
+            ->assertOk()->assertJsonCount(2, 'targets')->assertJsonMissingPath('targets.0.history_stage')
+            ->assertJsonMissingPath('targets.1.history_stage');
+        $this->assertSame($before, $enrollment->fresh()->getAttributes());
+        $this->assertTrue($elementary->fresh()->active);
+        $this->assertDatabaseCount('issued_documents', 0);
+    }
+
+    public function test_pending_history_stage_requires_an_enrollment_in_a_school_managed_by_the_issuer(): void
+    {
+        $school = School::create(['name' => 'Escola autorizada', 'active' => true]);
+        $foreign = School::create(['name' => 'Outra escola', 'active' => true]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $student = $this->personWithRole('Estudante com vínculo externo', PersonSchoolRole::ROLE_STUDENT, $school->id);
+        $student->academicHistories()->create(['school_id' => $school->id, 'title' => 'Histórico Fundamental',
+            'education_stage' => 'fundamental', 'is_unified' => true, 'active' => true]);
+        $year = $foreign->academicYears()->create(['name' => '2026', 'reference_year' => 2026,
+            'starts_at' => '2026-02-01', 'ends_at' => '2026-12-20']);
+        $course = $year->courses()->create(['name' => '1º Ano', 'stage' => 'medio']);
+        $class = $year->classes()->create(['name' => '1º Ano']);
+        $enrollment = $class->enrollments()->create(['person_id' => $student->id,
+            'enrolled_at' => '2026-02-01', 'status' => 'matriculado']);
+        $enrollment->courses()->attach($course);
+
+        $this->actingAs($manager)->getJson(route('document-issuance.targets', [
+            'type' => 'academic-history', 'q' => $student->full_name,
+        ]))->assertOk()->assertJsonCount(1, 'targets')->assertJsonMissingPath('targets.0.history_stage');
+        $this->get(route('document-issuance.issue', ['type' => 'academic-history', 'target_id' => $student->id,
+            'history_person_id' => $student->id, 'history_stage' => 'medio']))->assertNotFound();
+        $this->assertDatabaseCount('student_academic_histories', 1);
+    }
+
     public function test_each_pdf_issuance_has_a_new_url_preserves_filters_and_cannot_be_cached(): void
     {
         $school = School::create(['name' => 'Escola', 'active' => true]);
