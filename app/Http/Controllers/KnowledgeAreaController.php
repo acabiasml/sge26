@@ -44,6 +44,9 @@ class KnowledgeAreaController extends Controller
     {
         abort_unless($request->user()->isAdministrator(), 403);
         $data = $this->validated($request, $area);
+        if ($area->technicalPrograms()->exists()) {
+            $data['subtitle'] = $area->getRawOriginal('subtitle');
+        }
         foreach ($area->components()->with('course')->get() as $component) {
             CurriculumAreaStage::validate($data['name'], $component->course?->stage, 'name');
         }
@@ -99,7 +102,7 @@ class KnowledgeAreaController extends Controller
         DB::transaction(function () use ($area): void {
             $area = $area->newQuery()->whereKey($area->id)->lockForUpdate()->firstOrFail();
             $catalogComponents = $area->historyCatalogComponents()->lockForUpdate()->get();
-            if ($area->components()->exists() || $area->historyCatalogComponents()
+            if ($area->technicalPrograms()->exists() || $area->components()->exists() || $area->historyCatalogComponents()
                 ->where(fn ($query) => $query->whereHas('matrixComponents')->orWhereHas('historyComponents'))->exists()) {
                 throw ValidationException::withMessages(['area' => __('Esta área é utilizada em matrizes ou históricos. Remova os vínculos antes de excluí-la.')]);
             }

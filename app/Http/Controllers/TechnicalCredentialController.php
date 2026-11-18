@@ -54,6 +54,11 @@ class TechnicalCredentialController extends Controller
                 $missing[] = $label.' completo, sem abreviações';
             }
         }
+        foreach (['address' => 'endereço da escola', 'city' => 'cidade da escola', 'state' => 'UF da escola', 'postal_code' => 'CEP da escola'] as $field => $label) {
+            if (blank($course->academicYear->school->{$field})) {
+                $missing[] = $label;
+            }
+        }
         if (blank($course->academicYear->school->cnpj)) {
             $missing[] = 'CNPJ da escola';
         }
@@ -124,7 +129,7 @@ class TechnicalCredentialController extends Controller
         $rows = $module ? $module['components'] : collect($state['modules'])->flatMap(fn ($item) => $item['components'])->values()->all();
         $payload = ['title' => $kind === 'certificate' ? 'Certificado Técnico Intermediário' : ($final ? 'Diploma de Curso Técnico' : 'Diploma de Curso Técnico — AINDA NÃO FINALIZADO'),
             'kind' => $kind, 'is_final' => $final, 'enrollment_id' => $enrollment->id, 'course_id' => $course->id,
-            'program_id' => $program->id, 'program' => $program->toArray(), 'module' => $module ? collect($module)->except('issues')->all() : null,
+            'program_id' => $program->id, 'program' => $program->documentData(), 'module' => $module ? collect($module)->except('issues')->all() : null,
             'components' => $rows, 'total_hours' => $module['hours'] ?? $program->totalHours(), 'completed_at' => $final ? $completion : null,
             'offer_form' => app(TechnicalEnrollmentOffer::class)->resolve($enrollment, $course), 'status_reasons' => $final ? [] : $state['reasons'],
             'student' => $student->only(['full_name', 'birth_date', 'nationality', 'birth_city', 'birth_state', 'mother_name', 'father_name']),
@@ -170,7 +175,7 @@ class TechnicalCredentialController extends Controller
         $staff = $school->roles()->with('person')->where('active', true)->get()->filter(fn ($role) => $role->isActiveForDate());
         $rows = $module ? $module['components'] : collect($state['modules'])->flatMap(fn ($item) => $item['components'])->values()->all();
         $data = ['layout_preview' => true, 'kind' => $kind, 'is_final' => $kind === 'certificate' || $state['final'],
-            'program' => $course->technicalProgram->toArray(), 'module' => $module, 'components' => $rows,
+            'program' => $course->technicalProgram->documentData(), 'module' => $module, 'components' => $rows,
             'total_hours' => $module['hours'] ?? $course->technicalProgram->totalHours(),
             'completed_at' => $module['completed_at'] ?? $state['completed_at'],
             'offer_form' => app(TechnicalEnrollmentOffer::class)->resolve($enrollment, $course) ?: 'forma de oferta pendente na matrícula',

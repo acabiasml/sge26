@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\HistoryCurriculumAlias;
 use App\Models\HistoryCurriculumComponent;
 use App\Models\KnowledgeArea;
+use App\Models\TechnicalProgram;
 use App\Support\CurriculumAreaStage;
+use App\Support\CurriculumCatalog;
 use App\Support\HistoryCurriculumCatalog;
 use App\Support\HistoryCurriculumMerger;
 use App\Support\HistoryCurriculumRenamer;
@@ -32,7 +34,7 @@ class HistoryCurriculumCatalogController extends Controller
             ->with(['area', 'matrixComponents.course.academicYear.school'])->orderBy('name')->get()
             ->filter(fn ($candidate) => $merger->supportsMatrixDefinition($catalogComponent, $candidate)
                 || $merger->supportsMatrixDefinition($candidate, $catalogComponent))
-            ->sortBy(fn ($candidate) => \App\Support\CurriculumCatalog::alphabeticalKey($candidate->name), SORT_NATURAL)->values();
+            ->sortBy(fn ($candidate) => CurriculumCatalog::alphabeticalKey($candidate->name), SORT_NATURAL)->values();
 
         return view('knowledge-areas.merge', ['catalogComponent' => $catalogComponent->load('area'), 'candidates' => $candidates]);
     }
@@ -85,6 +87,9 @@ class HistoryCurriculumCatalogController extends Controller
     {
         abort_unless($request->user()->isAdministrator(), 403);
         abort_if($catalogComponent->matrixComponents()->exists(), 403, __('Este componente está vinculado a matrizes. Revise os vínculos nas matrizes antes de excluí-lo do catálogo.'));
+        if (TechnicalProgram::all()->contains(fn ($program) => $program->componentDefinitions()->contains('catalog_component_id', $catalogComponent->id))) {
+            throw ValidationException::withMessages(['catalog_component' => __('Este componente está vinculado a um curso técnico. Preserve o vínculo antes de removê-lo.')]);
+        }
         if ($catalogComponent->historyComponents()->exists()) {
             throw ValidationException::withMessages(['catalog_component' => __('Este componente é utilizado em históricos. Os vínculos precisam ser preservados.')]);
         }
@@ -107,6 +112,9 @@ class HistoryCurriculumCatalogController extends Controller
             throw ValidationException::withMessages(['name' => __('Esta nomenclatura já foi incorporada a outro componente do catálogo.')]);
         }
         CurriculumAreaStage::validate(KnowledgeArea::findOrFail($data['knowledge_area_id'])->name, $data['education_stage'], 'knowledge_area_id');
+        if ($component && TechnicalProgram::all()->contains(fn ($program) => $program->componentDefinitions()->contains('catalog_component_id', $component->id) && ($program->knowledge_area_id !== (int) $data['knowledge_area_id'] || $data['education_stage'] !== 'tecnico'))) {
+            throw ValidationException::withMessages(['knowledge_area_id' => __('Este componente está vinculado a um curso técnico e deve permanecer na área desse curso.')]);
+        }
         if ($component && $component->education_stage !== $data['education_stage']) {
             foreach ($component->historyComponents()->with(['history', 'records.year'])->get() as $usage) {
                 foreach ($usage->records as $record) {

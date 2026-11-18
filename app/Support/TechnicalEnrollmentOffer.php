@@ -38,7 +38,7 @@ final class TechnicalEnrollmentOffer
     {
         $enrollment->loadMissing('courses');
         if ($enrollment->courses->contains('stage', 'medio')) {
-            return 'concomitante';
+            return in_array('integrado', $course->technicalProgram?->offer_modes ?? [], true) ? 'integrado' : 'concomitante';
         }
         $registered = $enrollment->courses->firstWhere('id', $course->id)?->pivot?->technical_offer_form;
 
@@ -52,12 +52,19 @@ final class TechnicalEnrollmentOffer
         $suggested = $integrated ? 'concomitante' : ($enrollment->enrolled_at ? $this->suggest($enrollment->student, $enrollment->enrolled_at->toDateString(), $enrollment->schoolClass->academicYear->ends_at?->toDateString()) : null);
         $updates = [];
         foreach ($enrollment->courses->where('stage', 'tecnico') as $course) {
-            $value = $integrated ? 'concomitante' : ($forms[$course->id] ?? ($course->pivot?->technical_offer_form ?: $suggested));
+            $value = $integrated ? (in_array('integrado', $course->technicalProgram?->offer_modes ?? [], true) ? 'integrado' : 'concomitante') : ($forms[$course->id] ?? ($course->pivot?->technical_offer_form ?: $suggested));
             if (! $value && ! $required) {
                 continue;
             }
-            if (! in_array($value, ['concomitante', 'subsequente'], true)) {
+            if (! in_array($value, ['concomitante', 'subsequente', 'integrado'], true)) {
                 throw ValidationException::withMessages(['technical_offer_forms' => 'Marque concomitante ou subsequente para cada curso técnico da matrícula.']);
+            }
+            if ($value === 'integrado' && ! $integrated) {
+                throw ValidationException::withMessages(['technical_offer_forms' => 'A oferta integrada exige a matrícula com Formação Geral Básica.']);
+            }
+            $authorized = $course->technicalProgram?->offer_modes ?? [];
+            if ($authorized && ! in_array($value, $authorized, true)) {
+                throw ValidationException::withMessages(['technical_offer_forms' => 'A forma de oferta selecionada não está autorizada no cadastro do curso técnico.']);
             }
             $updates[$course->id] = ['technical_offer_form' => $value];
         }

@@ -197,7 +197,7 @@
                     @endphp
                     <tr>
                         @if($formationGroup['formation'] !== CurriculumCatalog::FORMATION_ITINERARY && $loop->first)
-                            <td class="area-cell" rowspan="{{ $areaGroup['rowspan'] }}">@include('partials.knowledge-area-label', ['labelArea' => $component->area, 'labelName' => $areaGroup['area']])</td>
+                            <td class="area-cell" rowspan="{{ $areaGroup['rowspan'] }}">@include('partials.knowledge-area-label', ['labelCourse' => $component->course, 'labelArea' => $component->area, 'labelName' => $areaGroup['area']])</td>
                         @endif
                         <td class="component-cell" @if($formationGroup['formation'] === CurriculumCatalog::FORMATION_ITINERARY) colspan="2" @endif>{{ $component->name }}</td>
                         @foreach($formationPeriods as $period)

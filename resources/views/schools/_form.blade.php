@@ -1,7 +1,7 @@
 @php
     $schoolTabs = [
         'identificacao' => ['label' => __('Dados e contatos'), 'icon' => 'fa-school', 'fields' => ['name', 'legal_name', 'cnpj', 'inep', 'phone', 'email']],
-        'documentos' => ['label' => __('Dados para documentos'), 'icon' => 'fa-file-alt', 'fields' => ['founded_at', 'website', 'letterhead_text', 'letterhead_text_elementary', 'letterhead_text_high_school', 'logo']],
+        'documentos' => ['label' => __('Dados para documentos'), 'icon' => 'fa-file-alt', 'fields' => ['founded_at', 'website', 'letterhead_text', 'letterhead_text_elementary', 'letterhead_text_high_school', 'logo', 'maintainer', 'creation_act', 'accreditation_act', 'education_system']],
         'endereco' => ['label' => __('Endereço'), 'icon' => 'fa-map-marker-alt', 'fields' => ['address', 'number', 'district', 'city', 'state', 'postal_code']],
     ];
 @endphp
@@ -50,6 +50,12 @@
 </section>
 
 <section id="section-documentos" data-academic-panel="documentos" role="tabpanel">
+<div class="form-row">
+@foreach(['maintainer'=>'Mantenedora','creation_act'=>'Ato legal de criação da escola','accreditation_act'=>'Credenciamento da escola','education_system'=>'Sistema de ensino'] as $field=>$label)
+<div class="form-group col-md-6"><label for="{{ $field }}">{{ $label }}</label><textarea id="{{ $field }}" name="{{ $field }}" class="form-control" rows="2" maxlength="{{ $field==='education_system'?255:2000 }}">{{ old($field,$school->{$field}??'') }}</textarea></div>
+@endforeach
+</div>
+
 
 <div class="form-row">
     <div class="form-group col-md-4">

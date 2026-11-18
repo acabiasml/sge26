@@ -7,13 +7,17 @@ use App\Models\CurriculumComponent;
 use App\Models\DiaryAssessment;
 use App\Models\DiaryAssessmentResult;
 use App\Models\DiaryAttendanceRecord;
+use App\Models\HistoryCurriculumComponent;
 use App\Models\IssuedDocument;
+use App\Models\KnowledgeArea;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\TechnicalProgram;
 use App\Models\User;
 use App\Support\DocumentVerificationPresenter;
+use App\Support\HistoryCurriculumMerger;
+use App\Support\HistoryCurriculumRenamer;
 use App\Support\TechnicalEnrollmentOffer;
 use App\Support\TechnicalFurnitureProject;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -35,6 +39,10 @@ class TechnicalCredentialsTest extends TestCase
             ->assertRedirect(route('technical-credentials.prepare', ['enrollment' => $s['enrollment']->id, 'kind' => 'diploma']));
         $this->get($this->prepareUrl($s))->assertOk()->assertSee('Livro do registro')->assertSee('AINDA NÃO FINALIZADO');
         $this->assertDatabaseCount('issued_documents', 0);
+        $screen = $this->get(route('technical-programs.edit', $s['program']))->assertOk();
+        if (is_dir('/setup')) {
+            file_put_contents('/setup/technical-program-form.html', $screen->getContent());
+        }
     }
 
     public function test_intermediate_certificate_cannot_be_issued_before_the_actual_module_end_even_with_all_grades(): void
@@ -163,19 +171,51 @@ class TechnicalCredentialsTest extends TestCase
         $this->assertSame('concomitante', $s['enrollment']->fresh()->courses->firstWhere('id', $s['course']->id)->pivot->technical_offer_form);
     }
 
-    public function test_program_can_store_a_different_technical_course_with_its_own_modules(): void
+    public function test_program_is_saved_before_associating_existing_catalog_components(): void
     {
         $s = $this->scenario();
-        $data = $s['program']->only(['school_id', 'graduate_title', 'education_mode', 'offer_forms']);
-        $data['name'] = 'Curso Técnico em Informática';
-        $data['graduate_title'] = 'Técnico em Informática';
-        $data['active'] = 1;
-        $data['modules'] = [['name' => 'Fundamentos', 'qualification' => 'Auxiliar de Informática', 'components' => [['name' => 'Redes', 'hours' => 80]]]];
+        $area = KnowledgeArea::create(['name' => 'Técnico em Informática', 'formation' => 'Formação Técnica Profissional', 'active' => true]);
+        $data = ['school_id' => $s['school']->id, 'name' => 'Curso Técnico em Informática', 'graduate_title' => 'Técnico em Informática', 'knowledge_area_id' => $area->id, 'offer_modes' => ['integrado'], 'active' => 1];
         $this->actingAs($s['user'])->post(route('technical-programs.store'), $data)->assertSessionHasNoErrors()->assertRedirect();
         $new = TechnicalProgram::where('name', 'Curso Técnico em Informática')->sole();
-        $this->assertEquals(80, $new->totalHours());
-        $this->assertSame('Auxiliar de Informática', $new->modules[0]['qualification']);
-        $this->assertSame(1200.0, $s['program']->fresh()->totalHours());
+        $this->assertSame([], $new->modules);
+        $this->assertEquals(0, $new->totalHours());
+        $entry = HistoryCurriculumComponent::create(['knowledge_area_id' => $area->id, 'education_stage' => 'tecnico', 'formation' => 'Formação Técnica Profissional', 'name' => 'Redes']);
+        $data['modules'] = [['name' => 'Fundamentos', 'qualification' => 'Auxiliar de Informática', 'components' => [['catalog_component_id' => $entry->id, 'name' => 'Nome indevido enviado', 'hours' => 80]]]];
+        $catalogCount = HistoryCurriculumComponent::count();
+        $this->put(route('technical-programs.update', $new), $data)->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertEquals(80, $new->fresh()->totalHours());
+        $this->assertSame('Redes', $new->fresh()->modules[0]['components'][0]['name']);
+        $this->assertSame('Integrado', $new->fresh()->offer_forms);
+        $this->assertDatabaseCount('history_curriculum_components', $catalogCount);
+    }
+
+    public function test_integrated_offer_is_automatic_only_when_authorized_for_the_course(): void
+    {
+        $s = $this->scenario();
+        $s['program']->update(['offer_modes' => ['integrado']]);
+        $regular = $s['year']->courses()->create(['name' => '2º Ano', 'stage' => 'medio']);
+        $s['enrollment']->courses()->attach($regular);
+        $service = app(TechnicalEnrollmentOffer::class);
+        $this->assertSame('integrado', $service->resolve($s['enrollment']->fresh(), $s['course']->fresh()));
+        $service->record($s['enrollment']->fresh(), []);
+        $this->assertSame('integrado', $s['enrollment']->fresh()->courses->firstWhere('id', $s['course']->id)->pivot->technical_offer_form);
+    }
+
+    public function test_catalog_merge_keeps_the_course_link_and_academic_records(): void
+    {
+        $s = $this->scenario();
+        $source = HistoryCurriculumComponent::findOrFail($s['program']->modules[0]['components'][0]['catalog_component_id']);
+        $target = HistoryCurriculumComponent::create(['name' => 'Desenho Técnico Inicial', 'knowledge_area_id' => $s['area']->id, 'education_stage' => 'tecnico', 'formation' => 'Formação Técnica Profissional']);
+        $s['user']->person->schoolRoles()->create(['role' => PersonSchoolRole::ROLE_ADMINISTRATOR, 'active' => true]);
+        $grades = DiaryAssessmentResult::orderBy('id')->get()->toArray();
+        $hours = $s['program']->totalHours();
+        app(HistoryCurriculumMerger::class)->merge($source->id, $target->id, $s['user']->fresh());
+        $component = $s['program']->fresh()->modules[0]['components'][0];
+        $this->assertSame($target->id, $component['catalog_component_id']);
+        $this->assertSame($target->name, $component['name']);
+        $this->assertEquals($hours, $s['program']->fresh()->totalHours());
+        $this->assertSame($grades, DiaryAssessmentResult::orderBy('id')->get()->toArray());
     }
 
     public function test_central_program_edits_update_linked_matrices_and_prevent_removing_components_in_use(): void
@@ -332,6 +372,63 @@ class TechnicalCredentialsTest extends TestCase
             ->assertSee(route('technical-programs.index', ['school_id' => $s['school']->id]));
         $foreign = School::create(['name' => 'Unidade fora da gestão']);
         $this->get(route('technical-programs.index', ['school_id' => $foreign->id]))->assertForbidden();
+        $this->get(route('technical-programs.create', ['school_id' => $foreign->id]))->assertForbidden();
+    }
+
+    public function test_course_offers_are_checked_options_and_arbitrary_modes_are_rejected(): void
+    {
+        $s = $this->scenario();
+        $data = ['school_id' => $s['school']->id, 'name' => 'Curso novo', 'graduate_title' => 'Técnico novo', 'offer_modes' => ['presencial']];
+        $this->actingAs($s['user'])->post(route('technical-programs.store'), $data)->assertSessionHasErrors('offer_modes.0');
+        $this->assertDatabaseCount('technical_programs', 1);
+    }
+
+    public function test_components_must_exist_in_the_area_of_the_saved_course(): void
+    {
+        $s = $this->scenario();
+        $area = KnowledgeArea::create(['name' => 'Outra área técnica', 'active' => true]);
+        $entry = HistoryCurriculumComponent::create(['name' => 'Componente de outra área', 'knowledge_area_id' => $area->id, 'education_stage' => 'tecnico', 'formation' => 'Formação Técnica Profissional']);
+        $data = $s['program']->toArray();
+        $data['modules'][0]['components'][0]['catalog_component_id'] = $entry->id;
+        $this->actingAs($s['user'])->put(route('technical-programs.update', $s['program']), $data)->assertSessionHasErrors('modules.0.components.0.catalog_component_id');
+        $this->assertSame($s['program']->modules[0]['components'][0]['catalog_component_id'], $s['program']->fresh()->modules[0]['components'][0]['catalog_component_id']);
+    }
+
+    public function test_school_data_is_read_from_the_school_and_never_from_course_copies(): void
+    {
+        $s = $this->scenario();
+        $s['school']->update(['address' => 'Rua Nova da Escola', 'number' => '100', 'maintainer' => 'Mantenedora da ficha da escola']);
+        $s['program']->update(['front_address' => 'Endereço duplicado antigo', 'maintainer' => 'Mantenedora duplicada antiga']);
+        $data = $s['program']->fresh()->documentData();
+        $this->assertStringContainsString('Rua Nova da Escola, 100', $data['front_address']);
+        $this->assertStringNotContainsString('duplicado', $data['front_address']);
+        $this->assertSame('Mantenedora da ficha da escola', $data['maintainer']);
+    }
+
+    public function test_area_authorization_comes_from_the_course_and_respects_the_document_school(): void
+    {
+        $s = $this->scenario();
+        $s['area']->update(['subtitle' => 'Ato antigo escrito na área']);
+        $s['program']->update(['authorization_act' => 'Ato 999/2026 — Autorização atual', 'official_gazette_reference' => 'DOE de referência']);
+        $other = School::create(['name' => 'Outra instituição']);
+        TechnicalProgram::create(['school_id' => $other->id, 'knowledge_area_id' => $s['area']->id, 'name' => 'Curso de outra escola', 'graduate_title' => 'Técnico em Móveis', 'modules' => [], 'offer_modes' => ['subsequente'], 'authorization_act' => 'Ato exclusivo de outra escola']);
+        $html = view('partials.knowledge-area-label', ['labelArea' => $s['area']->fresh(), 'labelSchoolId' => $s['school']->id])->render();
+        $this->assertStringContainsString('Ato 999/2026', $html);
+        $this->assertStringContainsString('DOE de referência', $html);
+        $this->assertStringNotContainsString('Ato antigo', $html);
+        $this->assertStringNotContainsString('Ato exclusivo', $html);
+        $this->assertStringContainsString('Ato 999/2026', $s['course']->fresh()->conciseRegulatoryReference());
+    }
+
+    public function test_catalog_rename_is_reflected_in_course_components_and_preserves_grades(): void
+    {
+        $s = $this->scenario();
+        $entry = HistoryCurriculumComponent::findOrFail($s['program']->modules[0]['components'][0]['catalog_component_id']);
+        $s['user']->person->schoolRoles()->create(['role' => PersonSchoolRole::ROLE_ADMINISTRATOR, 'active' => true]);
+        $grades = DiaryAssessmentResult::orderBy('id')->get()->toArray();
+        app(HistoryCurriculumRenamer::class)->rename($entry->id, 'Desenho Técnico Inicial', $s['user']->fresh());
+        $this->assertSame('Desenho Técnico Inicial', $s['program']->fresh()->modules[0]['components'][0]['name']);
+        $this->assertSame($grades, DiaryAssessmentResult::orderBy('id')->get()->toArray());
     }
 
     private function completeHighSchool(array $s): void
@@ -345,7 +442,7 @@ class TechnicalCredentialsTest extends TestCase
         return ['kind' => $kind, 'course_id' => $s['course']->id, 'module_key' => $s['program']->modules[0]['key'],
             'registry_number' => '123', 'registry_book' => '01', 'registry_folio' => '12', 'registered_by' => 'Responsável Fictício',
             'secretary_name' => 'Secretária Fictícia', 'director_name' => 'Diretor Fictício', 'issued_place' => 'Jarudore, Poxoréu-MT',
-            'registration_date' => now()->toDateString(), 'issued_date' => now()->toDateString(), 'observations' => ''];
+            'registration_date' => now('America/Cuiaba')->toDateString(), 'issued_date' => now('America/Cuiaba')->toDateString(), 'observations' => ''];
     }
 
     private function prepareUrl(array $s): string
@@ -371,15 +468,25 @@ class TechnicalCredentialsTest extends TestCase
     private function scenario(): array
     {
         Storage::fake('local');
-        $this->travelTo(now()->setDate(2026, 11, 17));
-        $school = School::create(['name' => 'Liceu Pedagógico São Francisco de Assis', 'cnpj' => '00.176.974/0001-20', 'city' => 'Poxoréu', 'state' => 'MT', 'active' => true]);
-        $program = TechnicalProgram::create(['school_id' => $school->id, 'name' => 'Curso Técnico em Móveis', 'graduate_title' => 'Técnico em Móveis',
+        $this->travelTo(now()->setDate(2026, 11, 17)->setTime(12, 0));
+        $school = School::create(['name' => 'Liceu Pedagógico São Francisco de Assis', 'cnpj' => '00.176.974/0001-20', 'city' => 'Poxoréu', 'state' => 'MT', 'active' => true, 'address' => 'Rua São João', 'number' => 's/nº', 'district' => 'Jarudore', 'postal_code' => '78800-000',
+            'maintainer' => 'Centro Técnico Juvenil de Jarudore – CTJJ', 'creation_act' => 'C. 4668 D.O.M.T. 07/11/1990.', 'education_system' => 'SISTEMA ESTADUAL DE ENSINO']);
+        $area = KnowledgeArea::create(['name' => 'Técnico em Móveis', 'formation' => 'Itinerário Formativo', 'active' => true]);
+        $modules = TechnicalFurnitureProject::modules();
+        foreach ($modules as &$module) {
+            foreach ($module['components'] as &$definition) {
+                $entry = HistoryCurriculumComponent::create(['knowledge_area_id' => $area->id, 'education_stage' => 'tecnico', 'formation' => 'Formação Técnica Profissional', 'name' => $definition['name']]);
+                $definition['catalog_component_id'] = $entry->id;
+            }
+        }
+        unset($module,$definition);
+        $program = TechnicalProgram::create(['school_id' => $school->id, 'name' => 'Curso Técnico em Móveis', 'graduate_title' => 'Técnico em Móveis', 'knowledge_area_id' => $area->id, 'offer_modes' => ['concomitante', 'subsequente'],
             'technological_axis' => 'Produção Industrial', 'education_mode' => 'Presencial', 'offer_forms' => 'Concomitante e Subsequente',
             'maintainer' => 'Centro Técnico Juvenil de Jarudore – CTJJ', 'creation_act' => 'C. 4668 D.O.M.T. 07/11/1990.', 'authorization_act' => 'Autorização de teste 056/2025',
             'legal_basis' => 'Lei nº 9.394, de 20/12/1996; Lei nº 11.741 de 16/07/2008; e respectivos atos de Autorização de Curso',
             'registry_resolution' => 'Resolução nº 249/07 – CEE/MT', 'front_address' => 'Av. São João, s/n. Jarudore, Poxoréu-MT. CEP 78800-000.',
             'back_address' => 'Rua São João, s/n. Jarudore, Poxoréu-MT. CEP 78800-000. Tel.: (66) 99613-6796.',
-            'state_heading' => 'ESTADO DE MATO GROSSO', 'education_system' => 'SISTEMA ESTADUAL DE ENSINO', 'modules' => TechnicalFurnitureProject::modules(), 'active' => true]);
+            'state_heading' => 'ESTADO DE MATO GROSSO', 'education_system' => 'SISTEMA ESTADUAL DE ENSINO', 'modules' => $modules, 'active' => true]);
         $year = AcademicYear::create(['school_id' => $school->id, 'name' => 'Técnico 2025', 'reference_year' => 2025, 'starts_at' => '2025-02-01', 'ends_at' => '2025-12-19', 'class_hour_minutes' => 60, 'minimum_attendance_percentage' => 75, 'passing_points' => 24, 'active' => true]);
         $dates = [['2025-02-01', '2025-03-31'], ['2025-04-01', '2025-06-30'], ['2025-08-01', '2025-12-19']];
         $periods = [];
@@ -396,7 +503,7 @@ class TechnicalCredentialsTest extends TestCase
         foreach ($program->modules as $i => $module) {
             foreach ($module['components'] as $definition) {
                 $period = $periods[$i];
-                $component = $course->components()->create(['name' => $definition['name'], 'workload_hours' => $definition['hours'], 'starts_period_id' => $period->id, 'ends_period_id' => $period->id, 'active' => true, 'technical_program_component_key' => $definition['key']]);
+                $component = $course->components()->create(['name' => $definition['name'], 'workload_hours' => $definition['hours'], 'starts_period_id' => $period->id, 'ends_period_id' => $period->id, 'active' => true, 'knowledge_area_id' => $area->id, 'technical_program_component_key' => $definition['key']]);
                 $assessment = DiaryAssessment::create(['school_class_id' => $class->id, 'curriculum_component_id' => $component->id, 'academic_period_id' => $period->id, 'title' => 'Média do módulo', 'assessment_date' => $period->ends_at]);
                 $assessment->results()->create(['student_enrollment_id' => $enrollment->id, 'score' => 8]);
                 $assessments[] = $assessment;
@@ -406,6 +513,6 @@ class TechnicalCredentialsTest extends TestCase
         }
         $user = $this->manager($school);
 
-        return compact('school', 'program', 'year', 'course', 'class', 'student', 'enrollment', 'user', 'assessments', 'periods');
+        return compact('school', 'program', 'area', 'year', 'course', 'class', 'student', 'enrollment', 'user', 'assessments', 'periods');
     }
 }

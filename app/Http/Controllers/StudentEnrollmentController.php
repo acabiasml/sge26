@@ -168,7 +168,7 @@ class StudentEnrollmentController extends Controller
     public function technicalOffer(Request $request, StudentEnrollment $enrollment): RedirectResponse
     {
         abort_unless($request->user()->canManageSchool($enrollment->schoolClass->academicYear->school_id), 403);
-        $data = $request->validate(['technical_offer_forms' => ['required', 'array'], 'technical_offer_forms.*' => ['required', Rule::in(['concomitante', 'subsequente'])]]);
+        $data = $request->validate(['technical_offer_forms' => ['required', 'array'], 'technical_offer_forms.*' => ['required', Rule::in(['concomitante', 'subsequente', 'integrado'])]]);
         app(TechnicalEnrollmentOffer::class)->record($enrollment, $data['technical_offer_forms']);
         AuditLog::create(['school_id' => $enrollment->schoolClass->academicYear->school_id, 'auditable_type' => StudentEnrollment::class,
             'auditable_id' => $enrollment->id, 'actor_user_id' => $request->user()->id, 'action' => 'updated', 'metadata' => ['technical_offer_forms' => $data['technical_offer_forms']]]);
@@ -192,7 +192,7 @@ class StudentEnrollmentController extends Controller
             'confirm_transfer' => ['accepted'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'technical_offer_forms' => ['nullable', 'array'],
-            'technical_offer_forms.*' => ['nullable', Rule::in(['concomitante', 'subsequente'])],
+            'technical_offer_forms.*' => ['nullable', Rule::in(['concomitante', 'subsequente', 'integrado'])],
         ], [
             'transferred_at.required' => __('Informe a data da transferência.'),
             'transferred_at.after_or_equal' => __('A data da transferência não pode ser anterior ao início da matrícula.'),

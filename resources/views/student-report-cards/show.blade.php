@@ -198,7 +198,7 @@
                     @forelse($report['annualComponents'] as $summary)
                         <tr>
                             <td>{{ $summary['component']->name }}</td>
-                            <td>@include('partials.knowledge-area-label', ['labelArea' => $summary['component']->area])</td>
+                            <td>@include('partials.knowledge-area-label', ['labelCourse'=>$summary['component']->course, 'labelArea' => $summary['component']->area])</td>
                             <td class="text-center">{{ $scoreView === 'conceitos' ? '-' : number_format((float) $summary['points'], 1, ',', '.') }}</td>
                             <td class="text-center">{{ $attendanceLabel($summary['attendance']['percentage']) }}</td>
                             <td>{{ $componentStatus($summary) }}</td>
@@ -229,7 +229,7 @@
                         <article class="sge-period-result-card">
                             <header>
                                 <strong>{{ $componentReport['component']->name }}</strong>
-                                <span>@include('partials.knowledge-area-label', ['labelArea' => $componentReport['component']->area])</span>
+                                <span>@include('partials.knowledge-area-label', ['labelCourse'=>$componentReport['component']->course, 'labelArea' => $componentReport['component']->area])</span>
                             </header>
                             <div class="sge-component-result">
                                 <div><strong>{{ __('Média') }}</strong><span>{{ $componentReport['average']['complete'] ? __('Completa') : $componentReport['average']['completed_assessments'].__(' de ').$componentReport['average']['total_assessments'].__(' lançada(s)') }}</span></div>

@@ -21,6 +21,10 @@ class School extends Model
         'legacy_metadata',
         'name',
         'legal_name',
+        'maintainer',
+        'creation_act',
+        'accreditation_act',
+        'education_system',
         'cnpj',
         'inep',
         'founded_at',
@@ -60,6 +64,24 @@ class School extends Model
             'district',
             'city',
         ];
+    }
+
+    public function documentAddress(): string
+    {
+        $address = collect([$this->address, $this->number, $this->district,
+            collect([$this->city, $this->state])->filter()->join('-'), $this->postal_code ? 'CEP '.$this->postal_code : null])->filter()->join(', ');
+
+        return $address ? $address.'.' : '';
+    }
+
+    public function stateHeading(): ?string
+    {
+        $names = ['AC' => 'Acre', 'AL' => 'Alagoas', 'AP' => 'Amapá', 'AM' => 'Amazonas', 'BA' => 'Bahia', 'CE' => 'Ceará', 'DF' => 'Distrito Federal', 'ES' => 'Espírito Santo',
+            'GO' => 'Goiás', 'MA' => 'Maranhão', 'MT' => 'Mato Grosso', 'MS' => 'Mato Grosso do Sul', 'MG' => 'Minas Gerais', 'PA' => 'Pará', 'PB' => 'Paraíba', 'PR' => 'Paraná',
+            'PE' => 'Pernambuco', 'PI' => 'Piauí', 'RJ' => 'Rio de Janeiro', 'RN' => 'Rio Grande do Norte', 'RS' => 'Rio Grande do Sul', 'RO' => 'Rondônia', 'RR' => 'Roraima',
+            'SC' => 'Santa Catarina', 'SP' => 'São Paulo', 'SE' => 'Sergipe', 'TO' => 'Tocantins'];
+
+        return isset($names[$this->state]) ? mb_strtoupper(($this->state === 'DF' ? '' : 'Estado de ').$names[$this->state]) : null;
     }
 
     public function technicalPrograms(): HasMany

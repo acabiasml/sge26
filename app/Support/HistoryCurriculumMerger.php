@@ -46,6 +46,7 @@ final class HistoryCurriculumMerger
             if (! $this->supportsMatrixDefinition($source, $target)) {
                 throw ValidationException::withMessages(['target_component_id' => __('A classificação escolhida é incompatível com a etapa de uma das matrizes de origem.')]);
             }
+            app(TechnicalProgramCatalog::class)->replaceCatalogReference($source, $target);
             $historyComponents = $source->historyComponents()->orderBy('student_academic_history_components.id')->lockForUpdate()->get();
             $oldRows = $historyComponents->map->only(['id', 'name', 'formation', 'knowledge_area'])->all();
             $oldMatrices = $matrices->map->only(['id', 'academic_course_id', 'name', 'knowledge_area_id'])->all();

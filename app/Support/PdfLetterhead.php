@@ -73,7 +73,7 @@ class PdfLetterhead
     private static function schoolLines(School $school, array $educationStages): array
     {
         return collect([
-            mb_strtoupper(self::MAINTAINER_NAME),
+            mb_strtoupper($school->maintainer ?: self::MAINTAINER_NAME),
             self::MAINTAINER_CERTIFICATION,
             mb_strtoupper($school->name),
             self::schoolRegistryLine($school),

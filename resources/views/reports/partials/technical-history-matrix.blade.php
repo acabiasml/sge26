@@ -27,7 +27,7 @@
         @foreach($sectionComponents as $component)
             @php($record = $component->records->firstWhere('student_academic_history_year_id', $historyYear?->id))
             <tr>
-                @if($loop->first)<td rowspan="{{ $sectionComponents->count() }}" class="center"><div class="vertical-formation"><span>Formação Técnica Profissional</span></div></td><td rowspan="{{ $sectionComponents->count() }}">@include('partials.knowledge-area-label', ['labelName' => $technicalArea, 'labelArea' => $historyKnowledgeAreas->get(mb_strtolower(trim($technicalArea)))])</td>@endif
+                @if($loop->first)<td rowspan="{{ $sectionComponents->count() }}" class="center"><div class="vertical-formation"><span>Formação Técnica Profissional</span></div></td><td rowspan="{{ $sectionComponents->count() }}">@include('partials.knowledge-area-label', ['labelCourse'=>$history->technicalCourse, 'labelName' => $technicalArea, 'labelArea' => $historyKnowledgeAreas->get(mb_strtolower(trim($technicalArea)))])</td>@endif
                 <td class="component-cell">{{ $component->name }}</td>
                 @foreach($modules as $module)
                     @if($component->module_label === $module)

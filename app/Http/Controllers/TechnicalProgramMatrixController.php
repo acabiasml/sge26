@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\AcademicCourse;
 use App\Models\AcademicYear;
 use App\Models\HistoryCurriculumComponent;
-use App\Models\KnowledgeArea;
 use App\Models\SchoolClassComponent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +25,7 @@ class TechnicalProgramMatrixController extends Controller
         $data = $request->validate(['modules' => ['required', 'array', 'min:1'], 'modules.*.key' => ['required', Rule::in(collect($program->modules)->pluck('key')->all())],
             'modules.*.start' => ['required', Rule::in($periods->modelKeys())], 'modules.*.end' => ['required', Rule::in($periods->modelKeys())]]);
         DB::transaction(function () use ($data, $program, $course, $periods): void {
-            $area = KnowledgeArea::firstOrCreate(['name' => $program->graduate_title], ['active' => true]);
+
             foreach ($data['modules'] as $selected) {
                 if ($periods[$selected['start']]->position > $periods[$selected['end']]->position) {
                     throw ValidationException::withMessages(['modules' => 'O fim do módulo precisa ser igual ou posterior ao início.']);
@@ -34,8 +33,10 @@ class TechnicalProgramMatrixController extends Controller
                 $module = collect($program->modules)->firstWhere('key', $selected['key']);
                 foreach ($module['components'] as $definition) {
                     $component = $course->components()->firstOrNew(['technical_program_component_key' => $definition['key']]);
-                    $catalog = HistoryCurriculumComponent::firstOrCreate(['name' => $definition['name'], 'education_stage' => 'tecnico',
-                        'formation' => 'Formação Técnica Profissional', 'knowledge_area_id' => $area->id], ['active' => true]);
+                    $catalog = HistoryCurriculumComponent::find($definition['catalog_component_id'] ?? null);
+                    if (! $catalog || $catalog->knowledge_area_id !== $program->knowledge_area_id) {
+                        throw ValidationException::withMessages(['modules' => 'Vincule primeiro os componentes existentes no cadastro curricular à área deste curso técnico.']);
+                    }
                     $component->fill(['workload_hours' => $definition['hours'], 'weekly_lessons' => null, 'period_loads' => null,
                         'starts_period_id' => $selected['start'], 'ends_period_id' => $selected['end'], 'active' => true]);
                     $component->adoptCatalogDefinition($catalog);

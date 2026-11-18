@@ -46,8 +46,8 @@
             <div class="modal-body">
                 <label for="area-name-{{ $area->id }}">{{ __('Área') }}</label><input id="area-name-{{ $area->id }}" name="name" class="form-control mb-3" value="{{ $area->name }}" required maxlength="255">
                 <label for="area-subtitle-{{ $area->id }}">{{ __('Subtítulo (credenciamento e autorização)') }}</label>
-                <textarea id="area-subtitle-{{ $area->id }}" name="subtitle" class="form-control mb-1" rows="2" maxlength="1000" aria-describedby="area-subtitle-help-{{ $area->id }}">{{ $area->subtitle }}</textarea>
-                <small id="area-subtitle-help-{{ $area->id }}" class="form-text text-muted mb-3">{{ __('Opcional. Aparece junto ao nome da área, em tamanho menor, nas telas e nos documentos.') }}</small>
+                <textarea id="area-subtitle-{{ $area->id }}" name="subtitle" @disabled($area->technicalPrograms->isNotEmpty()) class="form-control mb-1" rows="2" maxlength="1000" aria-describedby="area-subtitle-help-{{ $area->id }}">{{ $area->subtitle }}</textarea>
+                <small id="area-subtitle-help-{{ $area->id }}" class="form-text text-muted mb-3">@if($area->technicalPrograms->isNotEmpty())A autorização é obtida do <a href="{{ route('technical-programs.index') }}">cadastro do curso técnico</a>.@else{{ __('Opcional. Aparece junto ao nome da área, em tamanho menor, nas telas e nos documentos.') }}@endif</small>
                 <label for="area-formation-{{ $area->id }}">{{ __('Formação') }}</label><select id="area-formation-{{ $area->id }}" name="formation" class="form-control mb-3" required><option value="">{{ __('Formação não definida') }}</option>@foreach($formations as $formation)<option value="{{ $formation }}" @selected($area->formation === $formation)>{{ __($formation) }}</option>@endforeach</select>
                 <p class="small text-muted mb-0">{{ __('A formação da área é utilizada por todos os componentes vinculados a ela, em todas as matrizes. Alterações valem para os próximos relatórios gerados.') }}</p>
             </div>

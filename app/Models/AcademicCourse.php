@@ -348,6 +348,9 @@ class AcademicCourse extends Model
 
     public function conciseRegulatoryReference(): ?string
     {
+        if ($this->technical_program_id) {
+            return $this->technicalProgram?->authorizationReference();
+        }
         if ($this->stage !== self::STAGE_TECHNICAL) {
             return null;
         }

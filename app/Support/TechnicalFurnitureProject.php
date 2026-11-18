@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\AcademicCourse;
 use App\Models\TechnicalProgram;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 final class TechnicalFurnitureProject
@@ -66,6 +67,9 @@ final class TechnicalFurnitureProject
                     app(TechnicalEnrollmentOffer::class)->record($enrollment, [], false);
                 }
             }
+        }
+        if (Schema::hasColumn('technical_programs', 'offer_modes')) {
+            app(TechnicalProgramCatalog::class)->backfill();
         }
     }
 }

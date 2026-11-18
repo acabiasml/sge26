@@ -6,6 +6,7 @@ use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasTitleCaseAttributes;
 use App\Support\HistoryCurriculumPropagation;
 use App\Support\MatrixHistoryCatalog;
+use App\Support\TechnicalProgramAuthorization;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -80,6 +81,11 @@ class KnowledgeArea extends Model
         return (int) $this->matrix_uses_count + (int) $this->history_uses_count;
     }
 
+    public function getSubtitleAttribute($value)
+    {
+        return app(TechnicalProgramAuthorization::class)->forArea($this);
+    }
+
     public function selectionLabel(): string
     {
         return $this->name.(filled($this->subtitle) ? ' — '.$this->subtitle : '');
@@ -87,8 +93,13 @@ class KnowledgeArea extends Model
 
     public static function withSubtitlesByName(): Collection
     {
-        return static::query()->whereNotNull('subtitle')->get()
+        return static::query()->where(fn ($q) => $q->whereNotNull('subtitle')->orWhereHas('technicalPrograms'))->with('technicalPrograms.school')->get()
             ->keyBy(fn (self $area): string => mb_strtolower(trim($area->name)));
+    }
+
+    public function technicalPrograms(): HasMany
+    {
+        return $this->hasMany(TechnicalProgram::class);
     }
 
     public function historyCatalogComponents(): HasMany
