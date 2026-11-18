@@ -6,9 +6,11 @@ use App\Models\AcademicYear;
 use App\Models\AuditLog;
 use App\Models\DiaryAssessment;
 use App\Models\Person;
+use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\SchoolClassComponent;
 use App\Models\SchoolClassComponentSubstitution;
+use App\Models\StudentEnrollment;
 use App\Models\User;
 use App\Support\PersonTrajectory;
 use Carbon\CarbonImmutable;
@@ -19,6 +21,31 @@ use Tests\TestCase;
 class PersonTrajectoryTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_cancelled_enrollment_stays_in_person_trajectory_and_restoration_requires_school_management_and_open_year(): void
+    {
+        $school = School::create(['name' => 'Escola do cancelamento']);
+        [$class, $component] = $this->classroom($school, 2026, 'Turma de Origem');
+        $class->academicYear->update(['closed_at' => null, 'active' => true]);
+        $person = Person::create(['full_name' => 'Estudante com Cancelamento']);
+        $cancelled = $class->enrollments()->create(['person_id' => $person->id, 'enrolled_at' => '2026-02-01',
+            'status' => StudentEnrollment::STATUS_CANCELLED, 'cancelled_at' => '2026-03-10']);
+        $cancelled->courses()->attach($component->academic_course_id);
+        $manager = $this->viewer('gestor', $school->id);
+        $row = app(PersonTrajectory::class)->build($person, $manager, $this->today())['groups']['estudos']['entries']->sole();
+        $this->assertSame('Cancelado', $row['status']);
+        $this->assertSame('2026-03-10', $row['end']);
+        $this->assertFalse($row['ongoing']);
+        $this->assertSame(route('enrollments.restore-cancellation', $cancelled), $row['restore_cancellation_url']);
+        $studentViewer = User::factory()->create(['person_id' => $person->id]);
+        $person->schoolRoles()->create(['role' => PersonSchoolRole::ROLE_STUDENT, 'school_id' => $school->id, 'active' => true]);
+        $row = app(PersonTrajectory::class)->build($person, $studentViewer, $this->today())['groups']['estudos']['entries']->sole();
+        $this->assertNull($row['restore_cancellation_url']);
+        $class->academicYear->update(['closed_at' => '2026-12-21']);
+        $row = app(PersonTrajectory::class)->build($person, $manager, $this->today())['groups']['estudos']['entries']->sole();
+        $this->assertNull($row['restore_cancellation_url']);
+        $this->assertDatabaseHas('student_enrollments', ['id' => $cancelled->id, 'status' => StudentEnrollment::STATUS_CANCELLED]);
+    }
 
     public function test_student_trajectory_shows_reclassification_windows_credit_periods_and_closed_year_without_extending_until_today(): void
     {

@@ -2,8 +2,8 @@
 
 @php($canChangeAcademicStructure = ! $academicYear->approved_at || auth()->user()->isAdministrator())
 @php($canManageTeaching = ! $academicYear->isReadOnly() && auth()->user()->canManageSchool($academicYear->school_id))
-@php($enrollmentCount = $class->enrollments->count())
-@php($enrollmentsByName = $class->enrollments->sortBy(fn ($enrollment) => \Illuminate\Support\Str::ascii(mb_strtolower($enrollment->student?->full_name ?? '')))->values())
+@php($enrollmentsByName = $class->enrollments->where('status', '!=', \App\Models\StudentEnrollment::STATUS_CANCELLED)->sortBy(fn ($enrollment) => \Illuminate\Support\Str::ascii(mb_strtolower($enrollment->student?->full_name ?? '')))->values())
+@php($enrollmentCount = $enrollmentsByName->count())
 @php($assignments = $class->componentAssignments->sortBy(fn ($assignment) => ($assignment->component?->area?->name ?? '').' '.$assignment->component?->name)->values())
 @php($assignmentGroups = $assignments->groupBy(fn ($assignment) => $assignment->component?->area?->name ?? __('Área não definida')))
 @php($activeAssignments = $assignments->where('active', true)->count())

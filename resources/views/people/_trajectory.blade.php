@@ -47,6 +47,19 @@
                                                 <div class="text-muted small mt-1">{{ __('Remove apenas este vínculo; preserva a pessoa e seus registros escolares.') }}</div>
                                             </form>
                                         @endif
+                                        @if(!empty($entry['restore_cancellation_url']))
+                                            <details class="mt-2">
+                                                <summary class="small">{{ __('Desfazer cancelamento') }}</summary>
+                                                <form method="POST" action="{{ $entry['restore_cancellation_url'] }}" class="mt-2" data-confirm-message="{{ __('Desfazer o cancelamento desta matrícula? O estudante voltará a fazer parte da turma.') }}">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <p class="small text-muted">{{ __('Use esta ação apenas para corrigir cancelamento feito por engano.') }}</p>
+                                                    <label for="restore-{{ $entry['id'] }}" class="small">{{ __('Observações da reversão') }}</label>
+                                                    <textarea id="restore-{{ $entry['id'] }}" name="notes" class="form-control mb-2" rows="2" maxlength="5000"></textarea>
+                                                    <button class="btn btn-sm btn-outline-primary" type="submit">{{ __('Desfazer cancelamento') }}</button>
+                                                </form>
+                                            </details>
+                                        @endif
                                     </td>
                                     <td class="sge-person-trajectory-period">
                                         <span class="d-block">{{ $entry['period'] }}</span>

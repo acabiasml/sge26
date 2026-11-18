@@ -28,7 +28,7 @@ final class PersonTrajectory
         $enrollments = $person->studentEnrollments()->whereHas('schoolClass.academicYear', $visible)
             ->with(['schoolClass.academicYear.school', 'schoolClass.academicYear.periods', 'schoolClass.startsPeriod', 'schoolClass.endsPeriod',
                 'courses', 'reclassifiedFrom.schoolClass.academicYear', 'periodConvalidations.period'])->get();
-        $studies = $enrollments->map(function ($enrollment) use ($today, $schools): array {
+        $studies = $enrollments->map(function ($enrollment) use ($today, $schools, $viewer): array {
             $class = $enrollment->schoolClass;
             $year = $class->academicYear;
             $start = $enrollment->enrolled_at?->toDateString();
@@ -71,7 +71,11 @@ final class PersonTrajectory
 
             return $this->item('enrollment-'.$enrollment->id, $class->name, $enrollment->courses->pluck('name')->unique()->join(' · '),
                 $year->school->name, $year->reference_year, $start, $end, $ongoing, $status, $today) + [
-                    'details' => $details, 'url' => route('enrollments.report-card.show', $enrollment), 'link_label' => __('Abrir boletim')];
+                    'details' => $details, 'url' => route('enrollments.report-card.show', $enrollment), 'link_label' => __('Abrir boletim'),
+                    'restore_cancellation_url' => $enrollment->status === StudentEnrollment::STATUS_CANCELLED
+                        && $viewer->canManageSchool($year->school_id) && ! $year->isReadOnly()
+                            ? route('enrollments.restore-cancellation', $enrollment) : null,
+                ];
         });
         // Um vínculo sem matrícula permanece visível, mas não implica série cursada.
         foreach ($roles->where('role', PersonSchoolRole::ROLE_STUDENT) as $role) {

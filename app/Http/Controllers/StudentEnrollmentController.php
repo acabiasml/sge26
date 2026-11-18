@@ -44,7 +44,7 @@ class StudentEnrollmentController extends Controller
                                     ->with([
                                         'academicYear',
                                         'courses' => fn ($courses) => $courses->orderBy('name'),
-                                        'enrollments',
+                                        'enrollments' => fn ($query) => $query->where('status', '!=', StudentEnrollment::STATUS_CANCELLED),
                                     ])
                                     ->orderBy('name');
                             },
@@ -77,9 +77,8 @@ class StudentEnrollmentController extends Controller
             'academicYear' => $academicYear,
             'class' => $class->load([
                 'courses' => fn ($courses) => $courses->orderBy('name'),
-                'enrollments.student',
-                'enrollments.courses',
-                'enrollments.reclassifiedFrom.schoolClass',
+                'enrollments' => fn ($query) => $query->where('status', '!=', StudentEnrollment::STATUS_CANCELLED)
+                    ->with(['student', 'courses', 'reclassifiedFrom.schoolClass']),
             ]),
             'availableCourses' => $availableCourses,
             'students' => Person::query()

@@ -8,7 +8,7 @@
 @php($closureWarnings = collect($closureIssues)->where('level', 'warning'))
 @php($activeClasses = $academicYear->classes->filter->isOperational())
 @php($visibleClasses = auth()->user()->isAdministrator() ? $academicYear->classes : $activeClasses)
-@php($enrollmentCount = $visibleClasses->sum(fn ($class) => $class->enrollments->count()))
+@php($enrollmentCount = $visibleClasses->sum(fn ($class) => $class->enrollments->where('status', '!=', \App\Models\StudentEnrollment::STATUS_CANCELLED)->count()))
 @php($defaultAcademicYearTab = $errors->hasAny(['date', 'date_end', 'type', 'counts_as_school_day', 'title', 'description']) ? 'calendario' : ($errors->hasAny(['approved_at', 'closed_at', 'closure_notes', 'reopen_reason']) ? 'gestao' : 'resumo'))
 
 @section('title', $academicYear->name)
@@ -365,7 +365,7 @@
                                         {{ $class->shift ?: __('Turno não definido') }} ·
                                         {{ $class->courses->pluck('name')->join(' + ') ?: __('Sem matriz') }} ·
                                         {{ $class->formattedPlannedWorkloadHours() }} {{ __('horas previstas ·') }}
-                                        {{ $class->enrollments->count() }} {{ __('matrículas') }}
+                                        {{ $class->enrollments->where('status', '!=', \App\Models\StudentEnrollment::STATUS_CANCELLED)->count() }} {{ __('matrículas') }}
                                         <span class="badge badge-{{ $classStatus['tone'] }} ml-1">{{ __($classStatus['label']) }}</span>
                                     </div>
                                 </div>

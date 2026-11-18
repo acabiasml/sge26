@@ -146,6 +146,26 @@ class ReactiveListingsTest extends TestCase
         return $year;
     }
 
+    public function test_class_roster_omits_cancelled_enrollments_without_hiding_transferred_students(): void
+    {
+        $this->user();
+        $school = School::create(['name' => 'Escola da turma', 'active' => true]);
+        $year = $this->enrollmentYear($school, 2026, 'Turma de teste');
+        $class = $year->classes()->sole();
+        foreach (['Estudante Vigente' => StudentEnrollment::STATUS_ENROLLED,
+            'Estudante Transferido' => StudentEnrollment::STATUS_TRANSFERRED,
+            'Estudante Cancelado' => StudentEnrollment::STATUS_CANCELLED] as $name => $status) {
+            $person = Person::create(['full_name' => $name]);
+            $enrollment = $class->enrollments()->create(['person_id' => $person->id, 'enrolled_at' => '2026-02-01', 'status' => $status]);
+            $enrollment->courses()->attach($year->courses()->sole()->id);
+        }
+        Livewire::test(ScreenListing::class, ['screen' => 'enrollments', 'context' => ['class' => $class->id]])
+            ->assertSee('Estudante Vigente')->assertSee('Estudante Transferido')->assertDontSee('Estudante Cancelado')
+            ->assertSee('Pesquisa concluída: 2 resultado(s).')
+            ->set('filters.q', 'Cancelado')->assertSee('Nenhuma matrícula cadastrada.');
+        $this->assertSame(3, $class->enrollments()->count());
+    }
+
     public function test_enrollment_tabs_restore_url_selection_and_follow_search_results(): void
     {
         $this->user();

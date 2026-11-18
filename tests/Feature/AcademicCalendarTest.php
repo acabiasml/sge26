@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Controllers\AcademicCalendarPdfController;
 use App\Http\Controllers\AcademicMatricesPdfController;
+use App\Livewire\ScreenListing;
 use App\Models\AcademicCourse;
 use App\Models\AcademicPeriodDiaryConsolidation;
 use App\Models\AcademicYear;
@@ -30,6 +31,7 @@ use App\Support\DashboardShortcuts;
 use App\Support\HistoryCatalogIntegrator;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use ReflectionMethod;
 use Tests\TestCase;
 
@@ -1836,11 +1838,36 @@ class AcademicCalendarTest extends TestCase
             'cancelled_by_person_id' => $administrator->person_id,
         ]);
 
+        $this->get(route('classes.enrollments.index', $schoolClass))->assertOk()
+            ->assertViewHas('class', fn ($class) => $class->enrollments->isEmpty())
+            ->assertSee('0 estudantes');
+        Livewire::test(ScreenListing::class, ['screen' => 'enrollments', 'context' => ['class' => $schoolClass->id]])
+            ->assertDontSee($student->person->full_name)
+            ->set('filters.q', $student->person->full_name)->assertSee('Nenhuma matrícula cadastrada.');
+        $this->get(route('enrollments.index'))->assertOk()
+            ->assertViewHas('schools', fn ($schools) => $schools->flatMap->academicYears->flatMap->classes
+                ->flatMap->enrollments->doesntContain('id', $enrollment->id));
+        $this->get(route('academic-years.classes.show', [$year, $schoolClass]))->assertOk()
+            ->assertDontSee($student->person->full_name);
+        $this->get(route('people.show', $student->person))->assertOk()
+            ->assertSee('Cancelado')->assertSee('10/03/2026')
+            ->assertSee(route('enrollments.restore-cancellation', $enrollment), false);
+        $this->assertDatabaseHas('academic_course_student_enrollment', [
+            'student_enrollment_id' => $enrollment->id, 'academic_course_id' => $course->id,
+        ]);
+
         $this->actingAs($administrator)
             ->patch(route('enrollments.transfer', $enrollment), [
                 'transferred_at' => '2026-03-12',
             ])
             ->assertSessionHasErrors('enrollment');
+
+        $this->patch(route('enrollments.restore-cancellation', $enrollment), ['notes' => 'Cancelamento registrado por engano.'])
+            ->assertSessionHasNoErrors()->assertRedirect(route('classes.enrollments.index', $schoolClass));
+        $this->get(route('classes.enrollments.index', $schoolClass))->assertOk()
+            ->assertViewHas('class', fn ($class) => $class->enrollments->contains('id', $enrollment->id))
+            ->assertSee('1 estudantes');
+        $this->assertStringContainsString('Desistência formalizada pela família.', $enrollment->fresh()->notes);
     }
 
     public function test_transfer_requires_confirmation_and_one_partial_grade_instead_of_every_assessment(): void
