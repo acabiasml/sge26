@@ -250,7 +250,7 @@
                         <span>{{ __('navigation.areas_components') }}</span>
                     </a>
                 </div>
-                <div class="nav-item {{ request()->routeIs('audit-logs.*') ? 'active' : '' }}">
+                <div class="nav-item {{ request()->routeIs('audit-logs.*', 'operation-failures.index') ? 'active' : '' }}">
                     <a class="nav-link" href="{{ route('audit-logs.index') }}">
                         <i class="fas fa-fw fa-history" aria-hidden="true"></i>
                         <span>{{ __('navigation.audit') }}</span>
@@ -418,15 +418,15 @@
                     @endunless
 
                     @if (session('status'))
-                        <div class="alert alert-success" role="status" aria-live="polite">
+                        <div data-operation-failure-recorded="{{ session('_operation_failure_id') }}" class="alert alert-success" role="status" aria-live="polite">
                             {{ __(session('status')) }}
                         </div>
                     @endif
                     @if (session('error'))
-                        <div class="alert alert-danger" role="alert" aria-live="assertive">{{ session('error') }}</div>
+                        <div data-operation-failure-recorded="{{ session('_operation_failure_id') }}" class="alert alert-danger" role="alert" aria-live="assertive">{{ session('error') }}</div>
                     @endif
                     @if (session('workspace_temporary_password'))
-                        <div class="alert alert-warning" role="alert" aria-live="assertive">
+                        <div data-no-failure-monitor class="alert alert-warning" role="alert" aria-live="assertive">
                             <strong>{{ __('navigation.temporary_password') }}</strong>
                             <code class="ml-2">{{ session('workspace_temporary_password') }}</code>
                             <span class="d-block mt-1">{{ __('navigation.temporary_password_help') }}</span>
@@ -434,7 +434,7 @@
                     @endif
 
                     @if ($errors->any())
-                        <div class="alert alert-danger sge-validation-summary" role="alert" tabindex="-1" data-validation-summary>
+                        <div data-operation-failure-recorded="{{ session('_operation_failure_id') }}" class="alert alert-danger sge-validation-summary" role="alert" tabindex="-1" data-validation-summary>
                             <strong>{{ __('navigation.validation_failed') }}</strong>
                             <span>{{ __('navigation.check_fields') }}</span>
                             <ul class="mb-0 mt-2 pl-4">
@@ -465,6 +465,7 @@
     <script src="{{ asset('template/js/sge-diary-tabs.js') }}?v={{ filemtime(public_path('template/js/sge-diary-tabs.js')) }}"></script>
     <script src="{{ asset('template/vendor/jquery-easing/jquery.easing.min.js') }}"></script>
     <script src="{{ asset('template/js/sb-admin-2.min.js') }}"></script>
+    <script src="{{ asset('template/js/sge-operation-failures.js') }}?v={{ filemtime(public_path('template/js/sge-operation-failures.js')) }}" data-report-url="{{ route('operation-failures.store') }}" data-app-url="{{ url('/') }}"></script>
     @include('layouts.partials.table-scripts')
     <script src="{{ asset('template/js/sge-table-drag.js') }}?v={{ filemtime(public_path('template/js/sge-table-drag.js')) }}"></script>
     <script src="{{ asset('template/js/sge-loading.js') }}?v={{ filemtime(public_path('template/js/sge-loading.js')) }}" data-loading-label="{{ __('Solicitação em processamento') }}"></script>

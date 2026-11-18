@@ -193,7 +193,7 @@
                                         <section class="sge-movement-panel h-100">
                                             <h3 class="h6">{{ __('Transferência') }}</h3>
                                             <p class="small text-muted">{{ __('Registra a saída do estudante preservando o histórico desta matrícula.') }}</p>
-                                            <form method="POST" action="{{ route('enrollments.transfer', $enrollment) }}" data-confirm-message="{{ __('Confirmar transferência desta matrícula? Antes de registrar, confira se as notas do período atual estão completas.') }}">
+                                            <form method="POST" action="{{ route('enrollments.transfer', $enrollment) }}" data-confirm-message="{{ __('Confirmar transferência desta matrícula? Confira a data e pelo menos uma nota parcial em cada componente do período atual.') }}">
                                                 @csrf
                                                 @method('PATCH')
                                                 <div class="form-group">
@@ -202,7 +202,7 @@
                                                 </div>
                                                 <div class="custom-control custom-checkbox mb-3">
                                                     <input class="custom-control-input" type="checkbox" name="confirm_transfer" value="1" id="confirm_transfer_{{ $enrollment->id }}" required>
-                                                    <label class="custom-control-label" for="confirm_transfer_{{ $enrollment->id }}">{{ __('Conferi a matrícula, a data e as notas do período atual.') }}</label>
+                                                    <label class="custom-control-label" for="confirm_transfer_{{ $enrollment->id }}">{{ __('Conferi a matrícula, a data e as notas parciais do período atual.') }}</label>
                                                 </div>
                                                 <div class="form-group">
                                                     <label for="transfer_notes_{{ $enrollment->id }}">{{ __('Observações') }}</label>

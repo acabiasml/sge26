@@ -200,7 +200,7 @@ class StudentEnrollmentController extends Controller
             'confirm_transfer.accepted' => __('Confirme que a transferência foi conferida antes de registrar.'),
         ]);
 
-        $this->ensureCurrentPeriodGradesAreComplete($enrollment, $class, $academicYear, $data['transferred_at']);
+        $this->ensureCurrentPeriodHasPartialGrades($enrollment, $class, $academicYear, $data['transferred_at']);
 
         $enrollment->update([
             'status' => StudentEnrollment::STATUS_TRANSFERRED,
@@ -614,7 +614,7 @@ class StudentEnrollmentController extends Controller
         }
     }
 
-    private function ensureCurrentPeriodGradesAreComplete(StudentEnrollment $enrollment, SchoolClass $class, AcademicYear $academicYear, string $transferDate): void
+    private function ensureCurrentPeriodHasPartialGrades(StudentEnrollment $enrollment, SchoolClass $class, AcademicYear $academicYear, string $transferDate): void
     {
         $period = $academicYear->periods()
             ->whereDate('starts_at', '<=', $transferDate)
@@ -625,41 +625,23 @@ class StudentEnrollmentController extends Controller
             return;
         }
 
-        $componentIds = $enrollment->courses()
-            ->with('components:id,academic_course_id,name')
-            ->get()
-            ->flatMap(fn ($course) => $course->components->pluck('id'))
-            ->unique()
-            ->values();
-
-        if ($componentIds->isEmpty()) {
+        $components = $enrollment->courses()->with('components.startsPeriod', 'components.endsPeriod')->get()
+            ->flatMap(fn ($course) => $course->components)->unique('id')
+            ->filter(fn ($component) => $component->active && $component->isActiveInPeriod($period));
+        if ($components->isEmpty()) {
             return;
         }
-
-        $assessments = DiaryAssessment::query()
-            ->with(['component', 'results' => fn ($results) => $results->where('student_enrollment_id', $enrollment->id)])
-            ->where('school_class_id', $class->id)
-            ->where('academic_period_id', $period->id)
-            ->whereIn('curriculum_component_id', $componentIds)
-            ->where('is_recovery', false)
-            ->whereNotNull('school_assessment_rule_id')
-            ->get();
-
-        if ($assessments->isEmpty()) {
-            throw ValidationException::withMessages([
-                'transferred_at' => __('Antes de transferir, configure as avaliações e conclua as notas do período ').$period->name.'.',
-            ]);
-        }
-
-        $missing = $assessments
-            ->filter(fn (DiaryAssessment $assessment): bool => $assessment->results->first()?->score === null)
-            ->map(fn (DiaryAssessment $assessment): string => trim(($assessment->component?->name ?? 'Componente').' - '.$assessment->title))
-            ->unique()
-            ->values();
-
+        $gradedComponents = DiaryAssessment::query()
+            ->where('school_class_id', $class->id)->where('academic_period_id', $period->id)
+            ->whereIn('curriculum_component_id', $components->pluck('id'))->where('is_recovery', false)
+            ->where(fn ($query) => $query->whereNotNull('school_assessment_rule_id')->orWhereNull('assessment_date')->orWhereDate('assessment_date', '<=', $transferDate))
+            ->whereHas('results', fn ($results) => $results->where('student_enrollment_id', $enrollment->id)->whereNotNull('score'))
+            ->pluck('curriculum_component_id')->unique();
+        $gradedComponents = $gradedComponents->concat($enrollment->periodConvalidations()->where('academic_period_id', $period->id)->whereNotNull('score')->pluck('curriculum_component_id'))->unique();
+        $missing = $components->whereNotIn('id', $gradedComponents)->pluck('name')->values();
         if ($missing->isNotEmpty()) {
             throw ValidationException::withMessages([
-                'transferred_at' => __('Antes de transferir, conclua as notas do período ').$period->name.'. Pendências: '.$missing->take(5)->join(', ').($missing->count() > 5 ? '...' : '').'.',
+                'transferred_at' => 'Antes de transferir, registre pelo menos uma nota parcial por componente no período '.$period->name.'. Sem nota parcial: '.$missing->take(5)->join(', ').($missing->count() > 5 ? '...' : '').'.',
             ]);
         }
     }

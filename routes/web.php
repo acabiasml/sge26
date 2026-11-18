@@ -56,6 +56,7 @@ use App\Http\Controllers\TechnicalCredentialController;
 use App\Http\Controllers\TechnicalProgramController;
 use App\Http\Controllers\TechnicalProgramMatrixController;
 use App\Http\Controllers\ThemeController;
+use App\Http\Controllers\UserOperationFailureController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -81,6 +82,8 @@ Route::patch('/visao', [RoleViewController::class, 'update'])->middleware('auth'
 Route::patch('/idioma', [LocaleController::class, 'update'])->middleware('auth')->name('locale.update');
 
 Route::post('recados/{announcement}/visto', [AnnouncementController::class, 'seen'])->middleware('auth')->name('announcements.seen');
+
+Route::post('operacoes/falhas', [UserOperationFailureController::class, 'store'])->middleware(['auth', 'throttle:60,1'])->name('operation-failures.store');
 
 Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::resource('escolas', SchoolController::class)
@@ -309,6 +312,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::put('recados/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
     Route::delete('recados/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
 
+    Route::get('auditoria/erros', [UserOperationFailureController::class, 'index'])->name('operation-failures.index');
     Route::get('auditoria', [AuditLogController::class, 'index'])->name('audit-logs.index');
     Route::patch('auditoria/fuso-horario', [AuditLogController::class, 'updateTimezone'])->name('audit-logs.timezone.update');
     Route::get('auditoria/{auditLog}/grupo', [AuditLogController::class, 'group'])->name('audit-logs.group');

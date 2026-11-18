@@ -13,6 +13,9 @@
 @endsection
 
 @section('content')
+    @if(auth()->user()->isAdministrator())
+    <div class="card shadow sge-panel-card mb-4"><div class="card-body d-flex flex-wrap align-items-center justify-content-between"><div><h2 class="h5">Erros e operações não concluídas</h2><p class="mb-2">Mensagens recebidas pelos usuários, com a operação tentada, o contexto e o motivo da falha.</p><span>{{ $failureCount }} ocorrência(s) nas últimas 24 horas.</span></div><a class="btn btn-outline-primary" href="{{ route('operation-failures.index') }}">Abrir log de erros</a></div></div>
+    @endif
     @if (auth()->user()->isAdministrator())
         <div class="card shadow mb-4">
             <div class="card-body">

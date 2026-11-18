@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Models\UserOperationFailure;
 use App\Support\AuditLogGroups;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ class AuditLogController extends Controller
         $user = $request->user();
 
         return view('audit-logs.index', [
+            'failureCount' => $user->isAdministrator() ? UserOperationFailure::where('occurred_at', '>=', now()->subDay())->count() : null,
             'auditTimezone' => $user->auditTimezone(),
             'auditTimezones' => User::AUDIT_TIMEZONES,
         ]);

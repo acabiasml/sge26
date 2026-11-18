@@ -1747,8 +1747,10 @@ class AcademicCalendarTest extends TestCase
         $this->reclassificationPeriods($year);
         $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'regra.reclassificacao@ctjj.org');
         $course = $year->courses()->create(['name' => 'Ensino Médio', 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL, 'active' => true]);
-        $from = $year->classes()->create(['name' => 'Origem', 'active' => true]); $from->courses()->attach($course);
-        $to = $year->classes()->create(['name' => 'Destino', 'active' => true]); $to->courses()->attach($course);
+        $from = $year->classes()->create(['name' => 'Origem', 'active' => true]);
+        $from->courses()->attach($course);
+        $to = $year->classes()->create(['name' => 'Destino', 'active' => true]);
+        $to->courses()->attach($course);
         $enrollment = $from->enrollments()->create(['person_id' => $student->person_id, 'enrolled_at' => '2026-02-01', 'status' => 'matriculado']);
         $enrollment->courses()->attach($course);
         $payload = ['target_school_class_id' => $to->id, 'course_ids' => [$course->id]];
@@ -1841,7 +1843,7 @@ class AcademicCalendarTest extends TestCase
             ->assertSessionHasErrors('enrollment');
     }
 
-    public function test_transfer_requires_confirmation_and_complete_current_period_grades(): void
+    public function test_transfer_requires_confirmation_and_one_partial_grade_instead_of_every_assessment(): void
     {
         $administrator = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
         $year = $this->academicYear();
@@ -1885,6 +1887,12 @@ class AcademicCalendarTest extends TestCase
             'weight' => 10,
             'maximum_score' => 10,
             'is_recovery' => false,
+        ]);
+
+        DiaryAssessment::create([
+            'school_class_id' => $class->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id, 'title' => 'Avaliação ainda não realizada',
+            'is_recovery' => false, 'assessment_date' => '2026-04-10',
         ]);
 
         $this->actingAs($administrator)
