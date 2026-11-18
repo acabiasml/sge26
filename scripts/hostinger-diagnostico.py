@@ -271,6 +271,8 @@ with tempfile.TemporaryDirectory() as directory:
                          'php artisan migrate --path=database/migrations/2026_11_17_210000_link_technical_programs_to_catalog_and_school.php --force --no-ansi'))
         commands.insert(2, ('Preservar cadastros técnicos ao centralizar fontes',
                          'php artisan migrate --path=database/migrations/2026_11_17_210100_preserve_existing_technical_program_catalog_links.php --force --no-ansi'))
+        commands.insert(3, ('Preparar cursos livres e arquivo de certificados',
+                         'php artisan migrate --path=database/migrations/2026_11_18_010000_create_free_courses_and_credential_archive.php --force --no-ansi'))
         commands.append(('Migrations', 'php artisan migrate:status --no-ansi'))
         expected_commit = os.environ['EXPECTED_COMMIT']
         deadline = time.monotonic() + 180

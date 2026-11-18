@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'courses' => 'Corsi',
     'technical_programs' => 'Corsi tecnici',
     'areas_components' => 'Aree e discipline',
     'home' => 'Inizio',

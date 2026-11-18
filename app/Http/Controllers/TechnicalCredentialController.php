@@ -147,7 +147,7 @@ class TechnicalCredentialController extends Controller
                     throw new \RuntimeException('Não foi possível guardar o documento emitido.');
                 }
                 chmod(Storage::disk('local')->path($path), 0600);
-                $document->update(['file_path' => $path]);
+                $document->update(['file_path' => $path, 'file_sha256' => hash('sha256', $response->getContent())]);
 
                 return $response;
             });
@@ -200,11 +200,6 @@ class TechnicalCredentialController extends Controller
 
     public function pdf(Request $request, IssuedDocument $document)
     {
-        abort_unless($request->user()->canManagePeople() && $request->user()->canManageSchool($document->school_id), 403);
-        abort_unless(in_array($document->type, ['technical-intermediate-certificate', 'technical-course-diploma', 'technical-course-diploma-preview'], true), 404);
-        abort_if($document->revoked_at, 410);
-        abort_unless($document->file_path && Storage::disk('local')->exists($document->file_path), 404);
-
-        return response(Storage::disk('local')->get($document->file_path), 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="beaba-documento-tecnico-'.$document->uuid.'.pdf"']);
+        return app(CredentialArchiveController::class)->pdf($request, $document);
     }
 }

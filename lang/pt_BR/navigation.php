@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'courses' => 'Cursos',
     'technical_programs' => 'Cursos técnicos',
     'areas_components' => 'Áreas e componentes',
     'home' => 'Início', 'skip' => 'Ir para o conteúdo', 'main_menu' => 'Menu principal', 'menu' => 'Menu',

@@ -10,7 +10,11 @@ class IssuedDocument extends Model
 {
     use Auditable;
 
+    public const CREDENTIAL_TYPES = ['free-course-certificate', 'technical-intermediate-certificate', 'technical-course-diploma', 'technical-course-diploma-preview'];
+
     protected $fillable = [
+        'batch_uuid',
+        'file_sha256',
         'registration_key',
         'uuid',
         'verification_code',

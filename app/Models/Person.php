@@ -174,6 +174,19 @@ class Person extends Model
         return $this->hasMany(StudentAcademicHistory::class);
     }
 
+    public function freeCourseParticipants(): HasMany
+    {
+        return $this->hasMany(FreeCourseParticipant::class);
+    }
+
+    public function scopeInSchoolRecords(Builder $query, array $schoolIds): Builder
+    {
+        return $query->where(fn (Builder $q) => $q
+            ->whereHas('schoolRoles', fn ($roles) => $roles->whereIn('school_id', $schoolIds))
+            ->orWhereHas('freeCourseParticipants.offering.freeCourse', fn ($courses) => $courses->whereIn('school_id', $schoolIds))
+            ->orWhereHas('issuedDocuments', fn ($documents) => $documents->whereIn('school_id', $schoolIds)->whereIn('type', IssuedDocument::CREDENTIAL_TYPES)));
+    }
+
     public function issuedDocuments(): HasMany
     {
         return $this->hasMany(IssuedDocument::class);

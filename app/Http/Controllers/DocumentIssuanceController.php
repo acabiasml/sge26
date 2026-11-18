@@ -6,6 +6,7 @@ use App\Http\Requests\VolunteerReceiptRequest;
 use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
 use App\Models\AcademicYear;
+use App\Models\FreeCourseOffering;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
@@ -165,6 +166,10 @@ class DocumentIssuanceController extends Controller
             'target' => 'enrollment',
             'icon' => 'fa-file-alt',
             'score_view' => true,
+        ],
+        'free-course-certificate' => [
+            'group' => 'Estudante', 'label' => 'Emissão de Certificado de Curso Livre',
+            'description' => 'Selecione a turma do curso livre. Emita para uma pessoa ou para vários concluintes.', 'target' => 'free_offering', 'icon' => 'fa-certificate',
         ],
         'technical-intermediate-certificate' => [
             'group' => 'Estudante', 'label' => 'Emissão de Certificado Técnico Intermediário',
@@ -357,6 +362,10 @@ class DocumentIssuanceController extends Controller
             'course' => $this->courseTargets($request, $schoolIds, $term),
             'own_enrollment' => StudentEnrollment::query()->with('schoolClass')->where('person_id', $request->user()->person_id)->get()->map(fn ($enrollment) => ['id' => $enrollment->id, 'title' => $enrollment->schoolClass?->name ?? '-', 'subtitle' => $enrollment->enrolled_at?->format('d/m/Y'), 'enabled' => true]),
             'direct', 'listing' => collect($types[$data['type']]['target'] === 'listing' ? [1 => 'PDF', 2 => 'Excel'] : [1 => $types[$data['type']]['label']])->map(fn ($label, $id) => ['id' => $id, 'title' => __($label), 'subtitle' => __($types[$data['type']]['description']), 'enabled' => true]),
+            'free_offering' => FreeCourseOffering::whereHas('freeCourse', fn ($q) => $q->whereIn('school_id', $schoolIds)
+                ->when($request->filled('school_id'), fn ($q) => $q->where('school_id', $request->integer('school_id'))))
+                ->where(fn ($q) => $q->where('name', 'like', '%'.$term.'%')->orWhereHas('freeCourse', fn ($c) => $c->where('name', 'like', '%'.$term.'%')))
+                ->with('freeCourse.school')->orderByDesc('ends_at')->limit(40)->get()->map(fn ($o) => ['id' => $o->id, 'title' => $o->freeCourse->name.' — '.$o->name, 'subtitle' => $o->freeCourse->school->name.' · '.$o->ends_at->format('d/m/Y'), 'enabled' => true]),
             'technical_enrollment' => $this->technicalEnrollmentTargets($request, $schoolIds, $term),
             'enrollment' => $this->enrollmentTargets($request, $schoolIds, $term, $data['type']),
             'person' => $this->personTargets($request, $schoolIds, $term),
@@ -398,6 +407,7 @@ class DocumentIssuanceController extends Controller
             'course' => $this->issueCourse($data, $schoolIds),
             'own_enrollment' => redirect()->route('student-diaries.schedule-pdf', StudentEnrollment::query()->where('person_id', $request->user()->person_id)->findOrFail($data['target_id'])),
             'direct', 'listing' => $this->issueDirect($data),
+            'free_offering' => $this->issueFreeCourse($data, $schoolIds),
             'technical_enrollment' => $this->issueTechnical($data, $schoolIds),
             'enrollment' => $this->issueEnrollment($data, $schoolIds),
             'person' => $this->issuePerson($data, $request->user(), $schoolIds),
@@ -408,6 +418,13 @@ class DocumentIssuanceController extends Controller
             'diary' => $this->issueDiary($data, $schoolIds, $request->user()),
             default => abort(404),
         };
+    }
+
+    private function issueFreeCourse(array $data, array $schoolIds): RedirectResponse
+    {
+        $offering = FreeCourseOffering::whereHas('freeCourse', fn ($q) => $q->whereIn('school_id', $schoolIds))->findOrFail($data['target_id']);
+
+        return redirect()->route('free-course-certificates.prepare', $offering);
     }
 
     private function technicalEnrollmentTargets(Request $request, array $schoolIds, string $term): Collection

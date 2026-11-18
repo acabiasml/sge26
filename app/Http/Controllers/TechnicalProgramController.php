@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FreeCourse;
 use App\Models\HistoryCurriculumComponent;
 use App\Models\KnowledgeArea;
 use App\Models\School;
@@ -28,6 +29,8 @@ class TechnicalProgramController extends Controller
         }
 
         return view('technical-programs.index', [
+            'freeCourses' => FreeCourse::with('school')->withCount('offerings')->whereIn('school_id', $ids)
+                ->when($selectedSchool, fn ($q) => $q->where('school_id', $selectedSchool->id))->orderBy('name')->get(),
             'programs' => TechnicalProgram::with('school')->whereIn('school_id', $ids)
                 ->when($selectedSchool, fn ($query) => $query->where('school_id', $selectedSchool->id))->orderBy('name')->get(),
             'schools' => School::whereIn('id', $ids)->orderBy('name')->get(), 'selectedSchool' => $selectedSchool,

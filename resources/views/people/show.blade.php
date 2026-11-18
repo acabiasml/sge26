@@ -13,6 +13,7 @@
         && $person->schoolRoles->isEmpty()
         && $person->studentEnrollments->isEmpty()
         && $person->academicHistories->isEmpty()
+        && ! $person->freeCourseParticipants()->exists()
         && $person->issuedDocuments->isEmpty()
         && ! $person->user;
 @endphp
@@ -77,6 +78,7 @@
             'dados' => ['label' => __('screens.personal_data'), 'icon' => 'fa-id-card'],
             'trajetoria' => ['label' => __('Trajetória e movimentações'), 'icon' => 'fa-route'],
             'matriculas' => ['label' => __('screens.academic_enrollments'), 'icon' => 'fa-user-graduate', 'count' => $person->studentEnrollments->count()],
+            'certificados' => ['label' => __('Certificados e diplomas'), 'icon' => 'fa-certificate', 'count' => $person->issuedDocuments->whereIn('type', \App\Models\IssuedDocument::CREDENTIAL_TYPES)->count()],
             'historicos' => ['label' => __('screens.school_histories'), 'icon' => 'fa-folder-open', 'count' => $issuableHistories->count()],
             'vinculos' => ['label' => __('screens.roles_relationships'), 'icon' => 'fa-user-tag', 'count' => $person->schoolRoles->count()],
             'contatos' => ['label' => __('screens.guardians_contacts'), 'icon' => 'fa-address-book', 'count' => $person->contacts->count()],
@@ -98,6 +100,7 @@
                 </a>
             @endforeach
         </nav>
+        @include('people.partials.credential-archive')
         <div id="section-dados" data-academic-panel="dados" role="tabpanel">
             <div class="card shadow mb-4">
                 <div class="card-header font-weight-bold">{{ __('screens.personal_data') }}</div>

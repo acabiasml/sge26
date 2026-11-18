@@ -69,7 +69,7 @@
                     || request()->routeIs('people.contacts.*')
                     || request()->routeIs('people.roles.*');
                 $personalMenuActive = request()->routeIs('profile.*') || request()->routeIs('student-diaries.*') || $ownStudentLifeActive || request()->routeIs('teacher-schedules.*');
-                $schoolManagementActive = request()->routeIs('technical-programs.*') || request()->routeIs('schools.*') || request()->routeIs('academic-years.*') || $peopleRegistryActive || request()->routeIs('data-quality.*');
+                $schoolManagementActive = request()->routeIs('technical-programs.*', 'courses.*', 'free-courses.*', 'free-course-certificates.*', 'credential-archive.*') || request()->routeIs('schools.*') || request()->routeIs('academic-years.*') || $peopleRegistryActive || request()->routeIs('data-quality.*');
                 $academicRoutineActive = request()->routeIs('enrollments.*') || request()->routeIs('classes.enrollments.*') || request()->routeIs('attendance-justifications.*') || request()->routeIs('teacher-diaries.*') || request()->routeIs('student-histories.*') || ($studentLifeActive && ! $ownStudentLifeActive);
                 $documentsMenuActive = request()->routeIs('document-issuance.*') || request()->routeIs('official-documents.*') || request()->routeIs('documents.verify', 'documents.verify.*');
             @endphp
@@ -137,9 +137,9 @@
                                 </a>
                             @endif
                             @if ($canManagePeople)
-                                <a class="collapse-item {{ request()->routeIs('technical-programs.*') ? 'active' : '' }}" href="{{ route('technical-programs.index') }}">
+                                <a class="collapse-item {{ request()->routeIs('technical-programs.*', 'courses.*', 'free-courses.*', 'free-course-certificates.*', 'credential-archive.*') ? 'active' : '' }}" href="{{ route('courses.index') }}">
                                     <i class="fas fa-graduation-cap" aria-hidden="true"></i>
-                                    <span>{{ __('navigation.technical_programs') }}</span>
+                                    <span>{{ __('navigation.courses') }}</span>
                                 </a>
                                 <a class="collapse-item {{ $peopleRegistryActive ? 'active' : '' }}" href="{{ route('people.index') }}">
                                     <i class="fas fa-users" aria-hidden="true"></i>

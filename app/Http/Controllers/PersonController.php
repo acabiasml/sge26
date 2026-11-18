@@ -28,9 +28,7 @@ class PersonController extends Controller
             ->orderBy('full_name');
 
         if (! $user->isAdministrator()) {
-            $query->whereHas('schoolRoles', function ($roles) use ($user): void {
-                $roles->whereIn('school_id', $user->manageableSchoolIds());
-            });
+            $query->inSchoolRecords($user->manageableSchoolIds());
         }
 
         return view('people.index', [
@@ -154,14 +152,12 @@ class PersonController extends Controller
             return true;
         }
 
-        return $person->schoolRoles()
-            ->whereIn('school_id', $user->manageableSchoolIds())
-            ->exists();
+        return Person::whereKey($person->id)->inSchoolRecords($user->manageableSchoolIds())->exists();
     }
 
     private function canDeletePerson(Person $person): bool
     {
-        return ! $person->schoolRoles()->exists()
+        return ! $person->freeCourseParticipants()->exists() && ! $person->schoolRoles()->exists()
             && ! $person->user()->exists()
             && ! $person->studentEnrollments()->exists()
             && ! $person->academicHistories()->exists()

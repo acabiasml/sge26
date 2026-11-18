@@ -69,6 +69,7 @@ class DocumentVerificationPresenter
     public static function typeLabel(string $type): string
     {
         return match (true) {
+            $type === 'free-course-certificate' => __('Certificado de curso livre'),
             $type === 'technical-intermediate-certificate' => __('Certificado Técnico Intermediário'),
             $type === 'technical-course-diploma' => __('Diploma de Curso Técnico'),
             $type === 'technical-course-diploma-preview' => __('Diploma de Curso Técnico — AINDA NÃO FINALIZADO'),
@@ -108,6 +109,7 @@ class DocumentVerificationPresenter
     private static function description(string $type): string
     {
         return match (true) {
+            $type === 'free-course-certificate' => __('Este código confirma a emissão de um certificado de conclusão de curso livre.'),
             $type === 'technical-course-diploma-preview' => __('Esta é uma prévia de acompanhamento: o curso ainda não foi finalizado. Não comprova a conclusão nem a obtenção do título.'),
             $type === 'technical-course-diploma' => __('Este código confirma a emissão de um diploma de curso técnico concluído.'),
             $type === 'technical-intermediate-certificate' => __('Este código confirma a emissão de um certificado de qualificação intermediária após a conclusão do módulo.'),

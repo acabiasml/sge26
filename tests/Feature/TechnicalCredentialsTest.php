@@ -365,11 +365,11 @@ class TechnicalCredentialsTest extends TestCase
         $other = TechnicalProgram::create(['school_id' => $second->id, 'name' => 'Curso técnico exclusivo da outra unidade',
             'graduate_title' => 'Técnico de teste', 'modules' => $s['program']->modules, 'active' => true]);
         $this->actingAs($s['user']->fresh())->get(route('technical-programs.index'))->assertOk()->assertSee($s['program']->name)->assertSee($other->name);
-        $this->get(route('technical-programs.index', ['school_id' => $s['school']->id]))->assertOk()
+        $this->get(route('courses.index', ['school_id' => $s['school']->id]))->assertOk()
             ->assertSee($s['program']->name)->assertDontSee($other->name)
             ->assertSee(route('technical-programs.create', ['school_id' => $s['school']->id]));
         $this->get(route('schools.academic-years.index', $s['school']))->assertOk()
-            ->assertSee(route('technical-programs.index', ['school_id' => $s['school']->id]));
+            ->assertSee(route('courses.index', ['school_id' => $s['school']->id]));
         $foreign = School::create(['name' => 'Unidade fora da gestão']);
         $this->get(route('technical-programs.index', ['school_id' => $foreign->id]))->assertForbidden();
         $this->get(route('technical-programs.create', ['school_id' => $foreign->id]))->assertForbidden();

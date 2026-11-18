@@ -1,0 +1,2 @@
+<div class="logos"><div class="logo">@if($logos['maintainer_logo'])<img src="{{ $logos['maintainer_logo'] }}" alt="Logo do Centro Técnico Juvenil de Jarudore">@endif</div><div class="logo school">@if($logos['school_logo'])<img src="{{ $logos['school_logo'] }}" alt="Logo da escola emissora">@endif</div></div>
+<div class="school-name" style="font-size:{{ mb_strlen($data['school_name'])>80?11:14 }}pt;line-height:{{ mb_strlen($data['school_name'])>80?14:18 }}pt">{{ mb_strtoupper($data['school_name']) }}<div class="eyebrow">CURSOS LIVRES · FORMAÇÃO CONTINUADA</div></div>

@@ -33,10 +33,14 @@ class PeopleTable extends DataTableComponent
         return Person::query()
             ->with('schoolRoles.school')
             ->when(! $user->isAdministrator(), function (Builder $query) use ($user): void {
-                $query->whereHas('schoolRoles', fn (Builder $roles) => $roles->whereIn('school_id', $user->manageableSchoolIds()));
+                $query->inSchoolRecords($user->manageableSchoolIds());
             })
             ->when(filled($roleFilter) || filled($schoolFilter) || filled($roleStatusFilter), function (Builder $query) use ($roleFilter, $schoolFilter, $roleStatusFilter): void {
-                $query->whereHasSchoolRole($roleFilter ?: null, $schoolFilter ?: null, $roleStatusFilter ?: null);
+                if (filled($schoolFilter) && ! filled($roleFilter) && ! filled($roleStatusFilter)) {
+                    $query->inSchoolRecords([(int) $schoolFilter]);
+                } else {
+                    $query->whereHasSchoolRole($roleFilter ?: null, $schoolFilter ?: null, $roleStatusFilter ?: null);
+                }
             });
     }
 
