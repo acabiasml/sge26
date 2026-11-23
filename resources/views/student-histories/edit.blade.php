@@ -4,7 +4,8 @@
 @section('page-title', __('Editar histórico'))
 
 @section('page-actions')
-    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ $history->freshPdfUrl() }}" aria-label="{{ __('Emitir histórico em PDF') }}" title="{{ __('Histórico em PDF') }}">
+    <a class="btn btn-sm btn-primary sge-icon-action" href="{{ route('people.histories.prepare-official',[$person,$history]) }}" aria-label="{{ __('Preparar versão oficial') }}" title="{{ __('Preparar versão oficial') }}"><i class="fas fa-file-signature" aria-hidden="true"></i></a>
+    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ $history->freshPdfUrl() }}" aria-label="{{ __('Gerar prévia temporária') }}" title="{{ __('Prévia temporária do histórico') }}">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
     <a data-navigation-return class="btn btn-sm btn-outline-secondary shadow-sm sge-icon-action" href="{{ route('people.histories.show', [$person, $history]) }}" aria-label="{{ __('Voltar ao histórico') }}" title="{{ __('Voltar ao histórico') }}">

@@ -17,6 +17,7 @@ use App\Models\StudentAcademicHistory;
 use App\Models\StudentEnrollment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -58,7 +59,7 @@ class DocumentIssuancePanelTest extends TestCase
             'target_id' => $student->id, 'history_person_id' => $student->id, 'history_stage' => 'medio']);
         $response = $this->get($issue)->assertRedirect();
         $history = $student->academicHistories()->where('education_stage', 'medio')->sole();
-        $response->assertRedirectContains(route('people.histories.pdf', [$student, $history]).'?emissao=');
+        $response->assertRedirectContains(route('people.histories.prepare-official', [$student, $history]).'?emissao=');
         $this->assertSame($enrollment->id, $history->years()->sole()->student_enrollment_id);
         $this->get($issue)->assertRedirect();
         $this->assertDatabaseCount('student_academic_histories', 2);
@@ -108,6 +109,16 @@ class DocumentIssuancePanelTest extends TestCase
         $this->assertStringContainsString('no-store', $first->headers->get('Cache-Control'));
         $this->get(route('document-issuance.issue', ['type' => 'listing-people', 'target_id' => 2]))
             ->assertRedirect(route('reports.excel', 'people'));
+
+        Storage::fake('local');
+        $digital = $this->get($url.'&signature_mode=digital')->assertRedirectContains('signature_mode=digital');
+        $prepared = $this->get($digital->headers->get('Location'));
+        $document = IssuedDocument::sole();
+        $prepared->assertRedirect(route('document-signatures.show', $document));
+        Storage::disk('local')->assertExists($document->file_path);
+        $this->assertDatabaseCount('credential_registrations', 0);
+        $this->get(route('document-issuance.issue', ['type' => 'listing-people', 'target_id' => 2, 'signature_mode' => 'digital']))
+            ->assertRedirect(route('reports.excel', 'people'));
     }
 
     public function test_manager_finds_former_student_without_prepared_history_or_school_role_and_can_open_the_archive(): void
@@ -139,7 +150,7 @@ class DocumentIssuancePanelTest extends TestCase
         $this->getJson(route('document-issuance.targets', ['type' => 'academic-history', 'q' => 'Joaquim']))
             ->assertOk()->assertJsonCount(1, 'targets')->assertJsonPath('targets.0.id', $canonical->id);
         $this->get(route('document-issuance.issue', ['type' => 'academic-history', 'target_id' => $canonical->id]))
-            ->assertRedirectContains(route('people.histories.pdf', ['person' => $student, 'history' => $canonical]).'?emissao=');
+            ->assertRedirectContains(route('people.histories.prepare-official', ['person' => $student, 'history' => $canonical]).'?emissao=');
         $this->assertFalse($student->fresh()->active);
         $this->assertSame($before, $enrollment->fresh()->getAttributes());
         $this->assertDatabaseCount('issued_documents', 0);
@@ -202,7 +213,7 @@ class DocumentIssuancePanelTest extends TestCase
         $this->assertSame($yearBefore, $year->fresh()->getAttributes());
         $this->assertSame($recordBefore, $record->fresh()->getAttributes());
         $this->get(route('document-issuance.issue', ['type' => 'academic-history', 'target_id' => $canonical->id]))
-            ->assertRedirectContains(route('people.histories.pdf', ['person' => $student, 'history' => $canonical]).'?emissao=');
+            ->assertRedirectContains(route('people.histories.prepare-official', ['person' => $student, 'history' => $canonical]).'?emissao=');
     }
 
     public function test_history_issuance_rejects_legacy_and_inactive_ids_and_keeps_other_stages_available(): void

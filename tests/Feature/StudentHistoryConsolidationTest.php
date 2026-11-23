@@ -109,7 +109,7 @@ class StudentHistoryConsolidationTest extends TestCase
         $this->addYear($source, 1);
         $canonical = $this->synchronize($source);
         $this->assertFalse(app(StudentAcademicHistoryCompleteness::class)->evaluate($canonical)['complete']);
-        $this->get(route('people.histories.pdf', [$source->person_id, $canonical]))->assertRedirect(route('people.histories.show', [$source->person_id, $canonical]));
+        $this->get(route('people.histories.pdf', [$source->person_id, $canonical]))->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->assertSame(2, $canonical->years()->count());
         $this->assertDatabaseCount('issued_documents', 0);
     }
@@ -156,7 +156,7 @@ class StudentHistoryConsolidationTest extends TestCase
         $source->years()->whereKey($yearId)->update(['grade_phase' => 'Fase inicial', 'label' => 'Fase inicial', 'grade_number' => null]);
         $canonical = $this->synchronize($source);
         $this->assertFalse(app(StudentAcademicHistoryCompleteness::class)->evaluate($canonical)['complete']);
-        $this->get(route('people.histories.pdf', [$source->person_id, $canonical]))->assertRedirect(route('people.histories.show', [$source->person_id, $canonical]));
+        $this->get(route('people.histories.pdf', [$source->person_id, $canonical]))->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->assertDatabaseCount('issued_documents', 0);
     }
 }

@@ -13,8 +13,10 @@ use App\Support\BrazilianStates;
 use App\Support\CurriculumAreaStage;
 use App\Support\HistoryCatalogIntegrator;
 use App\Support\HistoryCurriculumCatalog;
+use App\Support\HistoryDocumentVersion;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
+use App\Support\SchoolSignatureStaff;
 use App\Support\StudentAcademicHistoryCompleteness;
 use App\Support\StudentAcademicHistoryPdf;
 use App\Support\StudentHistoryConsolidator;
@@ -386,9 +388,29 @@ class StudentAcademicHistoryController extends Controller
             ->with('status', __('Ano cadastrado removido do histórico.'));
     }
 
+    public function prepareOfficial(Request $request, Person $person, StudentAcademicHistory $history, UnifiedStudentHistorySynchronizer $synchronizer, StudentAcademicHistoryCompleteness $completeness)
+    {
+        $this->authorizeHistory($request, $person, $history);
+        if (! $history->is_unified) {
+            return redirect()->route('student-histories.student', $person);
+        }
+        if ($history->education_stage) {
+            $history = $synchronizer->synchronize($person, $history->school_id, $request->user()->person_id, $history->education_stage, $history->technical_course_id);
+        }
+        $history->load('school', 'student', 'years.records', 'components.records.year');
+
+        return view('credential-registry.history-prepare', ['person' => $person, 'history' => $history,
+            'version' => HistoryDocumentVersion::of($history),
+            'completeness' => $completeness->evaluate($history),
+            'recent' => IssuedDocument::where('person_id', $person->id)->where('school_id', $history->school_id)
+                ->where('type', 'student-academic-history')->where('payload->student_academic_history_id', $history->id)
+                ->where('issued_by_user_id', $request->user()->id)->whereNotNull('file_sha256')->whereNull('revoked_at')->latest('id')->paginate(10)]);
+    }
+
     public function pdf(Request $request, Person $person, StudentAcademicHistory $history, UnifiedStudentHistorySynchronizer $synchronizer, StudentAcademicHistoryCompleteness $completeness): Response|RedirectResponse
     {
         $this->authorizeHistory($request, $person, $history);
+        $official = $request->isMethod('post');
         if (! $history->is_unified) {
             if ($canonical = $this->canonicalHistory($request, $person, $history, $synchronizer)) {
                 return redirect()->to($canonical->freshPdfUrl());
@@ -411,11 +433,11 @@ class StudentAcademicHistoryController extends Controller
         $history->load(['school', 'student', 'years.records', 'components.records.year']);
 
         $historyCompleteness = $completeness->evaluate($history);
-        if (! $historyCompleteness['complete']) {
+        if ($official && ! $historyCompleteness['complete']) {
             return redirect()->route('people.histories.show', [$person, $history])->with('status', $historyCompleteness['message']);
         }
 
-        if ($message = OfficialDocumentCompliance::studentMessage($person, $request->boolean('confirm_missing_student_cpf'))) {
+        if ($official && ($message = OfficialDocumentCompliance::studentMessage($person, $request->boolean('confirm_missing_student_cpf')))) {
             return redirect()->route('people.histories.show', [$person, $history])->with('status', $message);
         }
 
@@ -424,46 +446,45 @@ class StudentAcademicHistoryController extends Controller
                 ->with('status', __('Não é possível emitir histórico escolar sem escola relacionada ao documento.'));
         }
 
-        if ($message = OfficialDocumentCompliance::schoolMessage($history->school)) {
+        if ($official && ($message = OfficialDocumentCompliance::schoolMessage($history->school))) {
             return redirect()->route('schools.edit', $history->school)->with('status', $message);
         }
 
-        $issuedDocument = IssuedDocument::query()->create([
-            'uuid' => (string) Str::uuid(),
-            'verification_code' => $this->verificationCode(),
-            'type' => 'student-academic-history',
-            'person_id' => $person->id,
-            'school_id' => $history->school_id,
-            'issued_by_user_id' => $request->user()->id,
-            'payload' => [
-                'title' => $history->title.' - '.$person->full_name,
-                'student_academic_history_id' => $history->id,
-                'rows_count' => $history->components->count(),
-            ],
-            'issued_at' => now(),
-        ]);
+        if ($official) {
+            $data = $request->validate(['signature_mode' => ['required', Rule::in(['physical', 'digital'])], 'expected_version' => ['required', 'string', 'size:64']]);
+            if (! hash_equals(HistoryDocumentVersion::of($history), $data['expected_version'])) {
+                throw ValidationException::withMessages(['expected_version' => 'O histórico mudou. Gere outra prévia e confira antes de emitir.']);
+            }
+        }
 
+        $staff = SchoolSignatureStaff::forSchool($history->school);
+        $payload = [
+            'title' => $history->title,
+            'student_academic_history_id' => $history->id,
+            'rows_count' => $history->components->count(),
+            'is_draft' => ! $official,
+            'signers' => array_values(array_filter([$staff['diretor']?->full_name, $staff['secretário']?->full_name])),
+        ];
+        $document = new IssuedDocument([
+            'uuid' => (string) Str::uuid(), 'verification_code' => $official ? $this->verificationCode() : 'PREVIA-SEM-REGISTRO',
+            'type' => 'student-academic-history', 'person_id' => $person->id, 'school_id' => $history->school_id,
+            'issued_by_user_id' => $request->user()->id, 'payload' => $payload, 'issued_at' => now(),
+        ]);
         $pdf = app(StudentAcademicHistoryPdf::class)->make([
-            'person' => $person,
-            'history' => $history,
-            'issuedDocument' => $issuedDocument,
-            'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
+            'person' => $person, 'history' => $history, 'issuedDocument' => $document, 'isDraft' => ! $official,
+            'historySignatureStaff' => $staff,
+            'verificationUrl' => $official ? route('documents.verify', $document->verification_code) : null,
             'letterhead' => PdfLetterhead::make($history->school, $history->education_stage),
             'technicalPeriodDurations' => $this->technicalPeriodDurations($history),
         ]);
+        $pdf->addInfo(['Title' => ($official ? '' : 'PRÉVIA TEMPORÁRIA — ').$history->title, 'Author' => 'Beabá']);
+        $filename = 'beaba-'.($official ? 'historico-' : 'previa-historico-').$person->id.'-'.$document->uuid.'.pdf';
+        $response = $pdf->stream($filename);
+        if ($official) {
+            $document->save();
+        }
 
-        $pdf->addInfo([
-            'Title' => $history->title.' - '.$person->full_name.' - '.$issuedDocument->verification_code,
-            'Subject' => 'Histórico escolar emitido pelo Beabá',
-            'Author' => $issuedDocument->person?->full_name ?? 'Beabá',
-        ]);
-
-        return $pdf->stream('beaba-historico-escolar-'.$person->id.'-'.$history->id.'-'.now()->format('Ymd-His').'.pdf')
-            ->withHeaders([
-                'Cache-Control' => 'private, no-store, no-cache, max-age=0, must-revalidate',
-                'Pragma' => 'no-cache',
-                'Expires' => '0',
-            ]);
+        return $response;
     }
 
     private function technicalPeriodDurations(StudentAcademicHistory $history)

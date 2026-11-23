@@ -3,7 +3,8 @@
         ?? $issuedDocument->issuedBy?->name
         ?? $issuedDocument->issuedBy?->email
         ?? 'Sistema';
-    $verificationUrl = route('documents.verify', $issuedDocument->verification_code);
+    $isTemporaryDocument = (bool) ($issuedDocument->payload['is_draft'] ?? false);
+    $verificationUrl = $isTemporaryDocument ? route('documents.verify.form') : route('documents.verify', $issuedDocument->verification_code);
     $qrCodeDataUri = (new \chillerlan\QRCode\QRCode)->render($verificationUrl);
 
     $footerSegments = collect($letterhead['footer_lines'] ?? [])
@@ -27,7 +28,7 @@
         </colgroup>
         <tr>
             <td class="document-footer-qr">
-                <img src="{{ $qrCodeDataUri }}" alt="QR Code de validação do documento" />
+                @unless($isTemporaryDocument)<img src="{{ $qrCodeDataUri }}" alt="QR Code de validação do documento" />@endunless
             </td>
             <td class="document-footer-text">
                 @if($contactLine)
@@ -35,7 +36,7 @@
                 @endif
                 <div class="document-footer-authentication">
                     @if($phoneLine){{ $phoneLine }} | @endif
-                    Documento emitido pelo Beabá. Autenticidade: {{ $issuedDocument->verification_code }}.
+                    @if($isTemporaryDocument)PRÉVIA TEMPORÁRIA — SEM VALOR OFICIAL — SEM REGISTRO.@else Documento emitido pelo Beabá. Autenticidade: {{ $issuedDocument->verification_code }}.@endif
                 </div>
                 <div class="document-footer-issuance">
                     @if($siteLine){{ $siteLine }} | @endif

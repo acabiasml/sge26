@@ -147,6 +147,21 @@
                     <span class="sge-document-step-label">{{ __('Apresentação') }}</span>
                     <h3>{{ __('Defina as opções do documento') }}</h3>
 
+                    <div class="form-group" id="signature-options" hidden>
+                        <label for="issuance-signature-mode">{{ __('Como o documento será assinado?') }}</label>
+                        <select class="form-control" name="signature_mode" id="issuance-signature-mode" aria-describedby="issuance-signature-help" disabled>
+                            <option value="physical">{{ __('Assinatura física · abrir PDF para impressão') }}</option>
+                            <option value="digital">{{ __('Assinatura digital · preparar PDF para assinatura externa') }}</option>
+                        </select>
+                        <p id="issuance-signature-help" class="small text-muted mt-1 mb-0">{{ __('Para assinar à mão, imprima o PDF. Para assinar digitalmente, use o certificado ICP-Brasil e arquive a versão conferida em Assinaturas digitais.') }}</p>
+                        @if(auth()->user()->canManagePeople())
+                            <p class="small text-muted mt-1 mb-0">
+                                {{ __('Documentos expedidos pela Secretaria Escolar levam as assinaturas da direção e da secretaria. Na via física, use também os carimbos.') }}
+                                <a href="https://www.iomat.mt.gov.br/portal/edicoes/download/15256#page=61" target="_blank" rel="noopener">{{ __('Portaria nº 486/2018 da SEDUC-MT (art. 6º)') }}<span class="sr-only"> {{ __('(abre em nova aba)') }}</span></a>
+                            </p>
+                        @endif
+                    </div>
+
                     <fieldset id="receipt-options" class="sge-document-options sge-receipt-options" hidden disabled>
                         <legend>{{ __('Dados do recibo de atividade voluntária') }}</legend>
                         <p class="sge-receipt-intro">{{ __('Confira a escola, o período e o valor antes de gerar o recibo.') }}</p>
@@ -361,6 +376,15 @@
 
             const selectedOption = () => typeSelect.options[typeSelect.selectedIndex];
             const targetKind = () => selectedOption()?.dataset.targetKind || '';
+            const syncSignatureOptions = () => {
+                const kind = targetKind();
+                const isPdf = kind !== 'listing' || targetId.value === '1';
+                const canChooseSignature = Boolean(typeSelect.value) && isPdf && !['history', 'technical_enrollment', 'free_offering'].includes(kind) && typeSelect.value !== 'official-editor';
+                document.getElementById('signature-options').hidden = !canChooseSignature;
+                document.getElementById('issuance-signature-mode').disabled = !canChooseSignature;
+                optionsStep.hidden = !canChooseSignature && scoreOptions.hidden && monthOptions.hidden
+                    && attendanceScopeOptions.hidden && document.getElementById('receipt-options').hidden;
+            };
 
             const resetTarget = (message = @js(__('Use a busca para localizar o registro correto.'))) => {
                 targetId.value = '';
@@ -379,6 +403,7 @@
                 moreButton.hidden = true;
                 Array.from(receiptSchool.options).forEach((option) => { option.disabled = false; });
                 status.textContent = message;
+                syncSignatureOptions();
             };
 
             const syncAttendanceOptions = () => {
@@ -462,7 +487,6 @@
                 const receiptOptions = document.getElementById('receipt-options');
                 receiptOptions.hidden = !hasReceiptOptions;
                 receiptOptions.disabled = !hasReceiptOptions;
-                optionsStep.hidden = !hasScoreOptions && !hasMonthOptions && !hasAttendanceOptions && !hasReceiptOptions;
                 optionsStep.classList.toggle('is-muted', !hasType);
 
                 resetTarget(hasType ? @js(__('Use a busca para localizar o registro correto.')) : @js(__('Primeiro, escolha o tipo de documento.')));
@@ -478,7 +502,7 @@
                 selectedTitle.textContent = target.title;
                 selectedSubtitle.textContent = target.subtitle || '';
                 selectedAcademicYearId = target.academic_year_id ? String(target.academic_year_id) : '';
-                selectedNeedsCpfConfirmation = target.missing_student_cpf === true;
+                selectedNeedsCpfConfirmation = typeSelect.value !== 'academic-history' && target.missing_student_cpf === true;
                 missingCpfConfirmation.value = '0';
                 selectedTarget.hidden = false;
                 issueButton.disabled = false;
@@ -494,6 +518,7 @@
                         receiptSchool.value = allowedSchools[0] || '';
                     }
                 }
+                syncSignatureOptions();
                 syncAttendanceOptions();
                 selectedTarget.focus?.();
             };

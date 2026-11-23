@@ -70,6 +70,10 @@
             @endforeach
         </tr>
     @endforeach
+    @if($showCredentialIdentity ?? false)
+        <tr><td colspan="6"><strong>CIN / documento oficial:</strong> {{ $identityStudent->schoolPhotoIdentification() ?: '—' }}</td>
+        <td colspan="6"><strong>Gênero:</strong> {{ $identityStudent->school_gender ?: '—' }}@if($identityStudent->school_voter_registration) · <strong>Título de eleitor:</strong> {{ $identityStudent->school_voter_registration }}@endif</td></tr>
+    @endif
     @if(! $bulletinIdentity && ($identityStudent->personal_email || $identityStudent->institutional_email))
         <tr>
             <td colspan="6"><strong>E-mail:</strong> {{ $identityStudent->personal_email ?: '-' }}</td>

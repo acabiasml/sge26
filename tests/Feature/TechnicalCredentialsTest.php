@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\CredentialRegistration;
 use App\Models\CurriculumComponent;
 use App\Models\DiaryAssessment;
 use App\Models\DiaryAssessmentResult;
@@ -15,13 +16,14 @@ use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\TechnicalProgram;
 use App\Models\User;
-use App\Support\DocumentVerificationPresenter;
+use App\Support\CredentialRegistry;
 use App\Support\HistoryCurriculumMerger;
 use App\Support\HistoryCurriculumRenamer;
 use App\Support\TechnicalEnrollmentOffer;
 use App\Support\TechnicalFurnitureProject;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class TechnicalCredentialsTest extends TestCase
@@ -37,7 +39,7 @@ class TechnicalCredentialsTest extends TestCase
             ->assertOk()->assertJsonCount(1, 'targets');
         $this->get(route('document-issuance.issue', ['type' => 'technical-course-diploma', 'target_id' => $s['enrollment']->id]))
             ->assertRedirect(route('technical-credentials.prepare', ['enrollment' => $s['enrollment']->id, 'kind' => 'diploma']));
-        $this->get($this->prepareUrl($s))->assertOk()->assertSee('Livro do registro')->assertSee('AINDA NÃO FINALIZADO');
+        $this->get($this->prepareUrl($s))->assertOk()->assertSee('Visualizar prévia sem registro')->assertSee('AINDA NÃO FINALIZADO');
         $this->assertDatabaseCount('issued_documents', 0);
         $screen = $this->get(route('technical-programs.edit', $s['program']))->assertOk();
         if (is_dir('/setup')) {
@@ -101,14 +103,7 @@ class TechnicalCredentialsTest extends TestCase
         $s = $this->scenario();
         $response = $this->actingAs($s['user'])->post($this->storeUrl($s), $this->fields($s));
         $response->assertOk();
-        $document = IssuedDocument::sole();
-        $this->assertSame('technical-course-diploma-preview', $document->type);
-        $this->assertFalse($document->payload['is_final']);
-        $this->assertNull($document->registration_key);
-        $this->assertNull($document->payload['completed_at']);
-        $presenter = DocumentVerificationPresenter::make($document);
-        $this->assertStringContainsString('AINDA NÃO FINALIZADO', $presenter['type_label']);
-        $this->assertStringContainsString('Não comprova', $presenter['description']);
+        $this->assertDatabaseCount('issued_documents', 0);
         $this->assertSame(2, preg_match_all('/\/Type\s*\/Page\b/', $response->getContent()));
         if (is_dir('/setup')) {
             file_put_contents('/setup/technical-diploma-preview-sample.pdf', $response->getContent());
@@ -236,7 +231,7 @@ class TechnicalCredentialsTest extends TestCase
     public function test_abbreviated_signatory_name_is_rejected_before_any_issuance(): void
     {
         $s = $this->scenario();
-        $data = $this->fields($s);
+        $data = $this->fields($s, 'certificate');
         $data['director_name'] = 'D. Fictício';
         $this->actingAs($s['user'])->post($this->storeUrl($s), $data)->assertSessionHasErrors('director_name');
         $this->assertDatabaseCount('issued_documents', 0);
@@ -256,8 +251,7 @@ class TechnicalCredentialsTest extends TestCase
         $this->completeHighSchool($s);
         $this->travelTo(now()->setDate(2025, 3, 30));
         $this->actingAs($s['user'])->post($this->storeUrl($s), $this->fields($s))->assertOk();
-        $this->assertSame('technical-course-diploma-preview', IssuedDocument::sole()->type);
-        $this->assertFalse(IssuedDocument::sole()->payload['is_final']);
+        $this->assertDatabaseCount('issued_documents', 0);
     }
 
     public function test_existing_liceu_offers_are_linked_idempotently_without_changing_grades_or_hours(): void
@@ -339,7 +333,7 @@ class TechnicalCredentialsTest extends TestCase
         $this->actingAs($other)->get(route('technical-credentials.preview', ['enrollment' => $s['enrollment'], 'kind' => 'diploma']))->assertForbidden();
     }
 
-    public function test_certificate_preview_obeys_completion_dates_and_grades_and_does_not_register_an_issuance(): void
+    public function test_certificate_preview_is_unlimited_before_completion_or_approval_without_registering_an_issuance(): void
     {
         $s = $this->scenario();
         $url = route('technical-credentials.preview', ['enrollment' => $s['enrollment'], 'kind' => 'certificate', 'module_key' => $s['program']->modules[0]['key']]);
@@ -350,10 +344,10 @@ class TechnicalCredentialsTest extends TestCase
             file_put_contents('/setup/technical-real-certificate-preview.pdf', $response->getContent());
         }
         $this->travelTo(now()->setDate(2025, 3, 30));
-        $this->get($url)->assertStatus(422);
+        $this->get($url)->assertOk();
         $this->travelTo(now()->setDate(2026, 11, 17));
         $s['assessments'][0]->results()->update(['score' => 5]);
-        $this->get($url)->assertStatus(422);
+        $this->get($url)->assertOk();
         $this->assertDatabaseCount('issued_documents', 0);
     }
 
@@ -431,6 +425,36 @@ class TechnicalCredentialsTest extends TestCase
         $this->assertSame($grades, DiaryAssessmentResult::orderBy('id')->get()->toArray());
     }
 
+    public function test_digital_diploma_receives_real_sistec_reference_and_retries_do_not_consume_another_record(): void
+    {
+        $s = $this->scenario();
+        $this->completeHighSchool($s);
+        $director = Person::create(['full_name' => 'Diretora de Teste', 'active' => true]);
+        $director->schoolRoles()->create(['school_id' => $s['school']->id, 'role' => 'gestor', 'position' => 'diretor', 'active' => true]);
+        $s['user']->person->schoolRoles()->create(['school_id' => $s['school']->id, 'role' => 'gestor', 'position' => 'secretário', 'active' => true]);
+        $registry = app(CredentialRegistry::class);
+        $book = $registry->open($s['user'], ['school_id' => $s['school']->id, 'kind' => 'diploma', 'identifier' => 'D/2026', 'reference_year' => 2026, 'first_number' => 1, 'first_folio' => 1, 'opened_on' => '2026-11-01', 'opening_term' => 'Abertura do livro para testes.']);
+        $data = $this->fields($s) + ['registry_book_id' => $book->id, 'history_reference' => 'Histórico escolar de teste', 'issuance_token' => (string) Str::uuid()];
+        $missing = $data;
+        unset($missing['sistec_code']);
+        $this->actingAs($s['user'])->post($this->storeUrl($s), $missing)->assertSessionHasErrors('sistec_code');
+        $first = $this->post($this->storeUrl($s), $data);
+        $entry = CredentialRegistration::sole();
+        $entryUrl = route('credential-registry.entry', $entry);
+        $first->assertRedirect($entryUrl);
+        $this->post($this->storeUrl($s), $data)->assertRedirect($entryUrl);
+        $this->get($entryUrl)->assertOk()->assertSee('Assinar digitalmente e arquivar')->assertSee('arts. 31, 38 e 39');
+        $this->assertDatabaseCount('issued_documents', 1);
+        $this->assertDatabaseCount('credential_registrations', 1);
+        $this->assertSame('SISTEC-TESTE-0001', $entry->sistec_code);
+        $this->assertSame('1', $entry->snapshot['registration']['registry_number']);
+        $this->assertSame('Diretora de Teste', $entry->snapshot['registration']['director_name']);
+        $this->assertTrue($registry->integrity($book->fresh()));
+        $before = $book->fresh()->next_number;
+        $this->get(route('technical-credentials.preview', ['enrollment' => $s['enrollment'], 'kind' => 'diploma']))->assertOk();
+        $this->assertSame($before, $book->fresh()->next_number);
+    }
+
     private function completeHighSchool(array $s): void
     {
         $history = $s['student']->academicHistories()->create(['school_id' => $s['school']->id, 'title' => 'Ensino Médio', 'education_stage' => 'medio', 'stage' => 'Ensino Médio']);
@@ -440,7 +464,7 @@ class TechnicalCredentialsTest extends TestCase
     private function fields(array $s, string $kind = 'diploma'): array
     {
         return ['kind' => $kind, 'course_id' => $s['course']->id, 'module_key' => $s['program']->modules[0]['key'],
-            'registry_number' => '123', 'registry_book' => '01', 'registry_folio' => '12', 'registered_by' => 'Responsável Fictício',
+            'sistec_code' => 'SISTEC-TESTE-0001', 'registry_number' => '123', 'registry_book' => '01', 'registry_folio' => '12', 'registered_by' => 'Responsável Fictício',
             'secretary_name' => 'Secretária Fictícia', 'director_name' => 'Diretor Fictício', 'issued_place' => 'Jarudore, Poxoréu-MT',
             'registration_date' => now('America/Cuiaba')->toDateString(), 'issued_date' => now('America/Cuiaba')->toDateString(), 'observations' => ''];
     }
@@ -496,7 +520,7 @@ class TechnicalCredentialsTest extends TestCase
         $course = $year->courses()->create(['name' => 'Técnico em Móveis', 'stage' => 'tecnico', 'class_hour_minutes' => 60, 'workload_hours' => 1200, 'technical_program_id' => $program->id]);
         $class = $year->classes()->create(['name' => 'Técnico em Móveis', 'starts_period_id' => $periods[0]->id, 'ends_period_id' => $periods[2]->id, 'active' => true]);
         $class->courses()->attach($course);
-        $student = Person::create(['full_name' => 'Estudante Fictício do Modelo', 'birth_date' => '2007-05-15', 'nationality' => 'Brasileira', 'birth_city' => 'Poxoréu', 'birth_state' => 'MT', 'mother_name' => 'Mãe Fictícia', 'father_name' => 'Pai Fictício', 'active' => true]);
+        $student = Person::create(['full_name' => 'Estudante Fictício do Modelo', 'cpf' => '12345678909', 'school_cin_confirmed' => true, 'birth_date' => '2007-05-15', 'nationality' => 'Brasileira', 'birth_city' => 'Poxoréu', 'birth_state' => 'MT', 'mother_name' => 'Mãe Fictícia', 'father_name' => 'Pai Fictício', 'active' => true]);
         $enrollment = $class->enrollments()->create(['person_id' => $student->id, 'enrolled_at' => '2025-02-01', 'status' => 'matriculado', 'type' => 'regular']);
         $enrollment->courses()->attach($course, ['technical_offer_form' => 'concomitante']);
         $assessments = [];

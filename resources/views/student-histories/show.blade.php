@@ -5,7 +5,8 @@
 @section('page-title', $history->title)
 
 @section('page-actions')
-    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action {{ (! $history->is_unified || ! $historyCompleteness['complete']) ? 'disabled' : '' }}" @if($history->is_unified && $historyCompleteness['complete']) href="{{ $history->freshPdfUrl() }}" target="_blank" @else aria-disabled="true" tabindex="-1" @endif aria-label="{{ __('Emitir histórico em PDF') }}" title="{{ $historyCompleteness['complete'] ? __('Histórico em PDF') : $historyCompleteness['message'] }}">
+    <a class="btn btn-sm btn-primary sge-icon-action" href="{{ route('people.histories.prepare-official',[$person,$history]) }}" aria-label="{{ __('Preparar versão oficial') }}" title="{{ __('Preparar versão oficial') }}"><i class="fas fa-file-signature" aria-hidden="true"></i></a>
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action {{ (! $history->is_unified) ? 'disabled' : '' }}" @if($history->is_unified) href="{{ $history->freshPdfUrl() }}" target="_blank" @else aria-disabled="true" tabindex="-1" @endif aria-label="{{ __('Gerar prévia temporária') }}" title="{{ $historyCompleteness['complete'] ? __('Prévia temporária do histórico') : $historyCompleteness['message'] }}">
         <i class="fas fa-file-pdf" aria-hidden="true"></i>
     </a>
     <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('people.histories.details.edit', [$person, $history]) }}" aria-label="{{ __('Editar dados gerais do histórico') }}" title="{{ __('Dados gerais') }}">
@@ -27,7 +28,7 @@
 
 @section('content')
     <p class="small text-muted"><strong>CHC</strong> — {{ __('Carga horária cursada, em horas') }}.</p>
-    @if((! $history->is_unified || ! $historyCompleteness['complete']))
+    @if((! $history->is_unified))
         <div class="alert alert-danger"><strong>{{ __('Emissão bloqueada.') }}</strong> {{ $historyCompleteness['message'] }}</div>
     @endif
     @php($transcriptModeLabels = ['detailed' => __('Detalhada'), 'summary' => __('Global/AP'), 'no_transcription' => __('Sem transcrição')])

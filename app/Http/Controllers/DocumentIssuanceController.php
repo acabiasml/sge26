@@ -25,6 +25,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Illuminate\Support\Uri;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -398,6 +399,7 @@ class DocumentIssuanceController extends Controller
             'academic_period_id' => ['nullable', 'required_if:attendance_scope,period', 'integer'],
             'attendance_month' => ['nullable', 'required_if:attendance_scope,month', 'date_format:Y-m'],
             'federal_aid_only' => ['nullable', 'boolean'],
+            'signature_mode' => ['nullable', Rule::in(['physical', 'digital'])],
             'confirm_missing_student_cpf' => ['nullable', 'boolean'],
         ]);
         if ($data['type'] === 'volunteer-receipt') {
@@ -405,7 +407,7 @@ class DocumentIssuanceController extends Controller
         }
         $schoolIds = $this->accessibleSchoolIds($request->user());
 
-        return match ($types[$data['type']]['target']) {
+        $response = match ($types[$data['type']]['target']) {
             'course' => $this->issueCourse($data, $schoolIds),
             'own_enrollment' => redirect()->route('student-diaries.schedule-pdf', StudentEnrollment::query()->where('person_id', $request->user()->person_id)->findOrFail($data['target_id'])),
             'direct', 'listing' => $this->issueDirect($data),
@@ -420,6 +422,14 @@ class DocumentIssuanceController extends Controller
             'diary' => $this->issueDiary($data, $schoolIds, $request->user()),
             default => abort(404),
         };
+        if (($data['signature_mode'] ?? null) === 'digital') {
+            $target = Uri::of($response->getTargetUrl());
+            if (preg_match('~(?:[/-]pdf|/recibo-voluntario)/?$~', $target->path())) {
+                $response->setTargetUrl((string) $target->withQuery(['signature_mode' => 'digital']));
+            }
+        }
+
+        return $response;
     }
 
     private function issueFreeCourse(array $data, array $schoolIds): RedirectResponse
@@ -823,14 +833,12 @@ class DocumentIssuanceController extends Controller
             ->limit(40)
             ->get()
             ->map(function (StudentAcademicHistory $history): array {
-                [$enabled, $reason] = $this->applyStudentAvailability($history->student, true, null);
-
                 return [
                     'id' => $history->id,
                     'title' => $history->student?->social_name ?: $history->student?->full_name ?: __('Estudante sem nome'),
                     'subtitle' => collect([$history->title, $history->stage, $history->school?->name])->filter()->join(' · '),
-                    'enabled' => $enabled,
-                    'reason' => $reason,
+                    'enabled' => true,
+                    'reason' => null,
                     'missing_student_cpf' => OfficialDocumentCompliance::studentHasNoCpf($history->student),
                 ];
             });
@@ -858,11 +866,10 @@ class DocumentIssuanceController extends Controller
                 $stages = $person->studentEnrollments->flatMap->courses->pluck('stage')->unique()
                     ->intersect([AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL])
                     ->diff($availableStages);
-                [$enabled, $reason] = $this->applyStudentAvailability($person, true, null);
                 $base = [
                     'id' => $person->id, 'history_person_id' => $person->id,
                     'title' => $person->social_name ?: $person->full_name,
-                    'enabled' => $enabled, 'reason' => $reason,
+                    'enabled' => true, 'reason' => null,
                     'missing_student_cpf' => OfficialDocumentCompliance::studentHasNoCpf($person),
                 ];
 
@@ -1151,12 +1158,11 @@ class DocumentIssuanceController extends Controller
                 ->whereHas('courses', fn ($query) => $query->where('stage', $data['history_stage']))
                 ->whereHas('schoolClass.academicYear', fn ($query) => $query->whereIn('school_id', $schoolIds))
                 ->with('schoolClass.academicYear')->orderByDesc('enrolled_at')->orderByDesc('id')->firstOrFail();
-            $this->ensureStudentCanIssue($person, (bool) ($data['confirm_missing_student_cpf'] ?? false));
             $history = app(UnifiedStudentHistorySynchronizer::class)->synchronize(
                 $person, $enrollment->schoolClass->academicYear->school_id, $user->person_id, $data['history_stage'],
             );
 
-            return redirect()->route('people.histories.pdf', [
+            return redirect()->route('people.histories.prepare-official', [
                 'person' => $person, 'history' => $history,
                 'confirm_missing_student_cpf' => ! empty($data['confirm_missing_student_cpf']) ? 1 : null,
                 'emissao' => (string) Str::uuid(),
@@ -1170,9 +1176,7 @@ class DocumentIssuanceController extends Controller
             ->whereIn('school_id', $schoolIds)
             ->firstOrFail();
 
-        $this->ensureStudentCanIssue($history->student, (bool) ($data['confirm_missing_student_cpf'] ?? false));
-
-        return redirect()->route('people.histories.pdf', [
+        return redirect()->route('people.histories.prepare-official', [
             'person' => $history->student,
             'history' => $history,
             'confirm_missing_student_cpf' => ! empty($data['confirm_missing_student_cpf']) ? 1 : null,

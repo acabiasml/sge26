@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\IssuedDocument;
+use App\Support\CredentialRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -39,7 +40,7 @@ class CredentialArchiveController extends Controller
 
     public function batch(Request $request, string $batch)
     {
-        return view('free-courses.issued', ['documents' => $this->documents($request, $batch), 'batch' => $batch]);
+        return view('free-courses.issued', ['documents' => $this->documents($request, $batch)->load('registration'), 'batch' => $batch]);
     }
 
     public function zip(Request $request, string $batch)

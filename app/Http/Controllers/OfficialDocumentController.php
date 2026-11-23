@@ -87,6 +87,7 @@ class OfficialDocumentController extends Controller
             'orientation' => ['required', Rule::in(['portrait', 'landscape'])],
             'line_spacing' => ['required', 'numeric', 'min:1', 'max:2'],
             'visibility' => ['required', Rule::in([OfficialDocument::VISIBILITY_PUBLIC, OfficialDocument::VISIBILITY_PRIVATE])],
+            'signature_mode' => ['nullable', Rule::in(['physical', 'digital'])],
         ]);
 
         $school = School::query()->findOrFail($data['school_id']);
@@ -187,6 +188,9 @@ class OfficialDocumentController extends Controller
                     && $document->private_owner_user_id === $request->user()->id), 403);
 
             $issued = $document->issuedDocument;
+            if ($issued?->signatureVersions()->exists()) {
+                throw ValidationException::withMessages(['document' => __('O documento possui assinaturas arquivadas e precisa ser preservado.')]);
+            }
             $filePath = $issued?->file_path;
             $tab = $document->visibility === OfficialDocument::VISIBILITY_PUBLIC ? 'public'
                 : ($document->private_owner_user_id === $request->user()->id ? 'mine' : 'all');

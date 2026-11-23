@@ -52,7 +52,7 @@ final class TechnicalFurnitureProject
                 'regulatory_opinion' => $source->getRawOriginal('regulatory_opinion'), 'official_gazette_reference' => $source->getRawOriginal('official_gazette_reference'),
                 'authorization_starts_at' => $source->getRawOriginal('authorization_starts_at'), 'authorization_ends_at' => $source->getRawOriginal('authorization_ends_at'),
                 'legal_basis' => 'Lei nº 9.394, de 20/12/1996; Lei nº 11.741 de 16/07/2008; e respectivos atos de Autorização de Curso',
-                'registry_resolution' => 'Resolução nº 249/07 – CEE/MT',
+                'registry_resolution' => 'Resolução Normativa nº 018/2025/CEE-MT',
                 'front_address' => 'Av. São João, s/n. Jarudore, Poxoréu-MT. CEP 78800-000.',
                 'back_address' => 'Rua São João, s/n. Jarudore, Poxoréu-MT. CEP 78800-000. Tel.: (66) 99613-6796.',
                 'source_project' => 'PROJETO APRESENTADO CORRIGIDO.pdf — modelos p. 24–27; matriz p. 33–34.', 'modules' => TechnicalFurnitureProject::modules(),

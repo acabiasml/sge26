@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\ManagementSubstitution;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
@@ -25,6 +26,7 @@ class SchoolSignatureStaff
         $date = $date ? Carbon::parse($date)->toDateString() : now()->toDateString();
         $roles = PersonSchoolRole::query()
             ->with('person')
+            ->whereNotIn('id', ManagementSubstitution::query()->select('role_id'))
             ->where('school_id', $school->id)
             ->where('role', PersonSchoolRole::ROLE_MANAGER)
             ->whereIn('position', $positions)
@@ -37,8 +39,13 @@ class SchoolSignatureStaff
             ->orderBy('id')
             ->get();
 
+        $substitutes = ManagementSubstitution::with('person')->where('school_id', $school->id)
+            ->whereDate('starts_on', '<=', $date)->whereDate('ends_on', '>=', $date)
+            ->where(fn ($query) => $query->whereNull('cancelled_at')->orWhereDate('cancelled_at', '>', $date))
+            ->orderBy('id')->get()->keyBy('position');
+
         return collect($positions)->mapWithKeys(fn (string $position): array => [
-            $position => $roles->firstWhere('position', $position)?->person,
+            $position => $substitutes->get($position)?->person ?? $roles->firstWhere('position', $position)?->person,
         ])->all();
     }
 }

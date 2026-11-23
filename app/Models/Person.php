@@ -38,6 +38,10 @@ class Person extends Model
         'full_name',
         'social_name',
         'cpf',
+        'school_cin_confirmed',
+        'school_identity_document',
+        'school_gender',
+        'school_voter_registration',
         'birth_date',
         'birth_city',
         'birth_state',
@@ -102,6 +106,15 @@ class Person extends Model
             && filled($this->state)
             && filled($this->postal_code)
             && filled($this->profile_completed_at);
+    }
+
+    public function schoolPhotoIdentification(): ?string
+    {
+        if ($this->school_cin_confirmed && filled($this->cpf)) {
+            return 'CIN (CPF '.$this->cpf.')';
+        }
+
+        return $this->school_identity_document;
     }
 
     public function hasRequiredIdentityForOfficialUse(): bool

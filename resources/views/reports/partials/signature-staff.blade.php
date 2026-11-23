@@ -1,7 +1,7 @@
 @php
     $signatureType = $signatureType ?? 'secretarial';
     $signatureLineClass = $signatureLineClass ?? 'signature-line';
-    $staff = \App\Support\SchoolSignatureStaff::forSchool($school ?? null, $signatureDate ?? now());
+    $staff = $signatureStaff ?? \App\Support\SchoolSignatureStaff::forSchool($school ?? null, $signatureDate ?? now());
     $secondPosition = $signatureType === 'pedagogical' ? 'coordenador' : 'secretário';
     $secondRole = $signatureType === 'pedagogical' ? 'Coordenação escolar' : 'Secretaria escolar';
 @endphp

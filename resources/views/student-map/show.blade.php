@@ -249,7 +249,7 @@
                                             <i class="fas fa-eye mr-1" aria-hidden="true"></i>{{ __('Abrir') }}
                                         </a>
                                         <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary" href="{{ $history->freshPdfUrl() }}">
-                                            <i class="fas fa-file-pdf mr-1" aria-hidden="true"></i>PDF
+                                            <i class="fas fa-file-pdf mr-1" aria-hidden="true"></i>{{ __('Prévia em PDF') }}
                                         </a>
                                         <a class="btn btn-sm btn-outline-primary" href="{{ route('people.histories.edit', [$person, $history]) }}">
                                             <i class="fas fa-pen mr-1" aria-hidden="true"></i>{{ __('Editar') }}

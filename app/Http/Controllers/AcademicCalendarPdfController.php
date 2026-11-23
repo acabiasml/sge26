@@ -7,6 +7,8 @@ use App\Models\CalendarDay;
 use App\Models\IssuedDocument;
 use App\Models\PersonSchoolRole;
 use App\Support\PdfLetterhead;
+use App\Support\PdfMetadata;
+use App\Support\SchoolSignatureStaff;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -38,7 +40,7 @@ class AcademicCalendarPdfController extends Controller
             'specialDates' => $this->specialDates($academicYear),
         ])->setPaper('a4', 'landscape');
 
-        return \App\Support\PdfMetadata::stream($pdf, 'beaba-calendario-'.$academicYear->id.'-'.now()->format('Ymd-His').'.pdf');
+        return PdfMetadata::stream($pdf, 'beaba-calendario-'.$academicYear->id.'-'.now()->format('Ymd-His').'.pdf');
     }
 
     /**
@@ -64,6 +66,7 @@ class AcademicCalendarPdfController extends Controller
                         'class' => 'empty',
                         'title' => null,
                     ];
+
                     continue;
                 }
 
@@ -79,6 +82,7 @@ class AcademicCalendarPdfController extends Controller
                         'class' => $this->periodMarkerClass($markerPeriod, $periodColorIndexes->all(), 'period-start'),
                         'title' => $markerPeriod?->name,
                     ];
+
                     continue;
                 }
 
@@ -89,6 +93,7 @@ class AcademicCalendarPdfController extends Controller
                         'class' => $this->periodMarkerClass($markerPeriod, $periodColorIndexes->all(), 'period-end'),
                         'title' => $markerPeriod?->name,
                     ];
+
                     continue;
                 }
 
@@ -339,24 +344,9 @@ class AcademicCalendarPdfController extends Controller
 
     private function directorName(AcademicYear $academicYear, Carbon $date): ?string
     {
-        $role = PersonSchoolRole::query()
-            ->with('person')
-            ->where('school_id', $academicYear->school_id)
-            ->where('role', PersonSchoolRole::ROLE_MANAGER)
-            ->where('position', PersonSchoolRole::POSITION_DIRECTOR)
-            ->where('active', true)
-            ->where(function ($query) use ($date): void {
-                $query->whereNull('started_at')
-                    ->orWhereDate('started_at', '<=', $date->toDateString());
-            })
-            ->where(function ($query) use ($date): void {
-                $query->whereNull('ended_at')
-                    ->orWhereDate('ended_at', '>=', $date->toDateString());
-            })
-            ->orderByDesc('started_at')
-            ->first();
+        $person = SchoolSignatureStaff::forSchool($academicYear->school, $date)[PersonSchoolRole::POSITION_DIRECTOR];
 
-        return $role?->person?->social_name ?: $role?->person?->full_name;
+        return $person?->social_name ?: $person?->full_name;
     }
 
     private function issuedDocument(Request $request, AcademicYear $academicYear): IssuedDocument
@@ -386,5 +376,4 @@ class AcademicCalendarPdfController extends Controller
 
         return $code;
     }
-
 }

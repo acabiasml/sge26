@@ -64,6 +64,25 @@
     </div>
 </div>
 
+@if(auth()->user()->canManagePeople())
+<div class="form-row">
+    <div class="form-group col-12">
+        <input type="hidden" name="school_cin_confirmed" value="0">
+        <div class="custom-control custom-checkbox">
+            <input class="custom-control-input" id="school-cin-confirmed" name="school_cin_confirmed" type="checkbox" value="1" @checked(old('school_cin_confirmed', $person->school_cin_confirmed ?? false))>
+            <label class="custom-control-label" for="school-cin-confirmed">{{ __('CIN conferida. Usar o CPF cadastrado como número da CIN.') }}</label>
+        </div>
+    </div>
+    @foreach(['school_identity_document' => [__('Outro documento oficial com foto (tipo e número)'),100], 'school_gender' => [__('Gênero para documentação escolar'),60], 'school_voter_registration' => [__('Título de eleitor'),50]] as $field => [$label,$limit])
+        <div class="form-group col-md-4">
+            <label for="{{ $field }}">{{ $label }}</label>
+            <input class="form-control" id="{{ $field }}" name="{{ $field }}" value="{{ old($field, $person->{$field} ?? '') }}" maxlength="{{ $limit }}">
+            @error($field)<div class="text-danger small">{{ $message }}</div>@enderror
+        </div>
+    @endforeach
+</div>
+@endif
+
 <div class="form-row">
     <div class="form-group col-md-5">
         <label for="birth_city">{{ __('screens.birth_place') }}</label>

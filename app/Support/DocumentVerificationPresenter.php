@@ -56,7 +56,7 @@ class DocumentVerificationPresenter
         return [
             'type_label' => self::typeLabel($document->type),
             'description' => self::description($document->type),
-            'title' => is_string($document->payload['title'] ?? null) ? $document->payload['title'] : null,
+            'title' => $document->registration ? self::typeLabel($document->type) : (is_string($document->payload['title'] ?? null) ? $document->payload['title'] : null),
             'scope_label' => is_string($document->payload['scope_label'] ?? null) ? $document->payload['scope_label'] : null,
             'rows_count' => is_numeric($document->payload['rows_count'] ?? null) ? (int) $document->payload['rows_count'] : null,
             'school_name' => $school?->name,

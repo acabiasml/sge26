@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ManagementSubstitution;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use Illuminate\Http\RedirectResponse;
@@ -26,6 +27,7 @@ class PersonRoleController extends Controller
     public function update(Request $request, Person $person, PersonSchoolRole $role): RedirectResponse
     {
         abort_unless($role->person_id === $person->id, 404);
+        abort_if(ManagementSubstitution::where('role_id', $role->id)->exists(), 422, 'Gerencie este vínculo na área Substituições na gestão, preservando o período e a auditoria.');
 
         $data = $this->validatedData($request, $role);
         $this->authorizeRoleChange($request, $data);
@@ -41,6 +43,7 @@ class PersonRoleController extends Controller
     public function activate(Request $request, Person $person, PersonSchoolRole $role): RedirectResponse
     {
         abort_unless($role->person_id === $person->id, 404);
+        abort_if(ManagementSubstitution::where('role_id', $role->id)->exists(), 422, 'Gerencie este vínculo na área Substituições na gestão, preservando o período e a auditoria.');
         $this->authorizeRoleChange($request, [
             'role' => $role->role,
             'school_id' => $role->school_id,
@@ -60,6 +63,7 @@ class PersonRoleController extends Controller
     public function deactivate(Request $request, Person $person, PersonSchoolRole $role): RedirectResponse
     {
         abort_unless($role->person_id === $person->id, 404);
+        abort_if(ManagementSubstitution::where('role_id', $role->id)->exists(), 422, 'Gerencie este vínculo na área Substituições na gestão, preservando o período e a auditoria.');
         $this->authorizeRoleChange($request, [
             'role' => $role->role,
             'school_id' => $role->school_id,
@@ -78,6 +82,7 @@ class PersonRoleController extends Controller
     public function destroy(Request $request, Person $person, PersonSchoolRole $role): RedirectResponse
     {
         abort_unless($role->person_id === $person->id, 404);
+        abort_if(ManagementSubstitution::where('role_id', $role->id)->exists(), 422, 'Gerencie este vínculo na área Substituições na gestão, preservando o período e a auditoria.');
         $this->authorizeRoleChange($request, [
             'role' => $role->role,
             'school_id' => $role->school_id,

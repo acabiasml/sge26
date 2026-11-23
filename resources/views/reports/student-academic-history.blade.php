@@ -73,6 +73,7 @@
     </style>
 </head>
 <body>
+@if($isDraft ?? false)<div style="position:fixed;top:300px;left:30px;right:30px;text-align:center;transform:rotate(-25deg);font-size:27px;opacity:.15;z-index:-1">PRÉVIA TEMPORÁRIA<br>SEM VALOR OFICIAL — SEM REGISTRO</div>@endif
 @php
     $transcriptModeLabels = ['detailed' => 'Detalhada', 'summary' => 'Global/AP', 'no_transcription' => 'Sem transcrição'];
     $basicFormationReference = $history->education_stage === 'medio'
@@ -87,7 +88,7 @@
     'verificationUrl' => $verificationUrl,
 ])
 
-@include('reports.partials.student-identification', ['student' => $person])
+@include('reports.partials.student-identification', ['student' => $person, 'showCredentialIdentity' => isset($isDraft)])
 
 <div class="section-title">
     Componentes curriculares
@@ -168,7 +169,7 @@
 
 <table class="signatures" data-pdf-signatures="history">
     <tr>
-        @include('reports.partials.signature-staff', ['school' => $history->school, 'signatureType' => 'secretarial', 'signatureDate' => $issuedDocument->issued_at ?? now()])
+        @include('reports.partials.signature-staff', ['school' => $history->school, 'signatureType' => 'secretarial', 'signatureDate' => $issuedDocument->issued_at ?? now(), 'signatureStaff' => $historySignatureStaff ?? null])
     </tr>
 </table>
 </td></tr>

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\ArchivePdfForSignature;
 use App\Http\Middleware\EnsureProfileIsComplete;
 use App\Http\Middleware\PreventPdfCaching;
 use App\Http\Middleware\RecordUserLastAccess;
@@ -21,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
             PreventPdfCaching::class,
+            ArchivePdfForSignature::class,
             RejectRememberedLogin::class,
             SetUserLocale::class,
             RecordUserLastAccess::class,

@@ -83,9 +83,21 @@
                             @error('content_html') <div class="invalid-feedback d-block">{{ __($message) }}</div> @enderror
                         </div>
 
+                        <div class="form-group">
+                            <label for="official-signature-mode">{{ __('Forma de assinatura') }}</label>
+                            <select class="form-control" name="signature_mode" id="official-signature-mode" aria-describedby="official-signature-help">
+                                <option value="physical">{{ __('Física · imprimir o PDF') }}</option>
+                                <option value="digital">{{ __('Digital · preparar PDF para assinatura externa') }}</option>
+                            </select>
+                            <p id="official-signature-help" class="small text-muted mt-1 mb-0">{{ __('A emissão gera o código de autenticidade. Para assinatura manual, imprima o PDF. Para assinatura digital, assine com certificado ICP-Brasil e arquive o PDF validado em Assinaturas digitais.') }}</p>
+                            <p class="small text-muted mt-1 mb-0">
+                                {{ __('Documentos expedidos pela Secretaria Escolar levam as assinaturas da direção e da secretaria. Na via física, use também os carimbos.') }}
+                                <a href="https://www.iomat.mt.gov.br/portal/edicoes/download/15256#page=61" target="_blank" rel="noopener">{{ __('Portaria nº 486/2018 da SEDUC-MT (art. 6º)') }}<span class="sr-only"> {{ __('(abre em nova aba)') }}</span></a>
+                            </p>
+                        </div>
                         <button class="btn btn-primary" type="submit" @disabled($schools->isEmpty())>
                             <i class="fas fa-file-pdf mr-1" aria-hidden="true"></i>
-                            {{ __('Visualizar PDF oficial') }}<span class="sr-only"> {{ __('(abre em nova aba)') }}</span>
+                            {{ __('Emitir documento') }}<span class="sr-only"> {{ __('(abre em nova aba)') }}</span>
                         </button>
                     </form>
                 </div>

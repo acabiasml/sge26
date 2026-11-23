@@ -275,6 +275,14 @@ with tempfile.TemporaryDirectory() as directory:
                          'php artisan migrate --path=database/migrations/2026_11_18_010000_create_free_courses_and_credential_archive.php --force --no-ansi'))
         commands.insert(4, ('Preparar painel dos erros mostrados aos usuários',
                          'php artisan migrate --path=database/migrations/2026_11_18_020000_create_user_operation_failures.php --force --no-ansi'))
+        commands.append(('Aplicar livro digital de registros',
+                         'php artisan migrate --path=database/migrations/2026_11_18_030000_create_credential_registry.php --force --no-ansi'))
+        commands.append(('Aplicar substituições temporárias na gestão',
+                         'php artisan migrate --path=database/migrations/2026_11_18_030100_create_management_substitutions.php --force --no-ansi'))
+        commands.append(('Atualizar somente a referência padrão revogada do registro técnico', 'php artisan migrate --path=database/migrations/2026_11_18_030200_update_default_credential_registration_norm.php --force --no-ansi'))
+        commands.append(('Aplicar campos de identificação para documentação escolar', 'php artisan migrate --path=database/migrations/2026_11_18_030300_add_school_document_identity_to_people.php --force --no-ansi'))
+        commands.append(('Aplicar arquivo de assinaturas dos demais documentos', 'php artisan migrate --path=database/migrations/2026_11_18_030400_create_document_signature_versions.php --force --no-ansi'))
+        commands.append(('Conferir integridade dos livros digitais', 'php artisan credentials:check --no-ansi'))
         commands.append(('Migrations', 'php artisan migrate:status --no-ansi'))
         expected_commit = os.environ['EXPECTED_COMMIT']
         deadline = time.monotonic() + 180
