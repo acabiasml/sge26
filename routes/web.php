@@ -45,6 +45,7 @@ use App\Http\Controllers\SchoolClassScheduleController;
 use App\Http\Controllers\SchoolClassSchedulePdfController;
 use App\Http\Controllers\SchoolConceptController;
 use App\Http\Controllers\SchoolController;
+use App\Http\Controllers\SchoolRecordEvidenceController;
 use App\Http\Controllers\StudentAcademicHistoryController;
 use App\Http\Controllers\StudentDiaryController;
 use App\Http\Controllers\StudentEnrollmentCertificateController;
@@ -170,6 +171,8 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::post('livro-digital/registros/{entry}/averbar', [CredentialRegistryController::class, 'annotate'])->name('credential-registry.annotate');
     Route::post('livro-digital/registros/{entry}/cancelar', [CredentialRegistryController::class, 'cancel'])->name('credential-registry.cancel');
     Route::post('livro-digital/registros/{entry}/assinado', [CredentialRegistryController::class, 'signed'])->name('credential-registry.signed');
+    Route::post('livro-digital/registros/{entry}/via-fisica', [CredentialRegistryController::class, 'physical'])->name('credential-registry.physical');
+    Route::post('livro-digital/registros/{entry}/novas-vias', [CredentialRegistryController::class, 'amendment'])->name('credential-registry.amendment');
     Route::post('livro-digital/registros/{entry}/entrega', [CredentialRegistryController::class, 'deliver'])->name('credential-registry.deliver');
     Route::get('livro-digital/arquivos/{file}', [CredentialRegistryController::class, 'file'])->name('credential-registry.files');
     Route::get('gestao/substituicoes', [ManagementSubstitutionController::class, 'index'])->name('management-substitutions.index');
@@ -200,6 +203,8 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::put('cursos-tecnicos/{program}', [TechnicalProgramController::class, 'update'])->name('technical-programs.update');
     Route::get('emissao-de-documentos/tecnico/documentos/{document}/pdf', [TechnicalCredentialController::class, 'pdf'])->name('technical-credentials.pdf');
     Route::get('emissao-de-documentos/tecnico/{enrollment}/previa-pdf', [TechnicalCredentialController::class, 'preview'])->name('technical-credentials.preview');
+    Route::get('emissao-de-documentos/tecnico/{enrollment}/historico-do-curso', [TechnicalCredentialController::class, 'courseHistory'])->name('technical-credentials.history.prepare');
+    Route::post('emissao-de-documentos/tecnico/{enrollment}/historico-do-curso', [TechnicalCredentialController::class, 'courseHistory'])->name('technical-credentials.history.register');
     Route::get('emissao-de-documentos/tecnico/{enrollment}', [TechnicalCredentialController::class, 'prepare'])->name('technical-credentials.prepare');
     Route::post('emissao-de-documentos/tecnico/{enrollment}', [TechnicalCredentialController::class, 'store'])->name('technical-credentials.store');
     Route::get('emissao-de-documentos', [DocumentIssuanceController::class, 'index'])->name('document-issuance.index');
@@ -308,6 +313,8 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::post('turmas/{class}/resultados-finais', [StudentEnrollmentController::class, 'calculateFinalResults'])->name('classes.final-results.calculate');
     Route::get('turmas/{class}/alunos-responsaveis-pdf', [ClassAcademicDocumentsController::class, 'studentContacts'])->name('classes.student-contacts.pdf');
     Route::get('turmas/{class}/resultados-finais-pdf', ClassFinalResultsPdfController::class)->name('classes.final-results.pdf');
+    Route::get('turmas/{class}/ata-de-resultados', [ClassFinalResultsPdfController::class, 'prepare'])->name('classes.final-results.prepare');
+    Route::post('turmas/{class}/ata-de-resultados', ClassFinalResultsPdfController::class)->name('classes.final-results.register');
     Route::get('turmas/{class}/boletins-pdf', [ClassAcademicDocumentsController::class, 'reportCards'])->name('classes.report-cards.pdf');
     Route::get('turmas/{class}/atestados-frequencia-pdf', [ClassAcademicDocumentsController::class, 'attendanceCertificates'])->name('classes.attendance-certificates.pdf');
     Route::get('turmas/{class}/panorama-aprovacao-pdf', [ClassAcademicDocumentsController::class, 'approvalOverview'])->name('classes.approval-overview.pdf');
@@ -324,6 +331,12 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('matriculas/{enrollment}/declaracao-conclusao-pdf', [StudentEnrollmentCertificateController::class, 'completionDeclaration'])->name('enrollments.completion-declaration.pdf');
     Route::get('matriculas/{enrollment}/atestado-frequencia-pdf', [StudentEnrollmentCertificateController::class, 'attendance'])->name('enrollments.attendance-certificate.pdf');
     Route::get('matriculas/{enrollment}/atestado-transferencia-pdf', [StudentEnrollmentCertificateController::class, 'transfer'])->name('enrollments.transfer-certificate.pdf');
+    Route::get('matriculas/{enrollment}/atestado-transferencia', [StudentEnrollmentCertificateController::class, 'prepareTransfer'])->name('enrollments.transfer-certificate.prepare');
+    Route::post('matriculas/{enrollment}/atestado-transferencia', [StudentEnrollmentCertificateController::class, 'transfer'])->name('enrollments.transfer-certificate.register');
+    Route::get('matriculas/{enrollment}/certificado-ensino-medio', [StudentEnrollmentCertificateController::class, 'highSchoolCertificate'])->name('enrollments.high-school-certificate.prepare');
+    Route::post('matriculas/{enrollment}/certificado-ensino-medio', [StudentEnrollmentCertificateController::class, 'highSchoolCertificate'])->name('enrollments.high-school-certificate.register');
+    Route::match(['get', 'post'], 'matriculas/{enrollment}/transferencia-recebida', [SchoolRecordEvidenceController::class, 'receivedTransfer'])->name('enrollments.received-transfer');
+    Route::match(['get', 'post'], 'matriculas/{enrollment}/processo-especial', [SchoolRecordEvidenceController::class, 'specialProcess'])->name('enrollments.special-process');
     Route::get('matriculas/{enrollment}/boletim', [StudentReportCardController::class, 'show'])->name('enrollments.report-card.show');
     Route::get('matriculas/{enrollment}/boletim-pdf', [StudentReportCardController::class, 'pdf'])->name('enrollments.report-card.pdf');
     Route::get('matriculas/{enrollment}/situacao-academica-pdf', [StudentReportCardController::class, 'progressPdf'])->name('enrollments.progress.pdf');

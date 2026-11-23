@@ -60,9 +60,9 @@ class TechnicalCredentialsTest extends TestCase
     public function test_certificate_after_module_end_is_saved_as_final_with_the_matrix_qualification_and_exact_hours(): void
     {
         $s = $this->scenario();
-        $response = $this->actingAs($s['user'])->post($this->storeUrl($s), $this->fields($s, 'certificate'));
-        $response->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->actingAs($s['user'])->post($this->storeUrl($s), $this->fields($s, 'certificate'))->assertRedirectContains('/livro-digital/registros/');
         $document = IssuedDocument::sole();
+        $response = $this->get(route('credential-registry.original', $document->registration))->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->assertSame('technical-intermediate-certificate', $document->type);
         $this->assertTrue($document->payload['is_final']);
         $this->assertSame('Auxiliar de Projetista de Móveis', $document->payload['module']['qualification']);
@@ -91,8 +91,8 @@ class TechnicalCredentialsTest extends TestCase
     {
         $s = $this->scenario();
         $data = $this->fields($s, 'certificate');
-        unset($data['registry_book']);
-        $this->actingAs($s['user'])->post($this->storeUrl($s), $data)->assertSessionHasErrors('registry_book');
+        unset($data['registry_book_id']);
+        $this->actingAs($s['user'])->post($this->storeUrl($s), $data)->assertSessionHasErrors('registry_book_id');
         $s['program']->update(['authorization_act' => null]);
         $this->post($this->storeUrl($s), $this->fields($s, 'certificate'))->assertSessionHasErrors('document');
         $this->assertDatabaseCount('issued_documents', 0);
@@ -114,9 +114,10 @@ class TechnicalCredentialsTest extends TestCase
     {
         $s = $this->scenario();
         $this->completeHighSchool($s);
-        $response = $this->actingAs($s['user'])->post($this->storeUrl($s), $this->fields($s));
-        $response->assertOk();
+        $book = $this->diplomaBook($s);
+        $this->actingAs($s['user'])->post($this->storeUrl($s), $this->diplomaFields($s, $book->id))->assertRedirectContains('/livro-digital/registros/');
         $document = IssuedDocument::sole();
+        $response = $this->get(route('credential-registry.original', $document->registration))->assertOk();
         $this->assertSame('technical-course-diploma', $document->type);
         $this->assertTrue($document->payload['is_final']);
         $this->assertCount(13, $document->payload['components']);
@@ -133,7 +134,7 @@ class TechnicalCredentialsTest extends TestCase
     public function test_duplicate_official_registration_is_rejected_but_original_is_available_for_reprinting(): void
     {
         $s = $this->scenario();
-        $this->actingAs($s['user'])->post($this->storeUrl($s), $this->fields($s, 'certificate'))->assertOk();
+        $this->actingAs($s['user'])->post($this->storeUrl($s), $this->fields($s, 'certificate'))->assertRedirectContains('/livro-digital/registros/');
         $this->post($this->storeUrl($s), $this->fields($s, 'certificate'))->assertSessionHasErrors('registry_number');
         $this->assertDatabaseCount('issued_documents', 1);
         $this->get(route('technical-credentials.pdf', IssuedDocument::sole()))->assertOk();
@@ -232,7 +233,7 @@ class TechnicalCredentialsTest extends TestCase
     {
         $s = $this->scenario();
         $data = $this->fields($s, 'certificate');
-        $data['director_name'] = 'D. Fictício';
+        $s['director']->update(['full_name' => 'D. Fictício']);
         $this->actingAs($s['user'])->post($this->storeUrl($s), $data)->assertSessionHasErrors('director_name');
         $this->assertDatabaseCount('issued_documents', 0);
     }
@@ -284,8 +285,12 @@ class TechnicalCredentialsTest extends TestCase
         $fields = $this->fields($s, 'certificate');
         $fields['director_name'] = 'Eleonora Maria Francisca Aparecida de Albuquerque Vasconcelos de Oliveira e Silva Fictícia';
         $fields['secretary_name'] = 'Maria Aparecida Francisca de Albuquerque Vasconcelos de Oliveira e Silva Fictícia';
-        $response = $this->actingAs($s['user'])->post($this->storeUrl($s), $fields)->assertOk();
-        $payload = IssuedDocument::sole()->payload;
+        $s['director']->update(['full_name' => $fields['director_name']]);
+        $s['user']->person->update(['full_name' => $fields['secretary_name']]);
+        $this->actingAs($s['user'])->post($this->storeUrl($s), $fields)->assertRedirectContains('/livro-digital/registros/');
+        $document = IssuedDocument::sole();
+        $response = $this->get(route('credential-registry.original', $document->registration))->assertOk();
+        $payload = $document->payload;
         $this->assertSame($fields['director_name'], $payload['registration']['director_name']);
         $this->assertSame($fields['secretary_name'], $payload['registration']['secretary_name']);
         $this->assertSame(2, preg_match_all('/\/Type\s*\/Page\b/', $response->getContent()));
@@ -315,7 +320,7 @@ class TechnicalCredentialsTest extends TestCase
         $second = DiaryAssessment::create(['school_class_id' => $s['class']->id, 'curriculum_component_id' => $component->id,
             'academic_period_id' => $s['periods'][1]->id, 'title' => 'Média do segundo período', 'assessment_date' => '2025-06-30']);
         $second->results()->create(['student_enrollment_id' => $s['enrollment']->id, 'score' => 6]);
-        $this->actingAs($s['user'])->post($this->storeUrl($s), $this->fields($s, 'certificate'))->assertOk();
+        $this->actingAs($s['user'])->post($this->storeUrl($s), $this->fields($s, 'certificate'))->assertRedirectContains('/livro-digital/registros/');
         $this->assertEquals(7, IssuedDocument::sole()->payload['components'][0]['final_average']);
     }
 
@@ -429,12 +434,9 @@ class TechnicalCredentialsTest extends TestCase
     {
         $s = $this->scenario();
         $this->completeHighSchool($s);
-        $director = Person::create(['full_name' => 'Diretora de Teste', 'active' => true]);
-        $director->schoolRoles()->create(['school_id' => $s['school']->id, 'role' => 'gestor', 'position' => 'diretor', 'active' => true]);
-        $s['user']->person->schoolRoles()->create(['school_id' => $s['school']->id, 'role' => 'gestor', 'position' => 'secretário', 'active' => true]);
         $registry = app(CredentialRegistry::class);
-        $book = $registry->open($s['user'], ['school_id' => $s['school']->id, 'kind' => 'diploma', 'identifier' => 'D/2026', 'reference_year' => 2026, 'first_number' => 1, 'first_folio' => 1, 'opened_on' => '2026-11-01', 'opening_term' => 'Abertura do livro para testes.']);
-        $data = $this->fields($s) + ['registry_book_id' => $book->id, 'history_reference' => 'Histórico escolar de teste', 'issuance_token' => (string) Str::uuid()];
+        $book = $this->diplomaBook($s);
+        $data = $this->diplomaFields($s, $book->id);
         $missing = $data;
         unset($missing['sistec_code']);
         $this->actingAs($s['user'])->post($this->storeUrl($s), $missing)->assertSessionHasErrors('sistec_code');
@@ -443,16 +445,36 @@ class TechnicalCredentialsTest extends TestCase
         $entryUrl = route('credential-registry.entry', $entry);
         $first->assertRedirect($entryUrl);
         $this->post($this->storeUrl($s), $data)->assertRedirect($entryUrl);
-        $this->get($entryUrl)->assertOk()->assertSee('Assinar digitalmente e arquivar')->assertSee('arts. 31, 38 e 39');
+        $this->get($entryUrl)->assertOk()->assertSee('Assinar digitalmente e arquivar')->assertSee('arts. 38 e 39');
         $this->assertDatabaseCount('issued_documents', 1);
         $this->assertDatabaseCount('credential_registrations', 1);
         $this->assertSame('SISTEC-TESTE-0001', $entry->sistec_code);
+        $this->assertSame(4, $entry->files()->count());
         $this->assertSame('1', $entry->snapshot['registration']['registry_number']);
         $this->assertSame('Diretora de Teste', $entry->snapshot['registration']['director_name']);
         $this->assertTrue($registry->integrity($book->fresh()));
         $before = $book->fresh()->next_number;
         $this->get(route('technical-credentials.preview', ['enrollment' => $s['enrollment'], 'kind' => 'diploma']))->assertOk();
         $this->assertSame($before, $book->fresh()->next_number);
+    }
+
+    private function diplomaBook(array $s): \App\Models\CredentialBook
+    {
+        $s['program']->update(['authorization_starts_at' => '2025-01-28', 'authorization_ends_at' => '2029-01-28', 'official_gazette_reference' => 'DOE fictício nº 28.918']);
+        return app(CredentialRegistry::class)->open($s['user'], ['school_id' => $s['school']->id, 'kind' => 'diploma',
+            'identifier' => 'D/2026', 'reference_year' => 2026, 'first_number' => 1, 'first_folio' => 1,
+            'opened_on' => '2026-11-01', 'opening_term' => 'Abertura do livro para testes.']);
+    }
+
+    private function diplomaFields(array $s, int $bookId): array
+    {
+        $data = $this->fields($s) + ['registry_book_id' => $bookId, 'evidence_reviewed' => true,
+            'title_gender' => 'masculine', 'issuance_token' => (string) Str::uuid()];
+        foreach (['authorization_pdf', 'sistec_proof', 'high_school_certificate', 'history_pdf'] as $field) {
+            $data[$field] = \Illuminate\Http\UploadedFile::fake()->createWithContent($field.'.pdf', "%PDF-1.4\nComprovante de teste ".$field);
+        }
+
+        return $data;
     }
 
     private function completeHighSchool(array $s): void
@@ -463,10 +485,14 @@ class TechnicalCredentialsTest extends TestCase
 
     private function fields(array $s, string $kind = 'diploma'): array
     {
-        return ['kind' => $kind, 'course_id' => $s['course']->id, 'module_key' => $s['program']->modules[0]['key'],
+        $fields = ['kind' => $kind, 'course_id' => $s['course']->id, 'module_key' => $s['program']->modules[0]['key'],
             'sistec_code' => 'SISTEC-TESTE-0001', 'registry_number' => '123', 'registry_book' => '01', 'registry_folio' => '12', 'registered_by' => 'Responsável Fictício',
             'secretary_name' => 'Secretária Fictícia', 'director_name' => 'Diretor Fictício', 'issued_place' => 'Jarudore, Poxoréu-MT',
             'registration_date' => now('America/Cuiaba')->toDateString(), 'issued_date' => now('America/Cuiaba')->toDateString(), 'observations' => ''];
+
+        return $kind === 'certificate' ? $fields + ['registry_book_id' => $s['certificateBook']->id, 'evidence_reviewed' => true,
+            'issuance_token' => (string) Str::uuid(),
+            'history_pdf' => \Illuminate\Http\UploadedFile::fake()->createWithContent('historico.pdf', "%PDF-1.4\nHistórico assinado de teste")] : $fields;
     }
 
     private function prepareUrl(array $s): string
@@ -536,7 +562,13 @@ class TechnicalCredentialsTest extends TestCase
             }
         }
         $user = $this->manager($school);
+        $director = Person::create(['full_name' => 'Diretora de Teste', 'active' => true]);
+        $director->schoolRoles()->create(['school_id' => $school->id, 'role' => 'gestor', 'position' => 'diretor', 'active' => true]);
+        $user->person->schoolRoles()->create(['school_id' => $school->id, 'role' => 'gestor', 'position' => 'secretário', 'active' => true]);
+        $certificateBook = app(CredentialRegistry::class)->open($user, ['school_id' => $school->id, 'kind' => 'certificate',
+            'identifier' => 'C/2025', 'reference_year' => 2025, 'first_number' => 1, 'first_folio' => 1,
+            'opened_on' => '2025-01-01', 'opening_term' => 'Abertura do livro para testes.']);
 
-        return compact('school', 'program', 'area', 'year', 'course', 'class', 'student', 'enrollment', 'user', 'assessments', 'periods');
+        return compact('school', 'program', 'area', 'year', 'course', 'class', 'student', 'enrollment', 'user', 'assessments', 'periods', 'director', 'certificateBook');
     }
 }

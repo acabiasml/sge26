@@ -4,6 +4,7 @@
         ?? $issuedDocument->issuedBy?->email
         ?? 'Sistema';
     $isTemporaryDocument = (bool) ($issuedDocument->payload['is_draft'] ?? false);
+    $schoolRegistration = $issuedDocument->payload['registration'] ?? [];
     $verificationUrl = $isTemporaryDocument ? route('documents.verify.form') : route('documents.verify', $issuedDocument->verification_code);
     $qrCodeDataUri = (new \chillerlan\QRCode\QRCode)->render($verificationUrl);
 
@@ -36,7 +37,7 @@
                 @endif
                 <div class="document-footer-authentication">
                     @if($phoneLine){{ $phoneLine }} | @endif
-                    @if($isTemporaryDocument)PRÉVIA TEMPORÁRIA — SEM VALOR OFICIAL — SEM REGISTRO.@else Documento emitido pelo Beabá. Autenticidade: {{ $issuedDocument->verification_code }}.@endif
+                    @if($isTemporaryDocument)PRÉVIA TEMPORÁRIA — SEM VALOR OFICIAL — SEM REGISTRO.@elseif(isset($schoolRegistration['registry_number']))Livro {{ $schoolRegistration['registry_book'] }} · Folha {{ $schoolRegistration['registry_folio'] }} · Registro {{ $schoolRegistration['registry_number'] }} · Código {{ $issuedDocument->verification_code }}.@else Documento emitido pelo Beabá. Autenticidade: {{ $issuedDocument->verification_code }}.@endif
                 </div>
                 <div class="document-footer-issuance">
                     @if($siteLine){{ $siteLine }} | @endif

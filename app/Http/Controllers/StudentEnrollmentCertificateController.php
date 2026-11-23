@@ -2,14 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AcademicCourse;
 use App\Models\AcademicPeriod;
 use App\Models\AcademicYear;
 use App\Models\IssuedDocument;
 use App\Models\SchoolClass;
 use App\Models\StudentEnrollment;
 use App\Support\OfficialDocumentCompliance;
+use App\Support\CredentialRegistry;
+use App\Support\HighSchoolCompletion;
 use App\Support\PdfLetterhead;
 use App\Support\PdfMetadata;
+use App\Support\SchoolRecordPdf;
 use App\Support\StudentAttendanceCertificateBuilder;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
@@ -143,26 +147,104 @@ class StudentEnrollmentCertificateController extends Controller
     public function transfer(Request $request, StudentEnrollment $enrollment): Response|RedirectResponse
     {
         [$academicYear, $class] = $this->context($request, $enrollment);
+        $type = 'student-transfer-certificate';
+        $records = app(SchoolRecordPdf::class);
+        $payload = [
+            'title' => 'Atestado de transferência', 'enrollment_id' => $enrollment->id,
+            'student' => ['full_name' => $enrollment->student->full_name],
+            'enrollment_status' => $enrollment->status,
+            'transferred_at' => $enrollment->transferred_at?->toDateString(),
+        ];
+        $render = function (IssuedDocument $document) use ($academicYear, $class, $enrollment) {
+            $pdf = Pdf::loadView('reports.certificates.transfer', [
+                'academicYear' => $academicYear, 'class' => $class, 'enrollment' => $enrollment,
+                'issuedDocument' => $document, 'letterhead' => PdfLetterhead::forEnrollment($enrollment),
+            ])->setPaper('a4', 'portrait');
 
+            return PdfMetadata::stream($pdf, 'beaba-atestado-transferencia-'.$enrollment->id.'.pdf');
+        };
+        if ($request->isMethod('get')) {
+            return $render($records->draft($request->user(), $academicYear->school, $type, $enrollment->person_id, $payload));
+        }
         if ($redirect = $this->complianceRedirect($request, $academicYear, $enrollment)) {
             return $redirect;
         }
+        $data = $request->validate(SchoolRecordPdf::RULES);
+        $staff = $records->signers($academicYear->school);
+        $payload['signers'] = ['director' => $staff['diretor']->full_name, 'secretary' => $staff['secretário']->full_name];
+        $document = $records->issue($request->user(), $academicYear->school, $type, $enrollment->person_id, $payload, $data, $render);
 
-        $issuedDocument = $this->issuedDocument($request, $academicYear, $enrollment, 'student-transfer-certificate', [
-            'title' => 'Atestado de transferência',
-            'enrollment_status' => $enrollment->status,
-            'transferred_at' => $enrollment->transferred_at?->toDateString(),
+        return redirect()->route('credential-registry.entry', $document->registration);
+    }
+
+    public function prepareTransfer(Request $request, StudentEnrollment $enrollment): View
+    {
+        [$year] = $this->context($request, $enrollment);
+
+        return view('credential-registry.prepare-record', [
+            'title' => 'Atestado de transferência', 'context' => $enrollment->student->full_name.' · '.$year->name,
+            'notice' => 'O atestado pode ser expedido antes da transferência. O histórico e a ficha dos períodos parciais integram a documentação da transferência.',
+            'preview' => route('enrollments.transfer-certificate.pdf', $enrollment),
+            'action' => route('enrollments.transfer-certificate.register', $enrollment),
+            'books' => app(CredentialRegistry::class)->books($request->user(), $year->school_id, 'transfer')->whereNull('closed_at')->get(),
+            'confirmMissingCpf' => OfficialDocumentCompliance::studentHasNoCpf($enrollment->student),
         ]);
+    }
 
-        $pdf = Pdf::loadView('reports.certificates.transfer', [
-            'academicYear' => $academicYear,
-            'class' => $class,
-            'enrollment' => $enrollment,
-            'issuedDocument' => $issuedDocument,
-            'letterhead' => PdfLetterhead::forEnrollment($enrollment),
-        ])->setPaper('a4', 'portrait');
+    public function highSchoolCertificate(Request $request, StudentEnrollment $enrollment, HighSchoolCompletion $completion, SchoolRecordPdf $records): View|Response
+    {
+        [$year, $class] = $this->context($request, $enrollment);
+        $course = $completion->course($enrollment);
+        if (! $course) {
+            throw ValidationException::withMessages(['document' => 'A certificação exige a última série do Ensino Médio com resultado aprovado, em ano letivo encerrado.']);
+        }
+        $scope = $course->modality ?: AcademicCourse::MODALITY_REGULAR;
+        $type = 'high-school-completion-certificate';
+        $title = 'Certificado de conclusão do Ensino Médio';
+        $payload = [
+            'title' => $title, 'enrollment_id' => $enrollment->id, 'course_id' => $course->id, 'modality' => $scope,
+            'student' => ['full_name' => $enrollment->student->full_name],
+        ];
+        $render = function (IssuedDocument $document) use ($year, $class, $enrollment, $course, $title) {
+            $pdf = Pdf::loadView('reports.certificates.declaration', [
+                'academicYear' => $year, 'class' => $class, 'enrollment' => $enrollment,
+                'issuedDocument' => $document, 'letterhead' => PdfLetterhead::make($year->school, AcademicCourse::STAGE_HIGH_SCHOOL),
+                'title' => $title, 'statement' => 'Certificamos a conclusão do Ensino Médio, modalidade '.$course->modalityLabel().', com resultado final aprovado, nos termos do art. 24, VII, da Lei nº 9.394/1996.',
+            ])->setPaper('a4', 'portrait');
 
-        return PdfMetadata::stream($pdf, 'beaba-atestado-transferencia-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
+            return PdfMetadata::stream($pdf, 'beaba-certificado-ensino-medio-'.$enrollment->id.'.pdf');
+        };
+        if ($request->isMethod('get') && $request->boolean('preview')) {
+            return $render($records->draft($request->user(), $year->school, $type, $enrollment->person_id, $payload));
+        }
+        if ($request->isMethod('get')) {
+            return view('credential-registry.prepare-record', [
+                'title' => $title, 'context' => $enrollment->student->full_name.' · '.$course->modalityLabel(),
+                'notice' => 'Selecione o livro da modalidade e o histórico que comprova a conclusão.',
+                'preview' => route('enrollments.high-school-certificate.prepare', ['enrollment' => $enrollment, 'preview' => 1]),
+                'action' => route('enrollments.high-school-certificate.register', $enrollment),
+                'books' => app(CredentialRegistry::class)->books($request->user(), $year->school_id, 'high-school')
+                    ->where('scope', $scope)->whereNull('closed_at')->get(),
+                'confirmMissingCpf' => OfficialDocumentCompliance::studentHasNoCpf($enrollment->student),
+                'requireHistory' => true,
+                'digitalOnly' => true,
+            ]);
+        }
+        if ($redirect = $this->complianceRedirect($request, $year, $enrollment)) {
+            return $redirect;
+        }
+        $data = $request->validate(['signature_mode' => ['required', 'in:digital']] + SchoolRecordPdf::RULES +
+            ['history_code' => ['required', 'string', 'max:60']]);
+        $history = $records->signedHistory($data['history_code'], $enrollment->person_id, $year->school_id, AcademicCourse::STAGE_HIGH_SCHOOL);
+        if (! in_array($enrollment->id, $history->snapshot['completed_enrollment_ids'] ?? [], true)) {
+            throw ValidationException::withMessages(['history_code' => 'O histórico assinado precisa comprovar a conclusão desta matrícula.']);
+        }
+        $staff = $records->signers($year->school);
+        $payload['signers'] = ['director' => $staff['diretor']->full_name, 'secretary' => $staff['secretário']->full_name];
+        $payload['history_registration_id'] = $history->id;
+        $document = $records->issue($request->user(), $year->school, $type, $enrollment->person_id, $payload, $data, $render, $scope);
+
+        return redirect()->route('credential-registry.entry', $document->registration);
     }
 
     private function declarationPdf(
@@ -401,6 +483,14 @@ class StudentEnrollmentCertificateController extends Controller
                 'reason' => $enrollment->final_result_status === StudentEnrollment::FINAL_APPROVED ? null : __('Exige resultado final aprovado.'),
             ],
             [
+                'title' => 'Certificado de conclusão do Ensino Médio',
+                'description' => __('Registra a conclusão no livro da modalidade com o histórico assinado.'),
+                'route' => route('enrollments.high-school-certificate.prepare', $enrollment),
+                'icon' => 'fa-certificate',
+                'enabled' => (bool) app(HighSchoolCompletion::class)->course($enrollment),
+                'reason' => __('Exige conclusão da última série em ano letivo encerrado.'),
+            ],
+            [
                 'title' => 'Atestado de frequência',
                 'description' => __('Resume a frequência anual. Os recortes mensal e por período estão disponíveis na Central de emissão.'),
                 'route' => route('enrollments.attendance-certificate.pdf', $enrollment),
@@ -411,8 +501,24 @@ class StudentEnrollmentCertificateController extends Controller
             [
                 'title' => 'Atestado de transferência',
                 'description' => __('Pode ser emitido antes ou depois da transferência, sem alterar a matrícula.'),
-                'route' => route('enrollments.transfer-certificate.pdf', $enrollment),
+                'route' => route('enrollments.transfer-certificate.prepare', $enrollment),
                 'icon' => 'fa-exchange-alt',
+                'enabled' => true,
+                'reason' => null,
+            ],
+            [
+                'title' => 'Transferência recebida',
+                'description' => __('Registra a documentação da escola de origem.'),
+                'route' => route('enrollments.received-transfer', $enrollment),
+                'icon' => 'fa-file-import',
+                'enabled' => true,
+                'reason' => null,
+            ],
+            [
+                'title' => 'Processo especial',
+                'description' => __('Arquiva os atos de classificação, reclassificação e enturmação.'),
+                'route' => route('enrollments.special-process', $enrollment),
+                'icon' => 'fa-folder',
                 'enabled' => true,
                 'reason' => null,
             ],

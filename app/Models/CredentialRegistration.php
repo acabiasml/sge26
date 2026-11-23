@@ -42,4 +42,13 @@ class CredentialRegistration extends Model
     {
         return $this->belongsTo(User::class, 'registered_by_user_id');
     }
+
+    public function finalCopy(): ?CredentialRegistryFile
+    {
+        return $this->files()->where(function ($query) {
+            $query->where('kind', 'physical_signed')->orWhere(fn ($signed) => $signed
+                ->where('kind', 'signed_document')->where('metadata->complete', true)->where('metadata->timestamp_checked', true)
+                ->where('metadata->content_signature_checked', true));
+        })->latest('id')->first();
+    }
 }

@@ -47,7 +47,8 @@ final class TechnicalCredentialEligibility
                 }
                 $summary = $report['annualComponents']->first(fn ($s) => $s['component']->id === $component->id);
                 $moduleComponents[] = $definition + ['final_average' => $summary && $summary['total_periods'] > 0 && $summary['complete_periods'] >= $summary['total_periods']
-                    ? round((float) $summary['points'] / $summary['total_periods'], 2) : null];
+                    ? round((float) $summary['points'] / $summary['total_periods'], 2) : null,
+                    'attendance_percentage' => $summary['attendance']['percentage'] ?? null];
                 if (! $summary || $summary['complete_periods'] < $periods->count() || $summary['total_periods'] === 0) {
                     $issues[] = $component->name.': notas ainda incompletas.';
                 } elseif (! ComponentApprovalCriteria::evaluate($summary, $report['passingPoints'])['passed']) {

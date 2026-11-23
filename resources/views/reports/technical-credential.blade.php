@@ -103,6 +103,7 @@ A Direção do {{ $data['school_name'] }}, mantida pelo {{ $program['maintainer'
 nº <strong>{{ $registry['registry_number'] }}</strong>, Folha nº <strong>{{ $registry['registry_folio'] }}</strong>, Livro nº <strong>{{ $registry['registry_book'] }}</strong>,<br>por {{ $registry['registered_by'] }}, em {{ $longDate($registry['registration_date']) }}.<br>@if($diploma && $final)Registro no SISTEC: <strong>{{ $registry['sistec_code'] ?? 'não informado no acervo anterior' }}</strong>.<br>@endif
 @if($diploma && $final)
 <span style="font-size:7.4pt">Registro com validade em todo o território nacional, conforme art. 2º, § 3º, da Lei 11.892/2008 e arts. 24 e 36-D da Lei 9.394/1996.</span>
+<br><span style="font-size:7.4pt">{{ $registry['issued_place'] }}. Assinatura do responsável pelo registro e carimbos de tempo na via assinada.</span>
 @elseif(filled($registry['observations'] ?? null))
 Observações: {{ $registry['observations'] }}
 @endif

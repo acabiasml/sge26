@@ -10,7 +10,15 @@ class CredentialBook extends Model
 {
     use Auditable;
 
-    public const KINDS = ['certificate' => 'Certificados', 'diploma' => 'Diplomas'];
+    public const KINDS = [
+        'certificate' => 'Certificados de cursos',
+        'diploma' => 'Diplomas técnicos',
+        'high-school' => 'Conclusão do Ensino Médio',
+        'history' => 'Históricos escolares',
+        'final-results' => 'Atas de resultados finais',
+        'transfer' => 'Transferências expedidas e recebidas',
+        'special-process' => 'Processos especiais',
+    ];
 
     protected $guarded = ['id'];
 

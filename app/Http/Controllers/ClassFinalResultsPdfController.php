@@ -4,16 +4,34 @@ namespace App\Http\Controllers;
 
 use App\Models\IssuedDocument;
 use App\Models\SchoolClass;
+use App\Models\StudentEnrollment;
 use App\Support\AcademicContextLabel;
+use App\Support\CredentialRegistry;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
+use App\Support\SchoolRecordPdf;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
 class ClassFinalResultsPdfController extends Controller
 {
+    public function prepare(Request $request, SchoolClass $class, CredentialRegistry $registry)
+    {
+        $class->load('academicYear.school');
+        $registry->authorize($request->user(), $class->academicYear->school_id);
+
+        return view('credential-registry.prepare-record', [
+            'title' => 'Ata de resultados finais',
+            'context' => $class->name.' · '.$class->academicYear->name,
+            'preview' => route('classes.final-results.pdf', $class),
+            'action' => route('classes.final-results.register', $class),
+            'books' => $registry->books($request->user(), $class->academicYear->school_id, 'final-results')->whereNull('closed_at')->orderBy('identifier')->get(),
+            'notice' => 'Registre a ata após o encerramento do ano letivo e a conferência dos resultados. A via registrada fica preservada para consulta e retificação.',
+        ]);
+    }
+
     public function __invoke(Request $request, SchoolClass $class): Response
     {
         $class->load([
@@ -32,49 +50,35 @@ class ClassFinalResultsPdfController extends Controller
             ->sortBy(fn ($enrollment): string => $enrollment->student?->full_name ?? '')
             ->values();
 
-        foreach ($enrollments as $enrollment) {
-            if ($enrollment->student && ($message = OfficialDocumentCompliance::studentMessage(
-                $enrollment->student,
-                $request->boolean('confirm_missing_student_cpf')
-            ))) {
-                return redirect()->back()->with('status', $message);
-            }
+        $records = app(SchoolRecordPdf::class);
+        $payload = [
+            'title' => 'Ata de resultados finais - '.AcademicContextLabel::classWithStages($class->name, $class->courses),
+            'school_class_id' => $class->id, 'academic_year_id' => $academicYear->id, 'rows_count' => $enrollments->count(),
+        ];
+        $render = function (IssuedDocument $document) use ($class, $academicYear, $enrollments) {
+            $pdf = Pdf::loadView('reports.class-final-results', [
+                'schoolClass' => $class, 'academicYear' => $academicYear, 'enrollments' => $enrollments,
+                'issuedDocument' => $document, 'verificationUrl' => route('documents.verify', $document->verification_code),
+                'letterhead' => PdfLetterhead::forClass($class),
+            ])->setPaper('a4', 'landscape');
+
+            return \App\Support\PdfMetadata::stream($pdf, 'beaba-resultados-finais-turma-'.$class->id.'.pdf');
+        };
+        if ($request->isMethod('get')) {
+            return $render($records->draft($request->user(), $academicYear->school, 'class-final-results', null, $payload));
         }
+        $data = $request->validate(SchoolRecordPdf::RULES);
+        if (! $academicYear->isClosed() || $enrollments->isEmpty()
+            || $enrollments->contains(fn ($enrollment) => in_array($enrollment->final_result_status, [null, StudentEnrollment::FINAL_PENDING], true))) {
+            throw ValidationException::withMessages(['document' => 'Encerre o ano letivo e confira os resultados de todas as matrículas antes de registrar a ata.']);
+        }
+        if ($message = OfficialDocumentCompliance::schoolMessage($academicYear->school)) {
+            throw ValidationException::withMessages(['document' => $message]);
+        }
+        $staff = $records->signers($academicYear->school);
+        $payload['signers'] = ['director' => $staff['diretor']->full_name, 'secretary' => $staff['secretário']->full_name];
+        $document = $records->issue($request->user(), $academicYear->school, 'class-final-results', null, $payload, $data, $render);
 
-        $issuedDocument = IssuedDocument::query()->create([
-            'uuid' => (string) Str::uuid(),
-            'verification_code' => $this->verificationCode(),
-            'type' => 'class-final-results',
-            'person_id' => $request->user()->person_id,
-            'school_id' => $academicYear->school_id,
-            'issued_by_user_id' => $request->user()->id,
-            'payload' => [
-                'title' => 'Ata de resultados finais - '.AcademicContextLabel::classWithStages($class->name, $class->courses),
-                'school_class_id' => $class->id,
-                'academic_year_id' => $academicYear->id,
-                'rows_count' => $enrollments->count(),
-            ],
-            'issued_at' => now(),
-        ]);
-
-        $pdf = Pdf::loadView('reports.class-final-results', [
-            'schoolClass' => $class,
-            'academicYear' => $academicYear,
-            'enrollments' => $enrollments,
-            'issuedDocument' => $issuedDocument,
-            'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
-            'letterhead' => PdfLetterhead::forClass($class),
-        ])->setPaper('a4', 'landscape');
-
-        return \App\Support\PdfMetadata::stream($pdf, 'beaba-resultados-finais-turma-'.$class->id.'-'.now()->format('Ymd-His').'.pdf');
-    }
-
-    private function verificationCode(): string
-    {
-        do {
-            $code = 'BEABA-'.strtoupper(Str::random(4)).'-'.strtoupper(Str::random(4)).'-'.strtoupper(Str::random(4));
-        } while (IssuedDocument::query()->where('verification_code', $code)->exists());
-
-        return $code;
+        return redirect()->route('credential-registry.entry', $document->registration);
     }
 }

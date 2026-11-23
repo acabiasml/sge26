@@ -379,7 +379,9 @@
             const syncSignatureOptions = () => {
                 const kind = targetKind();
                 const isPdf = kind !== 'listing' || targetId.value === '1';
-                const canChooseSignature = Boolean(typeSelect.value) && isPdf && !['history', 'technical_enrollment', 'free_offering'].includes(kind) && typeSelect.value !== 'official-editor';
+                const canChooseSignature = Boolean(typeSelect.value) && isPdf
+                    && !['history', 'technical_enrollment', 'free_offering'].includes(kind)
+                    && !['official-editor', 'class-final-results', 'transfer-certificate', 'high-school-completion-certificate'].includes(typeSelect.value);
                 document.getElementById('signature-options').hidden = !canChooseSignature;
                 document.getElementById('issuance-signature-mode').disabled = !canChooseSignature;
                 optionsStep.hidden = !canChooseSignature && scoreOptions.hidden && monthOptions.hidden

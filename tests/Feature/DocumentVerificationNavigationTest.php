@@ -30,7 +30,7 @@ class DocumentVerificationNavigationTest extends TestCase
         foreach ([false, true] as $revoked) {
             $document->update(['revoked_at' => $revoked ? now() : null]);
             $this->get(route('documents.verify', $document->verification_code))
-                ->assertOk()->assertSee($revoked ? 'Documento revogado' : 'Documento válido')
+                ->assertOk()->assertSee($revoked ? 'Documento revogado' : 'Emissão confirmada')
                 ->assertSee('id="accordionSidebar"', false)->assertSee('Voltar ao início')
                 ->assertSee('href="'.route('documents.verify.form').'"', false)
                 ->assertDontSee('Voltar ao site do CTJJ');
@@ -50,7 +50,7 @@ class DocumentVerificationNavigationTest extends TestCase
         $this->get(route('documents.verify.form'))->assertOk()
             ->assertDontSee('id="accordionSidebar"', false)->assertSee('Código de verificação');
         $this->get(route('documents.verify', $document->verification_code))->assertOk()
-            ->assertSee('Documento válido')->assertSee('Voltar ao site do CTJJ')
+            ->assertSee('Emissão confirmada')->assertSee('Voltar ao site do CTJJ')
             ->assertSee('href="'.route('documents.verify.form').'"', false)
             ->assertDontSee('id="accordionSidebar"', false);
         $this->get(route('documents.verify', 'BEABA-NOT-FOUND'))->assertNotFound()

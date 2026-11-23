@@ -16,9 +16,14 @@ use Illuminate\Validation\ValidationException;
 
 final class CredentialRegistry
 {
-    public const TYPES = ['technical-intermediate-certificate' => 'certificate', 'free-course-certificate' => 'certificate', 'technical-course-diploma' => 'diploma'];
+    public const TYPES = [
+        'technical-intermediate-certificate' => 'certificate', 'free-course-certificate' => 'certificate', 'technical-course-diploma' => 'diploma',
+        'high-school-completion-certificate' => 'high-school', 'student-academic-history' => 'history',
+        'class-final-results' => 'final-results',
+        'student-transfer-certificate' => 'transfer', 'received-transfer' => 'transfer', 'school-special-process' => 'special-process',
+    ];
 
-    public const ACTIONS = ['opened' => 'Abertura', 'registered' => 'Registro', 'closed' => 'Encerramento', 'annotation' => 'Averbação', 'cancelled' => 'Cancelamento', 'signed_document' => 'PDF assinado e conferência externa', 'delivered' => 'Protocolo de entrega', 'book_export' => 'Consolidação do livro', 'book_signed' => 'Livro assinado e conferência externa', 'backup' => 'Cópia de segurança'];
+    public const ACTIONS = ['opened' => 'Abertura', 'registered' => 'Registro', 'closed' => 'Encerramento', 'annotation' => 'Averbação', 'cancelled' => 'Cancelamento', 'signed_document' => 'PDF assinado e conferência externa', 'physical_signed' => 'Via assinada em papel', 'second_copy' => 'Segunda via', 'apostille' => 'Apostilamento', 'credential_evidence' => 'Comprovantes da certificação', 'delivered' => 'Protocolo de entrega', 'book_export' => 'Consolidação do livro', 'book_signed' => 'Livro assinado e conferência externa', 'backup' => 'Cópia de segurança'];
 
     public function authorize(User $user, int $schoolId): void
     {
@@ -45,45 +50,65 @@ final class CredentialRegistry
             $this->ensure(! CredentialBook::where('school_id', $data['school_id'])->where('kind', $data['kind'])
                 ->where('identifier', $data['identifier'])->exists(), 'Este livro já existe nesta escola para esse tipo de documento.');
             $book = CredentialBook::create($data + ['next_number' => $data['first_number'], 'created_by_user_id' => $user->id]);
-            $this->event($book, null, $user, 'opened', ['term' => $book->opening_term, 'previous_book' => $book->previous_book, 'first_number' => $book->first_number, 'first_folio' => $book->first_folio, 'identity_sha256' => $this->digest($book->only(['school_id', 'kind', 'identifier', 'reference_year', 'first_number', 'first_folio', 'opened_on', 'opening_term', 'previous_book']))]);
+            $this->event($book, null, $user, 'opened', ['term' => $book->opening_term, 'previous_book' => $book->previous_book, 'first_number' => $book->first_number, 'first_folio' => $book->first_folio, 'identity_sha256' => $this->bookIdentity($book)]);
 
             return $book;
         });
     }
 
     /** O número e a folha só são consumidos se PDF e registro forem gravados juntos. */
-    public function issue(int $bookId, int $schoolId, string $type, User $user, string $date, ?string $sistec, callable $emit, ?string $requestToken = null): IssuedDocument
+    public function issue(int $bookId, int $schoolId, string $type, User $user, string $date, ?string $sistec, callable $emit, ?string $requestToken = null, ?string $scope = null, array $evidence = []): IssuedDocument
     {
         $this->authorize($user, $schoolId);
+        $paths = [];
 
-        return DB::transaction(function () use ($bookId, $schoolId, $type, $user, $date, $sistec, $emit, $requestToken) {
-            $book = CredentialBook::whereKey($bookId)->lockForUpdate()->firstOrFail();
-            $this->ensure($book->school_id === $schoolId && $book->kind === (self::TYPES[$type] ?? null), 'Selecione um livro da escola e do tipo correto.');
-            $key = $requestToken ? hash('sha256', $book->id.'|'.$user->id.'|'.$requestToken) : null;
-            if ($key && ($existing = CredentialRegistration::where('issuance_key', $key)->first())) {
-                return $existing->document;
-            }
-            $this->ensure(! $book->closed_at, 'O livro está encerrado. Abra outro livro para novos registros.');
-            $this->ensure($date >= $book->opened_on->toDateString() && $date <= now('America/Cuiaba')->toDateString(), 'A data do registro deve estar entre a abertura do livro e hoje.');
-            $this->ensure($type !== 'technical-course-diploma' || filled($sistec), 'Informe o número gerado pelo SISTEC para o diploma técnico definitivo.');
-            $this->ensure($this->integrity($book), 'A cadeia de integridade do livro divergiu.');
-            $number = $book->next_number;
-            $folio = $book->first_folio + $number - $book->first_number;
-            $this->ensure($number <= 999999999 && $folio <= 999999999, 'O limite da numeração foi atingido. Encerre o livro e abra outro.');
-            $registration = ['registry_number' => (string) $number, 'registry_folio' => (string) $folio, 'registry_book' => $book->identifier,
-                'registered_by' => $user->person?->full_name ?: $user->name, 'registration_date' => $date, 'sistec_code' => $sistec];
-            $document = $emit($registration);
-            $this->ensure($document instanceof IssuedDocument && $document->exists && $document->school_id === $schoolId
-                && $document->type === $type && ! $document->revoked_at, 'O documento não corresponde ao registro solicitado.');
-            $this->ensure($document->file_path && $document->file_sha256 && hash_equals($document->file_sha256, hash('sha256', Storage::disk('local')->get($document->file_path))), 'O PDF original precisa estar arquivado antes do registro.');
-            $entry = CredentialRegistration::create(['credential_book_id' => $book->id, 'issued_document_id' => $document->id,
-                'issuance_key' => $key, 'number' => $number, 'folio' => $folio, 'registered_on' => $date, 'sistec_code' => $sistec,
-                'snapshot' => $document->payload, 'document_sha256' => $document->file_sha256, 'registered_by_user_id' => $user->id, 'created_at' => now()]);
-            $book->update(['next_number' => $number + 1]);
-            $this->event($book, $entry, $user, 'registered', ['number' => $number, 'folio' => $folio, 'document_sha256' => $entry->document_sha256, 'registered_on' => $date, 'sistec_code' => $sistec, 'snapshot_sha256' => $this->digest($entry->snapshot)]);
+        try {
+            return DB::transaction(function () use ($bookId, $schoolId, $type, $user, $date, $sistec, $emit, $requestToken, $scope, $evidence, &$paths) {
+                School::whereKey($schoolId)->lockForUpdate()->firstOrFail();
+                $book = CredentialBook::whereKey($bookId)->lockForUpdate()->firstOrFail();
+                $this->ensure($book->school_id === $schoolId && $book->kind === (self::TYPES[$type] ?? null), 'Selecione um livro da escola e do tipo correto.');
+                $this->ensure($book->scope === $scope, 'Selecione o livro da modalidade correta.');
+                $key = $requestToken ? hash('sha256', $book->id.'|'.$user->id.'|'.$requestToken) : null;
+                if ($key && ($existing = CredentialRegistration::where('issuance_key', $key)->first())) {
+                    $this->ensure($existing->document->type === $type, 'Esta solicitação já foi usada para outro documento.');
+                    return $existing->document;
+                }
+                $this->ensure(! $book->closed_at, 'O livro está encerrado. Abra outro livro para novos registros.');
+                $this->ensure($date >= $book->opened_on->toDateString() && $date <= now('America/Cuiaba')->toDateString(), 'A data do registro deve estar entre a abertura do livro e hoje.');
+                $this->ensure($type !== 'technical-course-diploma' || filled($sistec), 'Informe o número gerado pelo SISTEC para o diploma técnico definitivo.');
+                $this->ensure($type !== 'technical-course-diploma' || ! CredentialRegistration::where('sistec_code', $sistec)
+                    ->whereHas('book', fn ($query) => $query->where('school_id', $schoolId))->exists(), 'Este código do SISTEC já foi registrado. Use o registro original para segunda via ou correção.');
+                $this->ensure($this->integrity($book), 'A cadeia de integridade do livro divergiu.');
+                $number = $book->next_number;
+                $folio = $book->first_folio + $number - $book->first_number;
+                $this->ensure($number <= 999999999 && $folio <= 999999999, 'O limite da numeração foi atingido. Encerre o livro e abra outro.');
+                $registration = ['registry_number' => (string) $number, 'registry_folio' => (string) $folio, 'registry_book' => $book->identifier,
+                    'registered_by' => $user->person?->full_name ?: $user->name, 'registration_date' => $date, 'sistec_code' => $sistec];
+                $document = $emit($registration);
+                $this->ensure($document instanceof IssuedDocument && $document->exists && $document->school_id === $schoolId
+                    && $document->type === $type && ! $document->revoked_at, 'O documento não corresponde ao registro solicitado.');
+                $this->ensure($document->file_path && $document->file_sha256 && hash_equals($document->file_sha256, hash('sha256', Storage::disk('local')->get($document->file_path))), 'O PDF original precisa estar arquivado antes do registro.');
+                $entry = CredentialRegistration::create(['credential_book_id' => $book->id, 'issued_document_id' => $document->id,
+                    'issuance_key' => $key, 'number' => $number, 'folio' => $folio, 'registered_on' => $date, 'sistec_code' => $sistec,
+                    'snapshot' => $document->payload, 'document_sha256' => $document->file_sha256, 'registered_by_user_id' => $user->id, 'created_at' => now()]);
+                $book->update(['next_number' => $number + 1]);
+                $this->event($book, $entry, $user, 'registered', ['number' => $number, 'folio' => $folio, 'document_sha256' => $entry->document_sha256, 'registered_on' => $date, 'sistec_code' => $sistec, 'snapshot_sha256' => $this->digest($entry->snapshot)]);
+                if ($evidence) {
+                    $fileIds = [];
+                    foreach ($evidence as $kind => $bytes) {
+                        $file = $this->storeFile($book, $entry, $user, $kind, $bytes);
+                        $paths[] = $file->file_path;
+                        $fileIds[$kind.'_file_id'] = $file->id;
+                    }
+                    $this->event($book, $entry, $user, 'credential_evidence', $fileIds);
+                }
 
-            return $document;
-        });
+                return $document;
+            });
+        } catch (\Throwable $error) {
+            Storage::disk('local')->delete($paths);
+            throw $error;
+        }
     }
 
     public function event(CredentialBook $book, ?CredentialRegistration $entry, ?User $user, string $action, array $data): CredentialRegistryEvent
@@ -103,7 +128,7 @@ final class CredentialRegistry
     public function integrity(CredentialBook $book): bool
     {
         $opening = $book->events()->where('action', 'opened')->first();
-        if (! $opening || ($opening->data['identity_sha256'] ?? '') !== $this->digest($book->only(['school_id', 'kind', 'identifier', 'reference_year', 'first_number', 'first_folio', 'opened_on', 'opening_term', 'previous_book']))) {
+        if (! $opening || ($opening->data['identity_sha256'] ?? '') !== $this->bookIdentity($book)) {
             return false;
         }
         if ($book->next_number !== $book->first_number + $book->registrations()->count()) {
@@ -159,13 +184,23 @@ final class CredentialRegistry
         return hash('sha256', json_encode($sort($values), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 
+    private function bookIdentity(CredentialBook $book): string
+    {
+        $fields = $book->only(['school_id', 'kind', 'identifier', 'reference_year', 'first_number', 'first_folio', 'opened_on', 'opening_term', 'previous_book']);
+
+        return $this->digest($book->scope === null ? $fields : $fields + ['scope' => $book->scope]);
+    }
+
+    public function writePrivate(string $path, string $bytes): void
+    {
+        throw_unless(Storage::disk('local')->put($path, $bytes), \RuntimeException::class, 'Não foi possível arquivar o arquivo.');
+        chmod(Storage::disk('local')->path($path), 0600);
+    }
+
     public function storeFile(CredentialBook $book, ?CredentialRegistration $entry, ?User $user, string $kind, string $bytes, array $metadata = []): CredentialRegistryFile
     {
         $path = 'credential-registry/'.$book->id.'/'.Str::uuid().'.'.($kind === 'backup' ? 'zip' : 'pdf');
-        if (! Storage::disk('local')->put($path, $bytes)) {
-            throw new \RuntimeException('Não foi possível arquivar o arquivo.');
-        }
-        chmod(Storage::disk('local')->path($path), 0600);
+        $this->writePrivate($path, $bytes);
         try {
             return CredentialRegistryFile::create(['credential_book_id' => $book->id, 'credential_registration_id' => $entry?->id,
                 'uploaded_by_user_id' => $user?->id, 'kind' => $kind, 'file_path' => $path, 'sha256' => hash('sha256', $bytes), 'metadata' => $metadata, 'created_at' => now()]);

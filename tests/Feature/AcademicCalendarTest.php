@@ -2090,7 +2090,7 @@ class AcademicCalendarTest extends TestCase
             ->assertOk()
             ->assertHeader('content-disposition');
 
-        $this->assertDatabaseHas('issued_documents', [
+        $this->assertDatabaseMissing('issued_documents', [
             'type' => 'class-final-results',
             'school_id' => $year->school_id,
         ]);

@@ -72,7 +72,7 @@
                                 <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.attendance-certificate.pdf', $enrollment) }}" aria-label="{{ __('Emitir atestado de frequência de') }} {{ $enrollment->student?->full_name }}" title="{{ __('Atestado de frequência') }}">
                                     <i class="fas fa-user-check" aria-hidden="true"></i>
                                 </a>
-                                    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.transfer-certificate.pdf', $enrollment) }}" aria-label="{{ __('Emitir atestado de transferência de') }} {{ $enrollment->student?->full_name }}" title="{{ __('Atestado de transferência') }}">
+                                    <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sge-icon-action" href="{{ route('enrollments.transfer-certificate.prepare', $enrollment) }}" aria-label="{{ __('Emitir atestado de transferência de') }} {{ $enrollment->student?->full_name }}" title="{{ __('Atestado de transferência') }}">
                                         <i class="fas fa-exchange-alt" aria-hidden="true"></i>
                                     </a>
                                 @if ($canManageEnrollments && ($enrollment->isActive() || in_array($enrollment->status, [\App\Models\StudentEnrollment::STATUS_TRANSFERRED, \App\Models\StudentEnrollment::STATUS_CANCELLED], true)))

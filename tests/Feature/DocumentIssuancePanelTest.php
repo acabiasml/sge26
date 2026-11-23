@@ -329,7 +329,7 @@ class DocumentIssuancePanelTest extends TestCase
         $this->get(route('document-issuance.issue', [
             'type' => 'transfer-certificate',
             'target_id' => $enrollment->id,
-        ]))->assertRedirectContains(route('enrollments.transfer-certificate.pdf', $enrollment));
+        ]))->assertRedirectContains(route('enrollments.transfer-certificate.prepare', $enrollment));
         $this->assertSame(StudentEnrollment::STATUS_ENROLLED, $enrollment->fresh()->status);
 
         $enrollment->update(['status' => StudentEnrollment::STATUS_TRANSFERRED, 'transferred_at' => '2026-04-01']);

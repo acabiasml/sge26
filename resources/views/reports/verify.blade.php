@@ -20,7 +20,7 @@
                 @endphp
 
                 <div class="alert alert-{{ $verification['revoked'] ? 'danger' : 'success' }}" role="alert">
-                    <strong>{{ $verification['revoked'] ? __('Documento revogado') : ($document->registration ? __('Registro confirmado') : __('Documento válido')) }}.</strong>
+                    <strong>{{ $verification['revoked'] ? __('Documento revogado') : ($document->registration ? __('Registro confirmado') : __('Emissão confirmada')) }}.</strong>
                     @if (! $verification['revoked'])
                         {{ __('As informações abaixo conferem com um documento emitido pelo sistema.') }}
                     @endif
@@ -29,8 +29,14 @@
                 @if($entry=$document->registration)
                     @php($signed=$entry->files()->where('kind','signed_document')->latest('id')->first())
                     <div class="alert alert-info"><strong>{{ __('Livro') }} {{ $entry->book->identifier }} · {{ __('Registro') }} {{ $entry->number }} · {{ __('Folha') }} {{ $entry->folio }}</strong><br>
-                    {{ !$signed?__('Assinaturas ainda não arquivadas.'):(($signed->metadata['complete']??false)?__('Conferência externa de todas as assinaturas registrada pela escola.'):__('Versão com assinaturas parciais arquivada.')) }}
+                    @if($document->registration->finalCopy()?->kind === 'physical_signed')
+                        {{ __('Via assinada em papel arquivada pela escola.') }}
+                    @else
+                        {{ !$signed?__('Assinaturas digitais ainda não arquivadas.'):(($signed->metadata['complete']??false)?__('Conferência externa de todas as assinaturas registrada pela escola.'):__('Versão com assinaturas parciais arquivada.')) }}
+                    @endif
                     {{ __('Esta consulta não substitui a validação criptográfica do PDF assinado.') }}</div>
+                @else
+                    <p>{{ __('Este código confirma a emissão registrada no Beabá. Confira a assinatura na via recebida.') }}</p>
                 @endif
                 <dl class="row mb-0">
                     <dt class="col-sm-4">{{ __('Código') }}</dt>

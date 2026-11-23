@@ -14,7 +14,7 @@ class IssuedDocument extends Model
 {
     use Auditable;
 
-    public const CREDENTIAL_TYPES = ['free-course-certificate', 'technical-intermediate-certificate', 'technical-course-diploma', 'technical-course-diploma-preview'];
+    public const CREDENTIAL_TYPES = ['free-course-certificate', 'technical-intermediate-certificate', 'technical-course-diploma', 'technical-course-diploma-preview', 'high-school-completion-certificate'];
 
     protected static function booted(): void
     {

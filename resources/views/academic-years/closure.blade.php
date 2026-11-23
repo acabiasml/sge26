@@ -178,7 +178,7 @@
                             </div>
                             <div class="mt-2">
                                 <a class="btn btn-sm btn-outline-primary" href="{{ route('classes.enrollments.index', $class) }}">{{ __('Ver matrículas') }}</a>
-                                <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" href="{{ route('classes.final-results.pdf', $class) }}">{{ __('Ata da turma') }}</a>
+                                <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary" href="{{ route('classes.final-results.prepare', $class) }}">{{ __('Ata da turma') }}</a>
                             </div>
                         </div>
                     @empty

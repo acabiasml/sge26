@@ -1668,27 +1668,31 @@ class AdminScreensTest extends TestCase
         $this->get(route('people.histories.pdf', [$student, $history]))
             ->assertOk()->assertHeader('content-type', 'application/pdf');
         $this->assertDatabaseMissing('issued_documents', ['type' => 'student-academic-history']);
+        Storage::fake('local');
+        $student->update(['school_cin_confirmed' => true]);
+        foreach (['diretor' => 'Diretora de Teste', 'secretário' => 'Secretário de Teste'] as $position => $name) {
+            Person::create(['full_name' => $name, 'active' => true])->schoolRoles()->create([
+                'school_id' => $school->id, 'role' => 'gestor', 'position' => $position, 'active' => true,
+            ]);
+        }
+        $book = app(\App\Support\CredentialRegistry::class)->open($manager, [
+            'school_id' => $school->id, 'kind' => 'history', 'identifier' => 'HIST-1',
+            'reference_year' => (int) now()->year, 'first_number' => 1, 'first_folio' => 1,
+            'opened_on' => now('America/Cuiaba')->toDateString(), 'opening_term' => 'Abertura do livro de históricos.',
+        ]);
         $preparation = $this->get(route('people.histories.prepare-official', [$student, $history]))->assertOk()
             ->assertSee('Gerar prévia temporária')->assertSee('Física')->assertSee('Digital')
-            ->assertSee('protocolo de recebimento assinado')->assertSee('art. 38');
-        Storage::fake('local');
-        $data = ['expected_version' => $preparation->viewData('version')];
+            ->assertSee('protocolo de recebimento assinado')->assertSee('HIST-1');
+        $data = ['expected_version' => $preparation->viewData('version'), 'registry_book_id' => $book->id];
         $issue = route('people.histories.register-official', [$student, $history]);
-        $this->post($issue, $data + ['signature_mode' => 'physical'])->assertOk()->assertHeader('Content-Type', 'application/pdf');
-        $this->post($issue, $data + ['signature_mode' => 'digital'])->assertRedirectContains('/assinaturas/documentos/');
-        $this->assertDatabaseCount('credential_registrations', 0);
+        $this->post($issue, $data + ['signature_mode' => 'physical', 'issuance_token' => (string) Str::uuid()])->assertRedirectContains('/livro-digital/registros/');
+        $this->post($issue, $data + ['signature_mode' => 'digital', 'issuance_token' => (string) Str::uuid()])->assertRedirectContains('/livro-digital/registros/');
+        $this->assertDatabaseCount('credential_registrations', 2);
         $digital = IssuedDocument::where('type', 'student-academic-history')->latest('id')->firstOrFail();
         $this->assertNotNull($digital->file_sha256);
-        $this->get(route('document-signatures.show', $digital))->assertOk()
-            ->assertSee('VALIDAR do ITI')->assertSee('protocolo de recebimento assinado');
-        $this->get(route('document-signatures.original', $digital))->assertOk()->assertHeader('Content-Type', 'application/pdf');
-        $this->post(route('document-signatures.upload', $digital), [
-            'signed_pdf' => UploadedFile::fake()->createWithContent('assinado.pdf', "%PDF-1.4\nVersão assinada de teste"),
-            'validation_report' => UploadedFile::fake()->createWithContent('validacao.pdf', "%PDF-1.4\nRelatório externo de teste"),
-            'signers' => 'Direção e secretaria', 'complete' => 1, 'reviewed' => 1,
-        ])->assertSessionHasNoErrors();
-        $this->assertDatabaseHas('document_signature_versions', ['issued_document_id' => $digital->id, 'complete' => true]);
-        $this->assertDatabaseCount('credential_registrations', 0);
+        $this->get(route('credential-registry.entry', $digital->registration))->assertOk()
+            ->assertSee('VALIDAR do ITI')->assertSee('protocolo assinado');
+        $this->get(route('credential-registry.original', $digital->registration))->assertOk()->assertHeader('Content-Type', 'application/pdf');
 
         $elementaryEnrollment->update(['transferred_at' => '2025-12-18']);
         app(UnifiedStudentHistorySynchronizer::class)->synchronize(

@@ -65,7 +65,7 @@ class ReportExportTest extends TestCase
             ->assertOk()
             ->assertSee($document->verification_code)
             ->assertSee('Relatório emitido pelo sistema')
-            ->assertSee('Documento válido');
+            ->assertSee('Emissão confirmada');
     }
 
     public function test_document_footer_stacks_the_issuance_line_with_the_issuer_and_includes_qr_code(): void

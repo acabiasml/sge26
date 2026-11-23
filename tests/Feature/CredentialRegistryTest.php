@@ -2,12 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Models\AcademicCourse;
 use App\Models\IssuedDocument;
 use App\Models\Person;
 use App\Models\School;
+use App\Models\StudentEnrollment;
 use App\Models\User;
 use App\Support\CredentialBookArchive;
 use App\Support\CredentialRegistry;
+use App\Support\SchoolRecordPdf;
 use App\Support\SchoolSignatureStaff;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -17,6 +20,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
+use Tests\Support\SignedSchoolPdf;
 
 class CredentialRegistryTest extends TestCase
 {
@@ -63,9 +67,10 @@ class CredentialRegistryTest extends TestCase
         return UploadedFile::fake()->createWithContent('arquivo.pdf', "%PDF-1.4\n".$content."\n%%EOF");
     }
 
-    private function signedData(array $signers = ['director']): array
+    private function signedData(string $signed, array $signers = ['director']): array
     {
-        return ['signed_pdf' => $this->pdf('assinado'), 'validation_report' => $this->pdf('relatório'), 'signers' => $signers, 'reviewed' => 1, 'timestamp_checked' => 1, 'validator' => 'VALIDAR — ITI'];
+        return ['signed_pdf' => UploadedFile::fake()->createWithContent('assinado.pdf', $signed), 'validation_report' => $this->pdf('relatório'),
+            'signers' => $signers, 'reviewed' => 1, 'timestamp_checked' => 1, 'validator' => 'VALIDAR — ITI'];
     }
 
     public function test_numbering_is_atomic_and_a_retried_request_returns_the_original_without_consuming_another_number(): void
@@ -132,12 +137,17 @@ class CredentialRegistryTest extends TestCase
         $doc = $this->issue($user, $school, $book);
         $entry = $doc->registration;
         $original = Storage::disk('local')->get($doc->file_path);
-        $this->post(route('credential-registry.signed', $entry), $this->signedData())->assertSessionHasNoErrors();
+        $partial = SignedSchoolPdf::appendSignature($original, 'Diretora de Teste');
+        $full = SignedSchoolPdf::appendSignature($partial, 'Gestora de Teste');
+        $this->post(route('credential-registry.signed', $entry), $this->signedData("%PDF-1.4\nPDF sem assinatura."))->assertSessionHasErrors('signed_pdf');
+        $this->post(route('credential-registry.signed', $entry), $this->signedData($partial))->assertSessionHasNoErrors();
         $this->assertFalse($entry->files()->where('kind', 'signed_document')->sole()->metadata['complete']);
         $delivery = ['method' => 'digital', 'recipient' => 'Estudante do Registro', 'recipient_kind' => 'student', 'delivered_on' => '2026-11-18', 'reviewed' => 1, 'receipt' => $this->pdf('protocolo')];
         $this->post(route('credential-registry.deliver', $entry), $delivery)->assertSessionHasErrors('method');
-        $this->post(route('credential-registry.signed', $entry), $this->signedData(['secretary']))->assertSessionHasErrors('signers');
-        $this->post(route('credential-registry.signed', $entry), $this->signedData(['director', 'secretary']))->assertSessionHasNoErrors();
+        $this->post(route('credential-registry.signed', $entry), $this->signedData($full, ['secretary']))->assertSessionHasErrors('signers');
+        $this->post(route('credential-registry.signed', $entry), $this->signedData($partial, ['director', 'secretary']))->assertSessionHasErrors('signed_pdf');
+        $this->post(route('credential-registry.signed', $entry), $this->signedData($full."\n% Revisão sem assinatura", ['director', 'secretary']))->assertSessionHasErrors('signed_pdf');
+        $this->post(route('credential-registry.signed', $entry), $this->signedData($full, ['director', 'secretary']))->assertSessionHasNoErrors();
         $this->assertSame(2, $entry->files()->where('kind', 'signed_document')->count());
         $this->post(route('credential-registry.deliver', $entry), $delivery)->assertSessionHasNoErrors();
         $this->assertSame(1, $entry->events()->where('action', 'delivered')->count());
@@ -159,6 +169,71 @@ class CredentialRegistryTest extends TestCase
         $next = $this->issue($user, $school, $book);
         $this->assertSame(41, $next->registration->number);
         $this->get(route('documents.verify', $doc->verification_code))->assertOk()->assertSee('Documento revogado');
+    }
+
+    public function test_paper_delivery_preserves_the_signed_copy_and_checks_the_recipient_documents(): void
+    {
+        [$user, $school, $book] = $this->scenario();
+        $entry = $this->issue($user, $school, $book)->registration;
+        $paper = ['signed_pdf' => $this->pdf('via assinada em papel'), 'physical_location' => 'Acervo A, pasta 5', 'reviewed' => 1];
+        $this->post(route('credential-registry.physical', $entry), $paper)->assertSessionHasErrors('physical_reason');
+        $this->post(route('credential-registry.physical', $entry), $paper + ['physical_reason' => 'correction'])->assertSessionHasNoErrors();
+        $copy = $entry->finalCopy();
+        $this->assertSame('physical_signed', $copy->kind);
+        $delivery = ['method' => 'physical', 'recipient' => 'Representante de Teste', 'signed_file_id' => $copy->id,
+            'delivered_on' => '2026-11-18', 'receipt' => $this->pdf('protocolo assinado'), 'authority' => $this->pdf('comprovante'), 'reviewed' => 1];
+        $this->post(route('credential-registry.deliver', $entry), $delivery + ['recipient_kind' => 'guardian'])->assertSessionHasErrors('recipient_kind');
+        $proxy = $delivery + ['recipient_kind' => 'proxy', 'requested_on' => '2026-11-18'];
+        $this->post(route('credential-registry.deliver', $entry), $proxy + ['authority_issued_on' => '2026-05-17'])->assertSessionHasErrors('authority_issued_on');
+        $this->post(route('credential-registry.deliver', $entry), $proxy + ['authority_issued_on' => '2026-05-18'])->assertSessionHasNoErrors();
+        $event = $entry->events()->where('action', 'delivered')->sole();
+        $this->assertSame($copy->id, $event->data['signed_file_id']);
+        $this->assertTrue(app(CredentialRegistry::class)->integrity($book->fresh()));
+    }
+
+    public function test_high_school_certificate_requires_a_signed_history_and_uses_its_modality_book(): void
+    {
+        [$user, $school] = $this->scenario();
+        $school->update(['legal_name' => 'Escola do Livro', 'inep' => '12345678', 'founded_at' => '2000-01-01',
+            'phone' => '66999999999', 'email' => 'escola@example.test', 'letterhead_text' => 'Ato autorizativo de teste', 'postal_code' => '78800000']);
+        $this->person('Diretora de Teste')->schoolRoles()->create([
+            'school_id' => $school->id, 'role' => 'gestor', 'position' => 'diretor', 'active' => true,
+        ]);
+        $year = $school->academicYears()->create(['name' => 'Ensino Médio 2025', 'reference_year' => 2025,
+            'starts_at' => '2025-02-01', 'ends_at' => '2025-12-19', 'closed_at' => '2025-12-20']);
+        $class = $year->classes()->create(['name' => '3º Ano']);
+        $course = $year->courses()->create(['name' => '3º Ano do Ensino Médio', 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
+            'modality' => AcademicCourse::MODALITY_REGULAR]);
+        $class->courses()->attach($course);
+        $student = $this->person('Estudante do Ensino Médio');
+        $enrollment = $class->enrollments()->create(['person_id' => $student->id, 'enrolled_at' => '2025-02-01',
+            'status' => StudentEnrollment::STATUS_ENROLLED, 'type' => StudentEnrollment::TYPE_REGULAR]);
+        $enrollment->forceFill(['final_result_status' => StudentEnrollment::FINAL_APPROVED])->save();
+        $enrollment->courses()->attach($course);
+        $registrar = app(CredentialRegistry::class);
+        $opening = ['school_id' => $school->id, 'reference_year' => 2026, 'first_number' => 1, 'first_folio' => 1,
+            'opened_on' => '2026-11-01', 'opening_term' => 'Livro aberto para o teste.'];
+        $historyBook = $registrar->open($user, $opening + ['kind' => 'history', 'identifier' => 'HIST-1']);
+        $certificateBook = $registrar->open($user, $opening + ['kind' => 'high-school', 'identifier' => 'EM-1',
+            'scope' => AcademicCourse::MODALITY_REGULAR]);
+        $history = app(SchoolRecordPdf::class)->issue($user, $school, 'student-academic-history', $student->id,
+            ['title' => 'Histórico do Ensino Médio', 'education_stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
+                'completed_enrollment_ids' => [$enrollment->id]],
+            ['registry_book_id' => $historyBook->id, 'issuance_token' => (string) Str::uuid(), 'signature_mode' => 'physical'],
+            fn () => "%PDF-1.4\nHistórico oficial de teste");
+
+        $this->get(route('enrollments.high-school-certificate.prepare', $enrollment))->assertOk()->assertSee('EM-1');
+        $url = route('enrollments.high-school-certificate.register', $enrollment);
+        $data = ['registry_book_id' => $certificateBook->id, 'issuance_token' => (string) Str::uuid(),
+            'signature_mode' => 'digital', 'history_code' => $history->verification_code];
+        $this->post($url, $data)->assertSessionHasErrors('history_code');
+        $this->post(route('credential-registry.physical', $history->registration), [
+            'signed_pdf' => $this->pdf('historico assinado'), 'physical_location' => 'Acervo A, pasta 5', 'reviewed' => 1,
+        ])->assertSessionHasNoErrors();
+        $this->post($url, $data)->assertRedirectContains('/livro-digital/registros/');
+        $entry = $certificateBook->registrations()->sole();
+        $this->assertSame($history->registration->id, $entry->snapshot['history_registration_id']);
+        $this->assertTrue($registrar->integrity($certificateBook->fresh()));
     }
 
     public function test_closed_books_cannot_accept_new_registrations_but_still_accept_signing_and_annotations(): void

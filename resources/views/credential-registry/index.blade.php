@@ -2,11 +2,35 @@
 @section('title', __('Livro Digital'))
 @section('page-title', __('Livro Digital'))
 @section('content')
-<p>{{ __('Aqui ficam os registros permanentes de certificados e diplomas. Abra o livro da escola e do tipo correspondente. O Beabá atribui número e folha quando você registra a versão oficial.') }} <x-school-document-regulation :articles="__('art. 5º, II')" /></p>
+<p>{{ __('Selecione o livro próprio de cada ato escolar. O Beabá atribui número e folha à versão oficial e conserva os comprovantes no registro.') }} <x-school-document-regulation :articles="__('art. 5º, II')" /></p>
 <form method="GET" class="form-row align-items-end mb-3"><div class="form-group col-md-6"><label for="filter-school">{{ __('Escola') }}</label><select id="filter-school" name="school_id" class="form-control"><option value="">{{ __('Todas as escolas visíveis') }}</option>@foreach($schools as $school)<option value="{{ $school->id }}" @selected(request('school_id')==$school->id)>{{ $school->name }}</option>@endforeach</select></div><div class="form-group col-md-3"><label for="filter-year">{{ __('Ano civil') }}</label><input class="form-control" type="number" name="year" id="filter-year" value="{{ request('year') }}" min="1900" max="2100"></div><div class="form-group col-md-3"><button class="btn btn-primary">{{ __('Filtrar') }}</button></div></form>
-<div class="card sge-panel-card shadow mb-4"><div class="table-responsive"><table class="table mb-0"><caption class="sr-only">{{ __('Livros por escola') }}</caption><thead><tr><th>{{ __('Livro') }}</th><th>{{ __('Escola') }}</th><th>{{ __('Tipo') }}</th><th>{{ __('Registros') }}</th><th>{{ __('Situação') }}</th></tr></thead><tbody>@forelse($books as $book)<tr><td><a href="{{ route('credential-registry.show',$book) }}">{{ $book->identifier }}</a></td><td>{{ $book->school->name }}</td><td>{{ __(\App\Models\CredentialBook::KINDS[$book->kind]) }}</td><td>{{ $book->registrations_count }}</td><td><span class="badge badge-{{ $book->closed_at?'secondary':'success' }}">{{ $book->closed_at?__('Encerrado'):__('Aberto') }}</span></td></tr>@empty<tr><td colspan="5">{{ __('Nenhum livro cadastrado.') }}</td></tr>@endforelse</tbody></table></div><div class="card-body">{{ $books->links() }}</div></div>
+<div class="card sge-panel-card shadow mb-4"><div class="table-responsive"><table class="table mb-0"><caption class="sr-only">{{ __('Livros por escola') }}</caption><thead><tr><th>{{ __('Livro') }}</th><th>{{ __('Escola') }}</th><th>{{ __('Tipo') }}</th><th>{{ __('Registros') }}</th><th>{{ __('Situação') }}</th></tr></thead><tbody>@forelse($books as $book)<tr><td><a href="{{ route('credential-registry.show',$book) }}">{{ $book->identifier }}</a></td><td>{{ $book->school->name }}</td><td>{{ __(\App\Models\CredentialBook::KINDS[$book->kind]) }} @if($book->scope) · {{ __(\App\Models\AcademicCourse::MODALITY_LABELS[$book->scope]) }} @endif</td><td>{{ $book->registrations_count }}</td><td><span class="badge badge-{{ $book->closed_at?'secondary':'success' }}">{{ $book->closed_at?__('Encerrado'):__('Aberto') }}</span></td></tr>@empty<tr><td colspan="5">{{ __('Nenhum livro cadastrado.') }}</td></tr>@endforelse</tbody></table></div><div class="card-body">{{ $books->links() }}</div></div>
 <details class="card sge-panel-card"><summary class="card-header">{{ __('Abrir um livro') }}</summary><div class="card-body"><p>{{ __('Uma folha será atribuída a cada registro. Confira a continuidade da numeração e formalize a adoção do livro digital. Os livros físicos anteriores devem ser conservados.') }}</p>
 <form method="POST" action="{{ route('credential-registry.store') }}">@csrf<div class="form-row"><div class="form-group col-md-6"><label for="book-school">{{ __('Escola') }}</label><select class="form-control" name="school_id" id="book-school" required>@foreach($schools as $school)<option value="{{ $school->id }}" @selected(old('school_id')==$school->id)>{{ $school->name }}</option>@endforeach</select></div><div class="form-group col-md-3"><label for="book-kind">{{ __('Tipo') }}</label><select class="form-control" name="kind" id="book-kind" required>@foreach(\App\Models\CredentialBook::KINDS as $value=>$label)<option value="{{ $value }}" @selected(old('kind')===$value)>{{ __($label) }}</option>@endforeach</select></div>
+<div class="form-group col-md-3" id="book-modality">
+    <label for="book-scope">{{ __('Modalidade do Ensino Médio') }}</label>
+    <select class="form-control" id="book-scope" name="scope">
+        <option value="">{{ __('Selecione') }}</option>
+        @foreach(\App\Models\AcademicCourse::MODALITY_LABELS as $code => $label)
+            <option value="{{ $code }}" @selected(old('scope') === $code)>{{ __($label) }}</option>
+        @endforeach
+    </select>
+</div>
 @foreach(['identifier'=>['Identificação do livro','text',old('identifier','001/'.now()->year)],'reference_year'=>['Ano civil','number',old('reference_year',now()->year)],'first_number'=>['Primeiro número de registro','number',old('first_number',1)],'first_folio'=>['Primeira folha','number',old('first_folio',1)],'opened_on'=>['Data de abertura','date',old('opened_on',now()->toDateString())]] as $field=>$definition)<div class="form-group col-md-3"><label for="book-{{ $field }}">{{ __($definition[0]) }}</label><input class="form-control" id="book-{{ $field }}" name="{{ $field }}" type="{{ $definition[1] }}" value="{{ $definition[2] }}" required @if($definition[1]==='number') min="1" max="999999999" @endif></div>@endforeach
 <div class="form-group col-md-6"><label for="previous-book">{{ __('Livro anterior / último registro, se houver') }}</label><input id="previous-book" class="form-control" name="previous_book" maxlength="255" value="{{ old('previous_book') }}"></div><div class="form-group col-12"><label for="opening-term">{{ __('Termo de abertura e referência ao ato de adoção') }}</label><textarea id="opening-term" class="form-control" name="opening_term" maxlength="10000" required rows="4">{{ old('opening_term') }}</textarea></div></div><button class="btn btn-primary">{{ __('Abrir livro e registrar termo') }}</button></form></div></details>
 @endsection
+
+@push('scripts')
+<script>
+    const bookKind = document.getElementById('book-kind');
+    const bookScope = document.getElementById('book-scope');
+    const syncBookScope = () => {
+        const applies = bookKind.value === 'high-school';
+        bookScope.disabled = !applies;
+        bookScope.required = applies;
+        document.getElementById('book-modality').hidden = !applies;
+    };
+    bookKind.addEventListener('change', syncBookScope);
+    syncBookScope();
+</script>
+@endpush

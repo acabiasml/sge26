@@ -6,6 +6,7 @@ use App\Models\DocumentSignatureVersion;
 use App\Models\IssuedDocument;
 use App\Models\OfficialDocument;
 use App\Support\CredentialRegistry;
+use App\Support\PdfSignatureEvidence;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +19,13 @@ class DocumentSignatureController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $documents = IssuedDocument::where('issued_by_user_id', $user->id)
+        $documents = IssuedDocument::where(function ($query) use ($user) {
+            $query->where('issued_by_user_id', $user->id);
+            if ($user->canManagePeople()) {
+                $query->orWhere(fn ($history) => $history->where('type', 'student-academic-history')
+                    ->when(! $user->isAdministrator(), fn ($q) => $q->whereIn('school_id', $user->manageableSchoolIds())));
+            }
+        })->whereDoesntHave('registration')
             ->when(! $user->isAdministrator(), fn ($query) => $query->where(fn ($q) => $q->whereNull('school_id')->orWhereIn('school_id', $user->visibleSchoolIds())))
             ->whereNotIn('type', IssuedDocument::CREDENTIAL_TYPES)
             ->whereNotNull('file_sha256')->whereNotNull('file_path')->whereNull('revoked_at')
@@ -62,6 +69,7 @@ class DocumentSignatureController extends Controller
         ]);
         $signers = $requiredSigners ? implode(' · ', $data['signers']) : $data['signers'];
         $complete = $requiredSigners ? count($data['signers']) === count($requiredSigners) : (bool) $data['complete'];
+        $signatureCount = $requiredSigners ? count($data['signers']) : 1;
         $signed = $request->file('signed_pdf')->get();
         $report = $request->file('validation_report')->get();
         $digest = hash('sha256', $signed);
@@ -70,10 +78,11 @@ class DocumentSignatureController extends Controller
         }
         $paths = [];
         try {
-            DB::transaction(function () use ($document, $request, $signers, $complete, $signed, $report, $digest, $registry, &$paths) {
+            DB::transaction(function () use ($document, $request, $signers, $complete, $signatureCount, $signed, $report, $digest, $registry, &$paths) {
                 $document = IssuedDocument::whereKey($document->id)->lockForUpdate()->firstOrFail();
                 $this->authorizeDocument($request, $document);
-                $registry->bytes($document->file_path, $document->file_sha256);
+                $original = $registry->bytes($document->file_path, $document->file_sha256);
+                app(PdfSignatureEvidence::class)->confirm($signed, $signatureCount, $original);
                 if ($document->signatureVersions()->where('signed_sha256', $digest)->exists()) {
                     throw ValidationException::withMessages(['signed_pdf' => 'Esta versão assinada já está arquivada.']);
                 }
@@ -110,7 +119,10 @@ class DocumentSignatureController extends Controller
     private function authorizeDocument(Request $request, IssuedDocument $document): void
     {
         $user = $request->user();
-        abort_unless($document->issued_by_user_id === $user->id, 403);
+        $institutionalHistory = $document->type === 'student-academic-history' && $document->school_id
+            && $user->canManagePeople($document->school_id);
+        abort_unless($document->issued_by_user_id === $user->id || $institutionalHistory, 403);
+        abort_if($document->registration()->exists(), 404);
         abort_unless($user->isAdministrator() || $document->school_id === null || in_array($document->school_id, $user->visibleSchoolIds(), true), 403);
         abort_unless(! in_array($document->type, IssuedDocument::CREDENTIAL_TYPES, true) && $document->file_path && $document->file_sha256, 404);
         abort_if($document->revoked_at, 410);

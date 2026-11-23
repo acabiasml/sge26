@@ -30,6 +30,10 @@
                     input.required = visible;
                 });
             });
+            form.querySelectorAll('[data-registry-evidence]').forEach(section => {
+                section.hidden = !digital;
+                section.querySelectorAll('input, select').forEach(input => { input.disabled = !digital; });
+            });
         };
         select.addEventListener('change', sync);
         sync();

@@ -11,11 +11,13 @@ use App\Models\StudentAcademicHistoryYear;
 use App\Models\StudentEnrollment;
 use App\Support\BrazilianStates;
 use App\Support\CurriculumAreaStage;
+use App\Support\CredentialRegistry;
 use App\Support\HistoryCatalogIntegrator;
 use App\Support\HistoryCurriculumCatalog;
 use App\Support\HistoryDocumentVersion;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
+use App\Support\SchoolRecordPdf;
 use App\Support\SchoolSignatureStaff;
 use App\Support\StudentAcademicHistoryCompleteness;
 use App\Support\StudentAcademicHistoryPdf;
@@ -402,9 +404,10 @@ class StudentAcademicHistoryController extends Controller
         return view('credential-registry.history-prepare', ['person' => $person, 'history' => $history,
             'version' => HistoryDocumentVersion::of($history),
             'completeness' => $completeness->evaluate($history),
+            'books' => app(CredentialRegistry::class)->books($request->user(), $history->school_id, 'history')->whereNull('closed_at')->orderBy('identifier')->get(),
             'recent' => IssuedDocument::where('person_id', $person->id)->where('school_id', $history->school_id)
                 ->where('type', 'student-academic-history')->where('payload->student_academic_history_id', $history->id)
-                ->where('issued_by_user_id', $request->user()->id)->whereNotNull('file_sha256')->whereNull('revoked_at')->latest('id')->paginate(10)]);
+                ->with('registration')->whereNotNull('file_sha256')->whereNull('revoked_at')->latest('id')->paginate(10)]);
     }
 
     public function pdf(Request $request, Person $person, StudentAcademicHistory $history, UnifiedStudentHistorySynchronizer $synchronizer, StudentAcademicHistoryCompleteness $completeness): Response|RedirectResponse
@@ -450,41 +453,51 @@ class StudentAcademicHistoryController extends Controller
             return redirect()->route('schools.edit', $history->school)->with('status', $message);
         }
 
+        $records = app(SchoolRecordPdf::class);
+        $version = HistoryDocumentVersion::of($history);
         if ($official) {
-            $data = $request->validate(['signature_mode' => ['required', Rule::in(['physical', 'digital'])], 'expected_version' => ['required', 'string', 'size:64']]);
-            if (! hash_equals(HistoryDocumentVersion::of($history), $data['expected_version'])) {
+            $data = $request->validate(SchoolRecordPdf::RULES + ['expected_version' => ['required', 'string', 'size:64']]);
+            if (! hash_equals($version, $data['expected_version'])) {
                 throw ValidationException::withMessages(['expected_version' => 'O histórico mudou. Gere outra prévia e confira antes de emitir.']);
+            }
+            if (blank($person->schoolPhotoIdentification()) || blank($person->nationality) || blank($person->birth_city)) {
+                throw ValidationException::withMessages(['document' => 'Confira a identificação com foto, a nacionalidade e a naturalidade na ficha do estudante.']);
             }
         }
 
-        $staff = SchoolSignatureStaff::forSchool($history->school);
+        $staff = $official ? $records->signers($history->school) : SchoolSignatureStaff::forSchool($history->school);
         $payload = [
             'title' => $history->title,
             'student_academic_history_id' => $history->id,
+            'history_version' => $version,
+            'education_stage' => $history->education_stage,
+            'technical_course_id' => $history->technical_course_id,
+            'completed_enrollment_ids' => $history->years->filter(fn ($year) => $year->grade_number === 3
+                && in_array(mb_strtolower((string) $year->final_result), ['aprovado', 'concluído', 'concluido'], true))
+                ->pluck('student_enrollment_id')->filter()->map(fn ($id) => (int) $id)->values()->all(),
+            'student' => ['full_name' => $person->full_name],
             'rows_count' => $history->components->count(),
-            'is_draft' => ! $official,
-            'signers' => array_values(array_filter([$staff['diretor']?->full_name, $staff['secretário']?->full_name])),
+            'signers' => ['director' => $staff['diretor']?->full_name, 'secretary' => $staff['secretário']?->full_name],
         ];
-        $document = new IssuedDocument([
-            'uuid' => (string) Str::uuid(), 'verification_code' => $official ? $this->verificationCode() : 'PREVIA-SEM-REGISTRO',
-            'type' => 'student-academic-history', 'person_id' => $person->id, 'school_id' => $history->school_id,
-            'issued_by_user_id' => $request->user()->id, 'payload' => $payload, 'issued_at' => now(),
-        ]);
-        $pdf = app(StudentAcademicHistoryPdf::class)->make([
-            'person' => $person, 'history' => $history, 'issuedDocument' => $document, 'isDraft' => ! $official,
-            'historySignatureStaff' => $staff,
-            'verificationUrl' => $official ? route('documents.verify', $document->verification_code) : null,
-            'letterhead' => PdfLetterhead::make($history->school, $history->education_stage),
-            'technicalPeriodDurations' => $this->technicalPeriodDurations($history),
-        ]);
-        $pdf->addInfo(['Title' => ($official ? '' : 'PRÉVIA TEMPORÁRIA — ').$history->title, 'Author' => 'Beabá']);
-        $filename = 'beaba-'.($official ? 'historico-' : 'previa-historico-').$person->id.'-'.$document->uuid.'.pdf';
-        $response = $pdf->stream($filename);
+        $render = function (IssuedDocument $document) use ($person, $history, $official, $staff) {
+            $pdf = app(StudentAcademicHistoryPdf::class)->make([
+                'person' => $person, 'history' => $history, 'issuedDocument' => $document, 'isDraft' => ! $official,
+                'historySignatureStaff' => $staff,
+                'verificationUrl' => $official ? route('documents.verify', $document->verification_code) : null,
+                'letterhead' => PdfLetterhead::make($history->school, $history->education_stage),
+                'technicalPeriodDurations' => $this->technicalPeriodDurations($history),
+            ]);
+            $pdf->addInfo(['Title' => ($official ? '' : 'PRÉVIA TEMPORÁRIA — ').$history->title, 'Author' => 'Beabá']);
+
+            return $pdf->stream('beaba-'.($official ? 'historico-' : 'previa-historico-').$person->id.'-'.$document->uuid.'.pdf');
+        };
         if ($official) {
-            $document->save();
+            $document = $records->issue($request->user(), $history->school, 'student-academic-history', $person->id, $payload, $data, $render);
+
+            return redirect()->route('credential-registry.entry', $document->registration);
         }
 
-        return $response;
+        return $render($records->draft($request->user(), $history->school, 'student-academic-history', $person->id, $payload));
     }
 
     private function technicalPeriodDurations(StudentAcademicHistory $history)
@@ -1080,15 +1093,6 @@ class StudentAcademicHistoryController extends Controller
     private function catalogComponentKey(array $attributes): string
     {
         return json_encode(array_map(fn ($value) => Str::lower(trim((string) $value)), $attributes), JSON_THROW_ON_ERROR);
-    }
-
-    private function verificationCode(): string
-    {
-        do {
-            $code = 'BEABA-'.strtoupper(Str::random(4)).'-'.strtoupper(Str::random(4)).'-'.strtoupper(Str::random(4));
-        } while (IssuedDocument::query()->where('verification_code', $code)->exists());
-
-        return $code;
     }
 
     private function number(mixed $value): mixed

@@ -16,6 +16,7 @@ use App\Models\StudentAcademicHistory;
 use App\Models\StudentEnrollment;
 use App\Models\User;
 use App\Support\AcademicContextLabel;
+use App\Support\HighSchoolCompletion;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\TeacherAccess;
 use App\Support\UnifiedStudentHistorySynchronizer;
@@ -108,6 +109,11 @@ class DocumentIssuanceController extends Controller
             'description' => 'Comprova uma conclusão com resultado aprovado.',
             'target' => 'enrollment',
             'icon' => 'fa-award',
+        ],
+        'high-school-completion-certificate' => [
+            'group' => 'Estudante', 'label' => 'Certificado de conclusão do Ensino Médio',
+            'description' => 'Registre a conclusão no livro da modalidade com o histórico oficial assinado.',
+            'target' => 'enrollment', 'icon' => 'fa-certificate',
         ],
         'attendance-certificate' => [
             'group' => 'Estudante',
@@ -653,6 +659,9 @@ class DocumentIssuanceController extends Controller
         if ($type === 'completion-declaration' && $enrollment->final_result_status !== StudentEnrollment::FINAL_APPROVED) {
             return [false, __('O resultado final precisa estar aprovado.')];
         }
+        if ($type === 'high-school-completion-certificate' && ! app(HighSchoolCompletion::class)->course($enrollment)) {
+            return [false, __('Exige a última série do Ensino Médio aprovada em ano letivo encerrado.')];
+        }
 
         return [true, null];
     }
@@ -1088,8 +1097,9 @@ class DocumentIssuanceController extends Controller
             'enrollment-declaration' => 'enrollments.enrollment-declaration.pdf',
             'schooling-declaration' => 'enrollments.schooling-declaration.pdf',
             'completion-declaration' => 'enrollments.completion-declaration.pdf',
+            'high-school-completion-certificate' => 'enrollments.high-school-certificate.prepare',
             'attendance-certificate' => 'enrollments.attendance-certificate.pdf',
-            'transfer-certificate' => 'enrollments.transfer-certificate.pdf',
+            'transfer-certificate' => 'enrollments.transfer-certificate.prepare',
             'enrollment-form' => 'enrollments.pdf',
             'report-card' => 'enrollments.report-card.pdf',
             'student-progress' => 'enrollments.progress.pdf',
@@ -1237,7 +1247,7 @@ class DocumentIssuanceController extends Controller
                 'notas' => $data['score_view'] ?? 'conceitos',
                 'confirm_missing_student_cpf' => $confirmation,
             ]),
-            'class-final-results' => redirect()->route('classes.final-results.pdf', [
+            'class-final-results' => redirect()->route('classes.final-results.prepare', [
                 'class' => $class,
                 'confirm_missing_student_cpf' => $confirmation,
             ]),
