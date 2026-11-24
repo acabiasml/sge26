@@ -533,9 +533,9 @@ class StudentAcademicHistoryController extends Controller
         $history->load('school', 'student', 'years.records', 'components.records.year');
 
         return view('credential-registry.history-prepare', ['person' => $person, 'history' => $history,
-            'version' => HistoryDocumentVersion::of($history),
+            'school' => $history->school, 'version' => HistoryDocumentVersion::of($history),
             'completeness' => $completeness->evaluate($history),
-            'books' => app(CredentialRegistry::class)->books($request->user(), $history->school_id, 'history')->whereNull('closed_at')->orderBy('identifier')->get(),
+            'books' => app(CredentialRegistry::class)->digitalBooks($request->user(), $history->school, 'history')->get(),
             'recent' => IssuedDocument::where('person_id', $person->id)->where('school_id', $history->school_id)
                 ->where('type', 'student-academic-history')->where('payload->student_academic_history_id', $history->id)
                 ->with('registration')->whereNotNull('file_sha256')->whereNull('revoked_at')->latest('id')->paginate(10)]);
@@ -587,16 +587,27 @@ class StudentAcademicHistoryController extends Controller
         $records = app(SchoolRecordPdf::class);
         $version = HistoryDocumentVersion::of($history);
         if ($official) {
-            $data = $request->validate(SchoolRecordPdf::RULES + ['expected_version' => ['required', 'string', 'size:64']]);
+            $data = $request->validate(SchoolRecordPdf::rules($history->school) + ['expected_version' => ['required', 'string', 'size:64']]);
             if (! hash_equals($version, $data['expected_version'])) {
                 throw ValidationException::withMessages(['expected_version' => 'O histórico mudou. Gere outra prévia e confira antes de emitir.']);
             }
-            if (blank($person->schoolPhotoIdentification()) || blank($person->nationality) || blank($person->birth_city)) {
-                throw ValidationException::withMessages(['document' => 'Confira a identificação com foto, a nacionalidade e a naturalidade na ficha do estudante.']);
+            if ($message = OfficialDocumentCompliance::historyIdentityMessage($person)
+                ?? OfficialDocumentCompliance::authorizationMessage($history->school, [$history->education_stage])) {
+                throw ValidationException::withMessages(['document' => $message]);
             }
         }
 
         $staff = $official ? $records->signers($history->school) : SchoolSignatureStaff::forSchool($history->school);
+        $processes = IssuedDocument::where('school_id', $history->school_id)->where('person_id', $person->id)
+            ->where('type', 'school-special-process')->whereNull('revoked_at')->whereHas('registration')->with('registration.book')
+            ->orderBy('issued_at')->get()->filter(fn (IssuedDocument $document) => in_array(
+                $history->education_stage, $document->payload['education_stages'] ?? [], true
+            ))->map(fn (IssuedDocument $document) => [
+                'kind' => $document->payload['process_kind'],
+                'date' => $document->payload['act_date'],
+                'book' => $document->registration->book->identifier,
+                'number' => $document->registration->referenceNumber(),
+            ])->values()->all();
         $payload = [
             'title' => $history->title,
             'student_academic_history_id' => $history->id,
@@ -608,6 +619,8 @@ class StudentAcademicHistoryController extends Controller
                 ->pluck('student_enrollment_id')->filter()->map(fn ($id) => (int) $id)->values()->all(),
             'student' => ['full_name' => $person->full_name],
             'rows_count' => $history->components->count(),
+            'school_special_processes' => $processes,
+            'authorizations' => array_intersect_key($history->school->document_authorizations ?? [], array_flip(['accreditation', $history->education_stage])),
             'signers' => ['director' => $staff['diretor']?->full_name, 'secretary' => $staff['secretário']?->full_name],
         ];
         $render = function (IssuedDocument $document) use ($person, $history, $official, $staff) {

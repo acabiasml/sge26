@@ -90,6 +90,12 @@
 
 @include('reports.partials.student-identification', ['student' => $person, 'showCredentialIdentity' => isset($isDraft)])
 
+@foreach($issuedDocument->payload['authorizations'] ?? [] as $key => $act)
+    @if(filled($act['act'] ?? null) && filled($act['published_on'] ?? null))
+        <p class="notes"><strong>{{ __(\App\Models\School::DOCUMENT_AUTHORIZATIONS[$key]) }}</strong> — {{ $act['act'] }} · Publicação em {{ \Carbon\CarbonImmutable::parse($act['published_on'])->format('d/m/Y') }}</p>
+    @endif
+@endforeach
+
 <div class="section-title">
     Componentes curriculares
     @if($history->education_stage !== 'tecnico' && filled($history->legal_basis))
@@ -106,6 +112,12 @@
 @if($history->notes)
     <p class="notes"><span class="label">Observações:</span> {{ $history->notes }}</p>
 @endif
+
+@foreach($issuedDocument->payload['school_special_processes'] ?? [] as $process)
+    <p class="notes"><strong>{{ __(['classification' => 'Classificação', 'reclassification' => 'Reclassificação', 'placement' => 'Enturmação'][$process['kind']]) }}</strong>
+        · {{ \Carbon\CarbonImmutable::parse($process['date'])->format('d/m/Y') }}
+        · {{ __('Livro de Processos Especiais') }} {{ $process['book'] }}, {{ __('registro') }} {{ $process['number'] }}.</p>
+@endforeach
 
 @if($history->years->contains(fn ($year) => filled($year->notes)))
     <p class="notes">

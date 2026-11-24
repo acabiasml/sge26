@@ -26,7 +26,7 @@
 <form method="POST" action="{{ route('technical-credentials.store',$enrollment) }}" enctype="multipart/form-data" target="_blank" rel="noopener" data-download-form="true">
 @csrf<input type="hidden" name="kind" value="{{ $kind }}"><input type="hidden" name="course_id" value="{{ $course->id }}">
 @if($kind==='certificate')<div class="form-group"><label for="credential-module">Certificação intermediária</label><select name="module_key" id="credential-module" class="form-control" required><option value="">Selecione um módulo concluído</option>@foreach($state['modules'] as $module)@if(filled($module['qualification']))<option value="{{ $module['key'] }}" @disabled(!$module['eligible']) @selected(old('module_key')===$module['key'])>{{ $module['qualification'] }} — {{ $module['hours'] }} h {{ !$module['eligible'] ? '(ainda indisponível)' : '' }}</option>@endif@endforeach</select></div>@endif
-@include('credential-registry.book-choice')
+@include('credential-registry.book-choice', ['hasRegistrationDate' => true])
 <div class="card mb-4"><div class="card-header">Dados obrigatórios do registro e da emissão</div><div class="card-body"><div class="row">
 <div class="form-group col-md-6"><label for="credential-issued_place">{{ __('Local de emissão') }}</label><input class="form-control" id="credential-issued_place" name="issued_place" maxlength="150" value="{{ old('issued_place', $defaults['issued_place']) }}" required></div>
 @foreach(['registration_date'=>'Data do registro','issued_date'=>'Data da emissão'] as $field=>$label)<div class="form-group col-md-6"><label for="credential-{{ $field }}">{{ $label }}</label><input class="form-control" type="date" id="credential-{{ $field }}" name="{{ $field }}" value="{{ old($field,now('America/Cuiaba')->toDateString()) }}" max="{{ now('America/Cuiaba')->toDateString() }}" required></div>@endforeach
@@ -34,8 +34,8 @@
 @include('technical-credentials.credential-evidence')
 <div class="form-group col-12"><label for="credential-observations">Observações do registro (opcional)</label><textarea class="form-control" id="credential-observations" name="observations" maxlength="500">{{ old('observations') }}</textarea></div>
 </div></div></div>
-<p class="small text-muted">{{ __('Após o registro no Livro Digital, abra o original no próprio registro para colher as assinaturas e arquivar o protocolo de entrega.') }} <x-school-document-regulation :articles="__('arts. 7º e 38')" /></p>
-<button class="btn btn-primary" @disabled($books->isEmpty() || $missing || ($kind==='certificate' && !collect($state['modules'])->contains(fn($m)=>$m['eligible'] && filled($m['qualification']))))>{{ $kind==='certificate' ? __('Registrar e emitir certificado') : __('Registrar e emitir diploma') }}<span class="sr-only"> {{ __('(abre em nova aba)') }}</span></button>
+<p class="small text-muted">{{ __('Após o registro, abra o original no próprio registro para colher as assinaturas e arquivar o protocolo de entrega.') }} <x-school-document-regulation :articles="__('arts. 7º e 38')" /></p>
+<button class="btn btn-primary" @disabled((!$school->usesPhysicalRegistry() && $books->isEmpty()) || $missing || ($kind==='certificate' && !collect($state['modules'])->contains(fn($m)=>$m['eligible'] && filled($m['qualification']))))>{{ $kind==='certificate' ? __('Registrar e emitir certificado') : __('Registrar e emitir diploma') }}<span class="sr-only"> {{ __('(abre em nova aba)') }}</span></button>
 <a class="btn btn-outline-secondary" href="{{ route('document-issuance.index') }}">Voltar à central</a>
 </form>
 @endif

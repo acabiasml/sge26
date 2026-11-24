@@ -25,6 +25,11 @@ class AcademicCourse extends Model
 
     public const STAGE_OTHER = 'outro';
 
+    public const TECHNICAL_CURRICULUM_REGIMES = [
+        'transition' => 'Resolução CNE/CP nº 1/2021, conforme a transição do art. 71 da Resolução CNE/CP nº 2/2026',
+        'current' => 'Resolução CNE/CP nº 2/2026',
+    ];
+
     public const STAGE_LABELS = [
         self::STAGE_ELEMENTARY => 'Ensino Fundamental',
         self::STAGE_HIGH_SCHOOL => 'Ensino Médio',
@@ -81,6 +86,7 @@ class AcademicCourse extends Model
         'itinerary_name',
         'technical_program_id',
         'technical_legal_basis',
+        'technical_curriculum_regime',
         'accreditation_act',
         'authorization_act',
         'regulatory_process',
@@ -325,9 +331,26 @@ class AcademicCourse extends Model
         return $this->technical_program_id ? collect($this->technicalProgram?->modules)->pluck('qualification')->filter()->join("\n") : $value;
     }
 
+    public function technicalCurriculumReference(): ?string
+    {
+        $regime = $this->technical_curriculum_regime;
+
+        // Estas ofertas são inequivocamente anteriores à nova resolução.
+        $starts = $this->startsPeriod?->starts_at ?? $this->academicYear?->starts_at;
+        if (! $regime && $starts && $starts->toDateString() < '2026-11-11') {
+            $regime = 'transition';
+        }
+
+        return self::TECHNICAL_CURRICULUM_REGIMES[$regime] ?? null;
+    }
+
     public function technicalLegalBasis(): string
     {
-        return $this->technical_legal_basis ?: 'Lei Federal nº 9.394/1996 (LDB), arts. 36-B a 42; Lei Federal nº 11.741/2008; Resolução CNE/CP nº 1/2021; Resolução CNE/CEB nº 2/2020 (CNCT).';
+        return $this->technical_legal_basis ?: collect([
+            'Lei Federal nº 9.394/1996 (LDB), arts. 36-B a 42',
+            $this->technicalCurriculumReference(),
+            'Resolução CNE/CEB nº 2/2020 (CNCT)',
+        ])->filter()->join('; ').'.';
     }
 
     public function regulatoryReference(): ?string
@@ -361,7 +384,7 @@ class AcademicCourse extends Model
 
         return collect([
             'Lei Federal nº 9.394/1996, arts. 36-B a 42',
-            'Resolução CNE/CP nº 1/2021',
+            $this->technicalCurriculumReference(),
             $authorizationAct,
         ])->filter()->join('; ').'.';
     }

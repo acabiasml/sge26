@@ -22,6 +22,11 @@ class CredentialBook extends Model
 
     protected $guarded = ['id'];
 
+    public function isPhysical(): bool
+    {
+        return $this->medium === 'physical';
+    }
+
     protected function casts(): array
     {
         return ['school_id' => 'integer', 'reference_year' => 'integer', 'created_by_user_id' => 'integer', 'opened_on' => 'date', 'closed_at' => 'datetime', 'first_number' => 'integer', 'next_number' => 'integer', 'first_folio' => 'integer'];

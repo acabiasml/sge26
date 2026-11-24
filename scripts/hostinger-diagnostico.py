@@ -283,6 +283,13 @@ with tempfile.TemporaryDirectory() as directory:
         commands.append(('Aplicar campos de identificação para documentação escolar', 'php artisan migrate --path=database/migrations/2026_11_18_030300_add_school_document_identity_to_people.php --force --no-ansi'))
         commands.append(('Aplicar arquivo de assinaturas dos demais documentos', 'php artisan migrate --path=database/migrations/2026_11_18_030400_create_document_signature_versions.php --force --no-ansi'))
         commands.append(('Aplicar modalidade aos livros de escrituração escolar', 'php artisan migrate --path=database/migrations/2026_11_23_000001_scope_school_record_books.php --force --no-ansi'))
+        commands.append(('Aplicar o meio de registro por escola', 'php artisan migrate --path=database/migrations/2026_11_23_000002_configure_school_record_book_media.php --force --no-ansi'))
+        commands.append(('Aplicar campos de conformidade documental e frequência', 'php artisan migrate --path=database/migrations/2026_11_23_000003_add_document_authorizations_and_attendance_effect.php --force --no-ansi'))
+        commands.append(('Conferir o meio de registro das escolas', 'php -r \'require "vendor/autoload.php"; '
+                         '$app = require "bootstrap/app.php"; $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); '
+                         'foreach (\\App\\Models\\School::query()->where("active", true)->orderBy("name")->get(["name", "state", "registry_medium", "document_authorizations"]) as $school) '
+                         '{ echo $school->name, ": ", $school->registry_medium, " | ", '
+                         '\\App\\Support\\OfficialDocumentCompliance::authorizationMessage($school, []) ? "credenciamento a conferir" : "credenciamento conferido no cadastro", PHP_EOL; }\''))
         commands.append(('Preparar rascunhos do histórico escolar', 'php artisan migrate --path=database/migrations/2026_11_24_000001_create_student_history_drafts.php --force --no-ansi'))
         commands.append(('Conferir integridade dos livros digitais', 'php artisan credentials:check --no-ansi'))
         commands.append(('Migrations', 'php artisan migrate:status --no-ansi'))

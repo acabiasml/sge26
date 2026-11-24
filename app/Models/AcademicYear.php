@@ -100,6 +100,29 @@ class AcademicYear extends Model
         return $this->days()->where('counts_as_school_day', true)->count();
     }
 
+    public function minimumAttendanceForCourses(iterable $courses): int
+    {
+        return max((int) $this->minimum_attendance_percentage, self::statutoryAttendanceMinimum($courses));
+    }
+
+    public static function statutoryAttendanceMinimum(iterable $courses): int
+    {
+        $grades = app(\App\Support\StudentAcademicHistoryCompleteness::class);
+        foreach ($courses as $course) {
+            if ($course->stage === AcademicCourse::STAGE_HIGH_SCHOOL || $course->stage === AcademicCourse::STAGE_TECHNICAL) {
+                return 75;
+            }
+            if ($course->stage === AcademicCourse::STAGE_ELEMENTARY) {
+                $grade = $grades->gradeNumber($course->name, $course->stage);
+                if ($grade === null || $grade > 3) {
+                    return 75;
+                }
+            }
+        }
+
+        return 0;
+    }
+
     public function isClosed(): bool
     {
         return $this->closed_at !== null;

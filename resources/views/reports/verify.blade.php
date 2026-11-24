@@ -28,7 +28,7 @@
 
                 @if($entry=$document->registration)
                     @php($signed=$entry->files()->where('kind','signed_document')->latest('id')->first())
-                    <div class="alert alert-info"><strong>{{ __('Livro') }} {{ $entry->book->identifier }} · {{ __('Registro') }} {{ $entry->number }} · {{ __('Folha') }} {{ $entry->folio }}</strong><br>
+                    <div class="alert alert-info"><strong>{{ __('Livro') }} {{ $entry->book->identifier }} · {{ __('Registro') }} {{ $entry->referenceNumber() }} · {{ __('Folha') }} {{ $entry->referenceFolio() }}</strong><br>
                     @if($document->registration->finalCopy()?->kind === 'physical_signed')
                         {{ __('Via assinada em papel arquivada pela escola.') }}
                     @else

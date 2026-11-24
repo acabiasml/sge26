@@ -41,12 +41,22 @@
             <section id="technical-regulation" class="card border-left-primary mb-4" @if(old('stage', $course->stage) !== \App\Models\AcademicCourse::STAGE_TECHNICAL) hidden @endif>
                 <div class="card-body">
                     <div class="form-group"><label for="technical_program_id">Cadastro do curso técnico da escola</label><select class="form-control" id="technical_program_id" name="technical_program_id"><option value="">Selecione o curso técnico</option>@foreach(\App\Models\TechnicalProgram::where('school_id',$academicYear->school_id)->where(fn($q)=>$q->where('active',true)->orWhere('id',$course->technical_program_id))->get() as $program)<option value="{{ $program->id }}" @selected(old('technical_program_id',$course->technical_program_id)==$program->id)>{{ $program->name }} · {{ $program->offer_forms }}</option>@endforeach</select><a href="{{ route('technical-programs.index') }}">Cadastrar ou revisar cursos técnicos da escola</a><p class="text-muted">Ao vincular um curso, a autorização, a oferta e os módulos vêm desse cadastro.</p></div>
+                    <div class="form-group">
+                        <label for="technical_curriculum_regime">{{ __('Diretriz da oferta técnica') }}</label>
+                        <select id="technical_curriculum_regime" name="technical_curriculum_regime" class="form-control">
+                            <option value="">{{ __('Determinar pela vigência ou conferir antes da emissão') }}</option>
+                            @foreach(\App\Models\AcademicCourse::TECHNICAL_CURRICULUM_REGIMES as $value => $label)
+                                <option value="{{ $value }}" @selected(old('technical_curriculum_regime', $course->technical_curriculum_regime) === $value)>{{ __($label) }}</option>
+                            @endforeach
+                        </select>
+                        <small class="form-text text-muted">{{ __('Confira o plano aprovado e a regra de transição da oferta antes de emitir certificados ou diplomas.') }}</small>
+                    </div>
                     <div id="legacy-technical-fields" hidden><fieldset disabled>
                     <h3 class="h6 font-weight-bold text-primary">{{ __('Regulamentação da oferta técnica nesta escola') }}</h3>
                     <p class="text-muted">{{ __('Estes dados pertencem a esta oferta e serão impressos nos documentos em que o curso técnico aparecer.') }}</p>
                     <div class="form-group">
                         <label for="technical_legal_basis">{{ __('Fundamento legal da Educação Profissional Técnica') }}</label>
-                        <textarea id="technical_legal_basis" name="technical_legal_basis" class="form-control" rows="3" placeholder="{{ __('Lei, resolução e diretrizes nacionais/estaduais') }}">{{ old('technical_legal_basis', $course->technical_legal_basis ?: 'Lei Federal nº 9.394/1996 (LDB), arts. 36-B a 42; Lei Federal nº 11.741/2008; Resolução CNE/CP nº 1/2021; Resolução CNE/CEB nº 2/2020 (CNCT).') }}</textarea>
+                        <textarea id="technical_legal_basis" name="technical_legal_basis" class="form-control" rows="3" placeholder="{{ __('Lei, resolução e diretrizes nacionais/estaduais') }}">{{ old('technical_legal_basis', $course->technicalLegalBasis()) }}</textarea>
                     </div>
                     <div class="row">
                         <div class="col-lg-6 form-group"><label for="accreditation_act">{{ __('Ato de credenciamento da instituição') }}</label><textarea id="accreditation_act" name="accreditation_act" class="form-control" rows="2">{{ old('accreditation_act', $course->accreditation_act) }}</textarea></div>

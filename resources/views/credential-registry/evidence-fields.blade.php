@@ -7,7 +7,16 @@
     <label for="act-date">{{ $transfer ? __('Data do recebimento') : __('Data do ato') }}</label>
     <input class="form-control" type="date" id="act-date" name="recorded_on" max="{{ now('America/Cuiaba')->toDateString() }}" value="{{ old('recorded_on') }}" required>
 </div>
-@unless($transfer)
+@if($transfer)
+    <div class="form-group">
+        <label for="transferred-during-period">{{ __('A transferência ocorreu no meio do período letivo?') }}</label>
+        <select class="form-control" name="transfer_during_period" id="transferred-during-period" required>
+            <option value="">{{ __('Selecione') }}</option>
+            <option value="1" @selected(old('transfer_during_period') === '1')>{{ __('Sim — anexar também a ficha individual') }}</option>
+            <option value="0" @selected(old('transfer_during_period') === '0')>{{ __('Não') }}</option>
+        </select>
+    </div>
+@else
     <div class="form-group">
         <label for="process-kind">{{ __('Tipo de processo') }}</label>
         <select class="form-control" id="process-kind" name="process_kind" required>
@@ -16,7 +25,7 @@
             <option value="placement">{{ __('Enturmação') }}</option>
         </select>
     </div>
-@endunless
+@endif
 <div class="form-group">
     <label for="act-method">{{ __('Forma do original') }}</label>
     <select class="form-control" id="act-method" name="signature_mode" required>

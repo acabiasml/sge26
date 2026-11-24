@@ -86,6 +86,8 @@ class AttendanceJustificationController extends Controller
             'starts_at' => ['required', 'date'],
             'ends_at' => ['required', 'date', 'after_or_equal:starts_at'],
             'reason' => ['required', 'string', 'max:5000'],
+            'attendance_effect' => ['sometimes', 'required', Rule::in(array_keys(DiaryAttendanceJustification::EFFECTS))],
+            'attendance_basis' => ['nullable', 'required_if:attendance_effect,excused,compensated', 'string', 'max:500'],
         ]);
 
         $this->validateEnrollmentPeriod($enrollment, $academicYear, $data);
@@ -95,6 +97,8 @@ class AttendanceJustificationController extends Controller
             'starts_at' => $data['starts_at'],
             'ends_at' => $data['ends_at'],
             'reason' => $data['reason'],
+            'attendance_effect' => $data['attendance_effect'] ?? 'documented',
+            'attendance_basis' => $data['attendance_basis'] ?? null,
             'granted_by_person_id' => $request->user()->person_id,
         ]);
 
@@ -140,6 +144,8 @@ class AttendanceJustificationController extends Controller
             'starts_at' => ['required', 'date'],
             'ends_at' => ['required', 'date', 'after_or_equal:starts_at'],
             'reason' => ['required', 'string', 'max:5000'],
+            'attendance_effect' => ['sometimes', 'required', Rule::in(array_keys(DiaryAttendanceJustification::EFFECTS))],
+            'attendance_basis' => ['nullable', 'required_if:attendance_effect,excused,compensated', 'string', 'max:500'],
         ]);
         $this->validateEnrollmentPeriod($enrollment, $academicYear, $data);
 
@@ -153,7 +159,7 @@ class AttendanceJustificationController extends Controller
             $this->ensureAcademicYearIsOpen($lockedYear);
             $current->fill($data);
 
-            if (! $current->isDirty(['student_enrollment_id', 'starts_at', 'ends_at', 'reason'])) {
+            if (! $current->isDirty(['student_enrollment_id', 'starts_at', 'ends_at', 'reason', 'attendance_effect', 'attendance_basis'])) {
                 return false;
             }
 

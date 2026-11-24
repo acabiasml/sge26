@@ -88,6 +88,7 @@ class UnifiedStudentHistoryTechnicalCalendarTest extends TestCase
         $course = new AcademicCourse([
             'stage' => AcademicCourse::STAGE_TECHNICAL,
             'authorization_act' => 'Ato 056/2025-CEE/MT — autorização do curso presencial por quatro anos',
+            'technical_curriculum_regime' => 'transition',
             'regulatory_process' => '7/2023/SIPE/CEE-MT',
             'regulatory_opinion' => 'CEPS 8/2025',
             'official_gazette_reference' => 'DOE-MT nº 28.918, p. 27, 28/01/2025',
@@ -105,6 +106,7 @@ class UnifiedStudentHistoryTechnicalCalendarTest extends TestCase
         $course = new AcademicCourse([
             'stage' => AcademicCourse::STAGE_TECHNICAL,
             'authorization_act' => 'Ato 056/2025-CEE/MT',
+            'technical_curriculum_regime' => 'current',
             'regulatory_process' => '7/2023/SIPE/CEE-MT',
             'official_gazette_reference' => 'DOE-MT nº 28.918, p. 27, 28/01/2025',
         ]);
@@ -112,7 +114,7 @@ class UnifiedStudentHistoryTechnicalCalendarTest extends TestCase
         $reference = $course->conciseRegulatoryReference();
 
         $this->assertSame(
-            'Lei Federal nº 9.394/1996, arts. 36-B a 42; Resolução CNE/CP nº 1/2021; Ato 056/2025-CEE/MT.',
+            'Lei Federal nº 9.394/1996, arts. 36-B a 42; Resolução CNE/CP nº 2/2026; Ato 056/2025-CEE/MT.',
             $reference,
         );
     }

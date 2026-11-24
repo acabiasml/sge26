@@ -66,7 +66,7 @@
                                     <tr>
                                         <td>{{ $justification->enrollment?->student?->full_name }}<span class="d-block small text-muted">{{ $justification->enrollment?->schoolClass?->name }} · {{ $justification->enrollment?->schoolClass?->academicYear?->referenceYearsLabel() }}</span></td>
                                         <td>{{ $justification->starts_at?->format('d/m/Y') }} {{ __('a') }} {{ $justification->ends_at?->format('d/m/Y') }}</td>
-                                        <td>{{ $justification->reason }}</td>
+                                        <td>{{ $justification->reason }}<span class="d-block small text-muted">{{ __(\App\Models\DiaryAttendanceJustification::EFFECTS[$justification->attendance_effect] ?? 'Abatimento anterior — conferir fundamento') }}</span></td>
                                         <td>{{ $justification->grantedBy?->full_name ?? __('Sistema') }}<span class="d-block small text-muted">{{ $justification->created_at?->timezone('America/Cuiaba')->format('d/m/Y H:i') }}</span></td>
                                         <td>{{ $justification->modification_count ? ($justification->updatedBy?->full_name ?? __('Sistema')) : __('Ainda não alterada') }}@if($justification->modification_count)<span class="d-block small text-muted">{{ $justification->updated_at?->timezone('America/Cuiaba')->format('d/m/Y H:i') }}</span>@endif</td>
                                         <td>{{ $justification->modification_count }}</td>

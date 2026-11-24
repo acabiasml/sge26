@@ -13,18 +13,24 @@
             {{ __('Confira no SISTEC o ato autorizativo, a matrícula, a conclusão e o código autenticador. Para matrículas cadastradas a partir de 1º de fevereiro de 2027, confira a trava de seis meses entre o cadastro e a conclusão, ou a autorização para a exceção.') }}
             <a href="https://www.in.gov.br/web/dou/-/portaria-n-58-de-10-de-outubro-de-2026-741177750" target="_blank" rel="noopener">{{ __('Portaria SETEC/MEC nº 58/2026') }}</a>
         </p>
+        <div class="form-row">
+            @foreach(['sistec_enrolled_on' => __('Data de inserção da matrícula no SISTEC'), 'sistec_completed_on' => __('Data de registro da conclusão no SISTEC')] as $field => $label)
+                <div class="form-group col-md-6">
+                    <label for="credential-{{ $field }}">{{ $label }}</label>
+                    <input type="date" class="form-control" id="credential-{{ $field }}" name="{{ $field }}" value="{{ old($field) }}" max="{{ now('America/Cuiaba')->toDateString() }}">
+                </div>
+            @endforeach
+        </div>
+        <div class="form-group">
+            <label for="credential-sistec-exception">{{ __('Autorização do órgão validador para conclusão antes dos seis meses, se aplicável (PDF)') }}</label>
+            <input class="form-control-file" type="file" id="credential-sistec-exception" name="sistec_exception" accept="application/pdf">
+        </div>
         @foreach(['authorization_pdf' => __('Ato autorizativo publicado (PDF)'), 'sistec_proof' => __('Comprovante da conferência no SISTEC (PDF)'), 'high_school_certificate' => __('Certificado de conclusão do Ensino Médio (PDF)')] as $field => $label)
             <div class="form-group">
                 <label for="credential-{{ $field }}">{{ $label }}</label>
                 <input class="form-control-file" id="credential-{{ $field }}" name="{{ $field }}" type="file" accept="application/pdf" required>
             </div>
         @endforeach
-        @if($program->authorization_ends_at?->isPast())
-            <div class="form-group">
-                <label for="credential-continuation">{{ __('Comprovante de continuidade dos estudos após a vigência original (PDF)') }}</label>
-                <input class="form-control-file" id="credential-continuation" name="continuation_proof" type="file" accept="application/pdf">
-            </div>
-        @endif
         <div class="form-group">
             <label for="credential-title-gender">{{ __('Flexão da titulação no diploma') }}</label>
             <select class="form-control" id="credential-title-gender" name="title_gender" required>
@@ -32,6 +38,12 @@
                 <option value="masculine" @selected(old('title_gender') === 'masculine')>{{ __('Técnico') }}</option>
                 <option value="feminine" @selected(old('title_gender') === 'feminine')>{{ __('Técnica') }}</option>
             </select>
+        </div>
+    @endif
+    @if($program->authorization_ends_at?->isPast())
+        <div class="form-group">
+            <label for="credential-continuation">{{ __('Comprovante de continuidade dos estudos após a vigência original (PDF)') }}</label>
+            <input class="form-control-file" id="credential-continuation" name="continuation_proof" type="file" accept="application/pdf">
         </div>
     @endif
     <label class="d-block mb-3"><input type="checkbox" name="evidence_reviewed" value="1" required> {{ __('Conferi que os comprovantes correspondem ao estudante, à escola e à oferta deste registro.') }}</label>

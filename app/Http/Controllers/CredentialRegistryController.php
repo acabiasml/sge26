@@ -40,7 +40,7 @@ class CredentialRegistryController extends Controller
             'opened_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'], 'opening_term' => ['required', 'string', 'max:10000'], 'previous_book' => ['nullable', 'string', 'max:255']]);
         $this->registry->authorize($request->user(), $data['school_id']);
         $data['identifier'] = mb_strtoupper(trim($data['identifier']));
-        if (CredentialBook::where('school_id', $data['school_id'])->where('kind', $data['kind'])->where('identifier', $data['identifier'])->exists()) {
+        if (CredentialBook::where('school_id', $data['school_id'])->where('kind', $data['kind'])->where('medium', 'digital')->where('identifier', $data['identifier'])->exists()) {
             throw ValidationException::withMessages(['identifier' => 'Este livro já existe nesta escola e tipo.']);
         }
 
@@ -51,9 +51,12 @@ class CredentialRegistryController extends Controller
     {
         $this->registry->authorize($request->user(), $book->school_id);
         $book->load('school');
-        $entries = $book->registrations()->with('document', 'files', 'events')->when($request->filled('q'), function ($q) use ($request) {
-            $q->where(function ($query) use ($request) {
-                $query->where('number', $request->input('q'))->orWhereHas('document.person', fn ($p) => $p->where('full_name', 'like', '%'.$request->input('q').'%'));
+        $search = $request->query('q');
+        $entries = $book->registrations()->with('document', 'files', 'events')->when(is_string($search) && trim($search) !== '', function ($q) use ($book, $search) {
+            $q->where(function ($query) use ($book, $search) {
+                $query->where('snapshot->registration->registry_number', $search)
+                    ->when(! $book->isPhysical() && ctype_digit($search), fn ($q) => $q->orWhere('number', (int) $search))
+                    ->orWhereHas('document.person', fn ($p) => $p->where('full_name', 'like', '%'.$search.'%'));
             });
         })->orderBy('number')->paginate(10)->withQueryString();
         $files = $book->files()->whereNull('credential_registration_id')->latest('id')->paginate(10, ['*'], 'files_page');
@@ -200,7 +203,7 @@ class CredentialRegistryController extends Controller
             $proof = $this->trackedFile($book, $entry, $request, 'amendment_proof', $request->file('supporting_pdf')->get(), []);
             $metadata = collect($data)->only(['reason', 'method', 'physical_reason'])->all() + [
                 'supporting_file_id' => $proof->id, 'original_sha256' => $entry->document_sha256,
-                'original_number' => $entry->number, 'original_book' => $book->identifier,
+                'original_number' => $entry->referenceNumber(), 'original_book' => $book->identifier,
             ];
             if ($data['method'] === 'digital') {
                 $reportBytes = $request->file('validation_report')->get();

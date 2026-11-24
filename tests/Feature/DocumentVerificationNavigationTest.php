@@ -57,6 +57,16 @@ class DocumentVerificationNavigationTest extends TestCase
             ->assertSee('Verificar outro documento')->assertDontSee('id="accordionSidebar"', false);
     }
 
+    public function test_public_verification_omits_private_document_titles(): void
+    {
+        $document = $this->document();
+        $document->update(['type' => 'official-document', 'payload' => ['title' => 'Título privado de teste']]);
+
+        $this->get(route('documents.verify', $document->verification_code))->assertOk()
+            ->assertSee('Documento oficial em papel timbrado')->assertDontSee('Título privado de teste');
+        $this->get(route('documents.credential-priority'))->assertOk()->assertSee('Nomeação em concurso público');
+    }
+
     public function test_public_verification_shows_institution_contact_and_active_managers(): void
     {
         $school = School::query()->create([

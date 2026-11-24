@@ -169,7 +169,10 @@ class StudentEnrollmentCertificateController extends Controller
         if ($redirect = $this->complianceRedirect($request, $academicYear, $enrollment)) {
             return $redirect;
         }
-        $data = $request->validate(SchoolRecordPdf::RULES);
+        if ($message = OfficialDocumentCompliance::authorizationMessage($academicYear->school, $enrollment->courses->pluck('stage')->all())) {
+            throw ValidationException::withMessages(['document' => $message]);
+        }
+        $data = $request->validate(SchoolRecordPdf::rules($academicYear->school));
         $staff = $records->signers($academicYear->school);
         $payload['signers'] = ['director' => $staff['diretor']->full_name, 'secretary' => $staff['secretário']->full_name];
         $document = $records->issue($request->user(), $academicYear->school, $type, $enrollment->person_id, $payload, $data, $render);
@@ -182,11 +185,11 @@ class StudentEnrollmentCertificateController extends Controller
         [$year] = $this->context($request, $enrollment);
 
         return view('credential-registry.prepare-record', [
-            'title' => 'Atestado de transferência', 'context' => $enrollment->student->full_name.' · '.$year->name,
+            'school' => $year->school, 'title' => 'Atestado de transferência', 'context' => $enrollment->student->full_name.' · '.$year->name,
             'notice' => 'O atestado pode ser expedido antes da transferência. O histórico e a ficha dos períodos parciais integram a documentação da transferência.',
             'preview' => route('enrollments.transfer-certificate.pdf', $enrollment),
             'action' => route('enrollments.transfer-certificate.register', $enrollment),
-            'books' => app(CredentialRegistry::class)->books($request->user(), $year->school_id, 'transfer')->whereNull('closed_at')->get(),
+            'books' => app(CredentialRegistry::class)->digitalBooks($request->user(), $year->school, 'transfer')->get(),
             'confirmMissingCpf' => OfficialDocumentCompliance::studentHasNoCpf($enrollment->student),
         ]);
     }
@@ -219,12 +222,12 @@ class StudentEnrollmentCertificateController extends Controller
         }
         if ($request->isMethod('get')) {
             return view('credential-registry.prepare-record', [
-                'title' => $title, 'context' => $enrollment->student->full_name.' · '.$course->modalityLabel(),
+                'school' => $year->school, 'title' => $title, 'context' => $enrollment->student->full_name.' · '.$course->modalityLabel(),
                 'notice' => 'Selecione o livro da modalidade e o histórico que comprova a conclusão.',
                 'preview' => route('enrollments.high-school-certificate.prepare', ['enrollment' => $enrollment, 'preview' => 1]),
                 'action' => route('enrollments.high-school-certificate.register', $enrollment),
-                'books' => app(CredentialRegistry::class)->books($request->user(), $year->school_id, 'high-school')
-                    ->where('scope', $scope)->whereNull('closed_at')->get(),
+                'books' => app(CredentialRegistry::class)->digitalBooks($request->user(), $year->school, 'high-school')
+                    ->where('scope', $scope)->get(),
                 'confirmMissingCpf' => OfficialDocumentCompliance::studentHasNoCpf($enrollment->student),
                 'requireHistory' => true,
                 'digitalOnly' => true,
@@ -233,16 +236,30 @@ class StudentEnrollmentCertificateController extends Controller
         if ($redirect = $this->complianceRedirect($request, $year, $enrollment)) {
             return $redirect;
         }
-        $data = $request->validate(['signature_mode' => ['required', 'in:digital']] + SchoolRecordPdf::RULES +
-            ['history_code' => ['required', 'string', 'max:60']]);
-        $history = $records->signedHistory($data['history_code'], $enrollment->person_id, $year->school_id, AcademicCourse::STAGE_HIGH_SCHOOL);
-        if (! in_array($enrollment->id, $history->snapshot['completed_enrollment_ids'] ?? [], true)) {
-            throw ValidationException::withMessages(['history_code' => 'O histórico assinado precisa comprovar a conclusão desta matrícula.']);
+        if ($message = OfficialDocumentCompliance::authorizationMessage($year->school, [AcademicCourse::STAGE_HIGH_SCHOOL])) {
+            throw ValidationException::withMessages(['document' => $message]);
+        }
+        $data = $request->validate(['signature_mode' => ['required', 'in:digital']] + SchoolRecordPdf::rules($year->school) +
+            ['history_code' => [$year->school->usesPhysicalRegistry() ? 'required_without:paper_history_pdf' : 'required', 'nullable', 'string', 'max:60']]);
+        $evidence = [];
+        if (filled($data['history_code'] ?? null)) {
+            $history = $records->signedHistory($data['history_code'], $enrollment->person_id, $year->school_id, AcademicCourse::STAGE_HIGH_SCHOOL);
+            if (! in_array($enrollment->id, $history->snapshot['completed_enrollment_ids'] ?? [], true)) {
+                throw ValidationException::withMessages(['history_code' => 'O histórico assinado precisa comprovar a conclusão desta matrícula.']);
+            }
+            $payload['history_registration_id'] = $history->id;
+        } elseif ($year->school->usesPhysicalRegistry()) {
+            $paperHistory = $request->validate([
+                'paper_history_pdf' => ['required', 'file', 'mimes:pdf', 'max:20480'],
+                'paper_history_reference' => ['required', 'string', 'max:250'],
+                'paper_history_reviewed' => ['accepted'],
+            ]);
+            $payload['paper_history_reference'] = $paperHistory['paper_history_reference'];
+            $evidence['signed_high_school_history'] = $request->file('paper_history_pdf')->get();
         }
         $staff = $records->signers($year->school);
         $payload['signers'] = ['director' => $staff['diretor']->full_name, 'secretary' => $staff['secretário']->full_name];
-        $payload['history_registration_id'] = $history->id;
-        $document = $records->issue($request->user(), $year->school, $type, $enrollment->person_id, $payload, $data, $render, $scope);
+        $document = $records->issue($request->user(), $year->school, $type, $enrollment->person_id, $payload, $data, $render, $scope, $evidence);
 
         return redirect()->route('credential-registry.entry', $document->registration);
     }

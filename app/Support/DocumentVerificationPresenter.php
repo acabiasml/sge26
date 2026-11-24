@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\IssuedDocument;
+use App\Models\OfficialDocument;
 use App\Models\PersonSchoolRole;
 
 class DocumentVerificationPresenter
@@ -53,10 +54,13 @@ class DocumentVerificationPresenter
             'Endereço' => $schoolAddress,
         ])->filter(fn (?string $value): bool => filled($value))->all();
 
+        $private = $document->type === 'official-document' && ! OfficialDocument::where('issued_document_id', $document->id)
+            ->where('visibility', OfficialDocument::VISIBILITY_PUBLIC)->exists();
+
         return [
             'type_label' => self::typeLabel($document->type),
             'description' => self::description($document->type),
-            'title' => $document->registration ? self::typeLabel($document->type) : (is_string($document->payload['title'] ?? null) ? $document->payload['title'] : null),
+            'title' => $document->registration || $private ? self::typeLabel($document->type) : (is_string($document->payload['title'] ?? null) ? $document->payload['title'] : null),
             'scope_label' => is_string($document->payload['scope_label'] ?? null) ? $document->payload['scope_label'] : null,
             'rows_count' => is_numeric($document->payload['rows_count'] ?? null) ? (int) $document->payload['rows_count'] : null,
             'school_name' => $school?->name,

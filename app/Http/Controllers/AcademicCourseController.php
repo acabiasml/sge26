@@ -169,6 +169,7 @@ class AcademicCourseController extends Controller
                 'itinerary_name' => $course->itinerary_name,
                 'technical_program_id' => $course->technical_program_id,
                 'technical_legal_basis' => $course->technical_legal_basis,
+                'technical_curriculum_regime' => $course->technical_curriculum_regime,
                 'accreditation_act' => $course->accreditation_act,
                 'authorization_act' => $course->authorization_act,
                 'regulatory_process' => $course->regulatory_process,
@@ -246,6 +247,7 @@ class AcademicCourseController extends Controller
             'technical_itinerary_ids' => ['nullable', 'array'],
             'technical_itinerary_ids.*' => ['integer', 'distinct', Rule::exists('academic_courses', 'id')->where('stage', AcademicCourse::STAGE_TECHNICAL)->whereIn('academic_year_id', AcademicYear::where('school_id', $academicYear->school_id)->select('id'))],
             'technical_program_id' => [Rule::requiredIf($request->input('stage') === 'tecnico' && $request->has('technical_program_id')), 'nullable', 'integer', Rule::exists('technical_programs', 'id')->where('school_id', $academicYear->school_id)],
+            'technical_curriculum_regime' => ['nullable', Rule::in(array_keys(AcademicCourse::TECHNICAL_CURRICULUM_REGIMES))],
             'technical_legal_basis' => [Rule::requiredIf($request->input('stage') === 'tecnico' && ! $request->filled('technical_program_id')), 'nullable', 'string', 'max:5000'],
             'accreditation_act' => [Rule::requiredIf($request->input('stage') === 'tecnico' && ! $request->filled('technical_program_id')), 'nullable', 'string', 'max:5000'],
             'authorization_act' => [Rule::requiredIf($request->input('stage') === 'tecnico' && ! $request->filled('technical_program_id')), 'nullable', 'string', 'max:5000'],
@@ -284,7 +286,7 @@ class AcademicCourseController extends Controller
         $data['workload_hours'] = $course?->calculatedWorkloadHours() ?? 0;
 
         if ($data['stage'] !== AcademicCourse::STAGE_TECHNICAL) {
-            foreach (['technical_legal_basis', 'accreditation_act', 'authorization_act', 'regulatory_process', 'regulatory_opinion', 'technological_axis', 'offer_forms', 'official_gazette_reference', 'authorization_starts_at', 'authorization_ends_at', 'module_certifications'] as $field) {
+            foreach (['technical_curriculum_regime', 'technical_legal_basis', 'accreditation_act', 'authorization_act', 'regulatory_process', 'regulatory_opinion', 'technological_axis', 'offer_forms', 'official_gazette_reference', 'authorization_starts_at', 'authorization_ends_at', 'module_certifications'] as $field) {
                 $data[$field] = null;
             }
         }

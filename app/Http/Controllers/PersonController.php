@@ -256,6 +256,7 @@ class PersonController extends Controller
             'school_identity_document' => ['nullable', 'string', 'max:100'],
             'school_gender' => ['nullable', 'string', 'max:60'],
             'school_voter_registration' => ['nullable', 'string', 'max:50'],
+            'school_voter_exemption' => ['nullable', 'string', 'max:150'],
             'student_inep' => ['nullable', 'string', 'max:255'],
             'nis' => ['nullable', 'string', 'max:20', 'regex:/^\d{11}$/'],
             'receives_federal_aid' => ['nullable', 'boolean'],

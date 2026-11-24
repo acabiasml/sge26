@@ -73,9 +73,12 @@ class AdminScreensTest extends TestCase
         $this->put(route('schools.update', $school), array_replace($school->getAttributes(), [
             'phone' => '(66) 3000-0001',
             'active' => false,
+            'registry_medium' => 'physical',
+            'document_authorizations' => $school->document_authorizations,
         ]))->assertSessionHasNoErrors()->assertRedirect(route('schools.edit', $school));
         $this->assertSame('(66) 3000-0001', $school->fresh()->phone);
         $this->assertTrue($school->fresh()->active);
+        $this->assertTrue($school->fresh()->usesPhysicalRegistry());
         $this->assertNotSame('(66) 3000-0001', $otherSchool->fresh()->phone);
 
         $this->actingAs($manager)->get(route('schools.academic-years.index', $school))->assertOk()
@@ -1684,7 +1687,7 @@ class AdminScreensTest extends TestCase
             ->assertOk()->assertHeader('content-type', 'application/pdf');
         $this->assertDatabaseMissing('issued_documents', ['type' => 'student-academic-history']);
         Storage::fake('local');
-        $student->update(['school_cin_confirmed' => true]);
+        $student->update(['school_cin_confirmed' => true, 'school_gender' => 'Feminino', 'school_voter_registration' => '123456789012']);
         foreach (['diretor' => 'Diretora de Teste', 'secretário' => 'Secretário de Teste'] as $position => $name) {
             Person::create(['full_name' => $name, 'active' => true])->schoolRoles()->create([
                 'school_id' => $school->id, 'role' => 'gestor', 'position' => $position, 'active' => true,
@@ -2106,6 +2109,7 @@ class AdminScreensTest extends TestCase
             'email' => 'ctjj.mt@gmail.com',
             'website' => 'https://ctjj.org',
             'letterhead_text' => 'Credenciamento e autorizacao vigentes.',
+            'document_authorizations' => array_fill_keys(['accreditation', 'fundamental', 'medio'], ['act' => 'Ato escolar de teste', 'published_on' => '2020-01-01', 'starts_on' => '2020-01-01']),
             'address' => 'Av. Sao Joao',
             'district' => 'Jarudore',
             'number' => 's/n',

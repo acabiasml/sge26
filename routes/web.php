@@ -76,6 +76,7 @@ Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name
 Route::get('/documentos/verificar', [ReportController::class, 'verifyForm'])->name('documents.verify.form');
 Route::post('/documentos/verificar', [ReportController::class, 'lookup'])->name('documents.verify.lookup');
 Route::get('/documentos/verificar/{code}', [ReportController::class, 'verify'])->name('documents.verify');
+Route::view('/documentos/emissao-urgente', 'reports.credential-priority')->name('documents.credential-priority');
 
 Route::get('/dashboard', DashboardController::class)->middleware(['auth', 'profile.complete'])->name('dashboard');
 

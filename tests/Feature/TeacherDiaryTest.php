@@ -2203,6 +2203,30 @@ class TeacherDiaryTest extends TestCase
             'person_id' => $enrollment->person_id,
             'school_id' => $year->school_id,
         ]);
+
+        $year->school->update(['registry_medium' => 'physical']);
+        $this->get(route('enrollments.transfer-certificate.prepare', $enrollment))->assertOk()
+            ->assertSee('Referência do livro físico')->assertDontSee('Selecione um livro digital aberto');
+        $url = route('enrollments.transfer-certificate.register', $enrollment);
+        $reference = ['registry_book' => 'TR-1', 'registry_folio' => '7 verso', 'registry_number' => '0042',
+            'registered_by' => 'Secretária do Acervo', 'registration_date' => now('America/Cuiaba')->toDateString(),
+            'signature_mode' => 'digital', 'issuance_token' => (string) \Illuminate\Support\Str::uuid()];
+        $this->post($url, $reference)->assertSessionHasNoErrors()->assertRedirectContains('/livro-digital/registros/');
+        $physical = IssuedDocument::latest('id')->firstOrFail()->registration;
+        $this->assertTrue($physical->book->isPhysical());
+        $this->assertSame('0042', $physical->referenceNumber());
+        $this->assertSame('7 verso', $physical->referenceFolio());
+        $this->assertSame('digital', $physical->snapshot['signature_mode']);
+        $this->assertSame(3, $book->fresh()->next_number);
+        $this->post($url, $reference)->assertRedirect(route('credential-registry.entry', $physical));
+        $this->post($url, array_replace($reference, [
+            'registry_number' => '42', 'issuance_token' => (string) \Illuminate\Support\Str::uuid(),
+        ]))->assertSessionHasErrors('registry_book_id');
+        $this->post($url, array_replace($reference, [
+            'registry_number' => '43', 'issuance_token' => (string) \Illuminate\Support\Str::uuid(),
+        ]))->assertSessionHasNoErrors();
+        $this->get(route('credential-registry.entry', $physical))
+            ->assertOk()->assertSee('7 verso')->assertSee('Secretária do Acervo')->assertSee('0042');
     }
 
     public function test_management_can_convalidate_partial_period_result_for_transfer_student(): void
@@ -3148,9 +3172,17 @@ class TeacherDiaryTest extends TestCase
             'student_enrollment_id' => $enrollment->id,
             'reason' => 'Atestado médico apresentado.',
             'granted_by_person_id' => $manager->person_id,
+            'attendance_effect' => 'documented',
         ]);
 
         $this->assertSame(1, DiaryAttendanceJustification::query()->count());
+        $this->assertFalse(DiaryAttendanceJustification::sole()->appliesTo('2026-03-10'));
+        $this->post(route('attendance-justifications.store'), $payload + ['attendance_effect' => 'compensated'])
+            ->assertSessionHasErrors('attendance_basis');
+        $this->post(route('attendance-justifications.store'), $payload + [
+            'attendance_effect' => 'compensated', 'attendance_basis' => 'Atividades domiciliares cumpridas, protocolo de teste 1.',
+        ])->assertSessionHasNoErrors();
+        $this->assertTrue(DiaryAttendanceJustification::where('attendance_effect', 'compensated')->sole()->appliesTo('2026-03-10'));
     }
 
     public function test_absence_justifications_filter_by_school_year_and_class(): void
@@ -4202,6 +4234,7 @@ class TeacherDiaryTest extends TestCase
             'email' => 'ctjj.mt@gmail.com',
             'website' => 'https://ctjj.org',
             'letterhead_text' => 'Credenciamento e autorizacao vigentes.',
+            'document_authorizations' => array_fill_keys(['accreditation', 'fundamental', 'medio'], ['act' => 'Ato escolar de teste', 'published_on' => '2020-01-01', 'starts_on' => '2020-01-01']),
             'address' => 'Av. Sao Joao',
             'district' => 'Jarudore',
             'number' => 's/n',

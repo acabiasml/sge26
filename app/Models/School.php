@@ -15,6 +15,14 @@ class School extends Model
 {
     use Auditable, HasFactory, HasTitleCaseAttributes;
 
+    public const REGISTRY_MEDIA = ['digital' => 'Livro digital', 'physical' => 'Livro físico'];
+
+    public const DOCUMENT_AUTHORIZATIONS = [
+        'accreditation' => 'Credenciamento da escola',
+        AcademicCourse::STAGE_ELEMENTARY => 'Autorização do Ensino Fundamental',
+        AcademicCourse::STAGE_HIGH_SCHOOL => 'Autorização do Ensino Médio',
+    ];
+
     protected $fillable = [
         'legacy_id',
         'legacy_source',
@@ -25,6 +33,8 @@ class School extends Model
         'creation_act',
         'accreditation_act',
         'education_system',
+        'registry_medium',
+        'document_authorizations',
         'cnpj',
         'inep',
         'founded_at',
@@ -52,6 +62,7 @@ class School extends Model
             'dependency_component_limit' => 'integer',
             'founded_at' => 'date',
             'legacy_metadata' => 'array',
+            'document_authorizations' => 'array',
         ];
     }
 
@@ -72,6 +83,11 @@ class School extends Model
             collect([$this->city, $this->state])->filter()->join('-'), $this->postal_code ? 'CEP '.$this->postal_code : null])->filter()->join(', ');
 
         return $address ? $address.'.' : '';
+    }
+
+    public function usesPhysicalRegistry(): bool
+    {
+        return $this->registry_medium === 'physical';
     }
 
     public function stateHeading(): ?string

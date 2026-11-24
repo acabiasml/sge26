@@ -43,6 +43,16 @@ class CredentialRegistration extends Model
         return $this->belongsTo(User::class, 'registered_by_user_id');
     }
 
+    public function referenceNumber(): string
+    {
+        return (string) ($this->snapshot['registration']['registry_number'] ?? $this->number);
+    }
+
+    public function referenceFolio(): string
+    {
+        return (string) ($this->snapshot['registration']['registry_folio'] ?? $this->folio);
+    }
+
     public function finalCopy(): ?CredentialRegistryFile
     {
         return $this->files()->where(function ($query) {

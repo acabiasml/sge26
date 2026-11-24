@@ -8,6 +8,7 @@ use App\Support\CredentialRegistry;
 use App\Support\FreeCourseCertificate;
 use App\Support\PdfLetterhead;
 use App\Support\PdfMetadata;
+use App\Support\SchoolRecordPdf;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,8 +32,9 @@ class FreeCourseCertificateController extends Controller
         $logos = PdfLetterhead::make($school);
 
         return view('free-courses.prepare', ['offering' => $offering, 'certificates' => $certificates,
-            'requiresBook' => app(CredentialRegistry::class)->requiresBook($school->id, 'certificate'),
-            'books' => app(CredentialRegistry::class)->books($request->user(), $school->id, 'certificate')->whereNull('closed_at')->orderBy('identifier')->get(),
+            'physicalRegistry' => $school->usesPhysicalRegistry(),
+            'requiresBook' => ! $school->usesPhysicalRegistry() && app(CredentialRegistry::class)->requiresBook($school->id, 'certificate'),
+            'books' => app(CredentialRegistry::class)->digitalBooks($request->user(), $school, 'certificate')->get(),
             'version' => $certificates->version($offering), 'logosReady' => $logos['maintainer_logo'] && $logos['school_logo'],
             'recent' => IssuedDocument::where('school_id', $school->id)->where('type', 'free-course-certificate')
                 ->where('payload->offering_id', $offering->id)->latest('id')->limit(50)->get()]);
@@ -57,19 +59,26 @@ class FreeCourseCertificateController extends Controller
     public function store(Request $request, FreeCourseOffering $offering, FreeCourseCertificate $certificates)
     {
         $this->authorizeOffering($request, $offering);
-        if (! $request->filled('registry_book_id') && app(CredentialRegistry::class)->requiresBook($offering->freeCourse->school_id, 'certificate')) {
+        $school = $offering->freeCourse->school;
+        if ($school->usesPhysicalRegistry() && $request->filled('registry_book_id')) {
+            throw ValidationException::withMessages(['registry_book_id' => 'Esta escola utiliza livros físicos. Reabra a tela de emissão.']);
+        }
+        if (! $school->usesPhysicalRegistry() && ! $request->filled('registry_book_id') && app(CredentialRegistry::class)->requiresBook($school->id, 'certificate')) {
             throw ValidationException::withMessages(['registry_book_id' => 'Selecione um livro digital aberto para esta emissão.']);
         }
         if ($request->filled('registry_book_id')) {
             $request->merge(['registry_number' => 1, 'registry_folio' => 'Automática', 'registry_book' => 'Livro digital', 'registered_by' => $request->user()->person?->full_name ?: $request->user()->name]);
         }
-        $data = $request->validate(['issuance_token' => [Rule::requiredIf($request->filled('registry_book_id')), 'nullable', 'uuid'], 'registry_book_id' => ['nullable', 'integer', 'exists:credential_books,id'], 'participant_ids' => ['required', 'array', 'min:1', 'max:50'], 'participant_ids.*' => ['required', 'integer', 'distinct'],
+        $data = $request->validate(['issuance_token' => [Rule::requiredIf($school->usesPhysicalRegistry() || $request->filled('registry_book_id')), 'nullable', 'uuid'], 'registry_book_id' => ['nullable', 'integer', 'exists:credential_books,id'], 'participant_ids' => ['required', 'array', 'min:1', 'max:50'], 'participant_ids.*' => ['required', 'integer', 'distinct'],
             'expected_version' => ['required', 'string', 'size:64'], 'registry_book' => ['required', 'string', 'max:50'],
             'registry_folio' => ['required', 'string', 'max:50'], 'registry_number' => ['required', 'integer', 'min:1', 'max:999999999'],
             'issued_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.now('America/Cuiaba')->toDateString()],
             'issued_place' => ['required', 'string', 'max:150'], 'registered_by' => ['required', 'string', 'max:150'],
             'director_name' => ['required', 'string', 'max:150'], 'instructor_name' => ['required', 'string', 'max:150'],
             'instructor_role' => ['required', 'string', 'max:80']]);
+        if ($school->usesPhysicalRegistry() && count($data['participant_ids']) !== 1) {
+            throw ValidationException::withMessages(['participant_ids' => 'No livro físico, selecione um participante por registro para transcrever o número e a folha exatos.']);
+        }
         foreach (['registered_by', 'director_name', 'instructor_name'] as $field) {
             if (! FreeCourseCertificate::fullName($data[$field])) {
                 throw ValidationException::withMessages([$field => 'Informe o nome completo, sem abreviações.']);
@@ -109,7 +118,11 @@ class FreeCourseCertificateController extends Controller
                         $registration = array_replace($data, $override);
                         unset($registration['participant_ids'], $registration['expected_version'], $registration['registry_book_id'], $registration['issuance_token']);
                         $registration['registry_number'] = $override['registry_number'] ?? (int) $data['registry_number'] + $index;
-                        $key = hash('sha256', implode('|', [$course->school_id, 'free-course-certificate', mb_strtolower(trim($registration['registry_book'])), mb_strtolower((string) $registration['registry_number'])]));
+                        $keyParts = [$course->school_id, 'free-course-certificate', mb_strtolower(trim($registration['registry_book'])), mb_strtolower((string) $registration['registry_number'])];
+                        if ($course->school->usesPhysicalRegistry()) {
+                            $keyParts[] = 'physical';
+                        }
+                        $key = hash('sha256', implode('|', $keyParts));
                         if (IssuedDocument::where('registration_key', $key)->exists()) {
                             throw ValidationException::withMessages(['registry_number' => 'Há um número deste lote já registrado neste livro. Consulte os originais arquivados ou escolha números disponíveis.']);
                         }
@@ -129,8 +142,14 @@ class FreeCourseCertificateController extends Controller
 
                         return $document;
                     };
-                    if (! empty($data['registry_book_id'])) {
-                        $saved = app(CredentialRegistry::class)->issue((int) $data['registry_book_id'], $course->school_id, 'free-course-certificate', $request->user(), $data['issued_date'], null, $emit, $data['issuance_token'].':'.$participant->id);
+                    if (! empty($data['registry_book_id']) || $course->school->usesPhysicalRegistry()) {
+                        $physical = SchoolRecordPdf::physicalReference($course->school, $data);
+                        if ($physical !== null) {
+                            $physical['registry_number'] = (string) $physical['registry_number'];
+                        }
+                        $saved = app(CredentialRegistry::class)->issue(isset($data['registry_book_id']) ? (int) $data['registry_book_id'] : null,
+                            $course->school_id, 'free-course-certificate', $request->user(), $data['issued_date'], null, $emit,
+                            $data['issuance_token'].':'.$participant->id, physical: $physical);
                         $batch = $saved->batch_uuid;
                     } else {
                         $emit();

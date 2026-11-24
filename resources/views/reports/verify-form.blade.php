@@ -25,6 +25,7 @@
                 </form>
 
                 @include('reports.partials.verification-navigation', ['showNewLookup' => false])
+                <p class="small mt-3 mb-0"><a href="{{ route('documents.credential-priority') }}">{{ __('Como pedir emissão urgente de certificado ou diploma') }}</a></p>
             </div>
         </div>
 @endsection

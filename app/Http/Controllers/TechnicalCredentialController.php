@@ -7,12 +7,14 @@ use App\Models\IssuedDocument;
 use App\Models\PersonSchoolRole;
 use App\Models\StudentEnrollment;
 use App\Support\CredentialRegistry;
+use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfMetadata;
 use App\Support\SchoolRecordPdf;
 use App\Support\SchoolSignatureStaff;
 use App\Support\TechnicalCredentialEligibility;
 use App\Support\TechnicalEnrollmentOffer;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -22,6 +24,8 @@ use Illuminate\Validation\ValidationException;
 
 class TechnicalCredentialController extends Controller
 {
+    private const SISTEC_MINIMUM_PERIOD_FROM = '2027-02-01';
+
     private function context(Request $request, StudentEnrollment $enrollment): array
     {
         $enrollment->loadMissing('student', 'courses.technicalProgram', 'schoolClass.academicYear.school');
@@ -76,8 +80,8 @@ class TechnicalCredentialController extends Controller
         $defaults = ['issued_place' => collect([$school->district, $school->city.'-'.$school->state])->filter()->join(', ')];
 
         return view('technical-credentials.prepare', ['enrollment' => $enrollment, 'course' => $course, 'courses' => $courses,
-            'requiresBook' => true,
-            'books' => app(CredentialRegistry::class)->books($request->user(), $school->id, $kind)->whereNull('closed_at')->orderBy('identifier')->get(),
+            'requiresBook' => true, 'school' => $school,
+            'books' => app(CredentialRegistry::class)->digitalBooks($request->user(), $school, $kind)->get(),
             'kind' => $kind, 'program' => $course->technicalProgram, 'state' => $state, 'missing' => $this->readiness($enrollment, $course),
             'defaults' => $defaults, 'offerForm' => app(TechnicalEnrollmentOffer::class)->resolve($enrollment, $course),
             'recent' => IssuedDocument::where('person_id', $enrollment->person_id)->where('school_id', $school->id)
@@ -98,7 +102,8 @@ class TechnicalCredentialController extends Controller
         if ($kind === 'diploma' && blank($enrollment->student->schoolPhotoIdentification())) {
             throw ValidationException::withMessages(['student' => 'Confira a CIN ou outro documento oficial com foto na ficha do estudante antes de registrar o diploma.']);
         }
-        $rules = ['issuance_token' => ['required', 'uuid'], 'registry_book_id' => ['required', 'integer', 'exists:credential_books,id'],
+        $school = $course->academicYear->school;
+        $rules = SchoolRecordPdf::registryRules($school) + [
             'sistec_code' => [Rule::requiredIf($kind === 'diploma' && $state['final']), 'nullable', 'string', 'max:100', 'not_regex:/[<>\r\n]/'], 'course_id' => ['required', 'integer'], 'kind' => ['required', Rule::in(['certificate', 'diploma'])],
             'issued_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.now('America/Cuiaba')->toDateString()],
             'registration_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:issued_date'],
@@ -106,6 +111,8 @@ class TechnicalCredentialController extends Controller
             'history_pdf' => ['nullable', 'file', 'mimes:pdf', 'max:20480'],
             'evidence_reviewed' => ['required', 'accepted'],
             'authorization_pdf' => [Rule::requiredIf($kind === 'diploma'), 'nullable', 'file', 'mimes:pdf', 'max:20480'],
+            'sistec_enrolled_on' => [Rule::requiredIf($kind === 'diploma' && $request->input('issued_date') >= self::SISTEC_MINIMUM_PERIOD_FROM), 'nullable', 'date_format:Y-m-d', 'before_or_equal:issued_date'],
+            'sistec_completed_on' => ['required_with:sistec_enrolled_on', 'nullable', 'date_format:Y-m-d', 'after_or_equal:sistec_enrolled_on', 'before_or_equal:issued_date'],
             'sistec_proof' => [Rule::requiredIf($kind === 'diploma'), 'nullable', 'file', 'mimes:pdf', 'max:20480'],
             'high_school_certificate' => [Rule::requiredIf($kind === 'diploma'), 'nullable', 'file', 'mimes:pdf', 'max:20480'],
             'title_gender' => [Rule::requiredIf($kind === 'diploma'), 'nullable', Rule::in(['masculine', 'feminine'])],
@@ -125,20 +132,24 @@ class TechnicalCredentialController extends Controller
             throw ValidationException::withMessages(['registration_date' => 'A emissão e o registro não podem ser anteriores à conclusão.']);
         }
         $program = $course->technicalProgram;
-        $school = $course->academicYear->school;
         $offerForm = app(TechnicalEnrollmentOffer::class)->resolve($enrollment, $course);
         $evidence = [];
         $historyEntry = null;
+        if ($message = $this->offeringAuthorizationMessage($enrollment, $course, $offerForm)) {
+            throw ValidationException::withMessages(['authorization_pdf' => $message]);
+        }
+        if ($data['issued_date'] > $program->authorization_ends_at->toDateString()) {
+            $request->validate(['continuation_proof' => ['required', 'file', 'mimes:pdf', 'max:20480']]);
+            $evidence['authorized_continuation'] = $request->file('continuation_proof')->get();
+        }
         if ($kind === 'diploma') {
-            $start = $enrollment->enrolled_at?->toDateString();
-            if (! $start || ! $program->authorization_starts_at || ! $program->authorization_ends_at || ! filled($program->official_gazette_reference)
-                || $start < $program->authorization_starts_at->toDateString() || $start > $program->authorization_ends_at->toDateString()
-                || ! in_array($offerForm, $program->offer_modes ?? [], true)) {
-                throw ValidationException::withMessages(['authorization_pdf' => 'Confira a referência no Diário Oficial, o período autorizativo e a forma de oferta que se aplica a esta matrícula.']);
+            if (filled($data['sistec_completed_on'] ?? null) && $data['sistec_completed_on'] < $completion) {
+                throw ValidationException::withMessages(['sistec_completed_on' => 'A data registrada no SISTEC precisa ser posterior ou igual à conclusão acadêmica.']);
             }
-            if ($data['issued_date'] > $program->authorization_ends_at->toDateString()) {
-                $request->validate(['continuation_proof' => ['required', 'file', 'mimes:pdf', 'max:20480']]);
-                $evidence['authorized_continuation'] = $request->file('continuation_proof')->get();
+            if (($data['sistec_enrolled_on'] ?? '') >= self::SISTEC_MINIMUM_PERIOD_FROM
+                && $data['sistec_completed_on'] < CarbonImmutable::parse($data['sistec_enrolled_on'])->addMonthsNoOverflow(6)->toDateString()) {
+                $request->validate(['sistec_exception' => ['required', 'file', 'mimes:pdf', 'max:20480']]);
+                $evidence['sistec_exception'] = $request->file('sistec_exception')->get();
             }
             foreach (['authorization_pdf' => 'authorization_act', 'sistec_proof' => 'sistec_evidence', 'high_school_certificate' => 'high_school_certificate'] as $field => $label) {
                 $evidence[$label] = $request->file($field)->get();
@@ -161,7 +172,7 @@ class TechnicalCredentialController extends Controller
             }
             $data[$field] = $staff[$position]->full_name;
         }
-        if ($kind === 'diploma') {
+        if ($kind === 'diploma' && ! $school->usesPhysicalRegistry()) {
             $registrar = SchoolSignatureStaff::forSchool($school, $data['registration_date'])[PersonSchoolRole::POSITION_SECRETARY];
             if (! $registrar) {
                 throw ValidationException::withMessages(['registration_date' => 'Confira a designação da secretaria na data do registro.']);
@@ -173,6 +184,7 @@ class TechnicalCredentialController extends Controller
         $registryKey = null;
         $rows = $module ? $module['components'] : collect($state['modules'])->flatMap(fn ($item) => $item['components'])->values()->all();
         $programData = $program->documentData();
+        $programData['legal_basis'] = rtrim($programData['legal_basis'], '. ').'; '.$course->technicalCurriculumReference().'.';
         if ($kind === 'diploma') {
             $programData['graduate_title'] = preg_replace('/^Técnic[oa]\b/ui', $data['title_gender'] === 'feminine' ? 'Técnica' : 'Técnico', $programData['graduate_title']);
         }
@@ -192,7 +204,7 @@ class TechnicalCredentialController extends Controller
             $emit = function (array $registration) use ($request, $enrollment, $school, $type, $payload, &$registryKey, &$path) {
                 $appointedRegistrar = $payload['registration']['registered_by'] ?? null;
                 $payload['registration'] = array_replace($payload['registration'], $registration);
-                if ($type === 'technical-course-diploma') {
+                if ($type === 'technical-course-diploma' && ! $school->usesPhysicalRegistry()) {
                     $payload['registration']['registered_by'] = $appointedRegistrar;
                 }
                 if (IssuedDocument::query()->where('school_id', $school->id)->where('type', $type)
@@ -203,7 +215,11 @@ class TechnicalCredentialController extends Controller
                     throw ValidationException::withMessages(['registry_number' => 'Já existe uma via emitida para esta matrícula. Consulte o original para segunda via ou correção.']);
                 }
                 $r = $payload['registration'];
-                $registryKey = ($payload['is_final'] ?? false) ? hash('sha256', implode('|', [$school->id, $payload['kind'], mb_strtolower(trim($r['registry_book'])), mb_strtolower(trim($r['registry_number']))])) : null;
+                $keyParts = [$school->id, $payload['kind'], mb_strtolower(trim($r['registry_book'])), mb_strtolower(trim($r['registry_number']))];
+                if ($school->usesPhysicalRegistry()) {
+                    $keyParts[] = 'physical';
+                }
+                $registryKey = hash('sha256', implode('|', $keyParts));
                 $document = IssuedDocument::create(['uuid' => (string) Str::uuid(), 'verification_code' => Str::upper(Str::random(12)), 'type' => $type,
                     'person_id' => $enrollment->person_id, 'school_id' => $school->id, 'issued_by_user_id' => $request->user()->id,
                     'payload' => $payload, 'registration_key' => $registryKey, 'issued_at' => now()]);
@@ -218,8 +234,8 @@ class TechnicalCredentialController extends Controller
 
                 return $document;
             };
-            $saved = app(CredentialRegistry::class)->issue((int) $data['registry_book_id'], $school->id, $type, $request->user(), $data['registration_date'], $data['sistec_code'] ?? null, $emit,
-                $data['issuance_token'].':'.$enrollment->id.':'.$payload['course_id'].':'.($data['module_key'] ?? ''), evidence: $evidence);
+            $saved = app(CredentialRegistry::class)->issue(isset($data['registry_book_id']) ? (int) $data['registry_book_id'] : null, $school->id, $type, $request->user(), $data['registration_date'], $data['sistec_code'] ?? null, $emit,
+                $data['issuance_token'].':'.$enrollment->id.':'.$payload['course_id'].':'.($data['module_key'] ?? ''), evidence: $evidence, physical: SchoolRecordPdf::physicalReference($school, $data));
 
             return redirect()->route('credential-registry.entry', $saved->registration);
         } catch (\Throwable $e) {
@@ -290,15 +306,15 @@ class TechnicalCredentialController extends Controller
                 return $render($records->draft($request->user(), $school, $type, $enrollment->person_id, $payload));
             }
             return view('credential-registry.prepare-record', [
-                'title' => $title, 'context' => $enrollment->student->full_name,
+                'school' => $school, 'title' => $title, 'context' => $enrollment->student->full_name,
                 'notice' => 'Esta via acompanha o diploma ou o certificado técnico. Use o perfil profissional e a prática previstos no plano aprovado.',
                 'action' => route('technical-credentials.history.register', $parameters),
                 'preview' => route('technical-credentials.history.prepare', $parameters + ['preview' => 1]),
-                'books' => app(CredentialRegistry::class)->books($request->user(), $school->id, 'history')->whereNull('closed_at')->get(),
+                'books' => app(CredentialRegistry::class)->digitalBooks($request->user(), $school, 'history')->get(),
                 'technicalModules' => $modules->filter(fn ($module) => $module['eligible'] && filled($module['qualification'])),
             ]);
         }
-        $data = $request->validate(SchoolRecordPdf::RULES + [
+        $data = $request->validate(SchoolRecordPdf::rules($school) + [
             'module_key' => ['nullable', Rule::in($modules->keys()->all())],
             'professional_profile' => ['required', 'string', 'max:5000'],
             'professional_practice' => ['required', 'string', 'max:3000'],
@@ -306,8 +322,12 @@ class TechnicalCredentialController extends Controller
         $module = $data['module_key'] ?? null;
         $eligible = $module ? $modules[$module]['eligible'] && filled($modules[$module]['qualification'])
             : $modules->isNotEmpty() && $modules->every(fn ($item) => $item['eligible']);
-        if (! $eligible || blank($enrollment->student->schoolPhotoIdentification()) || $this->readiness($enrollment, $course)) {
+        if (! $eligible || $this->readiness($enrollment, $course)) {
             throw ValidationException::withMessages(['document' => 'Confira a conclusão dos módulos, a identificação do estudante e os dados oficiais do curso.']);
+        }
+        if ($message = OfficialDocumentCompliance::historyIdentityMessage($enrollment->student)
+            ?? $this->offeringAuthorizationMessage($enrollment, $course, app(TechnicalEnrollmentOffer::class)->resolve($enrollment, $course))) {
+            throw ValidationException::withMessages(['document' => $message]);
         }
         $staff = $records->signers($school);
         $payload += [
@@ -318,6 +338,22 @@ class TechnicalCredentialController extends Controller
         $document = $records->issue($request->user(), $school, $type, $enrollment->person_id, $payload, $data, $render);
 
         return redirect()->route('credential-registry.entry', $document->registration);
+    }
+
+    private function offeringAuthorizationMessage(StudentEnrollment $enrollment, AcademicCourse $course, ?string $offerForm): ?string
+    {
+        $program = $course->technicalProgram;
+        $start = $enrollment->enrolled_at?->toDateString();
+        if (! $start || ! $program->authorization_starts_at || ! $program->authorization_ends_at || blank($program->official_gazette_reference)
+            || $start < $program->authorization_starts_at->toDateString() || $start > $program->authorization_ends_at->toDateString()
+            || ! in_array($offerForm, $program->offer_modes ?? [], true)) {
+            return 'Confira a publicação no Diário Oficial, a vigência da autorização e a forma de oferta da matrícula.';
+        }
+        if (! $course->technicalCurriculumReference()) {
+            return 'Informe na matriz a diretriz que rege a oferta técnica.';
+        }
+
+        return OfficialDocumentCompliance::authorizationMessage($course->academicYear->school, []);
     }
 
     private static function fullName(string $value): bool

@@ -91,6 +91,16 @@ class SchoolController extends Controller
      */
     private function validatedData(Request $request, ?School $school = null): array
     {
+        $authorizationRules = ['document_authorizations' => ['sometimes', 'array:'.implode(',', array_keys(School::DOCUMENT_AUTHORIZATIONS))]];
+        foreach (array_keys(School::DOCUMENT_AUTHORIZATIONS) as $kind) {
+            $field = 'document_authorizations.'.$kind;
+            $authorizationRules[$field] = ['nullable', 'array:act,published_on,starts_on,ends_on'];
+            $authorizationRules[$field.'.act'] = ['nullable', 'required_with:'.$field.'.published_on,'.$field.'.starts_on,'.$field.'.ends_on', 'string', 'max:350'];
+            $authorizationRules[$field.'.published_on'] = ['nullable', 'required_with:'.$field.'.act', 'date_format:Y-m-d', 'before_or_equal:today'];
+            $authorizationRules[$field.'.starts_on'] = ['nullable', 'required_with:'.$field.'.act', 'date_format:Y-m-d'];
+            $authorizationRules[$field.'.ends_on'] = ['nullable', 'date_format:Y-m-d', 'after_or_equal:'.$field.'.starts_on'];
+        }
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'legal_name' => ['required', 'string', 'max:255'],
@@ -104,6 +114,7 @@ class SchoolController extends Controller
             'creation_act' => ['nullable', 'string', 'max:2000'],
             'accreditation_act' => ['nullable', 'string', 'max:2000'],
             'education_system' => ['nullable', 'string', 'max:255'],
+            'registry_medium' => ['sometimes', 'required', Rule::in(array_keys(School::REGISTRY_MEDIA))],
             'letterhead_text' => ['required', 'string', 'max:5000'],
             'letterhead_text_elementary' => ['nullable', 'string', 'max:5000'],
             'letterhead_text_high_school' => ['nullable', 'string', 'max:5000'],
@@ -115,7 +126,7 @@ class SchoolController extends Controller
             'state' => ['required', 'string', 'size:2', Rule::in(BrazilianStates::codes())],
             'postal_code' => ['required', 'string', 'max:255'],
             'active' => ['nullable', 'boolean'],
-        ]);
+        ] + $authorizationRules);
 
         if ($request->user()->canManageSchools()) {
             $data['active'] = $request->boolean('active');

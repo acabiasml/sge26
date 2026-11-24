@@ -73,7 +73,7 @@
             <label class="custom-control-label" for="school-cin-confirmed">{{ __('CIN conferida. Usar o CPF cadastrado como número da CIN.') }}</label>
         </div>
     </div>
-    @foreach(['school_identity_document' => [__('Outro documento oficial com foto (tipo e número)'),100], 'school_gender' => [__('Gênero para documentação escolar'),60], 'school_voter_registration' => [__('Título de eleitor'),50]] as $field => [$label,$limit])
+    @foreach(['school_identity_document' => [__('Outro documento oficial com foto (tipo e número)'),100], 'school_gender' => [__('Gênero para documentação escolar'),60], 'school_voter_registration' => [__('Título de eleitor'),50], 'school_voter_exemption' => [__('Motivo da dispensa do título de eleitor, se aplicável'),150]] as $field => [$label,$limit])
         <div class="form-group col-md-4">
             <label for="{{ $field }}">{{ $label }}</label>
             <input class="form-control" id="{{ $field }}" name="{{ $field }}" value="{{ old($field, $person->{$field} ?? '') }}" maxlength="{{ $limit }}">

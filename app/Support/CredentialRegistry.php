@@ -38,7 +38,12 @@ final class CredentialRegistry
 
     public function requiresBook(int $schoolId, string $kind): bool
     {
-        return CredentialBook::where('school_id', $schoolId)->where('kind', $kind)->exists();
+        return CredentialBook::where('school_id', $schoolId)->where('kind', $kind)->where('medium', 'digital')->exists();
+    }
+
+    public function digitalBooks(User $user, School $school, string $kind)
+    {
+        return $this->books($user, $school->id, $kind)->where('medium', 'digital')->whereNull('closed_at')->orderBy('identifier');
     }
 
     public function open(User $user, array $data): CredentialBook
@@ -46,26 +51,35 @@ final class CredentialRegistry
         $this->authorize($user, $data['school_id']);
 
         return DB::transaction(function () use ($user, $data) {
-            School::whereKey($data['school_id'])->lockForUpdate()->firstOrFail();
+            $school = School::whereKey($data['school_id'])->lockForUpdate()->firstOrFail();
+            $this->ensure(! $school->usesPhysicalRegistry(), 'Esta escola utiliza livros físicos. Informe a referência no momento da emissão.');
             $this->ensure(! CredentialBook::where('school_id', $data['school_id'])->where('kind', $data['kind'])
-                ->where('identifier', $data['identifier'])->exists(), 'Este livro já existe nesta escola para esse tipo de documento.');
-            $book = CredentialBook::create($data + ['next_number' => $data['first_number'], 'created_by_user_id' => $user->id]);
-            $this->event($book, null, $user, 'opened', ['term' => $book->opening_term, 'previous_book' => $book->previous_book, 'first_number' => $book->first_number, 'first_folio' => $book->first_folio, 'identity_sha256' => $this->bookIdentity($book)]);
-
-            return $book;
+                ->where('medium', 'digital')->where('identifier', $data['identifier'])->exists(), 'Este livro já existe nesta escola para esse tipo de documento.');
+            return $this->createBook($user, $data);
         });
     }
 
+    private function createBook(User $user, array $data): CredentialBook
+    {
+        $book = CredentialBook::create($data + ['next_number' => $data['first_number'], 'created_by_user_id' => $user->id]);
+        $this->event($book, null, $user, 'opened', ['term' => $book->opening_term, 'previous_book' => $book->previous_book, 'first_number' => $book->first_number, 'first_folio' => $book->first_folio, 'identity_sha256' => $this->bookIdentity($book)]);
+
+        return $book;
+    }
+
     /** O número e a folha só são consumidos se PDF e registro forem gravados juntos. */
-    public function issue(int $bookId, int $schoolId, string $type, User $user, string $date, ?string $sistec, callable $emit, ?string $requestToken = null, ?string $scope = null, array $evidence = []): IssuedDocument
+    public function issue(?int $bookId, int $schoolId, string $type, User $user, string $date, ?string $sistec, callable $emit, ?string $requestToken = null, ?string $scope = null, array $evidence = [], ?array $physical = null): IssuedDocument
     {
         $this->authorize($user, $schoolId);
         $paths = [];
 
         try {
-            return DB::transaction(function () use ($bookId, $schoolId, $type, $user, $date, $sistec, $emit, $requestToken, $scope, $evidence, &$paths) {
-                School::whereKey($schoolId)->lockForUpdate()->firstOrFail();
-                $book = CredentialBook::whereKey($bookId)->lockForUpdate()->firstOrFail();
+            return DB::transaction(function () use ($bookId, $schoolId, $type, $user, $date, $sistec, $emit, $requestToken, $scope, $evidence, $physical, &$paths) {
+                $school = School::whereKey($schoolId)->lockForUpdate()->firstOrFail();
+                $this->ensure($school->usesPhysicalRegistry() === ($physical !== null), 'A modalidade de registro da escola mudou. Reabra a tela de emissão.');
+                $book = $physical === null
+                    ? CredentialBook::whereKey($bookId)->where('medium', 'digital')->lockForUpdate()->firstOrFail()
+                    : $this->physicalBook($school, self::TYPES[$type], $user, $scope, $physical['registry_book'], $date);
                 $this->ensure($book->school_id === $schoolId && $book->kind === (self::TYPES[$type] ?? null), 'Selecione um livro da escola e do tipo correto.');
                 $this->ensure($book->scope === $scope, 'Selecione o livro da modalidade correta.');
                 $key = $requestToken ? hash('sha256', $book->id.'|'.$user->id.'|'.$requestToken) : null;
@@ -74,7 +88,16 @@ final class CredentialRegistry
                     return $existing->document;
                 }
                 $this->ensure(! $book->closed_at, 'O livro está encerrado. Abra outro livro para novos registros.');
-                $this->ensure($date >= $book->opened_on->toDateString() && $date <= now('America/Cuiaba')->toDateString(), 'A data do registro deve estar entre a abertura do livro e hoje.');
+                $this->ensure(($book->isPhysical() || $date >= $book->opened_on->toDateString()) && $date <= now('America/Cuiaba')->toDateString(), 'Confira a data do registro.');
+                if ($physical !== null) {
+                    $numberKey = mb_strtoupper(trim($physical['registry_number']));
+                    if (ctype_digit($numberKey)) {
+                        $numberKey = ltrim($numberKey, '0') ?: '0';
+                    }
+                    $this->ensure(! $book->registrations()->where('snapshot->registration->physical_number_key', $numberKey)->exists(),
+                        'Esse número já está registrado nesse livro físico. Consulte o registro original.');
+                    $physical['physical_number_key'] = $numberKey;
+                }
                 $this->ensure($type !== 'technical-course-diploma' || filled($sistec), 'Informe o número gerado pelo SISTEC para o diploma técnico definitivo.');
                 $this->ensure($type !== 'technical-course-diploma' || ! CredentialRegistration::where('sistec_code', $sistec)
                     ->whereHas('book', fn ($query) => $query->where('school_id', $schoolId))->exists(), 'Este código do SISTEC já foi registrado. Use o registro original para segunda via ou correção.');
@@ -82,8 +105,11 @@ final class CredentialRegistry
                 $number = $book->next_number;
                 $folio = $book->first_folio + $number - $book->first_number;
                 $this->ensure($number <= 999999999 && $folio <= 999999999, 'O limite da numeração foi atingido. Encerre o livro e abra outro.');
-                $registration = ['registry_number' => (string) $number, 'registry_folio' => (string) $folio, 'registry_book' => $book->identifier,
-                    'registered_by' => $user->person?->full_name ?: $user->name, 'registration_date' => $date, 'sistec_code' => $sistec];
+                $registration = ($physical ?? []) + [
+                    'registry_number' => (string) $number, 'registry_folio' => (string) $folio, 'registry_book' => $book->identifier,
+                    'registered_by' => $user->person?->full_name ?: $user->name, 'registration_date' => $date, 'sistec_code' => $sistec,
+                    'registry_medium' => $book->medium,
+                ];
                 $document = $emit($registration);
                 $this->ensure($document instanceof IssuedDocument && $document->exists && $document->school_id === $schoolId
                     && $document->type === $type && ! $document->revoked_at, 'O documento não corresponde ao registro solicitado.');
@@ -109,6 +135,19 @@ final class CredentialRegistry
             Storage::disk('local')->delete($paths);
             throw $error;
         }
+    }
+
+    private function physicalBook(School $school, string $kind, User $user, ?string $scope, string $identifier, string $date): CredentialBook
+    {
+        $identifier = mb_strtoupper(Str::squish($identifier));
+        $existing = CredentialBook::where('school_id', $school->id)->where('kind', $kind)->where('medium', 'physical')
+            ->where('identifier', $identifier)->lockForUpdate()->first();
+
+        return $existing ?? $this->createBook($user, [
+            'school_id' => $school->id, 'kind' => $kind, 'medium' => 'physical', 'scope' => $scope, 'identifier' => $identifier,
+            'reference_year' => (int) substr($date, 0, 4), 'opened_on' => now('America/Cuiaba')->toDateString(),
+            'first_number' => 1, 'first_folio' => 1, 'opening_term' => 'Referência ao livro físico conservado pela escola.',
+        ]);
     }
 
     public function event(CredentialBook $book, ?CredentialRegistration $entry, ?User $user, string $action, array $data): CredentialRegistryEvent
@@ -188,7 +227,14 @@ final class CredentialRegistry
     {
         $fields = $book->only(['school_id', 'kind', 'identifier', 'reference_year', 'first_number', 'first_folio', 'opened_on', 'opening_term', 'previous_book']);
 
-        return $this->digest($book->scope === null ? $fields : $fields + ['scope' => $book->scope]);
+        if ($book->scope !== null) {
+            $fields['scope'] = $book->scope;
+        }
+        if ($book->isPhysical()) {
+            $fields['medium'] = $book->medium;
+        }
+
+        return $this->digest($fields);
     }
 
     public function writePrivate(string $path, string $bytes): void

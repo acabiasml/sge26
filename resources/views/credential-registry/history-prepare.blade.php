@@ -25,7 +25,7 @@
             @if(\App\Support\OfficialDocumentCompliance::studentHasNoCpf($person))
                 <label class="d-block"><input type="checkbox" name="confirm_missing_student_cpf" value="1"> {{ __('Confirmo a emissão sem CPF do estudante, conforme a conferência cadastral.') }}</label>
             @endif
-            <button class="btn btn-primary" @disabled(!$completeness['complete'] || $books->isEmpty())>{{ __('Registrar histórico oficial') }}<span class="sr-only"> {{ __('(abre em nova aba)') }}</span></button>
+            <button class="btn btn-primary" @disabled(!$completeness['complete'] || (!$school->usesPhysicalRegistry() && $books->isEmpty()))>{{ __('Registrar histórico oficial') }}<span class="sr-only"> {{ __('(abre em nova aba)') }}</span></button>
         </form>
     </div>
 </div>

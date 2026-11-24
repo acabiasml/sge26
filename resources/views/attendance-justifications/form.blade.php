@@ -28,5 +28,20 @@
         <textarea id="justification_reason" name="reason" class="form-control @error('reason') is-invalid @enderror" rows="3" required>{{ old('reason', $justification->reason ?? '') }}</textarea>
         @error('reason')<div class="invalid-feedback">{{ __($message) }}</div>@enderror
     </div>
+    <div class="form-group">
+        <label for="attendance-effect">{{ __('Efeito na frequência') }}</label>
+        <select id="attendance-effect" class="form-control" name="attendance_effect" required>
+            @foreach(\App\Models\DiaryAttendanceJustification::EFFECTS as $effect => $label)
+                <option value="{{ $effect }}" @selected(old('attendance_effect', $justification->attendance_effect ?? 'documented') === $effect)>{{ __($label) }}</option>
+            @endforeach
+        </select>
+        <small class="form-text text-muted">{{ __('A justificativa registra a ausência. O abono ou a compensação só entra no cálculo quando houver fundamento e comprovação.') }}</small>
+        @error('attendance_effect')<div class="text-danger">{{ $message }}</div>@enderror
+    </div>
+    <div class="form-group">
+        <label for="attendance-basis">{{ __('Fundamento e referência da comprovação para abono ou compensação') }}</label>
+        <input id="attendance-basis" name="attendance_basis" class="form-control" maxlength="500" value="{{ old('attendance_basis', $justification->attendance_basis ?? '') }}">
+        @error('attendance_basis')<div class="text-danger">{{ $message }}</div>@enderror
+    </div>
     <button class="btn btn-primary" type="submit"><i class="fas fa-{{ isset($justification) ? 'save' : 'notes-medical' }} mr-1" aria-hidden="true"></i>{{ isset($justification) ? __('Salvar alterações') : __('Registrar justificativa') }}</button>
 </form>

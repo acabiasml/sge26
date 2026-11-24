@@ -10,11 +10,19 @@ class DiaryAttendanceJustification extends Model
 {
     use Auditable;
 
+    public const EFFECTS = [
+        'documented' => 'Somente justificativa',
+        'excused' => 'Abono autorizado',
+        'compensated' => 'Compensação cumprida',
+    ];
+
     protected $fillable = [
         'student_enrollment_id',
         'starts_at',
         'ends_at',
         'reason',
+        'attendance_effect',
+        'attendance_basis',
         'granted_by_person_id',
         'updated_by_person_id',
         'modification_count',
@@ -46,6 +54,7 @@ class DiaryAttendanceJustification extends Model
 
     public function appliesTo(string $date): bool
     {
-        return $date >= $this->starts_at->toDateString() && $date <= $this->ends_at->toDateString();
+        return $this->attendance_effect !== 'documented'
+            && $date >= $this->starts_at->toDateString() && $date <= $this->ends_at->toDateString();
     }
 }

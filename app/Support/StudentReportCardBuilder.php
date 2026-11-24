@@ -310,7 +310,7 @@ class StudentReportCardBuilder
             'attendanceCreditComponents' => $attendanceCredits,
             'annualAttendance' => $annualAttendance,
             'passingPoints' => (float) $academicYear->passing_points,
-            'minimumAttendance' => (int) $academicYear->minimum_attendance_percentage,
+            'minimumAttendance' => $academicYear->minimumAttendanceForCourses($courses),
             'finalResult' => [
                 'status' => $enrollment->final_result_status,
                 'label' => $enrollment->finalResultLabel(),

@@ -13,13 +13,36 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class SchoolRecordPdf
 {
-    public const RULES = [
-        'registry_book_id' => ['required', 'integer'],
-        'issuance_token' => ['required', 'uuid'],
-        'signature_mode' => ['required', 'in:physical,digital'],
-    ];
-
     public function __construct(private CredentialRegistry $registry) {}
+
+    public static function registryRules(School $school): array
+    {
+        $rules = ['issuance_token' => ['required', 'uuid']];
+        if (! $school->usesPhysicalRegistry()) {
+            return $rules + ['registry_book_id' => ['required', 'integer']];
+        }
+
+        return $rules + [
+            'registry_book' => ['required', 'string', 'max:50'],
+            'registry_number' => ['required', 'string', 'max:50'],
+            'registry_folio' => ['required', 'string', 'max:50'],
+            'registered_by' => ['required', 'string', 'max:150'],
+        ];
+    }
+
+    public static function rules(School $school): array
+    {
+        return self::registryRules($school) + [
+            'signature_mode' => ['required', 'in:physical,digital'],
+        ] + ($school->usesPhysicalRegistry() ? ['registration_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:today']] : []);
+    }
+
+    public static function physicalReference(School $school, array $data): ?array
+    {
+        return $school->usesPhysicalRegistry() ? array_intersect_key($data, array_flip([
+            'registry_book', 'registry_number', 'registry_folio', 'registered_by',
+        ])) : null;
+    }
 
     public function draft(User $user, School $school, string $type, ?int $personId, array $payload): IssuedDocument
     {
@@ -30,8 +53,8 @@ final class SchoolRecordPdf
     {
         $path = null;
         try {
-            return $this->registry->issue((int) $data['registry_book_id'], $school->id, $type, $user,
-                now('America/Cuiaba')->toDateString(), null, function (array $registration) use ($user, $school, $type, $personId, $payload, $data, $render, &$path) {
+            return $this->registry->issue(isset($data['registry_book_id']) ? (int) $data['registry_book_id'] : null, $school->id, $type, $user,
+                $data['registration_date'] ?? now('America/Cuiaba')->toDateString(), null, function (array $registration) use ($user, $school, $type, $personId, $payload, $data, $render, &$path) {
                     $document = $this->document($user, $school, $type, $personId, $payload + [
                         'registration' => $registration, 'signature_mode' => $data['signature_mode'],
                     ]);
@@ -45,7 +68,7 @@ final class SchoolRecordPdf
                     return $document;
                 }, $data['issuance_token'].':'.$this->registry->digest(array_intersect_key($payload, array_flip([
                     'student_academic_history_id', 'school_class_id', 'enrollment_id', 'technical_course_id', 'module_key',
-                ])) + ['person_id' => $personId, 'type' => $type]), $scope, $evidence);
+                ])) + ['person_id' => $personId, 'type' => $type]), $scope, $evidence, self::physicalReference($school, $data));
         } catch (\Throwable $error) {
             if ($path) {
                 Storage::disk('local')->delete($path);

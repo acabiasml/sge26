@@ -2,12 +2,49 @@
 
 namespace App\Support;
 
+use App\Models\AcademicCourse;
 use App\Models\Person;
 use App\Models\PersonContact;
 use App\Models\School;
+use Illuminate\Support\Str;
 
 class OfficialDocumentCompliance
 {
+    public static function authorizationMessage(School $school, array $stages): ?string
+    {
+        if ($school->state !== 'MT') {
+            return null;
+        }
+        $date = now('America/Cuiaba')->toDateString();
+        $keys = array_unique(['accreditation', ...array_intersect($stages, [AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL])]);
+        foreach ($keys as $key) {
+            $act = $school->document_authorizations[$key] ?? [];
+            if (blank($act['act'] ?? null) || blank($act['published_on'] ?? null) || blank($act['starts_on'] ?? null)
+                || $act['published_on'] > $date || $act['starts_on'] > $date || (filled($act['ends_on'] ?? null) && $act['ends_on'] < $date)) {
+                return __('Confira o ato, a publicação e a vigência em Dados para documentos da escola. Pendência: :authorization.', [
+                    'authorization' => __(School::DOCUMENT_AUTHORIZATIONS[$key]),
+                ]);
+            }
+        }
+
+        return null;
+    }
+
+    public static function historyIdentityMessage(Person $student): ?string
+    {
+        if (blank($student->schoolPhotoIdentification()) || blank($student->nationality) || blank($student->birth_city)
+            || blank($student->birth_state) || blank($student->school_gender) || ! $student->birth_date) {
+            return __('Confira a identificação com foto, o gênero, a nacionalidade e os dados de nascimento na ficha do estudante.');
+        }
+        $age = $student->birth_date->age;
+        if ($age >= 18 && $age < 70 && Str::contains(Str::lower(Str::ascii($student->nationality)), 'brasil')
+            && blank($student->school_voter_registration) && blank($student->school_voter_exemption)) {
+            return __('Informe o título de eleitor ou o motivo da dispensa na ficha do estudante.');
+        }
+
+        return null;
+    }
+
     public static function schoolMessage(School $school): ?string
     {
         $missing = $school->missingOfficialDocumentFields();

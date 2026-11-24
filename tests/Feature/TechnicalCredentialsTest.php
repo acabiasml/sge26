@@ -519,7 +519,7 @@ class TechnicalCredentialsTest extends TestCase
     {
         Storage::fake('local');
         $this->travelTo(now()->setDate(2026, 11, 17)->setTime(12, 0));
-        $school = School::create(['name' => 'Liceu Pedagógico São Francisco de Assis', 'cnpj' => '00.176.974/0001-20', 'city' => 'Poxoréu', 'state' => 'MT', 'active' => true, 'address' => 'Rua São João', 'number' => 's/nº', 'district' => 'Jarudore', 'postal_code' => '78800-000',
+        $school = School::create(['name' => 'Liceu Pedagógico São Francisco de Assis', 'cnpj' => '00.176.974/0001-20', 'city' => 'Poxoréu', 'state' => 'MT', 'active' => true, 'document_authorizations' => ['accreditation' => ['act' => 'Ato escolar de teste', 'published_on' => '2020-01-01', 'starts_on' => '2020-01-01']], 'address' => 'Rua São João', 'number' => 's/nº', 'district' => 'Jarudore', 'postal_code' => '78800-000',
             'maintainer' => 'Centro Técnico Juvenil de Jarudore – CTJJ', 'creation_act' => 'C. 4668 D.O.M.T. 07/11/1990.', 'education_system' => 'SISTEMA ESTADUAL DE ENSINO']);
         $area = KnowledgeArea::create(['name' => 'Técnico em Móveis', 'formation' => 'Itinerário Formativo', 'active' => true]);
         $modules = TechnicalFurnitureProject::modules();
@@ -534,6 +534,7 @@ class TechnicalCredentialsTest extends TestCase
             'technological_axis' => 'Produção Industrial', 'education_mode' => 'Presencial', 'offer_forms' => 'Concomitante e Subsequente',
             'maintainer' => 'Centro Técnico Juvenil de Jarudore – CTJJ', 'creation_act' => 'C. 4668 D.O.M.T. 07/11/1990.', 'authorization_act' => 'Autorização de teste 056/2025',
             'legal_basis' => 'Lei nº 9.394, de 20/12/1996; Lei nº 11.741 de 16/07/2008; e respectivos atos de Autorização de Curso',
+            'authorization_starts_at' => '2025-01-28', 'authorization_ends_at' => '2029-01-28', 'official_gazette_reference' => 'DOE fictício nº 28.918',
             'registry_resolution' => 'Resolução nº 249/07 – CEE/MT', 'front_address' => 'Av. São João, s/n. Jarudore, Poxoréu-MT. CEP 78800-000.',
             'back_address' => 'Rua São João, s/n. Jarudore, Poxoréu-MT. CEP 78800-000. Tel.: (66) 99613-6796.',
             'state_heading' => 'ESTADO DE MATO GROSSO', 'education_system' => 'SISTEMA ESTADUAL DE ENSINO', 'modules' => $modules, 'active' => true]);

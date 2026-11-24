@@ -223,6 +223,9 @@ class AcademicYearController extends Controller
         $data['approved_at'] = $data['approved_at'] ?? null;
         $data['passing_points'] ??= $academicYear?->passing_points ?? 24;
         $data['minimum_attendance_percentage'] ??= $academicYear?->minimum_attendance_percentage ?? 75;
+        if ($academicYear && $data['minimum_attendance_percentage'] < AcademicYear::statutoryAttendanceMinimum($academicYear->courses)) {
+            throw ValidationException::withMessages(['minimum_attendance_percentage' => __('As matrizes deste ano letivo exigem pelo menos 75% de frequência.')]);
+        }
 
         return $data;
     }

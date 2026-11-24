@@ -1,7 +1,7 @@
 @php
     $schoolTabs = [
         'identificacao' => ['label' => __('Dados e contatos'), 'icon' => 'fa-school', 'fields' => ['name', 'legal_name', 'cnpj', 'inep', 'phone', 'email']],
-        'documentos' => ['label' => __('Dados para documentos'), 'icon' => 'fa-file-alt', 'fields' => ['founded_at', 'website', 'letterhead_text', 'letterhead_text_elementary', 'letterhead_text_high_school', 'logo', 'maintainer', 'creation_act', 'accreditation_act', 'education_system']],
+        'documentos' => ['label' => __('Dados para documentos'), 'icon' => 'fa-file-alt', 'fields' => ['founded_at', 'website', 'registry_medium', 'document_authorizations.*', 'letterhead_text', 'letterhead_text_elementary', 'letterhead_text_high_school', 'logo', 'maintainer', 'creation_act', 'accreditation_act', 'education_system']],
         'endereco' => ['label' => __('Endereço'), 'icon' => 'fa-map-marker-alt', 'fields' => ['address', 'number', 'district', 'city', 'state', 'postal_code']],
     ];
 @endphp
@@ -77,6 +77,38 @@
     <small class="form-text text-muted">{{ __('Texto padrão para documentos gerais e para etapas sem texto específico.') }}</small>
     @error('letterhead_text') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
 </div>
+
+<div class="form-group">
+    <label for="registry_medium">{{ __('Livro de registro da escola') }}</label>
+    <select id="registry_medium" name="registry_medium" class="form-control" aria-describedby="registry-medium-help" required>
+        @foreach(\App\Models\School::REGISTRY_MEDIA as $medium => $label)
+            <option value="{{ $medium }}" @selected(old('registry_medium', $school->registry_medium ?? 'digital') === $medium)>{{ __($label) }}</option>
+        @endforeach
+    </select>
+    <small id="registry-medium-help" class="form-text text-muted">{{ __('No livro físico, a secretaria informa a referência já lançada em papel. No digital, o Beabá atribui a numeração. A escolha vale para novos registros.') }}</small>
+</div>
+
+<details class="card sge-panel-card mb-4" @if($errors->has('document_authorizations.*')) open @endif>
+    <summary class="card-header">{{ __('Credenciamento e autorizações para emissão oficial') }}</summary>
+    <div class="card-body">
+        <p class="small text-muted">{{ __('Preencha os atos das etapas ofertadas, com a referência da publicação e as datas de vigência. Deixe o término em branco somente quando o ato tiver prazo indeterminado.') }}</p>
+        @foreach(\App\Models\School::DOCUMENT_AUTHORIZATIONS as $kind => $label)
+            <fieldset class="mb-3">
+                <legend class="h6">{{ __($label) }}</legend>
+                <div class="form-row">
+                    @foreach(['act' => __('Ato e referência do Diário Oficial'), 'published_on' => __('Publicação'), 'starts_on' => __('Início da vigência'), 'ends_on' => __('Fim da vigência')] as $field => $caption)
+                        @php($fieldKey = "document_authorizations.$kind.$field")
+                        <div class="form-group {{ $field === 'act' ? 'col-12 col-lg-6' : 'col-12 col-md-4 col-lg-2' }}">
+                            <label for="authorization-{{ $kind }}-{{ $field }}">{{ $caption }}</label>
+                            <input id="authorization-{{ $kind }}-{{ $field }}" name="document_authorizations[{{ $kind }}][{{ $field }}]" type="{{ $field === 'act' ? 'text' : 'date' }}" maxlength="350" class="form-control @error($fieldKey) is-invalid @enderror" value="{{ old($fieldKey, $school->document_authorizations[$kind][$field] ?? '') }}">
+                            @error($fieldKey)<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                    @endforeach
+                </div>
+            </fieldset>
+        @endforeach
+    </div>
+</details>
 
 <details class="card sge-panel-card mb-4" @if(filled(old('letterhead_text_elementary', $school->letterhead_text_elementary ?? null)) || filled(old('letterhead_text_high_school', $school->letterhead_text_high_school ?? null)) || $errors->hasAny(['letterhead_text_elementary', 'letterhead_text_high_school'])) open @endif>
     <summary class="card-header font-weight-bold">{{ __('Textos institucionais por etapa') }}</summary>

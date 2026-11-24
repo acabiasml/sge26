@@ -42,6 +42,7 @@ class Person extends Model
         'school_identity_document',
         'school_gender',
         'school_voter_registration',
+        'school_voter_exemption',
         'birth_date',
         'birth_city',
         'birth_state',

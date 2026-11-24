@@ -195,7 +195,8 @@ class CredentialRegistryTest extends TestCase
     {
         [$user, $school] = $this->scenario();
         $school->update(['legal_name' => 'Escola do Livro', 'inep' => '12345678', 'founded_at' => '2000-01-01',
-            'phone' => '66999999999', 'email' => 'escola@example.test', 'letterhead_text' => 'Ato autorizativo de teste', 'postal_code' => '78800000']);
+            'phone' => '66999999999', 'email' => 'escola@example.test', 'letterhead_text' => 'Ato autorizativo de teste', 'postal_code' => '78800000',
+            'document_authorizations' => array_fill_keys(['accreditation', 'medio'], ['act' => 'Ato escolar de teste', 'published_on' => '2020-01-01', 'starts_on' => '2020-01-01'])]);
         $this->person('Diretora de Teste')->schoolRoles()->create([
             'school_id' => $school->id, 'role' => 'gestor', 'position' => 'diretor', 'active' => true,
         ]);
