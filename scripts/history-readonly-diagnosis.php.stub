@@ -57,10 +57,19 @@ try {
     $yearAudits = (clone $auditQuery)->where('auditable_type', App\Models\StudentAcademicHistoryYear::class)
         ->where(fn ($q) => $q->whereIn('old_values->student_academic_history_id', $auditIds)
             ->orWhereIn('new_values->student_academic_history_id', $auditIds)->orWhereIn('auditable_id', $years->pluck('id')))
-        ->whereIn('action', ['created', 'deleted'])
         ->orderByDesc('id')->limit(60)->get(['id', 'auditable_id', 'action', 'actor_role', 'old_values', 'new_values', 'created_at']);
     $audits = (clone $auditQuery)->where('auditable_type', $historyModel)->whereIn('auditable_id', $auditIds)->orderByDesc('id')->limit(60)->get(['id', 'auditable_id', 'action', 'actor_role', 'old_values', 'new_values', 'created_at']);
-    echo json_encode(['matched_people' => 1, 'person' => $person->only(['id', 'full_name']), 'enrollments' => $enrollments, 'eligible_history_ids' => $issuanceIds, 'year_audits' => $yearAudits, 'histories' => $histories, 'years' => $years, 'record_counts' => $records, 'components' => $components, 'component_records' => $componentRecords, 'audits' => $audits], JSON_THROW_ON_ERROR);
+    $historyPath = '%/pessoas/'.$person->id.'/historicos';
+    $operationFailures = App\Models\UserOperationFailure::query()
+        ->where(fn ($query) => $query
+            ->where('path', 'like', $historyPath)->orWhere('path', 'like', $historyPath.'/%')
+            ->orWhere('screen_path', 'like', $historyPath.'/create')->orWhere('screen_path', 'like', $historyPath.'/%'))
+        ->orderByDesc('id')->limit(40)
+        ->get(['id', 'route_name', 'method', 'path', 'screen_path', 'status_code', 'category', 'message', 'reason', 'occurred_at']);
+    $issued = $person->issuedDocuments()->where('type', 'student-academic-history')
+        ->latest('id')->limit(15)->get(['id', 'school_id', 'issued_at', 'file_sha256', 'revoked_at'])
+        ->map(fn ($document) => $document->only(['id', 'school_id', 'issued_at', 'revoked_at']) + ['archived' => filled($document->file_sha256)]);
+    echo json_encode(['matched_people' => 1, 'person' => $person->only(['id', 'full_name']), 'enrollments' => $enrollments, 'eligible_history_ids' => $issuanceIds, 'year_audits' => $yearAudits, 'operation_failures' => $operationFailures, 'issued' => $issued, 'histories' => $histories, 'years' => $years, 'record_counts' => $records, 'components' => $components, 'component_records' => $componentRecords, 'audits' => $audits], JSON_THROW_ON_ERROR);
 } finally {
     Illuminate\Support\Facades\DB::rollBack();
 }
