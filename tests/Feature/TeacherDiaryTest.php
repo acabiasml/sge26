@@ -2144,6 +2144,7 @@ class TeacherDiaryTest extends TestCase
     public function test_management_can_emit_transfer_certificate_without_effecting_transfer(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $component->course->update(['modality' => AcademicCourse::MODALITY_REGULAR]);
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-atestado-transferencia@ctjj.org');
 
         \Illuminate\Support\Facades\Storage::fake('local');
@@ -4234,7 +4235,7 @@ class TeacherDiaryTest extends TestCase
             'email' => 'ctjj.mt@gmail.com',
             'website' => 'https://ctjj.org',
             'letterhead_text' => 'Credenciamento e autorizacao vigentes.',
-            'document_authorizations' => array_fill_keys(['accreditation', 'fundamental', 'medio'], ['act' => 'Ato escolar de teste', 'published_on' => '2020-01-01', 'starts_on' => '2020-01-01']),
+            'document_authorizations' => array_fill_keys(['accreditation', 'fundamental', 'medio', 'fundamental_regular', 'medio_regular'], ['act' => 'Ato escolar de teste', 'published_on' => '2020-01-01', 'starts_on' => '2020-01-01']),
             'address' => 'Av. Sao Joao',
             'district' => 'Jarudore',
             'number' => 's/n',
