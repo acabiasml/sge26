@@ -2,18 +2,65 @@ require 'vendor/autoload.php';
 $app = require 'bootstrap/app.php';
 $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
+$expected = [
+    23 => [9, 'fundamental'], 24 => [9, 'fundamental'], 25 => [9, 'fundamental'], 26 => [9, 'fundamental'],
+    27 => [9, 'medio'],
+    28 => [10, 'fundamental'], 29 => [10, 'fundamental'], 30 => [10, 'fundamental'], 31 => [10, 'fundamental'],
+    32 => [10, 'medio'], 33 => [10, 'medio'],
+];
+$periods = [
+    'fundamental' => ['2025-01-01', '2027-12-31', 'Ato 383/2025-CEE/MT'],
+    'medio' => ['2023-01-01', '2027-12-31', 'Ato 078/2023-CEE/MT'],
+];
 $db = \Illuminate\Support\Facades\DB::connection();
-$db->statement('START TRANSACTION READ ONLY');
-try {
+$changed = $db->transaction(function () use ($db, $expected, $periods): array {
     $school = $db->table('schools')->where('id', 2)->where('cnpj', '00.176.974/0003-92')
-        ->where('state', 'MT')->where('city', 'Rondonópolis')->sole(['id', 'name']);
-    $matrices = $db->table('academic_courses as course')->join('academic_years as year', 'year.id', '=', 'course.academic_year_id')
-        ->where('year.school_id', $school->id)->whereBetween('year.reference_year', [2023, 2027])
-        ->whereIn('course.stage', ['fundamental', 'medio'])
-        ->orderBy('year.reference_year')->orderBy('course.stage')->orderBy('course.id')
-        ->get(['course.id', 'course.academic_year_id', 'course.name', 'course.active', 'course.stage', 'course.modality',
-            'year.reference_year', 'year.starts_at', 'year.ends_at', 'year.closed_at']);
-    echo json_encode(compact('school', 'matrices'), JSON_THROW_ON_ERROR);
-} finally {
-    $db->statement('ROLLBACK');
+        ->where('state', 'MT')->where('city', 'Rondonópolis')->lockForUpdate()->sole(['id']);
+    $years = $db->table('academic_years')->where('school_id', $school->id)->whereIn('id', [9, 10])
+        ->orderBy('id')->lockForUpdate()->get(['id', 'starts_at', 'ends_at'])->keyBy('id');
+    $matrices = \App\Models\AcademicCourse::whereKey(array_keys($expected))->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+    $changes = [];
+    foreach ($expected as $matrixId => [$yearId, $stage]) {
+        $matrix = $matrices->get($matrixId);
+        $year = $years->get($yearId);
+        [$from, $until, $act] = $periods[$stage];
+        if (!$matrix || !$year || (int) $matrix->academic_year_id !== $yearId || $matrix->stage !== $stage
+            || !$year->starts_at || !$year->ends_at || $year->starts_at < $from || $year->ends_at > $until
+            || !in_array($matrix->modality, [\App\Models\AcademicCourse::MODALITY_REGULAR, \App\Models\AcademicCourse::MODALITY_RURAL], true)) {
+            throw new RuntimeException('A matriz ou o ano letivo diverge do recorte conferido.');
+        }
+
+        if ($matrix->modality === \App\Models\AcademicCourse::MODALITY_RURAL) {
+            continue;
+        }
+
+        $before = $matrix->modality;
+        if (!$matrix->updateQuietly(['modality' => \App\Models\AcademicCourse::MODALITY_RURAL])) {
+            throw new RuntimeException('A modalidade da matriz não foi atualizada.');
+        }
+        \App\Models\AuditLog::create([
+            'school_id' => $school->id,
+            'auditable_type' => $matrix->getMorphClass(),
+            'auditable_id' => $matrix->id,
+            'action' => 'updated',
+            'old_values' => ['modality' => $before],
+            'new_values' => ['modality' => $matrix->modality],
+            'metadata' => [
+                'operation' => 'corrigir-modalidade-matrizes-lar',
+                'record_description' => $matrix->name,
+                'authorization' => $act,
+            ],
+        ]);
+        $changes[] = $matrix->id;
+    }
+
+    return $changes;
+});
+
+$verified = \App\Models\AcademicCourse::whereKey(array_keys($expected))->orderBy('id')
+    ->get(['id', 'academic_year_id', 'name', 'stage', 'modality']);
+if ($verified->count() !== count($expected) || $verified->contains(fn ($matrix) => $matrix->modality !== \App\Models\AcademicCourse::MODALITY_RURAL)) {
+    throw new RuntimeException('A conferência após a gravação encontrou divergências.');
 }
+
+echo json_encode(compact('changed', 'verified'), JSON_THROW_ON_ERROR);

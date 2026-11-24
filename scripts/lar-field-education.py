@@ -55,7 +55,7 @@ with tempfile.TemporaryDirectory() as directory:
                        allow_agent=False, look_for_keys=False)
         output, code = run_remote(client, 'php -d display_errors=0 -r ' + shlex.quote(source))
         if code != 0:
-            raise RuntimeError('A consulta de cadastro não foi concluída no servidor.')
+            raise RuntimeError('A operação de modalidade não foi concluída no servidor.')
         json.loads(output)
         public_key = base64.b64encode(pathlib.Path('scripts/lar-field-education-public.pem').read_bytes()).decode()
         pathlib.Path('educacao-do-campo.encrypted.json').write_text(encrypt_report(output, public_key))
