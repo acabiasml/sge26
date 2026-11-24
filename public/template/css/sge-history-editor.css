@@ -70,3 +70,32 @@ html[data-theme] .sge-history-workspace .sge-history-year-card[open] { border-co
 .sge-history-year-card[data-history-mode="summary"] .sge-history-year-table { min-width: 580px; }
 .sge-history-year-card[data-history-mode="summary"] .sge-history-year-table th:nth-child(3) { width: 45%; }
 .sge-history-workspace [hidden] { display: none !important; }
+
+.sge-history-draft-indicator {
+    align-items: flex-start;
+    background: var(--sge-paper);
+    border: 1px solid var(--sge-border);
+    border-inline-start: 4px solid var(--sge-blue);
+    border-radius: var(--identity-radius, .85rem);
+    box-shadow: 0 .15rem .65rem rgb(0 0 0 / 12%);
+    color: var(--sge-ink);
+    display: flex;
+    gap: .7rem;
+    padding: .65rem .9rem;
+    position: fixed;
+    inset-block-start: 4.6rem;
+    inset-inline-end: 1rem;
+    max-inline-size: min(25rem, calc(100vw - 2rem));
+    z-index: 1031;
+}
+
+.sge-history-draft-indicator > i { margin-top: .25rem; }
+.sge-history-draft-indicator[data-state="saved"] { border-inline-start-color: var(--sge-green); }
+.sge-history-draft-indicator[data-state="error"] { border-inline-start-color: var(--sge-orange); }
+.sge-history-draft-indicator button, .sge-history-draft-indicator a { margin-inline-end: .4rem; }
+
+@media (max-width: 575.98px) {
+    .sge-history-draft-indicator {
+        inset-block: auto 3.7rem;
+    }
+}

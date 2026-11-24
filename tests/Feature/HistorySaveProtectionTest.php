@@ -11,6 +11,7 @@ use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\StudentAcademicHistory;
 use App\Models\StudentAcademicHistoryYear;
+use App\Models\StudentHistoryDraft;
 use App\Models\User;
 use App\Support\HistoryCatalogIntegrator;
 use App\Support\MatrixHistoryCatalog;
@@ -261,6 +262,84 @@ class HistorySaveProtectionTest extends TestCase
         unset($payload['components']);
 
         return $payload + ['year_components_present' => '1', 'year_components' => $rows];
+    }
+
+    public function test_history_draft_restores_incomplete_fields_for_its_owner_and_clears_after_final_save(): void
+    {
+        $history = $this->history();
+        $actor = auth()->user();
+        $year = $history->years()->sole();
+        $draftUrl = route('people.histories.edit-draft', [$history->person_id, $history]);
+        $editUrl = route('people.histories.edit', [$history->person_id, $history]);
+        $version = $this->version($history);
+        $snapshot = json_encode([
+            ['school_id', (string) $history->school_id],
+            ['years[0][id]', (string) $year->id],
+            ['years[0][grade_phase]', '1º Ano'],
+            ['years[0][notes]', 'Anotação incompleta do rascunho'],
+            ['year_components[0][0][formation]', 'Formação Geral Básica'],
+            ['year_components[0][0][knowledge_area]', 'Matemática'],
+            ['year_components[0][0][name]', 'Matemática'],
+            ['year_components[0][0][record][score_label]', '7,5'],
+        ], JSON_THROW_ON_ERROR);
+        $data = ['_history_editor_user' => $actor->id, 'revision' => null,
+            'history_version' => $version, 'snapshot' => $snapshot];
+
+        $revision = $this->putJson($draftUrl, $data)->assertOk()->assertJsonStructure(['revision', 'saved_at'])->json('revision');
+        $stored = StudentHistoryDraft::sole();
+        $this->assertStringNotContainsString('Anotação incompleta', $stored->getRawOriginal('payload'));
+        $this->assertNull($year->fresh()->notes);
+        $this->get($editUrl)->assertOk()->assertSee('Anotação incompleta do rascunho')->assertSee('value="7,5"', false);
+        $this->putJson($draftUrl, $data)->assertUnprocessable()->assertJsonValidationErrors('history_draft_revision');
+
+        $this->history();
+        $this->get($editUrl)->assertOk()->assertDontSee('Anotação incompleta do rascunho');
+        $this->putJson($draftUrl, $data)->assertConflict();
+        $this->actingAs($actor);
+
+        $finalData = $this->payload($history, [$this->year(1) + ['id' => $year->id]], $version);
+        $this->putJson($this->url($history), $finalData + ['history_draft_revision' => null])
+            ->assertUnprocessable()->assertJsonValidationErrors('history_draft_revision');
+        $this->putJson($this->url($history), array_replace($finalData, ['school_id' => null, 'history_draft_revision' => $revision]))
+            ->assertUnprocessable()->assertJsonValidationErrors('school_id');
+        $this->assertSame($revision, StudentHistoryDraft::sole()->revision);
+
+        $finalData['years'][0]['notes'] = 'Anotação conferida';
+        $this->putJson($this->url($history), $finalData + ['history_draft_revision' => $revision])->assertOk();
+        $this->assertSame('Anotação conferida', $year->fresh()->notes);
+        $this->assertDatabaseCount('student_history_drafts', 0);
+        $this->putJson($draftUrl, array_replace($data, ['revision' => $revision]))
+            ->assertUnprocessable()->assertJsonValidationErrors('history_draft_revision');
+    }
+
+    public function test_new_history_form_restores_its_own_draft_and_finalizes_a_packed_submission(): void
+    {
+        $history = $this->history();
+        $draftUrl = route('people.histories.create-draft', $history->person_id);
+        $createUrl = route('people.histories.create', $history->person_id);
+        $snapshot = [['school_id', (string) $history->school_id]];
+        foreach ($this->year(4) + ['notes' => 'Ano externo em elaboração'] as $field => $value) {
+            $snapshot[] = ["years[0][{$field}]", (string) $value];
+        }
+        $encoded = json_encode($snapshot, JSON_THROW_ON_ERROR);
+
+        $revision = $this->putJson($draftUrl, ['snapshot' => $encoded])->assertOk()->json('revision');
+        $this->get($createUrl)->assertOk()->assertSee('Ano externo em elaboração');
+        $this->get(route('people.histories.edit', [$history->person_id, $history]))->assertOk()
+            ->assertDontSee('Ano externo em elaboração');
+        $this->assertSame(1, $history->years()->count());
+
+        $this->postJson(route('people.histories.store', $history->person_id), [
+            'editor_snapshot' => $encoded, 'history_draft_revision' => $revision,
+            'history_payload_complete' => '1', 'year_components_present' => '1',
+        ])->assertOk();
+        $this->assertSame('Ano externo em elaboração', $history->years()->where('grade_number', 4)->sole()->notes);
+        $this->assertDatabaseCount('student_history_drafts', 0);
+
+        $revision = $this->putJson($draftUrl, ['snapshot' => $encoded])->assertOk()->json('revision');
+        $this->deleteJson($draftUrl, ['revision' => $revision])->assertNoContent();
+        $this->get($createUrl)->assertOk()->assertDontSee('Ano externo em elaboração');
+        $this->assertSame(2, $history->years()->count());
     }
 
     public function test_editor_saves_only_after_authentication_and_preserves_the_normal_destination(): void

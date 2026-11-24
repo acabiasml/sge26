@@ -160,11 +160,13 @@
                     refreshRow(row, true);
                 }
                 renumber();
+                queueDraft();
                 requestAnimationFrame(() => row.querySelector('[data-history-area]').focus());
             } else if (button.matches('[data-remove-history-row]') && card) {
                 button.closest('[data-history-component]').remove();
                 refreshEmpty(card);
                 renumber();
+                queueDraft();
             } else if (button.matches('[data-add-history-year]')) {
                 const clone = cards().at(-1).cloneNode(true);
                 clone.removeAttribute('id');
@@ -182,6 +184,7 @@
                 wrapper.appendChild(clone);
                 refreshEmpty(clone);
                 renumber();
+                queueDraft();
                 window.sgeInitializeTablePagination?.(clone);
                 clone.open = true;
                 clone.querySelector('[name$="[year]"]').focus();
@@ -195,6 +198,7 @@
                         form.appendChild(field);
                     }
                     card.remove(); renumber();
+                    queueDraft();
                 };
                 if (savedId) window.sgeConfirmAction?.(config.confirmRemove, remove, button);
                 else remove();
@@ -242,7 +246,25 @@
         const loginLink = saveAlert.querySelector('[data-history-login]');
         const saveButton = form.querySelector('button[type="submit"]');
         const saveLabel = saveButton.innerHTML;
+        const indicator = form.querySelector('[data-history-draft-indicator]');
+        const draftStatus = indicator.querySelector('[data-history-draft-status]');
+        const draftIcon = indicator.querySelector('[data-history-draft-icon]');
+        const draftLogin = indicator.querySelector('[data-history-draft-login]');
+        const draftRetry = indicator.querySelector('[data-history-draft-retry]');
+        const draftDiscard = form.querySelector('[data-history-draft-discard]');
+        const draftRevision = form.elements.namedItem('history_draft_revision');
+        const requestOptions = { headers: { Accept: 'application/json' }, credentials: 'same-origin' };
+        const dateFormat = new Intl.DateTimeFormat(document.documentElement.lang || 'pt-BR', {
+            dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Cuiaba',
+        });
         let refreshSession = false;
+        let manualSaving = false;
+        let navigating = false;
+        let draftConflict = false;
+        let draftTimer;
+        let draftRequest;
+        let changes = 0;
+        let savedChanges = 0;
 
         function showSaveError(messages, showLogin = false) {
             saveMessage.replaceChildren(...messages.map(message => {
@@ -254,33 +276,184 @@
             saveAlert.hidden = false;
         }
 
+        function showDraftState(state, message, { login = false, retry = false } = {}) {
+            const icons = { idle: 'fa-cloud', pending: 'fa-clock', saving: 'fa-cloud-upload-alt',
+                saved: 'fa-check-circle', error: 'fa-exclamation-circle' };
+            indicator.hidden = false;
+            indicator.dataset.state = state;
+            draftIcon.className = 'fas ' + icons[state];
+            if (draftStatus.textContent !== message) draftStatus.textContent = message;
+            draftLogin.hidden = !login;
+            draftRetry.hidden = !retry;
+        }
+
+        function draftTime(template, date) {
+            return template.replace(':data', dateFormat.format(new Date(date)));
+        }
+
+        function dirty() {
+            return changes !== savedChanges;
+        }
+
+        function scheduleDraft() {
+            clearTimeout(draftTimer);
+            if (!manualSaving && !navigating && !draftConflict && dirty()) {
+                draftTimer = setTimeout(persistDraft, 900);
+            }
+        }
+
+        function queueDraft() {
+            changes++;
+            if (!draftConflict && !refreshSession) showDraftState('pending', config.draftPending);
+            scheduleDraft();
+        }
+
+        function isDraftField(name) {
+            return name.startsWith('years[') || name.startsWith('year_components[')
+                || ['school_id', 'technical_course_id', 'removed_year_ids[]'].includes(name);
+        }
+
+        async function renewEditorSession() {
+            if (!refreshSession) return null;
+
+            const session = await fetch(config.sessionUrl, { ...requestOptions, cache: 'no-store' });
+            if (!session.ok || session.redirected) return 'session';
+
+            const current = await session.json();
+            if (current.user_id !== config.userId) return 'account';
+
+            form.elements.namedItem('_token').value = current.csrf_token;
+            refreshSession = false;
+            return null;
+        }
+
+        async function sendDraft(method, data) {
+            const sessionError = await renewEditorSession();
+            if (sessionError) {
+                showDraftState('error', sessionError === 'account' ? config.differentUser : config.draftSession, { login: true, retry: true });
+                return null;
+            }
+
+            const result = await fetch(config.draftUrl, {
+                ...requestOptions,
+                headers: { ...requestOptions.headers, 'Content-Type': 'application/json' },
+                method,
+                body: JSON.stringify({
+                    _token: form.elements.namedItem('_token').value,
+                    _history_editor_user: config.userId,
+                    revision: draftRevision.value || null,
+                    ...data,
+                }),
+            });
+            if (result.status === 401 || result.status === 419 || result.status === 409) {
+                refreshSession = true;
+                showDraftState('error', result.status === 409 ? config.differentUser : config.draftSession, { login: true, retry: true });
+            } else if (result.status === 422 && (await result.json()).errors?.history_draft_revision) {
+                draftConflict = true;
+                showDraftState('error', config.draftConflict);
+            } else if (result.ok && !result.redirected) {
+                return result;
+            } else {
+                showDraftState('error', config.draftError, { retry: true });
+            }
+            return null;
+        }
+
+        async function saveDraft() {
+            const currentChanges = changes;
+            const snapshot = JSON.stringify(Array.from(new FormData(form)).filter(([name]) => isDraftField(name)));
+            showDraftState('saving', config.draftSaving);
+
+            try {
+                const result = await sendDraft('PUT', {
+                    history_version: form.elements.namedItem('history_version')?.value || null,
+                    snapshot,
+                });
+                if (!result) return;
+
+                const data = await result.json();
+                draftRevision.value = data.revision;
+                draftDiscard.hidden = false;
+                savedChanges = currentChanges;
+                if (dirty()) {
+                    showDraftState('pending', config.draftPending);
+                    scheduleDraft();
+                } else {
+                    showDraftState('saved', draftTime(config.draftSaved, data.saved_at));
+                }
+            } catch {
+                showDraftState('error', config.draftError, { retry: true });
+            }
+        }
+
+        function persistDraft() {
+            if (manualSaving || navigating || draftConflict || draftRequest || !dirty()) return;
+            draftRequest = saveDraft().finally(() => { draftRequest = null; });
+        }
+
+        for (const name of ['input', 'change']) {
+            form.addEventListener(name, event => {
+                if (isDraftField(event.target.name || '')) queueDraft();
+            });
+        }
+        draftRetry.addEventListener('click', persistDraft);
+        window.addEventListener('online', persistDraft);
+        window.addEventListener('focus', persistDraft);
+        window.addEventListener('beforeunload', event => {
+            if (!navigating && dirty()) event.preventDefault();
+        });
+        draftDiscard.addEventListener('click', () => {
+            window.sgeConfirmAction?.(config.draftDiscard, async () => {
+                if (manualSaving || navigating) return;
+                manualSaving = true;
+                clearTimeout(draftTimer);
+                try {
+                    await draftRequest;
+                    if (await sendDraft('DELETE', {})) {
+                        navigating = true;
+                        location.reload();
+                    }
+                } catch {
+                    showDraftState('error', config.draftError, { retry: true });
+                } finally {
+                    manualSaving = false;
+                }
+            }, draftDiscard);
+        });
+
+        if (config.draftSavedAt) {
+            showDraftState('saved', draftTime(config.draftRestored, config.draftSavedAt));
+        } else {
+            showDraftState('idle', config.draftIdle);
+        }
+
         form.addEventListener('submit', async event => {
             if (event.defaultPrevented) return;
             event.preventDefault();
-            if (saveButton.disabled) return;
+            if (manualSaving || navigating) return;
 
+            manualSaving = true;
+            clearTimeout(draftTimer);
             saveButton.disabled = true;
             saveButton.setAttribute('aria-busy', 'true');
             saveButton.textContent = config.saving;
             saveAlert.hidden = true;
-            const options = { headers: { Accept: 'application/json' }, credentials: 'same-origin' };
             try {
-                if (refreshSession) {
-                    const session = await fetch(config.sessionUrl, { ...options, cache: 'no-store' });
-                    if (!session.ok || session.redirected) {
-                        showSaveError([config.sessionExpired], true);
-                        return;
-                    }
-                    const current = await session.json();
-                    if (current.user_id !== config.userId) {
-                        showSaveError([config.differentUser], true);
-                        return;
-                    }
-                    form.elements.namedItem('_token').value = current.csrf_token;
-                    refreshSession = false;
+                await draftRequest;
+                const sessionError = await renewEditorSession();
+                if (sessionError) {
+                    showSaveError([sessionError === 'account' ? config.differentUser : config.sessionExpired], true);
+                    return;
                 }
 
-                const result = await fetch(form.action, { ...options, method: 'POST', body: new URLSearchParams(new FormData(form)) });
+                const fields = Array.from(new FormData(form));
+                const metadata = Object.fromEntries(fields.filter(([name]) => !isDraftField(name) && name !== '_method'));
+                const result = await fetch(form.action, {
+                    ...requestOptions,
+                    headers: { ...requestOptions.headers, 'Content-Type': 'application/json' },
+                    method: form.elements.namedItem('_method')?.value || form.method.toUpperCase(),
+                    body: JSON.stringify({ ...metadata, editor_snapshot: JSON.stringify(fields.filter(([name]) => isDraftField(name))) }),
+                });
                 if (result.status === 401 || result.status === 419) {
                     refreshSession = true;
                     showSaveError([config.sessionExpired], true);
@@ -295,6 +468,7 @@
                     const data = await result.json();
                     const destination = new URL(data.redirect);
                     if (destination.origin !== location.origin) throw new Error('Invalid history redirect');
+                    navigating = true;
                     location.assign(destination);
                 } else {
                     showSaveError([config.saveError]);
@@ -302,10 +476,12 @@
             } catch {
                 showSaveError([config.saveError]);
             } finally {
+                manualSaving = false;
                 saveButton.disabled = false;
                 saveButton.removeAttribute('aria-busy');
                 saveButton.innerHTML = saveLabel;
                 if (!saveAlert.hidden) saveAlert.focus();
+                if (!refreshSession) scheduleDraft();
             }
         });
         wrapper.querySelectorAll('[data-history-component]').forEach(row => refreshRow(row));

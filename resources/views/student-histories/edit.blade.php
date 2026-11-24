@@ -26,15 +26,15 @@
     @endif
     @if($onlySystemYears)
         <p class="text-muted">{{ __('Não há anos de outras escolas cadastrados neste histórico. Consulte abaixo as séries registradas no sistema.') }}</p>
-        <details class="card sge-panel-card mb-4" @if($errors->any()) open @endif>
+        <details class="card sge-panel-card mb-4" @if($errors->any() || $draft) open @endif>
             <summary class="sge-panel-header sge-history-section-summary"><h2>{{ __('Cadastrar anos de outra escola') }}</h2><i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
             <div class="card-body">
     @endif
     <form method="POST" data-no-loading="true" action="{{ route('people.histories.update', [$person, $history]) }}">
         @csrf
         @method('PUT')
-        <input type="hidden" name="history_version" value="{{ old('history_version', $historyVersion) }}">
-        @foreach(old('removed_year_ids', []) as $removedYearId)
+        <input type="hidden" name="history_version" value="{{ old('history_version', $draft?->history_version ?? $historyVersion) }}">
+        @foreach(old('removed_year_ids', $draft?->payload['removed_year_ids'] ?? []) as $removedYearId)
             <input type="hidden" name="removed_year_ids[]" value="{{ $removedYearId }}">
         @endforeach
         @include('student-histories._form', ['curriculumOnly' => true, 'manualOnly' => $history->is_unified])

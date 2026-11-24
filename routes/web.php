@@ -120,6 +120,8 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::post('historicos-escolares/{person}/{stage}/aproveitar/{year}', [StudentAcademicHistoryController::class, 'importYear'])->name('student-histories.import-year');
     Route::get('pessoas/{person}/mapa-do-estudante', fn ($person) => redirect()->route('people.student-map.show', $person));
     Route::get('pessoas/{person}/historicos/create', [StudentAcademicHistoryController::class, 'create'])->name('people.histories.create');
+    Route::match(['PUT', 'DELETE'], 'pessoas/{person}/historicos/rascunho', [StudentAcademicHistoryController::class, 'updateEditorDraft'])->name('people.histories.create-draft');
+    Route::match(['PUT', 'DELETE'], 'pessoas/{person}/historicos/{history}/rascunho', [StudentAcademicHistoryController::class, 'updateEditorDraft'])->name('people.histories.edit-draft');
     Route::post('pessoas/{person}/historicos', [StudentAcademicHistoryController::class, 'store'])->name('people.histories.store');
     Route::get('pessoas/{person}/historicos/{history}', [StudentAcademicHistoryController::class, 'show'])->name('people.histories.show');
     Route::get('pessoas/{person}/historicos/{history}/edit', [StudentAcademicHistoryController::class, 'edit'])->name('people.histories.edit');

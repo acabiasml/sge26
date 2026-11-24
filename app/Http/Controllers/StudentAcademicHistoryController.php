@@ -9,6 +9,8 @@ use App\Models\School;
 use App\Models\StudentAcademicHistory;
 use App\Models\StudentAcademicHistoryYear;
 use App\Models\StudentEnrollment;
+use App\Models\StudentHistoryDraft;
+use App\Models\User;
 use App\Support\BrazilianStates;
 use App\Support\CurriculumAreaStage;
 use App\Support\CredentialRegistry;
@@ -23,6 +25,7 @@ use App\Support\SchoolSignatureStaff;
 use App\Support\StudentAcademicHistoryCompleteness;
 use App\Support\StudentAcademicHistoryPdf;
 use App\Support\StudentHistoryConsolidator;
+use App\Support\StudentHistoryDraftData;
 use App\Support\StudentHistoryEditGuard;
 use App\Support\StudentTechnicalItinerary;
 use App\Support\UnifiedStudentHistorySynchronizer;
@@ -213,6 +216,67 @@ class StudentAcademicHistoryController extends Controller
         ])->header('Cache-Control', 'private, no-store');
     }
 
+    public function updateEditorDraft(Request $request, Person $person, ?StudentAcademicHistory $history = null): JsonResponse|Response
+    {
+        if ($history) {
+            $this->authorizeHistory($request, $person, $history);
+        } else {
+            $this->authorizePerson($request, $person);
+        }
+        $this->authorizeHistoryEditor($request);
+        $removing = $request->isMethod('DELETE');
+        $data = $request->validate([
+            'revision' => ['nullable', 'uuid'],
+            'history_version' => ['nullable', ...($history && ! $removing ? ['required'] : []), 'string', 'size:64'],
+            'snapshot' => $removing ? ['prohibited'] : ['required', 'string', 'max:900000'],
+        ]);
+        $payload = $removing ? [] : StudentHistoryDraftData::decode($data['snapshot']);
+
+        if (filled($payload['school_id'] ?? null)) {
+            abort_unless($request->user()->canManageSchool((int) $payload['school_id']), 403);
+        }
+
+        return DB::transaction(function () use ($request, $person, $history, $data, $payload, $removing) {
+            $draft = $this->lockMatchingDraft($request->user(), $person, $history, $data['revision'] ?? null);
+            if ($removing) {
+                $draft?->delete();
+
+                return response()->noContent();
+            }
+
+            $draft ??= new StudentHistoryDraft([
+                'user_id' => $request->user()->id,
+                'person_id' => $person->id,
+                'student_academic_history_id' => $history?->id,
+                'editor_key' => $history?->id ?? 0,
+            ]);
+            $draft->fill([
+                'revision' => (string) Str::uuid(),
+                'history_version' => $history ? $data['history_version'] : null,
+                'payload' => $payload,
+            ])->save();
+
+            return response()->json([
+                'revision' => $draft->revision,
+                'saved_at' => $draft->updated_at->toIso8601String(),
+            ]);
+        });
+    }
+
+    private function lockMatchingDraft(User $user, Person $person, ?StudentAcademicHistory $history, mixed $revision): ?StudentHistoryDraft
+    {
+        // Serializa também a primeira gravação, quando ainda não existe uma linha de rascunho.
+        User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+        $draft = StudentHistoryDraft::forEditor($user, $person, $history)->first();
+        if ($draft?->revision !== $revision) {
+            throw ValidationException::withMessages([
+                'history_draft_revision' => __('O rascunho mudou em outra aba. Confira o rascunho salvo antes de continuar.'),
+            ]);
+        }
+
+        return $draft;
+    }
+
     public function create(Request $request, Person $person): View
     {
         $this->authorizePerson($request, $person);
@@ -220,6 +284,7 @@ class StudentAcademicHistoryController extends Controller
         return view('student-histories.create', [
             'person' => $person,
             'history' => new StudentAcademicHistory,
+            'draft' => StudentHistoryDraft::forEditor($request->user(), $person, null)->first(),
             'schools' => $this->schools($request),
             'states' => $this->states(),
             'technicalCourses' => app(StudentTechnicalItinerary::class)->independentCourses($person, $request->user()->isAdministrator() ? null : $request->user()->manageableSchoolIds()),
@@ -230,8 +295,15 @@ class StudentAcademicHistoryController extends Controller
     {
         $this->authorizePerson($request, $person);
         $this->authorizeHistoryEditor($request);
+        $this->unpackEditorSubmission($request);
+        if ($request->has('history_draft_revision')) {
+            $this->validateEditorSubmission($request);
+        }
         $data = $this->validatedData($request, creating: true);
         $histories = DB::transaction(function () use ($request, $person, $data, $synchronizer) {
+            $draft = $request->has('history_draft_revision')
+                ? $this->lockMatchingDraft($request->user(), $person, null, $request->input('history_draft_revision'))
+                : null;
             $histories = collect();
             foreach (collect($data['years'])->groupBy('stage', preserveKeys: true) as $label => $years) {
                 $stage = array_search($label, AcademicCourse::STAGE_LABELS, true);
@@ -259,6 +331,8 @@ class StudentAcademicHistoryController extends Controller
                 }
                 $histories->push($history);
             }
+
+            $draft?->delete();
 
             return $histories;
         });
@@ -322,6 +396,7 @@ class StudentAcademicHistoryController extends Controller
             'person' => $person,
             'history' => $history->load(['school', 'years.records.component', 'components.records.year']),
             'historyVersion' => app(StudentHistoryEditGuard::class)->version($history),
+            'draft' => StudentHistoryDraft::forEditor($request->user(), $person, $history)->first(),
             'schools' => $this->schools($request),
             'states' => $this->states(),
         ]);
@@ -331,20 +406,21 @@ class StudentAcademicHistoryController extends Controller
     {
         $this->authorizeHistory($request, $person, $history);
         $this->authorizeHistoryEditor($request);
+        $this->unpackEditorSubmission($request);
 
         if (! $history->is_unified && ! $history->active) {
             throw ValidationException::withMessages(['history' => __('Este documento foi incorporado ao histórico da etapa. Reabra o cadastro para editar o documento único.')]);
         }
 
         DB::transaction(function () use ($history, $request, $person, $synchronizer): void {
+            $draft = $request->has('history_draft_revision')
+                ? $this->lockMatchingDraft($request->user(), $person, $history, $request->input('history_draft_revision'))
+                : null;
             StudentAcademicHistory::query()->whereKey($history->id)->lockForUpdate()->firstOrFail();
             $history->refresh();
             $guard = app(StudentHistoryEditGuard::class);
             $guard->assertCurrent($history, $request->input('history_version'));
-            $request->validate(['history_payload_complete' => ['required', Rule::in(['1'])]], [
-                'history_payload_complete.required' => __('O formulário chegou incompleto. Nenhum dado foi salvo. Reabra o histórico e tente novamente.'),
-                'history_payload_complete.in' => __('O formulário chegou incompleto. Nenhum dado foi salvo. Reabra o histórico e tente novamente.'),
-            ]);
+            $this->validateEditorSubmission($request);
             $data = $this->validatedData($request);
             $guard->assertYearsRetained($history, $data['years'], $data['removed_year_ids']);
             $history->update($data['history'] + [
@@ -372,6 +448,7 @@ class StudentAcademicHistoryController extends Controller
                 );
             }
 
+            $draft?->delete();
         });
 
         return $this->editorSaved($request, redirect()->route('people.histories.show', [$person, $history])
@@ -385,6 +462,30 @@ class StudentAcademicHistoryController extends Controller
             409,
             __('Entre com a mesma conta com que abriu o histórico e depois clique em salvar.'),
         );
+    }
+
+    private function unpackEditorSubmission(Request $request): void
+    {
+        if (! $request->has('editor_snapshot')) {
+            return;
+        }
+        $data = $request->validate(['editor_snapshot' => ['required', 'string', 'max:900000']]);
+        $fields = StudentHistoryDraftData::decode($data['editor_snapshot']);
+        array_walk_recursive($fields, static function (?string &$value): void {
+            $value = Str::trim($value);
+            if ($value === '') {
+                $value = null;
+            }
+        });
+        $request->merge($fields);
+    }
+
+    private function validateEditorSubmission(Request $request): void
+    {
+        $request->validate(['history_payload_complete' => ['required', Rule::in(['1'])]], [
+            'history_payload_complete.required' => __('O formulário chegou incompleto. Nenhum dado foi salvo. Reabra o histórico e tente novamente.'),
+            'history_payload_complete.in' => __('O formulário chegou incompleto. Nenhum dado foi salvo. Reabra o histórico e tente novamente.'),
+        ]);
     }
 
     private function editorSaved(Request $request, RedirectResponse $redirect): JsonResponse|RedirectResponse

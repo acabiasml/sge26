@@ -3,6 +3,9 @@
 @endpush
 
 @php
+    $draft = $draft ?? null;
+    $draftInput = $draft?->payload ?? [];
+    $draftConflict = $draft && $history->exists && $draft->history_version !== $historyVersion;
     $curriculumOnly = $curriculumOnly ?? false;
     $manualOnly = $manualOnly ?? false;
     $history->loadMissing(['years.records', 'components.records.year', 'components.catalogEntries']);
@@ -27,7 +30,7 @@
         ->filter()->all();
     $firstManualYear = collect($defaultYears)->first(fn ($year, $index) => ! in_array($index + 1, $registeredSystemGrades, true))
         ?? array_merge($defaultYears[0], ['label' => '', 'grade_phase' => '']);
-    $yearsInput = collect(old('years', $history->exists && $editableYears->isNotEmpty()
+    $yearsInput = collect(old('years', $draftInput['years'] ?? ($history->exists && $editableYears->isNotEmpty()
         ? $editableYears->map(fn ($year) => [
             'id' => $year->id,
             'label' => $year->label,
@@ -54,7 +57,7 @@
             'minimum_attendance_percentage' => $year->minimum_attendance_percentage,
             'notes' => $year->notes,
         ])->all()
-        : ($manualOnly ? [$firstManualYear] : $defaultYears)))->values();
+        : ($manualOnly ? [$firstManualYear] : $defaultYears))))->values();
 
     $yearComponentsInput = [];
     foreach ($yearsInput as $yearIndex => $yearInput) {
@@ -69,7 +72,7 @@
             ];
         })->filter()->values()->all();
     }
-    $yearComponentsInput = old('year_components', $yearComponentsInput);
+    $yearComponentsInput = old('year_components', $draft ? ($draftInput['year_components'] ?? []) : $yearComponentsInput);
 
     $historyEditorConfig = [
     'fixedStage' => $history->education_stage ?: '',
@@ -83,6 +86,17 @@
     'differentUser' => __('Entre com a mesma conta com que abriu o histórico e depois clique em salvar.'),
     'saveError' => __('Não foi possível confirmar o salvamento. Confira o histórico em outra aba antes de enviar novamente.'),
     'saving' => __('Salvando…'),
+    'draftUrl' => $history->exists ? route('people.histories.edit-draft', [$person, $history]) : route('people.histories.create-draft', $person),
+    'draftSavedAt' => $draft?->updated_at?->toIso8601String(),
+    'draftIdle' => __('Salvamento automático do rascunho ativado'),
+    'draftPending' => __('Rascunho com alterações pendentes'),
+    'draftSaving' => __('Salvando rascunho…'),
+    'draftSaved' => __('Rascunho salvo automaticamente em :data'),
+    'draftRestored' => __('Rascunho recuperado, salvo em :data'),
+    'draftError' => __('O rascunho ainda não foi salvo. Tente novamente.'),
+    'draftSession' => __('Sessão expirada. Entre novamente para salvar o rascunho.'),
+    'draftConflict' => __('O rascunho mudou em outra aba. Confira o rascunho mais recente antes de continuar.'),
+    'draftDiscard' => __('Descartar o rascunho deste histórico?'),
     'select' => __('Selecione'), 'newYear' => __('Novo ano'), 'preview' => __('Preencha os dados deste ano'),
     'empty' => __('Nenhum componente cadastrado neste ano.'),
     'components' => __('Notas e componentes'), 'globalComponents' => __('Componentes do global'), 'area' => __('Área'),
@@ -94,6 +108,7 @@
 
 <section class="sge-history-workspace mb-4" aria-label="{{ __('Cadastro de histórico escolar') }}">
     <input type="hidden" name="_history_editor_user" value="{{ auth()->id() }}">
+    <input type="hidden" name="history_draft_revision" value="{{ $draft?->revision }}">
     <input type="hidden" name="formation_totals_present" value="1">
     <input type="hidden" name="year_components_present" value="1">
     <input type="hidden" name="global_components_present" value="1">
@@ -108,7 +123,19 @@
         <input type="hidden" name="issued_date" value="{{ $history->issued_date?->toDateString() }}">
         @if($history->active)<input type="hidden" name="active" value="1">@endif
     @endif
+    <div class="sge-history-draft-indicator" data-history-draft-indicator data-state="idle" hidden>
+        <i class="fas fa-cloud" data-history-draft-icon aria-hidden="true"></i>
+        <div>
+            <div class="font-weight-bold" data-history-draft-status role="status" aria-live="polite" aria-atomic="true"></div>
+            <div class="small">{{ __('Ao terminar, clique em Salvar histórico.') }}</div>
+            <a href="{{ route('login') }}" target="_blank" rel="noopener" data-history-draft-login hidden>{{ __('Entrar em outra aba') }}</a>
+            <button type="button" class="btn btn-link btn-sm p-0" data-history-draft-retry hidden>{{ __('Tentar salvar o rascunho') }}</button>
+        </div>
+    </div>
     <div class="sge-history-main" style="grid-column: 1 / -1;">
+        @if($draftConflict)
+            <p class="alert alert-warning">{{ __('O histórico mudou desde este rascunho. Confira o histórico atual em outra aba antes de descartar o rascunho ou refazer as alterações.') }}</p>
+        @endif
         @unless($curriculumOnly)
             <details class="small mb-4">
                 <summary class="text-primary">{{ __('Como preencher') }}</summary>
@@ -126,7 +153,7 @@
                     <select id="school_id" name="school_id" class="form-control @error('school_id') is-invalid @enderror" required>
                         <option value="">{{ __('Selecione a escola') }}</option>
                         @foreach($schools as $school)
-                            <option value="{{ $school->id }}" @selected((string) old('school_id') === (string) $school->id)>{{ $school->name }}</option>
+                            <option value="{{ $school->id }}" @selected((string) old('school_id', $draftInput['school_id'] ?? null) === (string) $school->id)>{{ $school->name }}</option>
                         @endforeach
                     </select>
                     @error('school_id') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
@@ -348,9 +375,9 @@
     <a href="{{ route('login') }}" target="_blank" rel="noopener" data-history-login hidden>{{ __('Entrar no Beabá em outra aba') }}</a>
 </div>
 <div class="sge-history-save-bar mb-4">
-    <span class="text-muted">{{ __('As alterações de todos os anos são salvas juntas.') }}</span>
-    <button class="btn btn-primary" type="submit">
-        <i class="fas fa-save mr-1" aria-hidden="true"></i>{{ $history->exists ? __('Salvar histórico') : __('Adicionar ao histórico da etapa') }}
+    <button type="button" class="btn btn-link text-danger" data-history-draft-discard @unless($draft) hidden @endunless>{{ __('Descartar rascunho') }}</button>
+    <button class="btn btn-primary ml-auto" type="submit">
+        <i class="fas fa-save mr-1" aria-hidden="true"></i>{{ __('Salvar histórico') }}
     </button>
 </div>
 
