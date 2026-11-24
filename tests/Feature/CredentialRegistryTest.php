@@ -229,7 +229,7 @@ class CredentialRegistryTest extends TestCase
         $entry = $book->registrations()->sole();
         $this->assertSame('2026-11-18', $entry->snapshot['requested_on']);
         $this->assertSame('2026-05-18', $entry->snapshot['authority_issued_on']);
-        $this->assertEqualsCanonicalizing(['signed_receipt', 'representative_authority'], $entry->files()->pluck('kind')->all());
+        $this->assertEqualsCanonicalizing(['institutional_original', 'representative_authority'], $entry->files()->pluck('kind')->all());
     }
 
     public function test_reclassification_preserves_the_signed_summary_and_records_the_decision_and_signers(): void

@@ -97,7 +97,7 @@ class InstitutionalSchoolRecordController extends Controller
                 }
             }
         } elseif ($request->hasFile('original_pdf')) {
-            $evidence[$kind === 'delivery' ? 'signed_receipt' : 'institutional_original'] = $request->file('original_pdf')->get();
+            $evidence['institutional_original'] = $request->file('original_pdf')->get();
         }
         if (isset($data['authority_pdf'])) {
             $evidence['representative_authority'] = $data['authority_pdf']->get();
