@@ -3,7 +3,7 @@
         <i class="fas fa-calendar-alt" aria-hidden="true"></i>
     </a>
 
-    @if (auth()->user()?->canManageSchools())
+    @if (auth()->user()?->canManageSchool($school->id))
         <a class="btn btn-sm btn-primary sge-icon-action" href="{{ route('schools.edit', $school) }}" aria-label="{{ __('screens.edit_school', ['name' => $school->name]) }}" title="{{ __('screens.edit_school_title') }}">
             <i class="fas fa-pen" aria-hidden="true"></i>
         </a>

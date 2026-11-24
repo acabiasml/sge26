@@ -96,9 +96,9 @@ final class SocioeconomicProfile
         return $data;
     }
 
-    public static function label(string $key, mixed $value): string
+    public static function label(string $key, mixed $value, ?string $missing = null): string
     {
-        if ($value === null || $value === '' || $value === []) return __('Não informado');
+        if (blank($value)) return $missing ?? __('Não informado');
         $field = self::fields()[$key];
         if ($field['type'] === 'boolean') return $value ? __('Sim') : __('Não');
         if ($field['type'] === 'choices') return collect($value)->map(fn ($item) => __($field['options'][$item] ?? $item))->join(', ');

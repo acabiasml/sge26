@@ -55,16 +55,31 @@ class AdminScreensTest extends TestCase
 
     public function test_manager_sees_only_managed_schools_and_cannot_manage_global_registry(): void
     {
-        $school = School::query()->create(['name' => 'Escola A']);
-        $otherSchool = School::query()->create(['name' => 'Escola B']);
+        $school = School::query()->create($this->officialSchoolData(['name' => 'Escola A']));
+        $otherSchool = School::query()->create($this->officialSchoolData(['name' => 'Escola B']));
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
 
         $this->actingAs($manager)->get(route('schools.index'))->assertOk()
             ->assertSee('Escola A')
-            ->assertDontSee('Escola B');
-        $this->actingAs($manager)->get(route('schools.create'))->assertForbidden();
-        $this->actingAs($manager)->get(route('schools.edit', $school))->assertForbidden();
-        $this->actingAs($manager)->get(route('schools.academic-years.index', $school))->assertOk();
+            ->assertDontSee('Escola B')
+            ->assertSee(route('schools.edit', $school), false);
+        $this->get(route('schools.create'))->assertForbidden();
+        $this->post(route('schools.store'), $this->officialSchoolData())->assertForbidden();
+        $this->delete(route('schools.destroy', $school))->assertForbidden();
+        $this->get(route('schools.edit', $school))->assertOk()->assertDontSee('name="active"', false);
+        $this->get(route('schools.edit', $otherSchool))->assertForbidden();
+        $this->put(route('schools.update', $otherSchool), ['phone' => '(66) 3000-0001'])->assertForbidden();
+
+        $this->put(route('schools.update', $school), array_replace($school->getAttributes(), [
+            'phone' => '(66) 3000-0001',
+            'active' => false,
+        ]))->assertSessionHasNoErrors()->assertRedirect(route('schools.edit', $school));
+        $this->assertSame('(66) 3000-0001', $school->fresh()->phone);
+        $this->assertTrue($school->fresh()->active);
+        $this->assertNotSame('(66) 3000-0001', $otherSchool->fresh()->phone);
+
+        $this->actingAs($manager)->get(route('schools.academic-years.index', $school))->assertOk()
+            ->assertSee(route('schools.edit', $school), false);
         $this->actingAs($manager)->get(route('schools.academic-years.index', $otherSchool))->assertForbidden();
         $this->actingAs($manager)->get(route('people.index'))->assertOk();
         $this->actingAs($manager)->get(route('people.create'))->assertOk();

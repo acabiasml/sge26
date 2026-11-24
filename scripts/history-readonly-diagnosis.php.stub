@@ -3,20 +3,32 @@
 require 'vendor/autoload.php';
 $app = require 'bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
-$query = Illuminate\Support\Facades\DB::table('people');
 $personId = __PERSON_ID__;
-if ($personId > 0) {
-    $query->where('id', $personId);
-} else {
-    $target = json_decode(Illuminate\Support\Facades\Crypt::decryptString('__ENCRYPTED_TARGET__'), true, flags: JSON_THROW_ON_ERROR);
-    foreach (preg_split('/\s+/', trim($target['name'])) as $part) {
-        $query->where('full_name', 'like', '%'.$part.'%');
-    }
-}
+$nameSelector = json_decode('__NAME_SELECTOR__', true, flags: JSON_THROW_ON_ERROR);
 Illuminate\Support\Facades\DB::statement('SET TRANSACTION READ ONLY');
 Illuminate\Support\Facades\DB::beginTransaction();
 try {
-    $people = $query->get(['id', 'full_name']);
+    $query = App\Models\Person::query();
+    if ($personId > 0) {
+        $people = $query->whereKey($personId)->get(['id', 'full_name']);
+    } elseif ($nameSelector !== null) {
+        $school = fn ($q) => $q->where('name', 'like', '%'.$nameSelector['school'].'%');
+        $people = $query->where(fn ($q) => $q->whereHas('studentEnrollments.schoolClass.academicYear.school', $school)
+            ->orWhereHas('schoolRoles.school', $school))
+            ->select(['id', 'full_name'])->cursor()->filter(function ($person) use ($nameSelector) {
+                $words = preg_split('/\s+/', strtolower(trim(Illuminate\Support\Str::ascii($person->full_name))));
+
+                $prefix = $nameSelector['salt'].'/'.array_shift($words).'/';
+
+                return collect($words)->contains(fn ($word) => hash('sha256', $prefix.$word) === $nameSelector['name_sha256']);
+            })->take(2)->collect();
+    } else {
+        $target = json_decode(Illuminate\Support\Facades\Crypt::decryptString('__ENCRYPTED_TARGET__'), true, flags: JSON_THROW_ON_ERROR);
+        foreach (preg_split('/\s+/', trim($target['name'])) as $part) {
+            $query->where('full_name', 'like', '%'.$part.'%');
+        }
+        $people = $query->get(['id', 'full_name']);
+    }
     if ($people->count() !== 1) {
         echo json_encode(['matched_people' => $people->count()], JSON_THROW_ON_ERROR);
         return;
@@ -28,8 +40,27 @@ try {
     $records = Illuminate\Support\Facades\DB::table('student_academic_history_records')->whereIn('student_academic_history_year_id', $years->pluck('id'))->selectRaw('student_academic_history_year_id, COUNT(*) AS record_count')->groupBy('student_academic_history_year_id')->get();
     $components = Illuminate\Support\Facades\DB::table('student_academic_history_components')->whereIn('student_academic_history_id', $ids)->orderBy('id')->get(['id', 'student_academic_history_id', 'position', 'formation', 'knowledge_area', 'name']);
     $componentRecords = Illuminate\Support\Facades\DB::table('student_academic_history_records')->whereIn('student_academic_history_component_id', $components->pluck('id'))->orderBy('id')->get();
-    $audits = Illuminate\Support\Facades\DB::table('audit_logs')->where('auditable_type', App\Models\StudentAcademicHistory::class)->whereIn('auditable_id', $ids)->orderByDesc('id')->limit(60)->get(['id', 'auditable_id', 'action', 'actor_role', 'old_values', 'new_values', 'created_at']);
-    echo json_encode(['matched_people' => 1, 'person' => $person, 'histories' => $histories, 'years' => $years, 'record_counts' => $records, 'components' => $components, 'component_records' => $componentRecords, 'audits' => $audits], JSON_THROW_ON_ERROR);
+    $historyModel = App\Models\StudentAcademicHistory::class;
+    $auditQuery = Illuminate\Support\Facades\DB::table('audit_logs');
+    $formerIds = (clone $auditQuery)->where('auditable_type', $historyModel)
+        ->where(fn ($q) => $q->where('old_values->person_id', $person->id)->orWhere('new_values->person_id', $person->id))
+        ->distinct()->pluck('auditable_id');
+    $auditIds = $ids->merge($formerIds)->unique();
+    $enrollments = $person->studentEnrollments()->with(['schoolClass.academicYear.school', 'courses:id,stage'])->get()->map(fn ($enrollment) => [
+        'school' => $enrollment->schoolClass?->academicYear?->school?->name,
+        'school_id' => $enrollment->schoolClass?->academicYear?->school_id,
+        'year' => $enrollment->schoolClass?->academicYear?->reference_year,
+        'status' => $enrollment->status,
+        'stages' => $enrollment->courses->pluck('stage'),
+    ]);
+    $issuanceIds = App\Models\StudentAcademicHistory::query()->where('person_id', $person->id)->forIssuance()->pluck('id');
+    $yearAudits = (clone $auditQuery)->where('auditable_type', App\Models\StudentAcademicHistoryYear::class)
+        ->where(fn ($q) => $q->whereIn('old_values->student_academic_history_id', $auditIds)
+            ->orWhereIn('new_values->student_academic_history_id', $auditIds)->orWhereIn('auditable_id', $years->pluck('id')))
+        ->whereIn('action', ['created', 'deleted'])
+        ->orderByDesc('id')->limit(60)->get(['id', 'auditable_id', 'action', 'actor_role', 'old_values', 'new_values', 'created_at']);
+    $audits = (clone $auditQuery)->where('auditable_type', $historyModel)->whereIn('auditable_id', $auditIds)->orderByDesc('id')->limit(60)->get(['id', 'auditable_id', 'action', 'actor_role', 'old_values', 'new_values', 'created_at']);
+    echo json_encode(['matched_people' => 1, 'person' => $person->only(['id', 'full_name']), 'enrollments' => $enrollments, 'eligible_history_ids' => $issuanceIds, 'year_audits' => $yearAudits, 'histories' => $histories, 'years' => $years, 'record_counts' => $records, 'components' => $components, 'component_records' => $componentRecords, 'audits' => $audits], JSON_THROW_ON_ERROR);
 } finally {
     Illuminate\Support\Facades\DB::rollBack();
 }

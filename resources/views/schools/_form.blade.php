@@ -164,8 +164,10 @@
 
 </section>
 
+@if (auth()->user()->canManageSchools())
 <div class="form-group form-check">
     <input type="hidden" name="active" value="0">
     <input id="active" name="active" value="1" type="checkbox" class="form-check-input" @checked(old('active', $school->active ?? true))>
     <label for="active" class="form-check-label">{{ __('screens.active_school') }}</label>
 </div>
+@endif

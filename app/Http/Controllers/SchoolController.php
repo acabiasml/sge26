@@ -47,7 +47,7 @@ class SchoolController extends Controller
 
     public function edit(Request $request, School $school): View
     {
-        abort_unless($request->user()->canManageSchools(), 403);
+        abort_unless($request->user()->canManageSchool($school->id), 403);
 
         return view('schools.edit', [
             'school' => $school,
@@ -56,7 +56,7 @@ class SchoolController extends Controller
 
     public function update(Request $request, School $school): RedirectResponse
     {
-        abort_unless($request->user()->canManageSchools(), 403);
+        abort_unless($request->user()->canManageSchool($school->id), 403);
 
         $data = $this->validatedData($request, $school);
         $logoPath = $this->storeLogo($request, $school);
@@ -117,7 +117,11 @@ class SchoolController extends Controller
             'active' => ['nullable', 'boolean'],
         ]);
 
-        $data['active'] = $request->boolean('active');
+        if ($request->user()->canManageSchools()) {
+            $data['active'] = $request->boolean('active');
+        } else {
+            unset($data['active']);
+        }
         unset($data['logo']);
 
         return $data;
@@ -140,7 +144,7 @@ class SchoolController extends Controller
         }
 
         $file = $request->file('logo');
-        $filename = Str::uuid().'.'.$file->getClientOriginalExtension();
+        $filename = Str::uuid().'.'.$file->extension();
         $file->move($directory, $filename);
 
         return 'brand/schools/'.$filename;

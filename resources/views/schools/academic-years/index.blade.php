@@ -10,7 +10,7 @@
     <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('schools.concepts.index', $school) }}" aria-label="{{ __('screens.manage_criteria_of', ['name' => $school->name]) }}" title="{{ __('screens.criteria') }}">
         <i class="fas fa-star-half-alt" aria-hidden="true"></i>
     </a>
-    @if (auth()->user()?->canManageSchools())
+    @if (auth()->user()?->canManageSchool($school->id))
         <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('schools.edit', $school) }}" aria-label="{{ __('screens.edit_school', ['name' => $school->name]) }}" title="{{ __('screens.edit_school_title') }}">
             <i class="fas fa-pen" aria-hidden="true"></i>
         </a>

@@ -90,6 +90,18 @@ def main():
     person_id = query['person_id']
     if type(person_id) is not int or person_id < 0:
         raise ValueError('Identificador de pessoa inválido.')
+    if scope == 'student':
+        import re
+        selector = query.get('name_selector')
+        if selector is not None:
+            if (person_id != 0 or not isinstance(selector, dict)
+                    or set(selector) != {'salt', 'name_sha256', 'school'}
+                    or any(not isinstance(value, str) for value in selector.values())
+                    or not re.fullmatch(r'[0-9a-f]{32}', selector['salt'])
+                    or not re.fullmatch(r'[0-9a-f]{64}', selector['name_sha256'])
+                    or not re.fullmatch(r'[a-z]{3,30}', selector['school'])):
+                raise ValueError('Seletores da consulta por nome e escola inválidos.')
+        source = source.replace('__NAME_SELECTOR__', json.dumps(selector, separators=(',', ':')))
     if scope == 'diary-workload-audit':
         if type(query.get('reference_year')) is not int or not 1900 <= query['reference_year'] <= 2100:
             raise ValueError('Ano inválido para auditoria das aulas previstas.')

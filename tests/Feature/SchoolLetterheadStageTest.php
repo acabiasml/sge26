@@ -72,14 +72,18 @@ class SchoolLetterheadStageTest extends TestCase
         $this->assertTrue($school->fresh()->hasRequiredLetterheadForOfficialDocuments());
     }
 
-    public function test_management_and_students_cannot_change_institutional_stage_texts(): void
+    public function test_only_management_can_change_institutional_stage_texts_in_its_school(): void
     {
         $school = School::create($this->schoolData());
-        foreach ([PersonSchoolRole::ROLE_MANAGER, PersonSchoolRole::ROLE_TEACHER, PersonSchoolRole::ROLE_STUDENT] as $role) {
+        foreach ([PersonSchoolRole::ROLE_TEACHER, PersonSchoolRole::ROLE_STUDENT] as $role) {
             $this->actingAs($this->user($role, $school))->put(route('schools.update', $school),
                 $this->schoolData() + ['letterhead_text_high_school' => 'Alteração indevida'])->assertForbidden();
         }
         $this->assertNull($school->fresh()->letterhead_text_high_school);
+
+        $this->actingAs($this->user(PersonSchoolRole::ROLE_MANAGER, $school))->put(route('schools.update', $school),
+            $this->schoolData() + ['letterhead_text_high_school' => 'Autorização da escola'])->assertSessionHasNoErrors();
+        $this->assertSame('Autorização da escola', $school->fresh()->letterhead_text_high_school);
     }
 
     public function test_student_documents_and_class_letterhead_respect_enrollment_stage_and_parallel_technical_courses(): void

@@ -34,7 +34,7 @@
 <div class="card shadow sge-panel-card mb-4"><div class="card-header py-3"><h2 class="h6 m-0 font-weight-bold text-primary">Dados institucionais da escola</h2></div><div class="card-body">
 <dl class="row mb-2"><dt class="col-md-3">Escola</dt><dd class="col-md-9">{{ $program->school->name }}</dd><dt class="col-md-3">Endereço</dt><dd class="col-md-9">{{ $program->school->documentAddress() }}</dd><dt class="col-md-3">Mantenedora</dt><dd class="col-md-9">{{ $program->school->maintainer ?: 'A preencher na ficha da escola' }}</dd><dt class="col-md-3">Ato de criação</dt><dd class="col-md-9">{{ $program->school->creation_act ?: 'A preencher na ficha da escola' }}</dd></dl>
 <p class="text-muted mb-2">Os dados institucionais dos documentos são obtidos da ficha da escola.</p>
-@if(auth()->user()->canManageSchools())<a href="{{ route('schools.edit',$program->school) }}#section-documentos">Abrir ficha da escola</a>@else<a href="{{ route('schools.academic-years.index',$program->school) }}">Abrir escola</a>@endif
+@if(auth()->user()->canManageSchool($program->school->id))<a href="{{ route('schools.edit',$program->school) }}#section-documentos">Abrir ficha da escola</a>@else<a href="{{ route('schools.academic-years.index',$program->school) }}">Abrir escola</a>@endif
 </div></div>
 @endif
 </section>

@@ -107,8 +107,8 @@ class StudentSocioeconomicTest extends TestCase
         $html = view('reports.records.socioeconomic', $renderData)->render();
         foreach (['RG-SECRETO', 'Rural', 'Responsável de Teste', '(X) Alimentação', 'per capita', 'Nº de registro', '2026', $previous->schoolClass->name] as $text) $this->assertStringContainsString($text, $html);
         $this->assertStringNotContainsString('TURMA FORA DO ESCOPO', $html);
-        $this->assertStringContainsString('Autorização de uso de imagem:</strong> Não informado', $html);
-        $this->assertStringContainsString('NIS do beneficiário:</strong> Não informado', $html);
+        $this->assertStringContainsString('Autorização de uso de imagem:</strong> </td>', $html);
+        $this->assertStringContainsString('NIS do beneficiário:</strong> </td>', $html);
         $issued = IssuedDocument::where('type', 'student-socioeconomic')->sole();
         $public = $this->get(route('documents.verify', $issued->verification_code))->assertOk()->assertSee('Ficha socioeconômica');
         foreach (['RG-SECRETO', 'Observação restrita', $student->cpf, 'family_income_range', 'has_disability'] as $secret) {
@@ -220,7 +220,7 @@ class StudentSocioeconomicTest extends TestCase
         $this->assertDatabaseCount('issued_documents', 0);
     }
 
-    public function test_blank_profiles_remain_unknown_and_benefits_from_another_year_are_not_assumed(): void
+    public function test_blank_fields_are_printed_empty_and_benefits_from_another_year_are_not_marked(): void
     {
         [$manager, $enrollment] = $this->fixture();
         $this->actingAs($manager);
@@ -230,14 +230,18 @@ class StudentSocioeconomicTest extends TestCase
         view()->composer('reports.records.socioeconomic', function ($view) use (&$data): void { $data = $view->getData(); });
         $this->get(route('enrollments.socioeconomic.pdf', $enrollment))->assertOk();
         $html = view('reports.records.socioeconomic', $data)->render();
-        $this->assertStringContainsString('Recebe Bolsa Família:</strong> Não informado', $html);
-        $this->assertStringContainsString('Possui deficiência (PCD):</strong> Não informado', $html);
-        $this->assertStringContainsString('Autorização de uso de imagem:</strong> Não informado', $html);
+        $this->assertStringContainsString('Recebe Bolsa Família:</strong> </td>', $html);
+        $this->assertStringContainsString('Possui deficiência (PCD):</strong> </td>', $html);
+        $this->assertStringContainsString('Autorização de uso de imagem:</strong> </td>', $html);
+        $this->assertStringContainsString('Emissão:</strong> </td>', $html);
+        $this->assertStringContainsString('INEP do estudante: </p>', $html);
+        $this->assertStringNotContainsString('Não informado', $html);
         $this->assertStringNotContainsString('(X)', $html);
-        $student->update(['socioeconomic_data' => ['benefit_year' => 2025, 'benefits' => ['alimentacao'], 'notes' => '<script>alert(1)</script>']]);
+        $student->update(['socioeconomic_data' => ['benefit_year' => 2025, 'benefits' => ['alimentacao'], 'has_disability' => false, 'notes' => '<script>alert(1)</script>']]);
         $this->get(route('enrollments.socioeconomic.pdf', $enrollment))->assertOk();
         $html = view('reports.records.socioeconomic', $data)->render();
-        $this->assertStringContainsString('Concessão de benefícios não informada para este ano.', $html);
+        $this->assertStringNotContainsString('Concessão de benefícios não informada', $html);
+        $this->assertStringContainsString('Possui deficiência (PCD):</strong> Não</td>', $html);
         $this->assertStringNotContainsString('(X) Alimentação', $html);
         $this->assertStringNotContainsString('<script>', $html);
         $this->assertStringContainsString('&lt;script&gt;', $html);
