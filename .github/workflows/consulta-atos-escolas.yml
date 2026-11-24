@@ -4,7 +4,7 @@ on:
     branches: [codex/consulta-atos-escolas]
     paths: [.github/workflows/consulta-atos-escolas.yml, scripts/authorized-school-query*]
 permissions:
-  contents: read
+  contents: write
 jobs:
   consultar:
     runs-on: ubuntu-latest
@@ -17,8 +17,12 @@ jobs:
           HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
         run: python scripts/authorized-school-query.py
-      - uses: actions/upload-artifact@v4
-        with:
-          name: atos-escolas-criptografados
-          path: atos-escolas.encrypted.json
-          retention-days: 1
+      - name: Guardar somente o relatório criptografado
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          blob=$(git hash-object -w atos-escolas.encrypted.json)
+          tree=$(printf '100644 blob %s\treport.json\n' "$blob" | git mktree)
+          commit=$(printf 'relatório de atos escolares criptografado\n' | git commit-tree "$tree")
+          git push origin "$commit:refs/heads/consulta-atos-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
