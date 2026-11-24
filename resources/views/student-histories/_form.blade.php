@@ -77,6 +77,12 @@
     'catalogs' => $historyCatalogs,
     'formations' => collect(['fundamental', 'medio', 'tecnico'])->mapWithKeys(fn ($stage) => [$stage => \App\Support\HistoryCurriculumCatalog::formations($stage)])->all(),
     'errors' => $errors->keys(),
+    'sessionUrl' => route('student-histories.editor-session'),
+    'userId' => (int) auth()->id(),
+    'sessionExpired' => __('Sua sessão expirou. Os dados digitados continuam nesta aba. Entre novamente e depois clique em salvar.'),
+    'differentUser' => __('Entre com a mesma conta com que abriu o histórico e depois clique em salvar.'),
+    'saveError' => __('Não foi possível confirmar o salvamento. Confira o histórico em outra aba antes de enviar novamente.'),
+    'saving' => __('Salvando…'),
     'select' => __('Selecione'), 'newYear' => __('Novo ano'), 'preview' => __('Preencha os dados deste ano'),
     'empty' => __('Nenhum componente cadastrado neste ano.'),
     'components' => __('Notas e componentes'), 'globalComponents' => __('Componentes do global'), 'area' => __('Área'),
@@ -87,6 +93,7 @@
 @endphp
 
 <section class="sge-history-workspace mb-4" aria-label="{{ __('Cadastro de histórico escolar') }}">
+    <input type="hidden" name="_history_editor_user" value="{{ auth()->id() }}">
     <input type="hidden" name="formation_totals_present" value="1">
     <input type="hidden" name="year_components_present" value="1">
     <input type="hidden" name="global_components_present" value="1">
@@ -336,6 +343,10 @@
     </div>
 </section>
 
+<div class="alert alert-danger mb-3" data-history-save-alert role="alert" tabindex="-1" hidden>
+    <div data-history-save-message></div>
+    <a href="{{ route('login') }}" target="_blank" rel="noopener" data-history-login hidden>{{ __('Entrar no Beabá em outra aba') }}</a>
+</div>
 <div class="sge-history-save-bar mb-4">
     <span class="text-muted">{{ __('As alterações de todos os anos são salvas juntas.') }}</span>
     <button class="btn btn-primary" type="submit">

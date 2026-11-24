@@ -263,6 +263,39 @@ class HistorySaveProtectionTest extends TestCase
         return $payload + ['year_components_present' => '1', 'year_components' => $rows];
     }
 
+    public function test_editor_saves_only_after_authentication_and_preserves_the_normal_destination(): void
+    {
+        $history = $this->history();
+        $actor = auth()->user();
+        $destination = route('people.histories.show', [$history->person_id, $history]);
+        $store = route('people.histories.store', $history->person_id);
+        $session = route('student-histories.editor-session');
+        $external = $this->yearlyPayload($history, [$this->year(4)], [])
+            + ['_history_editor_user' => $actor->id];
+        $year = $history->years()->sole();
+        $edit = $this->payload($history, [$this->year(1) + ['id' => $year->id]])
+            + ['_history_editor_user' => $actor->id];
+
+        auth()->logout();
+        $this->getJson($session)->assertUnauthorized();
+        $this->postJson($store, $external)->assertUnauthorized();
+        $this->putJson($this->url($history), $edit)->assertUnauthorized();
+        $this->assertSame(1, $history->years()->count());
+
+        $this->actingAs($actor)->getJson($session)->assertOk()->assertJsonPath('user_id', $actor->id)
+            ->assertHeader('Cache-Control', 'no-store, private')->assertJsonStructure(['csrf_token']);
+
+        $this->postJson($store, array_replace($external, ['_history_editor_user' => $actor->id + 1]))->assertConflict();
+        $this->putJson($this->url($history), array_replace($edit, ['_history_editor_user' => $actor->id + 1]))->assertConflict();
+        $this->assertSame(1, $history->years()->count());
+
+        $this->putJson($this->url($history), array_replace($edit, ['school_id' => null]))
+            ->assertUnprocessable()->assertJsonValidationErrors('school_id');
+        $this->putJson($this->url($history), $edit)->assertOk()->assertJsonPath('redirect', $destination);
+        $this->postJson($store, $external)->assertOk()->assertJsonPath('redirect', $destination);
+        $this->assertSame('external', $history->years()->where('grade_number', 4)->sole()->source);
+    }
+
     public function test_adding_an_external_year_keeps_a_component_registered_without_a_grade(): void
     {
         $history = $this->history();

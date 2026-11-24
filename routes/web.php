@@ -113,6 +113,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::post('pessoas/{person}/google-workspace', [GoogleWorkspaceController::class, 'store'])->name('people.google-workspace.store');
     Route::get('pessoas/{person}/vida-escolar', [StudentMapController::class, 'show'])->name('people.student-map.show');
     Route::get('historicos-escolares', [StudentAcademicHistoryController::class, 'index'])->name('student-histories.index');
+    Route::get('historicos-escolares/sessao', [StudentAcademicHistoryController::class, 'editorSession'])->name('student-histories.editor-session');
     Route::get('historicos-escolares/{person}', [StudentAcademicHistoryController::class, 'student'])->name('student-histories.student');
     Route::post('pessoas/{person}/historicos/{history}/identificar-curso', [StudentAcademicHistoryController::class, 'identifyTechnicalCourse'])->name('people.histories.identify-course');
     Route::post('historicos-escolares/{person}/{stage}', [StudentAcademicHistoryController::class, 'unified'])->name('student-histories.unified');

@@ -237,6 +237,77 @@
                 presentingInvalid = true; field.reportValidity(); presentingInvalid = false;
             });
         }, true);
+        const saveAlert = form.querySelector('[data-history-save-alert]');
+        const saveMessage = saveAlert.querySelector('[data-history-save-message]');
+        const loginLink = saveAlert.querySelector('[data-history-login]');
+        const saveButton = form.querySelector('button[type="submit"]');
+        const saveLabel = saveButton.innerHTML;
+        let refreshSession = false;
+
+        function showSaveError(messages, showLogin = false) {
+            saveMessage.replaceChildren(...messages.map(message => {
+                const line = document.createElement('div');
+                line.textContent = message;
+                return line;
+            }));
+            loginLink.hidden = !showLogin;
+            saveAlert.hidden = false;
+        }
+
+        form.addEventListener('submit', async event => {
+            if (event.defaultPrevented) return;
+            event.preventDefault();
+            if (saveButton.disabled) return;
+
+            saveButton.disabled = true;
+            saveButton.setAttribute('aria-busy', 'true');
+            saveButton.textContent = config.saving;
+            saveAlert.hidden = true;
+            const options = { headers: { Accept: 'application/json' }, credentials: 'same-origin' };
+            try {
+                if (refreshSession) {
+                    const session = await fetch(config.sessionUrl, { ...options, cache: 'no-store' });
+                    if (!session.ok || session.redirected) {
+                        showSaveError([config.sessionExpired], true);
+                        return;
+                    }
+                    const current = await session.json();
+                    if (current.user_id !== config.userId) {
+                        showSaveError([config.differentUser], true);
+                        return;
+                    }
+                    form.elements.namedItem('_token').value = current.csrf_token;
+                    refreshSession = false;
+                }
+
+                const result = await fetch(form.action, { ...options, method: 'POST', body: new URLSearchParams(new FormData(form)) });
+                if (result.status === 401 || result.status === 419) {
+                    refreshSession = true;
+                    showSaveError([config.sessionExpired], true);
+                } else if (result.status === 409) {
+                    refreshSession = true;
+                    showSaveError([config.differentUser], true);
+                } else if (result.status === 422) {
+                    const data = await result.json();
+                    const messages = Object.values(data.errors || {}).flat();
+                    showSaveError(messages.length ? messages : [data.message || config.saveError]);
+                } else if (result.ok && !result.redirected) {
+                    const data = await result.json();
+                    const destination = new URL(data.redirect);
+                    if (destination.origin !== location.origin) throw new Error('Invalid history redirect');
+                    location.assign(destination);
+                } else {
+                    showSaveError([config.saveError]);
+                }
+            } catch {
+                showSaveError([config.saveError]);
+            } finally {
+                saveButton.disabled = false;
+                saveButton.removeAttribute('aria-busy');
+                saveButton.innerHTML = saveLabel;
+                if (!saveAlert.hidden) saveAlert.focus();
+            }
+        });
         wrapper.querySelectorAll('[data-history-component]').forEach(row => refreshRow(row));
         renumber();
         try {

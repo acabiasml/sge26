@@ -30,7 +30,7 @@
             <summary class="sge-panel-header sge-history-section-summary"><h2>{{ __('Cadastrar anos de outra escola') }}</h2><i class="fas fa-chevron-down" aria-hidden="true"></i></summary>
             <div class="card-body">
     @endif
-    <form method="POST" action="{{ route('people.histories.update', [$person, $history]) }}">
+    <form method="POST" data-no-loading="true" action="{{ route('people.histories.update', [$person, $history]) }}">
         @csrf
         @method('PUT')
         <input type="hidden" name="history_version" value="{{ old('history_version', $historyVersion) }}">

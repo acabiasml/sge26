@@ -14,7 +14,7 @@
         {{ __('Transcreva os anos conforme o documento da escola de origem. Os dados serão acrescentados ao histórico único de cada etapa, junto às matrículas registradas no sistema.') }}
     </div>
 
-    <form method="POST" action="{{ route('people.histories.store', $person) }}">
+    <form method="POST" data-no-loading="true" action="{{ route('people.histories.store', $person) }}">
         @csrf
         @if($technicalCourses->isNotEmpty())
             <div class="form-group"><label for="technical_course_id">{{ __('Curso dos anos técnicos externos, se houver') }}</label>

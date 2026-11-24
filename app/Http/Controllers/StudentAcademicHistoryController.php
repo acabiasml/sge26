@@ -26,6 +26,7 @@ use App\Support\StudentHistoryConsolidator;
 use App\Support\StudentHistoryEditGuard;
 use App\Support\StudentTechnicalItinerary;
 use App\Support\UnifiedStudentHistorySynchronizer;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -202,6 +203,16 @@ class StudentAcademicHistoryController extends Controller
         return redirect()->route('people.histories.show', [$person, $history])->with('status', __('Dados gerais do histórico atualizados.'));
     }
 
+    public function editorSession(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->canManagePeople(), 403);
+
+        return response()->json([
+            'user_id' => (int) $request->user()->id,
+            'csrf_token' => $request->session()->token(),
+        ])->header('Cache-Control', 'private, no-store');
+    }
+
     public function create(Request $request, Person $person): View
     {
         $this->authorizePerson($request, $person);
@@ -215,9 +226,10 @@ class StudentAcademicHistoryController extends Controller
         ]);
     }
 
-    public function store(Request $request, Person $person, UnifiedStudentHistorySynchronizer $synchronizer): RedirectResponse
+    public function store(Request $request, Person $person, UnifiedStudentHistorySynchronizer $synchronizer): JsonResponse|RedirectResponse
     {
         $this->authorizePerson($request, $person);
+        $this->authorizeHistoryEditor($request);
         $data = $this->validatedData($request, creating: true);
         $histories = DB::transaction(function () use ($request, $person, $data, $synchronizer) {
             $histories = collect();
@@ -251,9 +263,11 @@ class StudentAcademicHistoryController extends Controller
             return $histories;
         });
 
-        return $histories->count() === 1
+        $redirect = $histories->count() === 1
             ? redirect()->route('people.histories.show', [$person, $histories->first()])->with('status', __('Anos incorporados ao histórico único da etapa.'))
             : redirect()->route('student-histories.student', $person)->with('status', __('Anos incorporados aos históricos das etapas correspondentes.'));
+
+        return $this->editorSaved($request, $redirect);
     }
 
     public function show(Request $request, Person $person, StudentAcademicHistory $history, StudentAcademicHistoryCompleteness $completeness, UnifiedStudentHistorySynchronizer $synchronizer): View|RedirectResponse
@@ -313,9 +327,10 @@ class StudentAcademicHistoryController extends Controller
         ]);
     }
 
-    public function update(Request $request, Person $person, StudentAcademicHistory $history, UnifiedStudentHistorySynchronizer $synchronizer): RedirectResponse
+    public function update(Request $request, Person $person, StudentAcademicHistory $history, UnifiedStudentHistorySynchronizer $synchronizer): JsonResponse|RedirectResponse
     {
         $this->authorizeHistory($request, $person, $history);
+        $this->authorizeHistoryEditor($request);
 
         if (! $history->is_unified && ! $history->active) {
             throw ValidationException::withMessages(['history' => __('Este documento foi incorporado ao histórico da etapa. Reabra o cadastro para editar o documento único.')]);
@@ -359,8 +374,22 @@ class StudentAcademicHistoryController extends Controller
 
         });
 
-        return redirect()->route('people.histories.show', [$person, $history])
-            ->with('status', __('Histórico escolar atualizado com sucesso.'));
+        return $this->editorSaved($request, redirect()->route('people.histories.show', [$person, $history])
+            ->with('status', __('Histórico escolar atualizado com sucesso.')));
+    }
+
+    private function authorizeHistoryEditor(Request $request): void
+    {
+        abort_if(
+            $request->has('_history_editor_user') && $request->integer('_history_editor_user') !== (int) $request->user()->id,
+            409,
+            __('Entre com a mesma conta com que abriu o histórico e depois clique em salvar.'),
+        );
+    }
+
+    private function editorSaved(Request $request, RedirectResponse $redirect): JsonResponse|RedirectResponse
+    {
+        return $request->expectsJson() ? response()->json(['redirect' => $redirect->getTargetUrl()]) : $redirect;
     }
 
     public function destroy(Request $request, Person $person, StudentAcademicHistory $history): RedirectResponse
