@@ -156,7 +156,8 @@ class SchoolLetterheadStageTest extends TestCase
         $this->assertSame('2027-12-31', $acts['fundamental_educacao_do_campo']['ends_on']);
         $this->assertStringContainsString('078/2023', $acts['medio_educacao_do_campo']['act']);
         $this->assertArrayNotHasKey('medio_regular', $acts);
-        $this->assertSame('2024-12-31', $laura->fresh()->document_authorizations['medio_regular']['ends_on']);
+        $this->assertSame('2029-12-31', $laura->fresh()->document_authorizations['medio_regular']['ends_on']);
+        $this->assertSame('2025-12-31', $liceu->fresh()->document_authorizations['fundamental_regular']['ends_on']);
         $this->assertSame('2011-12-31', $liceu->fresh()->document_authorizations['accreditation']['ends_on']);
         $this->assertSame(['concomitante', 'subsequente'], $program->fresh()->offer_modes);
         $this->assertNull($other->fresh()->document_authorizations);

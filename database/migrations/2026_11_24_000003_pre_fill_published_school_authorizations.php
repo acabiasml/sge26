@@ -9,16 +9,18 @@ return new class extends Migration
     public function up(): void
     {
         $liceuAccreditation = $this->act('Portaria 294/2008-CEE/MT · DOE-MT nº 24.954', '2008-11-05', '2008-01-01', '2011-12-31', '1874#page=16');
-        $liceuHighSchool = $this->act('Ato 0260/2012-CEE/MT · DOE-MT nº 25.935', '2012-11-28', '2012-01-01', '2016-12-31', '3282#page=11');
-        $lauraBasicEducation = $this->act('Ato 350/2022-CEE/MT · DOE-MT nº 28.311', '2022-08-18', '2022-01-01', '2024-12-31', '16925#page=22');
+        $liceuBasicEducation = $this->act('Ato 104/2021-CEE/MT · DOE-MT nº 27.989', '2021-04-30', '2021-01-01', '2025-12-31', '16306#page=34');
+        $lauraBasicEducation = $this->act('Ato 486/2025-CEE/MT · DOE-MT nº 29.007', '2025-06-10', '2025-01-01', '2029-12-31', '18503#page=39');
         $larElementary = $this->act('Ato 383/2025-CEE/MT · DOE-MT nº 28.986', '2025-05-12', '2025-01-01', '2027-12-31', '18440#page=38');
         $larHighSchool = $this->act('Ato 078/2023-CEE/MT · DOE-MT nº 28.437', '2023-02-13', '2023-01-01', '2027-12-31', '17136#page=29');
 
         $publishedByCnpj = [
             '00176974000120' => [
                 'accreditation' => $liceuAccreditation,
-                'medio' => $liceuHighSchool,
-                'medio_regular' => $liceuHighSchool,
+                'fundamental' => $liceuBasicEducation,
+                'fundamental_regular' => $liceuBasicEducation,
+                'medio' => $liceuBasicEducation,
+                'medio_regular' => $liceuBasicEducation,
             ],
             '00176974000201' => [
                 'fundamental' => $lauraBasicEducation,
