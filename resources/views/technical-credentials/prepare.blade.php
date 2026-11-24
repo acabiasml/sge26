@@ -30,7 +30,14 @@
 <div class="card mb-4"><div class="card-header">Dados obrigatórios do registro e da emissão</div><div class="card-body"><div class="row">
 <div class="form-group col-md-6"><label for="credential-issued_place">{{ __('Local de emissão') }}</label><input class="form-control" id="credential-issued_place" name="issued_place" maxlength="150" value="{{ old('issued_place', $defaults['issued_place']) }}" required></div>
 @foreach(['registration_date'=>'Data do registro','issued_date'=>'Data da emissão'] as $field=>$label)<div class="form-group col-md-6"><label for="credential-{{ $field }}">{{ $label }}</label><input class="form-control" type="date" id="credential-{{ $field }}" name="{{ $field }}" value="{{ old($field,now('America/Cuiaba')->toDateString()) }}" max="{{ now('America/Cuiaba')->toDateString() }}" required></div>@endforeach
-@if($kind==='diploma')<div class="form-group col-md-6"><label for="credential-sistec">Número de registro gerado pelo SISTEC</label><input class="form-control" id="credential-sistec" name="sistec_code" maxlength="100" value="{{ old('sistec_code') }}" aria-describedby="credential-sistec-help" @required($state['final'])><small id="credential-sistec-help">{{ __('Copie o número gerado no SISTEC. Ele constará no verso do diploma, junto ao livro e à folha.') }} <x-school-document-regulation :articles="__('art. 22, III e IV')" :page="22" /></small></div>@endif
+<div class="form-group col-md-6">
+    <label for="credential-sistec">{{ __('Código de registro no SISTEC') }}</label>
+    <input class="form-control" id="credential-sistec" name="sistec_code" maxlength="100" value="{{ old('sistec_code') }}" aria-describedby="credential-sistec-help" required>
+    <small id="credential-sistec-help">
+        {{ __('Copie o código conferido no SISTEC. Ele constará no verso do documento, junto ao livro e à folha.') }}
+        <a href="https://www.iomat.mt.gov.br/legislacao/diario_oficial/download/37468" target="_blank" rel="noopener">{{ __('Resolução nº 007/2023 do CEE-MT, art. 13') }}</a>
+    </small>
+</div>
 @include('technical-credentials.credential-evidence')
 <div class="form-group col-12"><label for="credential-observations">Observações do registro (opcional)</label><textarea class="form-control" id="credential-observations" name="observations" maxlength="500">{{ old('observations') }}</textarea></div>
 </div></div></div>

@@ -9,6 +9,18 @@ use Illuminate\Http\Request;
 
 class SchoolRecordEvidenceController extends Controller
 {
+    private const PROCESS_FIELDS = [
+        'evaluation_result' => 'Resultado da avaliação e decisão',
+        'justification' => 'Justificativa fundamentada',
+        'procedures' => 'Procedimentos e critérios de avaliação',
+    ];
+
+    private const RECLASSIFICATION_SIGNERS = [
+        'management_signers' => 'Equipe gestora que assinou a súmula',
+        'council_signers' => 'Conselho de Classe ou equivalente que assinou a súmula',
+        'teacher_signers' => 'Professores envolvidos que assinaram a súmula',
+    ];
+
     public function receivedTransfer(Request $request, StudentEnrollment $enrollment, CredentialRegistry $registry, SchoolRecordPdf $records)
     {
         return $this->record($request, $enrollment, $registry, $records, 'received-transfer');
@@ -37,16 +49,28 @@ class SchoolRecordEvidenceController extends Controller
                 'action' => $request->url(),
                 'books' => $registry->digitalBooks($request->user(), $school, $kind)->get(),
                 'evidenceType' => $type,
+                'processFields' => self::PROCESS_FIELDS,
+                'summarySigners' => self::RECLASSIFICATION_SIGNERS,
             ]);
         }
-        $data = $request->validate(SchoolRecordPdf::rules($school) + [
+        $rules = SchoolRecordPdf::rules($school) + [
             'origin' => ['required', 'string', 'max:250'], 'recorded_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
             'process_kind' => [$transfer ? 'exclude' : 'required', 'in:classification,reclassification,placement'],
             'transfer_during_period' => [$transfer ? 'required' : 'exclude', 'boolean'],
             'original_pdf' => ['required', 'file', 'mimes:pdf', 'max:20480'],
             'supporting_pdf' => [$transfer ? 'required_if:transfer_during_period,1' : 'required', 'nullable', 'file', 'mimes:pdf', 'max:20480'],
             'reviewed' => ['accepted'],
-        ]);
+        ];
+        if (! $transfer) {
+            foreach (self::PROCESS_FIELDS as $field => $label) {
+                $rules[$field] = ['required', 'string', 'max:6000'];
+            }
+            foreach (self::RECLASSIFICATION_SIGNERS as $field => $label) {
+                $rules[$field] = ['exclude_unless:process_kind,reclassification', 'required', 'string', 'max:2000'];
+            }
+            $rules['summary_pdf'] = ['exclude_unless:process_kind,reclassification', 'required', 'file', 'mimes:pdf', 'max:20480'];
+        }
+        $data = $request->validate($rules);
         $payload = [
             'title' => $title, 'student' => ['full_name' => $enrollment->student->full_name],
             'enrollment_id' => $enrollment->id, 'original_source' => $data['origin'],
@@ -55,6 +79,17 @@ class SchoolRecordEvidenceController extends Controller
             'transfer_during_period' => $data['transfer_during_period'] ?? null, 'original_received' => true,
         ];
         $evidence = $request->hasFile('supporting_pdf') ? ['supporting_document' => $request->file('supporting_pdf')->get()] : [];
+        if (! $transfer) {
+            $payload['registry_subject'] = $enrollment->student->full_name.' · '.$data['origin'];
+            foreach (self::PROCESS_FIELDS + self::RECLASSIFICATION_SIGNERS as $field => $label) {
+                if (isset($data[$field])) {
+                    $payload['process_fields'][$label] = $data[$field];
+                }
+            }
+            if (isset($data['summary_pdf'])) {
+                $evidence['signed_process_summary'] = $data['summary_pdf']->get();
+            }
+        }
         $document = $records->issue($request->user(), $school, $type, $enrollment->person_id, $payload, $data,
             fn () => $request->file('original_pdf')->get(), evidence: $evidence);
 

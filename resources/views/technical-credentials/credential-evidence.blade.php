@@ -8,6 +8,10 @@
         <label for="credential-history-pdf">{{ __('Histórico técnico assinado no acervo externo (PDF)') }}</label>
         <input class="form-control-file" id="credential-history-pdf" name="history_pdf" type="file" accept="application/pdf">
     </div>
+    <div class="form-group">
+        <label for="credential-sistec-proof">{{ __('Comprovante da conferência no SISTEC (PDF)') }}</label>
+        <input class="form-control-file" id="credential-sistec-proof" name="sistec_proof" type="file" accept="application/pdf" required>
+    </div>
     @if($kind === 'diploma')
         <p>
             {{ __('Confira no SISTEC o ato autorizativo, a matrícula, a conclusão e o código autenticador. Para matrículas cadastradas a partir de 1º de fevereiro de 2027, confira a trava de seis meses entre o cadastro e a conclusão, ou a autorização para a exceção.') }}
@@ -25,7 +29,7 @@
             <label for="credential-sistec-exception">{{ __('Autorização do órgão validador para conclusão antes dos seis meses, se aplicável (PDF)') }}</label>
             <input class="form-control-file" type="file" id="credential-sistec-exception" name="sistec_exception" accept="application/pdf">
         </div>
-        @foreach(['authorization_pdf' => __('Ato autorizativo publicado (PDF)'), 'sistec_proof' => __('Comprovante da conferência no SISTEC (PDF)'), 'high_school_certificate' => __('Certificado de conclusão do Ensino Médio (PDF)')] as $field => $label)
+        @foreach(['authorization_pdf' => __('Ato autorizativo publicado (PDF)'), 'high_school_certificate' => __('Certificado de conclusão do Ensino Médio (PDF)')] as $field => $label)
             <div class="form-group">
                 <label for="credential-{{ $field }}">{{ $label }}</label>
                 <input class="form-control-file" id="credential-{{ $field }}" name="{{ $field }}" type="file" accept="application/pdf" required>

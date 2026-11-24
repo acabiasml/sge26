@@ -3,6 +3,9 @@
 @section('page-title', __('Livro').' '.$book->identifier)
 @section('content')
 <p><strong>{{ $book->school->name }}</strong> · {{ __(\App\Models\CredentialBook::KINDS[$book->kind]) }} · {{ $book->closed_at?__('Encerrado'):__('Aberto') }}</p>
+@if(!$book->closed_at && isset(\App\Support\InstitutionalSchoolRecord::definitions()[$book->kind]))
+    <a class="btn btn-primary mb-3" href="{{ route('institutional-records.index', ['school' => $book->school_id, 'kind' => $book->kind, 'book' => $book->id]) }}">{{ __('Registrar neste livro') }}</a>
+@endif
 <p class="small text-muted">{{ __('Abra um registro para baixar o original, arquivar assinaturas ou registrar a entrega.') }}</p>
 <div class="alert alert-{{ $integrity?'success':'danger' }}" role="status">{{ $integrity?__('Cadeia de integridade dos registros conferida.'):__('Divergência na integridade do acervo. Consulte a administração antes de prosseguir.') }}</div>
 <div class="d-flex flex-wrap mb-3" style="gap:.75rem"><form method="POST" action="{{ route('credential-registry.export',$book) }}">@csrf<button class="btn btn-primary"><i class="fas fa-file-pdf mr-1" aria-hidden="true"></i>{{ __('Consolidar livro em PDF') }}</button></form><form method="POST" action="{{ route('credential-registry.backup',$book) }}">@csrf<button class="btn btn-outline-primary"><i class="fas fa-file-archive mr-1" aria-hidden="true"></i>{{ __('Baixar cópia completa') }}</button></form><a class="btn btn-outline-secondary" data-navigation-return href="{{ route('credential-registry.index') }}">{{ __('Voltar aos livros') }}</a></div>

@@ -64,6 +64,7 @@ class ScreenListing extends Component
         'credential-book-entries' => [Controllers\CredentialRegistryController::class, 'bookEntries', ['q']],
         'credential-book-events' => [Controllers\CredentialRegistryController::class, 'bookEvents', []],
         'credential-entry-events' => [Controllers\CredentialRegistryController::class, 'entryEvents', []],
+        'pending-deliveries' => [Controllers\InstitutionalSchoolRecordController::class, 'pendingDeliveries', []],
         'management-substitutions' => [Controllers\ManagementSubstitutionController::class, 'index', ['school_id']],
         'document-signatures' => [Controllers\DocumentSignatureController::class, 'index', []],
         'signature-versions' => [Controllers\DocumentSignatureController::class, 'show', []],
@@ -81,6 +82,7 @@ class ScreenListing extends Component
         'credential-book-entries' => ['book' => CredentialBook::class],
         'credential-book-events' => ['book' => CredentialBook::class],
         'credential-entry-events' => ['entry' => CredentialRegistration::class],
+        'pending-deliveries' => ['school' => School::class],
         'signature-versions' => ['document' => IssuedDocument::class],
         'audit-group' => ['auditLog' => AuditLog::class],
         'issued-certificates' => ['batch' => null],
@@ -89,6 +91,7 @@ class ScreenListing extends Component
     private const TEMPLATES = [
         'credential-book-events' => 'credential-registry-events',
         'credential-entry-events' => 'credential-registry-events',
+        'pending-deliveries' => 'institutional-pending-deliveries',
         'signature-versions' => 'document-signature-versions',
         'teacher-access' => 'teacher-last-access',
     ];
@@ -103,6 +106,7 @@ class ScreenListing extends Component
         'credential-book-entries' => 'page',
         'credential-book-events' => 'events_page',
         'credential-entry-events' => 'events_page',
+        'pending-deliveries' => 'page',
         'management-substitutions' => 'page',
         'document-signatures' => 'page',
         'signature-versions' => 'page',

@@ -60,10 +60,16 @@ class TechnicalCredentialsTest extends TestCase
     public function test_certificate_after_module_end_is_saved_as_final_with_the_matrix_qualification_and_exact_hours(): void
     {
         $s = $this->scenario();
-        $this->actingAs($s['user'])->post($this->storeUrl($s), $this->fields($s, 'certificate'))->assertRedirectContains('/livro-digital/registros/');
+        $fields = $this->fields($s, 'certificate');
+        $this->actingAs($s['user'])->post($this->storeUrl($s), array_replace($fields, ['sistec_code' => '', 'sistec_proof' => null]))
+            ->assertSessionHasErrors(['sistec_code', 'sistec_proof']);
+        $this->assertDatabaseCount('credential_registrations', 0);
+        $this->post($this->storeUrl($s), $fields)->assertRedirectContains('/livro-digital/registros/');
         $document = IssuedDocument::sole();
         $response = $this->get(route('credential-registry.original', $document->registration))->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->assertSame('technical-intermediate-certificate', $document->type);
+        $this->assertSame($fields['sistec_code'], $document->registration->sistec_code);
+        $this->assertTrue($document->registration->files()->where('kind', 'sistec_evidence')->exists());
         $this->assertTrue($document->payload['is_final']);
         $this->assertSame('Auxiliar de Projetista de Móveis', $document->payload['module']['qualification']);
         $this->assertEquals(400, $document->payload['total_hours']);
@@ -492,6 +498,7 @@ class TechnicalCredentialsTest extends TestCase
 
         return $kind === 'certificate' ? $fields + ['registry_book_id' => $s['certificateBook']->id, 'evidence_reviewed' => true,
             'issuance_token' => (string) Str::uuid(),
+            'sistec_proof' => \Illuminate\Http\UploadedFile::fake()->createWithContent('sistec.pdf', "%PDF-1.4\nComprovante do SISTEC"),
             'history_pdf' => \Illuminate\Http\UploadedFile::fake()->createWithContent('historico.pdf', "%PDF-1.4\nHistórico assinado de teste")] : $fields;
     }
 

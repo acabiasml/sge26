@@ -55,9 +55,8 @@ final class SchoolRecordPdf
         try {
             return $this->registry->issue(isset($data['registry_book_id']) ? (int) $data['registry_book_id'] : null, $school->id, $type, $user,
                 $data['registration_date'] ?? now('America/Cuiaba')->toDateString(), null, function (array $registration) use ($user, $school, $type, $personId, $payload, $data, $render, &$path) {
-                    $document = $this->document($user, $school, $type, $personId, $payload + [
-                        'registration' => $registration, 'signature_mode' => $data['signature_mode'],
-                    ]);
+                    $document = $this->document($user, $school, $type, $personId, $payload + ['registration' => $registration]
+                        + array_intersect_key($data, ['signature_mode' => true]));
                     $response = $render($document);
                     $bytes = $response instanceof Response ? $response->getContent() : $response;
                     throw_unless(is_string($bytes) && str_starts_with($bytes, '%PDF-'), \RuntimeException::class, 'O registro exige um PDF original.');
@@ -67,8 +66,9 @@ final class SchoolRecordPdf
 
                     return $document;
                 }, $data['issuance_token'].':'.$this->registry->digest(array_intersect_key($payload, array_flip([
-                    'student_academic_history_id', 'school_class_id', 'enrollment_id', 'technical_course_id', 'module_key',
-                ])) + ['person_id' => $personId, 'type' => $type]), $scope, $evidence, self::physicalReference($school, $data));
+                    'student_academic_history_id', 'school_class_id', 'enrollment_id', 'technical_course_id', 'module_key', 'delivery_event_id',
+                ])) + ($type === 'academic-year-final-results' ? ['academic_year_id' => $payload['academic_year_id']] : [])
+                    + ['person_id' => $personId, 'type' => $type]), $scope, $evidence, self::physicalReference($school, $data));
         } catch (\Throwable $error) {
             if ($path) {
                 Storage::disk('local')->delete($path);
@@ -110,7 +110,7 @@ final class SchoolRecordPdf
         return new IssuedDocument([
             'uuid' => (string) Str::uuid(),
             'verification_code' => ($payload['is_draft'] ?? false) ? 'PREVIA-SEM-REGISTRO' : 'BEABA-'.implode('-', str_split(Str::upper(Str::random(12)), 4)),
-            'type' => $type, 'person_id' => $personId, 'school_id' => $school->id,
+            'type' => $type, 'person_id' => $personId ?? $user->person_id, 'school_id' => $school->id,
             'issued_by_user_id' => $user->id, 'issued_at' => now(), 'payload' => $payload,
         ]);
     }

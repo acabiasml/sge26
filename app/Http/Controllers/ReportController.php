@@ -6,6 +6,7 @@ use App\Exports\GenericReportExport;
 use App\Models\IssuedDocument;
 use App\Models\School;
 use App\Support\DocumentVerificationPresenter;
+use App\Support\InstitutionalSchoolRecord;
 use App\Support\PdfLetterhead;
 use App\Support\Reports\ReportDefinition;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -51,6 +52,7 @@ class ReportController extends Controller
         $document = IssuedDocument::query()
             ->with(['issuedBy.person', 'school.roles.person'])
             ->where('verification_code', $code)
+            ->whereNotIn('type', array_keys(InstitutionalSchoolRecord::DOCUMENT_TYPES))
             ->first();
 
         if (! $document) {

@@ -22,7 +22,7 @@
 <div class="form-group"><label for="registry-book-choice">{{ __('Livro do registro') }}</label>
 <select class="form-control" name="registry_book_id" id="registry-book-choice" aria-describedby="registry-book-help" data-registry-book-choice @required($requiresBook ?? false)>
 <option value="">{{ ($requiresBook ?? false) ? __('Selecione um livro digital aberto') : __('Livro físico com numeração informada pela escola') }}</option>
-@foreach($books as $book)<option value="{{ $book->id }}" @selected((string)old('registry_book_id', $books->first()?->id)===(string)$book->id)>{{ $book->identifier }} · {{ __('próximo registro') }} {{ $book->next_number }} · {{ __('folha') }} {{ $book->first_folio + $book->next_number - $book->first_number }}</option>@endforeach
+@foreach($books as $book)<option value="{{ $book->id }}" @selected((string)old('registry_book_id', $preferredBookId ?? $books->first()?->id)===(string)$book->id)>{{ $book->identifier }} · {{ __('próximo registro') }} {{ $book->next_number }} · {{ __('folha') }} {{ $book->first_folio + $book->next_number - $book->first_number }}</option>@endforeach
 </select>
 <p id="registry-book-help" class="small text-muted mt-1">
     @if(($requiresBook ?? false) && $books->isEmpty())
@@ -33,7 +33,10 @@
             {{ __('Se a escola usa livro físico, informe os dados do registro nesse livro.') }}
         @endunless
     @endif
-    <x-school-document-regulation :articles="__('art. 5º, II')" /> · <a href="{{ route('credential-registry.index') }}">{{ __('Gerenciar livros') }}</a>
+    @if($citeDocumentRegulation ?? true)
+        <x-school-document-regulation :articles="__('art. 5º, II')" /> ·
+    @endif
+    <a href="{{ route('credential-registry.index') }}">{{ __('Gerenciar livros') }}</a>
 </p></div>
 @once
 @push('scripts')

@@ -19,9 +19,9 @@ final class CredentialRegistry
     public const TYPES = [
         'technical-intermediate-certificate' => 'certificate', 'free-course-certificate' => 'certificate', 'technical-course-diploma' => 'diploma',
         'high-school-completion-certificate' => 'high-school', 'student-academic-history' => 'history',
-        'class-final-results' => 'final-results',
+        'class-final-results' => 'final-results', 'academic-year-final-results' => 'final-results',
         'student-transfer-certificate' => 'transfer', 'received-transfer' => 'transfer', 'school-special-process' => 'special-process',
-    ];
+    ] + InstitutionalSchoolRecord::DOCUMENT_TYPES;
 
     public const ACTIONS = ['opened' => 'Abertura', 'registered' => 'Registro', 'closed' => 'Encerramento', 'annotation' => 'Averbação', 'cancelled' => 'Cancelamento', 'signed_document' => 'PDF assinado e conferência externa', 'physical_signed' => 'Via assinada em papel', 'second_copy' => 'Segunda via', 'apostille' => 'Apostilamento', 'credential_evidence' => 'Comprovantes da certificação', 'delivered' => 'Protocolo de entrega', 'book_export' => 'Consolidação do livro', 'book_signed' => 'Livro assinado e conferência externa', 'backup' => 'Cópia de segurança'];
 
@@ -34,11 +34,6 @@ final class CredentialRegistry
     {
         return CredentialBook::with('school')->when(! $user->isAdministrator(), fn ($q) => $q->whereIn('school_id', $user->visibleSchoolIds()))
             ->when($schoolId, fn ($q) => $q->where('school_id', $schoolId))->when($kind, fn ($q) => $q->where('kind', $kind));
-    }
-
-    public function requiresBook(int $schoolId, string $kind): bool
-    {
-        return CredentialBook::where('school_id', $schoolId)->where('kind', $kind)->where('medium', 'digital')->exists();
     }
 
     public function digitalBooks(User $user, School $school, string $kind)
@@ -98,8 +93,9 @@ final class CredentialRegistry
                         'Esse número já está registrado nesse livro físico. Consulte o registro original.');
                     $physical['physical_number_key'] = $numberKey;
                 }
-                $this->ensure($type !== 'technical-course-diploma' || filled($sistec), 'Informe o número gerado pelo SISTEC para o diploma técnico definitivo.');
+                $this->ensure(! in_array($type, ['technical-course-diploma', 'technical-intermediate-certificate'], true) || filled($sistec), 'Informe o código de registro no SISTEC para emitir a certificação técnica definitiva.');
                 $this->ensure($type !== 'technical-course-diploma' || ! CredentialRegistration::where('sistec_code', $sistec)
+                    ->whereHas('document', fn ($query) => $query->where('type', 'technical-course-diploma'))
                     ->whereHas('book', fn ($query) => $query->where('school_id', $schoolId))->exists(), 'Este código do SISTEC já foi registrado. Use o registro original para segunda via ou correção.');
                 $this->ensure($this->integrity($book), 'A cadeia de integridade do livro divergiu.');
                 $number = $book->next_number;
@@ -132,7 +128,9 @@ final class CredentialRegistry
                 return $document;
             });
         } catch (\Throwable $error) {
-            Storage::disk('local')->delete($paths);
+            if ($paths !== []) {
+                Storage::disk('local')->delete($paths);
+            }
             throw $error;
         }
     }

@@ -9,6 +9,7 @@ use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\User;
+use App\Support\CredentialRegistry;
 use App\Support\FreeCourseCertificate;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -83,7 +84,7 @@ class FreeCourseCertificatesTest extends TestCase
         $this->actingAs($s['user'])->post(route('free-course-certificates.store', $s['offering']), $this->fields($s))->assertSessionHasNoErrors();
         $docs = IssuedDocument::orderBy('id')->get();
         $this->assertCount(2, $docs);
-        $this->assertSame([100, 101], $docs->pluck('payload.registration.registry_number')->all());
+        $this->assertSame(['100', '101'], $docs->pluck('payload.registration.registry_number')->all());
         $this->assertSame(1, $docs->pluck('batch_uuid')->unique()->count());
         $this->get(route('credential-archive.batch', $docs[0]->batch_uuid))->assertOk()->assertSee($s['people'][0]->full_name)->assertSee($s['people'][1]->full_name);
         $zipResponse = $this->get(route('credential-archive.zip', $docs[0]->batch_uuid))->assertOk()->assertHeader('Content-Type', 'application/zip');
@@ -124,8 +125,8 @@ class FreeCourseCertificatesTest extends TestCase
         $s['course']->update(['syllabus' => 'Ementa revisada']);
         $this->actingAs($s['user'])->post(route('free-course-certificates.store', $s['offering']), $data)->assertSessionHasErrors('document');
         $data = $this->fields($s);
-        unset($data['registry_book']);
-        $this->post(route('free-course-certificates.store', $s['offering']), $data)->assertSessionHasErrors('registry_book');
+        unset($data['registry_book_id']);
+        $this->post(route('free-course-certificates.store', $s['offering']), $data)->assertSessionHasErrors('registry_book_id');
         $data = $this->fields($s);
         $data['director_name'] = 'Eleonora M.';
         $this->post(route('free-course-certificates.store', $s['offering']), $data)->assertSessionHasErrors('director_name');
@@ -245,6 +246,7 @@ class FreeCourseCertificatesTest extends TestCase
     private function fields(array $s, ?array $ids = null): array
     {
         return ['participant_ids' => $ids ?? array_map(fn ($p) => $p->id, $s['participants']), 'expected_version' => app(FreeCourseCertificate::class)->version($s['offering']->fresh()),
+            'registry_book_id' => $s['book']->id, 'issuance_token' => (string) Str::uuid(),
             'registry_book' => '01', 'registry_folio' => '20', 'registry_number' => 100, 'registered_by' => 'Marina Alves Fictícia', 'issued_date' => '2026-11-17', 'issued_place' => 'Poxoréu-MT', 'director_name' => 'Eleonora Silva Fictícia', 'instructor_name' => 'Instrutor José Fictício', 'instructor_role' => 'Instrutor'];
     }
 
@@ -262,6 +264,10 @@ class FreeCourseCertificatesTest extends TestCase
         Storage::fake('local');
         $school = School::create(['name' => 'Escola Fictícia de Formação', 'cnpj' => '00.176.974/0001-20', 'address' => 'Rua da Formação', 'number' => '10', 'city' => 'Poxoréu', 'state' => 'MT', 'postal_code' => '78800000', 'logo_path' => 'brand/logo.png', 'active' => true]);
         $user = $this->manager($school);
+        $book = app(CredentialRegistry::class)->open($user, [
+            'school_id' => $school->id, 'kind' => 'certificate', 'identifier' => '01', 'reference_year' => 2026,
+            'first_number' => 100, 'first_folio' => 20, 'opened_on' => '2026-11-01', 'opening_term' => 'Abertura do livro de certificados.',
+        ]);
         $course = FreeCourse::create(['school_id' => $school->id, 'name' => 'Marcenaria Livre', 'workload_hours' => 40, 'syllabus' => "Segurança na oficina\nFerramentas manuais\nTécnicas de acabamento", 'active' => true]);
         $offering = $course->offerings()->create(['name' => 'Turma de outubro', 'starts_at' => '2026-10-01', 'ends_at' => '2026-10-10', 'location' => 'Jarudore', 'delivery_mode' => 'presencial']);
         $people = [];
@@ -273,6 +279,6 @@ class FreeCourseCertificatesTest extends TestCase
             $participants[] = $offering->participants()->create(['person_id' => $person->id, 'completed_at' => '2026-10-10']);
         }
 
-        return compact('school', 'user', 'course', 'offering', 'people', 'participants');
+        return compact('school', 'user', 'book', 'course', 'offering', 'people', 'participants');
     }
 }

@@ -37,11 +37,17 @@
 @endphp
 
 @include('reports.partials.letterhead', [
-    'title' => 'Resultados finais do ano letivo',
+    'title' => ($official ?? false) ? 'Ata consolidada de resultados finais' : 'Resultados finais do ano letivo',
     'letterhead' => $letterhead,
     'issuedDocument' => $issuedDocument,
     'verificationUrl' => $verificationUrl,
 ])
+@if($isDraft ?? false)
+    <p class="center"><strong>PRÉVIA PARA CONFERÊNCIA · SEM REGISTRO OFICIAL</strong></p>
+@elseif($official ?? false)
+    @php($reference = $issuedDocument->payload['registration'])
+    <p>Livro {{ $reference['registry_book'] }} · Folha {{ $reference['registry_folio'] }} · Registro {{ $reference['registry_number'] }}</p>
+@endif
 
 <table class="context-table">
     <tr>

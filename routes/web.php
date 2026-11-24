@@ -17,6 +17,7 @@ use App\Http\Controllers\ClassAcademicDocumentsController;
 use App\Http\Controllers\ClassFinalResultsPdfController;
 use App\Http\Controllers\CredentialArchiveController;
 use App\Http\Controllers\CredentialRegistryController;
+use App\Http\Controllers\InstitutionalSchoolRecordController;
 use App\Http\Controllers\CurriculumComponentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DataQualityController;
@@ -165,6 +166,8 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('assinaturas/versoes/{version}/{file}', [DocumentSignatureController::class, 'download'])->name('document-signatures.download');
     Route::get('livro-digital', [CredentialRegistryController::class, 'index'])->name('credential-registry.index');
     Route::post('livro-digital', [CredentialRegistryController::class, 'store'])->name('credential-registry.store');
+    Route::get('livro-digital/atos', [InstitutionalSchoolRecordController::class, 'index'])->name('institutional-records.index');
+    Route::post('livro-digital/atos/{school}/{kind}', [InstitutionalSchoolRecordController::class, 'store'])->name('institutional-records.store');
     Route::get('livro-digital/livros/{book}', [CredentialRegistryController::class, 'show'])->name('credential-registry.show');
     Route::post('livro-digital/livros/{book}/encerrar', [CredentialRegistryController::class, 'close'])->name('credential-registry.close');
     Route::post('livro-digital/livros/{book}/pdf', [CredentialRegistryController::class, 'export'])->name('credential-registry.export');
@@ -265,6 +268,8 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('anos-letivos/{academicYear}/matrizes-pdf', AcademicMatricesPdfController::class)->name('academic-years.matrices-pdf');
     Route::get('anos-letivos/{academicYear}/horarios-pdf', [SchoolClassSchedulePdfController::class, 'academicYear'])->name('academic-years.schedules-pdf');
     Route::get('anos-letivos/{academicYear}/resultados-finais-pdf', AcademicYearFinalResultsPdfController::class)->name('academic-years.final-results.pdf');
+    Route::get('anos-letivos/{academicYear}/ata-consolidada', [AcademicYearFinalResultsPdfController::class, 'prepare'])->name('academic-years.final-results.prepare');
+    Route::post('anos-letivos/{academicYear}/ata-consolidada', AcademicYearFinalResultsPdfController::class)->name('academic-years.final-results.register');
     Route::get('anos-letivos/{academicYear}/relatorio-frequencia-pdf', AcademicYearAttendanceReportPdfController::class)->name('academic-years.attendance-report.pdf');
     Route::get('anos-letivos/{academicYear}/periodos', [AcademicPeriodController::class, 'index'])->name('academic-years.periods.index');
     Route::post('anos-letivos/{academicYear}/periodos', [AcademicPeriodController::class, 'store'])->name('academic-years.periods.store');

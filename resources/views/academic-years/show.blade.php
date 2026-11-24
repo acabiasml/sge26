@@ -33,6 +33,11 @@
     <a target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.final-results.pdf', $academicYear) }}" aria-label="{{ __('Emitir resultados finais do ano em PDF') }}" title="{{ __('Resultados finais do ano em PDF') }}">
         <i class="fas fa-file-signature" aria-hidden="true"></i>
     </a>
+    @if($academicYear->isClosed())
+        <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.final-results.prepare', $academicYear) }}" aria-label="{{ __('Registrar ata consolidada') }}" title="{{ __('Registrar ata consolidada') }}">
+            <i class="fas fa-book" aria-hidden="true"></i>
+        </a>
+    @endif
     @if ($canChangeCalendar)
         <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('academic-years.edit', $academicYear) }}" aria-label="{{ __('Editar ano letivo') }} {{ $academicYear->name }}" title="{{ __('Editar ano letivo') }}">
             <i class="fas fa-pen" aria-hidden="true"></i>

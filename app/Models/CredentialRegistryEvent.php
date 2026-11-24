@@ -24,4 +24,14 @@ class CredentialRegistryEvent extends Model
     {
         return $this->belongsTo(User::class, 'actor_user_id');
     }
+
+    public function registration()
+    {
+        return $this->belongsTo(CredentialRegistration::class, 'credential_registration_id');
+    }
+
+    public function book()
+    {
+        return $this->belongsTo(CredentialBook::class, 'credential_book_id');
+    }
 }

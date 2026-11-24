@@ -1,6 +1,11 @@
 @extends('layouts.app')
 @section('title', __('Livro Digital'))
 @section('page-title', __('Livro Digital'))
+@section('page-actions')
+    <a class="btn btn-sm btn-primary shadow-sm sge-icon-action" href="{{ route('institutional-records.index') }}" aria-label="{{ __('Registrar ato escolar') }}" title="{{ __('Registrar ato escolar') }}">
+        <i class="fas fa-plus" aria-hidden="true"></i>
+    </a>
+@endsection
 @section('content')
 <p>{{ __('Selecione o livro próprio de cada ato escolar. Nos livros digitais, o Beabá atribui número e folha. Nos físicos, a secretaria transcreve a referência durante a emissão.') }} <x-school-document-regulation :articles="__('art. 5º, II')" /></p>
 <livewire:screen-listing screen="credential-books" />

@@ -18,6 +18,13 @@ class CredentialBook extends Model
         'final-results' => 'Atas de resultados finais',
         'transfer' => 'Transferências expedidas e recebidas',
         'special-process' => 'Processos especiais',
+        'delivery' => 'Entrega de certificados e diplomas',
+        'visit' => 'Termos de visita',
+        'administrative' => 'Reuniões administrativas',
+        'pedagogical' => 'Reuniões pedagógicas',
+        'disposal' => 'Eliminação de documentos',
+        'inventory' => 'Livro tombo',
+        'correspondence' => 'Protocolo de remessa e recebimento',
     ];
 
     protected $guarded = ['id'];

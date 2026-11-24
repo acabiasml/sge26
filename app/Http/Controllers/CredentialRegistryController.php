@@ -9,6 +9,7 @@ use App\Models\CredentialRegistryFile;
 use App\Models\School;
 use App\Support\CredentialBookArchive;
 use App\Support\CredentialRegistry;
+use App\Support\InstitutionalSchoolRecord;
 use App\Support\PdfSignatureEvidence;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -88,6 +89,7 @@ class CredentialRegistryController extends Controller
             $q->where(function ($query) use ($book, $search) {
                 $query->where('snapshot->registration->registry_number', $search)
                     ->when(! $book->isPhysical() && ctype_digit($search), fn ($q) => $q->orWhere('number', (int) $search))
+                    ->orWhere('snapshot->registry_subject', 'like', '%'.$search.'%')
                     ->orWhereHas('document.person', fn ($p) => $p->where('full_name', 'like', '%'.$search.'%'));
             });
         })->orderBy('number')->paginate(10)->withQueryString();
@@ -95,7 +97,7 @@ class CredentialRegistryController extends Controller
 
     private function operationEvents(CredentialBook|CredentialRegistration $record)
     {
-        return $record->events()->with('actor.person')->latest('id')->paginate(10, ['*'], 'events_page');
+        return $record->events()->with('actor.person', 'book')->latest('id')->paginate(10, ['*'], 'events_page');
     }
 
     public function close(Request $request, CredentialBook $book)
@@ -258,6 +260,7 @@ class CredentialRegistryController extends Controller
         abort_if(($entry->snapshot['original_received'] ?? false) || $entry->book->kind === 'final-results', 404);
         $data = $request->validate(['method' => ['required', Rule::in(['physical', 'digital'])], 'recipient' => ['required', 'string', 'max:150'],
             'recipient_kind' => ['required', Rule::in(['student', 'guardian', 'proxy'])], 'delivered_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', 'after_or_equal:'.$entry->registered_on->toDateString()],
+            'delivery_token' => ['nullable', 'uuid'],
             'signed_file_id' => ['nullable', 'integer'], 'requested_on' => ['required_if:recipient_kind,proxy', 'nullable', 'date_format:Y-m-d', 'before_or_equal:delivered_on'],
             'receipt' => ['required', 'file', 'mimes:pdf', 'max:10240'], 'authority' => ['required_unless:recipient_kind,student', 'nullable', 'file', 'mimes:pdf', 'max:10240'],
             'authority_issued_on' => ['required_if:recipient_kind,proxy', 'nullable', 'date_format:Y-m-d', 'before_or_equal:requested_on'], 'reviewed' => ['accepted']]);
@@ -272,8 +275,13 @@ class CredentialRegistryController extends Controller
             throw ValidationException::withMessages(['recipient_kind' => 'Para um titular maior de idade, utilize a entrega ao titular ou a um procurador.']);
         }
 
-        return $this->change($request, $entry, function ($book, $entry) use ($request, $data) {
+        $deliveryEvent = null;
+        $response = $this->change($request, $entry, function ($book, $entry) use ($request, $data, &$deliveryEvent) {
             abort_if($entry->document->revoked_at, 409, 'Registro cancelado.');
+            if (! empty($data['delivery_token']) && ($deliveryEvent = $entry->events()->where('action', 'delivered')
+                ->where('data->delivery_token', $data['delivery_token'])->first())) {
+                return;
+            }
             $signed = $entry->files()->find($data['signed_file_id'] ?? 0);
             if (! $signed && empty($data['signed_file_id'])) {
                 $signed = $entry->files()->where('kind', $data['method'] === 'digital' ? 'signed_document' : 'physical_signed')->latest('id')->first();
@@ -299,8 +307,16 @@ class CredentialRegistryController extends Controller
                 $authority = $this->trackedFile($book, $entry, $request, 'authority', $request->file('authority')->get(), $metadata);
                 $metadata['authority_file_id'] = $authority->id;
             }
-            $this->registry->event($book, $entry, $request->user(), 'delivered', $metadata + ['receipt_file_id' => $receipt->id, 'signed_file_id' => $signed?->id]);
+            $deliveryEvent = $this->registry->event($book, $entry, $request->user(), 'delivered', $metadata + ['receipt_file_id' => $receipt->id, 'signed_file_id' => $signed?->id]);
         }, 'Protocolo de entrega arquivado.');
+
+        if (in_array($entry->book->kind, InstitutionalSchoolRecord::CERTIFICATE_BOOKS, true)) {
+            return redirect()->route('institutional-records.index', [
+                'school' => $entry->book->school_id, 'kind' => 'delivery', 'delivery_event' => $deliveryEvent->id,
+            ])->with('status', __('Protocolo arquivado. Confira os dados e lance a entrega no livro próprio.'));
+        }
+
+        return $response;
     }
 
     public function file(Request $request, CredentialRegistryFile $file)

@@ -104,7 +104,7 @@ class TechnicalCredentialController extends Controller
         }
         $school = $course->academicYear->school;
         $rules = SchoolRecordPdf::registryRules($school) + [
-            'sistec_code' => [Rule::requiredIf($kind === 'diploma' && $state['final']), 'nullable', 'string', 'max:100', 'not_regex:/[<>\r\n]/'], 'course_id' => ['required', 'integer'], 'kind' => ['required', Rule::in(['certificate', 'diploma'])],
+            'sistec_code' => ['required', 'string', 'max:100', 'not_regex:/[<>\r\n]/'], 'course_id' => ['required', 'integer'], 'kind' => ['required', Rule::in(['certificate', 'diploma'])],
             'issued_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.now('America/Cuiaba')->toDateString()],
             'registration_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:issued_date'],
             'history_code' => ['nullable', 'string', 'max:60'],
@@ -113,7 +113,7 @@ class TechnicalCredentialController extends Controller
             'authorization_pdf' => [Rule::requiredIf($kind === 'diploma'), 'nullable', 'file', 'mimes:pdf', 'max:20480'],
             'sistec_enrolled_on' => [Rule::requiredIf($kind === 'diploma' && $request->input('issued_date') >= self::SISTEC_MINIMUM_PERIOD_FROM), 'nullable', 'date_format:Y-m-d', 'before_or_equal:issued_date'],
             'sistec_completed_on' => ['required_with:sistec_enrolled_on', 'nullable', 'date_format:Y-m-d', 'after_or_equal:sistec_enrolled_on', 'before_or_equal:issued_date'],
-            'sistec_proof' => [Rule::requiredIf($kind === 'diploma'), 'nullable', 'file', 'mimes:pdf', 'max:20480'],
+            'sistec_proof' => ['required', 'file', 'mimes:pdf', 'max:20480'],
             'high_school_certificate' => [Rule::requiredIf($kind === 'diploma'), 'nullable', 'file', 'mimes:pdf', 'max:20480'],
             'title_gender' => [Rule::requiredIf($kind === 'diploma'), 'nullable', Rule::in(['masculine', 'feminine'])],
             'observations' => ['nullable', 'string', 'max:500']];
@@ -133,7 +133,7 @@ class TechnicalCredentialController extends Controller
         }
         $program = $course->technicalProgram;
         $offerForm = app(TechnicalEnrollmentOffer::class)->resolve($enrollment, $course);
-        $evidence = [];
+        $evidence = ['sistec_evidence' => $request->file('sistec_proof')->get()];
         $historyEntry = null;
         if ($message = $this->offeringAuthorizationMessage($enrollment, $course, $offerForm)) {
             throw ValidationException::withMessages(['authorization_pdf' => $message]);
@@ -151,7 +151,7 @@ class TechnicalCredentialController extends Controller
                 $request->validate(['sistec_exception' => ['required', 'file', 'mimes:pdf', 'max:20480']]);
                 $evidence['sistec_exception'] = $request->file('sistec_exception')->get();
             }
-            foreach (['authorization_pdf' => 'authorization_act', 'sistec_proof' => 'sistec_evidence', 'high_school_certificate' => 'high_school_certificate'] as $field => $label) {
+            foreach (['authorization_pdf' => 'authorization_act', 'high_school_certificate' => 'high_school_certificate'] as $field => $label) {
                 $evidence[$label] = $request->file($field)->get();
             }
         }
