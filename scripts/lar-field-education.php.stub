@@ -1,0 +1,19 @@
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+$db = \Illuminate\Support\Facades\DB::connection();
+$db->statement('START TRANSACTION READ ONLY');
+try {
+    $school = $db->table('schools')->where('id', 2)->where('cnpj', '00.176.974/0003-92')
+        ->where('state', 'MT')->where('city', 'Rondonópolis')->sole(['id', 'name']);
+    $matrices = $db->table('academic_courses as course')->join('academic_years as year', 'year.id', '=', 'course.academic_year_id')
+        ->where('year.school_id', $school->id)->whereBetween('year.reference_year', [2023, 2027])
+        ->whereIn('course.stage', ['fundamental', 'medio'])
+        ->orderBy('year.reference_year')->orderBy('course.stage')->orderBy('course.id')
+        ->get(['course.id', 'course.academic_year_id', 'course.name', 'course.active', 'course.stage', 'course.modality',
+            'year.reference_year', 'year.starts_at', 'year.ends_at', 'year.closed_at']);
+    echo json_encode(compact('school', 'matrices'), JSON_THROW_ON_ERROR);
+} finally {
+    $db->statement('ROLLBACK');
+}

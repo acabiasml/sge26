@@ -45,27 +45,7 @@ def run_remote(client, command, timeout=45):
         stderr.close()
 
 
-source = r'''
-require "vendor/autoload.php";
-$app = require "bootstrap/app.php";
-$app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
-$db = \Illuminate\Support\Facades\DB::connection();
-$db->statement("START TRANSACTION READ ONLY");
-try {
-    $schools = $db->table("schools")->select("id", "name", "legal_name", "cnpj", "inep", "city", "state", "active",
-        "creation_act", "accreditation_act", "document_authorizations", "letterhead_text", "letterhead_text_elementary", "letterhead_text_high_school")->orderBy("id")->get();
-    $programs = $db->table("technical_programs")->select("school_id", "name", "accreditation_act", "authorization_act",
-        "regulatory_process", "regulatory_opinion", "official_gazette_reference", "authorization_starts_at", "authorization_ends_at", "offer_forms")
-        ->orderBy("school_id")->get();
-    $offers = $db->table("academic_courses")->join("academic_years", "academic_years.id", "=", "academic_courses.academic_year_id")
-        ->where("academic_years.reference_year", ">=", 2025)
-        ->select("academic_years.school_id", "academic_years.reference_year", "academic_courses.stage", "academic_courses.modality")
-        ->distinct()->orderBy("academic_years.school_id")->get();
-    echo json_encode(compact("schools", "programs", "offers"), JSON_THROW_ON_ERROR);
-} finally {
-    $db->statement("ROLLBACK");
-}
-'''
+source = pathlib.Path('scripts/lar-field-education.php.stub').read_text()
 with tempfile.TemporaryDirectory() as directory:
     known_hosts = pathlib.Path(directory) / 'known_hosts'
     known_hosts.write_text(os.environ['HOSTINGER_KNOWN_HOSTS'])
@@ -77,5 +57,5 @@ with tempfile.TemporaryDirectory() as directory:
         if code != 0:
             raise RuntimeError('A consulta de cadastro não foi concluída no servidor.')
         json.loads(output)
-        public_key = base64.b64encode(pathlib.Path('scripts/authorized-school-query-public.pem').read_bytes()).decode()
-        pathlib.Path('atos-escolas.encrypted.json').write_text(encrypt_report(output, public_key))
+        public_key = base64.b64encode(pathlib.Path('scripts/lar-field-education-public.pem').read_bytes()).decode()
+        pathlib.Path('educacao-do-campo.encrypted.json').write_text(encrypt_report(output, public_key))
