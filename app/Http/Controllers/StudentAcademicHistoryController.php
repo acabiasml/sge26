@@ -16,6 +16,7 @@ use App\Support\HistoryCatalogIntegrator;
 use App\Support\HistoryCurriculumCatalog;
 use App\Support\HistoryDocumentVersion;
 use App\Support\OfficialDocumentCompliance;
+use App\Support\PersonNameSearch;
 use App\Support\PdfLetterhead;
 use App\Support\SchoolRecordPdf;
 use App\Support\SchoolSignatureStaff;
@@ -49,7 +50,7 @@ class StudentAcademicHistoryController extends Controller
 
         $students = Person::query()
             ->whereHas('studentEnrollments.schoolClass.academicYear', fn ($query) => $query->whereIn('school_id', $schoolIds))
-            ->when($request->filled('q'), fn ($query) => $query->where('full_name', 'like', '%'.trim((string) $request->input('q')).'%'))
+            ->when($request->filled('q'), fn ($query) => PersonNameSearch::apply($query, (string) $request->input('q')))
             ->withCount(['studentEnrollments' => fn ($query) => $query->whereHas('schoolClass.academicYear', fn ($academicYearQuery) => $academicYearQuery->whereIn('school_id', $schoolIds))])
             ->with(['academicHistories' => fn ($query) => $query->where('is_unified', true)->withCount('years')])
             ->orderBy('full_name')

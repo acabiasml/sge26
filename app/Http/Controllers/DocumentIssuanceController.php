@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Support\AcademicContextLabel;
 use App\Support\HighSchoolCompletion;
 use App\Support\OfficialDocumentCompliance;
+use App\Support\PersonNameSearch;
 use App\Support\TeacherAccess;
 use App\Support\UnifiedStudentHistorySynchronizer;
 use Illuminate\Database\Eloquent\Builder;
@@ -606,7 +607,7 @@ class DocumentIssuanceController extends Controller
             ->when($request->filled('class_id'), fn (Builder $query) => $query->where('school_class_id', $request->integer('class_id')))
             ->when($term !== '', function (Builder $query) use ($term): void {
                 $query->where(function (Builder $search) use ($term): void {
-                    $this->wherePersonName($search, $term, 'people.');
+                    PersonNameSearch::apply($search, $term, 'people.');
                     $search
                         ->orWhere('people.cpf', 'like', '%'.$term.'%');
                 });
@@ -758,21 +759,6 @@ class DocumentIssuanceController extends Controller
         return $class->isOperational();
     }
 
-    private function wherePersonName(Builder $query, string $term, string $prefix = ''): void
-    {
-        $words = preg_split('/\s+/u', trim($term), -1, PREG_SPLIT_NO_EMPTY);
-
-        $query->where(function (Builder $names) use ($words, $prefix): void {
-            foreach (['full_name', 'social_name'] as $column) {
-                $names->orWhere(function (Builder $name) use ($words, $prefix, $column): void {
-                    foreach ($words as $word) {
-                        $name->where($prefix.$column, 'like', '%'.$word.'%');
-                    }
-                });
-            }
-        });
-    }
-
     /**
      * @param  list<int>  $schoolIds
      * @return Collection<int, array<string, bool|int|string|null>>
@@ -790,7 +776,7 @@ class DocumentIssuanceController extends Controller
             ->when($request->filled('school_id'), fn (Builder $query) => $query->whereHas('schoolRoles', fn (Builder $roles) => $roles->where('school_id', $request->integer('school_id'))))
             ->when($term !== '', function (Builder $query) use ($term): void {
                 $query->where(function (Builder $search) use ($term): void {
-                    $this->wherePersonName($search, $term);
+                    PersonNameSearch::apply($search, $term);
                     $search
                         ->orWhere('institutional_email', 'like', '%'.$term.'%')
                         ->orWhere('cpf', 'like', '%'.$term.'%');
@@ -832,7 +818,7 @@ class DocumentIssuanceController extends Controller
             ->when($request->filled('school_id'), fn (Builder $query) => $query->where('school_id', $request->integer('school_id')))
             ->when($term !== '', function (Builder $query) use ($term): void {
                 $query->where(function (Builder $search) use ($term): void {
-                    $this->wherePersonName($search, $term, 'people.');
+                    PersonNameSearch::apply($search, $term, 'people.');
                     $search
                         ->orWhere('student_academic_histories.title', 'like', '%'.$term.'%')
                         ->orWhere('student_academic_histories.stage', 'like', '%'.$term.'%');
@@ -868,7 +854,7 @@ class DocumentIssuanceController extends Controller
                     ->whereHas('schoolClass.academicYear', fn ($year) => $year->whereIn('school_id', $archiveSchoolIds))
                     ->with(['courses', 'schoolClass.academicYear.school'])->orderByDesc('enrolled_at')->orderByDesc('id'),
             ])
-            ->when($term !== '', fn (Builder $query) => $this->wherePersonName($query, $term))
+            ->when($term !== '', fn (Builder $query) => PersonNameSearch::apply($query, $term))
             ->orderBy('full_name')->limit(40)->get(['id', 'full_name', 'social_name', 'cpf'])
             ->flatMap(function (Person $person): Collection {
                 $availableStages = $person->academicHistories->pluck('education_stage');

@@ -62,13 +62,20 @@ class ReactiveListingsTest extends TestCase
     {
         $school = School::create(['name' => 'Escola Permitida', 'active' => true]);
         $other = School::create(['name' => 'Escola Restrita', 'active' => true]);
-        $this->student('Estudante Visível', $school);
-        $this->student('Estudante Restrito', $other);
+        $student = $this->student('Lucas da Silva Arruda', $school);
+        $student->academicHistories()->create(['school_id' => $school->id, 'title' => 'Histórico escolar',
+            'education_stage' => AcademicCourse::STAGE_ELEMENTARY, 'is_unified' => true, 'active' => true]);
+        $restricted = $this->student('Lucas do Prado Arruda', $other);
         $this->user(PersonSchoolRole::ROLE_MANAGER, $school);
         Livewire::test(ScreenListing::class, ['screen' => 'histories'])
-            ->assertSee('Estudante Visível')->assertDontSee('Estudante Restrito')
-            ->set('filters.q', 'Restrito')->assertDontSee('Estudante Restrito')
-            ->set('filters.school', $other->id)->assertDontSee('Estudante Restrito');
+            ->assertSee($student->full_name)->assertDontSee($restricted->full_name)
+            ->set('filters.q', 'Lucas Arruda')
+            ->assertSee($student->full_name)->assertDontSee($restricted->full_name)
+            ->assertSee(route('student-histories.student', $student), false)
+            ->set('filters.q', 'Arruda   Lucas')
+            ->assertSee($student->full_name)->assertDontSee($restricted->full_name)
+            ->set('filters.school', $other->id)->assertDontSee($restricted->full_name)
+            ->set('filters.q', 'Lucas Inexistente')->assertDontSee($student->full_name);
     }
 
     public function test_collection_search_and_pagination_work_without_javascript_pagination(): void
