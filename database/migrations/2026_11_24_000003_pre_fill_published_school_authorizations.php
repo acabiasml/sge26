@@ -34,30 +34,32 @@ return new class extends Migration
             ],
         ];
 
-        DB::table('schools')->where('state', 'MT')->orderBy('id')->lockForUpdate()
-            ->eachById(function (object $school) use ($publishedByCnpj): void {
-                $cnpj = preg_replace('/\D/', '', (string) $school->cnpj);
-                if (! isset($publishedByCnpj[$cnpj])) {
-                    return;
-                }
-
-                $current = json_decode($school->document_authorizations ?? '[]', true, flags: JSON_THROW_ON_ERROR) ?? [];
-                $updated = $current;
-                foreach ($publishedByCnpj[$cnpj] as $key => $act) {
-                    if (! collect($current[$key] ?? [])->contains(fn ($value) => filled($value))) {
-                        $updated[$key] = $act;
+        DB::transaction(function () use ($publishedByCnpj): void {
+            DB::table('schools')->where('state', 'MT')->orderBy('id')->lockForUpdate()
+                ->eachById(function (object $school) use ($publishedByCnpj): void {
+                    $cnpj = preg_replace('/\D/', '', (string) $school->cnpj);
+                    if (! isset($publishedByCnpj[$cnpj])) {
+                        return;
                     }
-                }
-                if ($updated !== $current) {
-                    DB::table('schools')->where('id', $school->id)->update([
-                        'document_authorizations' => json_encode($updated, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
-                    ]);
-                }
 
-                if ($cnpj === '00176974000120') {
-                    $this->fillFurnitureProgram($school->id);
-                }
-            });
+                    $current = json_decode($school->document_authorizations ?? '[]', true, flags: JSON_THROW_ON_ERROR) ?? [];
+                    $updated = $current;
+                    foreach ($publishedByCnpj[$cnpj] as $key => $act) {
+                        if (! collect($current[$key] ?? [])->contains(fn ($value) => filled($value))) {
+                            $updated[$key] = $act;
+                        }
+                    }
+                    if ($updated !== $current) {
+                        DB::table('schools')->where('id', $school->id)->update([
+                            'document_authorizations' => json_encode($updated, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+                        ]);
+                    }
+
+                    if ($cnpj === '00176974000120') {
+                        $this->fillFurnitureProgram($school->id);
+                    }
+                });
+        });
     }
 
     public function down(): void
