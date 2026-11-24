@@ -283,6 +283,7 @@ with tempfile.TemporaryDirectory() as directory:
         commands.append(('Aplicar campos de identificação para documentação escolar', 'php artisan migrate --path=database/migrations/2026_11_18_030300_add_school_document_identity_to_people.php --force --no-ansi'))
         commands.append(('Aplicar arquivo de assinaturas dos demais documentos', 'php artisan migrate --path=database/migrations/2026_11_18_030400_create_document_signature_versions.php --force --no-ansi'))
         commands.append(('Aplicar modalidade aos livros de escrituração escolar', 'php artisan migrate --path=database/migrations/2026_11_23_000001_scope_school_record_books.php --force --no-ansi'))
+        commands.append(('Preparar rascunhos do histórico escolar', 'php artisan migrate --path=database/migrations/2026_11_24_000001_create_student_history_drafts.php --force --no-ansi'))
         commands.append(('Conferir integridade dos livros digitais', 'php artisan credentials:check --no-ansi'))
         commands.append(('Migrations', 'php artisan migrate:status --no-ansi'))
         expected_commit = os.environ['EXPECTED_COMMIT']
