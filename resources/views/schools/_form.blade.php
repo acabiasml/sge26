@@ -2,6 +2,8 @@
     $schoolTabs = [
         'identificacao' => ['label' => __('Dados e contatos'), 'icon' => 'fa-school', 'fields' => ['name', 'legal_name', 'cnpj', 'inep', 'phone', 'email']],
         'documentos' => ['label' => __('Dados para documentos'), 'icon' => 'fa-file-alt', 'fields' => ['founded_at', 'website', 'registry_medium', 'letterhead_mode', 'letterhead_text', 'letterhead_text_high_school', 'logo', 'maintainer', 'creation_act', 'accreditation_act', 'education_system']],
+        ...(isset($school) ? ['atos-autorizativos' => ['label' => __('Atos autorizativos'), 'icon' => 'fa-file-contract',
+            'fields' => ['document_authorizations', 'document_authorizations.*']]] : []),
         'endereco' => ['label' => __('Endereço'), 'icon' => 'fa-map-marker-alt', 'fields' => ['address', 'number', 'district', 'city', 'state', 'postal_code']],
     ];
 @endphp
@@ -99,6 +101,12 @@
 </div>
 
 </section>
+
+@isset($school)
+    <section id="section-atos-autorizativos" data-academic-panel="atos-autorizativos" role="tabpanel">
+        @include('schools.partials.document-authorization-fields')
+    </section>
+@endisset
 
 <section id="section-endereco" data-academic-panel="endereco" role="tabpanel">
 

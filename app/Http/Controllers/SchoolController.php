@@ -71,11 +71,11 @@ class SchoolController extends Controller
             ->with('status', __('Escola atualizada com sucesso.'));
     }
 
-    public function editAuthorizations(Request $request, School $school): View
+    public function editAuthorizations(Request $request, School $school): RedirectResponse
     {
         abort_unless($request->user()->canManageSchool($school->id), 403);
 
-        return view('schools.document-authorizations', compact('school'));
+        return redirect()->to(route('schools.edit', $school).'#section-atos-autorizativos');
     }
 
     public function updateAuthorizations(Request $request, School $school): RedirectResponse
@@ -84,7 +84,7 @@ class SchoolController extends Controller
 
         $school->update($request->validate($this->authorizationRules()));
 
-        return redirect()->route('schools.document-authorizations.edit', $school)
+        return redirect()->to(route('schools.edit', $school).'#section-atos-autorizativos')
             ->with('status', __('Atos autorizativos atualizados.'));
     }
 
@@ -161,10 +161,11 @@ class SchoolController extends Controller
         $rules = ['document_authorizations' => ['sometimes', 'array:'.implode(',', array_keys(School::documentAuthorizationLabels()))]];
         foreach (array_keys(School::documentAuthorizationLabels()) as $kind) {
             $field = 'document_authorizations.'.$kind;
-            $rules[$field] = ['nullable', 'array:act,published_on,starts_on,ends_on'];
-            $rules[$field.'.act'] = ['nullable', 'required_with:'.$field.'.published_on,'.$field.'.starts_on,'.$field.'.ends_on', 'string', 'max:350'];
+            $rules[$field] = ['nullable', 'array:act,published_on,starts_on,ends_on,source_url'];
+            $rules[$field.'.act'] = ['nullable', 'required_with:'.$field.'.published_on,'.$field.'.starts_on,'.$field.'.ends_on,'.$field.'.source_url', 'string', 'max:350'];
             $rules[$field.'.published_on'] = ['nullable', 'required_with:'.$field.'.act', 'date_format:Y-m-d', 'before_or_equal:today'];
             $rules[$field.'.starts_on'] = ['nullable', 'required_with:'.$field.'.act', 'date_format:Y-m-d'];
+            $rules[$field.'.source_url'] = ['nullable', 'url:https', 'max:350'];
             $rules[$field.'.ends_on'] = ['nullable', 'date_format:Y-m-d', 'after_or_equal:'.$field.'.starts_on'];
         }
 
