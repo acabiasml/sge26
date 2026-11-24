@@ -158,8 +158,8 @@ class SchoolController extends Controller
 
     private function authorizationRules(): array
     {
-        $rules = ['document_authorizations' => ['sometimes', 'array:'.implode(',', array_keys(School::DOCUMENT_AUTHORIZATIONS))]];
-        foreach (array_keys(School::DOCUMENT_AUTHORIZATIONS) as $kind) {
+        $rules = ['document_authorizations' => ['sometimes', 'array:'.implode(',', array_keys(School::documentAuthorizationLabels()))]];
+        foreach (array_keys(School::documentAuthorizationLabels()) as $kind) {
             $field = 'document_authorizations.'.$kind;
             $rules[$field] = ['nullable', 'array:act,published_on,starts_on,ends_on'];
             $rules[$field.'.act'] = ['nullable', 'required_with:'.$field.'.published_on,'.$field.'.starts_on,'.$field.'.ends_on', 'string', 'max:350'];

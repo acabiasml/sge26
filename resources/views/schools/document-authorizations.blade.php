@@ -10,10 +10,13 @@
             <form method="POST" action="{{ route('schools.document-authorizations.update', $school) }}">
                 @csrf
                 @method('PUT')
-                <p class="small text-muted">{{ __('Preencha os atos das etapas ofertadas, com a referência da publicação e as datas de vigência. Deixe o término em branco somente quando o ato tiver prazo indeterminado.') }}</p>
-                @foreach(\App\Models\School::DOCUMENT_AUTHORIZATIONS as $kind => $label)
-                    <fieldset class="mb-3">
-                        <legend class="h6">{{ __($label) }}</legend>
+                <p class="small text-muted">{{ __('Preencha os atos das etapas e modalidades ofertadas, com a referência da publicação e as datas de vigência. Se um ato autorizar mais de uma oferta, registre a mesma referência nas ofertas correspondentes. Deixe o término em branco somente quando o ato tiver prazo indeterminado.') }}</p>
+                @foreach(\App\Models\School::documentAuthorizationLabels() as $kind => $label)
+                    @php($hasAct = filled(old("document_authorizations.$kind.act", $school->document_authorizations[$kind]['act'] ?? null)))
+                    <details class="mb-3" @if($hasAct || isset(\App\Models\School::DOCUMENT_AUTHORIZATIONS[$kind]) || $errors->has("document_authorizations.$kind.*")) open @endif>
+                        <summary class="font-weight-bold mb-2">{{ __($label) }}</summary>
+                        <fieldset>
+                        <legend class="sr-only">{{ __($label) }}</legend>
                         <div class="form-row">
                             @foreach(['act' => __('Ato e referência do Diário Oficial'), 'published_on' => __('Publicação'), 'starts_on' => __('Início da vigência'), 'ends_on' => __('Fim da vigência')] as $field => $caption)
                                 @php($fieldKey = "document_authorizations.$kind.$field")
@@ -24,7 +27,8 @@
                                 </div>
                             @endforeach
                         </div>
-                    </fieldset>
+                        </fieldset>
+                    </details>
                 @endforeach
                 <button type="submit" class="btn btn-primary">{{ __('screens.save_changes') }}</button>
                 <a href="{{ route('schools.edit', $school) }}#section-documentos" class="btn btn-outline-secondary">{{ __('Voltar ao cadastro da escola') }}</a>

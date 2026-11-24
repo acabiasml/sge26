@@ -89,6 +89,15 @@
                             <input id="institutional-original" type="file" class="form-control-file" name="original_pdf" accept="application/pdf" @required($definition['required'])>
                         </div>
                         @if($kind === 'delivery')
+                            <div class="form-row" id="institutional-proxy-dates">
+                                @foreach(\App\Support\ProxyDelivery::DATE_LABELS as $field => $label)
+                                    <div class="form-group col-md-6">
+                                        <label for="{{ $field }}">{{ __($label) }}</label>
+                                        <input id="{{ $field }}" name="{{ $field }}" type="date" class="form-control" value="{{ old($field) }}">
+                                    </div>
+                                @endforeach
+                                <p class="col-12 small text-muted">{{ __('Para procurador, informe as duas datas e anexe a procuração específica conferida pela secretaria.') }}</p>
+                            </div>
                             <div class="form-group">
                                 <label for="institutional-authority">{{ __('Comprovação de representação, quando o recebedor for terceiro (PDF)') }}</label>
                                 <input id="institutional-authority" type="file" class="form-control-file" name="authority_pdf" accept="application/pdf">
@@ -104,3 +113,25 @@
         </section>
     @endif
 @endsection
+
+@push('scripts')
+<script>
+    (() => {
+        const recipient = document.getElementById('institutional-recipient_kind');
+        const dates = document.getElementById('institutional-proxy-dates');
+        if (!recipient || !dates) return;
+        const authority = document.getElementById('institutional-authority');
+        const sync = () => {
+            const proxy = recipient.value === 'proxy';
+            dates.hidden = !proxy;
+            dates.querySelectorAll('input').forEach((input) => {
+                input.disabled = !proxy;
+                input.required = proxy;
+            });
+            authority.required = ['guardian', 'proxy'].includes(recipient.value);
+        };
+        recipient.addEventListener('change', sync);
+        sync();
+    })();
+</script>
+@endpush

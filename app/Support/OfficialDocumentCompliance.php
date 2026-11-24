@@ -10,20 +10,60 @@ use Illuminate\Support\Str;
 
 class OfficialDocumentCompliance
 {
-    public static function authorizationMessage(School $school, array $stages): ?string
+    public static function courseAuthorizationMessage(School $school, iterable $courses): ?string
+    {
+        $offerings = collect($courses)->map(fn (AcademicCourse $course) => [$course->stage, $course->modality]);
+
+        return self::authorizationMessage($school, $offerings->pluck(0)->all(), $offerings->all());
+    }
+
+    public static function authorizationKeys(array $stages, array $offerings): array
+    {
+        $keys = ['accreditation', ...array_intersect($stages, [AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL])];
+        foreach ($offerings as [$stage, $modality]) {
+            if (isset(AcademicCourse::STAGE_LABELS[$stage]) && $stage !== AcademicCourse::STAGE_OTHER) {
+                $keys[] = $stage.'_'.(self::modalityKey($modality) ?? 'missing');
+            }
+        }
+
+        return array_unique($keys);
+    }
+
+    public static function authorizationMessage(School $school, array $stages, array $offerings = []): ?string
     {
         if ($school->state !== 'MT') {
             return null;
         }
         $date = now('America/Cuiaba')->toDateString();
-        $keys = array_unique(['accreditation', ...array_intersect($stages, [AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL])]);
-        foreach ($keys as $key) {
+        $labels = School::documentAuthorizationLabels();
+        foreach (self::authorizationKeys($stages, $offerings) as $key) {
+            if (! isset($labels[$key])) {
+                return __('Identifique a modalidade da oferta no cadastro da matriz ou do histórico antes de emitir.');
+            }
             $act = $school->document_authorizations[$key] ?? [];
             if (blank($act['act'] ?? null) || blank($act['published_on'] ?? null) || blank($act['starts_on'] ?? null)
                 || $act['published_on'] > $date || $act['starts_on'] > $date || (filled($act['ends_on'] ?? null) && $act['ends_on'] < $date)) {
                 return __('Confira o ato, a publicação e a vigência em Atos autorizativos no cadastro da escola. Pendência: :authorization.', [
-                    'authorization' => __(School::DOCUMENT_AUTHORIZATIONS[$key]),
+                    'authorization' => __($labels[$key]),
                 ]);
+            }
+        }
+
+        return null;
+    }
+
+    private static function modalityKey(?string $modality): ?string
+    {
+        $normalized = Str::of((string) $modality)->ascii()->lower()->squish()->toString();
+        if (isset(AcademicCourse::MODALITY_LABELS[$normalized])) {
+            return $normalized;
+        }
+        if ($normalized === 'ept') {
+            return AcademicCourse::MODALITY_PROFESSIONAL_TECHNOLOGICAL;
+        }
+        foreach (AcademicCourse::MODALITY_LABELS as $key => $label) {
+            if ($normalized === Str::lower(Str::ascii($label))) {
+                return $key;
             }
         }
 

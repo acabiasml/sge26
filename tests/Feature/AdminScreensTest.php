@@ -1723,6 +1723,32 @@ class AdminScreensTest extends TestCase
         ]);
     }
 
+    public function test_high_school_completion_requires_verified_dates_and_preserves_partial_history(): void
+    {
+        $school = School::query()->create($this->officialSchoolData());
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $school->id);
+        $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $school->id)->person;
+        $history = app(UnifiedStudentHistorySynchronizer::class)->synchronize($student, $school->id, $manager->person_id, AcademicCourse::STAGE_HIGH_SCHOOL);
+        foreach (range(1, 3) as $grade) {
+            $history->years()->create(['source' => 'manual', 'position' => $grade, 'year' => (string) (2022 + $grade),
+                'label' => $grade.'º Ano', 'grade_number' => $grade, 'stage' => 'Ensino Médio', 'modality' => 'Regular',
+                'school_name' => 'Escola de origem', 'transcript_mode' => 'detailed', 'final_result' => $grade === 3 ? 'Cursando' : 'Aprovado']);
+        }
+        $prepare = route('people.histories.prepare-official', [$student, $history]);
+        $this->actingAs($manager)->get($prepare)->assertOk()->assertDontSee('Preencha os dados de ingresso');
+        $history->years()->where('grade_number', 3)->update(['final_result' => 'Aprovado']);
+        $this->get($prepare)->assertOk()->assertSee('Preencha os dados de ingresso');
+        $details = ['school_id' => $school->id, 'title' => $history->title, 'active' => 1,
+            'course_entered_on' => '2023-02-15', 'course_entry_method' => 'Transferência conferida', 'course_entry_year' => 2023,
+            'course_entry_semester' => 1];
+        $edit = route('people.histories.details.update', [$student, $history]);
+        $this->put($edit, $details + ['course_completed_on' => '2023-02-14'])->assertSessionHasErrors('course_completed_on');
+        $this->put($edit, $details + ['course_completed_on' => '2025-12-19'])->assertSessionHasNoErrors();
+        $this->assertSame('2025-12-19', $history->fresh()->highSchoolCompletionDetails()['completed_on']);
+        $this->get($prepare)->assertOk()->assertDontSee('Preencha os dados de ingresso');
+        $this->get(route('people.histories.pdf', [$student, $history]))->assertOk()->assertHeader('content-type', 'application/pdf');
+    }
+
     public function test_closed_system_year_shows_recorded_grades_even_when_final_result_is_pending(): void
     {
         $school = School::query()->create($this->officialSchoolData(['name' => 'Escola Laura Vicuña']));
@@ -2109,7 +2135,7 @@ class AdminScreensTest extends TestCase
             'email' => 'ctjj.mt@gmail.com',
             'website' => 'https://ctjj.org',
             'letterhead_text' => 'Credenciamento e autorizacao vigentes.',
-            'document_authorizations' => array_fill_keys(['accreditation', 'fundamental', 'medio'], ['act' => 'Ato escolar de teste', 'published_on' => '2020-01-01', 'starts_on' => '2020-01-01']),
+            'document_authorizations' => array_fill_keys(['accreditation', 'fundamental', 'medio', 'fundamental_regular', 'medio_regular'], ['act' => 'Ato escolar de teste', 'published_on' => '2020-01-01', 'starts_on' => '2020-01-01']),
             'address' => 'Av. Sao Joao',
             'district' => 'Jarudore',
             'number' => 's/n',

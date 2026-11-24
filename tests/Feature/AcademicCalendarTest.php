@@ -1684,9 +1684,11 @@ class AcademicCalendarTest extends TestCase
         ]);
         $enrollment->courses()->attach($courseA);
 
+        $process = $this->recordReclassification($manager, $enrollment, $courseB);
         $this->actingAs($manager)
             ->post(route('enrollments.reclassify', $enrollment), [
                 'target_school_class_id' => $classB->id,
+                'reclassification_registration_id' => $process,
                 'course_ids' => [$courseB->id],
                 'reclassified_at' => '2026-04-01',
                 'notes' => 'Reclassificação pedagógica.',
@@ -1699,6 +1701,7 @@ class AcademicCalendarTest extends TestCase
             ->firstOrFail();
 
         $this->assertSame($enrollment->id, $newEnrollment->reclassified_from_enrollment_id);
+        $this->assertSame($process, $newEnrollment->reclassificationRegistration->id);
         $this->assertDatabaseHas('student_enrollments', [
             'id' => $enrollment->id,
             'status' => StudentEnrollment::STATUS_RECLASSIFIED,
@@ -1748,17 +1751,23 @@ class AcademicCalendarTest extends TestCase
         $year = $this->academicYear();
         $this->reclassificationPeriods($year);
         $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'regra.reclassificacao@ctjj.org');
-        $course = $year->courses()->create(['name' => 'Ensino Médio', 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL, 'active' => true]);
+        $course = $year->courses()->create(['name' => '1º Ano', 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL, 'active' => true]);
         $from = $year->classes()->create(['name' => 'Origem', 'active' => true]);
         $from->courses()->attach($course);
         $to = $year->classes()->create(['name' => 'Destino', 'active' => true]);
-        $to->courses()->attach($course);
+        $next = $year->courses()->create(['name' => '2º Ano', 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL, 'active' => true]);
+        $to->courses()->attach($next);
         $enrollment = $from->enrollments()->create(['person_id' => $student->person_id, 'enrolled_at' => '2026-02-01', 'status' => 'matriculado']);
         $enrollment->courses()->attach($course);
-        $payload = ['target_school_class_id' => $to->id, 'course_ids' => [$course->id]];
+        $payload = ['target_school_class_id' => $to->id, 'course_ids' => [$next->id]];
         $this->actingAs($admin)->post(route('enrollments.reclassify', $enrollment), $payload + ['reclassified_at' => '2026-06-01'])
             ->assertSessionHasErrors('reclassified_at');
         $this->assertDatabaseMissing('student_enrollments', ['school_class_id' => $to->id, 'person_id' => $student->person_id]);
+        $this->post(route('enrollments.reclassify', $enrollment), $payload)->assertSessionHasErrors('reclassification_registration_id');
+        $late = $this->recordReclassification($admin, $enrollment, $next, '2026-04-22');
+        $this->post(route('enrollments.reclassify', $enrollment), $payload + ['reclassification_registration_id' => $late])
+            ->assertSessionHasErrors('reclassification_registration_id');
+        $payload['reclassification_registration_id'] = $this->recordReclassification($admin, $enrollment, $next);
         $this->flushSession();
         $this->actingAs($admin)->post(route('enrollments.reclassify', $enrollment), $payload)->assertSessionHasNoErrors();
         $destination = $to->enrollments()->firstOrFail();
@@ -2546,7 +2555,7 @@ class AcademicCalendarTest extends TestCase
         $this->reclassificationPeriods($year);
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'manager.reopen@ctjj.org');
         $student = $this->userWithRole(PersonSchoolRole::ROLE_STUDENT, $year->school_id, 'student.reopen@ctjj.org');
-        $course = $year->courses()->create(['name' => 'Matriz', 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL, 'status' => 'iniciado', 'active' => true]);
+        $course = $year->courses()->create(['name' => '1º Ano', 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL, 'status' => 'iniciado', 'active' => true]);
         $course->components()->create(['name' => 'Matemática', 'weekly_lessons' => 5, 'active' => true]);
         $class = $year->classes()->create(['name' => 'Turma arquivada', 'active' => false]);
         $class->courses()->attach($course);
@@ -2569,10 +2578,12 @@ class AcademicCalendarTest extends TestCase
         $this->assertTrue($year->isReadOnly());
         $this->get(route('academic-years.show', $year))->assertOk()->assertDontSee('id="administrative-reopening"', false);
         $target = $year->classes()->create(['name' => 'Destino arquivado', 'active' => false]);
-        $target->courses()->attach($course);
+        $next = $year->courses()->create(['name' => '2º Ano', 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL, 'active' => true]);
+        $target->courses()->attach($next);
         $enrollment = $class->enrollments()->firstOrFail();
-        $movement = ['target_school_class_id' => $target->id, 'course_ids' => [$course->id], 'reclassified_at' => '2026-03-01'];
+        $movement = ['target_school_class_id' => $target->id, 'course_ids' => [$next->id], 'reclassified_at' => '2026-03-01'];
         $this->post(route('enrollments.reclassify', $enrollment), $movement)->assertSessionHasErrors('academic_year');
+        $movement['reclassification_registration_id'] = $this->recordReclassification($admin, $enrollment, $next);
         $this->actingAs($admin)->post(route('enrollments.reclassify', $enrollment), $movement)->assertSessionHasNoErrors();
         $this->assertDatabaseHas('student_enrollments', ['person_id' => $student->person_id, 'school_class_id' => $target->id]);
     }
@@ -2828,6 +2839,23 @@ class AcademicCalendarTest extends TestCase
         $this->assertSame($year->school_id, $document->school_id);
         $this->assertSame(1, $document->payload['rows_count']);
         $this->assertStringStartsWith('BEABA-', $document->verification_code);
+    }
+
+    private function recordReclassification(User $user, StudentEnrollment $enrollment, AcademicCourse $course, string $date = '2026-03-01'): int
+    {
+        $school = $course->academicYear->school;
+        $registry = app(\App\Support\CredentialRegistry::class);
+        $book = $registry->open($user, ['school_id' => $school->id, 'kind' => 'special-process',
+            'identifier' => 'PROC-'.\Illuminate\Support\Str::uuid(), 'reference_year' => (int) now('America/Cuiaba')->year,
+            'first_number' => 1, 'first_folio' => 1, 'opened_on' => now('America/Cuiaba')->toDateString(), 'opening_term' => 'Abertura para teste.']);
+        $pdf = "%PDF-1.4\nTeste de registro";
+        $document = app(\App\Support\SchoolRecordPdf::class)->issue($user, $school, 'school-special-process', $enrollment->person_id,
+            ['title' => 'Processo especial', 'enrollment_id' => $enrollment->id, 'process_kind' => 'reclassification',
+                'reclassification_decision' => 'approved', 'reclassification_target_course_id' => $course->id, 'act_date' => $date],
+            ['registry_book_id' => $book->id, 'signature_mode' => 'physical', 'issuance_token' => (string) \Illuminate\Support\Str::uuid()],
+            fn () => $pdf, evidence: ['signed_process_summary' => $pdf, 'supporting_document' => $pdf]);
+
+        return $document->registration->id;
     }
 
     private function reclassificationPeriods(AcademicYear $year): void

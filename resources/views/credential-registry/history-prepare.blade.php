@@ -9,6 +9,9 @@
         <p>{{ __('Gere quantas prévias precisar para conferir os dados do estudante, os lançamentos e os signatários. A prévia é identificada como temporária e reservada à conferência.') }} <x-school-document-regulation :articles="__('art. 20')" :page="21" /></p>
         <a class="btn btn-outline-primary" href="{{ $history->freshPdfUrl() }}" target="_blank" rel="noopener">{{ __('Gerar prévia temporária') }}</a>
         <a class="btn btn-outline-secondary" href="{{ route('people.histories.edit', [$person, $history]) }}">{{ __('Corrigir histórico') }}</a>
+        @if($history->education_stage === \App\Models\AcademicCourse::STAGE_HIGH_SCHOOL)
+            <a class="btn btn-outline-secondary" href="{{ route('people.histories.details.edit', [$person, $history]) }}">{{ __('Dados de ingresso e conclusão') }}</a>
+        @endif
         <a class="btn btn-outline-secondary" href="{{ route('people.edit', $person) }}">{{ __('Conferir ficha da pessoa') }}</a>
     </div>
 </div>

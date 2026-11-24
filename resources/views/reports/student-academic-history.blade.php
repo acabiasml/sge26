@@ -90,11 +90,30 @@
 
 @include('reports.partials.student-identification', ['student' => $person, 'showCredentialIdentity' => isset($isDraft)])
 
+@php($authorizationLabels = \App\Models\School::documentAuthorizationLabels())
 @foreach($issuedDocument->payload['authorizations'] ?? [] as $key => $act)
     @if(filled($act['act'] ?? null) && filled($act['published_on'] ?? null))
-        <p class="notes"><strong>{{ __(\App\Models\School::DOCUMENT_AUTHORIZATIONS[$key]) }}</strong> — {{ $act['act'] }} · Publicação em {{ \Carbon\CarbonImmutable::parse($act['published_on'])->format('d/m/Y') }}</p>
+        <p class="notes"><strong>{{ __($authorizationLabels[$key] ?? $key) }}</strong> — {{ $act['act'] }} · Publicação em {{ \Carbon\CarbonImmutable::parse($act['published_on'])->format('d/m/Y') }}</p>
     @endif
 @endforeach
+
+@if($completion = $issuedDocument->payload['high_school_completion'] ?? null)
+    <div class="section-title">Conclusão do Ensino Médio</div>
+    <table class="meta-table">
+        <tr>
+            <td><strong>Data de ingresso:</strong> {{ \Carbon\CarbonImmutable::parse($completion['entered_on'])->format('d/m/Y') }}</td>
+            <td><strong>Forma de ingresso:</strong> {{ $completion['entry_method'] }}</td>
+            <td><strong>Período de ingresso:</strong> {{ $completion['entry_year'] }}@if($completion['entry_semester']) · {{ $completion['entry_semester'] }}º semestre @endif</td>
+        </tr>
+        <tr>
+            <td><strong>Data de conclusão:</strong> {{ \Carbon\CarbonImmutable::parse($completion['completed_on'])->format('d/m/Y') }}</td>
+            <td colspan="2"><strong>Titulação conferida:</strong> Conclusão do Ensino Médio</td>
+        </tr>
+        @if(filled($completion['complementary_activities']))
+            <tr><td colspan="3"><strong>Atividades complementares:</strong> {{ $completion['complementary_activities'] }}</td></tr>
+        @endif
+    </table>
+@endif
 
 <div class="section-title">
     Componentes curriculares
@@ -116,7 +135,7 @@
 @foreach($issuedDocument->payload['school_special_processes'] ?? [] as $process)
     <p class="notes"><strong>{{ __(['classification' => 'Classificação', 'reclassification' => 'Reclassificação', 'placement' => 'Enturmação'][$process['kind']]) }}</strong>
         · {{ \Carbon\CarbonImmutable::parse($process['date'])->format('d/m/Y') }}
-        · {{ __('Livro de Processos Especiais') }} {{ $process['book'] }}, {{ __('registro') }} {{ $process['number'] }}.</p>
+        · {{ __('Livro de Processos Especiais') }} {{ $process['book'] }}, {{ __('folha') }} {{ $process['folio'] }}, {{ __('registro') }} {{ $process['number'] }}.</p>
 @endforeach
 
 @if($history->years->contains(fn ($year) => filled($year->notes)))
@@ -156,7 +175,7 @@
                 <td class="studies-nowrap">{{ collect([$year->year ?: null, $year->grade_phase ?: $year->label])->filter()->join(' — ') ?: '-' }}</td>
                 <td class="studies-nowrap"><strong>{{ $year->school_name ?: '-' }}</strong>@if($location = collect([$year->city, $year->state ? mb_strtoupper($year->state, 'UTF-8') : null, $year->country])->filter()->join(' / ')) — {{ $location }}@endif</td>
                 <td>{{ $year->modality ?: '-' }}</td>
-                <td>{{ $year->final_result ?: '-' }}</td>
+                <td>{{ $year->final_result ?: '-' }}@if(filled($year->attendance_label))<br>{{ __('Frequência') }} {{ $year->attendance_label }}@endif</td>
             </tr>
         @endforeach
         @endif
@@ -168,7 +187,7 @@
 <table class="legend-table">
     <tr>
         <th>Legenda</th>
-        <td>N (nota ou conceito) · CHC (carga horária cursada, em horas) · RF (resultado final) · AP (aproveitamento/progressão global conforme documento de origem). Totais por formação: horas previstas / cursadas.</td>
+        <td>N (nota ou conceito, com frequência quando registrada) · CHC (carga horária cursada, em horas) · RF (resultado final) · AP (aproveitamento/progressão global conforme documento de origem). Totais por formação: horas previstas / cursadas.</td>
     </tr>
 </table>
 

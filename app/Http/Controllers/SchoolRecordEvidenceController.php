@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\StudentEnrollment;
 use App\Support\CredentialRegistry;
+use App\Support\ReclassificationProcess;
 use App\Support\SchoolRecordPdf;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class SchoolRecordEvidenceController extends Controller
 {
@@ -51,6 +53,8 @@ class SchoolRecordEvidenceController extends Controller
                 'evidenceType' => $type,
                 'processFields' => self::PROCESS_FIELDS,
                 'summarySigners' => self::RECLASSIFICATION_SIGNERS,
+                'reclassificationCourses' => $transfer ? collect() : $year->courses()
+                    ->whereIn('stage', ReclassificationProcess::BASIC_STAGES)->orderBy('name')->get(),
             ]);
         }
         $rules = SchoolRecordPdf::rules($school) + [
@@ -69,6 +73,14 @@ class SchoolRecordEvidenceController extends Controller
                 $rules[$field] = ['exclude_unless:process_kind,reclassification', 'required', 'string', 'max:2000'];
             }
             $rules['summary_pdf'] = ['exclude_unless:process_kind,reclassification', 'required', 'file', 'mimes:pdf', 'max:20480'];
+            $rules['reclassification_decision'] = ['exclude_unless:process_kind,reclassification', 'required', 'in:approved,denied'];
+            $rules['reclassification_ground'] = ['exclude_unless:process_kind,reclassification', 'required', Rule::in(array_keys(ReclassificationProcess::GROUNDS))];
+            $rules['reclassification_target_course_id'] = ['exclude_unless:reclassification_decision,approved', 'exclude_unless:process_kind,reclassification',
+                'required', 'integer', Rule::exists('academic_courses', 'id')->where(fn ($query) => $query
+                    ->where('academic_year_id', $year->id)->whereIn('stage', ReclassificationProcess::BASIC_STAGES))];
+            $rules['reclassification_criteria_reviewed'] = ['exclude_unless:reclassification_decision,approved', 'exclude_unless:process_kind,reclassification', 'accepted'];
+            $rules['reclassification_attendance'] = ['exclude_unless:reclassification_ground,attendance',
+                'exclude_unless:reclassification_decision,approved', 'exclude_unless:process_kind,reclassification', 'required', 'numeric', 'between:75,100'];
         }
         $data = $request->validate($rules);
         $payload = [
@@ -84,6 +96,21 @@ class SchoolRecordEvidenceController extends Controller
             foreach (self::PROCESS_FIELDS + self::RECLASSIFICATION_SIGNERS as $field => $label) {
                 if (isset($data[$field])) {
                     $payload['process_fields'][$label] = $data[$field];
+                }
+            }
+            if ($data['process_kind'] === 'reclassification') {
+                $payload['reclassification_decision'] = $data['reclassification_decision'];
+                $payload['reclassification_ground'] = $data['reclassification_ground'];
+                $payload['process_fields']['Decisão'] = $data['reclassification_decision'] === 'approved' ? 'Deferida' : 'Indeferida';
+                $payload['process_fields']['Hipótese de reclassificação'] = ReclassificationProcess::GROUNDS[$data['reclassification_ground']];
+                if (isset($data['reclassification_target_course_id'])) {
+                    $target = $year->courses()->findOrFail($data['reclassification_target_course_id']);
+                    $payload['reclassification_target_course_id'] = $target->id;
+                    $payload['process_fields']['Matriz de destino deferida'] = $target->name;
+                    $payload['process_fields']['Critérios pedagógicos e condução do processo'] = 'Conferidos pela secretaria.';
+                }
+                if (isset($data['reclassification_attendance'])) {
+                    $payload['process_fields']['Frequência comprovada'] = $data['reclassification_attendance'].'%';
                 }
             }
             if (isset($data['summary_pdf'])) {

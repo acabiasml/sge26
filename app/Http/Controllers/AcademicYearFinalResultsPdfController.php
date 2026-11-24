@@ -72,7 +72,8 @@ class AcademicYearFinalResultsPdfController extends Controller
             'academic_year_id' => $academicYear->id,
             'rows_count' => $rowsCount,
         ];
-        $stages = $academicYear->classes->flatMap->courses->pluck('stage')->all();
+        $courses = $academicYear->classes->flatMap->courses;
+        $stages = $courses->pluck('stage')->all();
         $render = function (IssuedDocument $document) use ($academicYear, $classes, $rowsCount, $stages, $official, $preview) {
             $pdf = Pdf::loadView('reports.academic-year-final-results', [
                 'academicYear' => $academicYear,
@@ -98,7 +99,7 @@ class AcademicYearFinalResultsPdfController extends Controller
                 || $enrollments->contains(fn ($enrollment) => in_array($enrollment->final_result_status, [null, StudentEnrollment::FINAL_PENDING], true))) {
                 throw ValidationException::withMessages(['document' => 'Encerre o ano letivo e confira os resultados de todas as matrículas antes de registrar a ata consolidada.']);
             }
-            if ($message = OfficialDocumentCompliance::schoolMessage($school) ?? OfficialDocumentCompliance::authorizationMessage($school, $stages)) {
+            if ($message = OfficialDocumentCompliance::schoolMessage($school) ?? OfficialDocumentCompliance::courseAuthorizationMessage($school, $courses)) {
                 throw ValidationException::withMessages(['document' => $message]);
             }
             $staff = $records->signers($school);

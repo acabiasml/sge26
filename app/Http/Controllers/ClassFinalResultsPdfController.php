@@ -73,7 +73,7 @@ class ClassFinalResultsPdfController extends Controller
             throw ValidationException::withMessages(['document' => 'Encerre o ano letivo e confira os resultados de todas as matrículas antes de registrar a ata.']);
         }
         if ($message = OfficialDocumentCompliance::schoolMessage($academicYear->school)
-            ?? OfficialDocumentCompliance::authorizationMessage($academicYear->school, $class->courses->pluck('stage')->all())) {
+            ?? OfficialDocumentCompliance::courseAuthorizationMessage($academicYear->school, $class->courses)) {
             throw ValidationException::withMessages(['document' => $message]);
         }
         $staff = $records->signers($academicYear->school);

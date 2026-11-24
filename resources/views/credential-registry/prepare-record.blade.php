@@ -37,7 +37,7 @@
                             <label for="paper-history-pdf">{{ __('Cópia do histórico assinado (PDF)') }}</label>
                             <input class="form-control-file" id="paper-history-pdf" type="file" name="paper_history_pdf" accept="application/pdf">
                         </div>
-                        <label><input type="checkbox" name="paper_history_reviewed" value="1"> {{ __('Conferi o original assinado e a conclusão desta matrícula.') }}</label>
+                        <label><input type="checkbox" name="paper_history_reviewed" value="1"> {{ __('Conferi no histórico original assinado a conclusão desta matrícula, os dados de ingresso e a data de conclusão.') }}</label>
                     </details>
                 @endif
             @endif

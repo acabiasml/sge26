@@ -169,7 +169,7 @@ class StudentEnrollmentCertificateController extends Controller
         if ($redirect = $this->complianceRedirect($request, $academicYear, $enrollment)) {
             return $redirect;
         }
-        if ($message = OfficialDocumentCompliance::authorizationMessage($academicYear->school, $enrollment->courses->pluck('stage')->all())) {
+        if ($message = OfficialDocumentCompliance::courseAuthorizationMessage($academicYear->school, $enrollment->courses)) {
             throw ValidationException::withMessages(['document' => $message]);
         }
         $data = $request->validate(SchoolRecordPdf::rules($academicYear->school));
@@ -236,7 +236,7 @@ class StudentEnrollmentCertificateController extends Controller
         if ($redirect = $this->complianceRedirect($request, $year, $enrollment)) {
             return $redirect;
         }
-        if ($message = OfficialDocumentCompliance::authorizationMessage($year->school, [AcademicCourse::STAGE_HIGH_SCHOOL])) {
+        if ($message = OfficialDocumentCompliance::courseAuthorizationMessage($year->school, [$course])) {
             throw ValidationException::withMessages(['document' => $message]);
         }
         $data = $request->validate(['signature_mode' => ['required', 'in:digital']] + SchoolRecordPdf::rules($year->school) +
@@ -244,8 +244,8 @@ class StudentEnrollmentCertificateController extends Controller
         $evidence = [];
         if (filled($data['history_code'] ?? null)) {
             $history = $records->signedHistory($data['history_code'], $enrollment->person_id, $year->school_id, AcademicCourse::STAGE_HIGH_SCHOOL);
-            if (! in_array($enrollment->id, $history->snapshot['completed_enrollment_ids'] ?? [], true)) {
-                throw ValidationException::withMessages(['history_code' => 'O histórico assinado precisa comprovar a conclusão desta matrícula.']);
+            if (empty($history->snapshot['high_school_completion']) || ! in_array($enrollment->id, $history->snapshot['completed_enrollment_ids'] ?? [], true)) {
+                throw ValidationException::withMessages(['history_code' => 'O histórico assinado precisa comprovar a conclusão desta matrícula e conter os dados de ingresso e a data de conclusão.']);
             }
             $payload['history_registration_id'] = $history->id;
         } elseif ($year->school->usesPhysicalRegistry()) {
