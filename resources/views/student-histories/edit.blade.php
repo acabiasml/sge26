@@ -15,6 +15,7 @@
 
 @section('content')
     @php
+        $draft = $draft ?? null;
         $onlySystemYears = $history->is_unified && $history->years->isNotEmpty() && $history->years->every(fn ($year) => $year->source === 'system');
     @endphp
     <div class="sge-history-editor-context mb-4">

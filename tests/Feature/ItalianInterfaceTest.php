@@ -35,7 +35,7 @@ class ItalianInterfaceTest extends TestCase
             [route('teacher-diaries.show', [$class, $component, 'period' => $period->id]), 'Salva voti'],
             [route('teacher-diaries.attendance', [$class, $component, 'period' => $period->id]), 'Foglio presenze'],
             [route('teacher-diaries.contents', [$class, $component, 'period' => $period->id]), 'Contenuto per giorno'],
-            [route('people.histories.create', $user->person), 'Aggiungi alla carriera della fase'],
+            [route('people.histories.create', $user->person), 'Salva carriera scolastica'],
             [route('official-documents.create'), 'Formattazione del contenuto'],
             [route('schools.concepts.index', $year->school), 'Tabella dei giudizi'],
             [route('people.show', $user->person), 'Dati personali'],

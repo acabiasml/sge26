@@ -10,6 +10,9 @@
 @endsection
 
 @section('content')
+    @php
+        $draft = $draft ?? null;
+    @endphp
     <div class="alert alert-info">
         {{ __('Transcreva os anos conforme o documento da escola de origem. Os dados serão acrescentados ao histórico único de cada etapa, junto às matrículas registradas no sistema.') }}
     </div>
