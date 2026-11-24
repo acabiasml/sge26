@@ -97,6 +97,8 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
         ->names('schools')
         ->except(['show']);
     Route::get('escolas/{school}/pdf', [RecordPdfController::class, 'school'])->name('schools.pdf');
+    Route::get('escolas/{school}/atos-autorizativos', [SchoolController::class, 'editAuthorizations'])->name('schools.document-authorizations.edit');
+    Route::put('escolas/{school}/atos-autorizativos', [SchoolController::class, 'updateAuthorizations'])->name('schools.document-authorizations.update');
     Route::get('escolas/{school}/conceitos', [SchoolConceptController::class, 'index'])->name('schools.concepts.index');
     Route::put('escolas/{school}/criterios-academicos', [SchoolConceptController::class, 'updateCriteria'])->name('schools.academic-criteria.update');
     Route::post('escolas/{school}/conceitos/padrao', [SchoolConceptController::class, 'storeDefault'])->name('schools.concepts.default');

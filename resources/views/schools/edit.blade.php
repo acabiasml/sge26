@@ -13,6 +13,9 @@
     <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('schools.concepts.index', $school) }}" aria-label="{{ __('screens.manage_criteria_of', ['name' => $school->name]) }}" title="{{ __('screens.criteria') }}">
         <i class="fas fa-star-half-alt" aria-hidden="true"></i>
     </a>
+    <a class="btn btn-sm btn-outline-primary shadow-sm sge-icon-action" href="{{ route('schools.document-authorizations.edit', $school) }}" aria-label="{{ __('Atos autorizativos') }}" title="{{ __('Atos autorizativos') }}">
+        <i class="fas fa-file-contract" aria-hidden="true"></i>
+    </a>
 @endsection
 
 @section('content')

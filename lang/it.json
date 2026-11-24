@@ -3072,5 +3072,15 @@
     "Ata individual assinada (PDF)": "Verbale individuale firmato (PDF)",
     "Resultado da avaliação e decisão": "Esito della valutazione e decisione",
     "Justificativa fundamentada": "Motivazione documentata",
-    "Procedimentos e critérios de avaliação": "Procedure e criteri di valutazione"
+    "Procedimentos e critérios de avaliação": "Procedure e criteri di valutazione",
+    "Linha institucional do cabeçalho": "Riga istituzionale dell’intestazione",
+    "Escreva a linha que aparece acima do título do documento.": "Scrivi la riga che compare sopra il titolo del documento.",
+    "Texto por etapa": "Testo per ciclo",
+    "Mesmo texto para Fundamental e Médio": "Stesso testo per il ciclo fondamentale e superiore",
+    "Um texto para cada etapa": "Un testo per ogni ciclo",
+    "Texto do cabeçalho": "Testo dell’intestazione",
+    "Atos autorizativos": "Atti autorizzativi",
+    "Atos autorizativos atualizados.": "Atti autorizzativi aggiornati.",
+    "Voltar ao cadastro da escola": "Torna alla scheda della scuola",
+    "Confira o ato, a publicação e a vigência em Atos autorizativos no cadastro da escola. Pendência: :authorization.": "Verifica l’atto, la pubblicazione e la validità negli Atti autorizzativi della scheda della scuola. Da verificare: :authorization."
 }

@@ -1,7 +1,7 @@
 @php
     $schoolTabs = [
         'identificacao' => ['label' => __('Dados e contatos'), 'icon' => 'fa-school', 'fields' => ['name', 'legal_name', 'cnpj', 'inep', 'phone', 'email']],
-        'documentos' => ['label' => __('Dados para documentos'), 'icon' => 'fa-file-alt', 'fields' => ['founded_at', 'website', 'registry_medium', 'document_authorizations.*', 'letterhead_text', 'letterhead_text_elementary', 'letterhead_text_high_school', 'logo', 'maintainer', 'creation_act', 'accreditation_act', 'education_system']],
+        'documentos' => ['label' => __('Dados para documentos'), 'icon' => 'fa-file-alt', 'fields' => ['founded_at', 'website', 'registry_medium', 'letterhead_mode', 'letterhead_text', 'letterhead_text_high_school', 'logo', 'maintainer', 'creation_act', 'accreditation_act', 'education_system']],
         'endereco' => ['label' => __('Endereço'), 'icon' => 'fa-map-marker-alt', 'fields' => ['address', 'number', 'district', 'city', 'state', 'postal_code']],
     ];
 @endphp
@@ -71,12 +71,7 @@
     </div>
 </div>
 
-<div class="form-group">
-    <label for="letterhead_text">{{ __('screens.letterhead_text') }}</label>
-    <textarea id="letterhead_text" name="letterhead_text" rows="4" class="form-control @error('letterhead_text') is-invalid @enderror" required>{{ old('letterhead_text', $school->letterhead_text ?? '') }}</textarea>
-    <small class="form-text text-muted">{{ __('Texto padrão para documentos gerais e para etapas sem texto específico.') }}</small>
-    @error('letterhead_text') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
-</div>
+@include('schools.partials.letterhead-fields')
 
 <div class="form-group">
     <label for="registry_medium">{{ __('Livro de registro da escola') }}</label>
@@ -87,47 +82,6 @@
     </select>
     <small id="registry-medium-help" class="form-text text-muted">{{ __('No livro físico, a secretaria informa a referência já lançada em papel. No digital, o Beabá atribui a numeração. A escolha vale para novos registros.') }}</small>
 </div>
-
-<details class="card sge-panel-card mb-4" @if($errors->has('document_authorizations.*')) open @endif>
-    <summary class="card-header">{{ __('Credenciamento e autorizações para emissão oficial') }}</summary>
-    <div class="card-body">
-        <p class="small text-muted">{{ __('Preencha os atos das etapas ofertadas, com a referência da publicação e as datas de vigência. Deixe o término em branco somente quando o ato tiver prazo indeterminado.') }}</p>
-        @foreach(\App\Models\School::DOCUMENT_AUTHORIZATIONS as $kind => $label)
-            <fieldset class="mb-3">
-                <legend class="h6">{{ __($label) }}</legend>
-                <div class="form-row">
-                    @foreach(['act' => __('Ato e referência do Diário Oficial'), 'published_on' => __('Publicação'), 'starts_on' => __('Início da vigência'), 'ends_on' => __('Fim da vigência')] as $field => $caption)
-                        @php($fieldKey = "document_authorizations.$kind.$field")
-                        <div class="form-group {{ $field === 'act' ? 'col-12 col-lg-6' : 'col-12 col-md-4 col-lg-2' }}">
-                            <label for="authorization-{{ $kind }}-{{ $field }}">{{ $caption }}</label>
-                            <input id="authorization-{{ $kind }}-{{ $field }}" name="document_authorizations[{{ $kind }}][{{ $field }}]" type="{{ $field === 'act' ? 'text' : 'date' }}" maxlength="350" class="form-control @error($fieldKey) is-invalid @enderror" value="{{ old($fieldKey, $school->document_authorizations[$kind][$field] ?? '') }}">
-                            @error($fieldKey)<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-                    @endforeach
-                </div>
-            </fieldset>
-        @endforeach
-    </div>
-</details>
-
-<details class="card sge-panel-card mb-4" @if(filled(old('letterhead_text_elementary', $school->letterhead_text_elementary ?? null)) || filled(old('letterhead_text_high_school', $school->letterhead_text_high_school ?? null)) || $errors->hasAny(['letterhead_text_elementary', 'letterhead_text_high_school'])) open @endif>
-    <summary class="card-header font-weight-bold">{{ __('Textos institucionais por etapa') }}</summary>
-    <div class="card-body">
-        <p class="text-muted">{{ __('Preencha somente quando a autorização da etapa exigir um texto diferente do padrão. Se ficar vazio, será usado o texto padrão acima.') }}</p>
-        <div class="form-row">
-            <div class="form-group col-md-6">
-                <label for="letterhead_text_elementary">{{ __('Ensino Fundamental — texto institucional (opcional)') }}</label>
-                <textarea id="letterhead_text_elementary" name="letterhead_text_elementary" rows="4" maxlength="5000" class="form-control @error('letterhead_text_elementary') is-invalid @enderror">{{ old('letterhead_text_elementary', $school->letterhead_text_elementary ?? '') }}</textarea>
-                @error('letterhead_text_elementary') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
-            </div>
-            <div class="form-group col-md-6">
-                <label for="letterhead_text_high_school">{{ __('Ensino Médio — texto institucional (opcional)') }}</label>
-                <textarea id="letterhead_text_high_school" name="letterhead_text_high_school" rows="4" maxlength="5000" class="form-control @error('letterhead_text_high_school') is-invalid @enderror">{{ old('letterhead_text_high_school', $school->letterhead_text_high_school ?? '') }}</textarea>
-                @error('letterhead_text_high_school') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
-            </div>
-        </div>
-    </div>
-</details>
 
 <div class="form-row align-items-end">
     <div class="form-group col-md-8">

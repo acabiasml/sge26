@@ -21,7 +21,7 @@ class OfficialDocumentCompliance
             $act = $school->document_authorizations[$key] ?? [];
             if (blank($act['act'] ?? null) || blank($act['published_on'] ?? null) || blank($act['starts_on'] ?? null)
                 || $act['published_on'] > $date || $act['starts_on'] > $date || (filled($act['ends_on'] ?? null) && $act['ends_on'] < $date)) {
-                return __('Confira o ato, a publicação e a vigência em Dados para documentos da escola. Pendência: :authorization.', [
+                return __('Confira o ato, a publicação e a vigência em Atos autorizativos no cadastro da escola. Pendência: :authorization.', [
                     'authorization' => __(School::DOCUMENT_AUTHORIZATIONS[$key]),
                 ]);
             }

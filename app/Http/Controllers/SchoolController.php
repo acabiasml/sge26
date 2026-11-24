@@ -71,6 +71,23 @@ class SchoolController extends Controller
             ->with('status', __('Escola atualizada com sucesso.'));
     }
 
+    public function editAuthorizations(Request $request, School $school): View
+    {
+        abort_unless($request->user()->canManageSchool($school->id), 403);
+
+        return view('schools.document-authorizations', compact('school'));
+    }
+
+    public function updateAuthorizations(Request $request, School $school): RedirectResponse
+    {
+        abort_unless($request->user()->canManageSchool($school->id), 403);
+
+        $school->update($request->validate($this->authorizationRules()));
+
+        return redirect()->route('schools.document-authorizations.edit', $school)
+            ->with('status', __('Atos autorizativos atualizados.'));
+    }
+
     public function destroy(Request $request, School $school): RedirectResponse
     {
         abort_unless($request->user()->canManageSchools(), 403);
@@ -91,16 +108,6 @@ class SchoolController extends Controller
      */
     private function validatedData(Request $request, ?School $school = null): array
     {
-        $authorizationRules = ['document_authorizations' => ['sometimes', 'array:'.implode(',', array_keys(School::DOCUMENT_AUTHORIZATIONS))]];
-        foreach (array_keys(School::DOCUMENT_AUTHORIZATIONS) as $kind) {
-            $field = 'document_authorizations.'.$kind;
-            $authorizationRules[$field] = ['nullable', 'array:act,published_on,starts_on,ends_on'];
-            $authorizationRules[$field.'.act'] = ['nullable', 'required_with:'.$field.'.published_on,'.$field.'.starts_on,'.$field.'.ends_on', 'string', 'max:350'];
-            $authorizationRules[$field.'.published_on'] = ['nullable', 'required_with:'.$field.'.act', 'date_format:Y-m-d', 'before_or_equal:today'];
-            $authorizationRules[$field.'.starts_on'] = ['nullable', 'required_with:'.$field.'.act', 'date_format:Y-m-d'];
-            $authorizationRules[$field.'.ends_on'] = ['nullable', 'date_format:Y-m-d', 'after_or_equal:'.$field.'.starts_on'];
-        }
-
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'legal_name' => ['required', 'string', 'max:255'],
@@ -115,9 +122,10 @@ class SchoolController extends Controller
             'accreditation_act' => ['nullable', 'string', 'max:2000'],
             'education_system' => ['nullable', 'string', 'max:255'],
             'registry_medium' => ['sometimes', 'required', Rule::in(array_keys(School::REGISTRY_MEDIA))],
+            'letterhead_mode' => ['sometimes', 'required', Rule::in(['shared', 'by_stage'])],
             'letterhead_text' => ['required', 'string', 'max:5000'],
-            'letterhead_text_elementary' => ['nullable', 'string', 'max:5000'],
-            'letterhead_text_high_school' => ['nullable', 'string', 'max:5000'],
+            'letterhead_text_elementary' => [Rule::excludeIf($request->has('letterhead_mode')), 'nullable', 'string', 'max:5000'],
+            'letterhead_text_high_school' => ['exclude_if:letterhead_mode,shared', 'required_if:letterhead_mode,by_stage', 'nullable', 'string', 'max:5000'],
             'logo' => ['nullable', 'image', 'max:2048'],
             'address' => ['required', 'string', 'max:255'],
             'district' => ['nullable', 'string', 'max:255'],
@@ -126,16 +134,41 @@ class SchoolController extends Controller
             'state' => ['required', 'string', 'size:2', Rule::in(BrazilianStates::codes())],
             'postal_code' => ['required', 'string', 'max:255'],
             'active' => ['nullable', 'boolean'],
-        ] + $authorizationRules);
+        ] + $this->authorizationRules());
+
+        if (isset($data['letterhead_mode'])) {
+            if ($data['letterhead_mode'] === 'by_stage' && $data['letterhead_text'] !== $data['letterhead_text_high_school']) {
+                $data['letterhead_text_elementary'] = $data['letterhead_text'];
+                $data['letterhead_text'] = filled($school?->letterhead_text) ? $school->letterhead_text : $data['letterhead_text_elementary'];
+            } else {
+                $data['letterhead_text_elementary'] = null;
+                $data['letterhead_text_high_school'] = null;
+            }
+        }
 
         if ($request->user()->canManageSchools()) {
             $data['active'] = $request->boolean('active');
         } else {
             unset($data['active']);
         }
-        unset($data['logo']);
+        unset($data['logo'], $data['letterhead_mode']);
 
         return $data;
+    }
+
+    private function authorizationRules(): array
+    {
+        $rules = ['document_authorizations' => ['sometimes', 'array:'.implode(',', array_keys(School::DOCUMENT_AUTHORIZATIONS))]];
+        foreach (array_keys(School::DOCUMENT_AUTHORIZATIONS) as $kind) {
+            $field = 'document_authorizations.'.$kind;
+            $rules[$field] = ['nullable', 'array:act,published_on,starts_on,ends_on'];
+            $rules[$field.'.act'] = ['nullable', 'required_with:'.$field.'.published_on,'.$field.'.starts_on,'.$field.'.ends_on', 'string', 'max:350'];
+            $rules[$field.'.published_on'] = ['nullable', 'required_with:'.$field.'.act', 'date_format:Y-m-d', 'before_or_equal:today'];
+            $rules[$field.'.starts_on'] = ['nullable', 'required_with:'.$field.'.act', 'date_format:Y-m-d'];
+            $rules[$field.'.ends_on'] = ['nullable', 'date_format:Y-m-d', 'after_or_equal:'.$field.'.starts_on'];
+        }
+
+        return $rules;
     }
 
     private function storeLogo(Request $request, ?School $school = null): ?string

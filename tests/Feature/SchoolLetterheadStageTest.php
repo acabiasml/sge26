@@ -8,8 +8,10 @@ use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Models\SchoolClass;
+use App\Models\StudentAcademicHistory;
 use App\Models\StudentEnrollment;
 use App\Models\User;
+use App\Support\HistoryDocumentVersion;
 use App\Support\PdfLetterhead;
 use App\Support\UnifiedStudentHistorySynchronizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -55,7 +57,7 @@ class SchoolLetterheadStageTest extends TestCase
         $school = School::where('cnpj', $data['cnpj'])->sole();
         $this->assertSame('Portaria EF 123/2026', $school->letterhead_text_elementary);
         $this->assertSame('Resolução EM 456/2026', $school->letterhead_text_high_school);
-        $this->get(route('schools.edit', $school))->assertOk()->assertSee('Textos institucionais por etapa')
+        $this->get(route('schools.edit', $school))->assertOk()->assertSee('Linha institucional do cabeçalho')
             ->assertSee('Portaria EF 123/2026')->assertSee('Resolução EM 456/2026');
 
         $this->put(route('schools.update', $school), $this->schoolData())->assertSessionHasNoErrors();
@@ -84,6 +86,68 @@ class SchoolLetterheadStageTest extends TestCase
         $this->actingAs($this->user(PersonSchoolRole::ROLE_MANAGER, $school))->put(route('schools.update', $school),
             $this->schoolData() + ['letterhead_text_high_school' => 'Autorização da escola'])->assertSessionHasNoErrors();
         $this->assertSame('Autorização da escola', $school->fresh()->letterhead_text_high_school);
+    }
+
+    public function test_simplified_letterhead_switches_between_one_and_two_texts(): void
+    {
+        $school = School::create($this->schoolData() + ['letterhead_text_high_school' => 'Médio antigo']);
+        $this->actingAs($this->user(PersonSchoolRole::ROLE_MANAGER, $school));
+        $url = route('schools.update', $school);
+        $form = array_replace($this->schoolData(), ['letterhead_mode' => 'by_stage', 'letterhead_text' => 'Texto livre do Fundamental']);
+
+        $this->get(route('schools.edit', $school))->assertOk()->assertSee('value="by_stage" selected', false)
+            ->assertSee('Médio antigo')->assertDontSee('name="letterhead_text_elementary"', false);
+        $this->put($url, $form)->assertSessionHasErrors('letterhead_text_high_school');
+        $this->put($url, $form + ['letterhead_text_high_school' => 'Texto livre do Médio'])->assertSessionHasNoErrors();
+        $school->refresh();
+        $this->assertSame(['Texto livre do Fundamental'], $school->letterheadTextsForStages(['fundamental']));
+        $this->assertSame(['Texto livre do Médio'], $school->letterheadTextsForStages(['medio']));
+        $this->assertSame(['Autorização padrão'], $school->letterheadTextsForStages());
+
+        $this->put($url, array_replace($form, ['letterhead_mode' => 'shared', 'letterhead_text' => 'Mantenha minha redação livre.']))
+            ->assertSessionHasNoErrors();
+        $school->refresh();
+        $this->assertNull($school->letterhead_text_elementary);
+        $this->assertNull($school->letterhead_text_high_school);
+        $this->assertSame(['Mantenha minha redação livre.'], $school->letterheadTextsForStages(['fundamental', 'medio']));
+        $this->get(route('schools.edit', $school))->assertOk()->assertSee('value="shared" selected', false);
+    }
+
+    public function test_authorizations_are_saved_separately_from_the_letterhead(): void
+    {
+        $school = School::create($this->schoolData());
+        $otherSchool = School::create(array_replace($this->schoolData(), ['cnpj' => '11.222.333/0001-81', 'inep' => '51000001']));
+        $this->actingAs($this->user(PersonSchoolRole::ROLE_MANAGER, $school));
+        $edit = route('schools.document-authorizations.edit', $school);
+        $this->get(route('schools.edit', $school))->assertOk()->assertSee($edit)->assertDontSee('name="document_authorizations[', false);
+        $this->get($edit)->assertOk()->assertSee('Início da vigência');
+        $this->get(route('schools.document-authorizations.edit', $otherSchool))->assertForbidden();
+
+        $act = ['act' => 'Ato de teste', 'published_on' => '2020-01-01', 'starts_on' => '2020-01-01'];
+        $this->put(route('schools.document-authorizations.update', $school), ['document_authorizations' => ['accreditation' => $act]])
+            ->assertSessionHasNoErrors()->assertRedirect($edit);
+        $this->put(route('schools.update', $school), array_replace($this->schoolData(), ['letterhead_mode' => 'shared', 'letterhead_text' => 'Nova linha']))
+            ->assertSessionHasNoErrors();
+        $this->assertSame($act, $school->fresh()->document_authorizations['accreditation']);
+    }
+
+    public function test_history_preview_version_follows_the_line_for_its_stage(): void
+    {
+        $school = new School($this->schoolData() + [
+            'letterhead_text_elementary' => 'Texto do Fundamental',
+            'letterhead_text_high_school' => 'Texto do Médio',
+        ]);
+        $record = new StudentAcademicHistory(['education_stage' => 'fundamental']);
+        $record->setRelation('student', new Person(['full_name' => 'Estudante']));
+        $record->setRelation('school', $school);
+        $record->setRelation('years', collect());
+        $record->setRelation('components', collect());
+
+        $version = HistoryDocumentVersion::of($record);
+        $school->letterhead_text_high_school = 'Texto atualizado do Médio';
+        $this->assertSame($version, HistoryDocumentVersion::of($record));
+        $school->letterhead_text_elementary = 'Texto atualizado do Fundamental';
+        $this->assertNotSame($version, HistoryDocumentVersion::of($record));
     }
 
     public function test_student_documents_and_class_letterhead_respect_enrollment_stage_and_parallel_technical_courses(): void
