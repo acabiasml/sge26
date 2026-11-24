@@ -7,6 +7,7 @@
 @endphp
 <div class="px-3 pt-3 small text-muted">{{ __('Cada período avaliativo concluído gera sua certificação intermediária. A conclusão de todos os períodos e demais requisitos gera o diploma técnico.') }}</div>
 <div class="table-responsive">
+    <x-livewire-table per-page="0">
     <table class="table table-sm table-bordered mb-0 sge-history-read-table">
         <thead><tr><th>{{ __('Área') }}</th><th>{{ __('Componente') }}</th>@foreach($modules as $module)<th class="text-center">{{ \Illuminate\Support\Str::before($module, ' —') }}</th>@endforeach</tr></thead>
         <tbody>
@@ -29,6 +30,7 @@
             @endforelse
         </tbody>
     </table>
+    </x-livewire-table>
 </div>
 @if(($technicalPeriodDurations ?? collect())->isNotEmpty())
     <div class="px-3 py-2 small text-muted border-top">

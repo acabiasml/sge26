@@ -173,10 +173,9 @@
                 clone.querySelectorAll('input,textarea').forEach(field => { if (field.type === 'checkbox') field.checked = false; else field.value = ''; });
                 clone.querySelectorAll('select').forEach(field => { field.value = ''; });
                 clone.querySelectorAll('details').forEach(details => { details.open = false; });
-                clone.querySelectorAll('[data-sge-client-pagination-nav]').forEach(nav => nav.remove());
+                clone.querySelectorAll('[data-sge-table-navigation]').forEach(nav => nav.remove());
                 const table = clone.querySelector('table');
                 table.id = `history-components-${nextTableId++}`;
-                delete table.dataset.sgePaginationReady;
                 table.querySelector('tbody').replaceChildren();
                 clone.querySelector('[name$="[source]"]').value = 'manual';
                 clone.querySelector('[name$="[country]"]').value = 'Brasil';
@@ -185,7 +184,6 @@
                 refreshEmpty(clone);
                 renumber();
                 queueDraft();
-                window.sgeInitializeTablePagination?.(clone);
                 clone.open = true;
                 clone.querySelector('[name$="[year]"]').focus();
             } else if (button.matches('[data-remove-history-year]') && card && cards().length > 1) {

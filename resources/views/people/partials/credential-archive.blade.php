@@ -1,6 +1,8 @@
 <section id="section-certificados" data-academic-panel="certificados" role="tabpanel">
-<div class="card shadow mb-4"><div class="card-header font-weight-bold">Certificados e diplomas arquivados</div><div class="card-body"><p class="text-muted">Consulte ou reimprima o PDF original da emissão, sem preencher novamente os dados.</p><div class="table-responsive"><table class="table"><thead><tr><th>Documento</th><th>Emitido em</th><th>Autenticação</th><th>Arquivo original</th></tr></thead><tbody>
+<div class="card shadow mb-4"><div class="card-header font-weight-bold">Certificados e diplomas arquivados</div><div class="card-body"><p class="text-muted">Consulte ou reimprima o PDF original da emissão, sem preencher novamente os dados.</p><div class="table-responsive"><x-livewire-table>
+<table class="table"><thead><tr><th>Documento</th><th>Emitido em</th><th>Autenticação</th><th>Arquivo original</th></tr></thead><tbody>
 @forelse($person->issuedDocuments->whereIn('type',\App\Models\IssuedDocument::CREDENTIAL_TYPES)->sortByDesc('issued_at') as $document)
 <tr><td>{{ $document->payload['title'] ?? \App\Support\DocumentVerificationPresenter::typeLabel($document->type) }}</td><td>{{ $document->issued_at?->timezone('America/Cuiaba')->format('d/m/Y H:i') }}</td><td>{{ $document->verification_code }}</td><td>@if($document->revoked_at)<span>Revogado</span>@elseif($document->file_path && auth()->user()->canManageSchool($document->school_id))<a target="_blank" rel="noopener" href="{{ route('credential-archive.pdf',$document) }}">Abrir / reimprimir PDF</a>@else<span>Arquivo original indisponível</span>@endif @include('partials.credential-delete',['document'=>$document])</td></tr>
 @empty<tr><td colspan="4">Nenhum certificado ou diploma emitido para esta pessoa.</td></tr>@endforelse
-</tbody></table></div></div></div></section>
+</tbody></table>
+</x-livewire-table></div></div></div></section>

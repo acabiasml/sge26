@@ -68,9 +68,11 @@
             @php($itineraryHours = $incorporated->sum(fn ($c) => $c->calculatedWorkloadHours($technicalOffer)))
             <details class="mb-2"><summary><strong>{{ $technicalOffer->name }}</strong> · {{ number_format($itineraryHours, 2, ',', '.') }} h</summary>
             <a class="d-inline-block my-2" href="{{ route('academic-years.courses.show', [$technicalOffer->academic_year_id, $technicalOffer]) }}">{{ __('Ver oferta técnica original') }}</a>
-            <div class="table-responsive"><table class="table table-sm" data-sge-client-pagination="10"><thead><tr><th scope="col">{{ __('Componente') }}</th><th scope="col">{{ __('Período') }}</th><th scope="col">{{ __('CH (h)') }}</th></tr></thead><tbody>
+            <div class="table-responsive"><x-livewire-table>
+<table class="table table-sm"><thead><tr><th scope="col">{{ __('Componente') }}</th><th scope="col">{{ __('Período') }}</th><th scope="col">{{ __('CH (h)') }}</th></tr></thead><tbody>
             @foreach($incorporated as $component)<tr><td>{{ $component->name }}</td><td>{{ $component->endsPeriod?->name ?: $component->startsPeriod?->name }}</td><td>{{ number_format($component->calculatedWorkloadHours($technicalOffer), 2, ',', '.') }}</td></tr>@endforeach
-            </tbody></table></div>
+            </tbody></table>
+</x-livewire-table></div>
             <p>{{ __('Carga da matriz com este itinerário') }}: <strong>{{ number_format($course->calculatedWorkloadHours() + $itineraryHours, 2, ',', '.') }} h</strong></p>
             </details>
         @endforeach

@@ -29,6 +29,7 @@
     <div data-workload-field="periods">
         <p id="{{ $workloadPrefix }}_period_help" class="text-muted">{{ __('O componente continua único. Informe a quantidade semanal de cada período; use zero quando não houver aulas. Se necessário, informe a carga do período para manter o total aprovado.') }}</p>
         <div class="table-responsive">
+            <x-livewire-table per-page="0">
             <table class="table table-sm table-striped align-middle mb-2">
                 <caption class="sr-only">{{ __('Distribuição das aulas e da carga horária por período') }}</caption>
                 <thead><tr><th scope="col">{{ __('Período letivo') }}</th><th scope="col">{{ __('Aulas por semana') }}</th><th scope="col">{{ __('Carga do período (h), opcional') }}</th></tr></thead>
@@ -42,6 +43,7 @@
                     @endforeach
                 </tbody>
             </table>
+            </x-livewire-table>
         </div>
         <p class="mb-0"><strong>{{ __('Carga total estimada') }}:</strong> <output data-period-total aria-live="polite">—</output> {{ __('horas') }}</p>
     </div>

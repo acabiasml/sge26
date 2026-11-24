@@ -3,12 +3,17 @@
 namespace App\Livewire;
 
 use App\Http\Controllers;
+use App\Models\AuditLog;
+use App\Models\CredentialBook;
+use App\Models\CredentialRegistration;
+use App\Models\IssuedDocument;
 use App\Models\KnowledgeArea;
 use App\Models\School;
 use App\Models\SchoolClass;
 use App\Support\ListingInitialData;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\PaginationState;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Livewire\Attributes\Locked;
@@ -28,7 +33,6 @@ class ScreenListing extends Component
     #[Locked]
     public array $context = [];
 
-    #[Url(as: 'f', except: [])]
     public array $filters = [];
 
     #[Url(as: 'turma', except: '')]
@@ -56,6 +60,55 @@ class ScreenListing extends Component
         'documents' => [Controllers\OfficialDocumentController::class, 'listing', ['q', 'visibility']],
         'student-diaries' => [Controllers\StudentDiaryController::class, 'index', ['q']],
         'teacher-schedules' => [Controllers\TeacherScheduleController::class, 'index', ['q']],
+        'credential-books' => [Controllers\CredentialRegistryController::class, 'index', ['school_id', 'year']],
+        'credential-book-entries' => [Controllers\CredentialRegistryController::class, 'bookEntries', ['q']],
+        'credential-book-events' => [Controllers\CredentialRegistryController::class, 'bookEvents', []],
+        'credential-entry-events' => [Controllers\CredentialRegistryController::class, 'entryEvents', []],
+        'management-substitutions' => [Controllers\ManagementSubstitutionController::class, 'index', ['school_id']],
+        'document-signatures' => [Controllers\DocumentSignatureController::class, 'index', []],
+        'signature-versions' => [Controllers\DocumentSignatureController::class, 'show', []],
+        'audit-failures' => [Controllers\UserOperationFailureController::class, 'index', ['q', 'category', 'school_id', 'from', 'to']],
+        'audit-group' => [Controllers\AuditLogController::class, 'group', []],
+        'courses' => [Controllers\TechnicalProgramController::class, 'index', ['school_id']],
+        'issued-certificates' => [Controllers\CredentialArchiveController::class, 'batch', []],
+        'teacher-access' => [Controllers\DashboardController::class, 'teacherAccess', ['teacher_access_search', 'teacher_access_school', 'teacher_access_status']],
+    ];
+
+    private const CONTEXT_MODELS = [
+        'school-years' => ['school' => School::class],
+        'area-usages' => ['area' => KnowledgeArea::class],
+        'enrollments' => ['class' => SchoolClass::class],
+        'credential-book-entries' => ['book' => CredentialBook::class],
+        'credential-book-events' => ['book' => CredentialBook::class],
+        'credential-entry-events' => ['entry' => CredentialRegistration::class],
+        'signature-versions' => ['document' => IssuedDocument::class],
+        'audit-group' => ['auditLog' => AuditLog::class],
+        'issued-certificates' => ['batch' => null],
+    ];
+
+    private const TEMPLATES = [
+        'credential-book-events' => 'credential-registry-events',
+        'credential-entry-events' => 'credential-registry-events',
+        'signature-versions' => 'document-signature-versions',
+        'teacher-access' => 'teacher-last-access',
+    ];
+
+    private const COLLECTION_PAGES = [
+        'courses' => ['programs' => 'page', 'freeCourses' => 'free_courses_page'],
+        'issued-certificates' => ['documents' => 'page'],
+    ];
+
+    private const QUERY_PAGES = [
+        'credential-books' => 'page',
+        'credential-book-entries' => 'page',
+        'credential-book-events' => 'events_page',
+        'credential-entry-events' => 'events_page',
+        'management-substitutions' => 'page',
+        'document-signatures' => 'page',
+        'signature-versions' => 'page',
+        'audit-failures' => 'page',
+        'audit-group' => 'page',
+        'teacher-access' => 'teacher_access_page',
     ];
 
     public function mount(string $screen, array $context = []): void
@@ -64,8 +117,15 @@ class ScreenListing extends Component
         $this->screen = $screen;
         $this->context = $context;
         $allowed = self::SOURCES[$screen][2];
+        if ($allowed === []) {
+            return;
+        }
+        $this->setPropertyAttribute('filters', new Url(as: 'f', except: []));
         $initial = request()->query('f', []);
         $this->filters = array_replace(array_fill_keys($allowed, ''), request()->only($allowed), is_array($initial) ? array_intersect_key($initial, array_flip($allowed)) : []);
+        if ($screen === 'teacher-access' && $this->filters['teacher_access_status'] === 'all') {
+            $this->filters['teacher_access_status'] = '';
+        }
     }
 
     public function updatedFilters(mixed $value, string $key): void
@@ -80,12 +140,15 @@ class ScreenListing extends Component
                 $this->filters[$dependent] = '';
             }
         }
-        $this->resetPage();
+        $this->applyFilters();
     }
 
     public function applyFilters(): void
     {
-        $this->resetPage();
+        $pageNames = self::COLLECTION_PAGES[$this->screen] ?? [self::QUERY_PAGES[$this->screen] ?? 'page'];
+        foreach ($pageNames as $pageName) {
+            $this->resetPage($pageName);
+        }
     }
 
     #[On('diary-alerts-changed')]
@@ -108,7 +171,7 @@ class ScreenListing extends Component
                 $this->filters[$key] = '';
             }
         }
-        $this->resetPage();
+        $this->applyFilters();
     }
 
     public function selectFilter(string $key, string $value): void
@@ -133,6 +196,13 @@ class ScreenListing extends Component
         $this->enrollmentYearTab = (string) $id;
     }
 
+    public function dehydrate(): void
+    {
+        // Livewire installs a paginator resolver bound to this instance.
+        // Restore normal Laravel pagination for components and pages rendered after it.
+        PaginationState::resolveUsing(app());
+    }
+
     public function render(): View
     {
         abort_unless(auth()->check(), 403);
@@ -147,20 +217,25 @@ class ScreenListing extends Component
         $listingRequest = Request::create(url()->current(), 'GET', $query);
         $listingRequest->setUserResolver(fn () => auth()->user());
         $listingRequest->setLaravelSession(request()->hasSession() ? request()->session() : app('session.store'));
-        $arguments = [$listingRequest];
-        if ($this->screen === 'school-years') {
-            $arguments[] = School::findOrFail($this->context['school'] ?? null);
-        } elseif ($this->screen === 'area-usages') {
-            $arguments[] = KnowledgeArea::findOrFail($this->context['area'] ?? null);
-        } elseif ($this->screen === 'enrollments') {
-            $arguments[] = SchoolClass::findOrFail($this->context['class'] ?? null);
+        if (isset(self::QUERY_PAGES[$this->screen])) {
+            $this->getPage(self::QUERY_PAGES[$this->screen]);
         }
         $source = ListingInitialData::get($this->screen, $listingRequest, $allowed, $this->context);
         if (! $source) {
+            $arguments = [$listingRequest];
+            foreach (self::CONTEXT_MODELS[$this->screen] ?? [] as $key => $model) {
+                $value = $this->context[$key] ?? abort(404);
+                $arguments[] = $model ? $model::findOrFail($value) : $value;
+            }
             $result = app($controller)->{$method}(...$arguments);
             $source = $result instanceof View ? $result : $result->getOriginalContent();
         }
         $data = $source->getData();
+        foreach (self::COLLECTION_PAGES[$this->screen] ?? [] as $key => $pageName) {
+            $page = $this->getPage($pageName);
+            $rows = $data[$key];
+            $data[$key] = new LengthAwarePaginator($rows->forPage($page, 10)->values(), $rows->count(), 10, $page, ['pageName' => $pageName]);
+        }
         $data['listingRequest'] = $listingRequest;
         $data['listingScreen'] = $this->screen;
         if ($this->screen === 'diaries' && isset($data['groupedClasses'])) {
@@ -223,7 +298,7 @@ class ScreenListing extends Component
         };
         $data['listingResultCount'] = $results instanceof LengthAwarePaginator ? $results->total() : $results?->count();
 
-        return view('livewire.listings.'.str_replace('.', '-', $source->name()), $data);
+        return view('livewire.listings.'.(self::TEMPLATES[$this->screen] ?? str_replace('.', '-', $source->name())), $data);
     }
 
     private function filterCollections(array &$data): void

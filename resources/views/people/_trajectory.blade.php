@@ -21,7 +21,8 @@
                     <p class="text-muted small">{{ __('Os intervalos das turmas seguem o calendário letivo. As substituições usam as datas cadastradas; o tempo do vínculo profissional aparece na guia Vínculos profissionais.') }}</p>
                 @endif
                 <div class="table-responsive">
-                    <table class="table mb-0 sge-person-trajectory-table" data-sge-client-pagination="6" aria-label="{{ $group['label'] }}">
+                    <x-livewire-table>
+                    <table class="table mb-0 sge-person-trajectory-table" aria-label="{{ $group['label'] }}">
                         <thead class="sr-only"><tr><th scope="col">{{ __('Vínculo e movimentação') }}</th><th scope="col">{{ __('Período e duração') }}</th></tr></thead>
                         <tbody>
                             @forelse($group['entries'] as $entry)
@@ -71,6 +72,7 @@
                             @endforelse
                         </tbody>
                     </table>
+                    </x-livewire-table>
                 </div>
             </div>
         @endforeach

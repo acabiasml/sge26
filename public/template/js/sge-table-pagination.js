@@ -16,26 +16,23 @@
         pattern,
     );
 
-    const initialize = (scope = document) => scope.querySelectorAll('table[data-sge-client-pagination]').forEach((table, tableIndex) => {
-        if (table.dataset.sgePaginationReady) return;
-        table.dataset.sgePaginationReady = '1';
-        const body = table.tBodies[0];
-        const pageSize = Math.max(1, Number.parseInt(table.dataset.sgeClientPagination, 10) || 10);
+    let nextTableId = 0;
 
-        if (!body) {
-            return;
-        }
+    const mount = (wire, scope, pageSize) => {
+        const table = scope.querySelector('table');
+        const body = table?.tBodies[0];
+        if (!body) return;
 
-        table.id ||= `sge-paginated-table-${tableIndex + 1}`;
+        table.id ||= `sge-paginated-table-${++nextTableId}`;
         const tableLabel = table.getAttribute('aria-label')
             || table.querySelector('caption')?.textContent
             || table.closest('.card')?.querySelector('h2, h3')?.textContent;
         const navigation = document.createElement('nav');
-        navigation.dataset.sgeClientPaginationNav = '1';
+        navigation.dataset.sgeTableNavigation = '';
         navigation.className = 'flex-wrap align-items-center justify-content-between mt-3';
         navigation.setAttribute('aria-label', tableLabel
             ? `${labels.navigation}: ${tableLabel.trim()}`
-            : `${labels.navigation} ${tableIndex + 1}`);
+            : `${labels.navigation}`);
 
         const status = document.createElement('span');
         status.className = 'small text-muted mr-3 mb-2';
@@ -64,9 +61,9 @@
 
         controls.append(previous, pageSelect, next);
         navigation.append(status, controls);
-        (table.closest('.table-responsive') || table).after(navigation);
+        table.after(navigation);
 
-        let currentPage = 1;
+        let currentPage = Number(wire.pages[table.id]) || 1;
         let previousPageCount = 0;
         const render = (showLastPage = false) => {
             const rows = Array.from(body.rows);
@@ -93,7 +90,8 @@
                 previousPageCount = pageCount;
             }
 
-            currentPage = showLastPage ? pageCount : Math.min(currentPage, pageCount);
+            currentPage = showLastPage ? pageCount : Math.min(Math.max(1, currentPage), pageCount);
+            wire.pages[table.id] = currentPage;
             const first = (currentPage - 1) * pageSize;
             const last = Math.min(first + pageSize, rows.length);
             rows.forEach((row, index) => { row.hidden = index < first || index >= last; });
@@ -119,12 +117,27 @@
         });
 
         render();
-        new MutationObserver((changes) => {
+        const observer = new MutationObserver((changes) => {
             const rowAdded = changes.some((change) => Array.from(change.addedNodes)
                 .some((node) => node.nodeName === 'TR'));
             render(rowAdded);
-        }).observe(body, { childList: true });
+        });
+        observer.observe(body, { childList: true });
+
+        return () => {
+            observer.disconnect();
+            navigation.remove();
+        };
+    };
+
+    document.addEventListener('livewire:init', () => {
+        window.Alpine.data('sgeTable', (wire, scope, pageSize) => ({
+            init() {
+                this.dispose = mount(wire, scope, pageSize);
+            },
+            destroy() {
+                this.dispose?.();
+            },
+        }));
     });
-    window.sgeInitializeTablePagination = initialize;
-    initialize();
 }());

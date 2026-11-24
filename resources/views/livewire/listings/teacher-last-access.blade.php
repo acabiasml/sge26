@@ -1,9 +1,11 @@
+@if($teacherLastAccess)
 @php
-    $accessOpen = request()->hasAny(['teacher_access_search', 'teacher_access_school', 'teacher_access_status', 'teacher_access_page']);
+    $access = $teacherLastAccess;
+    $accessOpen = $listingRequest->query() !== [] || $access['teachers']->currentPage() > 1;
     $accessIcons = ['recent' => 'fa-check-circle', 'overdue' => 'fa-exclamation-circle', 'missing' => 'fa-question-circle'];
     $calendarQuery = request()->only(['calendar_month']);
 @endphp
-<details id="teacher-access" class="card sge-panel-card sge-teacher-access mb-4" @if($accessOpen) open @endif>
+<details wire:ignore.self id="teacher-access" class="card sge-panel-card sge-teacher-access mb-4" @if($accessOpen) open @endif>
     <summary class="sge-access-summary">
         <span class="sge-access-title"><i class="fas fa-user-clock" aria-hidden="true"></i> {{ __('dashboard.access.title') }}</span>
         <span class="sge-access-counts">
@@ -18,18 +20,18 @@
     </summary>
     <div class="card-body">
         <p id="teacher-access-help" class="text-muted small">{{ __('dashboard.access.help') }}</p>
-        <form method="GET" action="{{ route('dashboard') }}#teacher-access" class="sge-access-filters" aria-label="{{ __('dashboard.access.filters') }}">
+        <form method="GET" wire:submit="applyFilters" action="{{ route('dashboard') }}#teacher-access" class="sge-access-filters" aria-label="{{ __('dashboard.access.filters') }}">
             @foreach($calendarQuery as $key => $value)
                 <input type="hidden" name="{{ $key }}" value="{{ $value }}">
             @endforeach
             <div class="sge-access-search">
                 <label for="teacher-access-search">{{ __('dashboard.access.teacher') }}</label>
-                <input id="teacher-access-search" class="form-control" type="search" name="teacher_access_search" maxlength="120" value="{{ $access['search'] }}">
+                <input id="teacher-access-search" class="form-control" type="search" name="teacher_access_search" wire:model="filters.teacher_access_search" maxlength="120" value="{{ $access['search'] }}">
             </div>
             @if($access['schools']->count() > 1)
                 <div>
                     <label for="teacher-access-school">{{ __('dashboard.school') }}</label>
-                    <select id="teacher-access-school" class="form-control" name="teacher_access_school">
+                    <select id="teacher-access-school" class="form-control" name="teacher_access_school" wire:model="filters.teacher_access_school">
                         <option value="">{{ __('dashboard.access.all_schools') }}</option>
                         @foreach($access['schools'] as $accessSchool)
                             <option value="{{ $accessSchool->id }}" @selected($access['school_id'] === $accessSchool->id)>{{ $accessSchool->name }}</option>
@@ -39,19 +41,22 @@
             @endif
             <div>
                 <label for="teacher-access-status">{{ __('dashboard.access.status') }}</label>
-                <select id="teacher-access-status" class="form-control" name="teacher_access_status">
+                <select id="teacher-access-status" class="form-control" name="teacher_access_status" wire:model="filters.teacher_access_status">
                     @foreach(['all', 'recent', 'overdue', 'missing'] as $accessStatus)
-                        <option value="{{ $accessStatus }}" @selected($access['status'] === $accessStatus)>{{ __('dashboard.access.'.$accessStatus) }}</option>
+                        <option value="{{ $accessStatus === 'all' ? '' : $accessStatus }}" @selected($access['status'] === $accessStatus)>{{ __('dashboard.access.'.$accessStatus) }}</option>
                     @endforeach
                 </select>
             </div>
             <div class="sge-access-actions">
                 <button class="btn btn-primary" type="submit"><i class="fas fa-filter" aria-hidden="true"></i> {{ __('dashboard.access.apply') }}</button>
                 @if($accessOpen)
-                    <a class="btn btn-outline-secondary" href="{{ route('dashboard', $calendarQuery) }}#teacher-access">{{ __('dashboard.access.clear') }}</a>
+                    <button type="button" class="btn btn-outline-secondary" wire:click="clearFilters">{{ __('dashboard.access.clear') }}</button>
                 @endif
             </div>
         </form>
+        @if($errors->any())
+            <p class="text-danger mt-2 mb-0" role="alert">{{ $errors->first() }}</p>
+        @endif
         <div class="table-responsive" role="region" aria-label="{{ __('dashboard.access.title') }}" aria-describedby="teacher-access-help" tabindex="0">
             <table class="table table-hover mb-0">
                 <thead><tr>
@@ -87,7 +92,10 @@
             </table>
         </div>
         @if($access['teachers']->hasPages())
-            <nav class="mt-3" aria-label="{{ __('dashboard.access.pages') }}">{{ $access['teachers']->links('pagination::bootstrap-4') }}</nav>
+            <nav class="mt-3" aria-label="{{ __('dashboard.access.pages') }}">{{ $access['teachers']->links('livewire::bootstrap') }}</nav>
         @endif
     </div>
 </details>
+@else
+<div></div>
+@endif

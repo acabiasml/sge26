@@ -51,19 +51,51 @@ class CredentialRegistryController extends Controller
     {
         $this->registry->authorize($request->user(), $book->school_id);
         $book->load('school');
+        $entries = $this->registrations($request, $book);
+        $files = $book->files()->whereNull('credential_registration_id')->latest('id')->paginate(10, ['*'], 'files_page');
+        $events = $this->operationEvents($book);
+        $integrity = $this->registry->integrity($book);
+
+        return view('credential-registry.show', compact('book', 'entries', 'files', 'events', 'integrity'));
+    }
+
+    public function bookEntries(Request $request, CredentialBook $book)
+    {
+        $this->registry->authorize($request->user(), $book->school_id);
+
+        return view('credential-registry.show', ['entries' => $this->registrations($request, $book)]);
+    }
+
+    public function bookEvents(Request $request, CredentialBook $book)
+    {
+        $this->registry->authorize($request->user(), $book->school_id);
+
+        return view('credential-registry.events', ['events' => $this->operationEvents($book)]);
+    }
+
+    public function entryEvents(Request $request, CredentialRegistration $entry)
+    {
+        $this->registry->authorize($request->user(), $entry->book->school_id);
+
+        return view('credential-registry.events', ['events' => $this->operationEvents($entry)]);
+    }
+
+    private function registrations(Request $request, CredentialBook $book)
+    {
         $search = $request->query('q');
-        $entries = $book->registrations()->with('document', 'files', 'events')->when(is_string($search) && trim($search) !== '', function ($q) use ($book, $search) {
+
+        return $book->registrations()->with('document', 'files')->when(is_string($search) && trim($search) !== '', function ($q) use ($book, $search) {
             $q->where(function ($query) use ($book, $search) {
                 $query->where('snapshot->registration->registry_number', $search)
                     ->when(! $book->isPhysical() && ctype_digit($search), fn ($q) => $q->orWhere('number', (int) $search))
                     ->orWhereHas('document.person', fn ($p) => $p->where('full_name', 'like', '%'.$search.'%'));
             });
         })->orderBy('number')->paginate(10)->withQueryString();
-        $files = $book->files()->whereNull('credential_registration_id')->latest('id')->paginate(10, ['*'], 'files_page');
-        $events = $book->events()->with('actor.person')->latest('id')->paginate(10, ['*'], 'events_page');
-        $integrity = $this->registry->integrity($book);
+    }
 
-        return view('credential-registry.show', compact('book', 'entries', 'files', 'events', 'integrity'));
+    private function operationEvents(CredentialBook|CredentialRegistration $record)
+    {
+        return $record->events()->with('actor.person')->latest('id')->paginate(10, ['*'], 'events_page');
     }
 
     public function close(Request $request, CredentialBook $book)
@@ -86,7 +118,7 @@ class CredentialRegistryController extends Controller
         $entry->load('document', 'registrar.person', 'files', 'events.actor.person');
         $signers = $this->signers($entry);
         $files = $entry->files()->latest('id')->paginate(10, ['*'], 'files_page');
-        $events = $entry->events()->with('actor.person')->latest('id')->paginate(10, ['*'], 'events_page');
+        $events = $this->operationEvents($entry);
 
         $physical = $entry->files()->where('kind', 'physical_signed')->latest('id')->first();
         $deliveryVersions = $entry->files->filter(fn ($file) => $file->kind === 'physical_signed'

@@ -22,6 +22,13 @@ use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
+    public function teacherAccess(Request $request): View
+    {
+        return view('dashboard', [
+            'teacherLastAccess' => app(TeacherLastAccessOverview::class)->build($request->user(), $request),
+        ]);
+    }
+
     public function __invoke(Request $request): View
     {
         $user = $request->user();

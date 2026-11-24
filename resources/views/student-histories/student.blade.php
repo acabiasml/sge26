@@ -121,7 +121,8 @@
                 <h3 class="h5">{{ $separateHistory->title }} #{{ $separateHistory->id }}</h3>
                 <a class="btn btn-sm btn-outline-primary mb-2" href="{{ route('people.histories.edit', [$person, $separateHistory]) }}">{{ __('Editar anos e cargas horárias') }}</a>
                 <a class="btn btn-sm btn-outline-secondary mb-2" href="{{ route('people.histories.show', [$person, $separateHistory]) }}">{{ __('Visualizar lançamentos') }}</a>
-                <div class="table-responsive"><table class="table table-sm table-bordered" data-sge-client-pagination="10">
+                <div class="table-responsive"><x-livewire-table>
+<table class="table table-sm table-bordered">
                     <thead><tr><th>{{ __('Ano civil') }}</th><th>{{ __('Etapa') }}</th><th>{{ __('Série/Fase') }}</th><th>{{ __('CH total') }}</th><th>{{ __('Ações') }}</th></tr></thead>
                     <tbody>
                     @foreach($separateHistory->years as $year)
@@ -145,7 +146,8 @@
                         </tr>
                     @endforeach
                     </tbody>
-                </table></div>
+                </table>
+                </x-livewire-table></div>
             </div>
         @endforeach
     </div>

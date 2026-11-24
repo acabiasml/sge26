@@ -20,9 +20,11 @@
 <div class="card shadow sge-panel-card mb-4"><div class="card-header"><h2 class="h6 mb-0">Turmas e participantes</h2></div><div class="card-body">
 @if(!$course->exists)<p class="mb-0">Salve o curso primeiro. Depois cadastre as turmas e os participantes.</p>@else
 <a class="btn btn-primary mb-3" href="{{ route('free-courses.offerings.create',$course) }}">Cadastrar turma ou atendimento individual</a>
-<div class="table-responsive"><table class="table"><thead><tr><th>Turma</th><th>Período</th><th>Participantes</th><th>Ações</th></tr></thead><tbody>
+<div class="table-responsive"><x-livewire-table>
+<table class="table"><thead><tr><th>Turma</th><th>Período</th><th>Participantes</th><th>Ações</th></tr></thead><tbody>
 @forelse($course->offerings()->withCount(['participants'=>fn($q)=>$q->whereNull('removed_at')])->orderByDesc('ends_at')->get() as $offering)<tr><td>{{ $offering->name }}</td><td>{{ $offering->starts_at->format('d/m/Y') }} a {{ $offering->ends_at->format('d/m/Y') }}</td><td>{{ $offering->participants_count }}</td><td><a href="{{ route('free-courses.offerings.edit',[$course,$offering]) }}">Gerenciar participantes</a> · <a href="{{ route('free-course-certificates.prepare',$offering) }}">Emitir certificados</a></td></tr>@empty<tr><td colspan="4">Nenhuma turma cadastrada.</td></tr>@endforelse
-</tbody></table></div>
+</tbody></table>
+</x-livewire-table></div>
 @endif
 </div></div></section>
 </form><a class="btn btn-outline-secondary mt-3" href="{{ route('courses.index',['school_id'=>$course->school_id]) }}">Voltar aos cursos</a>

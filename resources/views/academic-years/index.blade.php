@@ -13,6 +13,7 @@
     <div class="card shadow mb-4">
         <div class="card-body">
             <div class="table-responsive">
+            <x-livewire-table per-page="0">
             <table class="table">
                 <thead>
                     <tr>
@@ -59,6 +60,7 @@
                     @endforelse
                 </tbody>
             </table>
+            </x-livewire-table>
 
             </div>
             <div class="mt-3">{{ $years->links() }}</div>

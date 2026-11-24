@@ -6,6 +6,7 @@ use App\Livewire\ScreenListing;
 use App\Models\AcademicCourse;
 use App\Models\AcademicYear;
 use App\Models\Announcement;
+use App\Models\FreeCourse;
 use App\Models\KnowledgeArea;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
@@ -93,6 +94,26 @@ class ReactiveListingsTest extends TestCase
             ->assertSee('Área 03')->assertDontSee('Área 11')
             ->assertSee('Pesquisa por “Área 03”: 1 resultado(s).')
             ->set('filters.q', 'Inexistente')->assertSee('Pesquisa por “Inexistente”: 0 resultado(s).');
+    }
+
+    public function test_free_course_pagination_uses_its_own_page_and_checks_school_access(): void
+    {
+        $school = School::create(['name' => 'Escola A']);
+        $other = School::create(['name' => 'Escola B']);
+        $this->user(PersonSchoolRole::ROLE_MANAGER, $school);
+        $defaults = ['school_id' => $school->id, 'workload_hours' => 10, 'syllabus' => 'Conteúdo de teste'];
+        foreach (range(1, 11) as $number) {
+            FreeCourse::create(['name' => sprintf('Curso livre %02d', $number)] + $defaults);
+        }
+        FreeCourse::create(['name' => 'Curso de outra escola', 'school_id' => $other->id] + $defaults);
+
+        Livewire::test(ScreenListing::class, ['screen' => 'courses'])
+            ->assertSee('Curso livre 01')->assertDontSee('Curso livre 11')
+            ->call('gotoPage', 2, 'free_courses_page')->assertSet('paginators.page', 1)
+            ->assertSee('Curso livre 11')->assertDontSee('Curso livre 01')
+            ->set('filters.school_id', (string) $school->id)->assertSet('paginators.free_courses_page', 1)
+            ->assertSee('Curso livre 01')->assertDontSee('Curso de outra escola')
+            ->set('filters.school_id', (string) $other->id)->assertForbidden();
     }
 
     public function test_announcements_are_searched_before_pagination(): void

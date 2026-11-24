@@ -209,7 +209,7 @@
     @endcan
 
     @if($teacherLastAccess !== null)
-        @include('dashboard.partials.teacher-last-access', ['access' => $teacherLastAccess])
+        <livewire:screen-listing screen="teacher-access" />
     @endif
 
     @if($teacherOverview !== null)
@@ -481,7 +481,8 @@
                         <canvas id="studentsBySchoolChart"></canvas>
                     </div>
                     <div class="table-responsive mt-3">
-                        <table class="table table-sm sge-accessible-chart-table mb-0" data-sge-client-pagination="10">
+                        <x-livewire-table>
+                        <table class="table table-sm sge-accessible-chart-table mb-0">
                             <caption class="sr-only">{{ __('dashboard.students_chart_data') }}</caption>
                             <thead>
                                 <tr>
@@ -498,6 +499,7 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        </x-livewire-table>
                     </div>
                 @else
                     <p class="text-muted mb-0">{{ __('dashboard.no_students_by_school') }}</p>

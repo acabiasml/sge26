@@ -184,7 +184,8 @@
             </div>
         </div>
         <div class="card-body table-responsive">
-            <table class="table table-sm" data-sge-client-pagination="10">
+            <x-livewire-table>
+            <table class="table table-sm">
                 <thead>
                     <tr>
                         <th>{{ __('Componente') }}</th>
@@ -208,6 +209,7 @@
                     @endforelse
                 </tbody>
             </table>
+            </x-livewire-table>
         </div>
     </section>
 
@@ -274,7 +276,8 @@
                 <a class="btn btn-primary mb-4" href="{{ route('enrollments.origin-sheet', $enrollment) }}"><i class="fas fa-file-import mr-1" aria-hidden="true"></i>{{ __('Lançar ficha da escola de origem') }}</a>
 
                 <div class="table-responsive">
-                    <table class="table table-sm mb-0" data-sge-client-pagination="10">
+                    <x-livewire-table>
+                    <table class="table table-sm mb-0">
                         <thead>
                             <tr>
                                 <th>{{ __('Período') }}</th>
@@ -321,6 +324,7 @@
                             @endforelse
                         </tbody>
                     </table>
+                    </x-livewire-table>
                 </div>
             </div>
         </section>

@@ -25,7 +25,7 @@ class UserOperationFailureController extends Controller
             ->when(filled($data['from'] ?? null), fn ($q) => $q->where('occurred_at', '>=', CarbonImmutable::parse($data['from'], $timezone)->startOfDay()->utc()))
             ->when(filled($data['to'] ?? null), fn ($q) => $q->where('occurred_at', '<=', CarbonImmutable::parse($data['to'], $timezone)->endOfDay()->utc()));
 
-        return view('audit-logs.failures', ['failures' => $query->orderByDesc('id')->paginate(25)->withQueryString(),
+        return view('audit-logs.failures', ['failures' => $query->orderByDesc('id')->paginate(10)->withQueryString(),
             'timezone' => $timezone, 'schools' => School::orderBy('name')->get(['id', 'name']),
             'lastDayCount' => UserOperationFailure::where('occurred_at', '>=', now()->subDay())->count(),
             'totalCount' => UserOperationFailure::count()]);

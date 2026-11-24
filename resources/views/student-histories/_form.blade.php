@@ -171,6 +171,7 @@
                 </button>
             </div>
             <div class="card-body">
+                <x-livewire-table per-page="0">
                 <div id="history-years" class="sge-history-year-grid" aria-label="{{ __('Anos cadastrados') }}">
                     @foreach($yearsInput as $yearIndex => $year)
                         <details class="sge-history-year-card" data-history-year name="history-year" @if(!empty($year['id'])) id="history-year-{{ $year['id'] }}" @endif>
@@ -311,8 +312,8 @@
                                 <div class="sge-history-matrix-toolbar" data-history-detailed-only @if($summaryMode) hidden @endif>
                                     <button class="btn btn-sm btn-outline-primary" type="button" data-add-history-component><i class="fas fa-plus mr-1" aria-hidden="true"></i>{{ __('Adicionar componente neste ano') }}</button>
                                 </div>
-                                <div class="table-responsive" role="region" tabindex="0" aria-label="{{ __('Notas e componentes') }}">
-                                    <table class="table table-bordered table-sm sge-history-year-table" id="history-components-{{ $yearIndex }}" data-sge-client-pagination="10" aria-label="{{ __('Notas e componentes') }} — {{ $year['grade_phase'] ?? '' }}">
+                                <div class="table-responsive" role="region" tabindex="0" aria-label="{{ __('Notas e componentes') }}" x-data="sgeTable($wire, $el, 10)">
+                                    <table class="table table-bordered table-sm sge-history-year-table" id="history-components-{{ $yearIndex }}" aria-label="{{ __('Notas e componentes') }} — {{ $year['grade_phase'] ?? '' }}">
                                         <thead><tr><th scope="col">{{ __('Formação') }}</th><th scope="col">{{ __('Área') }}</th><th scope="col">{{ __('Componente') }}</th><th scope="col" data-history-record-fields @if($summaryMode) hidden @endif>{{ __('Nota/conceito') }}</th><th scope="col">{{ __('Ações') }}</th></tr></thead>
                                         <tbody>
                                             @forelse($yearComponentsInput[$yearIndex] ?? [] as $componentIndex => $component)
@@ -363,6 +364,7 @@
                         </details>
                     @endforeach
                 </div>
+                </x-livewire-table>
             </div>
         </section>
 

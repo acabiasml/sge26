@@ -160,7 +160,7 @@ class HistorySaveProtectionTest extends TestCase
         $this->assertSame(0, $xpath->query('//details[@data-history-year and @open]')->length);
         foreach ($cards as $index => $card) {
             $this->assertSame(5, $xpath->query('.//fieldset/legend', $card)->length);
-            $this->assertSame(1, $xpath->query('.//table[@data-sge-client-pagination]', $card)->length);
+            $this->assertSame(1, $xpath->query('.//div[contains(@x-data, "sgeTable($wire, $el, 10)")]/table', $card)->length);
             $this->assertSame(1, $xpath->query('.//input[@name="years['.$index.'][year]"]', $card)->length);
             $this->assertSame(1, $xpath->query('.//input[@name="years['.$index.'][school_name]"]', $card)->length);
             $this->assertSame(1, $xpath->query('.//input[@name="years['.$index.'][workload_hours]"]', $card)->length);

@@ -48,7 +48,8 @@
                 <h2 id="manual-years-title">{{ __('Remover um ano cadastrado') }}</h2>
                 <p>{{ __('A remoção elimina este ano e suas notas transcritas. Os demais anos são preservados.') }}</p>
             </div><i class="fas fa-chevron-down sge-history-year-chevron" aria-hidden="true"></i></summary>
-            <div class="card-body"><div class="table-responsive"><table class="table table-sm table-bordered" data-sge-client-pagination="10">
+            <div class="card-body"><div class="table-responsive"><x-livewire-table>
+<table class="table table-sm table-bordered">
                 <thead><tr><th>{{ __('Ano civil') }}</th><th>{{ __('Série/Fase') }}</th><th>{{ __('CH total') }}</th><th>{{ __('Ações') }}</th></tr></thead>
                 <tbody>@foreach($history->years->filter(fn ($year) => $year->source !== 'system') as $year)
                     <tr><td>{{ $year->year }}</td><td>{{ $year->grade_phase }}</td>
@@ -59,7 +60,8 @@
                         </form></td>
                     </tr>
                 @endforeach</tbody>
-            </table></div></div>
+            </table>
+            </x-livewire-table></div></div>
         </details>
     @endif
     @if($history->is_unified && $history->years->contains('source', 'system'))
@@ -77,7 +79,8 @@
                     <p>{{ __('Resultado:') }} {{ $year->final_result ?: '-' }} · {{ __('Frequência:') }} {{ $year->attendance_label ?: '-' }}</p>
                     @if($year->transcript_mode === 'detailed')
                         <div class="table-responsive mb-3">
-                            <table class="table table-bordered table-sm" data-sge-client-pagination="10">
+                            <x-livewire-table>
+                            <table class="table table-bordered table-sm">
                                 <thead><tr><th scope="col">{{ __('Componente') }}</th><th scope="col">{{ __('Nota calculada') }}</th><th scope="col">{{ __('Faltas') }}</th></tr></thead>
                                 <tbody>
                                     @forelse($year->records as $record)
@@ -87,6 +90,7 @@
                                     @endforelse
                                 </tbody>
                             </table>
+                            </x-livewire-table>
                         </div>
                     @endif
                 @endforeach

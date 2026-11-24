@@ -9,13 +9,15 @@
 <div class="card shadow sge-panel-card mb-4"><div class="card-header"><h2 class="h6 mb-0">Selecione os concluintes</h2></div><div class="card-body">
 <p>{{ __('Confira as prévias e selecione até 50 concluintes. Cada prévia é para conferência. Cada certificado oficial recebe um número próprio e fica arquivado na ficha da pessoa.') }} <x-school-document-regulation :articles="__('art. 5º, I e II')" /></p>
 <button type="button" class="btn btn-sm btn-outline-primary mb-3" id="select-graduates">Marcar / desmarcar todos os concluintes</button>
-<div class="table-responsive"><table class="table"><thead><tr><th>Emitir</th><th>Participante</th><th>Situação</th><th>Conferência</th></tr></thead><tbody>
+<div class="table-responsive"><x-livewire-table>
+<table class="table"><thead><tr><th>Emitir</th><th>Participante</th><th>Situação</th><th>Conferência</th></tr></thead><tbody>
 @forelse($offering->participants->whereNull('removed_at')->sortBy('person.full_name') as $participant)
 @php($eligible=$certificates->eligible($participant))
 @php($identityMissing=$certificates->missingIdentity($participant->person))
 <tr><td><input type="checkbox" name="participant_ids[]" value="{{ $participant->id }}" @disabled(!$eligible || $identityMissing) @checked(in_array($participant->id,old('participant_ids',[]))) aria-label="Emitir para {{ $participant->person->full_name }}"></td><td>{{ $participant->person->full_name }}</td><td>{{ $eligible?'Conclusão confirmada':'Aguardando término ou confirmação de conclusão' }}@if($identityMissing)<br><span class="text-danger">Falta preencher: {{ implode(', ',$identityMissing) }}.</span> <a href="{{ route('people.edit',$participant->person) }}">Abrir ficha da pessoa</a>@endif</td><td><a target="_blank" rel="noopener" href="{{ route('free-course-certificates.preview',[$offering,$participant]) }}">Ver prévia sem registro</a></td></tr>
 @empty<tr><td colspan="4">Cadastre os participantes na turma.</td></tr>@endforelse
-</tbody></table></div></div></div>
+</tbody></table>
+</x-livewire-table></div></div></div>
 @if($physicalRegistry)
     <input type="hidden" name="issuance_token" value="{{ old('issuance_token', (string) \Illuminate\Support\Str::uuid()) }}">
     <p>{{ __('Selecione um participante por emissão e informe os dados do registro no livro físico.') }}</p>

@@ -21,11 +21,23 @@ final class ListingInitialData
         'announcements' => ['announcements.index'],
         'student-diaries' => ['student-diaries.index'],
         'teacher-schedules' => ['teacher-schedules.index'],
+        'credential-books' => ['credential-registry.index'],
+        'credential-book-entries' => ['credential-registry.show'],
+        'credential-book-events' => ['credential-registry.show'],
+        'credential-entry-events' => ['credential-registry.entry'],
+        'management-substitutions' => ['credential-registry.substitutions'],
+        'document-signatures' => ['document-signatures.index'],
+        'signature-versions' => ['document-signatures.show'],
+        'audit-failures' => ['audit-logs.failures'],
+        'audit-group' => ['audit-logs.group'],
+        'courses' => ['technical-programs.index'],
+        'issued-certificates' => ['free-courses.issued'],
+        'teacher-access' => ['dashboard'],
     ];
 
     public static function views(): array
     {
-        return array_merge(...array_values(self::VIEWS));
+        return array_values(array_unique(array_merge(...array_values(self::VIEWS))));
     }
 
     public static function capture(View $view): void
@@ -53,8 +65,12 @@ final class ListingInitialData
             if (! $initial || $initial['user'] !== auth()->id() || $initial['role'] !== auth()->user()?->currentView()) {
                 continue;
             }
-            foreach (['school', 'area', 'class'] as $key) {
-                if (isset($context[$key]) && (int) (($initial['data'][$key] ?? null)?->id ?? 0) !== (int) $context[$key]) {
+            foreach ($context as $key => $value) {
+                $original = request()->route($key) ?? $initial['data'][$key] ?? null;
+                if ($original instanceof \Illuminate\Database\Eloquent\Model) {
+                    $original = $original->getKey();
+                }
+                if (! is_scalar($original) || (string) $original !== (string) $value) {
                     continue 2;
                 }
             }

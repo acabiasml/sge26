@@ -42,6 +42,8 @@
                     </div>
                     <div class="table-responsive sge-attendance-sheet-wrap">
                         {{-- A chamada exibe todos os estudantes da turma, sem paginação de linhas. --}}
+                        @php($componentName = $component->name)
+                        <x-livewire-table per-page="0">
                         <table class="table table-bordered table-sm sge-attendance-sheet">
                             <thead><tr>
                                 <th scope="col" class="sge-attendance-student-column">{{ __('Estudante') }}</th>
@@ -54,7 +56,7 @@
                                         @if($day->outside_current_schedule)<span class="d-block small text-warning">{{ __('Fora do horário atual') }}</span>@endif
                                         @if($content)<span class="d-block small text-success" title="{{ __('Conteúdo lançado') }}"><i class="fas fa-book" aria-hidden="true"></i><span class="sr-only">{{ __('Conteúdo lançado') }}</span></span>@else<span class="d-block small text-warning" title="{{ __('Conteúdo pendente') }}"><i class="fas fa-exclamation-circle" aria-hidden="true"></i><span class="sr-only">{{ __('Conteúdo pendente') }}</span></span>@endif
                                         @if($record?->updatedBy && $record->updated_by_person_id !== $assignment->teacher_person_id)<span class="d-block small text-warning" title="{{ __('Frequência alterada por') }} {{ $record->updatedBy->full_name }}"><i class="fas fa-user-shield" aria-hidden="true"></i><span class="sr-only">{{ __('Frequência alterada por') }} {{ $record->updatedBy->full_name }}</span></span>@endif
-                                        <label class="sr-only" for="lesson_count_{{ $date }}">{{ __('Aulas de') }} {{ $component->name }} {{ __('em') }} {{ $day->date->format('d/m/Y') }}</label>
+                                        <label class="sr-only" for="lesson_count_{{ $date }}">{{ __('Aulas de') }} {{ $componentName }} {{ __('em') }} {{ $day->date->format('d/m/Y') }}</label>
                                         <select id="lesson_count_{{ $date }}" name="lesson_counts[{{ $date }}]" class="form-control form-control-sm mt-1" data-lesson-count data-date="{{ $date }}">
                                             @php($maxLessons = $usesScheduledDiary ? $day->scheduled_lessons : 24)
                                             @for ($count = 0; $count <= $maxLessons; $count++)<option value="{{ $count }}" @selected((int) old('lesson_counts.'.$date, $record?->lesson_count ?? 0) === $count)>{{ $count }} {{ __('aula(s)') }}</option>@endfor
@@ -106,6 +108,7 @@
                                 @endforelse
                             </tbody>
                         </table>
+                        </x-livewire-table>
                     </div>
                     <div class="d-flex justify-content-between align-items-center flex-wrap mt-3"><p class="small text-muted mb-2 mr-3">{{ __('A folha começa em') }} <strong>{{ __('0 aulas') }}</strong>. {{ $usesScheduledDiary ? __('A quantidade máxima segue o horário da turma.') : __('Informe a quantidade de aulas realizadas em cada dia.') }} {{ __('O ícone de livro indica que o conteúdo daquele dia foi lançado.') }}</p><button class="btn btn-primary mb-2" type="submit" @disabled($enrollments->isEmpty())><i class="fas fa-save mr-1" aria-hidden="true"></i>{{ __('Salvar frequências') }}</button></div>
                 </form>

@@ -107,6 +107,7 @@
                     @include('student-histories._technical-components-table', ['history' => $history])
                 @else
                 <div class="table-responsive">
+                    <x-livewire-table per-page="0">
                     <table class="table table-sm table-bordered mb-0 sge-history-read-table">
                         <thead>
                             <tr>
@@ -152,19 +153,24 @@
                             @endforelse
                         </tbody>
                     </table>
+                    </x-livewire-table>
                 </div>
                 @endif
                 @if($history->education_stage !== 'tecnico')
                     <div class="table-responsive p-3 border-top">
                         @if($history->education_stage === 'medio')
-                        @include('reports.partials.history-annual-formation-workloads', ['annualWorkloadTableClass' => 'table table-sm table-bordered mb-3'])
+                        <x-livewire-table>
+                            @include('reports.partials.history-annual-formation-workloads', ['annualWorkloadTableClass' => 'table table-sm table-bordered mb-3'])
+                        </x-livewire-table>
                         @endif
+                        <x-livewire-table per-page="0">
                         <table class="table table-sm table-bordered mb-0">
                             <thead><tr><th>{{ __('Formação') }}</th><th>{{ __('Total de horas previstas') }}</th><th>{{ __('Total de horas cursadas') }}</th></tr></thead>
                             <tbody>@foreach($history->formationWorkloadTotals() as $formation => $hours)
                                 <tr><td>{{ __($formation) }}</td><td>{{ $hours['planned'] !== null ? number_format($hours['planned'], 2, ',', '.').'h' : '-' }}</td><td>{{ $hours['completed'] !== null ? number_format($hours['completed'], 2, ',', '.').'h' : '-' }}</td></tr>
                             @endforeach</tbody>
                         </table>
+                        </x-livewire-table>
                     </div>
                 @endif
             </section>

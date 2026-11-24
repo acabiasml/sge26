@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Http\Middleware\RecordUserLastAccess;
+use App\Livewire\ScreenListing;
 use App\Models\Person;
 use App\Models\PersonSchoolRole;
 use App\Models\School;
@@ -13,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Livewire\Livewire;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 
@@ -150,6 +152,30 @@ class TeacherLastAccessTest extends TestCase
             ->assertViewHas('teacherLastAccess', fn ($access) => $access['teachers']->first()['last_access_at']->equalTo(now()));
         $this->patch(route('role-view.update'), ['role_view' => PersonSchoolRole::ROLE_TEACHER])->assertRedirect();
         $this->get(route('dashboard'))->assertOk()->assertViewHas('teacherLastAccess', null)->assertDontSee('id="teacher-access"', false);
+    }
+
+    public function test_livewire_filters_reset_the_named_page_and_check_school_access(): void
+    {
+        $school = School::create(['name' => 'Escola A']);
+        $other = School::create(['name' => 'Escola B']);
+        $manager = $this->account('Gestora', PersonSchoolRole::ROLE_MANAGER, $school);
+        foreach (range(1, 11) as $number) {
+            $this->account(sprintf('Docente %02d', $number), PersonSchoolRole::ROLE_TEACHER, $school);
+        }
+        $this->account('Docente de outra escola', PersonSchoolRole::ROLE_TEACHER, $other);
+        $this->actingAs($manager);
+
+        Livewire::test(ScreenListing::class, ['screen' => 'teacher-access'])
+            ->assertSee('Docente 01')->assertDontSee('Docente 11')
+            ->assertSee('teacher_access_page', false)
+            ->call('gotoPage', 2, 'teacher_access_page')
+            ->assertSee('Docente 11')->assertDontSee('Docente 01')
+            ->set('filters.teacher_access_search', 'Docente 04')
+            ->assertSet('paginators.teacher_access_page', 1)
+            ->assertSee('Docente 04')->assertDontSee('Docente 11')
+            ->call('clearFilters')->assertSee('Docente 01')
+            ->assertDontSee('Docente de outra escola')
+            ->set('filters.teacher_access_school', (string) $other->id)->assertForbidden();
     }
 
     public function test_italian_dashboard_translates_the_panel(): void

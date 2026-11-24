@@ -193,7 +193,8 @@
             <div class="card shadow mb-4">
                 <div class="card-header font-weight-bold">{{ __('screens.academic_enrollments') }}</div>
                 <div class="table-responsive">
-                    <table class="table mb-0" data-sge-client-pagination="10">
+                    <x-livewire-table>
+                    <table class="table mb-0">
                         <thead>
                             <tr>
                                 <th>{{ __('screens.school_year') }}</th>
@@ -239,6 +240,7 @@
                             @endforelse
                         </tbody>
                     </table>
+                    </x-livewire-table>
                 </div>
             </div>
         </div>
@@ -252,7 +254,8 @@
                     </a>
                 </div>
                 <div class="table-responsive">
-                    <table class="table mb-0" data-sge-client-pagination="10">
+                    <x-livewire-table>
+                    <table class="table mb-0">
                         <thead>
                             <tr>
                                 <th>{{ __('screens.document') }}</th>
@@ -285,6 +288,7 @@
                             @endforelse
                         </tbody>
                     </table>
+                    </x-livewire-table>
                 </div>
             </div>
         </div>
@@ -310,7 +314,8 @@
             <div class="card shadow mb-4">
                 <div class="card-header font-weight-bold">{{ __('screens.roles_relationships') }}</div>
                 <div class="table-responsive">
-                    <table class="table mb-0" data-sge-client-pagination="10">
+                    <x-livewire-table>
+                    <table class="table mb-0">
                         <thead>
                             <tr>
                                 <th>{{ __('screens.role') }}</th>
@@ -382,6 +387,7 @@
                             @endforelse
                         </tbody>
                     </table>
+                    </x-livewire-table>
                 </div>
             </div>
 
@@ -501,7 +507,8 @@
                 </div>
 
                 <div class="table-responsive">
-                    <table id="contacts-table" class="table mb-0" data-sge-client-pagination="10">
+                    <x-livewire-table>
+                    <table id="contacts-table" class="table mb-0">
                         <thead>
                             <tr>
                                 <th>{{ __('screens.name') }}</th>
@@ -650,6 +657,7 @@
                             @endforelse
                         </tbody>
                     </table>
+                    </x-livewire-table>
                 </div>
             </div>
         </div>
