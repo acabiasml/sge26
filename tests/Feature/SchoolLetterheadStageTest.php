@@ -138,9 +138,7 @@ class SchoolLetterheadStageTest extends TestCase
     public function test_published_acts_fill_empty_offerings_by_cnpj_and_preserve_existing_data(): void
     {
         $existing = ['act' => 'Credenciamento já registrado', 'published_on' => '2021-01-01', 'starts_on' => '2021-01-01'];
-        $lar = School::create(array_replace($this->schoolData(), [
-            'cnpj' => '00.176.974/0003-92', 'document_authorizations' => ['accreditation' => $existing],
-        ]));
+        $lar = School::create(array_replace($this->schoolData(), ['cnpj' => '00.176.974/0003-92']));
         $laura = School::create(array_replace($this->schoolData(), ['cnpj' => '00176974000201', 'inep' => '51000001']));
         $liceu = School::create(array_replace($this->schoolData(), ['cnpj' => '00.176.974/0001-20', 'inep' => '51000002']));
         $other = School::create(array_replace($this->schoolData(), ['cnpj' => '11.222.333/0001-81', 'inep' => '51000003']));
@@ -149,16 +147,22 @@ class SchoolLetterheadStageTest extends TestCase
         ]);
         $migration = require database_path('migrations/2026_11_24_000003_pre_fill_published_school_authorizations.php');
         $migration->up();
+        $acts = $lar->fresh()->document_authorizations;
+        $this->assertStringContainsString('Res. 384/04, art. 44', $acts['accreditation']['act']);
+        $this->assertNull($acts['accreditation']['ends_on']);
+        $lar->update(['document_authorizations' => array_replace($acts, ['accreditation' => $existing])]);
         $migration->up();
 
-        $acts = $lar->fresh()->document_authorizations;
-        $this->assertSame($existing, $acts['accreditation']);
+        $this->assertSame($existing, $lar->fresh()->document_authorizations['accreditation']);
         $this->assertSame('2027-12-31', $acts['fundamental_educacao_do_campo']['ends_on']);
         $this->assertStringContainsString('078/2023', $acts['medio_educacao_do_campo']['act']);
         $this->assertArrayNotHasKey('medio_regular', $acts);
         $this->assertSame('2029-12-31', $laura->fresh()->document_authorizations['medio_regular']['ends_on']);
         $this->assertSame('2025-12-31', $liceu->fresh()->document_authorizations['fundamental_regular']['ends_on']);
-        $this->assertSame('2011-12-31', $liceu->fresh()->document_authorizations['accreditation']['ends_on']);
+        $this->assertStringContainsString('261/2008-CEE/MT', $laura->fresh()->document_authorizations['accreditation']['act']);
+        $this->assertNull($laura->fresh()->document_authorizations['accreditation']['ends_on']);
+        $this->assertStringContainsString('294/2008-CEE/MT', $liceu->fresh()->document_authorizations['accreditation']['act']);
+        $this->assertNull($liceu->fresh()->document_authorizations['accreditation']['ends_on']);
         $this->assertSame(['concomitante', 'subsequente'], $program->fresh()->offer_modes);
         $this->assertNull($other->fresh()->document_authorizations);
     }

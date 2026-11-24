@@ -8,7 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $liceuAccreditation = $this->act('Portaria 294/2008-CEE/MT · DOE-MT nº 24.954', '2008-11-05', '2008-01-01', '2011-12-31', '1874#page=16');
+        // Os arts. 2º e 31 da Resolução 630/2008-CEE/MT prorrogam sem novo prazo
+        // os credenciamentos que venceriam a partir de 2009 (DOE nº 24.993, p. 21–23).
+        $liceuAccreditation = $this->act('Portaria 294/2008-CEE/MT · DOE-MT nº 24.954 · Vigência: Res. 630/2008, art. 31', '2008-11-05', '2008-01-01', null, '1874#page=16');
+        $lauraAccreditation = $this->act('Portaria 261/2008-CEE/MT · DOE-MT nº 24.930 · Vigência: Res. 630/2008, art. 31', '2008-09-30', '2008-01-01', null, '1850#page=30');
+        // A Portaria 042/05 reconhece o Ensino Médio. O credenciamento decorre
+        // do art. 44 da Resolução 384/04-CEE/MT, como consta no relatório do Topázio.
+        $larAccreditation = $this->act('Portaria 042/05-CEE/MT c/c Res. 384/04, art. 44 · DOE-MT nº 24.067 · Vigência: Res. 630/2008, art. 31', '2005-03-14', '2005-01-01', null, '13720#page=28');
         $liceuBasicEducation = $this->act('Ato 104/2021-CEE/MT · DOE-MT nº 27.989', '2021-04-30', '2021-01-01', '2025-12-31', '16306#page=34');
         $lauraBasicEducation = $this->act('Ato 486/2025-CEE/MT · DOE-MT nº 29.007', '2025-06-10', '2025-01-01', '2029-12-31', '18503#page=39');
         $larElementary = $this->act('Ato 383/2025-CEE/MT · DOE-MT nº 28.986', '2025-05-12', '2025-01-01', '2027-12-31', '18440#page=38');
@@ -23,12 +29,14 @@ return new class extends Migration
                 'medio_regular' => $liceuBasicEducation,
             ],
             '00176974000201' => [
+                'accreditation' => $lauraAccreditation,
                 'fundamental' => $lauraBasicEducation,
                 'fundamental_regular' => $lauraBasicEducation,
                 'medio' => $lauraBasicEducation,
                 'medio_regular' => $lauraBasicEducation,
             ],
             '00176974000392' => [
+                'accreditation' => $larAccreditation,
                 'fundamental' => $larElementary,
                 'fundamental_educacao_do_campo' => $larElementary,
                 'medio' => $larHighSchool,
@@ -69,7 +77,7 @@ return new class extends Migration
         // Os atos são dados cadastrais que podem ter sido conferidos e editados após a importação.
     }
 
-    private function act(string $act, string $publishedOn, string $startsOn, string $endsOn, string $edition): array
+    private function act(string $act, string $publishedOn, string $startsOn, ?string $endsOn, string $edition): array
     {
         return [
             'act' => $act,
