@@ -18,7 +18,7 @@ final class TeacherLastAccessOverview
         $previous = array_replace($query, $legacy);
         $aliases = [
             'teacher_access_search' => 'docente',
-            'teacher_access_school' => 'escola',
+            'teacher_access_school' => 'unidade',
             'teacher_access_status' => 'acesso',
         ];
         foreach ($aliases as $original => $alias) {
@@ -51,14 +51,14 @@ final class TeacherLastAccessOverview
 
         $filters = $request->validate([
             'docente' => ['nullable', 'string', 'max:120'],
-            'escola' => ['nullable', 'integer'],
+            'unidade' => ['nullable', 'integer'],
             'acesso' => ['nullable', 'in:all,recent,overdue,missing'],
             'teacher_access_page' => ['nullable', 'integer', 'min:1'],
         ]);
         $schools = School::query()->where('active', true)
             ->when(! $viewer->isAdministrator(), fn (Builder $query) => $query->whereIn('id', $viewer->manageableSchoolIds()))
             ->orderBy('name')->get(['id', 'name']);
-        $schoolId = ! empty($filters['escola']) ? (int) $filters['escola'] : null;
+        $schoolId = ! empty($filters['unidade']) ? (int) $filters['unidade'] : null;
         abort_if($schoolId !== null && ! $schools->contains('id', $schoolId), 403);
         $schoolIds = $schoolId !== null ? [$schoolId] : $schools->modelKeys();
         $search = trim($filters['docente'] ?? '');

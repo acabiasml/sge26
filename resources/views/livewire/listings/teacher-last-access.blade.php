@@ -1,3 +1,4 @@
+<div>
 @if($teacherLastAccess)
 @php
     $access = $teacherLastAccess;
@@ -31,7 +32,7 @@
             @if($access['schools']->count() > 1)
                 <div>
                     <label for="teacher-access-school">{{ __('dashboard.school') }}</label>
-                    <select id="teacher-access-school" class="form-control" name="escola" wire:model="filters.escola">
+                    <select id="teacher-access-school" class="form-control" name="unidade" wire:model="filters.unidade">
                         <option value="">{{ __('dashboard.access.all_schools') }}</option>
                         @foreach($access['schools'] as $accessSchool)
                             <option value="{{ $accessSchool->id }}" @selected($access['school_id'] === $accessSchool->id)>{{ $accessSchool->name }}</option>
@@ -96,6 +97,5 @@
         @endif
     </div>
 </details>
-@else
-<div></div>
 @endif
+</div>

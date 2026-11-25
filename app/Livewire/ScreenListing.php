@@ -72,7 +72,7 @@ class ScreenListing extends Component
         'audit-group' => [Controllers\AuditLogController::class, 'group', []],
         'courses' => [Controllers\TechnicalProgramController::class, 'index', ['school_id']],
         'issued-certificates' => [Controllers\CredentialArchiveController::class, 'batch', []],
-        'teacher-access' => [Controllers\DashboardController::class, 'teacherAccess', ['docente', 'escola', 'acesso']],
+        'teacher-access' => [Controllers\DashboardController::class, 'teacherAccess', ['docente', 'unidade', 'acesso']],
     ];
 
     private const CONTEXT_MODELS = [
