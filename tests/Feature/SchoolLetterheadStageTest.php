@@ -121,7 +121,13 @@ class SchoolLetterheadStageTest extends TestCase
         $this->actingAs($this->user(PersonSchoolRole::ROLE_MANAGER, $school));
         $edit = route('schools.edit', $school);
         $tab = $edit.'#section-atos-autorizativos';
-        $this->get($edit)->assertOk()->assertSee($tab)->assertSee('name="document_authorizations[medio_educacao_do_campo][act]"', false);
+        $field = 'name="document_authorizations[medio_educacao_do_campo][act]"';
+        $expired = ['act' => 'Ato com vigência encerrada', 'published_on' => '2019-01-01',
+            'starts_on' => '2019-01-01', 'ends_on' => '2020-12-31'];
+        $school->update(['document_authorizations' => ['medio_regular' => $expired]]);
+        $this->get($edit)->assertOk()->assertSee($tab)
+            ->assertSeeInOrder(['Atos vigentes', 'Nenhum ato vigente cadastrado.', 'Atos não vigentes', 'Ato com vigência encerrada', 'Incluir ato'])
+            ->assertSee('value="medio_educacao_do_campo"', false)->assertDontSee($field, false);
         $this->get(route('schools.document-authorizations.edit', $school))->assertRedirect($tab);
         $this->get(route('schools.document-authorizations.edit', $otherSchool))->assertForbidden();
 
@@ -129,11 +135,18 @@ class SchoolLetterheadStageTest extends TestCase
             'source_url' => 'https://iomat.mt.gov.br/portal/edicoes/download/17136'];
         $this->put(route('schools.update', $school), array_replace($this->schoolData(), [
             'letterhead_mode' => 'shared', 'letterhead_text' => 'Nova linha',
-            'document_authorizations' => ['medio_educacao_do_campo' => $act],
+            'document_authorizations' => ['medio_educacao_do_campo' => $act, 'medio_regular' => $expired],
         ]))->assertSessionHasNoErrors();
         $this->assertSame($act, $school->fresh()->document_authorizations['medio_educacao_do_campo']);
         $this->assertSame(['Nova linha'], $school->fresh()->letterheadTextsForStages());
-        $this->get($edit)->assertOk()->assertSee('Abrir publicação')->assertSee($act['source_url']);
+        $this->get($edit)->assertOk()->assertSee($field, false)->assertDontSee('value="medio_educacao_do_campo"', false)
+            ->assertSeeInOrder(['Atos vigentes', 'Ato de teste', 'Abrir publicação', 'Atos não vigentes', 'Ato com vigência encerrada', 'Incluir ato'])
+            ->assertSee($act['source_url']);
+        $this->from($edit)->put(route('schools.update', $school), $this->schoolData() + [
+            'document_authorizations' => ['fundamental_eja' => ['act' => 'Novo ato sem datas']],
+        ])->assertSessionHasErrors('document_authorizations.fundamental_eja.published_on');
+        $this->get($edit)->assertOk()->assertSee('Novo ato sem datas')
+            ->assertSee('name="document_authorizations[fundamental_eja][act]"', false);
     }
 
     public function test_published_acts_fill_empty_offerings_by_cnpj_and_preserve_existing_data(): void
