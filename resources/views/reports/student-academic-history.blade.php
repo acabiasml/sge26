@@ -93,7 +93,7 @@
 @php($authorizationLabels = \App\Models\School::documentAuthorizationLabels())
 @foreach($issuedDocument->payload['authorizations'] ?? [] as $key => $act)
     @if(filled($act['act'] ?? null) && filled($act['published_on'] ?? null))
-        <p class="notes"><strong>{{ __($authorizationLabels[$key] ?? $key) }}</strong> — {{ $act['act'] }} · Publicação em {{ \Carbon\CarbonImmutable::parse($act['published_on'])->format('d/m/Y') }}</p>
+        <p class="notes"><strong>{{ __($authorizationLabels[$key] ?? $key) }}</strong> — {{ $act['act'] }} · Publicação em {{ \Carbon\CarbonImmutable::parse($act['published_on'])->format('d/m/Y') }}@if(filled($act['starts_on'] ?? null)) · Vigência a partir de {{ \Carbon\CarbonImmutable::parse($act['starts_on'])->format('d/m/Y') }}@endif</p>
     @endif
 @endforeach
 

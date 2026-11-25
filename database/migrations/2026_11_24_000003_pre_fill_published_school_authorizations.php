@@ -15,7 +15,8 @@ return new class extends Migration
         // A Portaria 042/05 reconhece o Ensino Médio. O credenciamento decorre
         // do art. 44 da Resolução 384/04-CEE/MT, como consta no relatório do Topázio.
         $larAccreditation = $this->act('Portaria 042/05-CEE/MT c/c Res. 384/04, art. 44 · DOE-MT nº 24.067 · Vigência: Res. 630/2008, art. 31', '2005-03-14', '2005-01-01', null, '13720#page=28');
-        $liceuBasicEducation = $this->act('Ato 104/2021-CEE/MT · DOE-MT nº 27.989', '2021-04-30', '2021-01-01', '2025-12-31', '16306#page=34');
+        $liceuBasicEducation = $this->act('Ato 104/2021-CEE/MT · DOE-MT nº 27.989', '2021-04-30', '2021-01-01', '2025-12-31', '16306#page=34')
+            + ['renewal_protocol' => '1757/2025', 'renewal_filed_on' => '2025-10-23'];
         $lauraBasicEducation = $this->act('Ato 486/2025-CEE/MT · DOE-MT nº 29.007', '2025-06-10', '2025-01-01', '2029-12-31', '18503#page=39');
         $larElementary = $this->act('Ato 383/2025-CEE/MT · DOE-MT nº 28.986', '2025-05-12', '2025-01-01', '2027-12-31', '18440#page=38');
         $larHighSchool = $this->act('Ato 078/2023-CEE/MT · DOE-MT nº 28.437', '2023-02-13', '2023-01-01', '2027-12-31', '17136#page=29');
@@ -59,10 +60,12 @@ return new class extends Migration
                             $updated[$key] = $act;
                         }
                     }
+                    $changes = $this->updatedLetterhead($school, $cnpj);
                     if ($updated !== $current) {
-                        DB::table('schools')->where('id', $school->id)->update([
-                            'document_authorizations' => json_encode($updated, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
-                        ]);
+                        $changes['document_authorizations'] = json_encode($updated, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+                    }
+                    if ($changes !== []) {
+                        DB::table('schools')->where('id', $school->id)->update($changes);
                     }
 
                     if ($cnpj === '00176974000120') {
@@ -75,6 +78,29 @@ return new class extends Migration
     public function down(): void
     {
         // Os atos são dados cadastrais que podem ter sido conferidos e editados após a importação.
+    }
+
+    private function updatedLetterhead(object $school, string $cnpj): array
+    {
+        if ($cnpj === '00176974000120'
+            && $school->letterhead_text === 'Cred. Port. 294/2008, D.O. MT 05/11/2008. Aut. 104/2021-CEE/MT D.O. MT 30/04/21.') {
+            return ['letterhead_text' => 'Cred. Portaria 294/2008-CEE/MT · DOE-MT de 05/11/2008.'];
+        }
+        if ($cnpj !== '00176974000392'
+            || $school->letterhead_text !== 'Credenciada pela Portaria Nº 042/2005 CEE/MT e autorizada pelo Ato nº 674/2019 CEE/MT publicado em 12/12/2019.') {
+            return [];
+        }
+
+        $accreditation = 'Cred. Portaria 042/05-CEE/MT c/c Res. 384/04, art. 44.';
+        $changes = ['letterhead_text' => $accreditation];
+        if (blank($school->letterhead_text_elementary)) {
+            $changes['letterhead_text_elementary'] = $accreditation.' Fundamental do Campo: Ato 383/2025-CEE/MT · DOE-MT de 12/05/2025.';
+        }
+        if (blank($school->letterhead_text_high_school)) {
+            $changes['letterhead_text_high_school'] = $accreditation.' Médio do Campo: Ato 078/2023-CEE/MT · DOE-MT de 13/02/2023.';
+        }
+
+        return $changes;
     }
 
     private function act(string $act, string $publishedOn, string $startsOn, ?string $endsOn, string $edition): array

@@ -161,12 +161,18 @@ class SchoolController extends Controller
         $rules = ['document_authorizations' => ['sometimes', 'array:'.implode(',', array_keys(School::documentAuthorizationLabels()))]];
         foreach (array_keys(School::documentAuthorizationLabels()) as $kind) {
             $field = 'document_authorizations.'.$kind;
-            $rules[$field] = ['nullable', 'array:act,published_on,starts_on,ends_on,source_url'];
-            $rules[$field.'.act'] = ['nullable', 'required_with:'.$field.'.published_on,'.$field.'.starts_on,'.$field.'.ends_on,'.$field.'.source_url', 'string', 'max:350'];
+            $fields = 'act,published_on,starts_on,ends_on,source_url';
+            if (School::supportsDocumentAuthorizationRenewal($kind)) {
+                $fields .= ',renewal_protocol,renewal_filed_on';
+                $rules[$field.'.renewal_protocol'] = ['nullable', 'required_with:'.$field.'.renewal_filed_on', 'regex:~^[0-9]{1,12}/[0-9]{4}$~'];
+                $rules[$field.'.renewal_filed_on'] = ['nullable', 'required_with:'.$field.'.renewal_protocol', 'date_format:Y-m-d', 'before_or_equal:today', 'after_or_equal:'.$field.'.starts_on'];
+            }
+            $rules[$field] = ['nullable', 'array:'.$fields];
+            $rules[$field.'.act'] = ['nullable', 'required_with:'.$field.'.published_on,'.$field.'.starts_on,'.$field.'.ends_on,'.$field.'.source_url,'.$field.'.renewal_protocol', 'string', 'max:350'];
             $rules[$field.'.published_on'] = ['nullable', 'required_with:'.$field.'.act', 'date_format:Y-m-d', 'before_or_equal:today'];
             $rules[$field.'.starts_on'] = ['nullable', 'required_with:'.$field.'.act', 'date_format:Y-m-d'];
             $rules[$field.'.source_url'] = ['nullable', 'url:https', 'max:350'];
-            $rules[$field.'.ends_on'] = ['nullable', 'date_format:Y-m-d', 'after_or_equal:'.$field.'.starts_on'];
+            $rules[$field.'.ends_on'] = ['nullable', 'required_with:'.$field.'.renewal_protocol', 'date_format:Y-m-d', 'after_or_equal:'.$field.'.starts_on'];
         }
 
         return $rules;

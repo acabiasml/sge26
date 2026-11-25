@@ -2143,7 +2143,16 @@ class TeacherDiaryTest extends TestCase
 
     public function test_management_can_emit_transfer_certificate_without_effecting_transfer(): void
     {
+        $this->travelTo(Carbon::parse('2026-11-24 12:00', 'America/Cuiaba'));
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
+        $school = $year->school;
+        $renewal = ['act' => 'Ato 104/2021-CEE/MT', 'published_on' => '2021-04-30',
+            'starts_on' => '2021-01-01', 'ends_on' => '2025-12-31',
+            'renewal_protocol' => '1757/2025', 'renewal_filed_on' => '2025-10-23'];
+        $stage = $component->course->stage;
+        $school->update(['document_authorizations' => array_replace($school->document_authorizations, [
+            $stage => $renewal, $stage.'_regular' => $renewal,
+        ])]);
         $component->course->update(['modality' => AcademicCourse::MODALITY_REGULAR]);
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-atestado-transferencia@ctjj.org');
 
@@ -2170,6 +2179,7 @@ class TeacherDiaryTest extends TestCase
         $this->assertNull($enrollment->fresh()->transferred_at);
         $this->assertSame(StudentEnrollment::STATUS_ENROLLED, $issuedBeforeTransfer->payload['enrollment_status']);
         $this->assertNull($issuedBeforeTransfer->payload['transferred_at']);
+        $this->assertCount(1, $issuedBeforeTransfer->payload['authorization_renewal_notices']);
 
         $certificateBeforeTransfer = view('reports.certificates.transfer', [
             'academicYear' => $year->load('school'),
@@ -2180,6 +2190,8 @@ class TeacherDiaryTest extends TestCase
         ])->render();
         $this->assertStringContainsString('não altera a situação da matrícula nem efetiva a transferência', $certificateBeforeTransfer);
         $this->assertStringNotContainsString('Data da transferência</th>', $certificateBeforeTransfer);
+        $this->assertStringContainsString('SIPE nº 1757/2025', $certificateBeforeTransfer);
+        $this->assertStringContainsString('Vigência encerrada em 31/12/2025', $certificateBeforeTransfer);
 
         $enrollment->update([
             'status' => StudentEnrollment::STATUS_TRANSFERRED,

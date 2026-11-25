@@ -50,6 +50,8 @@ class StudentAcademicHistory extends Model
         $schoolName = $normalize($this->school->name);
         $legalName = $normalize($this->school->legal_name);
 
+        $technicalCourse = $this->education_stage === AcademicCourse::STAGE_TECHNICAL ? $this->technicalCourse : null;
+
         return $this->years->filter(function (StudentAcademicHistoryYear $year) use ($normalize, $schoolName, $legalName): bool {
             if ($year->source === 'system' && $year->enrollment) {
                 return (int) $year->enrollment->schoolClass->academicYear->school_id === (int) $this->school_id;
@@ -59,8 +61,8 @@ class StudentAcademicHistory extends Model
             return $name !== '' && ($name === $schoolName || $name === $legalName)
                 && (blank($year->city) || $normalize($year->city) === $normalize($this->school->city))
                 && (blank($year->state) || $normalize($year->state) === $normalize($this->school->state));
-        })->map(fn (StudentAcademicHistoryYear $year) => [$this->education_stage, $year->modality])
-            ->unique()->values()->all();
+        })->map(fn (StudentAcademicHistoryYear $year) => [$this->education_stage, $year->modality, $year->year, $technicalCourse])
+            ->all();
     }
 
     public function freshPdfUrl(): string

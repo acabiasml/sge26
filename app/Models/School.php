@@ -89,6 +89,12 @@ class School extends Model
         return $labels;
     }
 
+    public static function supportsDocumentAuthorizationRenewal(string $kind): bool
+    {
+        return Str::before($kind, '_') === AcademicCourse::STAGE_ELEMENTARY
+            || Str::before($kind, '_') === AcademicCourse::STAGE_HIGH_SCHOOL;
+    }
+
     public function documentAddress(): string
     {
         $address = collect([$this->address, $this->number, $this->district,

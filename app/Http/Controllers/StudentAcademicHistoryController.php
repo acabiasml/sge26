@@ -599,7 +599,7 @@ class StudentAcademicHistoryController extends Controller
         $records = app(SchoolRecordPdf::class);
         $version = HistoryDocumentVersion::of($history);
         $stages = [$history->education_stage];
-        $offerings = $history->issuingSchoolOfferings();
+        $authorization = OfficialDocumentCompliance::authorizationDetails($history->school, $stages, $history->issuingSchoolOfferings());
         $completion = $history->highSchoolCompletionDetails();
         if ($official) {
             $data = $request->validate(SchoolRecordPdf::rules($history->school) + ['expected_version' => ['required', 'string', 'size:64']]);
@@ -607,7 +607,7 @@ class StudentAcademicHistoryController extends Controller
                 throw ValidationException::withMessages(['expected_version' => 'O histórico mudou. Gere outra prévia e confira antes de emitir.']);
             }
             if ($message = OfficialDocumentCompliance::historyIdentityMessage($person)
-                ?? OfficialDocumentCompliance::authorizationMessage($history->school, $stages, $offerings)) {
+                ?? $authorization['message']) {
                 throw ValidationException::withMessages(['document' => $message]);
             }
         }
@@ -645,7 +645,8 @@ class StudentAcademicHistoryController extends Controller
             'student' => ['full_name' => $person->full_name],
             'rows_count' => $history->components->count(),
             'school_special_processes' => $processes,
-            'authorizations' => array_intersect_key($history->school->document_authorizations ?? [], array_flip(OfficialDocumentCompliance::authorizationKeys($stages, $offerings))),
+            'authorizations' => $authorization['acts'],
+            'authorization_renewal_notices' => $authorization['renewal_notices'],
             'signers' => ['director' => $staff['diretor']?->full_name, 'secretary' => $staff['secretário']?->full_name],
         ];
         $render = function (IssuedDocument $document) use ($person, $history, $official, $staff) {

@@ -6,50 +6,109 @@ use App\Models\AcademicCourse;
 use App\Models\Person;
 use App\Models\PersonContact;
 use App\Models\School;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 
 class OfficialDocumentCompliance
 {
-    public static function courseAuthorizationMessage(School $school, iterable $courses): ?string
+    public static function courseAuthorizationDetails(School $school, iterable $courses, int $referenceYear): array
     {
-        $offerings = collect($courses)->map(fn (AcademicCourse $course) => [$course->stage, $course->modality]);
+        $courses = collect($courses);
+        $offerings = $courses->map(fn (AcademicCourse $course) => [$course->stage, $course->modality, $referenceYear, $course]);
 
-        return self::authorizationMessage($school, $offerings->pluck(0)->all(), $offerings->all());
+        return self::authorizationDetails($school, $courses->pluck('stage')->all(), $offerings->all());
     }
 
-    public static function authorizationKeys(array $stages, array $offerings): array
+    public static function authorizationMessage(School $school, array $stages): ?string
     {
+        return self::authorizationDetails($school, $stages)['message'];
+    }
+
+    /**
+     * @return array{acts: array, renewal_notices: list<string>, message: ?string}
+     */
+    public static function authorizationDetails(School $school, array $stages, array $offerings = []): array
+    {
+        $date = now('America/Cuiaba')->toDateString();
+        $acts = $school->document_authorizations ?? [];
         $keys = ['accreditation', ...array_intersect($stages, [AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL])];
-        foreach ($offerings as [$stage, $modality]) {
-            if (isset(AcademicCourse::STAGE_LABELS[$stage]) && $stage !== AcademicCourse::STAGE_OTHER) {
-                $keys[] = $stage.'_'.(self::modalityKey($modality) ?? 'missing');
+        $isLar = preg_replace('/\D/', '', (string) $school->cnpj) === '00176974000392';
+        foreach ($offerings as $offering) {
+            [$stage, $modality, $referenceYear] = $offering;
+            if (! isset(AcademicCourse::STAGE_LABELS[$stage]) || $stage === AcademicCourse::STAGE_OTHER) {
+                continue;
             }
+            if ($stage === AcademicCourse::STAGE_TECHNICAL && self::hasCurrentTechnicalAuthorization($offering[3] ?? null, $date)) {
+                continue;
+            }
+            $modality = self::modalityKey($modality);
+            // A matriz de 2024 permanece como registrada. Para emissão, use o ato atual da oferta.
+            if ($isLar && $stage === AcademicCourse::STAGE_ELEMENTARY && $modality === AcademicCourse::MODALITY_REGULAR
+                && (int) $referenceYear === 2024 && ! self::isCurrentAct($acts['fundamental_regular'] ?? [], $date)) {
+                $modality = AcademicCourse::MODALITY_RURAL;
+            }
+            $keys[] = $stage.'_'.($modality ?? 'missing');
         }
 
-        return array_unique($keys);
+        $details = ['acts' => [], 'renewal_notices' => [], 'message' => null];
+        $labels = School::documentAuthorizationLabels();
+        foreach (array_unique($keys) as $key) {
+            $act = $acts[$key] ?? [];
+            if (self::isCurrentAct($act, $date)) {
+                $details['acts'][$key] = $act;
+
+                continue;
+            }
+            if ($school->state !== 'MT') {
+                continue;
+            }
+            if ($notice = self::renewalNotice($key, $act, $date)) {
+                $details['renewal_notices'][] = $notice;
+
+                continue;
+            }
+
+            $details['message'] ??= isset($labels[$key])
+                ? __('Confira o ato, a publicação e a vigência em Atos autorizativos no cadastro da escola. Pendência: :authorization.', [
+                    'authorization' => __($labels[$key]),
+                ])
+                : __('Identifique a modalidade da oferta no cadastro da matriz ou do histórico antes de emitir.');
+        }
+        $details['renewal_notices'] = array_values(array_unique($details['renewal_notices']));
+
+        return $details;
     }
 
-    public static function authorizationMessage(School $school, array $stages, array $offerings = []): ?string
+    private static function isCurrentAct(array $act, string $date): bool
     {
-        if ($school->state !== 'MT') {
+        return filled($act['act'] ?? null) && filled($act['published_on'] ?? null) && filled($act['starts_on'] ?? null)
+            && $act['published_on'] <= $date && $act['starts_on'] <= $date && (blank($act['ends_on'] ?? null) || $act['ends_on'] >= $date);
+    }
+
+    private static function renewalNotice(string $key, array $act, string $date): ?string
+    {
+        $expires = $act['ends_on'] ?? null;
+        $filed = $act['renewal_filed_on'] ?? null;
+        $protocol = $act['renewal_protocol'] ?? null;
+        if (! School::supportsDocumentAuthorizationRenewal($key)
+            || blank($expires) || $expires >= $date || ! self::isCurrentAct($act, $expires)
+            || blank($filed) || $filed < $act['starts_on'] || $filed > $date || blank($protocol)) {
             return null;
         }
-        $date = now('America/Cuiaba')->toDateString();
-        $labels = School::documentAuthorizationLabels();
-        foreach (self::authorizationKeys($stages, $offerings) as $key) {
-            if (! isset($labels[$key])) {
-                return __('Identifique a modalidade da oferta no cadastro da matriz ou do histórico antes de emitir.');
-            }
-            $act = $school->document_authorizations[$key] ?? [];
-            if (blank($act['act'] ?? null) || blank($act['published_on'] ?? null) || blank($act['starts_on'] ?? null)
-                || $act['published_on'] > $date || $act['starts_on'] > $date || (filled($act['ends_on'] ?? null) && $act['ends_on'] < $date)) {
-                return __('Confira o ato, a publicação e a vigência em Atos autorizativos no cadastro da escola. Pendência: :authorization.', [
-                    'authorization' => __($labels[$key]),
-                ]);
-            }
-        }
 
-        return null;
+        return __('Autorização em renovação no CEE-MT (SIPE nº :protocol, protocolado em :filed). Último ato: :act. Vigência encerrada em :expires.', [
+            'protocol' => $protocol,
+            'filed' => CarbonImmutable::parse($filed)->format('d/m/Y'),
+            'act' => $act['act'],
+            'expires' => CarbonImmutable::parse($expires)->format('d/m/Y'),
+        ]);
+    }
+
+    private static function hasCurrentTechnicalAuthorization(?AcademicCourse $course, string $date): bool
+    {
+        return $course && filled($course->authorization_act) && filled($course->official_gazette_reference)
+            && $course->authorization_starts_at && $course->authorization_ends_at
+            && $course->authorization_starts_at->toDateString() <= $date && $course->authorization_ends_at->toDateString() >= $date;
     }
 
     private static function modalityKey(?string $modality): ?string

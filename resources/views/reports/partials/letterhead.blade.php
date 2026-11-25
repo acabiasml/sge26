@@ -21,6 +21,9 @@
         </tr>
     </table>
 </header>
+@foreach($issuedDocument->payload['authorization_renewal_notices'] ?? $letterhead['renewal_notices'] ?? [] as $notice)
+    <p style="margin: 4px 0 8px; font-size: 9pt;"><strong>{{ __('Ressalva') }}</strong> — {{ $notice }}</p>
+@endforeach
 @php
     $documentCourses = collect();
     if (isset($course) && $course instanceof \App\Models\AcademicCourse) $documentCourses->push($course);

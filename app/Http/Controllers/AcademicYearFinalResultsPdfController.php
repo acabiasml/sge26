@@ -38,7 +38,7 @@ class AcademicYearFinalResultsPdfController extends Controller
 
         $academicYear->load([
             'school',
-            'classes.courses',
+            'classes.courses.technicalProgram',
             'classes.enrollments.student',
             'classes.enrollments.courses',
             'classes.enrollments.finalResultCalculatedBy',
@@ -67,12 +67,14 @@ class AcademicYearFinalResultsPdfController extends Controller
         $type = 'academic-year-final-results';
         $official = $request->isMethod('post');
         $preview = ! $official && $request->boolean('preview');
+        $courses = $academicYear->classes->flatMap->courses->unique('id');
+        $authorization = OfficialDocumentCompliance::courseAuthorizationDetails($academicYear->school, $courses, $academicYear->reference_year);
         $payload = [
+            'authorization_renewal_notices' => $authorization['renewal_notices'],
             'title' => ($official ? 'Ata consolidada de resultados finais - ' : 'Resultados finais - ').$academicYear->name,
             'academic_year_id' => $academicYear->id,
             'rows_count' => $rowsCount,
         ];
-        $courses = $academicYear->classes->flatMap->courses;
         $stages = $courses->pluck('stage')->all();
         $render = function (IssuedDocument $document) use ($academicYear, $classes, $rowsCount, $stages, $official, $preview) {
             $pdf = Pdf::loadView('reports.academic-year-final-results', [
@@ -99,7 +101,7 @@ class AcademicYearFinalResultsPdfController extends Controller
                 || $enrollments->contains(fn ($enrollment) => in_array($enrollment->final_result_status, [null, StudentEnrollment::FINAL_PENDING], true))) {
                 throw ValidationException::withMessages(['document' => 'Encerre o ano letivo e confira os resultados de todas as matrículas antes de registrar a ata consolidada.']);
             }
-            if ($message = OfficialDocumentCompliance::schoolMessage($school) ?? OfficialDocumentCompliance::courseAuthorizationMessage($school, $courses)) {
+            if ($message = OfficialDocumentCompliance::schoolMessage($school) ?? $authorization['message']) {
                 throw ValidationException::withMessages(['document' => $message]);
             }
             $staff = $records->signers($school);
