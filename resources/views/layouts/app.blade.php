@@ -39,8 +39,11 @@
         <div class="sge-sidebar-shell">
         <nav class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar" aria-label="{{ __('navigation.main_menu') }}">
             <div class="sge-sidebar-header">
-                <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ route('dashboard') }}">
-                    <div class="sidebar-brand-text mx-3">Beabá</div>
+                <a class="sidebar-brand d-flex align-items-center" href="{{ route('dashboard') }}"
+                    aria-label="Beabá · {{ __('navigation.home') }}" title="Beabá · {{ __('navigation.home') }}">
+                    <span class="sge-sidebar-logo">
+                        <img src="{{ asset('brand/logo.png') }}" width="642" height="840" alt="" decoding="async">
+                    </span>
                 </a>
                 <button id="sidebarCloseControl" class="btn sge-sidebar-close" type="button" aria-label="{{ __('navigation.close_sidebar') }}" title="{{ __('navigation.close_sidebar') }}">
                     <i class="fas fa-times d-lg-none" aria-hidden="true"></i>
@@ -274,16 +277,12 @@
         <div id="content-wrapper" class="d-flex flex-column">
             <div id="content">
                 <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top" aria-label="{{ __('navigation.topbar') }}">
-                    <div class="sge-topbar-start">
-                        <button id="sidebarToggleControl" class="btn btn-link sge-sidebar-toggle d-lg-none" type="button" aria-label="{{ __('navigation.open_sidebar') }}" aria-controls="accordionSidebar"
+                    <div class="sge-topbar-start d-lg-none">
+                        <button id="sidebarToggleControl" class="btn btn-link sge-sidebar-toggle" type="button" aria-label="{{ __('navigation.open_sidebar') }}" aria-controls="accordionSidebar"
                             data-open-label="{{ __('navigation.open_sidebar') }}" data-close-label="{{ __('navigation.close_sidebar') }}"
                             data-collapse-label="{{ __('navigation.collapse_sidebar') }}">
                             <i class="fa fa-bars" aria-hidden="true"></i>
                         </button>
-                        <a class="sge-topbar-brand" href="{{ route('dashboard') }}" title="Beabá · {{ __('navigation.home') }}">
-                            <img src="{{ asset('brand/logo.png') }}" width="642" height="840" alt="Beabá" decoding="async">
-                            <span class="sr-only"> · {{ __('navigation.home') }}</span>
-                        </a>
                     </div>
 
                     <ul class="navbar-nav ml-auto sge-topbar-controls">

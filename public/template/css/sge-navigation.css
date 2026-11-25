@@ -62,8 +62,6 @@ html { scroll-padding-block-start: var(--sge-topbar-clearance, 5.5rem); }
     text-align: left;
     white-space: normal;
 }
-#accordionSidebar .sidebar-brand-text { display: inline; }
-#accordionSidebar .sidebar-brand { justify-content: flex-start; }
 #accordionSidebar .nav-item :is(.collapse,.collapsing) {
     position: static;
     width: auto;
@@ -91,15 +89,7 @@ html { scroll-padding-block-start: var(--sge-topbar-clearance, 5.5rem); }
     box-shadow: none;
     margin-bottom: 0;
 }
-.topbar .sge-topbar-start {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-    gap: .5rem;
-    margin-right: .75rem;
-}
-.topbar .sge-topbar-start .sge-sidebar-toggle { margin-right: 0 !important; }
-.sge-topbar-brand {
+.sge-sidebar-logo {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -111,17 +101,20 @@ html { scroll-padding-block-start: var(--sge-topbar-clearance, 5.5rem); }
     border: 1px solid var(--sge-border);
     border-radius: var(--identity-button-radius, .5rem);
 }
-.sge-topbar-brand > img {
+.sge-sidebar-logo > img {
     display: block;
     width: auto;
     height: 100%;
     max-width: 100%;
     object-fit: contain;
 }
-.sge-topbar-brand:focus-visible {
-    outline: 3px solid var(--identity-secondary, var(--sge-blue));
-    outline-offset: 3px;
+.topbar .sge-topbar-start {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-right: .75rem;
 }
+.topbar .sge-topbar-start .sge-sidebar-toggle { margin-right: 0 !important; }
 .sge-page-header {
     display: flex;
     flex-wrap: wrap;
@@ -172,10 +165,8 @@ html { scroll-padding-block-start: var(--sge-topbar-clearance, 5.5rem); }
         z-index: 1030;
         transition: width .26s cubic-bezier(.2, .8, .2, 1);
     }
-    #accordionSidebar .sge-sidebar-header { width: 16rem; }
     #accordionSidebar .sge-sidebar-links { margin-block: auto; }
     #accordionSidebar .sidebar-brand { padding-inline: .3125rem 3.5rem; overflow: hidden; }
-    #accordionSidebar .sidebar-brand-text,
     #accordionSidebar .nav-item > .nav-link span {
         white-space: nowrap;
         transition: opacity .18s ease;
@@ -195,7 +186,6 @@ html { scroll-padding-block-start: var(--sge-topbar-clearance, 5.5rem); }
         justify-content: center !important;
         padding-inline: 0;
     }
-    html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar .sidebar-brand-text,
     html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar .nav-item > .nav-link span {
         position: absolute;
         width: 1px;
@@ -225,7 +215,6 @@ html { scroll-padding-block-start: var(--sge-topbar-clearance, 5.5rem); }
 @media (prefers-reduced-motion: reduce) {
     #accordionSidebar,
     #accordionSidebar.toggled,
-    #accordionSidebar .sidebar-brand-text,
     #accordionSidebar .nav-item > .nav-link span {
         transition: none !important;
     }
@@ -244,7 +233,7 @@ html { scroll-padding-block-start: var(--sge-topbar-clearance, 5.5rem); }
         flex: 1;
         flex-wrap: wrap;
         justify-content: flex-end;
-        max-width: calc(100% - 6.5rem);
+        max-width: calc(100% - 3.25rem);
         row-gap: .375rem;
     }
     .sge-page-heading { padding-inline-start: .75rem; }
