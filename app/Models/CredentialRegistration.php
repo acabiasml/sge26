@@ -43,6 +43,11 @@ class CredentialRegistration extends Model
         return $this->belongsTo(User::class, 'registered_by_user_id');
     }
 
+    public function reclassifiedEnrollment()
+    {
+        return $this->hasOne(StudentEnrollment::class, 'reclassification_registration_id');
+    }
+
     public function referenceNumber(): string
     {
         return (string) ($this->snapshot['registration']['registry_number'] ?? $this->number);

@@ -36,7 +36,7 @@ class ClassFinalResultsPdfController extends Controller
     {
         $class->load([
             'academicYear.school',
-            'courses',
+            'courses.technicalProgram',
             'enrollments.student.contacts',
             'enrollments.courses',
             'enrollments.finalResultCalculatedBy',
@@ -51,7 +51,9 @@ class ClassFinalResultsPdfController extends Controller
             ->values();
 
         $records = app(SchoolRecordPdf::class);
+        $authorization = OfficialDocumentCompliance::courseAuthorizationDetails($academicYear->school, $class->courses, $academicYear->reference_year);
         $payload = [
+            'authorization_renewal_notices' => $authorization['renewal_notices'],
             'title' => 'Ata de resultados finais - '.AcademicContextLabel::classWithStages($class->name, $class->courses),
             'school_class_id' => $class->id, 'academic_year_id' => $academicYear->id, 'rows_count' => $enrollments->count(),
         ];
@@ -73,7 +75,7 @@ class ClassFinalResultsPdfController extends Controller
             throw ValidationException::withMessages(['document' => 'Encerre o ano letivo e confira os resultados de todas as matrículas antes de registrar a ata.']);
         }
         if ($message = OfficialDocumentCompliance::schoolMessage($academicYear->school)
-            ?? OfficialDocumentCompliance::authorizationMessage($academicYear->school, $class->courses->pluck('stage')->all())) {
+            ?? $authorization['message']) {
             throw ValidationException::withMessages(['document' => $message]);
         }
         $staff = $records->signers($academicYear->school);

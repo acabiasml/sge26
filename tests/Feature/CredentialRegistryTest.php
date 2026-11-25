@@ -212,6 +212,26 @@ class CredentialRegistryTest extends TestCase
         $this->assertSame(40, $wrongBook->fresh()->next_number);
     }
 
+    public function test_external_proxy_delivery_requires_current_authority_and_preserves_both_files(): void
+    {
+        [$user, $school] = $this->scenario();
+        $book = $this->openInstitutionalBook($school, $user, 'delivery');
+        $url = route('institutional-records.store', [$school, 'delivery']);
+        $data = ['registry_book_id' => $book->id, 'issuance_token' => (string) Str::uuid(),
+            'recorded_on' => '2026-11-18', 'subject' => 'Certificado externo', 'recipient' => 'Procurador externo',
+            'recipient_kind' => 'proxy', 'method' => 'physical', 'reviewed' => 1,
+            'original_pdf' => $this->pdf('protocolo assinado'), 'authority_pdf' => $this->pdf('procuração')];
+        $this->actingAs($user)->post($url, $data)->assertSessionHasErrors(['requested_on', 'authority_issued_on']);
+        $this->post($url, $data + ['requested_on' => '2026-11-18', 'authority_issued_on' => '2026-05-17'])
+            ->assertSessionHasErrors('authority_issued_on');
+        $this->post($url, $data + ['requested_on' => '2026-11-18', 'authority_issued_on' => '2026-05-18'])
+            ->assertSessionHasNoErrors();
+        $entry = $book->registrations()->sole();
+        $this->assertSame('2026-11-18', $entry->snapshot['requested_on']);
+        $this->assertSame('2026-05-18', $entry->snapshot['authority_issued_on']);
+        $this->assertEqualsCanonicalizing(['institutional_original', 'representative_authority'], $entry->files()->pluck('kind')->all());
+    }
+
     public function test_reclassification_preserves_the_signed_summary_and_records_the_decision_and_signers(): void
     {
         [$user, $school] = $this->scenario();
@@ -225,6 +245,7 @@ class CredentialRegistryTest extends TestCase
         $this->get($url)->assertOk()->assertSee('Súmula da reclassificação');
         $data = [
             'registry_book_id' => $book->id, 'issuance_token' => Str::uuid()->toString(), 'process_kind' => 'reclassification',
+            'reclassification_decision' => 'denied', 'reclassification_ground' => 'advancement',
             'signature_mode' => 'physical', 'origin' => 'Processo 3/2026', 'recorded_on' => '2026-03-01', 'reviewed' => 1,
             'evaluation_result' => 'Reposicionamento conforme processo', 'justification' => 'Comprovou competências previstas',
             'procedures' => 'Avaliação coletiva', 'original_pdf' => $this->pdf('ata individual'),
@@ -340,7 +361,7 @@ class CredentialRegistryTest extends TestCase
         [$user, $school] = $this->scenario();
         $school->update(['legal_name' => 'Escola do Livro', 'inep' => '12345678', 'founded_at' => '2000-01-01',
             'phone' => '66999999999', 'email' => 'escola@example.test', 'letterhead_text' => 'Ato autorizativo de teste', 'postal_code' => '78800000',
-            'document_authorizations' => array_fill_keys(['accreditation', 'medio'], ['act' => 'Ato escolar de teste', 'published_on' => '2020-01-01', 'starts_on' => '2020-01-01'])]);
+            'document_authorizations' => array_fill_keys(['accreditation', 'medio', 'medio_regular'], ['act' => 'Ato escolar de teste', 'published_on' => '2020-01-01', 'starts_on' => '2020-01-01'])]);
         $this->person('Diretora de Teste')->schoolRoles()->create([
             'school_id' => $school->id, 'role' => 'gestor', 'position' => 'diretor', 'active' => true,
         ]);
@@ -363,7 +384,8 @@ class CredentialRegistryTest extends TestCase
             'scope' => AcademicCourse::MODALITY_REGULAR]);
         $history = app(SchoolRecordPdf::class)->issue($user, $school, 'student-academic-history', $student->id,
             ['title' => 'Histórico do Ensino Médio', 'education_stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
-                'completed_enrollment_ids' => [$enrollment->id]],
+                'completed_enrollment_ids' => [$enrollment->id], 'high_school_completion' => ['entered_on' => '2023-02-01',
+                    'entry_year' => 2023, 'entry_method' => 'Matrícula inicial', 'completed_on' => '2025-12-19']],
             ['registry_book_id' => $historyBook->id, 'issuance_token' => (string) Str::uuid(), 'signature_mode' => 'physical'],
             fn () => "%PDF-1.4\nHistórico oficial de teste");
 
@@ -371,6 +393,12 @@ class CredentialRegistryTest extends TestCase
         $url = route('enrollments.high-school-certificate.register', $enrollment);
         $data = ['registry_book_id' => $certificateBook->id, 'issuance_token' => (string) Str::uuid(),
             'signature_mode' => 'digital', 'history_code' => $history->verification_code];
+        $authorizations = $school->document_authorizations;
+        $school->update(['document_authorizations' => array_diff_key($authorizations, ['medio_regular' => true])]);
+        $this->post($url, $data)->assertSessionHasErrors('document');
+        $school->update(['document_authorizations' => array_replace($authorizations, ['medio_regular' => $authorizations['medio_regular'] + ['ends_on' => '2021-12-31']])]);
+        $this->post($url, $data)->assertSessionHasErrors('document');
+        $school->update(['document_authorizations' => $authorizations]);
         $this->post($url, $data)->assertSessionHasErrors('history_code');
         $this->post(route('credential-registry.physical', $history->registration), [
             'signed_pdf' => $this->pdf('historico assinado'), 'physical_location' => 'Acervo A, pasta 5', 'reviewed' => 1,

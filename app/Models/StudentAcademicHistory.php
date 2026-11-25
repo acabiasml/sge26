@@ -5,15 +5,65 @@ namespace App\Models;
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasTitleCaseAttributes;
 use App\Support\HistoryFormationWorkloads;
+use App\Support\StudentAcademicHistoryCompleteness;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class StudentAcademicHistory extends Model
 {
     use Auditable, HasFactory, HasTitleCaseAttributes;
+
+    public function highSchoolCompletionYears(): Collection
+    {
+        $completeness = app(StudentAcademicHistoryCompleteness::class);
+
+        return $this->years->filter(fn (StudentAcademicHistoryYear $year) => $this->education_stage === AcademicCourse::STAGE_HIGH_SCHOOL
+            && ($year->grade_number ?: $completeness->gradeNumber((string) ($year->grade_phase ?: $year->label), $this->education_stage)) === 3
+            && in_array(mb_strtolower(trim((string) $year->final_result)), ['aprovado', 'concluído', 'concluido'], true));
+    }
+
+    public function highSchoolCompletionDetails(): ?array
+    {
+        if ($this->highSchoolCompletionYears()->isEmpty() || ! $this->course_entered_on
+            || blank($this->course_entry_method) || ! $this->course_entry_year || ! $this->course_completed_on) {
+            return null;
+        }
+
+        return [
+            'entered_on' => $this->course_entered_on->toDateString(),
+            'entry_method' => $this->course_entry_method,
+            'entry_year' => $this->course_entry_year,
+            'entry_semester' => $this->course_entry_semester,
+            'completed_on' => $this->course_completed_on->toDateString(),
+            'complementary_activities' => $this->course_complementary_activities,
+        ];
+    }
+
+    public function issuingSchoolOfferings(): array
+    {
+        $normalize = fn (?string $name) => Str::of((string) $name)->ascii()->lower()->squish()->toString();
+        $schoolName = $normalize($this->school->name);
+        $legalName = $normalize($this->school->legal_name);
+
+        $technicalCourse = $this->education_stage === AcademicCourse::STAGE_TECHNICAL ? $this->technicalCourse : null;
+
+        return $this->years->filter(function (StudentAcademicHistoryYear $year) use ($normalize, $schoolName, $legalName): bool {
+            if ($year->source === 'system' && $year->enrollment) {
+                return (int) $year->enrollment->schoolClass->academicYear->school_id === (int) $this->school_id;
+            }
+            $name = $normalize($year->school_name);
+
+            return $name !== '' && ($name === $schoolName || $name === $legalName)
+                && (blank($year->city) || $normalize($year->city) === $normalize($this->school->city))
+                && (blank($year->state) || $normalize($year->state) === $normalize($this->school->state));
+        })->map(fn (StudentAcademicHistoryYear $year) => [$this->education_stage, $year->modality, $year->year, $technicalCourse])
+            ->all();
+    }
 
     public function freshPdfUrl(): string
     {
@@ -74,6 +124,12 @@ class StudentAcademicHistory extends Model
         'notes',
         'issued_place',
         'issued_date',
+        'course_entered_on',
+        'course_entry_method',
+        'course_entry_year',
+        'course_entry_semester',
+        'course_completed_on',
+        'course_complementary_activities',
         'active',
         'is_unified',
         'education_stage',
@@ -84,6 +140,10 @@ class StudentAcademicHistory extends Model
     {
         return [
             'issued_date' => 'date',
+            'course_entered_on' => 'date',
+            'course_entry_year' => 'integer',
+            'course_entry_semester' => 'integer',
+            'course_completed_on' => 'date',
             'active' => 'boolean',
             'is_unified' => 'boolean',
             'technical_course_id' => 'integer',

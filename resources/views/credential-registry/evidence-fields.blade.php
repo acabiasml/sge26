@@ -36,6 +36,45 @@
         <p class="small text-muted">{{ __('Identifique os signatários e anexe a súmula separadamente da ata individual e dos demais comprovantes.') }}
             <a href="https://iomat.mt.gov.br/portal/edicoes/download/17304#page=53" target="_blank" rel="noopener">{{ __('Resolução nº 009/2023 do CEE-MT, art. 107, § 2º') }}</a>
         </p>
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label for="reclassification-decision">{{ __('Decisão do processo') }}</label>
+                <select class="form-control" id="reclassification-decision" name="reclassification_decision" required>
+                    <option value="">{{ __('Selecione') }}</option>
+                    <option value="approved" @selected(old('reclassification_decision') === 'approved')>{{ __('Deferida') }}</option>
+                    <option value="denied" @selected(old('reclassification_decision') === 'denied')>{{ __('Indeferida') }}</option>
+                </select>
+            </div>
+            <div class="form-group col-md-6">
+                <label for="reclassification-ground">{{ __('Hipótese de reclassificação') }}</label>
+                <select class="form-control" id="reclassification-ground" name="reclassification_ground" required>
+                    <option value="">{{ __('Selecione') }}</option>
+                    @foreach(\App\Support\ReclassificationProcess::GROUNDS as $value => $label)
+                        <option value="{{ $value }}" @selected(old('reclassification_ground') === $value)>{{ __($label) }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+        <fieldset id="reclassification-approved" class="mb-3">
+            <legend class="sr-only">{{ __('Dados do deferimento') }}</legend>
+            <div class="form-group">
+                <label for="reclassification-target">{{ __('Matriz de destino deferida') }}</label>
+                <select class="form-control" id="reclassification-target" name="reclassification_target_course_id" required>
+                    <option value="">{{ __('Selecione') }}</option>
+                    @foreach($reclassificationCourses as $course)
+                        <option value="{{ $course->id }}" @selected((int) old('reclassification_target_course_id') === $course->id)>{{ $course->name }} · {{ $course->stageLabel() }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="form-group" id="reclassification-frequency">
+                <label for="reclassification-attendance">{{ __('Frequência comprovada (%)') }}</label>
+                <input class="form-control" id="reclassification-attendance" name="reclassification_attendance" type="number" min="75" max="100" step="0.01" value="{{ old('reclassification_attendance') }}">
+            </div>
+            <label class="d-block">
+                <input type="checkbox" name="reclassification_criteria_reviewed" value="1" required @checked(old('reclassification_criteria_reviewed'))>
+                {{ __('Conferi o desempenho e os critérios curriculares, de maturidade, competências e habilidades. A avaliação foi conduzida pelo Conselho de Classe, instância similar ou docente unidocente nos primeiros anos do Ensino Fundamental, com orientação e acompanhamento da coordenação ou supervisão pedagógica.') }}
+            </label>
+        </fieldset>
         @foreach($summarySigners as $field => $label)
             <div class="form-group">
                 <label for="process-{{ $field }}">{{ __($label) }}</label>
@@ -52,10 +91,18 @@
             (() => {
                 const kind = document.getElementById('process-kind');
                 const summary = document.getElementById('reclassification-summary');
+                const decision = document.getElementById('reclassification-decision');
+                const ground = document.getElementById('reclassification-ground');
+                const approved = document.getElementById('reclassification-approved');
+                const frequency = document.getElementById('reclassification-frequency');
+                const attendance = document.getElementById('reclassification-attendance');
                 const sync = () => {
                     summary.hidden = summary.disabled = kind.value !== 'reclassification';
+                    approved.hidden = approved.disabled = decision.value !== 'approved';
+                    frequency.hidden = attendance.disabled = ground.value !== 'attendance';
+                    attendance.required = !frequency.hidden;
                 };
-                kind.addEventListener('change', sync);
+                [kind, decision, ground].forEach((field) => field.addEventListener('change', sync));
                 sync();
             })();
         </script>

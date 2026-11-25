@@ -157,6 +157,9 @@
                             </button>
                         </div>
                         <div class="modal-body">
+                            @if($process = $enrollment->reclassificationRegistration)
+                                <p><a href="{{ route('credential-registry.entry', $process) }}">{{ __('Processo de reclassificação') }} · {{ $process->book->identifier }} / {{ $process->referenceNumber() }}</a></p>
+                            @endif
                             @if ($enrollment->status === \App\Models\StudentEnrollment::STATUS_CANCELLED)
                                 <div class="alert alert-warning" role="alert">
                                     {{ __('Esta matrícula está cancelada desde') }} {{ $enrollment->cancelled_at?->format('d/m/Y') ?? __('data não informada') }}{{ __('. Use esta ação apenas para corrigir cancelamento feito por engano.') }}
@@ -218,8 +221,19 @@
                                         <section class="sge-movement-panel h-100">
                                             <h3 class="h6">{{ __('Reclassificação') }}</h3>
                                             <p class="small text-muted">{{ __('Move o estudante para outra turma e mantém o vínculo com os lançamentos já realizados.') }}</p>
+                                            <p><a href="{{ route('enrollments.special-process', $enrollment) }}">{{ __('Registrar processo no Livro de Processos Especiais') }}</a></p>
                                             <form method="POST" action="{{ route('enrollments.reclassify', $enrollment) }}">
                                                 @csrf
+                                                <div class="form-group">
+                                                    <label for="reclassification_registration_id_{{ $enrollment->id }}">{{ __('Processo deferido') }}</label>
+                                                    <select id="reclassification_registration_id_{{ $enrollment->id }}" name="reclassification_registration_id" class="form-control" required>
+                                                        <option value="">{{ __('Selecione') }}</option>
+                                                        @foreach($reclassificationProcesses->get($enrollment->id, []) as $process)
+                                                            <option value="{{ $process->id }}" @selected((int) old('reclassification_registration_id') === $process->id)>{{ $process->book->identifier }} · {{ __('Registro') }} {{ $process->referenceNumber() }} · {{ $process->snapshot['original_source'] }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+
                                                 <div class="form-group">
                                                     <label for="target_school_class_id_{{ $enrollment->id }}">{{ __('Turma de destino') }}</label>
                                                     <select id="target_school_class_id_{{ $enrollment->id }}" name="target_school_class_id" class="form-control" data-reclassify-target required>
@@ -236,7 +250,7 @@
                                                 <div class="form-group">
                                                     <label for="reclassified_at_{{ $enrollment->id }}">{{ __('Data de reclassificação') }}</label>
                                                     <input id="reclassified_at_{{ $enrollment->id }}" name="reclassified_at" type="date" min="{{ $enrollment->enrolled_at?->format('Y-m-d') }}" max="{{ $academicYear->periods->firstWhere('position', 1)?->ends_at?->format('Y-m-d') }}" class="form-control">
-                                                    <small class="form-text text-muted">{{ __('A reclassificação ocorre no I bimestre. Sem data informada, a efetivação será no início do II bimestre.') }}</small>
+                                                    <small class="form-text text-muted">{{ __('A decisão do processo deve ser do I bimestre. Sem data informada, a movimentação será efetivada no início do II bimestre.') }}</small>
                                                 </div>
                                                 <div class="form-group">
                                                     <label for="reclassify_notes_{{ $enrollment->id }}">{{ __('Observações') }}</label>

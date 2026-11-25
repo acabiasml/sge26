@@ -101,7 +101,7 @@
                     </td>@endif
                 @else
                     @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
-                    <td class="center score-cell" style="width:{{ $unitWidth }}%">{{ $record?->score_label ?: '-' }}</td>
+                    <td class="center score-cell" style="width:{{ $unitWidth }}%">{{ $record?->score_label ?: '-' }}@if($history->education_stage === 'medio' && filled($record?->frequency_label))<br><small>{{ $record->frequency_label }}</small>@endif</td>
                     <td class="center score-cell" style="width:{{ $unitWidth }}%">{{ $year->displaysCompletedWorkload() && $record?->completedWorkloadHours($year) !== null ? number_format((float) $record->completedWorkloadHours($year), 0, ',', '') : '-' }}</td>
                 @endif
             @endforeach

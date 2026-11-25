@@ -10,8 +10,8 @@ use App\Models\School;
 use App\Support\CredentialBookArchive;
 use App\Support\CredentialRegistry;
 use App\Support\InstitutionalSchoolRecord;
+use App\Support\ProxyDelivery;
 use App\Support\PdfSignatureEvidence;
-use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -148,6 +148,7 @@ class CredentialRegistryController extends Controller
 
         return $this->change($request, $entry, function ($book, $entry) use ($data, $request) {
             abort_if($entry->document->revoked_at, 409, 'Registro já cancelado.');
+            abort_if($entry->reclassifiedEnrollment()->exists(), 409, 'O processo fundamenta uma reclassificação de matrícula já efetivada.');
             $entry->document->update(['revoked_at' => now()]);
             $this->registry->event($book, $entry, $request->user(), 'cancelled', $data);
         }, 'Registro cancelado. Número, arquivo original e trilha de auditoria foram preservados.');
@@ -261,14 +262,11 @@ class CredentialRegistryController extends Controller
         $data = $request->validate(['method' => ['required', Rule::in(['physical', 'digital'])], 'recipient' => ['required', 'string', 'max:150'],
             'recipient_kind' => ['required', Rule::in(['student', 'guardian', 'proxy'])], 'delivered_on' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', 'after_or_equal:'.$entry->registered_on->toDateString()],
             'delivery_token' => ['nullable', 'uuid'],
-            'signed_file_id' => ['nullable', 'integer'], 'requested_on' => ['required_if:recipient_kind,proxy', 'nullable', 'date_format:Y-m-d', 'before_or_equal:delivered_on'],
+            'signed_file_id' => ['nullable', 'integer'],
             'receipt' => ['required', 'file', 'mimes:pdf', 'max:10240'], 'authority' => ['required_unless:recipient_kind,student', 'nullable', 'file', 'mimes:pdf', 'max:10240'],
-            'authority_issued_on' => ['required_if:recipient_kind,proxy', 'nullable', 'date_format:Y-m-d', 'before_or_equal:requested_on'], 'reviewed' => ['accepted']]);
+            'reviewed' => ['accepted']] + ProxyDelivery::rules('delivered_on'));
 
-        if ($data['recipient_kind'] === 'proxy'
-            && $data['authority_issued_on'] < CarbonImmutable::parse($data['requested_on'])->subMonthsNoOverflow(6)->toDateString()) {
-            throw ValidationException::withMessages(['authority_issued_on' => 'A procuração deve ter sido emitida nos seis meses anteriores à solicitação.']);
-        }
+        ProxyDelivery::validateTerm($data);
         $birthDate = $entry->document->person?->birth_date;
         if ($data['recipient_kind'] === 'guardian' && $birthDate
             && $birthDate->copy()->addYearsNoOverflow(18)->toDateString() <= $data['delivered_on']) {

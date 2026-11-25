@@ -26,6 +26,7 @@ class PdfLetterhead
      *     maintainer_logo: string|null,
      *     school_logo: string|null,
      *     lines: array<int, string>,
+     *     renewal_notices: list<string>,
      *     footer_lines: array<int, string>
      * }
      */
@@ -36,6 +37,8 @@ class PdfLetterhead
             'maintainer_logo' => self::imageDataUri('brand/centro-tecnico-juvenil-de-jarudore.png'),
             'school_logo' => self::imageDataUri($school?->logo_path),
             'lines' => $school ? self::schoolLines($school, (array) $educationStages) : self::maintainerLines(),
+            'renewal_notices' => $school && $educationStages
+                ? OfficialDocumentCompliance::authorizationDetails($school, (array) $educationStages)['renewal_notices'] : [],
             'footer_lines' => $school ? self::schoolFooterLines($school) : self::maintainerFooterLines(),
         ];
     }

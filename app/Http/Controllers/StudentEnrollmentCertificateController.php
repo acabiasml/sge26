@@ -149,7 +149,9 @@ class StudentEnrollmentCertificateController extends Controller
         [$academicYear, $class] = $this->context($request, $enrollment);
         $type = 'student-transfer-certificate';
         $records = app(SchoolRecordPdf::class);
+        $authorization = OfficialDocumentCompliance::courseAuthorizationDetails($academicYear->school, $enrollment->courses, $academicYear->reference_year);
         $payload = [
+            'authorization_renewal_notices' => $authorization['renewal_notices'],
             'title' => 'Atestado de transferência', 'enrollment_id' => $enrollment->id,
             'student' => ['full_name' => $enrollment->student->full_name],
             'enrollment_status' => $enrollment->status,
@@ -169,7 +171,7 @@ class StudentEnrollmentCertificateController extends Controller
         if ($redirect = $this->complianceRedirect($request, $academicYear, $enrollment)) {
             return $redirect;
         }
-        if ($message = OfficialDocumentCompliance::authorizationMessage($academicYear->school, $enrollment->courses->pluck('stage')->all())) {
+        if ($message = $authorization['message']) {
             throw ValidationException::withMessages(['document' => $message]);
         }
         $data = $request->validate(SchoolRecordPdf::rules($academicYear->school));
@@ -204,7 +206,9 @@ class StudentEnrollmentCertificateController extends Controller
         $scope = $course->modality ?: AcademicCourse::MODALITY_REGULAR;
         $type = 'high-school-completion-certificate';
         $title = 'Certificado de conclusão do Ensino Médio';
+        $authorization = OfficialDocumentCompliance::courseAuthorizationDetails($year->school, [$course], $year->reference_year);
         $payload = [
+            'authorization_renewal_notices' => $authorization['renewal_notices'],
             'title' => $title, 'enrollment_id' => $enrollment->id, 'course_id' => $course->id, 'modality' => $scope,
             'student' => ['full_name' => $enrollment->student->full_name],
         ];
@@ -236,7 +240,7 @@ class StudentEnrollmentCertificateController extends Controller
         if ($redirect = $this->complianceRedirect($request, $year, $enrollment)) {
             return $redirect;
         }
-        if ($message = OfficialDocumentCompliance::authorizationMessage($year->school, [AcademicCourse::STAGE_HIGH_SCHOOL])) {
+        if ($message = $authorization['message']) {
             throw ValidationException::withMessages(['document' => $message]);
         }
         $data = $request->validate(['signature_mode' => ['required', 'in:digital']] + SchoolRecordPdf::rules($year->school) +
@@ -244,8 +248,8 @@ class StudentEnrollmentCertificateController extends Controller
         $evidence = [];
         if (filled($data['history_code'] ?? null)) {
             $history = $records->signedHistory($data['history_code'], $enrollment->person_id, $year->school_id, AcademicCourse::STAGE_HIGH_SCHOOL);
-            if (! in_array($enrollment->id, $history->snapshot['completed_enrollment_ids'] ?? [], true)) {
-                throw ValidationException::withMessages(['history_code' => 'O histórico assinado precisa comprovar a conclusão desta matrícula.']);
+            if (empty($history->snapshot['high_school_completion']) || ! in_array($enrollment->id, $history->snapshot['completed_enrollment_ids'] ?? [], true)) {
+                throw ValidationException::withMessages(['history_code' => 'O histórico assinado precisa comprovar a conclusão desta matrícula e conter os dados de ingresso e a data de conclusão.']);
             }
             $payload['history_registration_id'] = $history->id;
         } elseif ($year->school->usesPhysicalRegistry()) {

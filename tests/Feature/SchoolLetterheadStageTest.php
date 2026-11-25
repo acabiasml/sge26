@@ -12,6 +12,7 @@ use App\Models\StudentAcademicHistory;
 use App\Models\StudentEnrollment;
 use App\Models\User;
 use App\Support\HistoryDocumentVersion;
+use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
 use App\Support\UnifiedStudentHistorySynchronizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -118,17 +119,76 @@ class SchoolLetterheadStageTest extends TestCase
         $school = School::create($this->schoolData());
         $otherSchool = School::create(array_replace($this->schoolData(), ['cnpj' => '11.222.333/0001-81', 'inep' => '51000001']));
         $this->actingAs($this->user(PersonSchoolRole::ROLE_MANAGER, $school));
-        $edit = route('schools.document-authorizations.edit', $school);
-        $this->get(route('schools.edit', $school))->assertOk()->assertSee($edit)->assertDontSee('name="document_authorizations[', false);
-        $this->get($edit)->assertOk()->assertSee('Início da vigência');
+        $edit = route('schools.edit', $school);
+        $tab = $edit.'#section-atos-autorizativos';
+        $this->get($edit)->assertOk()->assertSee($tab)->assertSee('name="document_authorizations[medio_educacao_do_campo][act]"', false);
+        $this->get(route('schools.document-authorizations.edit', $school))->assertRedirect($tab);
         $this->get(route('schools.document-authorizations.edit', $otherSchool))->assertForbidden();
 
-        $act = ['act' => 'Ato de teste', 'published_on' => '2020-01-01', 'starts_on' => '2020-01-01'];
-        $this->put(route('schools.document-authorizations.update', $school), ['document_authorizations' => ['accreditation' => $act]])
-            ->assertSessionHasNoErrors()->assertRedirect($edit);
-        $this->put(route('schools.update', $school), array_replace($this->schoolData(), ['letterhead_mode' => 'shared', 'letterhead_text' => 'Nova linha']))
-            ->assertSessionHasNoErrors();
-        $this->assertSame($act, $school->fresh()->document_authorizations['accreditation']);
+        $act = ['act' => 'Ato de teste', 'published_on' => '2020-01-01', 'starts_on' => '2020-01-01',
+            'source_url' => 'https://iomat.mt.gov.br/portal/edicoes/download/17136'];
+        $this->put(route('schools.update', $school), array_replace($this->schoolData(), [
+            'letterhead_mode' => 'shared', 'letterhead_text' => 'Nova linha',
+            'document_authorizations' => ['medio_educacao_do_campo' => $act],
+        ]))->assertSessionHasNoErrors();
+        $this->assertSame($act, $school->fresh()->document_authorizations['medio_educacao_do_campo']);
+        $this->assertSame(['Nova linha'], $school->fresh()->letterheadTextsForStages());
+        $this->get($edit)->assertOk()->assertSee('Abrir publicação')->assertSee($act['source_url']);
+    }
+
+    public function test_published_acts_fill_empty_offerings_by_cnpj_and_preserve_existing_data(): void
+    {
+        $existing = ['act' => 'Credenciamento já registrado', 'published_on' => '2021-01-01', 'starts_on' => '2021-01-01'];
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-11-24 12:00', 'America/Cuiaba'));
+        $lar = School::create(array_replace($this->schoolData(), ['cnpj' => '00.176.974/0003-92',
+            'letterhead_text' => 'Credenciada pela Portaria Nº 042/2005 CEE/MT e autorizada pelo Ato nº 674/2019 CEE/MT publicado em 12/12/2019.']));
+        $laura = School::create(array_replace($this->schoolData(), ['cnpj' => '00176974000201', 'inep' => '51000001']));
+        $liceu = School::create(array_replace($this->schoolData(), ['cnpj' => '00.176.974/0001-20', 'inep' => '51000002']));
+        $other = School::create(array_replace($this->schoolData(), ['cnpj' => '11.222.333/0001-81', 'inep' => '51000003']));
+        $program = $liceu->technicalPrograms()->create([
+            'name' => 'Curso Técnico em Móveis', 'graduate_title' => 'Técnico em Móveis', 'modules' => [],
+        ]);
+        $migration = require database_path('migrations/2026_11_24_000003_pre_fill_published_school_authorizations.php');
+        $migration->up();
+        $acts = $lar->fresh()->document_authorizations;
+        $this->assertStringContainsString('Res. 384/04, art. 44', $acts['accreditation']['act']);
+        $this->assertNull($acts['accreditation']['ends_on']);
+        $lar->update(['document_authorizations' => array_replace($acts, ['accreditation' => $existing])]);
+        $migration->up();
+
+        $this->assertSame($existing, $lar->fresh()->document_authorizations['accreditation']);
+        $this->assertSame('2027-12-31', $acts['fundamental_educacao_do_campo']['ends_on']);
+        $this->assertStringContainsString('078/2023', $acts['medio_educacao_do_campo']['act']);
+        $this->assertArrayNotHasKey('medio_regular', $acts);
+        $this->assertStringContainsString('383/2025', $lar->fresh()->letterhead_text_elementary);
+        $this->assertStringContainsString('078/2023', $lar->fresh()->letterhead_text_high_school);
+        $oldElementary = OfficialDocumentCompliance::authorizationDetails($lar->fresh(), ['fundamental'], [['fundamental', 'Regular', 2024]]);
+        $this->assertNull($oldElementary['message']);
+        $this->assertSame('2025-01-01', $oldElementary['acts']['fundamental_educacao_do_campo']['starts_on']);
+        $this->assertNotNull(OfficialDocumentCompliance::authorizationDetails($lar->fresh(), ['fundamental'], [['fundamental', 'Regular', 2026]])['message']);
+        $this->assertSame('2029-12-31', $laura->fresh()->document_authorizations['medio_regular']['ends_on']);
+        $this->assertSame('2025-12-31', $liceu->fresh()->document_authorizations['fundamental_regular']['ends_on']);
+        $this->assertStringContainsString('261/2008-CEE/MT', $laura->fresh()->document_authorizations['accreditation']['act']);
+        $this->assertNull($laura->fresh()->document_authorizations['accreditation']['ends_on']);
+        $this->assertStringContainsString('294/2008-CEE/MT', $liceu->fresh()->document_authorizations['accreditation']['act']);
+        $this->assertNull($liceu->fresh()->document_authorizations['accreditation']['ends_on']);
+        $liceu->refresh();
+        $renewal = OfficialDocumentCompliance::authorizationDetails($liceu, ['fundamental', 'medio'],
+            [['fundamental', 'Regular', 2026], ['medio', 'Regular', 2026]]);
+        $this->assertNull($renewal['message']);
+        $this->assertSame(['accreditation'], array_keys($renewal['acts']));
+        $this->assertCount(1, $renewal['renewal_notices']);
+        $this->assertStringContainsString('SIPE nº 1757/2025, protocolado em 23/10/2025', $renewal['renewal_notices'][0]);
+        $this->assertStringContainsString('Vigência encerrada em 31/12/2025', $renewal['renewal_notices'][0]);
+
+        $this->assertSame(['concomitante', 'subsequente'], $program->fresh()->offer_modes);
+        $technical = new AcademicCourse(['stage' => 'tecnico', 'modality' => AcademicCourse::MODALITY_PROFESSIONAL_TECHNOLOGICAL,
+            'technical_program_id' => $program->id]);
+        $technical->setRelation('technicalProgram', $program->fresh());
+        $technicalAuthorization = OfficialDocumentCompliance::courseAuthorizationDetails($liceu, [$technical], 2026);
+        $this->assertNull($technicalAuthorization['message']);
+        $this->assertSame([], $technicalAuthorization['renewal_notices']);
+        $this->assertNull($other->fresh()->document_authorizations);
     }
 
     public function test_history_preview_version_follows_the_line_for_its_stage(): void

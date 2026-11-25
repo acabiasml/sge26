@@ -12,6 +12,7 @@ use App\Models\SchoolClass;
 use App\Models\SchoolClassComponent;
 use App\Models\StudentEnrollment;
 use App\Support\ReclassificationAttendanceCredits;
+use App\Support\ReclassificationProcess;
 use App\Support\StudentFinalResultCalculator;
 use App\Support\TechnicalEnrollmentOffer;
 use Illuminate\Database\Eloquent\Builder;
@@ -78,9 +79,12 @@ class StudentEnrollmentController extends Controller
             'class' => $class->load([
                 'courses' => fn ($courses) => $courses->orderBy('name'),
                 'enrollments' => fn ($query) => $query->where('status', '!=', StudentEnrollment::STATUS_CANCELLED)
-                    ->with(['student', 'courses', 'reclassifiedFrom.schoolClass']),
+                    ->with(['student', 'courses', 'reclassifiedFrom.schoolClass', 'reclassificationRegistration.book']),
             ]),
             'availableCourses' => $availableCourses,
+            'reclassificationProcesses' => ReclassificationProcess::approved($academicYear->school_id)
+                ->whereIn('snapshot->enrollment_id', $class->enrollments()->where('status', StudentEnrollment::STATUS_ENROLLED)->pluck('id'))
+                ->with('book')->orderByDesc('id')->get()->groupBy(fn ($entry) => $entry->snapshot['enrollment_id']),
             'students' => Person::query()
                 ->whereActiveByRoles()
                 ->whereNotNull('cpf')
@@ -288,13 +292,14 @@ class StudentEnrollmentController extends Controller
         if ($defaultReclassificationDate) {
             $request->merge(['reclassified_at' => $secondPeriod->starts_at->toDateString()]);
         }
-        $reclassificationLimit = $defaultReclassificationDate ? $secondPeriod->starts_at : $firstPeriod->ends_at;
+        $reclassificationLimit = $defaultReclassificationDate ? $secondPeriod->starts_at : $firstPeriod->ends_at->min($secondPeriod->starts_at->copy()->subDay());
 
         $data = $request->validate([
             'target_school_class_id' => ['required', Rule::in($targetClassIds)],
+            'reclassification_registration_id' => ['required', 'integer', 'min:1'],
             'course_ids' => ['required', 'array', 'min:1'],
             'course_ids.*' => ['required', 'distinct'],
-            'reclassified_at' => ['required', 'date', 'after_or_equal:'.$window['starts_at'], 'before_or_equal:'.min($window['ends_at'], $reclassificationLimit->toDateString())],
+            'reclassified_at' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.$window['starts_at'], 'before_or_equal:'.min($window['ends_at'], $reclassificationLimit->toDateString())],
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
 
@@ -321,18 +326,24 @@ class StudentEnrollmentController extends Controller
             ]);
         }
 
-        if ($targetClass->enrollments()->where('person_id', $enrollment->person_id)->exists()) {
-            throw ValidationException::withMessages([
-                'target_school_class_id' => __('Este estudante já possui matrícula nesta turma de destino.'),
-            ]);
-        }
+        DB::transaction(function () use ($targetClass, $enrollment, $request, $data, $selectedCourseIds, $academicYear, $defaultReclassificationDate, $firstPeriod, $secondPeriod): void {
+            $entry = ReclassificationProcess::lockApproved((int) $data['reclassification_registration_id'], $academicYear->school_id, $enrollment);
+            $enrollment = StudentEnrollment::whereKey($enrollment->id)->lockForUpdate()->firstOrFail();
+            $this->ensureActiveEnrollment($enrollment);
+            if ($targetClass->enrollments()->where('person_id', $enrollment->person_id)->exists()) {
+                throw ValidationException::withMessages([
+                    'target_school_class_id' => __('Este estudante já possui matrícula nesta turma de destino.'),
+                ]);
+            }
+            ReclassificationProcess::validateMovement($entry, $enrollment, $targetClass, $selectedCourseIds, $data['reclassified_at'],
+                $firstPeriod->ends_at->toDateString(), $secondPeriod->starts_at->toDateString());
 
-        DB::transaction(function () use ($targetClass, $enrollment, $request, $data, $selectedCourseIds, $academicYear, $defaultReclassificationDate): void {
             $newEnrollment = $targetClass->enrollments()->create([
                 'person_id' => $enrollment->person_id,
                 'enrolled_by_person_id' => $request->user()->person_id,
                 'reclassified_by_person_id' => $request->user()->person_id,
                 'reclassified_from_enrollment_id' => $enrollment->id,
+                'reclassification_registration_id' => $entry->id,
                 'enrolled_at' => $data['reclassified_at'],
                 'reclassified_at' => $data['reclassified_at'],
                 'status' => StudentEnrollment::STATUS_ENROLLED,

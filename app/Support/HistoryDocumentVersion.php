@@ -13,9 +13,9 @@ final class HistoryDocumentVersion
         $school = $history->school;
 
         return app(CredentialRegistry::class)->digest(self::snapshot($history) + [
-            'student_identity' => $history->student->only(['full_name', 'social_name', 'cpf', 'birth_date', 'birth_city', 'birth_state', 'nationality', 'mother_name', 'father_name', 'school_cin_confirmed', 'school_identity_document', 'school_voter_registration', 'school_gender']),
+            'student_identity' => $history->student->only(['full_name', 'social_name', 'cpf', 'birth_date', 'birth_city', 'birth_state', 'nationality', 'mother_name', 'father_name', 'school_cin_confirmed', 'school_identity_document', 'school_voter_registration', 'school_voter_exemption', 'school_gender']),
             'letterhead' => $school ? $school->only(['name', 'cnpj', 'address', 'number', 'district', 'city', 'state', 'postal_code'])
-                + ['institutional_line' => $school->letterheadTextsForStages([$history->education_stage])] : null,
+                + ['institutional_line' => $school->letterheadTextsForStages([$history->education_stage]), 'authorizations' => $school->document_authorizations] : null,
         ]);
     }
 

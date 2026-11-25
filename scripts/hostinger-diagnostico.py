@@ -285,6 +285,9 @@ with tempfile.TemporaryDirectory() as directory:
         commands.append(('Aplicar modalidade aos livros de escrituração escolar', 'php artisan migrate --path=database/migrations/2026_11_23_000001_scope_school_record_books.php --force --no-ansi'))
         commands.append(('Aplicar o meio de registro por escola', 'php artisan migrate --path=database/migrations/2026_11_23_000002_configure_school_record_book_media.php --force --no-ansi'))
         commands.append(('Aplicar campos de conformidade documental e frequência', 'php artisan migrate --path=database/migrations/2026_11_23_000003_add_document_authorizations_and_attendance_effect.php --force --no-ansi'))
+        commands.append(('Aplicar dados de conclusão no histórico escolar', 'php artisan migrate --path=database/migrations/2026_11_24_000001_add_completion_details_to_student_academic_histories.php --force --no-ansi'))
+        commands.append(('Aplicar vínculo entre reclassificação e registro', 'php artisan migrate --path=database/migrations/2026_11_24_000002_link_reclassification_to_credential_registration.php --force --no-ansi'))
+        commands.append(('Cadastrar atos autorizativos conferidos e renovação do Liceu', 'php artisan migrate --path=database/migrations/2026_11_24_000003_pre_fill_published_school_authorizations.php --force --no-ansi'))
         commands.append(('Conferir o meio de registro das escolas', 'php -r \'require "vendor/autoload.php"; '
                          '$app = require "bootstrap/app.php"; $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); '
                          'foreach (\\App\\Models\\School::query()->where("active", true)->orderBy("name")->get(["name", "state", "registry_medium", "document_authorizations"]) as $school) '

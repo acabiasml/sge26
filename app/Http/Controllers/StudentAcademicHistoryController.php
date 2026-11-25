@@ -188,6 +188,18 @@ class StudentAcademicHistoryController extends Controller
         if (! $history->is_unified && ! $history->active) {
             throw ValidationException::withMessages(['history' => __('Este documento foi incorporado ao histórico da etapa. Edite os dados no documento único.')]);
         }
+        $completionRules = [];
+        if ($history->education_stage === AcademicCourse::STAGE_HIGH_SCHOOL) {
+            $today = now('America/Cuiaba')->toDateString();
+            $completionRules = [
+                'course_entered_on' => ['nullable', 'required_with:course_entry_method,course_entry_year,course_entry_semester,course_completed_on', 'date_format:Y-m-d', 'before_or_equal:'.$today],
+                'course_entry_method' => ['nullable', 'required_with:course_entered_on,course_entry_year,course_entry_semester,course_completed_on', 'string', 'max:120'],
+                'course_entry_year' => ['nullable', 'required_with:course_entered_on,course_entry_method,course_entry_semester,course_completed_on', 'integer', 'min:1900', 'max:'.substr($today, 0, 4)],
+                'course_entry_semester' => ['nullable', 'integer', 'in:1,2'],
+                'course_complementary_activities' => ['nullable', 'string', 'max:2000'],
+                'course_completed_on' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:course_entered_on', 'before_or_equal:'.$today],
+            ];
+        }
         $data = $request->validate([
             'school_id' => ['required', 'integer', Rule::exists('schools', 'id')],
             'title' => ['required', 'string', 'max:255'],
@@ -196,7 +208,7 @@ class StudentAcademicHistoryController extends Controller
             'issued_place' => ['nullable', 'string', 'max:255'],
             'issued_date' => ['nullable', 'date'],
             'active' => ['nullable', 'boolean'],
-        ]);
+        ] + $completionRules);
         abort_unless($request->user()->canManageSchool((int) $data['school_id']), 403);
         $history->update(array_merge($data, [
             'active' => $request->boolean('active'),
@@ -534,7 +546,7 @@ class StudentAcademicHistoryController extends Controller
 
         return view('credential-registry.history-prepare', ['person' => $person, 'history' => $history,
             'school' => $history->school, 'version' => HistoryDocumentVersion::of($history),
-            'completeness' => $completeness->evaluate($history),
+            'completeness' => $this->issuanceCompleteness($history, $completeness),
             'books' => app(CredentialRegistry::class)->digitalBooks($request->user(), $history->school, 'history')->get(),
             'recent' => IssuedDocument::where('person_id', $person->id)->where('school_id', $history->school_id)
                 ->where('type', 'student-academic-history')->where('payload->student_academic_history_id', $history->id)
@@ -564,9 +576,9 @@ class StudentAcademicHistoryController extends Controller
             );
         }
 
-        $history->load(['school', 'student', 'years.records', 'components.records.year']);
+        $history->load(['school', 'student', 'years.records', 'years.enrollment.schoolClass.academicYear', 'components.records.year']);
 
-        $historyCompleteness = $completeness->evaluate($history);
+        $historyCompleteness = $this->issuanceCompleteness($history, $completeness);
         if ($official && ! $historyCompleteness['complete']) {
             return redirect()->route('people.histories.show', [$person, $history])->with('status', $historyCompleteness['message']);
         }
@@ -586,27 +598,40 @@ class StudentAcademicHistoryController extends Controller
 
         $records = app(SchoolRecordPdf::class);
         $version = HistoryDocumentVersion::of($history);
+        $stages = [$history->education_stage];
+        $authorization = OfficialDocumentCompliance::authorizationDetails($history->school, $stages, $history->issuingSchoolOfferings());
+        $completion = $history->highSchoolCompletionDetails();
         if ($official) {
             $data = $request->validate(SchoolRecordPdf::rules($history->school) + ['expected_version' => ['required', 'string', 'size:64']]);
             if (! hash_equals($version, $data['expected_version'])) {
                 throw ValidationException::withMessages(['expected_version' => 'O histórico mudou. Gere outra prévia e confira antes de emitir.']);
             }
             if ($message = OfficialDocumentCompliance::historyIdentityMessage($person)
-                ?? OfficialDocumentCompliance::authorizationMessage($history->school, [$history->education_stage])) {
+                ?? $authorization['message']) {
                 throw ValidationException::withMessages(['document' => $message]);
             }
         }
 
         $staff = $official ? $records->signers($history->school) : SchoolSignatureStaff::forSchool($history->school);
         $processes = IssuedDocument::where('school_id', $history->school_id)->where('person_id', $person->id)
-            ->where('type', 'school-special-process')->whereNull('revoked_at')->whereHas('registration')->with('registration.book')
-            ->orderBy('issued_at')->get()->filter(fn (IssuedDocument $document) => in_array(
-                $history->education_stage, $document->payload['education_stages'] ?? [], true
-            ))->map(fn (IssuedDocument $document) => [
+            ->where('type', 'school-special-process')->whereNull('revoked_at')->whereHas('registration')->with('registration.book', 'registration.reclassifiedEnrollment.courses')
+            ->orderBy('issued_at')->get()->filter(function (IssuedDocument $document) use ($history): bool {
+                $stages = $document->payload['education_stages'] ?? [];
+                if (isset($document->payload['reclassification_decision'])) {
+                    $destination = $document->registration->reclassifiedEnrollment;
+                    if (! $destination) {
+                        return false;
+                    }
+                    $stages = array_merge($stages, $destination->courses->pluck('stage')->all());
+                }
+
+                return in_array($history->education_stage, $stages, true);
+            })->map(fn (IssuedDocument $document) => [
                 'kind' => $document->payload['process_kind'],
                 'date' => $document->payload['act_date'],
                 'book' => $document->registration->book->identifier,
                 'number' => $document->registration->referenceNumber(),
+                'folio' => $document->registration->referenceFolio(),
             ])->values()->all();
         $payload = [
             'title' => $history->title,
@@ -614,13 +639,14 @@ class StudentAcademicHistoryController extends Controller
             'history_version' => $version,
             'education_stage' => $history->education_stage,
             'technical_course_id' => $history->technical_course_id,
-            'completed_enrollment_ids' => $history->years->filter(fn ($year) => $year->grade_number === 3
-                && in_array(mb_strtolower((string) $year->final_result), ['aprovado', 'concluído', 'concluido'], true))
-                ->pluck('student_enrollment_id')->filter()->map(fn ($id) => (int) $id)->values()->all(),
+            'high_school_completion' => $completion,
+            'completed_enrollment_ids' => $completion ? $history->highSchoolCompletionYears()
+                ->pluck('student_enrollment_id')->filter()->map(fn ($id) => (int) $id)->values()->all() : [],
             'student' => ['full_name' => $person->full_name],
             'rows_count' => $history->components->count(),
             'school_special_processes' => $processes,
-            'authorizations' => array_intersect_key($history->school->document_authorizations ?? [], array_flip(['accreditation', $history->education_stage])),
+            'authorizations' => $authorization['acts'],
+            'authorization_renewal_notices' => $authorization['renewal_notices'],
             'signers' => ['director' => $staff['diretor']?->full_name, 'secretary' => $staff['secretário']?->full_name],
         ];
         $render = function (IssuedDocument $document) use ($person, $history, $official, $staff) {
@@ -642,6 +668,17 @@ class StudentAcademicHistoryController extends Controller
         }
 
         return $render($records->draft($request->user(), $history->school, 'student-academic-history', $person->id, $payload));
+    }
+
+    private function issuanceCompleteness(StudentAcademicHistory $history, StudentAcademicHistoryCompleteness $completeness): array
+    {
+        $result = $completeness->evaluate($history);
+        if ($result['complete'] && $history->highSchoolCompletionYears()->isNotEmpty() && ! $history->highSchoolCompletionDetails()) {
+            $result['complete'] = false;
+            $result['message'] = __('Preencha os dados de ingresso e a data de conclusão do Ensino Médio em Dados gerais do histórico.');
+        }
+
+        return $result;
     }
 
     private function technicalPeriodDurations(StudentAcademicHistory $history)

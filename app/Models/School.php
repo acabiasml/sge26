@@ -77,6 +77,24 @@ class School extends Model
         ];
     }
 
+    public static function documentAuthorizationLabels(): array
+    {
+        $labels = self::DOCUMENT_AUTHORIZATIONS;
+        foreach ([AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL, AcademicCourse::STAGE_TECHNICAL] as $stage) {
+            foreach (AcademicCourse::MODALITY_LABELS as $modality => $label) {
+                $labels[$stage.'_'.$modality] = AcademicCourse::STAGE_LABELS[$stage].' · '.$label;
+            }
+        }
+
+        return $labels;
+    }
+
+    public static function supportsDocumentAuthorizationRenewal(string $kind): bool
+    {
+        return Str::before($kind, '_') === AcademicCourse::STAGE_ELEMENTARY
+            || Str::before($kind, '_') === AcademicCourse::STAGE_HIGH_SCHOOL;
+    }
+
     public function documentAddress(): string
     {
         $address = collect([$this->address, $this->number, $this->district,

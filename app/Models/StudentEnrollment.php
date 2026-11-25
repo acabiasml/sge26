@@ -79,6 +79,7 @@ class StudentEnrollment extends Model
         'transferred_by_person_id',
         'cancelled_by_person_id',
         'reclassified_from_enrollment_id',
+        'reclassification_registration_id',
         'reclassified_by_person_id',
         'enrolled_at',
         'transferred_at',
@@ -193,6 +194,11 @@ class StudentEnrollment extends Model
     public function reclassifiedFrom(): BelongsTo
     {
         return $this->belongsTo(self::class, 'reclassified_from_enrollment_id');
+    }
+
+    public function reclassificationRegistration(): BelongsTo
+    {
+        return $this->belongsTo(CredentialRegistration::class, 'reclassification_registration_id');
     }
 
     public function reclassifiedBy(): BelongsTo

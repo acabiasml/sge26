@@ -7,6 +7,7 @@ use App\Models\IssuedDocument;
 use App\Models\School;
 use App\Support\CredentialRegistry;
 use App\Support\InstitutionalSchoolRecord;
+use App\Support\ProxyDelivery;
 use App\Support\SchoolRecordPdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -73,11 +74,14 @@ class InstitutionalSchoolRecordController extends Controller
             }
             if ($kind === 'delivery') {
                 $rules['authority_pdf'] = ['required_unless:recipient_kind,student', 'nullable', ...$file];
+                $rules += ProxyDelivery::rules('recorded_on');
             }
         }
         $data = $request->validate($rules);
         if ($event) {
             $data += $this->deliveryFields($event);
+        } elseif ($kind === 'delivery') {
+            ProxyDelivery::validateTerm($data);
         }
         $actDate = $data['recorded_on'];
         if (isset($data['registration_date']) && $data['registration_date'] < $actDate) {
@@ -107,6 +111,14 @@ class InstitutionalSchoolRecordController extends Controller
             'institutional_fields' => InstitutionalSchoolRecord::displayFields($fields, $data),
             'original_received' => true,
         ];
+        if ($kind === 'delivery') {
+            foreach (ProxyDelivery::DATE_LABELS as $field => $label) {
+                if (isset($data[$field])) {
+                    $payload[$field] = $data[$field];
+                    $payload['institutional_fields'][$label] = \Carbon\CarbonImmutable::parse($data[$field])->format('d/m/Y');
+                }
+            }
+        }
         if ($event) {
             $payload['delivery_event_id'] = $event->id;
             $payload['source_registration_id'] = $event->credential_registration_id;
@@ -186,6 +198,6 @@ class InstitutionalSchoolRecordController extends Controller
             'recipient_kind' => $event->data['recipient_kind'],
             'method' => $event->data['method'],
             'recorded_on' => $event->data['delivered_on'],
-        ];
+        ] + array_intersect_key($event->data, ProxyDelivery::DATE_LABELS);
     }
 }
