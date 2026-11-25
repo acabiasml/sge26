@@ -181,7 +181,7 @@ def main():
         client.load_host_keys(str(hosts))
         try:
             client.connect(**json.loads(os.environ['HOSTINGER_CONNECTION']), timeout=20, auth_timeout=20, banner_timeout=20, allow_agent=False, look_for_keys=False)
-            expected = os.environ.get('EXPECTED_COMMIT')
+            expected = '4318b6232ae7f70a36edebe698e3efd589eba06f'
             if expected:
                 deadline = time.monotonic() + 180
                 while True:
