@@ -83,7 +83,7 @@
             @if($periods->isNotEmpty())
                 <div class="sge-period-selector" role="tablist" aria-label="{{ __('Selecionar período avaliativo') }}" data-period-selector data-storage-key="academic-year-{{ $academicYear->id }}-period">
                     @foreach($periods as $selectorPeriod)
-                        <button type="button" class="sge-period-selector-item {{ $selectorPeriod->id === $activePeriodId ? 'is-active' : '' }}" role="tab" aria-selected="{{ $selectorPeriod->id === $activePeriodId ? 'true' : 'false' }}" aria-controls="period-panel-{{ $selectorPeriod->id }}" data-period-target="{{ $selectorPeriod->id }}">
+                        <button id="period-tab-{{ $selectorPeriod->id }}" type="button" class="sge-period-selector-item {{ $selectorPeriod->id === $activePeriodId ? 'is-active' : '' }}" role="tab" aria-selected="{{ $selectorPeriod->id === $activePeriodId ? 'true' : 'false' }}" tabindex="{{ $selectorPeriod->id === $activePeriodId ? 0 : -1 }}" aria-controls="period-panel-{{ $selectorPeriod->id }}" data-period-target="{{ $selectorPeriod->id }}">
                             <span class="sge-period-selector-order">{{ $selectorPeriod->position }}</span>
                             <span><strong>{{ $selectorPeriod->name }}</strong><small>{{ $selectorPeriod->starts_at?->format('d/m') }} {{ __('a') }} {{ $selectorPeriod->ends_at?->format('d/m/Y') }}</small></span>
                             <span class="badge badge-{{ $selectorPeriod->diaryConsolidation?->consolidated ? 'success' : 'secondary' }}">{{ $selectorPeriod->diaryConsolidation?->consolidated ? __('Consolidado') : __('Aberto') }}</span>
@@ -108,7 +108,7 @@
                 @php($periodHasAssessmentWarning = (int) ($assessmentChangeWarning['period_id'] ?? 0) === $period->id)
                 @php($periodHasEditErrors = $useOldForPeriodEdit && collect(['name', 'position', 'starts_at', 'ends_at', 'notes', 'approved_at', 'closed_at'])->contains(fn ($key) => $errors->has($key)))
 
-                <article id="period-panel-{{ $period->id }}" class="sge-period-card" role="tabpanel" data-period-panel="{{ $period->id }}" @if($period->id !== $activePeriodId) hidden @endif>
+                <div id="period-panel-{{ $period->id }}" class="sge-period-card" role="tabpanel" aria-labelledby="period-tab-{{ $period->id }}" tabindex="0" data-period-panel="{{ $period->id }}" @if($period->id !== $activePeriodId) hidden @endif>
                     <div class="sge-period-card-header">
                         <div class="sge-period-card-title">
                             <span class="sge-period-position">
@@ -414,7 +414,7 @@
                             </form>
                         </div>
                     </details>
-                </article>
+                </div>
             @empty
                 <div class="sge-empty-state"><i class="fas fa-layer-group" aria-hidden="true"></i><p>{{ __('Nenhum período avaliativo cadastrado.') }}</p></div>
             @endforelse
@@ -434,11 +434,25 @@ document.querySelectorAll('[data-period-selector]').forEach((selector) => {
             const active = button.dataset.periodTarget === periodId;
             button.classList.toggle('is-active', active);
             button.setAttribute('aria-selected', active ? 'true' : 'false');
+            button.tabIndex = active ? 0 : -1;
         });
         panels.forEach((panel) => { panel.hidden = panel.dataset.periodPanel !== periodId; });
         if (remember) sessionStorage.setItem(storageKey, periodId);
     };
-    buttons.forEach((button) => button.addEventListener('click', () => showPeriod(button.dataset.periodTarget)));
+    buttons.forEach((button, index) => {
+        button.addEventListener('click', () => showPeriod(button.dataset.periodTarget));
+        button.addEventListener('keydown', (event) => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+
+            event.preventDefault();
+            let nextIndex = (index + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length;
+            if (event.key === 'Home') nextIndex = 0;
+            if (event.key === 'End') nextIndex = buttons.length - 1;
+            const next = buttons[nextIndex];
+            showPeriod(next.dataset.periodTarget);
+            next.focus();
+        });
+    });
     const forcedPanel = panels.find((panel) => panel.querySelector('.alert-danger, [data-assessment-rules-form][open]'));
     const savedPeriod = sessionStorage.getItem(storageKey);
     showPeriod(forcedPanel?.dataset.periodPanel || savedPeriod || buttons[0]?.dataset.periodTarget, false);

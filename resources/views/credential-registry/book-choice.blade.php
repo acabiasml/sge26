@@ -36,7 +36,7 @@
     @if($citeDocumentRegulation ?? true)
         <x-school-document-regulation :articles="__('art. 5º, II')" /> ·
     @endif
-    <a href="{{ route('credential-registry.index') }}">{{ __('Gerenciar livros') }}</a>
+    <a class="sge-inline-link" href="{{ route('credential-registry.index') }}">{{ __('Gerenciar livros') }}</a>
 </p></div>
 @once
 @push('scripts')

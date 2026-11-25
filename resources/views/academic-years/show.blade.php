@@ -116,8 +116,8 @@
     </nav>
 
     <div class="row">
-        <div class="col-12 mb-4" data-academic-panel="resumo" role="tabpanel">
-            <div id="section-resumo" class="card shadow sge-anchor-section">
+        <div id="section-resumo" class="col-12 mb-4 sge-anchor-section" data-academic-panel="resumo" role="tabpanel">
+            <div class="card shadow">
                 <div class="card-header py-3">
                     <h2 class="h6 m-0 font-weight-bold text-primary">{{ __('Resumo') }}</h2>
                 </div>
@@ -287,10 +287,10 @@
     </div>
 
     <div class="row">
-        <div class="col-12 mb-4" data-academic-panel="matrizes" role="tabpanel">
+        <div id="section-matrizes" class="col-12 mb-4 sge-anchor-section" data-academic-panel="matrizes" role="tabpanel">
             <div class="card shadow">
                 <div class="card-header py-3 d-flex align-items-center justify-content-between">
-                    <h2 id="section-matrizes" class="h6 m-0 font-weight-bold text-primary sge-anchor-section">{{ __('Matrizes') }}</h2>
+                    <h2 class="h6 m-0 font-weight-bold text-primary">{{ __('Matrizes') }}</h2>
                     @if ($canChangeCalendar)
                         <a class="btn btn-sm btn-primary" href="{{ route('academic-years.courses.create', $academicYear) }}">{{ __('Nova matriz') }}</a>
                     @endif
@@ -343,10 +343,10 @@
             </div>
         </div>
 
-        <div class="col-12 mb-4" data-academic-panel="turmas" role="tabpanel">
+        <div id="section-turmas" class="col-12 mb-4 sge-anchor-section" data-academic-panel="turmas" role="tabpanel">
             <div class="card shadow">
                 <div class="card-header py-3 d-flex align-items-center justify-content-between">
-                    <h2 id="section-turmas" class="h6 m-0 font-weight-bold text-primary sge-anchor-section">{{ __('Turmas') }}</h2>
+                    <h2 class="h6 m-0 font-weight-bold text-primary">{{ __('Turmas') }}</h2>
                     @if ($canChangeCalendar)
                         <a class="btn btn-sm btn-primary {{ $readyCourses->isEmpty() ? 'disabled' : '' }}" @if($readyCourses->isEmpty()) aria-disabled="true" tabindex="-1" @else href="{{ route('academic-years.classes.create', $academicYear) }}" @endif>
                             {{ __('Nova turma') }}
