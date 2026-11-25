@@ -1,1 +1,5 @@
-{"person_id":0,"name_selector":{"salt":"26bf18e752b7ca39183550ba083b8177","name_sha256":"5c759dc058880a00d6c976bda2cc8aae93ed5a2ad552c857d251c1d1d43727e6","school":"laura"}}
+{
+  "scope": "student-reenrollment",
+  "person_id": 688,
+  "reference_year": 2024
+}
