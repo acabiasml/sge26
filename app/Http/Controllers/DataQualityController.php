@@ -410,7 +410,7 @@ class DataQualityController extends Controller
         return collect([
             $this->schoolCheck(
                 'Escolas com dados oficiais incompletos',
-                'Bloqueia documentos oficiais com papel timbrado. Complete razão social, CNPJ, INEP, fundação, contatos, endereço e texto institucional.',
+                'Bloqueia documentos oficiais com papel timbrado. Confira razão social, CNPJ, INEP, fundação, contatos, endereço e o cabeçalho gerado pelos atos ou pelo texto personalizado.',
                 $this->missingSchoolOfficialDataScope($this->schoolScope(School::query(), $schoolIds)),
                 'danger'
             ),
@@ -942,30 +942,10 @@ class DataQualityController extends Controller
      */
     private function missingSchoolOfficialDataScope(Builder $query): Builder
     {
-        return $query->where(function (Builder $query): void {
-            $query->whereNull('name')
-                ->orWhere('name', '')
-                ->orWhereNull('legal_name')
-                ->orWhere('legal_name', '')
-                ->orWhereNull('cnpj')
-                ->orWhere('cnpj', '')
-                ->orWhereNull('inep')
-                ->orWhere('inep', '')
-                ->orWhereNull('founded_at')
-                ->orWhereNull('phone')
-                ->orWhere('phone', '')
-                ->orWhereNull('email')
-                ->orWhere('email', '')
-                ->orWhereNull('letterhead_text')
-                ->orWhere('letterhead_text', '')
-                ->orWhereNull('address')
-                ->orWhere('address', '')
-                ->orWhereNull('city')
-                ->orWhere('city', '')
-                ->orWhereNull('state')
-                ->orWhere('state', '')
-                ->orWhereNull('postal_code')
-                ->orWhere('postal_code', '');
-        });
+        $missing = (clone $query)->get()
+            ->reject(fn (School $school): bool => $school->hasRequiredLetterheadForOfficialDocuments())
+            ->modelKeys();
+
+        return $query->whereKey($missing);
     }
 }

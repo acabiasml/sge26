@@ -30,7 +30,10 @@
         <tr><th>Telefone</th><td>{{ $school->phone ?: '-' }}</td></tr>
         <tr><th>E-mail</th><td>{{ $school->email ?: '-' }}</td></tr>
         <tr><th>Site</th><td>{{ $school->website ?: '-' }}</td></tr>
-        <tr><th>Texto institucional</th><td>{{ $school->letterhead_text ?: '-' }}</td></tr>
+        <tr><th>Mantenedora</th><td>{{ $school->maintainer ?: '-' }}</td></tr>
+        <tr><th>Sistema de ensino</th><td>{{ $school->education_system ?: '-' }}</td></tr>
+        <tr><th>Ato de criação</th><td>{{ $school->creation_act ?: '-' }}</td></tr>
+        <tr><th>Texto institucional</th><td>{{ ($school->usesAutomaticLetterhead() ? implode(' | ', $school->letterheadTextsForStages(['fundamental', 'medio'])) : $school->letterhead_text) ?: '-' }}</td></tr>
         @if(filled($school->letterhead_text_elementary))<tr><th>Texto institucional — Ensino Fundamental</th><td>{{ $school->letterhead_text_elementary }}</td></tr>@endif
         @if(filled($school->letterhead_text_high_school))<tr><th>Texto institucional — Ensino Médio</th><td>{{ $school->letterhead_text_high_school }}</td></tr>@endif
         <tr><th>Situação</th><td>{{ $school->active ? 'Ativa' : 'Inativa' }}</td></tr>
