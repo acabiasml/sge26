@@ -396,8 +396,8 @@ strong {
     background-color: var(--sge-surface);
 }
 
-.container-fluid {
-    max-width: 1760px;
+#main-content {
+    max-inline-size: 84rem;
 }
 
 .sge-page-header {
