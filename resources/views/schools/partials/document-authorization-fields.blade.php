@@ -1,39 +1,126 @@
-<p class="small text-muted">{{ __('Preencha os atos das etapas e modalidades ofertadas, com a referência da publicação e as datas de vigência. Se um ato autorizar mais de uma oferta, registre a mesma referência nas ofertas correspondentes. Deixe o término em branco somente quando o ato tiver prazo indeterminado.') }}</p>
-@foreach(\App\Models\School::documentAuthorizationLabels() as $kind => $label)
-    @php
-        $hasAct = filled(old("document_authorizations.$kind.act", $school->document_authorizations[$kind]['act'] ?? null));
-        $fields = ['act' => __('Ato e referência do Diário Oficial'), 'published_on' => __('Publicação'), 'starts_on' => __('Início da vigência'), 'ends_on' => __('Fim da vigência'), 'source_url' => __('Link da publicação no Diário Oficial')];
-        if (\App\Models\School::supportsDocumentAuthorizationRenewal($kind)) {
-            $fields += ['renewal_protocol' => __('Protocolo de renovação no SIPE'), 'renewal_filed_on' => __('Data do protocolo')];
-        }
-    @endphp
-    <details class="mb-3" @if($hasAct || isset(\App\Models\School::DOCUMENT_AUTHORIZATIONS[$kind]) || $errors->has("document_authorizations.$kind.*")) open @endif>
-        <summary class="font-weight-bold mb-2">
-            {{ __($label) }}
-            @if(($endsOn = $school->document_authorizations[$kind]['ends_on'] ?? null) && $endsOn < now('America/Cuiaba')->toDateString())
-                <small class="text-muted">{{ __('Vigência encerrada') }}</small>
-                @if($protocol = $school->document_authorizations[$kind]['renewal_protocol'] ?? null)
-                    <small class="text-muted">· {{ __('Renovação em andamento (SIPE nº :protocol)', ['protocol' => $protocol]) }}</small>
-                @endif
-            @endif
-        </summary>
-        <fieldset>
-            <legend class="sr-only">{{ __($label) }}</legend>
-            <div class="form-row">
-                @foreach($fields as $field => $caption)
-                    @php
-                        $fieldKey = "document_authorizations.$kind.$field";
-                    @endphp
-                    <div class="form-group {{ in_array($field, ['act', 'source_url'], true) ? 'col-12 col-lg-6' : 'col-12 col-md-4 col-lg-2' }}">
-                        <label for="authorization-{{ $kind }}-{{ $field }}">{{ $caption }}</label>
-                        <input id="authorization-{{ $kind }}-{{ $field }}" name="document_authorizations[{{ $kind }}][{{ $field }}]" type="{{ match($field) { 'act', 'renewal_protocol' => 'text', 'source_url' => 'url', default => 'date' } }}" maxlength="350" class="form-control @error($fieldKey) is-invalid @enderror" value="{{ old($fieldKey, $school->document_authorizations[$kind][$field] ?? '') }}">
-                        @error($fieldKey)<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        @if($field === 'source_url' && str_starts_with($school->document_authorizations[$kind]['source_url'] ?? '', 'https://'))
-                            <a class="small" href="{{ $school->document_authorizations[$kind]['source_url'] }}" target="_blank" rel="noopener">{{ __('Abrir publicação') }}</a>
+@php
+    use App\Models\School;
+    use App\Support\OfficialDocumentCompliance;
+
+    $today = now('America/Cuiaba')->toDateString();
+    $groups = ['current' => [], 'inactive' => [], 'pending' => [], 'available' => []];
+    foreach (School::documentAuthorizationLabels() as $kind => $label) {
+        $act = $school->document_authorizations[$kind] ?? [];
+        $group = match (true) {
+            OfficialDocumentCompliance::isCurrentAct($act, $today) => 'current',
+            collect($act)->contains(fn ($value) => filled($value)) => 'inactive',
+            old("document_authorizations.$kind") !== null, $errors->has("document_authorizations.$kind.*") => 'pending',
+            default => 'available',
+        };
+        $groups[$group][$kind] = $label;
+    }
+    $headings = ['current' => __('Atos vigentes'), 'inactive' => __('Atos não vigentes')];
+@endphp
+
+@foreach ($headings as $group => $heading)
+    @continue($group === 'inactive' && $groups[$group] === [])
+    <details class="border rounded p-3 mb-3" @if($group === 'current' || collect(array_keys($groups[$group]))->contains(fn ($kind) => $errors->has("document_authorizations.$kind.*"))) open @endif>
+        <summary class="font-weight-bold">{{ $heading }}</summary>
+        <div class="mt-3">
+            @forelse ($groups[$group] as $kind => $label)
+                @php
+                    $act = $school->document_authorizations[$kind];
+                    $status = match (true) {
+                        filled($act['ends_on'] ?? null) && $act['ends_on'] < $today => __('Vigência encerrada'),
+                        ($act['starts_on'] ?? '') > $today || ($act['published_on'] ?? '') > $today => __('Vigência futura'),
+                        default => __('Cadastro incompleto'),
+                    };
+                @endphp
+                <details class="mb-3" @if($errors->has("document_authorizations.$kind.*")) open @endif>
+                    <summary>
+                        <strong>{{ __($label) }}</strong>
+                        @if ($group === 'inactive')
+                            <small class="text-muted">· {{ $status }}</small>
+                            @if (filled($act['renewal_protocol'] ?? null))
+                                <small class="text-muted">· {{ __('Renovação em andamento (SIPE nº :protocol)', ['protocol' => $act['renewal_protocol']]) }}</small>
+                            @endif
                         @endif
+                        @if (filled($act['act'] ?? null))
+                            <span class="d-block ml-3 small">{{ $act['act'] }}</span>
+                        @endif
+                    </summary>
+                    @include('schools.partials.document-authorization-fieldset', ['supportsRenewal' => School::supportsDocumentAuthorizationRenewal($kind)])
+                </details>
+            @empty
+                <p class="text-muted mb-0">{{ __('Nenhum ato vigente cadastrado.') }}</p>
+            @endforelse
+        </div>
+    </details>
+@endforeach
+
+@if ($groups['available'] !== [] || $groups['pending'] !== [])
+    <details class="border rounded p-3 mb-3" @if($groups['pending'] !== []) open @endif>
+        <summary class="font-weight-bold">{{ __('Incluir ato') }}</summary>
+        <div class="mt-3">
+            <p class="small text-muted">{{ __('Deixe o fim da vigência em branco somente quando o ato tiver prazo indeterminado.') }}</p>
+            <div id="new-school-authorizations">
+                @foreach ($groups['pending'] as $kind => $label)
+                    <div class="border rounded p-3 mb-3">
+                        <h3 class="h6">{{ __($label) }}</h3>
+                        @include('schools.partials.document-authorization-fieldset', ['act' => [], 'supportsRenewal' => School::supportsDocumentAuthorizationRenewal($kind)])
                     </div>
                 @endforeach
             </div>
-        </fieldset>
+
+            @if ($groups['available'] !== [])
+                <label for="new-school-authorization-kind">{{ __('Etapa ou modalidade do ato') }}</label>
+                <div class="input-group">
+                    <select id="new-school-authorization-kind" class="custom-select">
+                        <option value="">{{ __('Selecione uma opção') }}</option>
+                        @foreach ($groups['available'] as $kind => $label)
+                            <option value="{{ $kind }}" @if(School::supportsDocumentAuthorizationRenewal($kind)) data-authorization-renewal @endif>{{ __($label) }}</option>
+                        @endforeach
+                    </select>
+                    <div class="input-group-append">
+                        <button type="button" id="add-school-authorization" class="btn btn-outline-primary">{{ __('Adicionar') }}</button>
+                    </div>
+                </div>
+
+                <template id="school-authorization-template">
+                    <div class="border rounded p-3 mb-3">
+                        <h3 class="h6"></h3>
+                        @include('schools.partials.document-authorization-fieldset', ['kind' => '__kind__', 'label' => '', 'act' => [], 'supportsRenewal' => true])
+                    </div>
+                </template>
+
+                @push('scripts')
+                    <script>
+                        document.getElementById('add-school-authorization').addEventListener('click', () => {
+                            const select = document.getElementById('new-school-authorization-kind');
+                            const option = select.selectedOptions[0];
+                            if (!option?.value) {
+                                select.focus();
+                                return;
+                            }
+
+                            const fields = document.getElementById('school-authorization-template').content.cloneNode(true);
+                            fields.querySelector('h3').textContent = option.textContent;
+                            fields.querySelector('legend').textContent = option.textContent;
+                            if (!option.hasAttribute('data-authorization-renewal')) {
+                                fields.querySelectorAll('[data-authorization-renewal]').forEach(field => field.remove());
+                            }
+                            fields.querySelectorAll('[id], [name], [for]').forEach(field => {
+                                for (const attribute of ['id', 'name', 'for']) {
+                                    if (field.hasAttribute(attribute)) {
+                                        field.setAttribute(attribute, field.getAttribute(attribute).replace('__kind__', option.value));
+                                    }
+                                }
+                            });
+
+                            const firstInput = fields.querySelector('input');
+                            document.getElementById('new-school-authorizations').append(fields);
+                            option.remove();
+                            select.value = '';
+                            firstInput.focus();
+                        });
+                    </script>
+                @endpush
+            @endif
+        </div>
     </details>
-@endforeach
+@endif

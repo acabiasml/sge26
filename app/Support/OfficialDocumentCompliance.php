@@ -79,7 +79,7 @@ class OfficialDocumentCompliance
         return $details;
     }
 
-    private static function isCurrentAct(array $act, string $date): bool
+    public static function isCurrentAct(array $act, string $date): bool
     {
         return filled($act['act'] ?? null) && filled($act['published_on'] ?? null) && filled($act['starts_on'] ?? null)
             && $act['published_on'] <= $date && $act['starts_on'] <= $date && (blank($act['ends_on'] ?? null) || $act['ends_on'] >= $date);
