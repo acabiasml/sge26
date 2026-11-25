@@ -4,54 +4,108 @@ $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
 use App\Models\AcademicCourse;
 use App\Models\AcademicPeriodDiaryConsolidation;
+use App\Models\AcademicYear;
+use App\Models\AuditLog;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\DiaryPeriodConfirmation;
-use App\Models\School;
 use App\Models\SchoolClassComponent;
+use App\Models\StudentEnrollment;
+use App\Support\ReclassificationAttendanceCredits;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-DB::statement('SET TRANSACTION READ ONLY');
-DB::beginTransaction();
-try {
-    $school = School::query()->whereIn('cnpj', ['00.176.974/0001-20', '00176974000120'])->sole();
-    $assignments = SchoolClassComponent::query()->with('teacher', 'schoolClass.academicYear', 'component.course')
-        ->whereHas('schoolClass.academicYear', fn ($query) => $query->where('reference_year', 2026)->where('school_id', $school->id))
-        ->whereHas('component.course', fn ($query) => $query->where('stage', AcademicCourse::STAGE_ELEMENTARY))
-        ->get()->filter(fn ($assignment) => preg_match('/\brubia\b/', Str::lower(Str::ascii($assignment->teacher?->full_name ?? ''))));
-
-    $result = [];
-    foreach ($assignments as $assignment) {
-        $class = $assignment->schoolClass;
-        $component = $assignment->component;
-        $records = DiaryAttendanceRecord::query()->where('school_class_id', $class->id)
-            ->where('curriculum_component_id', $component->id)->with('entries', 'period')->orderBy('class_date')->get();
-        $confirmed = DiaryPeriodConfirmation::where('school_class_id', $class->id)
-            ->where('curriculum_component_id', $component->id)->where('confirmed', true)->pluck('academic_period_id')->all();
-        $consolidated = AcademicPeriodDiaryConsolidation::whereIn('academic_period_id', $records->pluck('academic_period_id'))
-            ->where('consolidated', true)->pluck('academic_period_id')->all();
-        $result[] = [
-            'assignment_id' => $assignment->id, 'teacher_id' => $assignment->teacher_person_id, 'teacher' => $assignment->teacher->full_name,
-            'class_id' => $class->id, 'class' => $class->name, 'year_id' => $class->academic_year_id, 'year_closed' => $class->academicYear->isClosed(),
-            'course' => $component->course->name, 'component_id' => $component->id, 'component' => $component->name,
-            'total_by_lesson_count' => $records->countBy('lesson_count'), 'confirmed_period_ids' => $confirmed,
-            'consolidated_period_ids' => $consolidated,
-            'doubles' => $records->where('lesson_count', 2)->values()->map(fn ($record) => [
-                'record_id' => $record->id, 'date' => $record->class_date->toDateString(),
-                'teacher_id' => $record->teacher_person_id, 'period_id' => $record->academic_period_id,
-                'source' => $record->legacy_source, 'unrecorded' => count($record->legacy_metadata['unrecorded_enrollment_ids'] ?? []),
-                'entry_count' => $record->entries->count(),
-                'buckets' => $record->entries->countBy(fn ($entry) => $entry->status.':'.$entry->attended_lessons),
-                'inconsistent' => $record->entries->filter(fn ($entry) => ! is_array($entry->lesson_presence)
-                    || count($entry->lesson_presence) !== 2 || count(array_filter($entry->lesson_presence)) !== $entry->attended_lessons)->count(),
-                'digest' => hash('sha256', json_encode([
-                    $record->id, $record->class_date->toDateString(), $record->lesson_count, $record->teacher_person_id, $record->academic_period_id,
-                    $record->entries->sortBy('id')->map->only(['id', 'student_enrollment_id', 'status', 'attended_lessons', 'lesson_presence'])->values()->all(),
-                ], JSON_THROW_ON_ERROR)),
-            ]),
-        ];
+$result = DB::transaction(function (): array {
+    $expected = '1ef9af3cd075e46345dd1fd92fd892173dc2d0ce767db6d1927c9a078eafa42f';
+    $year = AcademicYear::query()->with('school')->lockForUpdate()->findOrFail(5);
+    $assignment = SchoolClassComponent::query()->with('teacher', 'schoolClass', 'component.course')->lockForUpdate()->findOrFail(190);
+    $class = $assignment->schoolClass;
+    $component = $assignment->component;
+    if ((int) $year->reference_year !== 2026 || $year->isClosed()
+        || preg_replace('/\D/', '', $year->school->cnpj) !== '00176974000120'
+        || (int) $class->academic_year_id !== (int) $year->id || (int) $class->id !== 14 || $class->name !== '9º Ano'
+        || (int) $component->id !== 186 || (int) $component->course->academic_year_id !== (int) $year->id
+        || $component->course->stage !== AcademicCourse::STAGE_ELEMENTARY || $component->name !== 'Língua Portuguesa'
+        || (int) $assignment->teacher_person_id !== 584
+        || ! preg_match('/\brubia\b/', Str::lower(Str::ascii($assignment->teacher->full_name)))) {
+        throw new RuntimeException('O diário não corresponde ao recorte conferido.');
     }
-    echo json_encode($result, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
-} finally {
-    DB::rollBack();
-}
+    $scope = DiaryAttendanceRecord::query()->where('school_class_id', $class->id)->where('curriculum_component_id', $component->id);
+    $records = (clone $scope)->where('lesson_count', 2)->lockForUpdate()
+        ->with(['entries' => fn ($query) => $query->orderBy('id')->lockForUpdate()])->orderBy('class_date')->get();
+    if ($records->isEmpty() && AuditLog::query()->where('auditable_type', SchoolClassComponent::class)
+        ->where('auditable_id', $assignment->id)->where('metadata->snapshot_sha256', $expected)->exists()) {
+        return ['already_applied' => true];
+    }
+    $snapshot = $records->map(fn ($record) => [
+        $record->id, $record->class_date->toDateString(), $record->lesson_count, $record->teacher_person_id, $record->academic_period_id,
+        $record->entries->map->only(['id', 'student_enrollment_id', 'status', 'attended_lessons', 'lesson_presence'])->values()->all(),
+    ])->all();
+    $digest = hash('sha256', implode(';', array_map(fn ($row) => hash('sha256', json_encode($row, JSON_THROW_ON_ERROR)), $snapshot)));
+    $periods = $records->pluck('academic_period_id')->unique()->all();
+    if ($records->count() !== 38 || ! hash_equals($expected, $digest)
+        || $records->contains(fn ($record) => filled($record->legacy_metadata['unrecorded_enrollment_ids'] ?? []))
+        || AcademicPeriodDiaryConsolidation::query()->whereIn('academic_period_id', $periods)->where('consolidated', true)->exists()
+        || DiaryPeriodConfirmation::query()->where('school_class_id', $class->id)->where('curriculum_component_id', $component->id)
+            ->whereIn('academic_period_id', $periods)->where('confirmed', true)->exists()) {
+        throw new RuntimeException('As chamadas ou o fechamento dos períodos mudaram desde a conferência.');
+    }
+
+    $backupDisk = Storage::disk('local');
+    $backup = 'diary-reconciliation/rubia-9ano-2026-'.Str::uuid().'.json';
+    if (! $backupDisk->put($backup, json_encode(['snapshot_sha256' => $digest, 'records' => $snapshot], JSON_THROW_ON_ERROR))
+        || ! chmod($backupDisk->path($backup), 0600)) {
+        throw new RuntimeException('Não foi possível proteger a cópia anterior à correção.');
+    }
+
+    $summary = ['corrected_dates' => 0, 'third_present' => 0, 'third_absent' => 0, 'mixed_resolved_as_present' => 0];
+    $beforeTotals = (clone $scope)->get()->countBy('lesson_count')->all();
+    foreach ($records as $record) {
+        $record->update(['lesson_count' => 3]);
+        $summary['corrected_dates']++;
+        foreach ($record->entries as $entry) {
+            $presence = $entry->lesson_presence;
+            $attended = $entry->attended_lessons;
+            if (! is_array($presence) || ! array_is_list($presence) || count($presence) !== 2
+                || count(array_filter($presence)) !== $attended) {
+                throw new RuntimeException('Localizada frequência com marcações incompatíveis.');
+            }
+            $thirdPresent = $attended > 0;
+            $presence[] = $thirdPresent;
+            $attendedAfter = $attended + (int) $thirdPresent;
+            $status = match ($attendedAfter) {
+                3 => DiaryAttendanceRecord::STATUS_PRESENT,
+                0 => $entry->status === DiaryAttendanceRecord::STATUS_EXCUSED ? DiaryAttendanceRecord::STATUS_EXCUSED : DiaryAttendanceRecord::STATUS_ABSENT,
+                default => DiaryAttendanceRecord::STATUS_PARTIAL,
+            };
+            $entry->update(['status' => $status, 'attended_lessons' => $attendedAfter, 'lesson_presence' => $presence]);
+            $summary[$thirdPresent ? 'third_present' : 'third_absent']++;
+            $summary['mixed_resolved_as_present'] += (int) ($attended === 1);
+        }
+    }
+    $creditChanges = 0;
+    foreach (StudentEnrollment::whereHas('reclassifiedFrom', fn ($query) => $query->where('school_class_id', $class->id))
+        ->with('reclassifiedFrom')->get() as $destination) {
+        $creditChanges += count(app(ReclassificationAttendanceCredits::class)->synchronize($destination->reclassifiedFrom, $destination));
+    }
+
+    $afterTotals = (clone $scope)->get()->countBy('lesson_count')->all();
+    if (isset($afterTotals[2]) || ($afterTotals[3] ?? 0) !== ($beforeTotals[3] ?? 0) + $summary['corrected_dates']) {
+        throw new RuntimeException('A conferência dos totais após a correção falhou.');
+    }
+
+    AuditLog::create([
+        'school_id' => $year->school_id, 'auditable_type' => SchoolClassComponent::class,
+        'auditable_id' => $assignment->id, 'action' => 'updated',
+        'old_values' => ['chamadas_por_quantidade_de_aulas' => $beforeTotals],
+        'new_values' => ['chamadas_por_quantidade_de_aulas' => $afterTotals],
+        'metadata' => [
+            'operation' => 'correcao_de_chamadas_duplas_no_9ano_do_liceu', 'snapshot_sha256' => $digest,
+            'backup_path' => $backup, 'presenca_parcial_gera_presenca_na_terceira_aula' => true,
+            'summary' => $summary, 'credit_changes' => $creditChanges,
+        ],
+    ]);
+
+    return $summary + ['before' => $beforeTotals, 'after' => $afterTotals, 'credit_changes' => $creditChanges];
+});
+echo json_encode($result, JSON_THROW_ON_ERROR);

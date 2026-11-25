@@ -29,7 +29,7 @@ def encrypt_report(output, public_key_text):
     })
 
 
-def run_remote(client, command, timeout=45):
+def run_remote(client, command, timeout=120):
     stdin, stdout, stderr = client.exec_command(
         'cd /home/u810745753/domains/ctjj.org/public_html/sge && ' + command,
         timeout=timeout,
