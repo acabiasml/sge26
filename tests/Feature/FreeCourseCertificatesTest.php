@@ -104,6 +104,31 @@ class FreeCourseCertificatesTest extends TestCase
         $this->assertDatabaseCount('issued_documents', 2);
     }
 
+    public function test_certificates_can_be_issued_and_archived_without_a_book(): void
+    {
+        $s = $this->scenario(withBook: false);
+        $prepare = route('free-course-certificates.prepare', $s['offering']);
+        $store = route('free-course-certificates.store', $s['offering']);
+        $this->actingAs($s['user'])->get($prepare)->assertOk()
+            ->assertSee('Emitir sem registro em livro')->assertDontSee('Abra um novo livro');
+
+        $s['school']->update(['registry_medium' => 'physical']);
+        $this->get($prepare)->assertOk()->assertSee('Registro em livro (opcional)');
+        $data = $this->fields($s);
+        $this->post($store, $data)->assertSessionHasNoErrors()->assertRedirect();
+        $documents = IssuedDocument::orderBy('id')->get();
+        $this->assertCount(2, $documents);
+        foreach ($documents as $document) {
+            $this->assertArrayNotHasKey('registry_number', $document->payload['registration']);
+            $this->get(route('credential-archive.pdf', $document))->assertOk()->assertHeader('Content-Type', 'application/pdf');
+            $this->get(route('documents.verify', $document->verification_code))->assertOk()->assertSee('Certificado de curso livre');
+        }
+        $this->post($store, $data)->assertRedirect(route('credential-archive.batch', $documents->first()->batch_uuid));
+        $this->assertDatabaseCount('issued_documents', 2);
+        $this->assertDatabaseCount('credential_registrations', 0);
+        $this->assertDatabaseCount('credential_books', 0);
+    }
+
     public function test_incomplete_future_removed_or_foreign_participants_cannot_be_officially_certified(): void
     {
         $s = $this->scenario();
@@ -246,8 +271,10 @@ class FreeCourseCertificatesTest extends TestCase
     private function fields(array $s, ?array $ids = null): array
     {
         return ['participant_ids' => $ids ?? array_map(fn ($p) => $p->id, $s['participants']), 'expected_version' => app(FreeCourseCertificate::class)->version($s['offering']->fresh()),
-            'registry_book_id' => $s['book']->id, 'issuance_token' => (string) Str::uuid(),
-            'registry_book' => '01', 'registry_folio' => '20', 'registry_number' => 100, 'registered_by' => 'Marina Alves Fictícia', 'issued_date' => '2026-11-17', 'issued_place' => 'Poxoréu-MT', 'director_name' => 'Eleonora Silva Fictícia', 'instructor_name' => 'Instrutor José Fictício', 'instructor_role' => 'Instrutor'];
+            'issuance_token' => (string) Str::uuid(), 'issued_date' => '2026-11-17', 'issued_place' => 'Poxoréu-MT', 'director_name' => 'Eleonora Silva Fictícia',
+            'instructor_name' => 'Instrutor José Fictício', 'instructor_role' => 'Instrutor'] + ($s['book'] ? [
+                'registry_book_id' => $s['book']->id, 'registry_book' => '01', 'registry_folio' => '20', 'registry_number' => 100, 'registered_by' => 'Marina Alves Fictícia',
+            ] : []);
     }
 
     private function manager(School $school): User
@@ -258,16 +285,16 @@ class FreeCourseCertificatesTest extends TestCase
         return User::factory()->create(['person_id' => $p->id]);
     }
 
-    private function scenario(): array
+    private function scenario(bool $withBook = true): array
     {
         $this->travelTo(now()->setDate(2026, 11, 17)->setTime(12, 0));
         Storage::fake('local');
         $school = School::create(['name' => 'Escola Fictícia de Formação', 'cnpj' => '00.176.974/0001-20', 'address' => 'Rua da Formação', 'number' => '10', 'city' => 'Poxoréu', 'state' => 'MT', 'postal_code' => '78800000', 'logo_path' => 'brand/logo.png', 'active' => true]);
         $user = $this->manager($school);
-        $book = app(CredentialRegistry::class)->open($user, [
+        $book = $withBook ? app(CredentialRegistry::class)->open($user, [
             'school_id' => $school->id, 'kind' => 'certificate', 'identifier' => '01', 'reference_year' => 2026,
             'first_number' => 100, 'first_folio' => 20, 'opened_on' => '2026-11-01', 'opening_term' => 'Abertura do livro de certificados.',
-        ]);
+        ]) : null;
         $course = FreeCourse::create(['school_id' => $school->id, 'name' => 'Marcenaria Livre', 'workload_hours' => 40, 'syllabus' => "Segurança na oficina\nFerramentas manuais\nTécnicas de acabamento", 'active' => true]);
         $offering = $course->offerings()->create(['name' => 'Turma de outubro', 'starts_at' => '2026-10-01', 'ends_at' => '2026-10-10', 'location' => 'Jarudore', 'delivery_mode' => 'presencial']);
         $people = [];

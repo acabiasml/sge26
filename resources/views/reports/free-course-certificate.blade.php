@@ -54,7 +54,17 @@
 <div class="back-course"><strong>{{ $data['course_name'] }}</strong> · {{ $hours }} h<br>{{ $data['participant_name'] }}</div>
 <div class="syllabus">@foreach($page as $line)<div>{{ $line?:' ' }}</div>@endforeach</div>
 <div class="qr"><a href="{{ $url }}"><img src="{{ $qr }}" alt="QR Code"></a><br>{{ $preview?'Conferir cadastro':'Autenticar no site' }}</div>
-<div class="registry" @if(mb_strlen($data['school_address'].$reg['registered_by'].$reg['registry_book'].$reg['registry_folio'])>300) style="font-size:7pt;line-height:10pt" @endif>@if($preview)<strong>PRÉVIA SEM REGISTRO</strong><br>Confira conteúdo, participantes, assinaturas e registro antes da emissão oficial.@else<strong>Registro nº {{ $reg['registry_number'] }}</strong> · Livro {{ $reg['registry_book'] }} · Folha {{ $reg['registry_folio'] }}<br>Registrado por {{ $reg['registered_by'] }}, em {{ $date($reg['issued_date']) }}.<br>CNPJ: {{ $data['school_cnpj'] }} · {{ $data['school_address'] }}@endif</div>
+<div class="registry" @if(mb_strlen($data['school_address'].($reg['registered_by'] ?? '').($reg['registry_book'] ?? '').($reg['registry_folio'] ?? ''))>300) style="font-size:7pt;line-height:10pt" @endif>
+    @if($preview)
+        <strong>PRÉVIA PARA CONFERÊNCIA</strong><br>Confira conteúdo, identificação e assinaturas antes da emissão.
+    @else
+        @isset($reg['registry_number'])
+            <strong>Registro nº {{ $reg['registry_number'] }}</strong> · Livro {{ $reg['registry_book'] }} · Folha {{ $reg['registry_folio'] }}<br>
+            Registrado por {{ $reg['registered_by'] }}, em {{ $date($reg['issued_date']) }}.<br>
+        @endisset
+        CNPJ: {{ $data['school_cnpj'] }} · {{ $data['school_address'] }}
+    @endif
+</div>
 <div class="footer">{{ $preview?'Prévia sem emissão oficial':('Autenticidade: '.$document->verification_code) }} · {{ $url }}</div>
 </div>
 @endforeach

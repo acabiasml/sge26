@@ -7,7 +7,7 @@
 <form method="POST" action="{{ route('free-course-certificates.store',$offering) }}">
 @csrf<input type="hidden" name="expected_version" value="{{ $version }}">
 <div class="card shadow sge-panel-card mb-4"><div class="card-header"><h2 class="h6 mb-0">Selecione os concluintes</h2></div><div class="card-body">
-<p>{{ __('Confira as prévias e selecione até 50 concluintes. Cada prévia é para conferência. Cada certificado oficial recebe um número próprio e fica arquivado na ficha da pessoa.') }} <x-school-document-regulation :articles="__('art. 5º, I e II')" /></p>
+<p>{{ __('Confira as prévias e selecione até 50 concluintes. Cada certificado recebe um código de autenticidade e fica arquivado na ficha da pessoa.') }}</p>
 <button type="button" class="btn btn-sm btn-outline-primary mb-3" id="select-graduates">Marcar / desmarcar todos os concluintes</button>
 <div class="table-responsive"><x-livewire-table>
 <table class="table"><thead><tr><th>Emitir</th><th>Participante</th><th>Situação</th><th>Conferência</th></tr></thead><tbody>
@@ -18,17 +18,22 @@
 @empty<tr><td colspan="4">Cadastre os participantes na turma.</td></tr>@endforelse
 </tbody></table>
 </x-livewire-table></div></div></div>
-@if($physicalRegistry)
-    <p>{{ __('Selecione um participante por emissão e informe os dados do registro no livro físico.') }}</p>
-@endif
-@include('credential-registry.book-choice', ['hasRegistrationDate' => true])
-<div class="card shadow sge-panel-card mb-4"><div class="card-header"><h2 class="h6 mb-0">Registro, emissão e assinaturas</h2></div><div class="card-body"><div class="form-row">
+<details class="mb-4" @if($errors->hasAny(['registry_book_id', 'registry_book', 'registry_number', 'registry_folio', 'registered_by'])) open @endif>
+    <summary>{{ __('Registro em livro (opcional)') }}</summary>
+    <div class="mt-2">
+        @if($offering->freeCourse->school->usesPhysicalRegistry())
+            <p>{{ __('Para informar uma referência em livro físico, selecione um participante por emissão.') }}</p>
+        @endif
+        @include('credential-registry.book-choice', ['school' => $offering->freeCourse->school, 'hasRegistrationDate' => true, 'optionalBook' => true, 'citeDocumentRegulation' => false])
+    </div>
+</details>
+<div class="card shadow sge-panel-card mb-4"><div class="card-header"><h2 class="h6 mb-0">Emissão e assinaturas</h2></div><div class="card-body"><div class="form-row">
 @foreach(['issued_place'=>'Local da emissão','director_name'=>'Nome completo da direção','instructor_name'=>'Nome completo do outro signatário','instructor_role'=>'Cargo do outro signatário'] as $field=>$label)
 <div class="form-group col-md-6" ><label for="{{ $field }}">{{ $label }}</label><input class="form-control" id="{{ $field }}" name="{{ $field }}" maxlength="{{ $field==='instructor_role'?80:150 }}" required value="{{ old($field,$field==='issued_place'?$offering->freeCourse->school->city:($field==='instructor_role'?'Responsável pelo curso':'')) }}"></div>
 @endforeach
-<div class="form-group col-md-6"><label for="issued_date">Data da emissão e do registro</label><input class="form-control" id="issued_date" name="issued_date" type="date" required max="{{ now('America/Cuiaba')->toDateString() }}" value="{{ old('issued_date',now('America/Cuiaba')->toDateString()) }}"></div>
-</div><p class="small text-muted mb-0">{{ __('Os números seguem a ordem de cadastro dos participantes. Após a emissão, abra o registro para tratar da assinatura e da entrega.') }}</p></div></div>
-<button class="btn btn-primary" @disabled(!$logosReady || (!$physicalRegistry && $books->isEmpty()))>Emitir e arquivar certificados oficiais</button><a class="btn btn-outline-secondary" href="{{ route('document-issuance.index') }}">Voltar à central</a>
+<div class="form-group col-md-6"><label for="issued_date">Data da emissão</label><input class="form-control" id="issued_date" name="issued_date" type="date" required max="{{ now('America/Cuiaba')->toDateString() }}" value="{{ old('issued_date',now('America/Cuiaba')->toDateString()) }}"></div>
+</div></div></div>
+<button class="btn btn-primary" @disabled(!$logosReady)>Emitir e arquivar certificados oficiais</button><a class="btn btn-outline-secondary" href="{{ route('document-issuance.index') }}">Voltar à central</a>
 </form>
 @if($recent->isNotEmpty())<div class="card mt-4"><div class="card-header">Certificados já emitidos nesta turma</div><ul class="list-group list-group-flush">@foreach($recent as $document)<li class="list-group-item">{{ $document->payload['participant_name'] }} · {{ $document->issued_at->timezone('America/Cuiaba')->format('d/m/Y H:i') }} · <a href="{{ route('credential-archive.pdf',$document) }}" target="_blank" rel="noopener">Abrir PDF original</a> @include('partials.credential-delete',['document'=>$document])</li>@endforeach</ul></div>@endif
 @endsection
