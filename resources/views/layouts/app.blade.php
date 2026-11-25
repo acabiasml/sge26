@@ -44,6 +44,7 @@
                     <span class="sge-sidebar-logo">
                         <img src="{{ asset('brand/logo.png') }}" width="642" height="840" alt="" decoding="async">
                     </span>
+                    <span class="sge-sidebar-name">Beabá</span>
                 </a>
                 <button id="sidebarCloseControl" class="btn sge-sidebar-close" type="button" aria-label="{{ __('navigation.close_sidebar') }}" title="{{ __('navigation.close_sidebar') }}">
                     <i class="fas fa-times d-lg-none" aria-hidden="true"></i>
