@@ -1,10 +1,11 @@
 @php
     $schoolTabs = [
-        'identificacao' => ['label' => __('Dados e contatos'), 'icon' => 'fa-school', 'fields' => ['name', 'legal_name', 'cnpj', 'inep', 'phone', 'email']],
-        'documentos' => ['label' => __('Dados para documentos'), 'icon' => 'fa-file-alt', 'fields' => ['founded_at', 'website', 'registry_medium', 'letterhead_mode', 'letterhead_text', 'letterhead_text_high_school', 'logo', 'maintainer', 'creation_act', 'accreditation_act', 'education_system']],
+        'identificacao' => ['label' => __('Dados e contatos'), 'icon' => 'fa-school', 'fields' => ['name', 'legal_name', 'cnpj', 'inep', 'phone', 'email', 'founded_at', 'website']],
+        'documentos' => ['label' => __('Dados para documentos'), 'icon' => 'fa-file-alt', 'fields' => ['registry_medium', 'letterhead_mode', 'letterhead_text', 'letterhead_text_high_school', 'logo', 'maintainer', 'creation_act', 'education_system']],
         ...(isset($school) ? ['atos-autorizativos' => ['label' => __('Atos autorizativos'), 'icon' => 'fa-file-contract',
             'fields' => ['document_authorizations', 'document_authorizations.*']]] : []),
         'endereco' => ['label' => __('Endereço'), 'icon' => 'fa-map-marker-alt', 'fields' => ['address', 'number', 'district', 'city', 'state', 'postal_code']],
+        ...(($school->exists ?? false) ? ['cursos' => ['label' => __('navigation.courses'), 'icon' => 'fa-graduation-cap']] : []),
     ];
 @endphp
 <x-section-tabs :tabs="$schoolTabs" :label="__('Seções do cadastro da escola')" />
@@ -49,16 +50,6 @@
     @error('email') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
 </div>
 
-</section>
-
-<section id="section-documentos" data-academic-panel="documentos" role="tabpanel">
-<div class="form-row">
-@foreach(['maintainer'=>'Mantenedora','creation_act'=>'Ato legal de criação da escola','accreditation_act'=>'Credenciamento da escola','education_system'=>'Sistema de ensino'] as $field=>$label)
-<div class="form-group col-md-6"><label for="{{ $field }}">{{ $label }}</label><textarea id="{{ $field }}" name="{{ $field }}" class="form-control" rows="2" maxlength="{{ $field==='education_system'?255:2000 }}">{{ old($field,$school->{$field}??'') }}</textarea></div>
-@endforeach
-</div>
-
-
 <div class="form-row">
     <div class="form-group col-md-4">
         <label for="founded_at">{{ __('screens.foundation_date') }}</label>
@@ -71,6 +62,19 @@
         <input id="website" name="website" type="url" inputmode="url" class="form-control @error('website') is-invalid @enderror" value="{{ old('website', $school->website ?? '') }}" placeholder="https://">
         @error('website') <div class="invalid-feedback">{{ __($message) }}</div> @enderror
     </div>
+</div>
+
+</section>
+
+<section id="section-documentos" data-academic-panel="documentos" role="tabpanel">
+<div class="form-row">
+    @foreach (['maintainer' => __('Mantenedora'), 'education_system' => __('Sistema de ensino'), 'creation_act' => __('Ato de criação da escola')] as $field => $label)
+        <div class="form-group col-md-4">
+            <label for="{{ $field }}">{{ $label }}</label>
+            <input id="{{ $field }}" name="{{ $field }}" class="form-control @error($field) is-invalid @enderror" maxlength="{{ $field === 'education_system' ? 255 : 2000 }}" value="{{ old($field, $school->{$field} ?? '') }}">
+            @error($field)<div class="invalid-feedback">{{ $message }}</div>@enderror
+        </div>
+    @endforeach
 </div>
 
 @include('schools.partials.letterhead-fields')
@@ -157,6 +161,12 @@
 </div>
 
 </section>
+
+@if ($school->exists ?? false)
+    <section id="section-cursos" data-academic-panel="cursos" role="tabpanel">
+        @include('schools.partials.technical-programs')
+    </section>
+@endif
 
 @if (auth()->user()->canManageSchools())
 <div class="form-group form-check">

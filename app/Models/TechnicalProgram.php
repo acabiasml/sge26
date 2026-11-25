@@ -68,7 +68,7 @@ class TechnicalProgram extends Model
 
     public function getAccreditationActAttribute($value)
     {
-        return $this->school?->accreditation_act;
+        return $this->school?->documentAccreditationReference();
     }
 
     public function getEducationSystemAttribute($value)

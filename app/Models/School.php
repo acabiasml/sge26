@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\HasTitleCaseAttributes;
+use App\Support\OfficialDocumentCompliance;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -218,25 +219,31 @@ class School extends Model
 
     public function hasRequiredLetterheadForOfficialDocuments(): bool
     {
-        return collect([
-            $this->name,
-            $this->legal_name,
-            $this->cnpj,
-            $this->inep,
-            $this->founded_at,
-            $this->phone,
-            $this->email,
-            $this->letterhead_text,
-            $this->address,
-            $this->city,
-            $this->state,
-            $this->postal_code,
-        ])->every(fn ($value): bool => filled($value));
+        return $this->missingOfficialDocumentFields() === [];
+    }
+
+    public function usesAutomaticLetterhead(): bool
+    {
+        return blank($this->letterhead_text) && blank($this->letterhead_text_elementary) && blank($this->letterhead_text_high_school);
+    }
+
+    public function documentAccreditationReference(): ?string
+    {
+        $act = $this->document_authorizations['accreditation'] ?? [];
+
+        return OfficialDocumentCompliance::isCurrentAct($act, now('America/Cuiaba')->toDateString())
+            ? $act['act'] : $this->accreditation_act;
     }
 
     /** @return list<string> */
     public function letterheadTextsForStages(array $stages = []): array
     {
+        if ($this->usesAutomaticLetterhead()) {
+            $acts = OfficialDocumentCompliance::authorizationDetails($this, $stages)['acts'];
+
+            return array_values(array_unique(array_column($acts, 'act')));
+        }
+
         $fields = [
             AcademicCourse::STAGE_ELEMENTARY => 'letterhead_text_elementary',
             AcademicCourse::STAGE_HIGH_SCHOOL => 'letterhead_text_high_school',
@@ -268,16 +275,20 @@ class School extends Model
             'founded_at' => 'data de fundação',
             'phone' => 'telefone',
             'email' => 'e-mail',
-            'letterhead_text' => 'texto institucional/autorizativo',
             'address' => 'endereço',
             'city' => 'cidade',
             'state' => 'UF',
             'postal_code' => 'CEP',
         ];
 
-        return collect($fields)
+        $missing = collect($fields)
             ->filter(fn (string $label, string $field): bool => blank($this->{$field}))
             ->values()
             ->all();
+        if ($this->letterheadTextsForStages() === []) {
+            $missing[] = 'texto institucional/autorizativo';
+        }
+
+        return $missing;
     }
 }

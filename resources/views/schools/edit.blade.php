@@ -19,7 +19,6 @@
 @endsection
 
 @section('content')
-    @include('schools.partials.technical-programs')
     <div class="card shadow mb-4">
         <div class="card-body">
             <form method="POST" action="{{ route('schools.update', $school) }}" enctype="multipart/form-data">
