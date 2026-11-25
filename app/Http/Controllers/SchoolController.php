@@ -13,6 +13,10 @@ use Illuminate\View\View;
 
 class SchoolController extends Controller
 {
+    private const AUTHORIZATION_MESSAGES = [
+        'document_authorizations.accreditation.ends_on.prohibited' => 'O credenciamento em Mato Grosso tem prazo indeterminado.',
+    ];
+
     public function index(Request $request): View
     {
         abort_unless($request->user()->canManageSchools() || $request->user()->canManagePeople(), 403);
@@ -82,7 +86,7 @@ class SchoolController extends Controller
     {
         abort_unless($request->user()->canManageSchool($school->id), 403);
 
-        $school->update($request->validate($this->authorizationRules()));
+        $school->update($request->validate($this->authorizationRules($school->state === 'MT'), self::AUTHORIZATION_MESSAGES));
 
         return redirect()->to(route('schools.edit', $school).'#section-atos-autorizativos')
             ->with('status', __('Atos autorizativos atualizados.'));
@@ -134,7 +138,7 @@ class SchoolController extends Controller
             'state' => ['required', 'string', 'size:2', Rule::in(BrazilianStates::codes())],
             'postal_code' => ['required', 'string', 'max:255'],
             'active' => ['nullable', 'boolean'],
-        ] + $this->authorizationRules());
+        ] + $this->authorizationRules($request->input('state') === 'MT'), self::AUTHORIZATION_MESSAGES);
 
         if (isset($data['letterhead_mode'])) {
             if ($data['letterhead_mode'] === 'automatic') {
@@ -160,7 +164,7 @@ class SchoolController extends Controller
         return $data;
     }
 
-    private function authorizationRules(): array
+    private function authorizationRules(bool $matoGrosso): array
     {
         $rules = ['document_authorizations' => ['sometimes', 'array:'.implode(',', array_keys(School::documentAuthorizationLabels()))]];
         foreach (array_keys(School::documentAuthorizationLabels()) as $kind) {
@@ -176,7 +180,9 @@ class SchoolController extends Controller
             $rules[$field.'.published_on'] = ['nullable', 'required_with:'.$field.'.act', 'date_format:Y-m-d', 'before_or_equal:today'];
             $rules[$field.'.starts_on'] = ['nullable', 'required_with:'.$field.'.act', 'date_format:Y-m-d'];
             $rules[$field.'.source_url'] = ['nullable', 'url:https', 'max:350'];
-            $rules[$field.'.ends_on'] = ['nullable', 'required_with:'.$field.'.renewal_protocol', 'date_format:Y-m-d', 'after_or_equal:'.$field.'.starts_on'];
+            $rules[$field.'.ends_on'] = $matoGrosso && $kind === 'accreditation'
+                ? ['prohibited', 'nullable', 'date_format:Y-m-d']
+                : ['nullable', 'required_with:'.$field.'.renewal_protocol', 'date_format:Y-m-d', 'after_or_equal:'.$field.'.starts_on'];
         }
 
         return $rules;

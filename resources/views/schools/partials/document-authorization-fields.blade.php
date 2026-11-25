@@ -3,6 +3,7 @@
     use App\Support\OfficialDocumentCompliance;
 
     $today = now('America/Cuiaba')->toDateString();
+    $matoGrosso = old('state', $school->state) === 'MT';
     $groups = ['current' => [], 'inactive' => [], 'pending' => [], 'available' => []];
     foreach (School::documentAuthorizationLabels() as $kind => $label) {
         $act = $school->document_authorizations[$kind] ?? [];
@@ -45,6 +46,8 @@
                             @if (filled($act['renewal_protocol'] ?? null))
                                 <small class="text-muted">· {{ __('Renovação em andamento (SIPE nº :protocol)', ['protocol' => $act['renewal_protocol']]) }}</small>
                             @endif
+                        @elseif ($kind === 'accreditation' && $matoGrosso && blank($act['ends_on'] ?? null))
+                            <small class="text-muted">· {{ __('Prazo indeterminado') }}</small>
                         @endif
                         @if (filled($act['act'] ?? null))
                             <span class="d-block ml-3 small">{{ $act['act'] }}</span>
@@ -94,39 +97,57 @@
                     </div>
                 </template>
 
-                @push('scripts')
-                    <script>
-                        document.getElementById('add-school-authorization').addEventListener('click', () => {
-                            const select = document.getElementById('new-school-authorization-kind');
-                            const option = select.selectedOptions[0];
-                            if (!option?.value) {
-                                select.focus();
-                                return;
-                            }
-
-                            const fields = document.getElementById('school-authorization-template').content.cloneNode(true);
-                            fields.querySelector('h3').textContent = option.textContent;
-                            fields.querySelector('legend').textContent = option.textContent;
-                            if (!option.hasAttribute('data-authorization-renewal')) {
-                                fields.querySelectorAll('[data-authorization-renewal]').forEach(field => field.remove());
-                            }
-                            fields.querySelectorAll('[id], [name], [for]').forEach(field => {
-                                for (const attribute of ['id', 'name', 'for']) {
-                                    if (field.hasAttribute(attribute)) {
-                                        field.setAttribute(attribute, field.getAttribute(attribute).replace('__kind__', option.value));
-                                    }
-                                }
-                            });
-
-                            const firstInput = fields.querySelector('input');
-                            document.getElementById('new-school-authorizations').append(fields);
-                            option.remove();
-                            select.value = '';
-                            firstInput.focus();
-                        });
-                    </script>
-                @endpush
             @endif
         </div>
     </details>
 @endif
+
+@push('scripts')
+    <script>
+        (() => {
+            const state = document.getElementById('state');
+            const updateAccreditationEndDates = (root) => {
+                const permanent = state ? state.value === 'MT' : @js($matoGrosso);
+                root.querySelectorAll('[data-accreditation-end-date]').forEach(field => {
+                    field.hidden = permanent;
+                    field.querySelector('input').disabled = permanent;
+                });
+            };
+            state?.addEventListener('change', () => updateAccreditationEndDates(document));
+            updateAccreditationEndDates(document);
+
+            document.getElementById('add-school-authorization')?.addEventListener('click', () => {
+                const select = document.getElementById('new-school-authorization-kind');
+                const option = select.selectedOptions[0];
+                if (!option?.value) {
+                    select.focus();
+                    return;
+                }
+
+                const fields = document.getElementById('school-authorization-template').content.cloneNode(true);
+                fields.querySelector('h3').textContent = option.textContent;
+                fields.querySelector('legend').textContent = option.textContent;
+                if (!option.hasAttribute('data-authorization-renewal')) {
+                    fields.querySelectorAll('[data-authorization-renewal]').forEach(field => field.remove());
+                }
+                if (option.value === 'accreditation') {
+                    fields.querySelector('[data-authorization-end-date]').setAttribute('data-accreditation-end-date', '');
+                    updateAccreditationEndDates(fields);
+                }
+                fields.querySelectorAll('[id], [name], [for]').forEach(field => {
+                    for (const attribute of ['id', 'name', 'for']) {
+                        if (field.hasAttribute(attribute)) {
+                            field.setAttribute(attribute, field.getAttribute(attribute).replace('__kind__', option.value));
+                        }
+                    }
+                });
+
+                const firstInput = fields.querySelector('input');
+                document.getElementById('new-school-authorizations').append(fields);
+                option.remove();
+                select.value = '';
+                firstInput.focus();
+            });
+        })();
+    </script>
+@endpush
