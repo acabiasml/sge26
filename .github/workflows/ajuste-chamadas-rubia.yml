@@ -1,0 +1,31 @@
+name: Conferência protegida das chamadas do 9º ano
+on:
+  push:
+    branches: [codex/ajuste-chamadas-rubia]
+    paths: [.github/workflows/ajuste-chamadas-rubia.yml, scripts/rubia-9ano*]
+permissions:
+  contents: write
+concurrency:
+  group: ajuste-chamadas-rubia
+  cancel-in-progress: false
+jobs:
+  conferir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - run: python -m pip install 'paramiko==3.5.1'
+      - name: Executar a operação delimitada e cifrar o relatório
+        env:
+          HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}
+          HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
+        run: python scripts/rubia-9ano.py
+      - name: Guardar somente o relatório criptografado
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          blob=$(git hash-object -w rubia-9ano.encrypted.json)
+          tree=$(printf '100644 blob %s\treport.json\n' "$blob" | git mktree)
+          commit=$(printf 'relatório privado das chamadas\n' | git commit-tree "$tree")
+          git push origin "$commit:refs/heads/consulta-rubia-9ano-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"

@@ -1,0 +1,57 @@
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+use App\Models\AcademicCourse;
+use App\Models\AcademicPeriodDiaryConsolidation;
+use App\Models\DiaryAttendanceRecord;
+use App\Models\DiaryPeriodConfirmation;
+use App\Models\School;
+use App\Models\SchoolClassComponent;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+DB::statement('SET TRANSACTION READ ONLY');
+DB::beginTransaction();
+try {
+    $school = School::query()->whereIn('cnpj', ['00.176.974/0001-20', '00176974000120'])->sole();
+    $assignments = SchoolClassComponent::query()->with('teacher', 'schoolClass.academicYear', 'component.course')
+        ->whereHas('schoolClass.academicYear', fn ($query) => $query->where('reference_year', 2026)->where('school_id', $school->id))
+        ->whereHas('component.course', fn ($query) => $query->where('stage', AcademicCourse::STAGE_ELEMENTARY))
+        ->get()->filter(fn ($assignment) => preg_match('/\brubia\b/', Str::lower(Str::ascii($assignment->teacher?->full_name ?? ''))));
+
+    $result = [];
+    foreach ($assignments as $assignment) {
+        $class = $assignment->schoolClass;
+        $component = $assignment->component;
+        $records = DiaryAttendanceRecord::query()->where('school_class_id', $class->id)
+            ->where('curriculum_component_id', $component->id)->with('entries', 'period')->orderBy('class_date')->get();
+        $confirmed = DiaryPeriodConfirmation::where('school_class_id', $class->id)
+            ->where('curriculum_component_id', $component->id)->where('confirmed', true)->pluck('academic_period_id')->all();
+        $consolidated = AcademicPeriodDiaryConsolidation::whereIn('academic_period_id', $records->pluck('academic_period_id'))
+            ->where('consolidated', true)->pluck('academic_period_id')->all();
+        $result[] = [
+            'assignment_id' => $assignment->id, 'teacher_id' => $assignment->teacher_person_id, 'teacher' => $assignment->teacher->full_name,
+            'class_id' => $class->id, 'class' => $class->name, 'year_id' => $class->academic_year_id, 'year_closed' => $class->academicYear->isClosed(),
+            'course' => $component->course->name, 'component_id' => $component->id, 'component' => $component->name,
+            'total_by_lesson_count' => $records->countBy('lesson_count'), 'confirmed_period_ids' => $confirmed,
+            'consolidated_period_ids' => $consolidated,
+            'doubles' => $records->where('lesson_count', 2)->values()->map(fn ($record) => [
+                'record_id' => $record->id, 'date' => $record->class_date->toDateString(),
+                'teacher_id' => $record->teacher_person_id, 'period_id' => $record->academic_period_id,
+                'source' => $record->legacy_source, 'unrecorded' => count($record->legacy_metadata['unrecorded_enrollment_ids'] ?? []),
+                'entry_count' => $record->entries->count(),
+                'buckets' => $record->entries->countBy(fn ($entry) => $entry->status.':'.$entry->attended_lessons),
+                'inconsistent' => $record->entries->filter(fn ($entry) => ! is_array($entry->lesson_presence)
+                    || count($entry->lesson_presence) !== 2 || count(array_filter($entry->lesson_presence)) !== $entry->attended_lessons)->count(),
+                'digest' => hash('sha256', json_encode([
+                    $record->id, $record->class_date->toDateString(), $record->lesson_count, $record->teacher_person_id, $record->academic_period_id,
+                    $record->entries->sortBy('id')->map->only(['id', 'student_enrollment_id', 'status', 'attended_lessons', 'lesson_presence'])->values()->all(),
+                ], JSON_THROW_ON_ERROR)),
+            ]),
+        ];
+    }
+    echo json_encode($result, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally {
+    DB::rollBack();
+}
