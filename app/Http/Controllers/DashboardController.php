@@ -16,6 +16,7 @@ use App\Support\TeacherLastAccessOverview;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
@@ -29,9 +30,17 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function __invoke(Request $request): View
+    public function __invoke(Request $request): View|RedirectResponse
     {
         $user = $request->user();
+        $canManagePeople = $user->canManagePeople();
+        if ($canManagePeople) {
+            $query = TeacherLastAccessOverview::canonicalQuery($request->query());
+            if ($query !== $request->query()) {
+                return redirect()->route('dashboard', $query);
+            }
+        }
+
         $today = now('America/Sao_Paulo');
         $birthdayWeekStartsAt = $today->copy()->startOfWeek(CarbonInterface::SUNDAY);
         $birthdayWeekEndsAt = $today->copy()->endOfWeek(CarbonInterface::SATURDAY);
@@ -40,7 +49,6 @@ class DashboardController extends Controller
         $calendarSchoolIds = $user->isAdministrator()
             ? null
             : ($user->isManager() ? $manageableSchoolIds : $visibleSchoolIds);
-        $canManagePeople = $user->canManagePeople();
         $teacherOverview = $user->currentView() === PersonSchoolRole::ROLE_TEACHER
             ? $this->teacherOverview($user)
             : null;

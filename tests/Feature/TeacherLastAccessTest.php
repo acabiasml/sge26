@@ -87,7 +87,7 @@ class TeacherLastAccessTest extends TestCase
         $this->assertSame(1, $overview['summary']['total']);
         $this->assertSame(['Escola Visível'], $overview['teachers']->first()['schools']->all());
         $response->assertSee('Docente Compartilhada')->assertDontSee('Docente Restrita')->assertDontSee('Docente Inativa');
-        $this->get(route('dashboard', ['teacher_access_school' => $other->id]))->assertForbidden();
+        $this->get(route('dashboard', ['escola' => $other->id]))->assertForbidden();
     }
 
     public function test_seven_day_boundary_unknown_access_and_multiple_accounts_are_classified_correctly(): void
@@ -111,7 +111,7 @@ class TeacherLastAccessTest extends TestCase
         $this->assertFalse($overview['teachers'][3]['has_account']);
         $this->assertTrue($overview['teachers'][4]['last_access_at']->equalTo(now()->subDay()));
         $response->assertSee('Sem conta')->assertSee('Último acesso (MT)')->assertSee('Mais de 7 dias');
-        $this->get(route('dashboard', ['teacher_access_status' => 'overdue']))->assertOk()
+        $this->get(route('dashboard', ['acesso' => 'overdue']))->assertOk()
             ->assertViewHas('teacherLastAccess', fn ($access) => $access['teachers']->total() === 1 && $access['teachers']->first()['person']->id === $overdue->person_id);
     }
 
@@ -124,18 +124,40 @@ class TeacherLastAccessTest extends TestCase
             $this->account(sprintf('Docente %02d', $number), PersonSchoolRole::ROLE_TEACHER, $school);
         }
         $this->account('Outro docente', PersonSchoolRole::ROLE_TEACHER, $other);
-        $response = $this->actingAs($admin)->get(route('dashboard', ['teacher_access_school' => $school->id]))->assertOk();
+        $response = $this->actingAs($admin)->get(route('dashboard', ['escola' => $school->id]))->assertOk();
         $teachers = $response->viewData('teacherLastAccess')['teachers'];
         $this->assertSame(12, $teachers->total());
         $this->assertCount(10, $teachers);
         $this->assertSame('Docente 01', $teachers->first()['person']->full_name);
         $response->assertSee('sge-teacher-access mb-4"  open', false);
-        $this->get(route('dashboard', ['teacher_access_school' => $school->id, 'teacher_access_page' => 2]))->assertOk()
+        $this->get(route('dashboard', ['escola' => $school->id, 'teacher_access_page' => 2]))->assertOk()
             ->assertViewHas('teacherLastAccess', fn ($access) => $access['teachers']->count() === 2 && $access['teachers']->first()['person']->full_name === 'Docente 11');
-        $this->get(route('dashboard', ['teacher_access_search' => 'Outro']))->assertOk()
+        $this->get(route('dashboard', ['docente' => 'Outro']))->assertOk()
             ->assertViewHas('teacherLastAccess', fn ($access) => $access['teachers']->total() === 1);
         $this->get(route('dashboard'))->assertOk()
             ->assertViewHas('teacherLastAccess', fn ($access) => $access['summary']['total'] === 13);
+    }
+
+    public function test_legacy_teacher_access_links_redirect_to_short_filters_and_omit_empty_values(): void
+    {
+        $school = School::create(['name' => 'Escola A']);
+        $manager = $this->account('Gestora', PersonSchoolRole::ROLE_MANAGER, $school);
+        $this->actingAs($manager)->get(route('dashboard', ['f' => [
+            'teacher_access_search' => '', 'teacher_access_school' => '', 'teacher_access_status' => '',
+        ]]))->assertRedirect(route('dashboard'));
+
+        $this->get(route('dashboard', ['calendar_month' => '2026-11', 'f' => [
+            'teacher_access_search' => 'Ana', 'teacher_access_school' => '', 'teacher_access_status' => 'all',
+        ]]))->assertRedirect(route('dashboard', ['calendar_month' => '2026-11', 'docente' => 'Ana']));
+
+        $this->get(route('dashboard', ['teacher_access_school' => $school->id, 'teacher_access_status' => 'recent']))
+            ->assertRedirect(route('dashboard', ['escola' => $school->id, 'acesso' => 'recent']));
+        $this->get(route('dashboard', ['docente' => '', 'escola' => '', 'acesso' => 'all']))
+            ->assertRedirect(route('dashboard'));
+
+        $listing = Livewire::withQueryParams(['docente' => 'Ana'])->test(ScreenListing::class, ['screen' => 'teacher-access'])
+            ->assertSet('filters.docente', 'Ana')->assertSet('filters.escola', '')->assertSet('filters.acesso', '');
+        $listing->assertSee('filters.docente', false)->call('clearFilters')->assertSet('filters.docente', '');
     }
 
     public function test_teacher_employee_and_student_views_cannot_access_management_panel(): void
@@ -170,12 +192,12 @@ class TeacherLastAccessTest extends TestCase
             ->assertSee('teacher_access_page', false)
             ->call('gotoPage', 2, 'teacher_access_page')
             ->assertSee('Docente 11')->assertDontSee('Docente 01')
-            ->set('filters.teacher_access_search', 'Docente 04')
+            ->set('filters.docente', 'Docente 04')
             ->assertSet('paginators.teacher_access_page', 1)
             ->assertSee('Docente 04')->assertDontSee('Docente 11')
             ->call('clearFilters')->assertSee('Docente 01')
             ->assertDontSee('Docente de outra escola')
-            ->set('filters.teacher_access_school', (string) $other->id)->assertForbidden();
+            ->set('filters.escola', (string) $other->id)->assertForbidden();
     }
 
     public function test_italian_dashboard_translates_the_panel(): void

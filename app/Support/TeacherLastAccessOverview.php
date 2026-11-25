@@ -12,6 +12,35 @@ use Illuminate\Http\Request;
 
 final class TeacherLastAccessOverview
 {
+    public static function canonicalQuery(array $query): array
+    {
+        $legacy = is_array($query['f'] ?? null) ? $query['f'] : [];
+        $previous = array_replace($query, $legacy);
+        $aliases = [
+            'teacher_access_search' => 'docente',
+            'teacher_access_school' => 'escola',
+            'teacher_access_status' => 'acesso',
+        ];
+        foreach ($aliases as $original => $alias) {
+            $value = array_key_exists($alias, $query) ? $query[$alias] : ($previous[$original] ?? null);
+            unset($query[$original], $legacy[$original]);
+            if ($value === null || $value === '' || ($alias === 'acesso' && $value === 'all')) {
+                unset($query[$alias]);
+            } else {
+                $query[$alias] = $value;
+            }
+        }
+        if (is_array($query['f'] ?? null)) {
+            if ($legacy === []) {
+                unset($query['f']);
+            } else {
+                $query['f'] = $legacy;
+            }
+        }
+
+        return $query;
+    }
+
     public function build(User $viewer, Request $request): ?array
     {
         abort_unless($viewer->canManagePeople(), 403);
@@ -21,19 +50,19 @@ final class TeacherLastAccessOverview
         }
 
         $filters = $request->validate([
-            'teacher_access_search' => ['nullable', 'string', 'max:120'],
-            'teacher_access_school' => ['nullable', 'integer'],
-            'teacher_access_status' => ['nullable', 'in:all,recent,overdue,missing'],
+            'docente' => ['nullable', 'string', 'max:120'],
+            'escola' => ['nullable', 'integer'],
+            'acesso' => ['nullable', 'in:all,recent,overdue,missing'],
             'teacher_access_page' => ['nullable', 'integer', 'min:1'],
         ]);
         $schools = School::query()->where('active', true)
             ->when(! $viewer->isAdministrator(), fn (Builder $query) => $query->whereIn('id', $viewer->manageableSchoolIds()))
             ->orderBy('name')->get(['id', 'name']);
-        $schoolId = ! empty($filters['teacher_access_school']) ? (int) $filters['teacher_access_school'] : null;
+        $schoolId = ! empty($filters['escola']) ? (int) $filters['escola'] : null;
         abort_if($schoolId !== null && ! $schools->contains('id', $schoolId), 403);
         $schoolIds = $schoolId !== null ? [$schoolId] : $schools->modelKeys();
-        $search = trim($filters['teacher_access_search'] ?? '');
-        $status = $filters['teacher_access_status'] ?? 'all';
+        $search = trim($filters['docente'] ?? '');
+        $status = $filters['acesso'] ?? 'all';
         $cutoff = CarbonImmutable::now()->subDays(7);
         $roles = fn (Builder $query): Builder => $query->where('role', PersonSchoolRole::ROLE_TEACHER)
             ->whereIn('school_id', $schoolIds)->where('active', true)
