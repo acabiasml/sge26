@@ -15,13 +15,19 @@
         @foreach ($fields as $field => $caption)
             @php
                 $renewal = str_starts_with($field, 'renewal_');
+                $accreditationEnd = $field === 'ends_on' && $kind === 'accreditation';
+                $hideEnd = $accreditationEnd && $matoGrosso;
                 $fieldKey = "document_authorizations.$kind.$field";
                 $id = "authorization-$kind-$field";
             @endphp
             @continue($renewal && ! $supportsRenewal)
-            <div @if($renewal) data-authorization-renewal @endif class="form-group {{ in_array($field, ['act', 'source_url'], true) ? 'col-12 col-lg-6' : 'col-12 col-md-4 col-lg-2' }}">
+            @if($hideEnd)
+                @error($fieldKey)<div class="col-12 text-danger small mb-2">{{ $message }}</div>@enderror
+            @endif
+            <div @if($renewal) data-authorization-renewal @endif @if($field === 'ends_on') data-authorization-end-date @endif
+                @if($accreditationEnd) data-accreditation-end-date @endif @if($hideEnd) hidden @endif class="form-group {{ in_array($field, ['act', 'source_url'], true) ? 'col-12 col-lg-6' : 'col-12 col-md-4 col-lg-2' }}">
                 <label for="{{ $id }}">{{ $caption }}</label>
-                <input id="{{ $id }}" name="document_authorizations[{{ $kind }}][{{ $field }}]" type="{{ match($field) { 'act', 'renewal_protocol' => 'text', 'source_url' => 'url', default => 'date' } }}" maxlength="350" class="form-control @error($fieldKey) is-invalid @enderror" value="{{ old($fieldKey, $act[$field] ?? '') }}">
+                <input id="{{ $id }}" name="document_authorizations[{{ $kind }}][{{ $field }}]" type="{{ match($field) { 'act', 'renewal_protocol' => 'text', 'source_url' => 'url', default => 'date' } }}" maxlength="350" @disabled($hideEnd) class="form-control @error($fieldKey) is-invalid @enderror" value="{{ old($fieldKey, $act[$field] ?? '') }}">
                 @error($fieldKey)<div class="invalid-feedback">{{ $message }}</div>@enderror
                 @if($field === 'source_url' && str_starts_with($act['source_url'] ?? '', 'https://'))
                     <a class="small" href="{{ $act['source_url'] }}" target="_blank" rel="noopener">{{ __('Abrir publicação') }}</a>

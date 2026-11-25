@@ -149,6 +149,39 @@ class SchoolLetterheadStageTest extends TestCase
             ->assertSee('name="document_authorizations[fundamental_eja][act]"', false);
     }
 
+    public function test_mato_grosso_accreditation_cannot_receive_an_end_date(): void
+    {
+        $accreditation = ['act' => 'Portaria de credenciamento', 'published_on' => '2020-01-01', 'starts_on' => '2020-01-01'];
+        $authorization = ['act' => 'Autorização de etapa', 'published_on' => '2024-01-01',
+            'starts_on' => '2024-01-01', 'ends_on' => '2027-12-31'];
+        $school = School::create($this->schoolData() + [
+            'document_authorizations' => ['accreditation' => $accreditation, 'medio_regular' => $authorization],
+        ]);
+        $this->actingAs($this->user(PersonSchoolRole::ROLE_MANAGER, $school));
+
+        $edit = route('schools.edit', $school);
+        $this->get($edit)->assertOk()
+            ->assertSee('Prazo indeterminado')
+            ->assertSee('name="document_authorizations[accreditation][ends_on]" type="date" maxlength="350" disabled', false)
+            ->assertSee('name="document_authorizations[medio_regular][ends_on]" type="date" maxlength="350"  class=', false);
+
+        $forged = ['accreditation' => $accreditation + ['ends_on' => '2030-01-01'], 'medio_regular' => $authorization];
+        $update = route('schools.update', $school);
+        $authorizationUpdate = route('schools.document-authorizations.update', $school);
+        $this->from($edit)->put($update, $this->schoolData() + ['document_authorizations' => $forged])
+            ->assertSessionHasErrors('document_authorizations.accreditation.ends_on');
+        $this->put($authorizationUpdate, ['state' => 'SP', 'document_authorizations' => $forged])
+            ->assertSessionHasErrors('document_authorizations.accreditation.ends_on');
+        $this->assertArrayNotHasKey('ends_on', $school->fresh()->document_authorizations['accreditation']);
+
+        $this->put($update, $this->schoolData() + ['document_authorizations' => $school->document_authorizations])
+            ->assertSessionHasNoErrors();
+        $this->assertSame($authorization, $school->fresh()->document_authorizations['medio_regular']);
+        $this->put($update, array_replace($this->schoolData(), ['state' => 'SP', 'document_authorizations' => $forged]))
+            ->assertSessionHasNoErrors();
+        $this->assertSame('2030-01-01', $school->fresh()->document_authorizations['accreditation']['ends_on']);
+    }
+
     public function test_published_acts_fill_empty_offerings_by_cnpj_and_preserve_existing_data(): void
     {
         $existing = ['act' => 'Credenciamento já registrado', 'published_on' => '2021-01-01', 'starts_on' => '2021-01-01'];
