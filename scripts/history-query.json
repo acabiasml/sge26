@@ -5,5 +5,15 @@
   "school_id": 2,
   "reference_year": 2024,
   "all_school_classes": true,
-  "transport_key_id": "0515dea2270fb51eca19e59ed0dae553"
+  "transport_key_id": "0515dea2270fb51eca19e59ed0dae553",
+  "legacy_attendance_only": true,
+  "component_ids": [
+    232,
+    233,
+    241,
+    242,
+    250,
+    260,
+    264
+  ]
 }
