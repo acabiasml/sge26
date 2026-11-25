@@ -73,7 +73,12 @@ class ClassAcademicDocumentsController extends Controller
                 $scope['period'],
             );
 
-            return ['enrollment' => $enrollment, 'attendance' => $report['attendance'], 'matrices' => $report['matrices']];
+            return [
+                'enrollment' => $enrollment,
+                'attendance' => $report['attendance'],
+                'matrices' => $report['matrices'],
+                'letterhead' => PdfLetterhead::forEnrollment($enrollment),
+            ];
         })->values();
 
         $issuedDocument = IssuedDocument::query()->create([
@@ -99,7 +104,6 @@ class ClassAcademicDocumentsController extends Controller
             'certificates' => $certificates,
             'scope' => $scope,
             'issuedDocument' => $issuedDocument,
-            'letterhead' => PdfLetterhead::forClass($class),
         ])->setPaper('a4', 'portrait');
 
         return PdfMetadata::stream($pdf, 'beaba-atestados-frequencia-turma-'.$class->id.'-'.$scope['filename'].'-'.now()->format('Ymd-His').'.pdf');
@@ -126,9 +130,12 @@ class ClassAcademicDocumentsController extends Controller
             return $this->blocked($message);
         }
 
-        $reports = $enrollments
-            ->map(fn (StudentEnrollment $enrollment): array => $builder->build($enrollment))
-            ->values();
+        $reports = $enrollments->map(function (StudentEnrollment $enrollment) use ($builder, $academicYear): array {
+            $report = $builder->build($enrollment);
+            $report['letterhead'] = PdfLetterhead::forCourses($academicYear->school, $report['courses'], $academicYear->reference_year);
+
+            return $report;
+        })->values();
 
         if ($reports->every(fn (array $report): bool => $report['annualComponents']->isEmpty())) {
             return $this->blocked(__('Não foi possível emitir os boletins: as matrículas ativas da turma não possuem componentes curriculares vinculados.'));
@@ -148,7 +155,6 @@ class ClassAcademicDocumentsController extends Controller
             'scoreView' => $scoreView,
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
-            'letterhead' => PdfLetterhead::forClass($class),
         ])->setPaper('a4', 'portrait');
 
         return PdfMetadata::stream($pdf, 'beaba-boletins-turma-'.$class->id.'-'.now()->format('Ymd-His').'.pdf');

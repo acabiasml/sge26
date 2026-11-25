@@ -76,14 +76,14 @@ class AcademicYearFinalResultsPdfController extends Controller
             'rows_count' => $rowsCount,
         ];
         $stages = $courses->pluck('stage')->all();
-        $render = function (IssuedDocument $document) use ($academicYear, $classes, $rowsCount, $stages, $official, $preview) {
+        $render = function (IssuedDocument $document) use ($academicYear, $classes, $rowsCount, $stages, $authorization, $official, $preview) {
             $pdf = Pdf::loadView('reports.academic-year-final-results', [
                 'academicYear' => $academicYear,
                 'classes' => $classes,
                 'rowsCount' => $rowsCount,
                 'issuedDocument' => $document,
                 'verificationUrl' => $preview ? null : route('documents.verify', $document->verification_code),
-                'letterhead' => PdfLetterhead::make($academicYear->school, $stages),
+                'letterhead' => PdfLetterhead::make($academicYear->school, $stages, $authorization),
                 'official' => $official,
                 'isDraft' => $preview,
             ])->setPaper('a4', 'landscape');

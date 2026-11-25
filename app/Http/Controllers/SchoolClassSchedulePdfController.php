@@ -117,7 +117,7 @@ class SchoolClassSchedulePdfController extends Controller
             'classes' => $classes,
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
-            'letterhead' => PdfLetterhead::make($academicYear->school, $classes->flatMap->courses->pluck('stage')->all()),
+            'letterhead' => PdfLetterhead::forCourses($academicYear->school, $classes->flatMap->courses->unique('id'), $academicYear->reference_year),
             'weekdays' => $this->weekdays($academicYear),
         ])->setPaper('a4', 'landscape');
 

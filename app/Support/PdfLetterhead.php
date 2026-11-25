@@ -30,32 +30,49 @@ class PdfLetterhead
      *     footer_lines: array<int, string>
      * }
      */
-    public static function make(?School $school = null, string|array|null $educationStages = null): array
+    public static function make(?School $school = null, string|array|null $educationStages = null, ?array $authorization = null): array
     {
+        $stages = (array) $educationStages;
+        if ($school) {
+            $authorization ??= OfficialDocumentCompliance::authorizationDetails($school, $stages);
+        }
+
         return [
             'school' => $school,
             'maintainer_logo' => self::imageDataUri('brand/centro-tecnico-juvenil-de-jarudore.png'),
             'school_logo' => self::imageDataUri($school?->logo_path),
-            'lines' => $school ? self::schoolLines($school, (array) $educationStages) : self::maintainerLines(),
-            'renewal_notices' => $school && $educationStages
-                ? OfficialDocumentCompliance::authorizationDetails($school, (array) $educationStages)['renewal_notices'] : [],
+            'lines' => $school ? self::schoolLines($school, $stages, $authorization['acts']) : self::maintainerLines(),
+            'renewal_notices' => $authorization['renewal_notices'] ?? [],
             'footer_lines' => $school ? self::schoolFooterLines($school) : self::maintainerFooterLines(),
         ];
+    }
+
+    public static function forCourses(?School $school, iterable $courses, ?int $referenceYear): array
+    {
+        $courses = collect($courses);
+
+        return self::make(
+            $school,
+            $courses->pluck('stage')->all(),
+            $school ? OfficialDocumentCompliance::courseAuthorizationDetails($school, $courses, $referenceYear) : null,
+        );
     }
 
     public static function forEnrollment(StudentEnrollment $enrollment): array
     {
         $enrollment->loadMissing(['courses', 'schoolClass.academicYear.school', 'schoolClass.courses']);
-        $courses = $enrollment->courses->isNotEmpty() ? $enrollment->courses : $enrollment->schoolClass?->courses;
+        $year = $enrollment->schoolClass?->academicYear;
+        $courses = $enrollment->courses->isNotEmpty() ? $enrollment->courses : ($enrollment->schoolClass?->courses ?? []);
 
-        return self::make($enrollment->schoolClass?->academicYear?->school, $courses?->pluck('stage')->all());
+        return self::forCourses($year?->school, $courses, $year?->reference_year);
     }
 
     public static function forClass(SchoolClass $class): array
     {
         $class->loadMissing(['academicYear.school', 'courses']);
+        $year = $class->academicYear;
 
-        return self::make($class->academicYear?->school, $class->courses->pluck('stage')->all());
+        return self::forCourses($year?->school, $class->courses, $year?->reference_year);
     }
 
     /**
@@ -73,14 +90,14 @@ class PdfLetterhead
     /**
      * @return array<int, string>
      */
-    private static function schoolLines(School $school, array $educationStages): array
+    private static function schoolLines(School $school, array $educationStages, array $currentActs): array
     {
         return collect([
             mb_strtoupper($school->maintainer ?: self::MAINTAINER_NAME),
             self::MAINTAINER_CERTIFICATION,
             mb_strtoupper($school->name),
             self::schoolRegistryLine($school),
-            ...$school->letterheadTextsForStages($educationStages),
+            ...$school->letterheadTextsForStages($educationStages, $currentActs),
         ])->filter(fn (?string $line): bool => filled($line))->values()->all();
     }
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { size: A4 portrait; margin: 150px 24px 96px; }
+        @page { size: A4 portrait; margin: 24px 24px 96px; }
         body { font-family: 'Atkinson Hyperlegible Next', DejaVu Sans, sans-serif; color: #2f241f; font-size: 11.2px; line-height: 1.42; }
         @include('reports.partials.letterhead-styles')
         .certificate-text { font-size: 12px; text-align: justify; margin: 18px 0; }
@@ -33,7 +33,7 @@
         $courses = $enrollment->courses->pluck('name')->join(' + ') ?: '-';
         $stages = \App\Support\AcademicContextLabel::stages($enrollment->courses);
     @endphp
-    @include('reports.partials.letterhead', ['title' => 'Atestado de frequência', 'letterhead' => $letterhead, 'issuedDocument' => $issuedDocument])
+    @include('reports.partials.letterhead', ['title' => 'Atestado de frequência', 'letterhead' => $certificate['letterhead'], 'issuedDocument' => $issuedDocument, 'repeatOnEveryPage' => false])
     <p class="certificate-text">Atestamos, para os devidos fins, que <strong>{{ $student?->full_name }}</strong>, CPF {{ $student?->cpf ?: '-' }}, filho(a) de {{ $student?->mother_name ?: '-' }}, encontra-se matriculado(a) nesta instituição no ano letivo <strong>{{ $academicYear->referenceYearsLabel() }}</strong>, na turma <strong>{{ $class->name }}</strong>, etapa <strong>{{ $stages }}</strong>, vinculada à(s) matriz(es) <strong>{{ $courses }}</strong>.</p>
     <p class="certificate-text">No recorte <strong>{{ $scope['label'] }}</strong>, de <strong>{{ $scope['starts_at']->format('d/m/Y') }}</strong> a <strong>{{ $scope['ends_at']->format('d/m/Y') }}</strong>, @if($percentage) constam {{ $attendance['lessons'] }} aula(s), {{ $attendance['effective_attended'] }} presença(s) consideradas, {{ $attendance['absent'] }} falta(s), sendo {{ $attendance['justified'] }} justificada(s), correspondendo a <strong>{{ $percentage }}</strong> de frequência. @else ainda não há lançamentos suficientes para o cálculo percentual. @endif</p>
     <table class="summary">
@@ -46,7 +46,7 @@
     @forelse($certificate['matrices'] as $matrix)<tr><td>{{ $matrix['course']->name }}</td><td>{{ $matrix['stage'] }}</td><td>{{ $matrix['attendance']['lessons'] }}</td><td>{{ $matrix['attendance']['effective_attended'] }}</td><td>{{ $matrix['attendance']['absent'] }}</td><td>{{ $matrix['attendance']['percentage'] !== null ? number_format((float)$matrix['attendance']['percentage'], 1, ',', '.').'%' : '-' }}</td></tr>@empty<tr><td colspan="6">Nenhuma matriz vinculada.</td></tr>@endforelse
     </tbody></table>
     <table class="signature"><tr>@include('reports.partials.signature-staff', ['school' => $academicYear->school, 'signatureType' => 'secretarial', 'signatureLineClass' => 'line', 'signatureDate' => $issuedDocument->issued_at ?? now()])</tr></table>
-    @include('reports.partials.document-footer', ['issuedDocument' => $issuedDocument])
     @unless($loop->last)<div class="page-break"></div>@endunless
 @endforeach
+@include('reports.partials.document-footer', ['issuedDocument' => $issuedDocument, 'letterhead' => $certificates->first()['letterhead']])
 </body></html>

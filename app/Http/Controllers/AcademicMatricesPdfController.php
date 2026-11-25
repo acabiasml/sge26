@@ -44,7 +44,7 @@ class AcademicMatricesPdfController extends Controller
             'matrixGroups' => $this->matrixGroups($courses),
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
-            'letterhead' => PdfLetterhead::make($academicYear->school, $courses->pluck('stage')->all()),
+            'letterhead' => PdfLetterhead::forCourses($academicYear->school, $courses, $academicYear->reference_year),
             'directorName' => $this->directorName($academicYear, $signatureDate),
             'signatureDate' => $signatureDate,
         ])->setPaper('a4', 'portrait');

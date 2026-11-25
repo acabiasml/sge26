@@ -212,10 +212,10 @@ class StudentEnrollmentCertificateController extends Controller
             'title' => $title, 'enrollment_id' => $enrollment->id, 'course_id' => $course->id, 'modality' => $scope,
             'student' => ['full_name' => $enrollment->student->full_name],
         ];
-        $render = function (IssuedDocument $document) use ($year, $class, $enrollment, $course, $title) {
+        $render = function (IssuedDocument $document) use ($year, $class, $enrollment, $course, $title, $authorization) {
             $pdf = Pdf::loadView('reports.certificates.declaration', [
                 'academicYear' => $year, 'class' => $class, 'enrollment' => $enrollment,
-                'issuedDocument' => $document, 'letterhead' => PdfLetterhead::make($year->school, AcademicCourse::STAGE_HIGH_SCHOOL),
+                'issuedDocument' => $document, 'letterhead' => PdfLetterhead::make($year->school, AcademicCourse::STAGE_HIGH_SCHOOL, $authorization),
                 'title' => $title, 'statement' => 'Certificamos a conclusão do Ensino Médio, modalidade '.$course->modalityLabel().', com resultado final aprovado, nos termos do art. 24, VII, da Lei nº 9.394/1996.',
             ])->setPaper('a4', 'portrait');
 
