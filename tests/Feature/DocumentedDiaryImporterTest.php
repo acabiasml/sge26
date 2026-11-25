@@ -71,6 +71,47 @@ class DocumentedDiaryImporterTest extends TestCase
         $this->assertSame(0, $verified['diaries'][0]['stats']['calls_to_create']);
     }
 
+    public function test_attendance_only_applies_the_confirmed_transfer_date_without_changing_contents(): void
+    {
+        [$manifest, $year, $course, $component, $classes] = $this->scenario();
+        $period = $year->periods()->firstOrFail();
+        $period->update(['ends_at' => '2026-02-05']);
+        $year->periods()->create(['name' => 'II Bimestre', 'position' => 2,
+            'starts_at' => '2026-02-06', 'ends_at' => '2026-08-31']);
+        $from = $classes[0]->enrollments()->firstOrFail();
+        $next = $classes[1]->enrollments()->firstOrFail();
+        $from->update(['status' => 'transferido']);
+        $next->update(['person_id' => $from->person_id, 'enrolled_at' => '2026-02-12']);
+        $content = DiaryContent::create(['school_class_id' => $classes[0]->id, 'curriculum_component_id' => $component->id,
+            'academic_period_id' => $period->id, 'class_date' => '2026-02-05', 'content' => 'Conteúdo existente.']);
+        $manifest['attendance_only'] = true;
+        $manifest['max_daily_minutes'] = 480;
+        $manifest['transfer_date_corrections'] = [['enrollment_id' => $from->id, 'next_enrollment_id' => $next->id, 'ends_on' => '2026-02-05']];
+        foreach ($manifest['diaries'] as &$diary) {
+            $diary['sessions'] = array_map(fn (array $session): array => array_diff_key($session, ['content' => true]), $diary['sessions']);
+        }
+        unset($diary);
+
+        $service = app(DocumentedDiaryImporter::class);
+        $plan = $service->reconcile($manifest);
+        $this->assertNull($from->fresh()->transferred_at);
+        $this->assertTrue($plan['transfers'][0]['pending']);
+        $this->assertSame(240, $plan['daily_load']['maximum_minutes']);
+        $applied = $service->reconcile($manifest, true, $plan['snapshot_sha256']);
+        Storage::disk('local')->assertExists($applied['backup_path']);
+        $this->assertSame('2026-02-05', $from->fresh()->transferred_at->toDateString());
+        $this->assertSame('2026-02-12', $next->fresh()->enrolled_at->toDateString());
+        $this->assertDatabaseCount('diary_attendance_records', 4);
+        $this->assertDatabaseCount('diary_attendance_entries', 2);
+        $this->assertDatabaseCount('diary_contents', 1);
+        $this->assertSame('Conteúdo existente.', $content->fresh()->content);
+        $this->assertSame($manifest['source_sha256'], DiaryAttendanceRecord::firstOrFail()->legacy_metadata['source_sha256']);
+
+        $verification = $service->reconcile($manifest);
+        $this->assertFalse($verification['transfers'][0]['pending']);
+        $this->assertTrue($service->reconcile($manifest, true, $verification['snapshot_sha256'])['idempotent']);
+    }
+
     public function test_workload_correction_cannot_touch_a_component_outside_the_batch(): void
     {
         [$manifest, , $course] = $this->scenario();

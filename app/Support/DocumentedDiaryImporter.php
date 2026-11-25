@@ -28,11 +28,25 @@ final class DocumentedDiaryImporter
             $diaries = $manifest['diaries'] ?? [];
             $this->check(is_array($diaries) && count($diaries) >= 1 && count($diaries) <= 20
                 && count(array_unique(array_column($diaries, 'assignment_id'))) === count($diaries), 'Diários duplicados ou inválidos.');
+            $attendanceOnly = $manifest['attendance_only'] ?? false;
+            $this->check(is_bool($attendanceOnly) && (! $attendanceOnly || (
+                empty($manifest['replace_previous_import']) && empty($manifest['matrix_workloads'])
+                && isset($manifest['max_daily_minutes'])
+            )), 'A importação somente de frequência exige limite diário e não substitui outros registros.');
+            $transferDates = $manifest['transfer_date_corrections'] ?? [];
+            $this->check(is_array($transferDates) && ($attendanceOnly || $transferDates === []),
+                'As datas de transferência só podem acompanhar o lançamento exclusivo de frequência.');
+            $transfers = $this->transferCorrections($transferDates, $diaries, $apply);
             $matrixChanges = $this->matrixChanges($manifest, $diaries, $apply);
             $previous = $this->previousImport($manifest);
             $replacedRecords = collect();
             $replacedContents = collect();
             $snapshots = $plans = $results = [];
+            if ($transfers !== []) {
+                $snapshots[] = collect($transfers)->map(fn (array $change) => [
+                    $change['enrollment']->getAttributes(), $change['next']->getAttributes(),
+                ])->all();
+            }
             foreach ($diaries as $diary) {
                 $assignment = SchoolClassComponent::when($apply, fn ($q) => $q->lockForUpdate())
                     ->with(['schoolClass.academicYear.periods', 'schoolClass.academicYear.days',
@@ -56,6 +70,7 @@ final class DocumentedDiaryImporter
                 $snapshots[] = [$assignment->getAttributes(), $class->getAttributes(), $year->getAttributes(),
                     $course->getAttributes(), $component->getAttributes(), $year->periods->toArray(), $year->days->toArray(),
                     $class->enrollments->sortBy('id')->values()->toArray(), $records->toArray(), $contents->toArray(), $excluded->toArray()];
+                $this->projectTransferDates($class->enrollments, $transfers);
                 if ($previous) {
                     $oldDiary = collect($previous['diaries'])->firstWhere('assignment_id', $assignment->id);
                     $this->check($records->count() === count($oldDiary['sessions']) && $contents->count() === count($oldDiary['sessions'])
@@ -83,7 +98,8 @@ final class DocumentedDiaryImporter
                     $content = trim((string) ($session['content'] ?? ''));
                     $this->check(is_string($date) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
                         && CarbonImmutable::parse($date)->toDateString() === $date && $date <= now()->toDateString()
-                        && is_int($count) && $count > 0 && $count <= 12 && $content !== '', 'Data, quantidade ou conteúdo inválido.');
+                        && is_int($count) && $count > 0 && $count <= 12 && ($attendanceOnly ? $content === '' : $content !== ''),
+                        'Data, quantidade ou conteúdo inválido.');
                     $periods = $year->periods->filter(fn ($period) => $period->starts_at->toDateString() <= $date && $period->ends_at->toDateString() >= $date);
                     $this->check($periods->count() === 1, 'A data não corresponde a um único período letivo.');
                     $period = $periods->sole();
@@ -98,15 +114,15 @@ final class DocumentedDiaryImporter
                     $record = $previous ? null : $records->first(fn ($row) => $row->class_date->toDateString() === $date);
                     $storedContent = $previous ? null : $contents->first(fn ($row) => $row->class_date->toDateString() === $date);
                     $this->check(! $record || ($record->lesson_count === $count && $record->academic_period_id === $period->id), 'Uma chamada existente diverge do lançamento.');
-                    $this->check(! $storedContent || ($storedContent->academic_period_id === $period->id
+                    $this->check($attendanceOnly || ! $storedContent || ($storedContent->academic_period_id === $period->id
                         && (trim((string) $storedContent->content) === '' || trim($storedContent->content) === $content)), 'Um conteúdo existente diverge do lançamento.');
                     $eligible = $class->enrollments->filter(fn ($enrollment) => $enrollment->includesAttendanceDate(CarbonImmutable::parse($date)));
                     $this->check($eligible->count() === $eligible->unique('person_id')->count(), 'Há matrículas sobrepostas na data.');
                     $this->check(! $record || $record->entries->every(fn ($entry) => $eligible->contains('id', $entry->student_enrollment_id)
                         && $entry->status === DiaryAttendanceRecord::STATUS_PRESENT && $entry->attended_lessons === $count), 'Existem marcações divergentes ou fora do vínculo.');
                     $stats['calls_to_create'] += $record ? 0 : 1;
-                    $stats['contents_to_create'] += $storedContent ? 0 : 1;
-                    $stats['contents_to_fill'] += $storedContent && trim((string) $storedContent->content) === '' ? 1 : 0;
+                    $stats['contents_to_create'] += ! $attendanceOnly && ! $storedContent ? 1 : 0;
+                    $stats['contents_to_fill'] += ! $attendanceOnly && $storedContent && trim((string) $storedContent->content) === '' ? 1 : 0;
                     $stats['existing_entries_preserved'] += $record?->entries->count() ?? 0;
                     $stats['entries_to_create'] += $eligible->count() - ($record?->entries->count() ?? 0);
                     $stats['outside_enrollment'] += $class->enrollments->count() - $eligible->count();
@@ -126,18 +142,38 @@ final class DocumentedDiaryImporter
             if (isset($manifest['max_daily_minutes'])) {
                 $this->check(is_int($manifest['max_daily_minutes']) && $manifest['max_daily_minutes'] > 0
                     && $manifest['max_daily_minutes'] <= 1440, 'Limite de carga diária inválido.');
-                [$loadSnapshot, $dailyLoad] = $this->checkDailyLoad($plans, $manifest['max_daily_minutes'], $replacedRecords->pluck('id')->all());
+                [$loadSnapshot, $dailyLoad] = $this->checkDailyLoad($plans, $manifest['max_daily_minutes'], $replacedRecords->pluck('id')->all(), $transfers);
                 $snapshots[] = $loadSnapshot;
             }
             $hash = hash('sha256', json_encode([$manifest, $snapshots], JSON_THROW_ON_ERROR));
             $result = ['mode' => $apply ? 'apply' : 'dry-run', 'snapshot_sha256' => $hash, 'diaries' => $results, 'daily_load' => $dailyLoad, 'matrix_changes' => array_map(fn ($change) => ['component_id' => $change['component']->id, 'hours_before' => $change['before'], 'hours_after' => $change['hours'], 'pending' => $change['pending']], $matrixChanges)];
+            if ($transfers !== []) {
+                $result['transfers'] = array_map(fn (array $change) => [
+                    'enrollment_id' => $change['enrollment']->id, 'ends_on' => $change['date'], 'pending' => $change['pending'],
+                ], array_values($transfers));
+            }
             if (! $apply) {
                 return $result;
             }
             $this->check($expectedSnapshot !== null && hash_equals($hash, $expectedSnapshot), 'O diário mudou após a conferência. Execute nova simulação.');
+            if ($attendanceOnly && ! in_array(true, array_column($transfers, 'pending'), true)
+                && collect($results)->every(fn (array $diary): bool => $diary['stats']['calls_to_create'] === 0 && $diary['stats']['entries_to_create'] === 0)) {
+                return $result + ['idempotent' => true];
+            }
             $backup = 'diary-reconciliation/documented-'.Str::uuid().'.json';
             $this->check(Storage::disk('local')->put($backup, json_encode(['manifest' => $manifest, 'before' => $snapshots], JSON_THROW_ON_ERROR)), 'Não foi possível guardar a cópia de segurança.');
             chmod(Storage::disk('local')->path($backup), 0600);
+            foreach ($transfers as $change) {
+                if (! $change['pending']) {
+                    continue;
+                }
+                $enrollment = $change['enrollment'];
+                $enrollment->update(['transferred_at' => $change['date']]);
+                AuditLog::create(['school_id' => $enrollment->schoolClass->academicYear->school_id,
+                    'auditable_type' => StudentEnrollment::class, 'auditable_id' => $enrollment->id, 'action' => 'updated',
+                    'old_values' => ['transferred_at' => null], 'new_values' => ['transferred_at' => $change['date']],
+                    'metadata' => ['operation' => 'documented-diary-import', 'source_sha256' => $manifest['source_sha256'], 'backup_path' => $backup]]);
+            }
             foreach ($matrixChanges as $change) {
                 if ($change['pending']) {
                     $change['component']->update(['workload_hours' => $change['hours'], 'weekly_lessons' => null, 'period_loads' => null]);
@@ -155,17 +191,24 @@ final class DocumentedDiaryImporter
             }
             foreach ($plans as $plan) {
                 $assignment = $plan['assignment'];
+                $existingEntries = $plan['record']?->entries->keyBy('student_enrollment_id') ?? collect();
                 $record = $plan['record'] ?? DiaryAttendanceRecord::create([
                     'school_class_id' => $assignment->school_class_id, 'curriculum_component_id' => $assignment->curriculum_component_id,
                     'teacher_person_id' => $assignment->teacher_person_id, 'academic_period_id' => $plan['period']->id,
                     'class_date' => $plan['date'], 'lesson_count' => $plan['count'],
-                ]);
+                ] + ($attendanceOnly ? ['legacy_metadata' => [
+                    'source' => $manifest['source_file'],
+                    'source_sha256' => $manifest['source_sha256'],
+                ]] : []));
                 foreach ($plan['eligible'] as $enrollment) {
-                    if ($record->entries()->where('student_enrollment_id', $enrollment->id)->exists()) {
+                    if ($existingEntries->has($enrollment->id)) {
                         continue;
                     }
                     $record->entries()->create(['student_enrollment_id' => $enrollment->id, 'status' => DiaryAttendanceRecord::STATUS_PRESENT,
                         'attended_lessons' => $plan['count'], 'lesson_presence' => array_fill(0, $plan['count'], true)]);
+                }
+                if ($attendanceOnly) {
+                    continue;
                 }
                 $content = $plan['storedContent'] ?? new DiaryContent([
                     'school_class_id' => $assignment->school_class_id, 'curriculum_component_id' => $assignment->curriculum_component_id,
@@ -184,6 +227,51 @@ final class DocumentedDiaryImporter
 
             return $result + ['backup_path' => $backup];
         });
+    }
+
+    /** Corrige a data ausente de um vínculo já transferido entre turmas do próprio lote. */
+    private function transferCorrections(array $definitions, array $diaries, bool $apply): array
+    {
+        $this->check(count($definitions) <= 20
+            && count(array_unique(array_column($definitions, 'enrollment_id'))) === count($definitions),
+            'Correções de transferência inválidas ou repetidas.');
+        $changes = [];
+        $classes = collect($diaries)->keyBy('class_id');
+        foreach ($definitions as $definition) {
+            $date = $definition['ends_on'] ?? '';
+            $this->check(is_string($date) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
+                && CarbonImmutable::parse($date)->toDateString() === $date, 'Data de saída inválida.');
+            $enrollments = StudentEnrollment::query()->with('schoolClass.academicYear.periods')
+                ->whereKey([$definition['enrollment_id'] ?? 0, $definition['next_enrollment_id'] ?? 0])
+                ->orderBy('id')->when($apply, fn ($q) => $q->lockForUpdate())->get()->keyBy('id');
+            $from = $enrollments->get($definition['enrollment_id'] ?? 0);
+            $next = $enrollments->get($definition['next_enrollment_id'] ?? 0);
+            $this->check($from && $next && $from->person_id === $next->person_id && $from->school_class_id !== $next->school_class_id
+                && $classes->has($from->school_class_id) && $classes->has($next->school_class_id)
+                && $from->schoolClass->academic_year_id === $next->schoolClass->academic_year_id
+                && $from->status === StudentEnrollment::STATUS_TRANSFERRED
+                && ! $from->cancelled_at && ! $from->reclassified_at
+                && (! $from->enrolled_at || $from->enrolled_at->toDateString() <= $date)
+                && $next->enrolled_at && $date < $next->enrolled_at->toDateString()
+                && $from->schoolClass->academicYear->periods->contains(fn ($period) => $period->ends_at->toDateString() === $date)
+                && (! $from->transferred_at || $from->transferred_at->toDateString() === $date),
+                'A data de saída diverge dos vínculos ou dos períodos conferidos.');
+            $this->check(! $from->attendanceEntries()
+                ->whereHas('record', fn ($q) => $q->whereDate('class_date', '>', $date))->exists(),
+                'O vínculo anterior tem frequência registrada depois da saída informada.');
+            $changes[$from->id] = ['enrollment' => $from, 'next' => $next, 'date' => $date, 'pending' => ! $from->transferred_at];
+        }
+
+        return $changes;
+    }
+
+    private function projectTransferDates(iterable $enrollments, array $transfers): void
+    {
+        foreach ($enrollments as $enrollment) {
+            if (isset($transfers[$enrollment->id])) {
+                $enrollment->transferred_at = $transfers[$enrollment->id]['date'];
+            }
+        }
     }
 
     /** Correção opcional e explícita, limitada aos componentes técnicos deste lote. */
@@ -219,10 +307,12 @@ final class DocumentedDiaryImporter
     }
 
     /** Considera aulas de todas as matrículas da pessoa, independentemente de presença. */
-    private function checkDailyLoad(array $plans, int $limit, array $replacedRecordIds = []): array
+    private function checkDailyLoad(array $plans, int $limit, array $replacedRecordIds, array $transfers): array
     {
         $people = collect($plans)->flatMap(fn ($plan) => $plan['eligible']->pluck('person_id'))->unique();
         $enrollments = StudentEnrollment::whereIn('person_id', $people)->orderBy('id')->get();
+        $enrollmentSnapshot = $enrollments->toArray();
+        $this->projectTransferDates($enrollments, $transfers);
         $byClass = $enrollments->groupBy('school_class_id');
         $records = DiaryAttendanceRecord::whereIn('school_class_id', $enrollments->pluck('school_class_id')->unique())
             ->where(function ($query) use ($plans) {
@@ -263,7 +353,7 @@ final class DocumentedDiaryImporter
         }
         $maximum = collect(array_keys($checked))->max(fn ($key) => $minutesByStudentDate[$key]) ?? 0;
 
-        return [[$enrollments->toArray(), $recordSnapshot], ['limit_minutes' => $limit,
+        return [[$enrollmentSnapshot, $recordSnapshot], ['limit_minutes' => $limit,
             'maximum_minutes' => $maximum, 'student_days_checked' => count($checked)]];
     }
 

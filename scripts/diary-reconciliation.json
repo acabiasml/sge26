@@ -1,7 +1,5 @@
 {
-  "operation": "external-history-clock-hours",
+  "operation": "documented-diary-import",
   "mode": "dry-run",
-  "person_id": 597,
-  "history_id": 12,
-  "year_id": 118
+  "transport_key_id": "0515dea2270fb51eca19e59ed0dae553"
 }
