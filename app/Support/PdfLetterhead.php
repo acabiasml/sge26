@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\School;
 use App\Models\SchoolClass;
 use App\Models\StudentEnrollment;
+use Illuminate\Support\Str;
 
 class PdfLetterhead
 {
@@ -26,6 +27,8 @@ class PdfLetterhead
      *     maintainer_logo: string|null,
      *     school_logo: string|null,
      *     lines: array<int, string>,
+     *     authorization_line: string,
+     *     displayed_authorizations: list<string>,
      *     renewal_notices: list<string>,
      *     footer_lines: array<int, string>
      * }
@@ -36,12 +39,16 @@ class PdfLetterhead
         if ($school) {
             $authorization ??= OfficialDocumentCompliance::authorizationDetails($school, $stages);
         }
+        $acts = $authorization['acts'] ?? [];
+        $automatic = $school?->usesAutomaticLetterhead() ?? false;
 
         return [
             'school' => $school,
             'maintainer_logo' => self::imageDataUri('brand/centro-tecnico-juvenil-de-jarudore.png'),
             'school_logo' => self::imageDataUri($school?->logo_path),
-            'lines' => $school ? self::schoolLines($school, $stages, $authorization['acts']) : self::maintainerLines(),
+            'lines' => $school ? self::schoolLines($school, $stages, $automatic) : self::maintainerLines(),
+            'authorization_line' => $automatic ? self::authorizationLine($acts) : '',
+            'displayed_authorizations' => $automatic ? array_column($acts, 'act') : [],
             'renewal_notices' => $authorization['renewal_notices'] ?? [],
             'footer_lines' => $school ? self::schoolFooterLines($school) : self::maintainerFooterLines(),
         ];
@@ -90,15 +97,34 @@ class PdfLetterhead
     /**
      * @return array<int, string>
      */
-    private static function schoolLines(School $school, array $educationStages, array $currentActs): array
+    private static function schoolLines(School $school, array $educationStages, bool $automatic): array
     {
         return collect([
             mb_strtoupper($school->maintainer ?: self::MAINTAINER_NAME),
             self::MAINTAINER_CERTIFICATION,
             mb_strtoupper($school->name),
             self::schoolRegistryLine($school),
-            ...$school->letterheadTextsForStages($educationStages, $currentActs),
+            ...($automatic ? [] : $school->letterheadTextsForStages($educationStages)),
         ])->filter(fn (?string $line): bool => filled($line))->values()->all();
+    }
+
+    private static function authorizationLine(array $acts): string
+    {
+        $accreditation = self::compactAct($acts['accreditation']['act'] ?? '');
+        $authorizationActs = collect($acts)->except('accreditation')->pluck('act')
+            ->map(self::compactAct(...))->filter()->unique()->values();
+
+        return collect([
+            $accreditation !== '' ? 'Cred.: '.$accreditation : null,
+            $authorizationActs->isNotEmpty() ? 'Aut.: '.$authorizationActs->implode(' / ') : null,
+        ])->filter()->implode(' · ');
+    }
+
+    private static function compactAct(string $act): string
+    {
+        $act = preg_replace('/\s+(?:[·|;]\s*)?(?:DOE(?:-MT)?\b|Vigência\s*:).*$/iu', '', Str::squish($act));
+
+        return str_ireplace(['Portaria ', 'Resolução ', ' nº '], ['Port. ', 'Res. ', ' '], $act);
     }
 
     private static function schoolRegistryLine(School $school): string

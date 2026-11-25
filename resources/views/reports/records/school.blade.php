@@ -33,9 +33,15 @@
         <tr><th>Mantenedora</th><td>{{ $school->maintainer ?: '-' }}</td></tr>
         <tr><th>Sistema de ensino</th><td>{{ $school->education_system ?: '-' }}</td></tr>
         <tr><th>Ato de criação</th><td>{{ $school->creation_act ?: '-' }}</td></tr>
-        <tr><th>Texto institucional</th><td>{{ ($school->usesAutomaticLetterhead() ? implode(' | ', $school->letterheadTextsForStages(['fundamental', 'medio'])) : $school->letterhead_text) ?: '-' }}</td></tr>
-        @if(filled($school->letterhead_text_elementary))<tr><th>Texto institucional — Ensino Fundamental</th><td>{{ $school->letterhead_text_elementary }}</td></tr>@endif
-        @if(filled($school->letterhead_text_high_school))<tr><th>Texto institucional — Ensino Médio</th><td>{{ $school->letterhead_text_high_school }}</td></tr>@endif
+        @php
+            $headerLines = $letterhead['lines'] ?? [];
+            $remainingReferences = $school->usesAutomaticLetterhead()
+                ? array_diff($school->letterheadTextsForStages(['fundamental', 'medio']), $letterhead['displayed_authorizations'] ?? [])
+                : array_diff(array_filter([$school->letterhead_text]), $headerLines);
+        @endphp
+        @if($remainingReferences !== [])<tr><th>Texto institucional</th><td>{{ implode(' | ', $remainingReferences) }}</td></tr>@endif
+        @if(filled($school->letterhead_text_elementary) && !in_array($school->letterhead_text_elementary, $headerLines, true))<tr><th>Texto institucional — Ensino Fundamental</th><td>{{ $school->letterhead_text_elementary }}</td></tr>@endif
+        @if(filled($school->letterhead_text_high_school) && !in_array($school->letterhead_text_high_school, $headerLines, true))<tr><th>Texto institucional — Ensino Médio</th><td>{{ $school->letterhead_text_high_school }}</td></tr>@endif
         <tr><th>Situação</th><td>{{ $school->active ? 'Ativa' : 'Inativa' }}</td></tr>
     </table>
 

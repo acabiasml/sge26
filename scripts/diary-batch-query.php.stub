@@ -54,38 +54,6 @@ try {
             ->filter(fn ($row) => $requests->contains('key', $row->academicYear->reference_year.':'.$canonical($row->name)));
     }
     $found = $classes->map(fn ($row) => $row->academicYear->reference_year.':'.$canonical($row->name));
-    if (($config['legacy_attendance_only'] ?? false) === true) {
-        if ($config['school_id'] !== 2 || $config['source'] !== 'lar' || $config['reference_year'] !== 2024
-            || ($config['all_school_classes'] ?? false) !== true) {
-            throw new RuntimeException('A conferência da chamada original é limitada ao Lar em 2024.');
-        }
-        $targets = $classes->flatMap->courses->flatMap->components
-            ->where('legacy_source', 'lar')->whereIn('id', $config['component_ids'])->keyBy('legacy_id');
-        if ($targets->count() !== count($config['component_ids'])) {
-            throw new RuntimeException('Seleção de componentes legados divergente.');
-        }
-        $path = storage_path('app/private/u810745753_lar.sql');
-        $available = is_file($path) && is_readable($path);
-        $diaries = $absences = collect();
-        if ($available) {
-            $parser = new ReflectionMethod(App\Console\Commands\ImportLegacyData::class, 'parseDump');
-            $tables = $parser->invoke(app(App\Console\Commands\ImportLegacyData::class), file_get_contents($path));
-            $diaries = collect($tables['diarios'] ?? [])->filter(fn (array $row) =>
-                str_starts_with((string) ($row['data'] ?? ''), '2024-') && $targets->has($row['componentes_id'] ?? null));
-            $ids = $diaries->pluck('id')->flip();
-            $absences = collect($tables['frequencias'] ?? [])->filter(fn (array $row) => $ids->has($row['diarios_id'] ?? null))
-                ->groupBy('diarios_id');
-        }
-        echo json_encode([
-            'legacy_dump_available' => $available,
-            'legacy_dump_sha256' => $available ? hash_file('sha256', $path) : null,
-            'matched_targets' => $targets->map->only(['id', 'legacy_id', 'name'])->values(),
-            'diaries' => $diaries->map(fn (array $row) => Illuminate\Support\Arr::only($row, ['id', 'data', 'geminada', 'componentes_id'])
-                + ['absence_user_ids' => $absences->get($row['id'], collect())->pluck('users_id')->values()])->values(),
-        ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
-
-        return;
-    }
     if (($config['matrix_only'] ?? false) === true) {
         $classes->loadMissing(['academicYear.days', 'schedules.slots', 'courses.components.area', 'courses.components.startsPeriod',
             'courses.components.endsPeriod', 'courses.startsPeriod', 'courses.endsPeriod']);

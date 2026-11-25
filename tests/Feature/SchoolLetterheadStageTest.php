@@ -339,22 +339,22 @@ class SchoolLetterheadStageTest extends TestCase
         }
 
         foreach ($references as $reference) {
-            $this->assertContains($reference, PdfLetterhead::forClass($class)['lines']);
+            $this->assertStringContainsString($reference, PdfLetterhead::forClass($class)['authorization_line']);
         }
 
         $rendered = [];
         view()->composer('reports.partials.letterhead', function ($view) use (&$rendered): void {
-            $rendered[] = $view->getData()['letterhead']['lines'];
+            $rendered[] = $view->getData()['letterhead']['authorization_line'];
         });
         $ruralEnrollment = $enrollments[AcademicCourse::MODALITY_RURAL];
         foreach (['enrollments.report-card.pdf', 'enrollments.individual-record.pdf'] as $route) {
             $this->get(route($route, ['enrollment' => $ruralEnrollment, 'notas' => 'numeros']))
                 ->assertOk()->assertHeader('content-type', 'application/pdf');
             $this->assertNotEmpty($rendered);
-            foreach ($rendered as $lines) {
-                $this->assertContains($accreditation, $lines);
-                $this->assertContains($references[AcademicCourse::MODALITY_RURAL], $lines);
-                $this->assertNotContains($references[AcademicCourse::MODALITY_REGULAR], $lines);
+            foreach ($rendered as $line) {
+                $this->assertStringContainsString($accreditation, $line);
+                $this->assertStringContainsString($references[AcademicCourse::MODALITY_RURAL], $line);
+                $this->assertStringNotContainsString($references[AcademicCourse::MODALITY_REGULAR], $line);
             }
             $rendered = [];
         }
@@ -363,11 +363,10 @@ class SchoolLetterheadStageTest extends TestCase
             $this->get(route($route, ['class' => $class, 'notas' => 'numeros']))
                 ->assertOk()->assertHeader('content-type', 'application/pdf');
             $this->assertCount(2, $rendered);
-            foreach ($rendered as $lines) {
-                $this->assertContains($accreditation, $lines);
-                $this->assertCount(1, array_intersect($references, $lines));
-            }
-            $this->assertEqualsCanonicalizing(array_values($references), array_values(array_intersect($references, array_merge(...$rendered))));
+            $this->assertEqualsCanonicalizing(
+                array_map(fn ($reference) => 'Cred.: '.$accreditation.' · Aut.: '.$reference, array_values($references)),
+                $rendered,
+            );
             $rendered = [];
         }
 
@@ -375,6 +374,23 @@ class SchoolLetterheadStageTest extends TestCase
             $ruralEnrollment->student, $school->id, $admin->person_id, AcademicCourse::STAGE_HIGH_SCHOOL,
         );
         $this->assertSame($accreditation."\n".$references[AcademicCourse::MODALITY_RURAL], $history->years()->sole()->school_authorization);
+    }
+
+    public function test_automatic_header_shows_only_one_compact_line_for_the_lar_acts(): void
+    {
+        $accreditation = 'Portaria 042/05-CEE/MT c/c Res. 384/04, art. 44 · DOE-MT nº 24.067 · Vigência: Res. 630/2008, art. 31';
+        $authorization = 'Ato 078/2023-CEE/MT · DOE-MT nº 28.437';
+        $school = new School(['name' => 'Lar São Domingos Sávio']);
+        $letterhead = PdfLetterhead::make($school, 'medio', ['acts' => [
+            'accreditation' => ['act' => $accreditation],
+            'medio_educacao_do_campo' => ['act' => $authorization],
+        ]]);
+
+        $this->assertSame(
+            'Cred.: Port. 042/05-CEE/MT c/c Res. 384/04, art. 44 · Aut.: Ato 078/2023-CEE/MT',
+            $letterhead['authorization_line'],
+        );
+        $this->assertSame([$accreditation, $authorization], $letterhead['displayed_authorizations']);
     }
 
     public function test_student_documents_and_class_letterhead_respect_enrollment_stage_and_parallel_technical_courses(): void

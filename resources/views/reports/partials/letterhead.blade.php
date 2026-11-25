@@ -10,6 +10,9 @@
                 @foreach (($letterhead['lines'] ?? []) as $index => $line)
                     <div class="letterhead-line {{ $index === 0 || ($index === 2 && ($letterhead['school'] ?? null)) ? 'letterhead-line-main' : '' }}">{{ $line }}</div>
                 @endforeach
+                @if(filled($letterhead['authorization_line'] ?? null))
+                    <div class="letterhead-line">{{ $letterhead['authorization_line'] }}</div>
+                @endif
 
                 <h1 class="document-title">{{ $title }}</h1>
             </td>
