@@ -214,7 +214,8 @@ class SchoolLetterheadStageTest extends TestCase
         $liceu->refresh();
         $this->assertSame(['accreditation', 'fundamental_educacao_do_campo', 'medio_educacao_do_campo'],
             array_keys($lar->document_authorizations));
-        $this->assertNull($lar->creation_act);
+        $this->assertSame('Ata da Assembleia Geral do CTJJ de 01/06/1993 · DOE-MT de 23/09/1993, p. 19', $lar->creation_act);
+        $this->assertSame('Ata de fundação do CTJJ de 04/10/1990 · DOE-MT de 07/11/1990, p. 22', $liceu->creation_act);
         $this->assertTrue($lar->usesAutomaticLetterhead());
         $this->assertSame([$existing['act'], $acts['fundamental_educacao_do_campo']['act']], $lar->letterheadTextsForStages(['fundamental']));
         $this->assertNull(OfficialDocumentCompliance::authorizationDetails($lar, ['fundamental'], [['fundamental', 'regular', 2024]])['message']);

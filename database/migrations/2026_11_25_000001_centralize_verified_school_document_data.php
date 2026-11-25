@@ -54,6 +54,15 @@ return new class extends Migration
                         $changes['education_system'] = 'Sistema Estadual de Ensino de Mato Grosso';
                     }
 
+                    // Atas de fundação publicadas no DOE-MT: edição digital 10069, p. 22, e 10781, p. 19.
+                    if ($cnpj === '00176974000120'
+                        && (blank($school->creation_act) || $school->creation_act === 'C. 4668 D.O.M.T. 07/11/1990.')) {
+                        $changes['creation_act'] = 'Ata de fundação do CTJJ de 04/10/1990 · DOE-MT de 07/11/1990, p. 22';
+                    }
+                    if ($cnpj === '00176974000392' && blank($school->creation_act)) {
+                        $changes['creation_act'] = 'Ata da Assembleia Geral do CTJJ de 01/06/1993 · DOE-MT de 23/09/1993, p. 19';
+                    }
+
                     if ($cnpj === '00176974000201') {
                         // A mudança da mantenedora de General Carneiro consta da Resolução 012/09-CEE/MT.
                         if ($school->legal_name === 'Centro Social General Carneiro') {
