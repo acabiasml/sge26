@@ -236,12 +236,12 @@ class School extends Model
     }
 
     /** @return list<string> */
-    public function letterheadTextsForStages(array $stages = []): array
+    public function letterheadTextsForStages(array $stages = [], ?array $currentActs = null): array
     {
         if ($this->usesAutomaticLetterhead()) {
-            $acts = OfficialDocumentCompliance::authorizationDetails($this, $stages)['acts'];
+            $currentActs ??= OfficialDocumentCompliance::authorizationDetails($this, $stages)['acts'];
 
-            return array_values(array_unique(array_column($acts, 'act')));
+            return array_values(array_unique(array_column($currentActs, 'act')));
         }
 
         $fields = [

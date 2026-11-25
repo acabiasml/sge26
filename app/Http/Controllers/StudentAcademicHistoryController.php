@@ -649,12 +649,12 @@ class StudentAcademicHistoryController extends Controller
             'authorization_renewal_notices' => $authorization['renewal_notices'],
             'signers' => ['director' => $staff['diretor']?->full_name, 'secretary' => $staff['secretário']?->full_name],
         ];
-        $render = function (IssuedDocument $document) use ($person, $history, $official, $staff) {
+        $render = function (IssuedDocument $document) use ($person, $history, $official, $staff, $authorization) {
             $pdf = app(StudentAcademicHistoryPdf::class)->make([
                 'person' => $person, 'history' => $history, 'issuedDocument' => $document, 'isDraft' => ! $official,
                 'historySignatureStaff' => $staff,
                 'verificationUrl' => $official ? route('documents.verify', $document->verification_code) : null,
-                'letterhead' => PdfLetterhead::make($history->school, $history->education_stage),
+                'letterhead' => PdfLetterhead::make($history->school, $history->education_stage, $authorization),
                 'technicalPeriodDurations' => $this->technicalPeriodDurations($history),
             ]);
             $pdf->addInfo(['Title' => ($official ? '' : 'PRÉVIA TEMPORÁRIA — ').$history->title, 'Author' => 'Beabá']);

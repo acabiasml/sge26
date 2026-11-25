@@ -9,13 +9,13 @@
 </head>
 <body>
 @foreach($reports as $report)
-    @include('reports.partials.student-report-card-page', ['report' => $report, 'reportDocumentKey' => $loop->index])
+    @include('reports.partials.student-report-card-page', ['report' => $report, 'letterhead' => $report['letterhead'], 'reportDocumentKey' => $loop->index])
 
     @unless($loop->last)
         <div class="page-break"></div>
     @endunless
 @endforeach
 
-@include('reports.partials.document-footer', ['issuedDocument' => $issuedDocument])
+@include('reports.partials.document-footer', ['issuedDocument' => $issuedDocument, 'letterhead' => $reports->first()['letterhead']])
 </body>
 </html>

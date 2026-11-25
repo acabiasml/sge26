@@ -122,7 +122,7 @@ class AcademicYearAttendanceReportPdfController extends Controller
             'calendarSummary' => $calendarSummary,
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
-            'letterhead' => PdfLetterhead::make($academicYear->school, $academicYear->courses->pluck('stage')->all()),
+            'letterhead' => PdfLetterhead::forCourses($academicYear->school, $academicYear->courses, $academicYear->reference_year),
         ])->setPaper('a4', 'landscape');
 
         return \App\Support\PdfMetadata::stream(

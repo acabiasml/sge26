@@ -302,6 +302,81 @@ class SchoolLetterheadStageTest extends TestCase
         $this->assertNotSame($version, HistoryDocumentVersion::of($record));
     }
 
+    public function test_automatic_letterhead_uses_the_students_modality_in_individual_and_batch_pdfs(): void
+    {
+        $this->travelTo(now()->setDate(2026, 11, 25));
+        $dates = ['published_on' => '2025-01-01', 'starts_on' => '2025-01-01', 'ends_on' => '2027-12-31'];
+        $accreditation = 'Ato de credenciamento';
+        $references = [
+            AcademicCourse::MODALITY_RURAL => 'Ato do Ensino Médio do Campo',
+            AcademicCourse::MODALITY_REGULAR => 'Ato do Ensino Médio Regular',
+        ];
+        $school = School::create(array_replace($this->schoolData(), [
+            'letterhead_text' => null,
+            'document_authorizations' => [
+                'accreditation' => ['act' => $accreditation, 'published_on' => '2020-01-01', 'starts_on' => '2020-01-01'],
+                'medio_educacao_do_campo' => ['act' => $references[AcademicCourse::MODALITY_RURAL]] + $dates,
+                'medio_regular' => ['act' => $references[AcademicCourse::MODALITY_REGULAR]] + $dates,
+            ],
+        ]));
+        $admin = $this->user(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $this->actingAs($admin);
+        $year = AcademicYear::create(['school_id' => $school->id, 'name' => 'Ensino Médio', 'reference_year' => 2026,
+            'starts_at' => '2026-02-01', 'ends_at' => '2026-12-18', 'approved_at' => '2026-01-01', 'active' => true]);
+        $year->periods()->create(['name' => '1º Bimestre', 'starts_at' => '2026-02-01', 'ends_at' => '2026-04-10', 'position' => 1]);
+        $class = SchoolClass::create(['academic_year_id' => $year->id, 'name' => '1º Ano', 'active' => true]);
+        $enrollments = [];
+        foreach (array_keys($references) as $modality) {
+            $student = $this->user(PersonSchoolRole::ROLE_STUDENT, $school)->person;
+            $course = $year->courses()->create(['name' => 'Matriz '.$modality, 'stage' => AcademicCourse::STAGE_HIGH_SCHOOL,
+                'modality' => $modality, 'active' => true]);
+            $course->components()->create(['name' => 'Matemática', 'weekly_lessons' => 5, 'workload_hours' => 160, 'active' => true]);
+            $class->courses()->attach($course);
+            $enrollment = $class->enrollments()->create(['person_id' => $student->id, 'enrolled_at' => '2026-02-01',
+                'status' => StudentEnrollment::STATUS_ENROLLED, 'type' => StudentEnrollment::TYPE_REGULAR]);
+            $enrollment->courses()->attach($course);
+            $enrollments[$modality] = $enrollment;
+        }
+
+        foreach ($references as $reference) {
+            $this->assertContains($reference, PdfLetterhead::forClass($class)['lines']);
+        }
+
+        $rendered = [];
+        view()->composer('reports.partials.letterhead', function ($view) use (&$rendered): void {
+            $rendered[] = $view->getData()['letterhead']['lines'];
+        });
+        $ruralEnrollment = $enrollments[AcademicCourse::MODALITY_RURAL];
+        foreach (['enrollments.report-card.pdf', 'enrollments.individual-record.pdf'] as $route) {
+            $this->get(route($route, ['enrollment' => $ruralEnrollment, 'notas' => 'numeros']))
+                ->assertOk()->assertHeader('content-type', 'application/pdf');
+            $this->assertNotEmpty($rendered);
+            foreach ($rendered as $lines) {
+                $this->assertContains($accreditation, $lines);
+                $this->assertContains($references[AcademicCourse::MODALITY_RURAL], $lines);
+                $this->assertNotContains($references[AcademicCourse::MODALITY_REGULAR], $lines);
+            }
+            $rendered = [];
+        }
+
+        foreach (['classes.report-cards.pdf', 'classes.attendance-certificates.pdf'] as $route) {
+            $this->get(route($route, ['class' => $class, 'notas' => 'numeros']))
+                ->assertOk()->assertHeader('content-type', 'application/pdf');
+            $this->assertCount(2, $rendered);
+            foreach ($rendered as $lines) {
+                $this->assertContains($accreditation, $lines);
+                $this->assertCount(1, array_intersect($references, $lines));
+            }
+            $this->assertEqualsCanonicalizing(array_values($references), array_values(array_intersect($references, array_merge(...$rendered))));
+            $rendered = [];
+        }
+
+        $history = app(UnifiedStudentHistorySynchronizer::class)->synchronize(
+            $ruralEnrollment->student, $school->id, $admin->person_id, AcademicCourse::STAGE_HIGH_SCHOOL,
+        );
+        $this->assertSame($accreditation."\n".$references[AcademicCourse::MODALITY_RURAL], $history->years()->sole()->school_authorization);
+    }
+
     public function test_student_documents_and_class_letterhead_respect_enrollment_stage_and_parallel_technical_courses(): void
     {
         $school = School::create($this->schoolData() + ['letterhead_text_elementary' => 'Autorização EF exclusiva',

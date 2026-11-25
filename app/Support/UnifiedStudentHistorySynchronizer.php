@@ -188,6 +188,8 @@ class UnifiedStudentHistorySynchronizer
             : collect();
         $historyComponents = $stageComponents->concat($supplementalComponents)->values();
         $school = $year->school;
+        $currentActs = $course && $school->usesAutomaticLetterhead()
+            ? OfficialDocumentCompliance::courseAuthorizationDetails($school, [$course], $referenceYear)['acts'] : null;
         $attendance = $report['annualAttendance'];
         $percentage = $attendance['percentage'] ?? null;
         $isTransferred = $enrollment->status === StudentEnrollment::STATUS_TRANSFERRED;
@@ -211,7 +213,7 @@ class UnifiedStudentHistorySynchronizer
                 'grade_phase' => $course?->name ?: $report['schoolClass']->name,
                 'grade_number' => $this->completeness->gradeNumber($course?->name ?: $report['schoolClass']->name, $stage),
                 'school_name' => $school->name,
-                'school_authorization' => implode("\n", $school->letterheadTextsForStages([$stage])),
+                'school_authorization' => implode("\n", $school->letterheadTextsForStages([$stage], $currentActs)),
                 'city' => $school->city,
                 'state' => $school->state,
                 'country' => 'Brasil',

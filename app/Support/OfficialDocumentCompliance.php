@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 class OfficialDocumentCompliance
 {
-    public static function courseAuthorizationDetails(School $school, iterable $courses, int $referenceYear): array
+    public static function courseAuthorizationDetails(School $school, iterable $courses, ?int $referenceYear): array
     {
         $courses = collect($courses);
         $offerings = $courses->map(fn (AcademicCourse $course) => [$course->stage, $course->modality, $referenceYear, $course]);
