@@ -1,3 +1,4 @@
+<div>
 @if($teacherLastAccess)
 @php
     $access = $teacherLastAccess;
@@ -26,12 +27,12 @@
             @endforeach
             <div class="sge-access-search">
                 <label for="teacher-access-search">{{ __('dashboard.access.teacher') }}</label>
-                <input id="teacher-access-search" class="form-control" type="search" name="teacher_access_search" wire:model="filters.teacher_access_search" maxlength="120" value="{{ $access['search'] }}">
+                <input id="teacher-access-search" class="form-control" type="search" name="docente" wire:model="filters.docente" maxlength="120" value="{{ $access['search'] }}">
             </div>
             @if($access['schools']->count() > 1)
                 <div>
                     <label for="teacher-access-school">{{ __('dashboard.school') }}</label>
-                    <select id="teacher-access-school" class="form-control" name="teacher_access_school" wire:model="filters.teacher_access_school">
+                    <select id="teacher-access-school" class="form-control" name="unidade" wire:model="filters.unidade">
                         <option value="">{{ __('dashboard.access.all_schools') }}</option>
                         @foreach($access['schools'] as $accessSchool)
                             <option value="{{ $accessSchool->id }}" @selected($access['school_id'] === $accessSchool->id)>{{ $accessSchool->name }}</option>
@@ -41,7 +42,7 @@
             @endif
             <div>
                 <label for="teacher-access-status">{{ __('dashboard.access.status') }}</label>
-                <select id="teacher-access-status" class="form-control" name="teacher_access_status" wire:model="filters.teacher_access_status">
+                <select id="teacher-access-status" class="form-control" name="acesso" wire:model="filters.acesso">
                     @foreach(['all', 'recent', 'overdue', 'missing'] as $accessStatus)
                         <option value="{{ $accessStatus === 'all' ? '' : $accessStatus }}" @selected($access['status'] === $accessStatus)>{{ __('dashboard.access.'.$accessStatus) }}</option>
                     @endforeach
@@ -96,6 +97,5 @@
         @endif
     </div>
 </details>
-@else
-<div></div>
 @endif
+</div>

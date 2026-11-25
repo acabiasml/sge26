@@ -72,7 +72,7 @@ class ScreenListing extends Component
         'audit-group' => [Controllers\AuditLogController::class, 'group', []],
         'courses' => [Controllers\TechnicalProgramController::class, 'index', ['school_id']],
         'issued-certificates' => [Controllers\CredentialArchiveController::class, 'batch', []],
-        'teacher-access' => [Controllers\DashboardController::class, 'teacherAccess', ['teacher_access_search', 'teacher_access_school', 'teacher_access_status']],
+        'teacher-access' => [Controllers\DashboardController::class, 'teacherAccess', ['docente', 'unidade', 'acesso']],
     ];
 
     private const CONTEXT_MODELS = [
@@ -124,12 +124,17 @@ class ScreenListing extends Component
         if ($allowed === []) {
             return;
         }
+        if ($screen === 'teacher-access') {
+            $this->filters = array_replace(array_fill_keys($allowed, ''), request()->only($allowed));
+            foreach ($allowed as $key) {
+                $this->setPropertyAttribute('filters.'.$key, new Url(as: $key, except: ''));
+            }
+
+            return;
+        }
         $this->setPropertyAttribute('filters', new Url(as: 'f', except: []));
         $initial = request()->query('f', []);
         $this->filters = array_replace(array_fill_keys($allowed, ''), request()->only($allowed), is_array($initial) ? array_intersect_key($initial, array_flip($allowed)) : []);
-        if ($screen === 'teacher-access' && $this->filters['teacher_access_status'] === 'all') {
-            $this->filters['teacher_access_status'] = '';
-        }
     }
 
     public function updatedFilters(mixed $value, string $key): void
