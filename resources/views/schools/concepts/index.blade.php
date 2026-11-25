@@ -101,9 +101,9 @@
                     <span class="badge badge-light">{{ $school->concepts->count() }} {{ __('conceito(s)') }}</span>
                 </div>
                 <div class="card-body">
-                    <div class="sge-concept-list" @if($school->concepts->isNotEmpty()) role="list" @endif>
+                    <ul class="sge-concept-list list-unstyled mb-0" role="list">
                         @forelse ($school->concepts as $concept)
-                            <article class="sge-concept-item @if($editingConcept?->is($concept)) is-editing @endif" role="listitem">
+                            <li class="sge-concept-item @if($editingConcept?->is($concept)) is-editing @endif">
                                 <div class="sge-concept-abbr" aria-hidden="true">{{ $concept->shortLabel() }}</div>
                                 <div class="sge-concept-copy">
                                     <div class="sge-concept-title-row">
@@ -129,14 +129,14 @@
                                         </button>
                                     </form>
                                 </div>
-                            </article>
+                            </li>
                         @empty
-                            <div class="sge-empty-state">
+                            <li class="sge-empty-state">
                                 <i class="fas fa-list-check" aria-hidden="true"></i>
                                 <p class="mb-0">{{ __('Nenhum conceito cadastrado para esta escola.') }}</p>
-                            </div>
+                            </li>
                         @endforelse
-                    </div>
+                    </ul>
                 </div>
             </div>
         </div>

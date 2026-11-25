@@ -1829,7 +1829,6 @@ pre {
 
 .sge-document-card.is-disabled {
     background: color-mix(in srgb, var(--sge-surface) 55%, transparent);
-    opacity: .8;
 }
 
 .sge-document-card-icon {
@@ -1861,6 +1860,17 @@ pre {
     color: var(--sge-muted);
     display: block;
     margin: 0;
+}
+
+.badge-secondary {
+    background: var(--sge-surface);
+    color: var(--sge-ink);
+    border: 1px solid var(--sge-border);
+}
+
+.sge-inline-link {
+    text-decoration: underline;
+    text-underline-offset: .15em;
 }
 
 .sge-life-hero {
@@ -4577,7 +4587,7 @@ textarea:focus-visible {
 .sge-schedule-version strong, .sge-schedule-version small { display: block; }
 .sge-schedule-version small { color: var(--sge-muted); font-size: .82rem; }
 .sge-week-schedule-wrap { overflow-x: auto; }
-.sge-week-schedule { display: grid; grid-template-columns: repeat(6, minmax(9.5rem, 1fr)); min-width: 57rem; }
+.sge-week-schedule { display: grid; grid-template-columns: repeat(var(--sge-schedule-days), minmax(9.5rem, 1fr)); min-width: calc(var(--sge-schedule-days) * 9.5rem); }
 .sge-week-schedule-day { border-right: 1px solid var(--sge-border); }
 .sge-week-schedule-day:last-child { border-right: 0; }
 .sge-week-schedule-day h3 { margin: 0; padding: .65rem .4rem; border-bottom: 1px solid var(--sge-border); color: var(--sge-brown); font-size: .9rem; font-weight: 700; text-align: center; }
@@ -4595,15 +4605,29 @@ textarea:focus-visible {
 .sge-teacher-tone-8 { --sge-teacher-accent: color-mix(in srgb, var(--sge-orange), var(--sge-brown)); }
 .sge-teacher-tone-9 { --sge-teacher-accent: var(--sge-blue-dark); }
 .sge-teacher-tone-10 { --sge-teacher-accent: var(--sge-muted); }
-.sge-week-schedule-slot strong { padding-right: 1rem; font-size: .82rem; line-height: 1.15; }
-.sge-week-schedule-slot span { margin-top: .12rem; padding-right: 1rem; font-size: .75rem; line-height: 1.12; }
+.sge-week-schedule-slot strong { font-size: .82rem; line-height: 1.15; }
+.sge-week-schedule-slot span { margin-top: .12rem; font-size: .75rem; line-height: 1.12; }
 .sge-week-schedule-slot small { margin-top: .16rem; font-size: .75rem; }
 .sge-week-schedule-edit { position: static; display: flex; width: 100%; min-height: 100%; flex: 1; flex-direction: column; align-items: flex-start; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; text-align: left; }
 .sge-week-schedule-edit:hover,
-.sge-week-schedule-edit:focus { outline: 2px solid color-mix(in srgb, var(--sge-blue) 35%, transparent); outline-offset: 2px; }
-.sge-week-schedule-slot form > button { position: absolute; top: .2rem; right: .2rem; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; }
+.sge-week-schedule-edit:focus-visible { outline: 2px solid var(--sge-blue); outline-offset: -2px; }
 .sge-week-schedule-slot-aula { background: color-mix(in srgb, var(--sge-teacher-accent, var(--sge-blue)) 16%, var(--sge-paper)); color: var(--sge-ink); border-left: 3px solid var(--sge-teacher-accent, var(--sge-blue)); }
 .sge-week-schedule-slot-intervalo { background: color-mix(in srgb, var(--sge-orange) 18%, var(--sge-paper)); color: var(--sge-ink); border-left: 3px solid var(--sge-orange); }
+
+.sge-schedule-remove {
+    min-height: 2.75rem;
+    padding-block: .55rem;
+    cursor: pointer;
+}
+
+@media (max-width: 575.98px) {
+    .sge-week-schedule { display: block; min-width: 0; }
+    .sge-week-schedule-day { border-right: 0; }
+    .sge-week-schedule-track { display: grid; gap: .5rem; height: auto; padding: .75rem; }
+    .sge-week-schedule-hour { display: none; }
+    .sge-week-schedule-slot { position: static; height: auto !important; padding: 0; }
+    .sge-week-schedule-edit { min-height: 2.75rem; padding: .5rem .75rem; overflow-wrap: anywhere; }
+}
 .sge-schedule-limit-row { display: flex; align-items: center; justify-content: space-between; gap: .65rem; padding: .55rem 0; border-bottom: 1px solid var(--sge-border); }
 .sge-schedule-limit-row:last-child { border-bottom: 0; }
 .sge-schedule-limit-row strong,
@@ -5626,7 +5650,10 @@ textarea:focus-visible {
 
 @media (max-width: 575.98px) {
     .sge-attendance-student-column {
-        min-width: 10.5rem;
+        width: clamp(6rem, 32vw, 8rem);
+        min-width: clamp(6rem, 32vw, 8rem);
+        max-width: clamp(6rem, 32vw, 8rem);
+        overflow-wrap: anywhere;
     }
 
     .sge-academic-metrics {
@@ -6737,27 +6764,75 @@ small,
     min-width: 0;
 }
 
-#document-type.sge-document-type-list {
-    height: 18rem;
-    max-height: 42vh;
-    overflow-y: auto;
+.sge-document-type-picker > summary,
+.sge-document-type-choices {
+    border: 1px solid var(--sge-border);
+    border-radius: .55rem;
+    background: var(--sge-paper);
+    color: var(--sge-ink);
+    overflow-wrap: anywhere;
 }
 
-.sge-document-step-content > label,
-.sge-document-step-content > h3,
-.sge-document-step-heading h3 {
-    color: var(--sge-ink);
+.sge-document-type-picker > summary {
+    padding: .65rem .8rem;
+    cursor: pointer;
+    min-height: 2.75rem;
+}
+
+.sge-document-type-choices {
+    margin-top: .35rem;
+    max-height: min(23rem, 45vh);
+    overflow-y: auto;
+    padding: .35rem;
+}
+
+.sge-document-type-group {
+    padding: .45rem .6rem .15rem;
     font-weight: 700;
 }
 
-.sge-document-step-content > label {
-    margin-bottom: .45rem;
+.sge-document-type-choices button {
+    display: block;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: .5rem .75rem;
+    border: 0;
+    border-radius: .3rem;
+    color: inherit;
+    background: transparent;
+    text-align: start;
+    overflow-wrap: anywhere;
 }
 
-.sge-document-step-content > h3,
-.sge-document-step-heading h3 {
+.sge-document-type-choices button:is(:hover, [aria-pressed="true"]) {
+    background: var(--sge-surface);
+}
+
+.sge-document-type-choices button[aria-pressed="true"] {
+    font-weight: 700;
+}
+
+.sge-document-type-picker :is(summary, button):focus-visible,
+.sge-selected-target:focus {
+    outline: 3px solid var(--sge-blue);
+    outline-offset: 2px;
+}
+
+#document-type[hidden],
+.sge-document-type-picker[hidden] {
+    display: none;
+}
+
+.sge-document-step-content > h2,
+.sge-document-step-heading h2 {
+    color: var(--sge-ink);
+    font-weight: 700;
     margin: .1rem 0 0;
     font-size: 1.08rem;
+}
+
+#document-type-title {
+    margin-bottom: .45rem;
 }
 
 .sge-document-step-label {

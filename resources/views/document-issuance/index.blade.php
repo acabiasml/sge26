@@ -45,8 +45,8 @@
             <div class="sge-document-step">
                 <div class="sge-document-step-number" aria-hidden="true">1</div>
                 <div class="sge-document-step-content">
-                    <label for="document-type">{{ __('Qual documento deseja emitir?') }}</label>
-                    <select id="document-type" name="type" class="form-control sge-document-type-list" size="8" required aria-describedby="document-type-help">
+                    <h2 id="document-type-title">{{ __('Qual documento deseja emitir?') }}</h2>
+                    <select id="document-type" name="type" class="form-control" required aria-labelledby="document-type-title" aria-describedby="document-type-help">
                         <option value="">{{ __('Selecione o tipo de documento') }}</option>
                         @foreach ($typeGroups as $group => $types)
                             <optgroup label="{{ __($group) }}">
@@ -65,6 +65,12 @@
                             </optgroup>
                         @endforeach
                     </select>
+                    <details id="document-type-picker" class="sge-document-type-picker" hidden>
+                        <summary id="document-type-summary" aria-labelledby="document-type-title document-type-label" aria-describedby="document-type-help">
+                            <span id="document-type-label">{{ __('Selecione o tipo de documento') }}</span>
+                        </summary>
+                        <div id="document-type-choices" class="sge-document-type-choices"></div>
+                    </details>
                     <p id="document-type-help" class="sge-document-type-help mb-0">
                         {{ __('Selecione uma opção para preparar o documento.') }}
                     </p>
@@ -77,7 +83,7 @@
                     <div class="sge-document-step-heading">
                         <div>
                             <span class="sge-document-step-label">{{ __('Registro') }}</span>
-                            <h3 id="target-heading">{{ __('Localize o destinatário') }}</h3>
+                            <h2 id="target-heading">{{ __('Localize o destinatário') }}</h2>
                         </div>
                         <small>{{ __('Até 40 resultados por página.') }}</small>
                     </div>
@@ -126,10 +132,10 @@
                     <input type="hidden" name="history_person_id" id="history-person-id" value="{{ old('history_person_id') }}" disabled>
                     <input type="hidden" name="history_stage" id="history-stage" disabled>
                     <input type="hidden" name="confirm_missing_student_cpf" id="confirm-missing-student-cpf" value="0">
-                    <div id="selected-target" class="sge-selected-target" hidden>
+                    <div id="selected-target" class="sge-selected-target" tabindex="-1" role="group" aria-labelledby="selected-target-label selected-target-title" hidden>
                         <span class="sge-selected-target-icon" aria-hidden="true"><i class="fas fa-check"></i></span>
                         <div>
-                            <small>{{ __('Selecionado para emissão') }}</small>
+                            <small id="selected-target-label">{{ __('Selecionado para emissão') }}</small>
                             <strong id="selected-target-title"></strong>
                             <span id="selected-target-subtitle"></span>
                         </div>
@@ -145,7 +151,7 @@
                 <div class="sge-document-step-number" aria-hidden="true">3</div>
                 <div class="sge-document-step-content">
                     <span class="sge-document-step-label">{{ __('Apresentação') }}</span>
-                    <h3>{{ __('Defina as opções do documento') }}</h3>
+                    <h2>{{ __('Defina as opções do documento') }}</h2>
 
                     <div class="form-group" id="signature-options" hidden>
                         <label for="issuance-signature-mode">{{ __('Como o documento será assinado?') }}</label>
@@ -317,6 +323,10 @@
             const form = document.getElementById('document-issuance-form');
             const typeSelect = document.getElementById('document-type');
             const typeHelp = document.getElementById('document-type-help');
+            const typePicker = document.getElementById('document-type-picker');
+            const typeSummary = document.getElementById('document-type-summary');
+            const typeLabel = document.getElementById('document-type-label');
+            const typeChoices = document.getElementById('document-type-choices');
             const targetStep = document.getElementById('target-step');
             const optionsStep = document.getElementById('options-step');
             const academicYears = @json($academicYears);
@@ -461,6 +471,10 @@
                 const kind = targetKind();
                 const hasType = Boolean(option?.value && kind);
 
+                typeLabel.textContent = option?.text.trim() || typeSelect.options[0].text.trim();
+                typeChoices.querySelectorAll('button').forEach((button) => {
+                    button.setAttribute('aria-pressed', String(button.value === typeSelect.value));
+                });
                 typeHelp.textContent = hasType ? option.dataset.description : @js(__('Selecione uma opção para preparar o documento.'));
                 targetStep.classList.toggle('is-muted', !hasType);
                 queryInput.disabled = !hasType;
@@ -522,7 +536,7 @@
                 }
                 syncSignatureOptions();
                 syncAttendanceOptions();
-                selectedTarget.focus?.();
+                selectedTarget.focus();
             };
 
             const renderResults = (targets, append = false, hasMore = false) => {
@@ -633,6 +647,64 @@
                     moreButton.disabled = false;
                 }
             };
+
+            typeSelect.querySelectorAll('optgroup').forEach((options) => {
+                const group = document.createElement('div');
+                group.setAttribute('role', 'group');
+                group.setAttribute('aria-label', options.label);
+                const title = document.createElement('div');
+                title.className = 'sge-document-type-group';
+                title.textContent = options.label;
+                title.setAttribute('aria-hidden', 'true');
+                group.append(title);
+
+                for (const option of options.children) {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.value = option.value;
+                    button.textContent = option.text.trim();
+                    group.append(button);
+                }
+                typeChoices.append(group);
+            });
+            typeChoices.addEventListener('click', (event) => {
+                const choice = event.target.closest('button');
+                if (!choice) return;
+                typePicker.open = false;
+                typeSummary.focus();
+                if (typeSelect.value === choice.value) return;
+                typeSelect.value = choice.value;
+                typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+            typePicker.addEventListener('keydown', (event) => {
+                if (!typePicker.open) return;
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    typePicker.open = false;
+                    typeSummary.focus();
+                    return;
+                }
+
+                if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+                const choices = Array.from(typeChoices.querySelectorAll('button'));
+                if (!choices.length) return;
+
+                event.preventDefault();
+                const index = choices.indexOf(event.target);
+                const offset = event.key === 'ArrowUp' ? -1 : 1;
+                let nextIndex = index < 0 && offset < 0 ? choices.length - 1 : (index + offset + choices.length) % choices.length;
+                if (event.key === 'Home') nextIndex = 0;
+                if (event.key === 'End') nextIndex = choices.length - 1;
+                choices[nextIndex].focus();
+            });
+            typeSelect.addEventListener('invalid', (event) => {
+                if (!typeSelect.hidden) return;
+                event.preventDefault();
+                typePicker.open = true;
+                typeSummary.focus();
+            });
+            typeSelect.hidden = true;
+            typePicker.hidden = false;
 
             typeSelect.addEventListener('change', () => {
                 searchController?.abort();

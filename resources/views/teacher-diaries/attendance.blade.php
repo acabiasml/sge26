@@ -40,7 +40,7 @@
                         <p id="all-present-help" class="small text-muted mt-2 mb-0">{{ __('Marca todas as presenças disponíveis nesta folha. Ajuste as faltas antes de salvar.') }}</p>
                         <span class="sr-only" role="status" aria-live="polite" data-all-present-status></span>
                     </div>
-                    <div class="table-responsive sge-attendance-sheet-wrap">
+                    <div class="table-responsive sge-attendance-sheet-wrap" role="region" aria-label="{{ __('Tabela da folha de frequência') }}">
                         {{-- A chamada exibe todos os estudantes da turma, sem paginação de linhas. --}}
                         @php($componentName = $component->name)
                         <x-livewire-table per-page="0">

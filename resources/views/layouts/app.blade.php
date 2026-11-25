@@ -749,6 +749,27 @@
             link.setAttribute('aria-current', 'page');
         });
 
+        const contentTopbar = document.querySelector('#content > .topbar');
+        const mainContent = document.getElementById('main-content');
+        if (contentTopbar && mainContent) {
+            const syncTopbarClearance = () => {
+                document.documentElement.style.setProperty('--sge-topbar-clearance', `${contentTopbar.offsetHeight + 8}px`);
+            };
+            syncTopbarClearance();
+            new ResizeObserver(syncTopbarClearance).observe(contentTopbar);
+
+            mainContent.addEventListener('focusin', ({ target }) => {
+                requestAnimationFrame(() => {
+                    if (target !== document.activeElement || target.closest('.modal')) return;
+                    const bounds = target.getBoundingClientRect();
+                    const header = contentTopbar.getBoundingClientRect();
+                    if (bounds.bottom > header.top && bounds.top < header.bottom) {
+                        target.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'instant' });
+                    }
+                });
+            });
+        }
+
         let nextTableHintId = 0;
         const syncResponsiveTableHints = () => {
             document.querySelectorAll('.table-responsive').forEach((container) => {

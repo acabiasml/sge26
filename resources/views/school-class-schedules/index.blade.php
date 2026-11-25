@@ -139,17 +139,25 @@
                         </a>
                     </div>
                     <div class="card-body p-0">
-                        <div class="sge-week-schedule-wrap">
-                            <div class="sge-week-schedule" style="grid-template-columns: repeat({{ count($weekdays) }}, minmax(9.5rem, 1fr)); min-width: {{ count($weekdays) * 9.5 }}rem;">
+                        <div class="sge-week-schedule-picker p-3 d-sm-none" hidden>
+                            <label for="weekly-schedule-day">{{ __('Dia da semana') }}</label>
+                            <select id="weekly-schedule-day" class="form-control">
                                 @foreach($weekdays as $weekday => $weekdayLabel)
-                                    <section class="sge-week-schedule-day">
+                                    <option value="{{ $weekday }}">{{ __($weekdayLabel) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="table-responsive sge-week-schedule-wrap" role="region" aria-labelledby="weekly-schedule-title">
+                            <div class="sge-week-schedule" style="--sge-schedule-days: {{ count($weekdays) }}">
+                                @foreach($weekdays as $weekday => $weekdayLabel)
+                                    <section class="sge-week-schedule-day" data-schedule-day="{{ $weekday }}">
                                         <h3>{{ __($weekdayLabel) }}</h3>
                                         <div class="sge-week-schedule-track">
                                             @for($hour = 6; $hour <= 22; $hour++)
                                                 <span class="sge-week-schedule-hour" style="top: {{ (($hour - 6) / 16) * 100 }}%">{{ sprintf('%02d:00', $hour) }}</span>
                                             @endfor
 
-                                            @foreach($schedule->slots->where('weekday', $weekday)->sortBy('starts_at') as $slot)
+                                            @forelse($schedule->slots->where('weekday', $weekday)->sortBy('starts_at') as $slot)
                                                 @php($startParts = explode(':', $slot->starts_at))
                                                 @php($endParts = explode(':', $slot->ends_at))
                                                 @php($startMinutes = ((int) $startParts[0] * 60) + (int) $startParts[1])
@@ -169,13 +177,10 @@
                                                         @endif
                                                         <small>{{ substr($slot->starts_at, 0, 5) }}-{{ substr($slot->ends_at, 0, 5) }}</small>
                                                     </button>
-                                                    <form method="POST" action="{{ route('academic-years.classes.schedules.slots.destroy', [$academicYear, $class, $schedule, $slot]) }}" data-confirm-message="{{ __('Remover este bloco?') }}">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" aria-label="{{ __('Remover bloco') }} {{ $slot->type === 'aula' ? $slot->componentAssignment?->component?->name : $slot->label }}" title="{{ __('Remover bloco') }}"><i class="fas fa-times" aria-hidden="true"></i></button>
-                                                    </form>
                                                 </article>
-                                            @endforeach
+                                            @empty
+                                                <p class="d-sm-none m-0 p-2">{{ __('Nenhum bloco neste dia.') }}</p>
+                                            @endforelse
                                         </div>
                                     </section>
                                 @endforeach
@@ -211,6 +216,15 @@
                                 <button type="submit" class="btn btn-primary"><i class="fas fa-save mr-1" aria-hidden="true"></i>{{ __('Salvar bloco') }}</button>
                             </div>
                         </form>
+                        <details class="border-top px-3 py-2" data-schedule-remove>
+                            <summary class="sge-schedule-remove text-danger">{{ __('Remover bloco') }}</summary>
+                            <form class="pb-2" method="POST" action="{{ route('academic-years.classes.schedules.slots.destroy', [$academicYear, $class, $schedule, $slot]) }}">
+                                @csrf
+                                @method('DELETE')
+                                <p>{{ __('Remover este bloco?') }}</p>
+                                <button type="submit" class="btn btn-danger">{{ __('Confirmar remoção') }}</button>
+                            </form>
+                        </details>
                     </div>
                 </div>
             </div>
@@ -222,6 +236,27 @@
 
 @push('scripts')
 <script>
+const weeklyDay = document.getElementById('weekly-schedule-day');
+if (weeklyDay) {
+    const compactSchedule = window.matchMedia('(max-width: 575.98px)');
+    const days = document.querySelectorAll('[data-schedule-day]');
+    const showDay = () => {
+        days.forEach((day) => {
+            day.hidden = compactSchedule.matches && day.dataset.scheduleDay !== weeklyDay.value;
+        });
+    };
+    weeklyDay.closest('.sge-week-schedule-picker').hidden = false;
+    weeklyDay.addEventListener('change', showDay);
+    compactSchedule.addEventListener('change', showDay);
+    showDay();
+}
+
+document.querySelectorAll('[data-schedule-remove]').forEach((confirmation) => {
+    window.jQuery(confirmation.closest('.modal')).on('hidden.bs.modal', () => {
+        confirmation.open = false;
+    });
+});
+
 document.querySelectorAll('[data-schedule-slot-form]').forEach((form) => {
     const type = form.querySelector('[data-slot-type]');
     const component = form.querySelector('[data-slot-component]');

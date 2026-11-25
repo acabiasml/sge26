@@ -92,7 +92,7 @@
                         <div class="alert alert-{{ $alert->dismissed_at ? 'secondary' : 'warning' }} mb-2 d-flex align-items-start justify-content-between flex-wrap">
                             <div class="mr-3">
                                 <strong>{{ $alert->fromPerson?->full_name ?? __('Gestão') }}</strong>
-                                <span class="small text-muted">· {{ $alert->created_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}</span>
+                                <span class="small">· {{ $alert->created_at?->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}</span>
                                 @if($alert->dismissed_at)
                                     <span class="badge badge-secondary ml-2">{{ __('Já visto') }} · {{ $alert->dismissed_at->timezone('America/Sao_Paulo')->format('d/m/Y H:i') }}</span>
                                 @else

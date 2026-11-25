@@ -4,7 +4,7 @@
     overflow-x: clip;
     overflow-y: visible;
 }
-#main-content { scroll-margin-top: 5.5rem; }
+html { scroll-padding-block-start: var(--sge-topbar-clearance, 5.5rem); }
 #accordionSidebar,
 #accordionSidebar.toggled {
     box-sizing: border-box;
@@ -261,5 +261,4 @@
     .sge-topbar-controls > .sge-language-switcher { grid-area: 2 / 1; }
     .sge-topbar-controls > li:has(#alertsDropdown) { grid-area: 2 / 2; }
     .sge-topbar-controls > li:has(#userDropdown) { grid-area: 2 / 3; }
-    #main-content { scroll-margin-top: 8rem; }
 }
