@@ -1,6 +1,5 @@
 {
   "operation": "documented-diary-import",
-  "mode": "apply",
-  "transport_key_id": "0515dea2270fb51eca19e59ed0dae553",
-  "expected_snapshot_sha256": "9da6e11a32fd17222dd58bd0407bc2f6608df7371572e0a09fbf79101557502a"
+  "mode": "dry-run",
+  "transport_key_id": "0515dea2270fb51eca19e59ed0dae553"
 }
