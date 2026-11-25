@@ -1085,7 +1085,7 @@ class DocumentIssuanceController extends Controller
             'completion-declaration' => 'enrollments.completion-declaration.pdf',
             'high-school-completion-certificate' => 'enrollments.high-school-certificate.prepare',
             'attendance-certificate' => 'enrollments.attendance-certificate.pdf',
-            'transfer-certificate' => 'enrollments.transfer-certificate.prepare',
+            'transfer-certificate' => 'enrollments.transfer-certificate.pdf',
             'enrollment-form' => 'enrollments.pdf',
             'report-card' => 'enrollments.report-card.pdf',
             'student-progress' => 'enrollments.progress.pdf',
