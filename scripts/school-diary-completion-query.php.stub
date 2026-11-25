@@ -1,12 +1,10 @@
 <?php
 
-use App\Models\AcademicPeriodDiaryConsolidation;
 use App\Models\AcademicYear;
 use App\Models\DiaryAssessment;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\DiaryContent;
 use App\Models\DiaryExcludedDate;
-use App\Models\DiaryPeriodConfirmation;
 use App\Models\School;
 use App\Models\StudentEnrollment;
 use App\Models\StudentPeriodConvalidation;
@@ -34,7 +32,7 @@ try {
         $periods = $year->periods->filter(fn ($period) => in_array($period->position, [1, 2, 3], true)
             && (str_contains(Str::lower(Str::ascii($period->name)), 'bimestr')
                 || ($year->periods->count() === 4 && preg_match('/^(?:I|II|III|[123])$/i', Str::squish($period->name)))));
-        $snapshot['calendars'][] = ['name' => $year->name, 'id' => $year->id, 'closed' => $year->isClosed(),
+        $snapshot['calendars'][] = ['name' => $year->name, 'id' => $year->id,
             'periods' => $year->periods->sortBy('position')->map(fn ($p) => $p->only(['id', 'name', 'position', 'starts_at', 'ends_at']))->values()->all(),
             'covered' => $periods->pluck('position')->sort()->values()->all()];
         if ($periods->isEmpty()) {
@@ -55,8 +53,6 @@ try {
             preg_replace('/[\s\x{00a0}\x{200b}]+/u', '', html_entity_decode(strip_tags((string) $row->content), ENT_QUOTES | ENT_HTML5, 'UTF-8')) !== '')
             ->groupBy($key);
         $assessments = $records(DiaryAssessment::class)->with('results:id,diary_assessment_id,student_enrollment_id,score')->get()->groupBy($key);
-        $confirmations = $records(DiaryPeriodConfirmation::class)->get()->keyBy($key);
-        $consolidations = AcademicPeriodDiaryConsolidation::whereIn('academic_period_id', $periodIds)->get()->keyBy('academic_period_id');
         $origin = StudentPeriodConvalidation::whereIn('student_enrollment_id', $assignments->pluck('schoolClass.enrollments')->flatten()->pluck('id')->unique())
             ->whereIn('academic_period_id', $periodIds)->whereIn('curriculum_component_id', $componentIds)
             ->whereNotNull('score')->get(['student_enrollment_id', 'curriculum_component_id', 'academic_period_id'])
@@ -84,8 +80,7 @@ try {
                 $a = $attendance->get($diaryKey, collect());
                 $c = $contents->get($diaryKey, collect());
                 $tests = $assessments->get($diaryKey, collect());
-                $confirmation = $confirmations->get($diaryKey);
-                $hasEntries = $a->isNotEmpty() || $c->isNotEmpty() || $tests->isNotEmpty() || $confirmation;
+                $hasEntries = $a->isNotEmpty() || $c->isNotEmpty() || $tests->isNotEmpty();
                 $enrollments = $class->enrollments->filter(fn ($e) => $e->courses->contains('id', $course->id)
                     && ($e->enrolled_at?->toDateString() ?? $start) <= $end
                     && ($e->attendanceEndsAt() ?? $end) >= $start);
@@ -137,8 +132,6 @@ try {
                     'year_id' => $year->id, 'class_id' => $class->id, 'class' => $class->name, 'component_id' => $component->id,
                     'component' => $component->name, 'course' => $course->name, 'stage' => $course->stage,
                     'period_id' => $period->id, 'period' => $position,
-                    'consolidated' => (bool) $consolidations->get($period->id)?->consolidated,
-                    'confirmation' => $confirmation?->confirmed ? 'confirmed' : ($confirmation?->reopened_at ? 'reopened' : 'unconfirmed'),
                     'attendance_dates' => $recordedAttendance->count(), 'attendance_lessons' => (int) $a->sum('lesson_count'),
                     'content_dates' => $recordedContents->count(),
                     'attendance_without_content' => $recordedAttendance->diff($recordedContents)->values()->all(),
