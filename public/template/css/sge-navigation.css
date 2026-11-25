@@ -11,14 +11,16 @@ html { scroll-padding-block-start: var(--sge-topbar-clearance, 5.5rem); }
     flex-shrink: 0;
     height: 100dvh;
     min-height: 0;
+    padding-inline: 0;
     overflow: hidden !important;
 }
-#accordionSidebar .sge-sidebar-header { flex-shrink: 0; }
+#accordionSidebar .sge-sidebar-header { flex-shrink: 0; margin-inline: .5rem; }
 #accordionSidebar .sge-sidebar-items {
     display: flex;
     flex-direction: column;
     flex: 1;
     min-height: 0;
+    padding: .5rem;
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -167,7 +169,6 @@ html { scroll-padding-block-start: var(--sge-topbar-clearance, 5.5rem); }
         position: sticky;
         top: 0;
         width: 17rem !important;
-        padding-inline: .5rem;
         z-index: 1030;
         transition: width .26s cubic-bezier(.2, .8, .2, 1);
     }
