@@ -202,6 +202,52 @@ class SchoolLetterheadStageTest extends TestCase
         $this->assertNull($technicalAuthorization['message']);
         $this->assertSame([], $technicalAuthorization['renewal_notices']);
         $this->assertNull($other->fresh()->document_authorizations);
+
+        $laura->update(['legal_name' => 'Centro Social General Carneiro',
+            'letterhead_text' => 'Ato de criação 001/93 C.S.G.C. Autorização 486/2025-CEE/MT.']);
+        $centralize = require database_path('migrations/2026_11_25_000001_centralize_verified_school_document_data.php');
+        $centralize->up();
+        $centralize->up();
+
+        $lar->refresh();
+        $laura->refresh();
+        $liceu->refresh();
+        $this->assertSame(['accreditation', 'fundamental_educacao_do_campo', 'medio_educacao_do_campo'],
+            array_keys($lar->document_authorizations));
+        $this->assertSame('Ata da Assembleia Geral do CTJJ de 01/06/1993 · DOE-MT de 23/09/1993, p. 19', $lar->creation_act);
+        $this->assertSame('Ata de fundação do CTJJ de 04/10/1990 · DOE-MT de 07/11/1990, p. 22', $liceu->creation_act);
+        $this->assertTrue($lar->usesAutomaticLetterhead());
+        $this->assertSame([$existing['act'], $acts['fundamental_educacao_do_campo']['act']], $lar->letterheadTextsForStages(['fundamental']));
+        $this->assertNull(OfficialDocumentCompliance::authorizationDetails($lar, ['fundamental'], [['fundamental', 'regular', 2024]])['message']);
+        $this->assertNotNull(OfficialDocumentCompliance::authorizationDetails($lar, ['fundamental'], [['fundamental', 'regular', 2026]])['message']);
+        $this->assertArrayNotHasKey('medio', $liceu->document_authorizations);
+        $this->assertSame($renewal['renewal_notices'], OfficialDocumentCompliance::authorizationDetails($liceu, ['fundamental', 'medio'])['renewal_notices']);
+        $this->assertSame('Autorização padrão', $liceu->letterhead_text);
+        $this->assertSame('Ato 001/93 · Centro Social de General Carneiro', $laura->creation_act);
+        $this->assertSame('Centro Técnico Juvenil de Jarudore', $laura->legal_name);
+        $this->assertSame('Centro Técnico Juvenil de Jarudore', $laura->maintainer);
+        $this->assertSame('Sistema Estadual de Ensino de Mato Grosso', $laura->education_system);
+        $this->assertCount(2, $laura->letterheadTextsForStages(['fundamental', 'medio']));
+    }
+
+    public function test_automatic_letterhead_uses_the_acts_instead_of_the_legacy_text_field(): void
+    {
+        $accreditation = ['act' => 'Credenciamento cadastrado', 'published_on' => '2020-01-01', 'starts_on' => '2020-01-01'];
+        $school = School::create($this->schoolData() + ['document_authorizations' => ['accreditation' => $accreditation]]);
+        $this->actingAs($this->user(PersonSchoolRole::ROLE_MANAGER, $school));
+        $data = $this->schoolData();
+        unset($data['letterhead_text']);
+        $this->put(route('schools.update', $school), $data + ['letterhead_mode' => 'automatic'])->assertSessionHasNoErrors();
+
+        $school->refresh();
+        $this->assertTrue($school->hasRequiredLetterheadForOfficialDocuments());
+        $this->assertSame(['Credenciamento cadastrado'], $school->letterheadTextsForStages());
+        $this->assertSame($accreditation['act'], $school->documentAccreditationReference());
+        $this->get(route('schools.edit', $school))->assertOk()
+            ->assertSee('value="automatic" selected', false)
+            ->assertSee('id="section-cursos"', false)
+            ->assertDontSee('name="accreditation_act"', false)
+            ->assertDontSee('value="fundamental" ', false);
     }
 
     public function test_history_preview_version_follows_the_line_for_its_stage(): void

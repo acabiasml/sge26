@@ -122,10 +122,10 @@ class SchoolController extends Controller
             'accreditation_act' => ['nullable', 'string', 'max:2000'],
             'education_system' => ['nullable', 'string', 'max:255'],
             'registry_medium' => ['sometimes', 'required', Rule::in(array_keys(School::REGISTRY_MEDIA))],
-            'letterhead_mode' => ['sometimes', 'required', Rule::in(['shared', 'by_stage'])],
-            'letterhead_text' => ['required', 'string', 'max:5000'],
+            'letterhead_mode' => ['sometimes', 'required', Rule::in(['automatic', 'shared', 'by_stage'])],
+            'letterhead_text' => ['exclude_if:letterhead_mode,automatic', 'required', 'string', 'max:5000'],
             'letterhead_text_elementary' => [Rule::excludeIf($request->has('letterhead_mode')), 'nullable', 'string', 'max:5000'],
-            'letterhead_text_high_school' => ['exclude_if:letterhead_mode,shared', 'required_if:letterhead_mode,by_stage', 'nullable', 'string', 'max:5000'],
+            'letterhead_text_high_school' => ['exclude_if:letterhead_mode,automatic', 'exclude_if:letterhead_mode,shared', 'required_if:letterhead_mode,by_stage', 'nullable', 'string', 'max:5000'],
             'logo' => ['nullable', 'image', 'max:2048'],
             'address' => ['required', 'string', 'max:255'],
             'district' => ['nullable', 'string', 'max:255'],
@@ -137,7 +137,11 @@ class SchoolController extends Controller
         ] + $this->authorizationRules());
 
         if (isset($data['letterhead_mode'])) {
-            if ($data['letterhead_mode'] === 'by_stage' && $data['letterhead_text'] !== $data['letterhead_text_high_school']) {
+            if ($data['letterhead_mode'] === 'automatic') {
+                $data['letterhead_text'] = null;
+                $data['letterhead_text_elementary'] = null;
+                $data['letterhead_text_high_school'] = null;
+            } elseif ($data['letterhead_mode'] === 'by_stage' && $data['letterhead_text'] !== $data['letterhead_text_high_school']) {
                 $data['letterhead_text_elementary'] = $data['letterhead_text'];
                 $data['letterhead_text'] = filled($school?->letterhead_text) ? $school->letterhead_text : $data['letterhead_text_elementary'];
             } else {

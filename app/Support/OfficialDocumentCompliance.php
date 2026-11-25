@@ -31,7 +31,8 @@ class OfficialDocumentCompliance
     {
         $date = now('America/Cuiaba')->toDateString();
         $acts = $school->document_authorizations ?? [];
-        $keys = ['accreditation', ...array_intersect($stages, [AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL])];
+        $keys = ['accreditation'];
+        $stagesWithoutModality = array_fill_keys(array_intersect($stages, [AcademicCourse::STAGE_ELEMENTARY, AcademicCourse::STAGE_HIGH_SCHOOL]), true);
         $isLar = preg_replace('/\D/', '', (string) $school->cnpj) === '00176974000392';
         foreach ($offerings as $offering) {
             [$stage, $modality, $referenceYear] = $offering;
@@ -48,6 +49,10 @@ class OfficialDocumentCompliance
                 $modality = AcademicCourse::MODALITY_RURAL;
             }
             $keys[] = $stage.'_'.($modality ?? 'missing');
+            unset($stagesWithoutModality[$stage]);
+        }
+        foreach (array_keys($stagesWithoutModality) as $stage) {
+            array_push($keys, ...self::stageAuthorizationKeys($acts, $stage, $date));
         }
 
         $details = ['acts' => [], 'renewal_notices' => [], 'message' => null];
@@ -77,6 +82,24 @@ class OfficialDocumentCompliance
         $details['renewal_notices'] = array_values(array_unique($details['renewal_notices']));
 
         return $details;
+    }
+
+    private static function stageAuthorizationKeys(array $acts, string $stage, string $date): array
+    {
+        $current = [];
+        $renewing = [];
+        foreach ($acts as $key => $act) {
+            if (! str_starts_with($key, $stage.'_') || ! is_array($act)) {
+                continue;
+            }
+            if (self::isCurrentAct($act, $date)) {
+                $current[] = $key;
+            } elseif (self::renewalNotice($key, $act, $date) !== null) {
+                $renewing[] = $key;
+            }
+        }
+
+        return $current ?: ($renewing ?: [$stage]);
     }
 
     public static function isCurrentAct(array $act, string $date): bool

@@ -288,6 +288,7 @@ with tempfile.TemporaryDirectory() as directory:
         commands.append(('Aplicar dados de conclusão no histórico escolar', 'php artisan migrate --path=database/migrations/2026_11_24_000001_add_completion_details_to_student_academic_histories.php --force --no-ansi'))
         commands.append(('Aplicar vínculo entre reclassificação e registro', 'php artisan migrate --path=database/migrations/2026_11_24_000002_link_reclassification_to_credential_registration.php --force --no-ansi'))
         commands.append(('Cadastrar atos autorizativos conferidos e renovação do Liceu', 'php artisan migrate --path=database/migrations/2026_11_24_000003_pre_fill_published_school_authorizations.php --force --no-ansi'))
+        commands.append(('Centralizar atos e dados institucionais conferidos', 'php artisan migrate --path=database/migrations/2026_11_25_000001_centralize_verified_school_document_data.php --force --no-ansi'))
         commands.append(('Conferir o meio de registro das escolas', 'php -r \'require "vendor/autoload.php"; '
                          '$app = require "bootstrap/app.php"; $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); '
                          'foreach (\\App\\Models\\School::query()->where("active", true)->orderBy("name")->get(["name", "state", "registry_medium", "document_authorizations"]) as $school) '

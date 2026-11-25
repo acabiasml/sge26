@@ -6,9 +6,15 @@
     $groups = ['current' => [], 'inactive' => [], 'pending' => [], 'available' => []];
     foreach (School::documentAuthorizationLabels() as $kind => $label) {
         $act = $school->document_authorizations[$kind] ?? [];
+        $registered = collect($act)->contains(fn ($value) => filled($value));
+        // As chaves genéricas permanecem editáveis quando já cadastradas.
+        if ($kind !== 'accreditation' && isset(School::DOCUMENT_AUTHORIZATIONS[$kind])
+            && ! $registered && old("document_authorizations.$kind") === null) {
+            continue;
+        }
         $group = match (true) {
             OfficialDocumentCompliance::isCurrentAct($act, $today) => 'current',
-            collect($act)->contains(fn ($value) => filled($value)) => 'inactive',
+            $registered => 'inactive',
             old("document_authorizations.$kind") !== null, $errors->has("document_authorizations.$kind.*") => 'pending',
             default => 'available',
         };
