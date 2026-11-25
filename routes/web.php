@@ -342,8 +342,7 @@ Route::middleware(['auth', 'profile.complete'])->group(function (): void {
     Route::get('matriculas/{enrollment}/declaracao-conclusao-pdf', [StudentEnrollmentCertificateController::class, 'completionDeclaration'])->name('enrollments.completion-declaration.pdf');
     Route::get('matriculas/{enrollment}/atestado-frequencia-pdf', [StudentEnrollmentCertificateController::class, 'attendance'])->name('enrollments.attendance-certificate.pdf');
     Route::get('matriculas/{enrollment}/atestado-transferencia-pdf', [StudentEnrollmentCertificateController::class, 'transfer'])->name('enrollments.transfer-certificate.pdf');
-    Route::get('matriculas/{enrollment}/atestado-transferencia', [StudentEnrollmentCertificateController::class, 'prepareTransfer'])->name('enrollments.transfer-certificate.prepare');
-    Route::post('matriculas/{enrollment}/atestado-transferencia', [StudentEnrollmentCertificateController::class, 'transfer'])->name('enrollments.transfer-certificate.register');
+    Route::match(['get', 'post'], 'matriculas/{enrollment}/atestado-transferencia', [StudentEnrollmentCertificateController::class, 'transfer']);
     Route::get('matriculas/{enrollment}/certificado-ensino-medio', [StudentEnrollmentCertificateController::class, 'highSchoolCertificate'])->name('enrollments.high-school-certificate.prepare');
     Route::post('matriculas/{enrollment}/certificado-ensino-medio', [StudentEnrollmentCertificateController::class, 'highSchoolCertificate'])->name('enrollments.high-school-certificate.register');
     Route::match(['get', 'post'], 'matriculas/{enrollment}/transferencia-recebida', [SchoolRecordEvidenceController::class, 'receivedTransfer'])->name('enrollments.received-transfer');

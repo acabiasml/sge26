@@ -20,7 +20,7 @@ final class CredentialRegistry
         'technical-intermediate-certificate' => 'certificate', 'free-course-certificate' => 'certificate', 'technical-course-diploma' => 'diploma',
         'high-school-completion-certificate' => 'high-school', 'student-academic-history' => 'history',
         'class-final-results' => 'final-results', 'academic-year-final-results' => 'final-results',
-        'student-transfer-certificate' => 'transfer', 'received-transfer' => 'transfer', 'school-special-process' => 'special-process',
+        'received-transfer' => 'transfer', 'school-special-process' => 'special-process',
     ] + InstitutionalSchoolRecord::DOCUMENT_TYPES;
 
     public const ACTIONS = ['opened' => 'Abertura', 'registered' => 'Registro', 'closed' => 'Encerramento', 'annotation' => 'Averbação', 'cancelled' => 'Cancelamento', 'signed_document' => 'PDF assinado e conferência externa', 'physical_signed' => 'Via assinada em papel', 'second_copy' => 'Segunda via', 'apostille' => 'Apostilamento', 'credential_evidence' => 'Comprovantes da certificação', 'delivered' => 'Protocolo de entrega', 'book_export' => 'Consolidação do livro', 'book_signed' => 'Livro assinado e conferência externa', 'backup' => 'Cópia de segurança'];

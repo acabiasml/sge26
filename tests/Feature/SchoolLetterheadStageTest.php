@@ -379,20 +379,26 @@ class SchoolLetterheadStageTest extends TestCase
 
     public function test_student_documents_and_class_letterhead_respect_enrollment_stage_and_parallel_technical_courses(): void
     {
+        $act = ['act' => 'Ato cadastrado', 'published_on' => '2024-01-01', 'starts_on' => '2024-01-01'];
         $school = School::create($this->schoolData() + ['letterhead_text_elementary' => 'Autorização EF exclusiva',
-            'letterhead_text_high_school' => 'Autorização EM exclusiva']);
+            'letterhead_text_high_school' => 'Autorização EM exclusiva', 'document_authorizations' => [
+                'accreditation' => $act, 'fundamental_regular' => $act, 'medio_regular' => $act,
+                'tecnico_educacao_profissional_tecnologica' => $act,
+            ]]);
         $admin = $this->user(PersonSchoolRole::ROLE_ADMINISTRATOR);
         $this->actingAs($admin);
         $year = AcademicYear::create(['school_id' => $school->id, 'name' => 'Educação Básica', 'reference_year' => 2026,
             'starts_at' => '2026-02-01', 'ends_at' => '2026-12-18', 'approved_at' => '2026-01-01', 'active' => true]);
         $year->periods()->create(['name' => '1º Bimestre', 'starts_at' => '2026-02-01', 'ends_at' => '2026-04-10', 'position' => 1]);
-        $technical = $year->courses()->create(['name' => 'Itinerário técnico', 'stage' => AcademicCourse::STAGE_TECHNICAL, 'active' => true]);
+        $technical = $year->courses()->create(['name' => 'Itinerário técnico', 'stage' => AcademicCourse::STAGE_TECHNICAL,
+            'modality' => AcademicCourse::MODALITY_PROFESSIONAL_TECHNOLOGICAL, 'active' => true]);
         $rendered = [];
         view()->composer(['reports.student-report-card', 'reports.student-individual-record', 'reports.certificates.transfer'], function ($view) use (&$rendered): void {
             $rendered[] = $view->getData()['letterhead']['lines'];
         });
         foreach (['fundamental' => 'EF', 'medio' => 'EM'] as $stage => $label) {
-            $course = $year->courses()->create(['name' => 'Matriz '.$stage, 'stage' => $stage, 'active' => true]);
+            $course = $year->courses()->create(['name' => 'Matriz '.$stage, 'stage' => $stage,
+                'modality' => AcademicCourse::MODALITY_REGULAR, 'active' => true]);
             $course->components()->create(['name' => 'Matemática', 'weekly_lessons' => 5, 'workload_hours' => 160, 'active' => true]);
             $class = SchoolClass::create(['academic_year_id' => $year->id, 'name' => 'Turma '.$stage, 'active' => true]);
             $class->courses()->attach($course);

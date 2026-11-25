@@ -20,6 +20,7 @@ use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -147,9 +148,15 @@ class StudentEnrollmentCertificateController extends Controller
     public function transfer(Request $request, StudentEnrollment $enrollment): Response|RedirectResponse
     {
         [$academicYear, $class] = $this->context($request, $enrollment);
-        $type = 'student-transfer-certificate';
-        $records = app(SchoolRecordPdf::class);
+        if ($redirect = $this->complianceRedirect($request, $academicYear, $enrollment)) {
+            return $redirect;
+        }
+
         $authorization = OfficialDocumentCompliance::courseAuthorizationDetails($academicYear->school, $enrollment->courses, $academicYear->reference_year);
+        if ($message = $authorization['message']) {
+            return $this->blocked($enrollment, $message);
+        }
+
         $payload = [
             'authorization_renewal_notices' => $authorization['renewal_notices'],
             'title' => 'Atestado de transferência', 'enrollment_id' => $enrollment->id,
@@ -157,43 +164,15 @@ class StudentEnrollmentCertificateController extends Controller
             'enrollment_status' => $enrollment->status,
             'transferred_at' => $enrollment->transferred_at?->toDateString(),
         ];
-        $render = function (IssuedDocument $document) use ($academicYear, $class, $enrollment) {
+        return DB::transaction(function () use ($request, $academicYear, $class, $enrollment, $payload): Response {
+            $document = $this->issuedDocument($request, $academicYear, $enrollment, 'student-transfer-certificate', $payload);
             $pdf = Pdf::loadView('reports.certificates.transfer', [
                 'academicYear' => $academicYear, 'class' => $class, 'enrollment' => $enrollment,
                 'issuedDocument' => $document, 'letterhead' => PdfLetterhead::forEnrollment($enrollment),
             ])->setPaper('a4', 'portrait');
 
             return PdfMetadata::stream($pdf, 'beaba-atestado-transferencia-'.$enrollment->id.'.pdf');
-        };
-        if ($request->isMethod('get')) {
-            return $render($records->draft($request->user(), $academicYear->school, $type, $enrollment->person_id, $payload));
-        }
-        if ($redirect = $this->complianceRedirect($request, $academicYear, $enrollment)) {
-            return $redirect;
-        }
-        if ($message = $authorization['message']) {
-            throw ValidationException::withMessages(['document' => $message]);
-        }
-        $data = $request->validate(SchoolRecordPdf::rules($academicYear->school));
-        $staff = $records->signers($academicYear->school);
-        $payload['signers'] = ['director' => $staff['diretor']->full_name, 'secretary' => $staff['secretário']->full_name];
-        $document = $records->issue($request->user(), $academicYear->school, $type, $enrollment->person_id, $payload, $data, $render);
-
-        return redirect()->route('credential-registry.entry', $document->registration);
-    }
-
-    public function prepareTransfer(Request $request, StudentEnrollment $enrollment): View
-    {
-        [$year] = $this->context($request, $enrollment);
-
-        return view('credential-registry.prepare-record', [
-            'school' => $year->school, 'title' => 'Atestado de transferência', 'context' => $enrollment->student->full_name.' · '.$year->name,
-            'notice' => 'O atestado pode ser expedido antes da transferência. O histórico e a ficha dos períodos parciais integram a documentação da transferência.',
-            'preview' => route('enrollments.transfer-certificate.pdf', $enrollment),
-            'action' => route('enrollments.transfer-certificate.register', $enrollment),
-            'books' => app(CredentialRegistry::class)->digitalBooks($request->user(), $year->school, 'transfer')->get(),
-            'confirmMissingCpf' => OfficialDocumentCompliance::studentHasNoCpf($enrollment->student),
-        ]);
+        });
     }
 
     public function highSchoolCertificate(Request $request, StudentEnrollment $enrollment, HighSchoolCompletion $completion, SchoolRecordPdf $records): View|Response
@@ -522,7 +501,7 @@ class StudentEnrollmentCertificateController extends Controller
             [
                 'title' => 'Atestado de transferência',
                 'description' => __('Pode ser emitido antes ou depois da transferência, sem alterar a matrícula.'),
-                'route' => route('enrollments.transfer-certificate.prepare', $enrollment),
+                'route' => route('enrollments.transfer-certificate.pdf', $enrollment),
                 'icon' => 'fa-exchange-alt',
                 'enabled' => true,
                 'reason' => null,

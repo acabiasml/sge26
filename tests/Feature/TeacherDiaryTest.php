@@ -2141,7 +2141,7 @@ class TeacherDiaryTest extends TestCase
         ]);
     }
 
-    public function test_management_can_emit_transfer_certificate_without_effecting_transfer(): void
+    public function test_management_can_emit_transfer_certificate_without_a_book_or_effecting_transfer(): void
     {
         $this->travelTo(Carbon::parse('2026-11-24 12:00', 'America/Cuiaba'));
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
@@ -2156,25 +2156,15 @@ class TeacherDiaryTest extends TestCase
         $component->course->update(['modality' => AcademicCourse::MODALITY_REGULAR]);
         $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-atestado-transferencia@ctjj.org');
 
-        \Illuminate\Support\Facades\Storage::fake('local');
-        foreach (['diretor', 'secretário'] as $position) {
-            $manager->person->schoolRoles()->create(['school_id' => $year->school_id, 'role' => 'gestor', 'position' => $position, 'active' => true]);
-        }
-        $book = app(\App\Support\CredentialRegistry::class)->open($manager, [
-            'school_id' => $year->school_id, 'kind' => 'transfer', 'identifier' => 'TR-1',
-            'reference_year' => (int) now()->year, 'first_number' => 1, 'first_folio' => 1,
-            'opened_on' => now('America/Cuiaba')->toDateString(), 'opening_term' => 'Abertura do livro de transferências.',
-        ]);
         $this->actingAs($manager)
             ->get(route('enrollments.transfer-certificate.pdf', $enrollment))
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf');
 
-        $this->assertDatabaseCount('issued_documents', 0);
-        $this->post(route('enrollments.transfer-certificate.register', $enrollment), [
-            'registry_book_id' => $book->id, 'signature_mode' => 'physical', 'issuance_token' => (string) \Illuminate\Support\Str::uuid(),
-        ])->assertRedirectContains('/livro-digital/registros/');
         $issuedBeforeTransfer = IssuedDocument::query()->where('type', 'student-transfer-certificate')->firstOrFail();
+        $this->assertNull($issuedBeforeTransfer->registration);
+        $this->get(route('documents.verify', $issuedBeforeTransfer->verification_code))
+            ->assertOk()->assertSee('Atestado de transferência escolar');
         $this->assertSame(StudentEnrollment::STATUS_ENROLLED, $enrollment->fresh()->status);
         $this->assertNull($enrollment->fresh()->transferred_at);
         $this->assertSame(StudentEnrollment::STATUS_ENROLLED, $issuedBeforeTransfer->payload['enrollment_status']);
@@ -2198,16 +2188,15 @@ class TeacherDiaryTest extends TestCase
             'transferred_at' => '2026-04-01',
             'transferred_by_person_id' => $manager->person_id,
         ]);
+        $school->update(['registry_medium' => 'physical']);
 
         $this->actingAs($manager)
             ->get(route('enrollments.transfer-certificate.pdf', $enrollment->fresh()))
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf');
 
-        $this->post(route('enrollments.transfer-certificate.register', $enrollment), [
-            'registry_book_id' => $book->id, 'signature_mode' => 'digital', 'issuance_token' => (string) \Illuminate\Support\Str::uuid(),
-        ])->assertRedirectContains('/livro-digital/registros/');
         $issuedAfterTransfer = IssuedDocument::query()->where('type', 'student-transfer-certificate')->latest('id')->firstOrFail();
+        $this->assertNull($issuedAfterTransfer->registration);
         $this->assertSame(StudentEnrollment::STATUS_TRANSFERRED, $issuedAfterTransfer->payload['enrollment_status']);
         $this->assertSame('2026-04-01', $issuedAfterTransfer->payload['transferred_at']);
 
@@ -2217,29 +2206,12 @@ class TeacherDiaryTest extends TestCase
             'school_id' => $year->school_id,
         ]);
 
-        $year->school->update(['registry_medium' => 'physical']);
-        $this->get(route('enrollments.transfer-certificate.prepare', $enrollment))->assertOk()
-            ->assertSee('Referência do livro físico')->assertDontSee('Selecione um livro digital aberto');
-        $url = route('enrollments.transfer-certificate.register', $enrollment);
-        $reference = ['registry_book' => 'TR-1', 'registry_folio' => '7 verso', 'registry_number' => '0042',
-            'registered_by' => 'Secretária do Acervo', 'registration_date' => now('America/Cuiaba')->toDateString(),
-            'signature_mode' => 'digital', 'issuance_token' => (string) \Illuminate\Support\Str::uuid()];
-        $this->post($url, $reference)->assertSessionHasNoErrors()->assertRedirectContains('/livro-digital/registros/');
-        $physical = IssuedDocument::latest('id')->firstOrFail()->registration;
-        $this->assertTrue($physical->book->isPhysical());
-        $this->assertSame('0042', $physical->referenceNumber());
-        $this->assertSame('7 verso', $physical->referenceFolio());
-        $this->assertSame('digital', $physical->snapshot['signature_mode']);
-        $this->assertSame(3, $book->fresh()->next_number);
-        $this->post($url, $reference)->assertRedirect(route('credential-registry.entry', $physical));
-        $this->post($url, array_replace($reference, [
-            'registry_number' => '42', 'issuance_token' => (string) \Illuminate\Support\Str::uuid(),
-        ]))->assertSessionHasErrors('registry_book_id');
-        $this->post($url, array_replace($reference, [
-            'registry_number' => '43', 'issuance_token' => (string) \Illuminate\Support\Str::uuid(),
-        ]))->assertSessionHasNoErrors();
-        $this->get(route('credential-registry.entry', $physical))
-            ->assertOk()->assertSee('7 verso')->assertSee('Secretária do Acervo')->assertSee('0042');
+        $previousUrl = url('matriculas/'.$enrollment->id.'/atestado-transferencia');
+        $this->get($previousUrl)->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->post($previousUrl, [])->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertDatabaseCount('issued_documents', 4);
+        $this->assertDatabaseCount('credential_registrations', 0);
+        $this->assertDatabaseCount('credential_books', 0);
     }
 
     public function test_management_can_convalidate_partial_period_result_for_transfer_student(): void
