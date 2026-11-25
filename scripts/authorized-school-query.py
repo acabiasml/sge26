@@ -53,7 +53,8 @@ $db = \Illuminate\Support\Facades\DB::connection();
 $db->statement("START TRANSACTION READ ONLY");
 try {
     $schools = $db->table("schools")->select("id", "name", "legal_name", "cnpj", "inep", "city", "state", "active",
-        "creation_act", "accreditation_act", "document_authorizations", "letterhead_text", "letterhead_text_elementary", "letterhead_text_high_school")->orderBy("id")->get();
+        "creation_act", "accreditation_act", "maintainer", "education_system", "document_authorizations",
+        "letterhead_text", "letterhead_text_elementary", "letterhead_text_high_school")->orderBy("id")->get();
     $programs = $db->table("technical_programs")->select("school_id", "name", "accreditation_act", "authorization_act",
         "regulatory_process", "regulatory_opinion", "official_gazette_reference", "authorization_starts_at", "authorization_ends_at", "offer_forms")
         ->orderBy("school_id")->get();
