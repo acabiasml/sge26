@@ -148,6 +148,12 @@ class StudentEnrollmentCertificateController extends Controller
     public function transfer(Request $request, StudentEnrollment $enrollment): Response|RedirectResponse
     {
         [$academicYear, $class] = $this->context($request, $enrollment);
+        if (! $request->boolean('confirm_missing_student_cpf')
+            && OfficialDocumentCompliance::studentHasNoCpf($enrollment->student)
+            && OfficialDocumentCompliance::studentMessage($enrollment->student, true) === null) {
+            return response()->view('student-enrollments.confirm-transfer-certificate', ['enrollment' => $enrollment]);
+        }
+
         if ($redirect = $this->complianceRedirect($request, $academicYear, $enrollment)) {
             return $redirect;
         }

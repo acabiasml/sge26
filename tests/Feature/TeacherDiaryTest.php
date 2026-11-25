@@ -2214,6 +2214,25 @@ class TeacherDiaryTest extends TestCase
         $this->assertDatabaseCount('credential_books', 0);
     }
 
+    public function test_transfer_certificate_can_confirm_missing_student_cpf_without_a_book(): void
+    {
+        [, $year, , $component, , $enrollment] = $this->diaryScenario();
+        $component->course->update(['modality' => AcademicCourse::MODALITY_REGULAR]);
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'gestao-transferencia-sem-cpf@ctjj.org');
+        $enrollment->student->update(['cpf' => null]);
+        $enrollment->student->contacts()->create([
+            'name' => 'Mãe do Estudante', 'relationship_type' => PersonContact::TYPE_MOTHER, 'cpf' => '12345678909',
+        ]);
+
+        $this->actingAs($manager)->get(route('enrollments.transfer-certificate.pdf', $enrollment))
+            ->assertOk()->assertSee('Confirmo a emissão sem CPF do estudante')->assertDontSee('Referência do livro físico');
+        $this->assertDatabaseCount('issued_documents', 0);
+        $this->get(route('enrollments.transfer-certificate.pdf', ['enrollment' => $enrollment, 'confirm_missing_student_cpf' => 1]))
+            ->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertDatabaseCount('issued_documents', 1);
+        $this->assertDatabaseCount('credential_registrations', 0);
+    }
+
     public function test_management_can_convalidate_partial_period_result_for_transfer_student(): void
     {
         [$teacher, $year, $class, $component, $period, $enrollment] = $this->diaryScenario();
