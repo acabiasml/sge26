@@ -1,4 +1,24 @@
 /* Navegação persistente no computador e painel por toque no celular. */
+html[data-theme-family] {
+    --sge-sidebar-background: color-mix(in srgb, var(--sge-paper) 82%, var(--identity-primary));
+    --sge-toolbar-background: color-mix(in srgb, var(--sge-paper) 81%, var(--identity-secondary));
+}
+html[data-theme$="-dark"] {
+    --sge-sidebar-background: color-mix(in srgb, var(--aurora-panel) 86%, var(--identity-primary));
+    --sge-toolbar-background: color-mix(in srgb, var(--aurora-raised) 82%, var(--identity-secondary));
+}
+html:is([data-theme="govbr"], [data-theme="outlook-light"]) {
+    --sge-toolbar-background: var(--identity-primary);
+}
+html[data-theme="tiktok-light"] {
+    --sge-sidebar-background: var(--identity-nav-bg);
+    --sge-toolbar-background: color-mix(in srgb, var(--identity-nav-bg) 86%, var(--identity-nav-ink));
+}
+html[data-theme="ubuntu-light"] {
+    --sge-sidebar-background: var(--desktop-nav-bg);
+    --sge-toolbar-background: color-mix(in srgb, var(--desktop-chrome) 89%, var(--desktop-nav-accent));
+}
+
 #wrapper #content-wrapper {
     min-width: 0;
     overflow-x: clip;
@@ -21,6 +41,20 @@ html { scroll-padding-block-end: var(--sge-bottom-bar-clearance, 5rem); }
     border-top: 1px solid var(--identity-secondary, var(--sge-border));
     border-bottom: 0;
     box-shadow: 0 -.25rem 1.2rem color-mix(in srgb, var(--sge-shadow-ink) 5%, transparent);
+}
+html[data-theme-family] #content > .sge-bottom-bar {
+    background: var(--sge-toolbar-background) !important;
+    border-top-color: color-mix(in srgb, var(--sge-border) 56%, var(--identity-secondary));
+    border-image: none;
+}
+html:is([data-theme$="-dark"], [data-theme="beaba"]) #content > .sge-bottom-bar #userDropdown .text-gray-600 {
+    color: var(--sge-ink) !important;
+}
+html[data-theme="outlook-dark"] #content > .sge-bottom-bar .sge-topbar-icon-button {
+    background: var(--aurora-hover);
+}
+html[data-theme="outlook-dark"] #content > .sge-bottom-bar .sge-topbar-icon-button i {
+    color: var(--aurora-accent) !important;
 }
 .sge-bottom-bar .sge-topbar-controls {
     flex-direction: row;
@@ -46,6 +80,13 @@ html { scroll-padding-block-end: var(--sge-bottom-bar-clearance, 5rem); }
     padding-inline: 0;
     overflow: hidden !important;
 }
+html[data-theme-family] #accordionSidebar {
+    border-inline-end: 1px solid color-mix(in srgb, var(--sge-border) 56%, var(--identity-primary));
+}
+html[data-theme-family]:not([data-theme="beaba"]) #accordionSidebar {
+    background: var(--sge-sidebar-background) !important;
+}
+html[data-theme="beaba"] #accordionSidebar { --sge-scrollbar-ink: var(--sge-cream); }
 #accordionSidebar .sge-sidebar-header {
     display: flex;
     align-items: center;
@@ -54,6 +95,7 @@ html { scroll-padding-block-end: var(--sge-bottom-bar-clearance, 5rem); }
     margin-inline: 1.125rem .75rem;
 }
 #accordionSidebar .sge-sidebar-items {
+    --sge-scrollbar-thumb: color-mix(in srgb, var(--sge-scrollbar-ink, var(--identity-nav-ink, var(--aurora-nav-ink, var(--sge-brown)))) 75%, transparent);
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -62,6 +104,21 @@ html { scroll-padding-block-end: var(--sge-bottom-bar-clearance, 5rem); }
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sge-scrollbar-thumb) transparent;
+}
+@supports not (scrollbar-color: red transparent) {
+    #accordionSidebar .sge-sidebar-items::-webkit-scrollbar { width: .5rem; }
+    #accordionSidebar .sge-sidebar-items::-webkit-scrollbar-thumb {
+        background-color: var(--sge-scrollbar-thumb);
+        border-radius: 1rem;
+    }
+}
+@media (forced-colors: active) {
+    #accordionSidebar .sge-sidebar-items {
+        scrollbar-width: auto;
+        scrollbar-color: auto;
+    }
 }
 #accordionSidebar .sge-sidebar-links { width: 100%; flex-shrink: 0; }
 #accordionSidebar .nav-item { width: 100%; }
