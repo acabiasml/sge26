@@ -39,7 +39,7 @@ return [
     'open_sidebar' => 'Apri menu laterale',
     'collapse_sidebar' => 'Comprimi il menu laterale',
     'expand_sidebar' => 'Espandi il menu laterale',
-    'topbar' => 'Barra superiore',
+    'utility_bar' => 'Barra degli strumenti',
     'toggle_sidebar' => 'Apri o comprimi il menu laterale',
     'system_view' => 'Vista del sistema',
     'current_view' => 'Vista attuale: :role',

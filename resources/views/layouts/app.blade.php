@@ -277,22 +277,62 @@
 
         <div id="content-wrapper" class="d-flex flex-column">
             <div id="content">
-                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top" aria-label="{{ __('navigation.topbar') }}">
-                    <div class="sge-topbar-start d-lg-none">
-                        <button id="sidebarToggleControl" class="btn btn-link sge-sidebar-toggle" type="button" aria-label="{{ __('navigation.open_sidebar') }}" aria-controls="accordionSidebar"
-                            data-open-label="{{ __('navigation.open_sidebar') }}" data-close-label="{{ __('navigation.close_sidebar') }}"
-                            data-collapse-label="{{ __('navigation.collapse_sidebar') }}">
-                            <i class="fa fa-bars" aria-hidden="true"></i>
-                        </button>
-                    </div>
+                <main id="main-content" class="container-fluid" tabindex="-1">
+                    @unless ($pageHeaderInContent ?? false)
+                        <x-page-header>
+                            <x-slot name="title">@yield('page-title', __('navigation.home'))</x-slot>
+                            <x-slot name="actions">@yield('page-actions')</x-slot>
+                        </x-page-header>
+                    @endunless
 
-                    <ul class="navbar-nav ml-auto sge-topbar-controls">
+                    @if (session('status'))
+                        <div data-operation-failure-recorded="{{ session('_operation_failure_id') }}" class="alert alert-success" role="status" aria-live="polite">
+                            {{ __(session('status')) }}
+                        </div>
+                    @endif
+                    @if (session('error'))
+                        <div data-operation-failure-recorded="{{ session('_operation_failure_id') }}" class="alert alert-danger" role="alert" aria-live="assertive">{{ session('error') }}</div>
+                    @endif
+                    @if (session('workspace_temporary_password'))
+                        <div data-no-failure-monitor class="alert alert-warning" role="alert" aria-live="assertive">
+                            <strong>{{ __('navigation.temporary_password') }}</strong>
+                            <code class="ml-2">{{ session('workspace_temporary_password') }}</code>
+                            <span class="d-block mt-1">{{ __('navigation.temporary_password_help') }}</span>
+                        </div>
+                    @endif
+
+                    @if ($errors->any())
+                        <div data-operation-failure-recorded="{{ session('_operation_failure_id') }}" class="alert alert-danger sge-validation-summary" role="alert" tabindex="-1" data-validation-summary>
+                            <strong>{{ __('navigation.validation_failed') }}</strong>
+                            <span>{{ __('navigation.check_fields') }}</span>
+                            <ul class="mb-0 mt-2 pl-4">
+                                @foreach ($errors->getMessages() as $field => $messages)
+                                    @foreach ($messages as $error)
+                                        <li><span data-validation-field="{{ $field }}">{{ __($error) }}</span></li>
+                                    @endforeach
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    @yield('content')
+                </main>
+
+                <nav class="navbar navbar-expand navbar-light bg-white topbar sge-bottom-bar" aria-label="{{ __('navigation.utility_bar') }}">
+                    <ul class="navbar-nav mx-auto sge-topbar-controls">
+                        <li class="nav-item d-lg-none">
+                            <button id="sidebarToggleControl" class="btn btn-link sge-sidebar-toggle" type="button" aria-label="{{ __('navigation.open_sidebar') }}" aria-controls="accordionSidebar"
+                                data-open-label="{{ __('navigation.open_sidebar') }}" data-close-label="{{ __('navigation.close_sidebar') }}"
+                                data-collapse-label="{{ __('navigation.collapse_sidebar') }}">
+                                <i class="fa fa-bars" aria-hidden="true"></i>
+                            </button>
+                        </li>
                         @php
                             $availableRoleViews = $currentUser->availableViews();
                             $currentRoleView = $currentUser->currentView();
                         @endphp
                         @if (count($availableRoleViews) > 1)
-                            <li class="nav-item dropdown no-arrow sge-theme-switcher">
+                            <li class="nav-item dropdown dropup no-arrow sge-theme-switcher">
                                 <button class="nav-link btn btn-link dropdown-toggle sge-topbar-icon-button" type="button" id="roleViewDropdown"
                                     data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                                     aria-label="{{ __('navigation.current_view', ['role' => __('roles.roles.'.$currentRoleView)]) }}"
@@ -318,7 +358,7 @@
                                 </div>
                             </li>
                         @endif
-                        <li class="nav-item dropdown no-arrow sge-theme-switcher">
+                        <li class="nav-item dropdown dropup no-arrow sge-theme-switcher">
                             <button class="nav-link btn btn-link dropdown-toggle sge-topbar-icon-button" type="button" id="themeDropdown"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="{{ __('theme.label') }}" title="{{ __('theme.label') }}">
                                 <i class="fas fa-palette" aria-hidden="true"></i>
@@ -383,7 +423,7 @@
 
                         <li class="topbar-divider d-none d-sm-block" aria-hidden="true"></li>
 
-                        <li class="nav-item dropdown no-arrow">
+                        <li class="nav-item dropdown dropup no-arrow">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" aria-label="{{ __('navigation.open_user_menu') }}" title="{{ __('navigation.user_menu') }}">
                                 @if (auth()->user()->avatar)
@@ -396,7 +436,7 @@
                                     <span class="d-block text-xs">{{ auth()->user()->activeRoleLabel(abbreviateSchool: true) }}</span>
                                 </span>
                             </a>
-                            <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">
+                            <div class="dropdown-menu dropdown-menu-right shadow" aria-labelledby="userDropdown">
                                 <a class="dropdown-item" href="{{ route('profile.edit') }}">
                                     <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-500" aria-hidden="true"></i>
                                     {{ __('navigation.my_profile') }}
@@ -413,47 +453,6 @@
                         </li>
                     </ul>
                 </nav>
-
-                <main id="main-content" class="container-fluid" tabindex="-1">
-                    @unless ($pageHeaderInContent ?? false)
-                        <x-page-header>
-                            <x-slot name="title">@yield('page-title', __('navigation.home'))</x-slot>
-                            <x-slot name="actions">@yield('page-actions')</x-slot>
-                        </x-page-header>
-                    @endunless
-
-                    @if (session('status'))
-                        <div data-operation-failure-recorded="{{ session('_operation_failure_id') }}" class="alert alert-success" role="status" aria-live="polite">
-                            {{ __(session('status')) }}
-                        </div>
-                    @endif
-                    @if (session('error'))
-                        <div data-operation-failure-recorded="{{ session('_operation_failure_id') }}" class="alert alert-danger" role="alert" aria-live="assertive">{{ session('error') }}</div>
-                    @endif
-                    @if (session('workspace_temporary_password'))
-                        <div data-no-failure-monitor class="alert alert-warning" role="alert" aria-live="assertive">
-                            <strong>{{ __('navigation.temporary_password') }}</strong>
-                            <code class="ml-2">{{ session('workspace_temporary_password') }}</code>
-                            <span class="d-block mt-1">{{ __('navigation.temporary_password_help') }}</span>
-                        </div>
-                    @endif
-
-                    @if ($errors->any())
-                        <div data-operation-failure-recorded="{{ session('_operation_failure_id') }}" class="alert alert-danger sge-validation-summary" role="alert" tabindex="-1" data-validation-summary>
-                            <strong>{{ __('navigation.validation_failed') }}</strong>
-                            <span>{{ __('navigation.check_fields') }}</span>
-                            <ul class="mb-0 mt-2 pl-4">
-                                @foreach ($errors->getMessages() as $field => $messages)
-                                    @foreach ($messages as $error)
-                                        <li><span data-validation-field="{{ $field }}">{{ __($error) }}</span></li>
-                                    @endforeach
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
-
-                    @yield('content')
-                </main>
             </div>
         </div>
     </div>
@@ -749,22 +748,22 @@
             link.setAttribute('aria-current', 'page');
         });
 
-        const contentTopbar = document.querySelector('#content > .topbar');
+        const bottomBar = document.querySelector('#content > .sge-bottom-bar');
         const mainContent = document.getElementById('main-content');
-        if (contentTopbar && mainContent) {
-            const syncTopbarClearance = () => {
-                document.documentElement.style.setProperty('--sge-topbar-clearance', `${contentTopbar.offsetHeight + 8}px`);
+        if (bottomBar && mainContent) {
+            const syncBottomBarClearance = () => {
+                document.documentElement.style.setProperty('--sge-bottom-bar-clearance', `${bottomBar.offsetHeight + 8}px`);
             };
-            syncTopbarClearance();
-            new ResizeObserver(syncTopbarClearance).observe(contentTopbar);
+            syncBottomBarClearance();
+            new ResizeObserver(syncBottomBarClearance).observe(bottomBar);
 
             mainContent.addEventListener('focusin', ({ target }) => {
                 requestAnimationFrame(() => {
-                    if (target !== document.activeElement || target.closest('.modal')) return;
+                    if (target === mainContent || target !== document.activeElement || target.closest('.modal')) return;
                     const bounds = target.getBoundingClientRect();
-                    const header = contentTopbar.getBoundingClientRect();
-                    if (bounds.bottom > header.top && bounds.top < header.bottom) {
-                        target.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'instant' });
+                    const bar = bottomBar.getBoundingClientRect();
+                    if (bounds.bottom > bar.top && bounds.top < bar.bottom) {
+                        target.scrollIntoView({ block: 'end', inline: 'nearest', behavior: 'instant' });
                     }
                 });
             });
