@@ -293,15 +293,19 @@
                                 <tr>
                                     <td>{{ $convalidation->period?->name }}</td>
                                     <td>{{ $convalidation->component?->name }}</td>
-                                    <td>{{ number_format((float) $convalidation->score, 1, ',', '.') }}</td>
+                                    <td>{{ $convalidation->score === null ? '—' : number_format((float) $convalidation->score, 1, ',', '.') }}</td>
                                     <td>
-                                        @if((int) ($convalidation->attendance_lessons ?? 0) > 0)
-                                            {{ $convalidation->attendance_lessons }} {{ __('aula(s),') }} {{ (int) ($convalidation->attendance_absences ?? 0) }} {{ __('falta(s)') }}
-                                            @if((int) ($convalidation->attendance_justified_absences ?? 0) > 0)
-                                                <span class="d-block small text-muted">{{ $convalidation->attendance_justified_absences }} {{ __('justificada(s)') }}</span>
-                                            @endif
-                                        @else
-                                            -
+                                        @if($convalidation->attendance_lessons !== null)
+                                            <span class="d-block">{{ $convalidation->attendance_lessons }} {{ __('aula(s)') }}</span>
+                                        @endif
+                                        @if($convalidation->attendance_absences !== null)
+                                            <span class="d-block">{{ $convalidation->attendance_absences }} {{ __('falta(s)') }}</span>
+                                        @endif
+                                        @if($convalidation->attendance_justified_absences !== null)
+                                            <span class="d-block small text-muted">{{ $convalidation->attendance_justified_absences }} {{ __('justificada(s)') }}</span>
+                                        @endif
+                                        @if($convalidation->attendance_lessons === null && $convalidation->attendance_absences === null && $convalidation->attendance_justified_absences === null)
+                                            —
                                         @endif
                                     </td>
                                     <td>

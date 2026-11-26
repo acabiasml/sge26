@@ -14,12 +14,17 @@ final class HistoryFormationWorkloads
         $base = $history->education_stage === 'tecnico' ? 'Formação Técnica Profissional' : 'Formação Geral Básica';
         $formations = collect([$base]);
         foreach ($years as $year) {
-            $formations = $formations->concat($year->transcript_mode === 'summary' && $year->formation_workload_hours !== null
-                ? array_keys($year->formation_workload_hours)
-                : $history->components->filter(fn ($component) => $component->records->where('student_academic_history_year_id', $year->id)->isNotEmpty())->pluck('formation')->filter());
+            if ($year->transcript_mode === 'no_transcription') {
+                continue;
+            }
+            $formations = $formations->concat($history->components
+                ->filter(fn ($component) => $component->records->where('student_academic_history_year_id', $year->id)->isNotEmpty())->pluck('formation')->filter());
+            if ($year->transcript_mode === 'summary') {
+                $formations = $formations->concat(array_keys($year->formation_workload_hours ?? []));
+            }
         }
 
-        return $formations->unique()->sortBy(fn ($formation) => array_search($formation, ['Formação Geral Básica', 'Parte Complementar', 'Parte Diversificada', 'Itinerário Formativo', 'Formação Técnica Profissional'], true) ?: 0)->values()->all();
+        return $formations->unique()->sortBy(fn ($formation) => array_search($formation, ['Formação Geral Básica', 'Parte Diversificada', 'Parte Complementar', 'Itinerário Formativo', 'Formação Técnica Profissional'], true) ?: 0)->values()->all();
     }
 
     public static function yearHours(StudentAcademicHistory $history, StudentAcademicHistoryYear $year): array
@@ -34,7 +39,8 @@ final class HistoryFormationWorkloads
                 foreach ($year->formation_workload_hours as $formation => $hours) {
                     $result[$formation] = is_numeric($hours) ? (float) $hours : null;
                 }
-            } elseif (count($formations) === 1) {
+            }
+            if (count($formations) === 1 && $result[$formations[0]] === null) {
                 $result[$formations[0]] = $year->workload_hours !== null ? (float) $year->workload_hours : null;
             }
 
@@ -62,7 +68,7 @@ final class HistoryFormationWorkloads
                 if (! $year->displaysCompletedWorkload()) {
                     continue;
                 }
-                if ($year->transcript_mode === 'summary') {
+                if ($year->transcript_mode === 'summary' && $year->source !== 'system') {
                     $completed = $hours;
                 } else {
                     $values = $history->components->where('formation', $formation)->flatMap(fn ($component) => $component->records->where('student_academic_history_year_id', $year->id))->map(fn ($record) => $record->completedWorkloadHours($year))->filter(fn ($value) => $value !== null);
@@ -75,5 +81,19 @@ final class HistoryFormationWorkloads
         }
 
         return $totals;
+    }
+
+    public static function completedYearTotal(StudentAcademicHistoryYear $year, array $totals): ?float
+    {
+        if (! $year->displaysCompletedWorkload()) {
+            return null;
+        }
+
+        $hours = array_column($totals, 'completed');
+        if ($hours !== [] && ! in_array(null, $hours, true)) {
+            return round(array_sum($hours), 2);
+        }
+
+        return $year->source !== 'system' ? $year->completedWorkloadHours() : null;
     }
 }

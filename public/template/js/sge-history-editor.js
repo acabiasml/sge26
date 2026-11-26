@@ -83,7 +83,6 @@
                 const field = group.querySelector('[data-formation-hours]'), toggle = group.querySelector('[data-formation-toggle]');
                 const enabled = !toggle || toggle.checked;
                 field.disabled = !enabled;
-                field.required = enabled && summary;
                 const formation = group.dataset.historyFormationTotal;
                 if (enabled) enabledFormations.push(formation);
                 const hasCatalog = catalogOf(card).some(item => item.formation === formation);
@@ -104,8 +103,14 @@
                 Array.from(formation.options).forEach(option => { option.disabled = summary && !enabledFormations.includes(option.value); });
             });
             const annualTotal = card.querySelector('[data-history-total-hours]');
-            annualTotal.readOnly = mode === 'summary';
-            if (mode === 'summary') annualTotal.value = complete ? total.toFixed(2).replace('.', ',') : '';
+            const calculated = summary && complete;
+            if (calculated) {
+                if (!annualTotal.readOnly) annualTotal.dataset.manualValue = annualTotal.value;
+                annualTotal.value = total.toFixed(2).replace('.', ',');
+            } else if (annualTotal.readOnly) {
+                annualTotal.value = annualTotal.dataset.manualValue || '';
+            }
+            annualTotal.readOnly = calculated;
             card.querySelector('[data-history-year-preview]').textContent = ['year', 'school_name', 'workload_hours'].map(name => {
                 const value = card.querySelector(`[name^="years["][name$="[${name}]"]`)?.value.trim();
                 return value ? value + (name === 'workload_hours' ? ' h' : '') : '';

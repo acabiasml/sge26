@@ -1,0 +1,83 @@
+<?php
+
+use App\Models\AcademicYear;
+use App\Models\CalendarDay;
+use App\Models\DiaryAssessmentResult;
+use App\Models\SchoolClassComponent;
+use App\Models\StudentEnrollment;
+use App\Support\ComponentApprovalCriteria;
+use App\Support\StudentReportCardBuilder;
+use Illuminate\Support\Facades\DB;
+
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$referenceYear = (int) '__APPROVAL_YEAR__';
+$teacherHash = '__APPROVAL_TEACHER_HASH__';
+$today = now('America/Cuiaba')->toDateString();
+
+DB::statement('SET TRANSACTION READ ONLY');
+DB::beginTransaction();
+try {
+    $years = AcademicYear::where('reference_year', $referenceYear)->with(['school.academicCriteria', 'courses'])->get();
+    $criteria = $years->map(fn ($year) => [
+        'school' => $year->school?->name, 'year_id' => $year->id,
+        'points' => (float) $year->passing_points, 'attendance' => $year->minimum_attendance_percentage,
+        'dependency' => $year->school?->dependencyComponentLimitForDate($year->ends_at),
+        'offers' => $year->courses->map(fn ($course) => [
+            'stage' => $course->stage, 'modality' => $course->modality,
+            'minimum_attendance' => $year->minimumAttendanceForCourses([$course]),
+        ])->unique()->values(),
+    ]);
+    $assignments = SchoolClassComponent::whereHas('schoolClass', fn ($query) => $query->whereIn('academic_year_id', $years->modelKeys()))
+        ->whereHas('teacher', fn ($query) => $query->whereRaw("SHA2(LOWER(TRIM(SUBSTRING_INDEX(full_name, ' ', 1))), 256) = ?", [$teacherHash]))
+        ->with(['schoolClass.academicYear.school', 'component'])->limit(41)->get();
+    if ($assignments->count() > 40) {
+        throw new RuntimeException('A consulta retornou mais de quarenta diários.');
+    }
+    $builder = app(StudentReportCardBuilder::class);
+    $classes = $assignments->groupBy('school_class_id')->map(function ($group) use ($builder, $today) {
+        $class = $group->first()->schoolClass;
+        $year = $class->academicYear;
+        $periods = $year->periods()->orderBy('position')->get();
+        $third = $periods->firstWhere('position', 3);
+        $council = $third?->ends_at ? $year->days()->where('type', CalendarDay::TYPE_CLASS_COUNCIL)
+            ->whereBetween('date', [$third->ends_at->copy()->subDays(14), $third->ends_at->copy()->addDays(35)])
+            ->orderBy('date')->get()->min(fn ($day) => abs($day->date->diffInDays($third->ends_at))) : null;
+        $councilDays = $council === null ? collect() : $year->days()->where('type', CalendarDay::TYPE_CLASS_COUNCIL)
+            ->whereBetween('date', [$third->ends_at->copy()->subDays((int) $council), $third->ends_at->copy()->addDays((int) $council)])
+            ->orderBy('date')->get()->map(fn ($day) => $day->date->toDateString());
+        $reports = $class->enrollments()->where('status', StudentEnrollment::STATUS_ENROLLED)->get()
+            ->map(fn ($enrollment) => $builder->build($enrollment));
+        return [
+            'class_id' => $class->id, 'class' => $class->name, 'school' => $year->school?->name,
+            'third_ends' => $third?->ends_at?->toDateString(), 'council_candidates' => $councilDays,
+            'components' => $group->unique('curriculum_component_id')->map(function ($assignment) use ($reports, $third, $today) {
+                $rows = $reports->map(fn ($report) => [$report, $report['annualComponents']->firstWhere('component.id', $assignment->curriculum_component_id)])
+                    ->filter(fn ($row) => $row[1] !== null);
+                $thirdGrades = $third ? DiaryAssessmentResult::whereNotNull('score')
+                    ->whereHas('assessment', fn ($query) => $query->where('academic_period_id', $third->id)
+                        ->where('school_class_id', $assignment->school_class_id)
+                        ->where('curriculum_component_id', $assignment->curriculum_component_id))->get(['created_at', 'updated_at']) : collect();
+                return [
+                    'component' => $assignment->component?->name, 'enrollments' => $rows->count(),
+                    'third_missing_now' => $third ? $rows->filter(function ($row) use ($third) {
+                        $period = $row[1]['periods']->firstWhere('period.id', $third->id);
+
+                        return $period !== null && $period['average']['value'] === null;
+                    })->count() : null,
+                    'third_grade_count' => $thirdGrades->count(),
+                    'earliest_existing_third_grade' => $thirdGrades->min('created_at')?->copy()->timezone('America/Cuiaba')->toDateString(),
+                    'above_previous_target_with_pending_now' => $rows->filter(function ($row) use ($today) {
+                        [$report, $summary] = $row;
+                        return ComponentApprovalCriteria::evaluate($summary, $report['passingPoints'])['passed']
+                            && ComponentApprovalCriteria::forOverview($summary, $report['passingPoints'], $today)['status'] === 'Notas pendentes';
+                    })->count(),
+                ];
+            })->values(),
+        ];
+    })->values();
+    echo json_encode(['as_of' => $today, 'criteria' => $criteria, 'classes' => $classes], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+} finally {
+    DB::rollBack();
+}

@@ -58,8 +58,15 @@ final class AttendanceSummaryCalculator
         $summary = $this->fromTotals(
             $summaries->sum(fn (array $summary): int => (int) ($summary['lessons'] ?? 0)),
             $summaries->sum(fn (array $summary): int => (int) ($summary['attended'] ?? 0)),
-            $summaries->sum(fn (array $summary): int => (int) ($summary['justified'] ?? 0)),
+            $summaries->sum(fn (array $summary): int => (int) ($summary['justified'] ?? 0) - (int) ($summary['unbased_justified'] ?? 0)),
         );
+        if ($summaries->contains(fn (array $item): bool => array_key_exists('unbased_absences', $item))) {
+            $summary['unbased_absences'] = $summaries->sum('unbased_absences');
+            $summary['unbased_justified'] = $summaries->sum('unbased_justified');
+            $summary['absent'] += $summary['unbased_absences'];
+            $summary['justified'] += $summary['unbased_justified'];
+            $summary['percentage'] = null;
+        }
         $diaries = $summaries->filter(fn (array $item): bool => array_key_exists('diary_attended_minutes', $item));
         if ($diaries->isNotEmpty()) {
             $summary['diary_attended_minutes'] = $diaries->contains(fn (array $item): bool => $item['diary_attended_minutes'] === null)
@@ -68,6 +75,17 @@ final class AttendanceSummaryCalculator
         }
 
         return $summary;
+    }
+
+    public function fromAbsencesWithoutLessons(?int $absences, ?int $justified): array
+    {
+        $justified ??= 0;
+        $absences ??= $justified;
+
+        return array_replace($this->fromTotals(0, 0, 0), [
+            'absent' => $absences, 'justified' => $justified,
+            'unbased_absences' => $absences, 'unbased_justified' => $justified,
+        ]);
     }
 
     /**

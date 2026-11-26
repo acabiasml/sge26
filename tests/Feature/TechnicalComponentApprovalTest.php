@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
+use App\Models\AcademicPeriod;
 use App\Models\DiaryAssessment;
 use App\Models\DiaryAttendanceRecord;
 use App\Models\Person;
@@ -72,6 +73,34 @@ class TechnicalComponentApprovalTest extends TestCase
         $this->assertSame(22.5, $criteria['target']);
         $this->assertSame(22.5, $criteria['value']);
         $this->assertTrue($criteria['passed']);
+    }
+
+    public function test_overview_does_not_count_partial_or_hidden_grades_and_reports_a_missing_period(): void
+    {
+        [$enrollment, $technical] = $this->scenario();
+        $regular = $enrollment->courses()->first()->components()->first();
+        $score = function (int $id, string $end, ?float $value, bool $complete): array {
+            $period = new AcademicPeriod(['ends_at' => $end]);
+            $period->id = $id;
+
+            return ['period' => $period, 'average' => compact('value', 'complete')];
+        };
+        $periods = collect([
+            $score(1, '2026-04-30', 10, true),
+            $score(2, '2026-07-01', 10, true),
+            $score(3, '2026-09-30', null, false),
+            $score(4, '2026-12-18', 10, true),
+        ]);
+        $summary = ['component' => $regular, 'periods' => $periods, 'points' => 30, 'total_periods' => 4];
+        $progress = ComponentApprovalCriteria::forOverview($summary, 22.5, '2026-10-01');
+        $this->assertSame([1, 2, 3], $progress['ended_periods']->keys()->all());
+        $this->assertSame('Notas pendentes', $progress['status']);
+        $this->assertSame(20.0, $progress['value']);
+        $this->assertSame(2.5, $progress['missing']);
+        $summary['periods'][2] = $score(3, '2026-09-30', 8, false);
+        $this->assertSame(20.0, ComponentApprovalCriteria::forOverview($summary, 22.5, '2026-10-01')['value']);
+        $summary['component'] = $technical;
+        $this->assertSame(24.0, ComponentApprovalCriteria::forOverview($summary, 22.5, '2026-10-01')['target']);
     }
 
     public function test_inactive_component_is_removed_from_matrix_totals_and_reports_while_source_results_remain(): void

@@ -1,10 +1,12 @@
 @php
     $historyKnowledgeAreas = $historyKnowledgeAreas ?? \App\Models\KnowledgeArea::withSubtitlesByName();
+    $elementary = $history->education_stage === 'fundamental';
+    $baseFormation = 'Formação Geral Básica';
     $hasGlobalSummary = $history->years->contains('transcript_mode', 'summary');
     // Global assessment changes the results column, not the stage's curriculum rows.
     // These display-only rows must not create records or invent grades/workloads.
     $displayComponents = collect($history->components->all());
-    if ($history->education_stage === 'fundamental' && $hasGlobalSummary) {
+    if ($elementary && $hasGlobalSummary) {
         $normalize = fn ($value) => \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii(trim($value ?? '')));
         $formation = config('curriculum.stages.fundamental.formations.formacao_geral_basica.label');
         $existingNames = $displayComponents->filter(fn ($component) => $normalize($component->formation) === $normalize($formation))
@@ -21,11 +23,38 @@
         }
         $displayComponents = $missingComponents->concat($displayComponents);
     }
-    $allMatrixComponents = $displayComponents->reject(fn ($component) => $hasGlobalSummary
+    $displayComponents = $displayComponents->reject(fn ($component) => $hasGlobalSummary
         && (\Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii(trim($component->knowledge_area ?? ''))) === 'sintese curricular'
-            || \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii(trim($component->name ?? ''))) === 'sintese global do documento de origem'))
+            || \Illuminate\Support\Str::lower(\Illuminate\Support\Str::ascii(trim($component->name ?? ''))) === 'sintese global do documento de origem'));
+    $yearSubtotals = [];
+    $yearTotals = [];
+    if ($elementary) {
+        $formations = \App\Support\HistoryFormationWorkloads::formations($history);
+        foreach ($formations as $formation) {
+            if (! $displayComponents->contains('formation', $formation)) {
+                $component = new \App\Models\StudentAcademicHistoryComponent(['formation' => $formation]);
+                $component->setRelation('records', collect());
+                $displayComponents->push($component);
+            }
+        }
+        $formationPositions = array_flip($formations);
+        $displayComponents = $displayComponents->sortBy(fn ($component) => $formationPositions[$component->formation] ?? count($formations));
+        foreach ($history->years as $year) {
+            $yearSubtotals[$year->id] = $history->formationWorkloadTotals($year);
+            $yearTotals[$year->id] = \App\Support\HistoryFormationWorkloads::completedYearTotal($year, $yearSubtotals[$year->id]);
+        }
+    } else {
+        foreach ($history->years as $year) {
+            $yearTotals[$year->id] = $year->completedWorkloadHours() ?? ($year->source !== 'system'
+                ? $history->components->sum(fn ($component) => (float) ($component->records->firstWhere('student_academic_history_year_id', $year->id)?->completedWorkloadHours($year) ?? 0))
+                : null);
+        }
+    }
+    $formatHours = fn ($hours) => $hours === null ? '-' : rtrim(rtrim(number_format($hours, 2, ',', '.'), '0'), ',');
+    $allMatrixComponents = $displayComponents
         ->groupBy(fn ($component) => $component->formation ?: '-')
         ->flatMap(fn ($components) => $components->groupBy(fn ($component) => $component->knowledge_area ?: '-')->flatten(1))->values();
+    $lastComponentByFormation = $allMatrixComponents->groupBy(fn ($component) => $component->formation ?: '-')->map->last();
     $headerRows = $history->years->contains(fn ($year) => $year->transcript_mode === 'detailed') ? 2 : 1;
     $columnUnits = $history->years->sum(fn ($year) => $year->transcript_mode === 'detailed' ? 2 : 1);
     $wideComponentColumn = $history->education_stage === 'medio' && $history->years->count() <= 4;
@@ -39,7 +68,7 @@
             return $components->chunk($balancedSize)->map(fn ($section) => $section->values());
         })->values();
     // A compact matrix fits on one page: merge global results across formations too.
-    if ($hasGlobalSummary && $allMatrixComponents->count() <= 18 && $allMatrixComponents->groupBy('formation')->count() <= 3) {
+    if ($hasGlobalSummary && $allMatrixComponents->count() <= 18 && $allMatrixComponents->groupBy('formation')->count() <= ($elementary ? 1 : 3)) {
         $matrixSections = collect([$allMatrixComponents]);
     }
     $matrixComponentIndexes = $allMatrixComponents->mapWithKeys(fn ($component, $index) => [spl_object_id($component) => $index]);
@@ -84,6 +113,7 @@
         <tbody>
         @foreach($matrixComponents as $component)
         @php($firstMatrixRow = $loop->first)
+        @unless($elementary && $component->name === null)
         <tr>
             @php($previous = $matrixComponents->get($loop->index - 1))
             @if(! $previous || $previous->formation !== $component->formation)
@@ -94,24 +124,34 @@
             @endif
             <td style="width:{{ $componentWidth }}%">{{ $component->name }}</td>
             @foreach($history->years as $year)
-                @if($year->transcript_mode !== 'detailed')
+                @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
+                @if($elementary && $component->formation !== $baseFormation && $year->transcript_mode !== 'detailed')
+                    <td class="center" @if($year->transcript_mode === 'summary') data-summary-component-year="{{ $year->id }}" @endif>{{ $year->transcript_mode === 'summary' && $record ? 'AP' : '-' }}</td>
+                @elseif($year->transcript_mode !== 'detailed')
                     @if($firstMatrixRow)<td rowspan="{{ $matrixComponents->count() }}" class="center global-year" style="width:{{ $unitWidth }}%" data-global-year="{{ $year->id }}">
                         @if($year->transcript_mode === 'summary')<div class="vertical-result"><strong>Síntese Global - {{ $year->final_result ?: '-' }}</strong></div>
                         @else<div class="vertical-result"><strong>{{ $year->final_result ?: 'Sem transcrição' }}</strong></div>@endif
                     </td>@endif
                 @else
-                    @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
-                    <td class="center score-cell" style="width:{{ $unitWidth }}%">{{ $record?->score_label ?: '-' }}@if($history->education_stage === 'medio' && filled($record?->frequency_label))<br><small>{{ $record->frequency_label }}</small>@endif</td>
-                    <td class="center score-cell" style="width:{{ $unitWidth }}%">{{ $year->displaysCompletedWorkload() && $record?->completedWorkloadHours($year) !== null ? number_format((float) $record->completedWorkloadHours($year), 0, ',', '') : '-' }}</td>
+                    <td class="center score-cell" style="width:{{ $unitWidth }}%">{{ filled($record?->score_label) ? $record->score_label : '-' }}@if($history->education_stage === 'medio' && filled($record?->frequency_label))<br><small>{{ $record->frequency_label }}</small>@endif</td>
+                    <td class="center score-cell" style="width:{{ $unitWidth }}%">{{ $year->displaysCompletedWorkload() ? $formatHours($record?->completedWorkloadHours($year)) : '-' }}</td>
                 @endif
             @endforeach
         </tr>
+        @endunless
+        @if($elementary && $lastComponentByFormation->get($component->formation ?: '-') === $component)
+        <tr class="formation-subtotal" data-formation-subtotal="{{ $component->formation }}">
+            <td colspan="3"><strong>{{ __('Total de :formation (h)', ['formation' => __($component->formation ?: 'Formação')]) }}</strong></td>
+            @foreach($history->years as $year)
+                <td colspan="{{ $year->transcript_mode === 'detailed' ? 2 : 1 }}" class="center">{{ $formatHours($yearSubtotals[$year->id][$component->formation]['completed'] ?? null) }}</td>
+            @endforeach
+        </tr>
+        @endif
         @endforeach
         @if($lastMatrixSection)
         <tr><td colspan="3"><strong>Carga horária cursada total (h)</strong></td>
             @foreach($history->years as $year)
-                @php($total = $year->completedWorkloadHours() ?? ($year->source !== 'system' ? $history->components->sum(fn ($component) => (float) ($component->records->firstWhere('student_academic_history_year_id', $year->id)?->completedWorkloadHours($year) ?? 0)) : null))
-                <td colspan="{{ $year->transcript_mode === 'detailed' ? 2 : 1 }}" class="center"><strong>{{ $year->displaysCompletedWorkload() && $total !== null ? number_format((float) $total, 0, ',', '.') : '-' }}</strong></td>
+                <td colspan="{{ $year->transcript_mode === 'detailed' ? 2 : 1 }}" class="center"><strong>{{ $year->displaysCompletedWorkload() ? $formatHours($yearTotals[$year->id]) : '-' }}</strong></td>
             @endforeach
         </tr>
         @endif

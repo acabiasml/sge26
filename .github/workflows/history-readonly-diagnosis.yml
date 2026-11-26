@@ -15,6 +15,16 @@ on:
           - high-school-cohorts
           - school-diary-completion
           - diary-restoration-proposal
+          - class-approval-audit
+      approval_year:
+        description: Ano letivo para conferência do panorama
+        type: string
+      approval_teacher_hash:
+        description: SHA-256 do primeiro nome do docente, em minúsculas
+        type: string
+      approval_report_key:
+        description: Chave pública PEM em base64 para o relatório do panorama
+        type: string
   push:
     branches: [main]
     paths:
@@ -63,6 +73,9 @@ jobs:
         env:
           EXPECTED_COMMIT: ${{ github.sha }}
           HISTORY_QUERY_SCOPE: ${{ inputs.scope || 'configured' }}
+          APPROVAL_YEAR: ${{ inputs.approval_year }}
+          APPROVAL_TEACHER_HASH: ${{ inputs.approval_teacher_hash }}
+          APPROVAL_REPORT_KEY: ${{ inputs.approval_report_key }}
           HOSTINGER_CONNECTION: ${{ secrets.HOSTINGER_CONNECTION }}
           HOSTINGER_KNOWN_HOSTS: ${{ secrets.HOSTINGER_KNOWN_HOSTS }}
         run: python scripts/history-readonly-diagnosis.py

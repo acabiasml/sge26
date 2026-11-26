@@ -35,10 +35,10 @@
         <legend class="h5">{{ __('Dados da ficha recebida') }}</legend>
         <div class="card shadow mb-4"><div class="card-body"><div class="form-row">
             <div class="form-group col-md-8"><label for="source-school">{{ __('Escola de origem') }}</label><input id="source-school" name="source_school" class="form-control" required maxlength="255" value="{{ old('source_school', $sourceSchool) }}"></div>
-            <div class="form-group col-md-4"><label for="source-date">{{ __('Data do registro') }}</label><input id="source-date" type="date" name="convalidated_at" class="form-control" required value="{{ old('convalidated_at', $latest?->convalidated_at?->toDateString() ?? now('America/Cuiaba')->toDateString()) }}"></div>
+            <div class="form-group col-md-4"><label for="source-date">{{ __('Data do registro') }}</label><input id="source-date" type="date" name="convalidated_at" class="form-control" value="{{ old('convalidated_at', $latest?->convalidated_at?->toDateString() ?? now('America/Cuiaba')->toDateString()) }}"></div>
             <div class="form-group col-12 mb-0"><label for="source-notes">{{ __('Observações da ficha') }}</label><textarea id="source-notes" name="notes" rows="2" maxlength="5000" class="form-control">{{ old('notes', $latest?->notes) }}</textarea></div>
         </div></div></div>
-        <p>{{ __('Média: de 0 a 10. Aulas e faltas: quantidades recebidas da escola de origem. Campos vazios não apagam resultados já salvos.') }}</p>
+        <p>{{ __('Preencha somente os dados da ficha recebida. É possível registrar faltas sem o total de aulas. Informe a média de 0 a 10 quando constar na ficha.') }}</p>
         @foreach($periods as $period)
         <details class="card shadow mb-3" open>
             <summary class="card-header font-weight-bold">{{ $period->name }}</summary>

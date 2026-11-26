@@ -19,17 +19,15 @@ th { background: #eee; }
 </style></head><body>
 @include('reports.partials.letterhead', ['title' => 'Panorama de aprovação da turma', 'showTechnicalRegulation' => false])
 <p class="report-context"><strong>{{ $schoolClass->name }}</strong> · {{ $academicYear->referenceYearsLabel() }} · {{ $academicYear->school?->name }}</p>
-<p>Meta anual por componente: <strong>{{ number_format((float) $academicYear->passing_points, 1, ',', '.') }} pontos</strong>.
-Frequência mínima: {{ $academicYear->minimum_attendance_percentage }}%.</p>
-<p class="note">Panorama dos lançamentos atuais. As notas individuais abaixo são exibidas somente para períodos já encerrados. A pontuação inclui médias parciais e pode mudar com novas notas ou recuperação. Atingir a meta de pontos não significa aprovação final: também são necessários frequência mínima e fechamento dos períodos. Períodos sem notas não são tratados como nota zero.</p>
+<p class="note">A soma considera apenas os períodos encerrados com média completa. * indica média parcial, fora da soma. O resultado final também considera a frequência anual e, quando aplicável, a regra de dependência da escola.</p>
 @php
+    $formatPoints = fn ($points) => number_format($points, abs(round($points, 1) - $points) > 0.0001 ? 2 : 1, ',', '.');
     $endedPeriods = $reports
         ->flatMap(fn ($report) => $report['annualComponents'])
-        ->flatMap(fn ($summary) => $summary['periods'])
-        ->filter(fn ($item) => $item['period']->ends_at?->copy()->endOfDay()->isPast())
+        ->flatMap(fn ($summary) => $summary['overview']['ended_periods']->values())
         ->map(fn ($item) => $item['period'])
         ->unique('id')
-        ->sortBy('position')
+        ->sortBy([['starts_at', 'asc'], ['position', 'asc']])
         ->values();
     $periodWidth = $endedPeriods->isEmpty() ? 0 : 21 / $endedPeriods->count();
     $componentGroups = $reports
@@ -45,7 +43,7 @@ Frequência mínima: {{ $academicYear->minimum_attendance_percentage }}%.</p>
     $component = $componentRows->first()['summary']['component'];
 @endphp
 <div class="component-block">
-<div class="component-title">{{ $loop->iteration }}. {{ $component->name }}@if($component->course?->name) <span class="note">· {{ $component->course->name }}</span>@endif</div>
+<div class="component-title">{{ $loop->iteration }}. {{ $component->name }}@if($component->course?->name) <span class="note">· {{ $component->course->name }} · {{ $component->course->modalityLabel() }}</span>@endif</div>
 <table class="component-table" style="margin-top:0">
 <colgroup>
 <col style="width:30%"><col style="width:9%">
@@ -58,31 +56,29 @@ Frequência mínima: {{ $academicYear->minimum_attendance_percentage }}%.</p>
 @foreach($endedPeriods as $endedPeriod)
 <th width="{{ $periodWidth }}%" title="{{ $endedPeriod->name }}">{{ preg_replace(['/\s+Bimestre$/iu', '/\s+Trimestre$/iu', '/\s+Semestre$/iu'], [' Bim.', ' Trim.', ' Sem.'], $endedPeriod->name) }}</th>
 @endforeach
-<th width="9%">Pontos atuais</th><th width="9%">Faltam pontos</th><th width="10%">Períodos completos</th><th width="12%">Situação</th>
+<th width="9%">Pontos apurados / Meta</th><th width="9%">Faltam pontos</th><th width="10%">Períodos completos</th><th width="12%">Situação dos pontos</th>
 </tr></thead>
 <tbody>
 @foreach($componentRows as $row)
 @php
     $report = $row['report'];
     $summary = $row['summary'];
-    $hasScore = $summary['periods']->contains(fn ($item) => ($item['average']['value'] ?? null) !== null);
-    $criteria = \App\Support\ComponentApprovalCriteria::evaluate($summary, (float) $report['passingPoints']);
-    $missing = $criteria['missing'];
+    $progress = $summary['overview'];
 @endphp
 <tr><td class="student-name">{{ $report['student']->full_name }}</td>
 @php $attendance = $teacherComponentScope ? $summary['attendance'] : $report['annualAttendance']; @endphp
-<td class="number">{{ $attendance['percentage'] === null ? '—' : number_format($attendance['percentage'], 1, ',', '.').'%' }}</td>
+<td class="number">{{ $attendance['percentage'] === null ? '—' : number_format($attendance['percentage'], 1, ',', '.').'%' }}@unless($teacherComponentScope)<br><small>Mín. {{ $report['minimumAttendance'] }}%</small>@endunless</td>
 @foreach($endedPeriods as $endedPeriod)
 @php
-    $periodSummary = $summary['periods']->first(fn ($item) => $item['period']->id === $endedPeriod->id);
+    $periodSummary = $progress['ended_periods']->get($endedPeriod->id);
     $periodScore = $periodSummary['average']['value'] ?? null;
 @endphp
-<td class="number">{{ $periodScore === null ? '—' : number_format($periodScore, 1, ',', '.') }}</td>
+<td class="number">{{ $periodSummary === null ? '—' : ($periodScore === null ? 'Sem nota' : $formatPoints($periodScore).($periodSummary['average']['complete'] ? '' : '*')) }}</td>
 @endforeach
-<td class="number">{{ $hasScore ? number_format($criteria['value'], 1, ',', '.') : '—' }}</td>
-<td class="number">{{ number_format($missing, 1, ',', '.') }}</td>
-<td class="number">{{ $summary['complete_periods'] }}/{{ $summary['total_periods'] }}</td>
-<td>{{ ! $hasScore ? 'Sem notas' : ($missing > 0 ? 'Abaixo da meta' : 'Meta atingida') }}</td></tr>
+<td class="number">{{ $progress['value'] === null ? '—' : $formatPoints($progress['value']) }} / {{ $formatPoints($progress['target']) }}</td>
+<td class="number">{{ $progress['value'] === null ? '—' : $formatPoints($progress['missing']) }}</td>
+<td class="number">{{ $progress['complete_periods'] }}/{{ $summary['total_periods'] }}</td>
+<td>{{ $progress['status'] }}</td></tr>
 @endforeach
 </tbody></table>
 </div>

@@ -12,6 +12,7 @@ use App\Models\SchoolClass;
 use App\Models\StudentEnrollment;
 use App\Support\AcademicContextLabel;
 use App\Support\ClassStudentContacts;
+use App\Support\ComponentApprovalCriteria;
 use App\Support\CurriculumCatalog;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
@@ -168,13 +169,17 @@ class ClassAcademicDocumentsController extends Controller
             : TeacherAccess::assignments($request->user())
                 ->where('school_class_id', $class->id)
                 ->pluck('curriculum_component_id');
-        $reports = $enrollments->map(function (StudentEnrollment $enrollment) use ($builder, $teacherComponentIds): array {
+        $today = now('America/Cuiaba')->toDateString();
+        $reports = $enrollments->map(function (StudentEnrollment $enrollment) use ($builder, $teacherComponentIds, $today): array {
             $report = $builder->build($enrollment);
             if ($teacherComponentIds !== null) {
                 $report['annualComponents'] = $report['annualComponents']
                     ->filter(fn (array $summary): bool => $teacherComponentIds->contains($summary['component']->id))
                     ->values();
             }
+            $report['annualComponents'] = $report['annualComponents']->map(fn (array $summary): array => $summary + [
+                'overview' => ComponentApprovalCriteria::forOverview($summary, (float) $report['passingPoints'], $today),
+            ]);
 
             return $report;
         });

@@ -15,6 +15,9 @@ final class StudentAcademicHistoryPdf
         if ($data['history']->education_stage === 'tecnico') {
             return $this->document($data, null);
         }
+        if ($data['history']->education_stage === 'fundamental') {
+            $data['history']->loadMissing('years.enrollment.schoolClass');
+        }
         $groups = null;
         $sections = $this->measure($data, $groups);
         $filledBoundaries = [];

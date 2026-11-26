@@ -20,4 +20,29 @@ final class ComponentApprovalCriteria
         return ['basis' => $technical ? 'period_points' : 'annual_points', 'value' => $value, 'target' => $target,
             'missing' => max(0, round($target - ($value ?? 0), 2)), 'passed' => $value !== null && $value >= $target];
     }
+
+    public static function forOverview(array $summary, float $annualPassingPoints, string $today): array
+    {
+        $ended = $summary['periods']->filter(fn (array $item): bool => $item['period']->ends_at !== null
+            && $item['period']->ends_at->toDateString() < $today)->keyBy('period.id');
+        $complete = $ended->filter(fn (array $item): bool => $item['average']['complete'] && $item['average']['value'] !== null);
+        $criteria = self::evaluate(array_replace($summary, [
+            'periods' => $complete,
+            'points' => round($complete->sum('average.value'), 2),
+        ]), $annualPassingPoints);
+
+        return [
+            'ended_periods' => $ended,
+            'value' => $complete->isEmpty() ? null : $criteria['value'],
+            'target' => $criteria['target'],
+            'missing' => $criteria['missing'],
+            'complete_periods' => $complete->count(),
+            'status' => match (true) {
+                $complete->count() < $ended->count() => 'Notas pendentes',
+                $complete->isEmpty() || $complete->count() < $summary['total_periods'] => 'Em andamento',
+                $criteria['passed'] => 'Meta atingida',
+                default => 'Abaixo da meta',
+            },
+        ];
+    }
 }

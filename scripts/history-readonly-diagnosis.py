@@ -3,6 +3,7 @@ import base64
 import json
 import os
 import pathlib
+import re
 import tempfile
 import time
 
@@ -17,12 +18,20 @@ def main():
     query = json.loads(config.read_text()) if config.exists() else {'person_id': 0}
     requested_scope = os.environ.get('HISTORY_QUERY_SCOPE', 'configured')
     if requested_scope != 'configured':
-        if requested_scope not in ('person-record-verification', 'person-record-web-verification', 'enrollment-record-web-verification', 'history-pdf-verification', 'high-school-cohorts', 'school-diary-completion', 'diary-restoration-proposal'):
+        if requested_scope not in ('person-record-verification', 'person-record-web-verification', 'enrollment-record-web-verification', 'history-pdf-verification', 'high-school-cohorts', 'school-diary-completion', 'diary-restoration-proposal', 'class-approval-audit'):
             raise ValueError('Escopo manual inválido.')
         query['scope'] = requested_scope
     scope = query.get('scope', 'student')
     if scope in ('person-record-web-verification', 'enrollment-record-web-verification') and requested_scope != scope:
         raise ValueError('A emissão web exige seleção manual explícita desse escopo.')
+    key_pem = pathlib.Path('scripts/history-report-public.pem').read_bytes()
+    if scope == 'class-approval-audit':
+        approval_year = os.environ.get('APPROVAL_YEAR', '')
+        approval_teacher = os.environ.get('APPROVAL_TEACHER_HASH', '')
+        if requested_scope != scope or not re.fullmatch(r'(?:19|20)[0-9]{2}', approval_year) or not re.fullmatch(r'[0-9a-f]{64}', approval_teacher):
+            raise ValueError('Informe ano e seletor do docente para a conferência do panorama.')
+        key_pem = base64.b64decode(os.environ['APPROVAL_REPORT_KEY'], validate=True)
+    public = serialization.load_pem_public_key(key_pem)
     sources = {'technical-credential-verification': 'scripts/technical-credential-query.php.stub',
                'student-identification-layout': 'scripts/student-identification-layout-query.php.stub',
                'person-record-web-verification': 'scripts/person-record-web-verification.php.stub',
@@ -40,6 +49,7 @@ def main():
                'technical-grades': 'scripts/technical-grades-query.php.stub',
                'diary-workload-audit': 'scripts/diary-workload-audit-query.php.stub',
                'diary-progress': 'scripts/diary-progress-query.php.stub',
+               'class-approval-audit': 'scripts/class-approval-audit.php.stub',
                'student': 'scripts/history-readonly-diagnosis.php.stub',
                'liceu-itinerary': 'scripts/liceu-itinerary-query.php.stub',
                'high-school-diversified': 'scripts/high-school-diversified-query.php.stub',
@@ -53,11 +63,9 @@ def main():
     if scope not in sources:
         raise ValueError('Escopo de consulta inválido.')
     if scope == 'technical-cad-reconstruction':
-        import re
         if type(query.get('school_id')) is not int or query['school_id'] <= 0 or not re.fullmatch(r'[0-9a-f]{32}', query.get('transport_key_id', '')):
             raise ValueError('Escola ou transporte inválido para conferir o CAD I.')
     if scope == 'diary-supplement':
-        import re
         ids = query.get('assignment_ids', [])
         if type(query.get('school_id')) is not int or query['school_id'] <= 0 or not re.fullmatch(r'[0-9a-f]{32}', query.get('transport_key_id', '')) or not isinstance(ids, list) or not 1 <= len(ids) <= 20 or len(set(ids)) != len(ids) or any(type(i) is not int or i <= 0 for i in ids):
             raise ValueError('Diários ou transporte inválidos para conferir o preenchimento parcial.')
@@ -86,12 +94,13 @@ def main():
         if not isinstance(ids, list) or not 1 <= len(ids) <= 10 or len(set(ids)) != len(ids) or any(type(i) is not int or i <= 0 for i in ids):
             raise ValueError('Selecione até dez pessoas para a conferência técnica.')
     source = pathlib.Path(sources[scope]).read_text()
+    if scope == 'class-approval-audit':
+        source = source.replace('__APPROVAL_YEAR__', approval_year).replace('__APPROVAL_TEACHER_HASH__', approval_teacher)
     source = source.replace('__ENROLLMENT_ID__', str(query['enrollment_id'] if scope == 'enrollment-record-web-verification' else 0))
     person_id = query['person_id']
     if type(person_id) is not int or person_id < 0:
         raise ValueError('Identificador de pessoa inválido.')
     if scope == 'student':
-        import re
         selector = query.get('name_selector')
         if selector is not None:
             if (person_id != 0 or not isinstance(selector, dict)
@@ -107,7 +116,6 @@ def main():
             raise ValueError('Ano inválido para auditoria das aulas previstas.')
     if scope == 'diary-progress':
         if 'teacher_first_name_sha256' in query:
-            import re
             if (not re.fullmatch(r'[0-9a-f]{64}', query['teacher_first_name_sha256'])
                     or query.get('school_source') not in ('lar', 'laura', 'beaba')
                     or type(query.get('reference_year')) is not int or not 1900 <= query['reference_year'] <= 2100):
@@ -144,7 +152,6 @@ def main():
                         or not isinstance(row.get('name'), str) or not 1 <= len(row['name']) <= 80):
                     raise ValueError('Turma ou ano inválido no recorte.')
     if scope == 'class-diary-reconciliation':
-        import re
         key_id = query.get('transport_key_id', '')
         reference_year = query.get('reference_year')
         if person_id <= 0 or not re.fullmatch(r'[0-9a-f]{32}', key_id) or type(reference_year) is not int or not 1900 <= reference_year <= 2100:
@@ -156,7 +163,6 @@ def main():
             raise ValueError('Estudante ou ano inválido para conferir a rematrícula.')
         source = source.replace('__REFERENCE_YEAR__', str(reference_year))
     if scope in ('student-workload', 'student-transfer-grades'):
-        import re
         name_hash = query.get('name_sha256', '')
         reference_year = query.get('reference_year')
         if not re.fullmatch(r'[0-9a-f]{64}', name_hash) or type(reference_year) is not int or not 1900 <= reference_year <= 2100:
@@ -199,7 +205,7 @@ def main():
                     if time.monotonic() >= deadline:
                         raise RuntimeError('O deploy da consulta ainda não chegou ao servidor.')
                     time.sleep(10)
-            stdin, stdout, stderr = client.exec_command('cd /home/u810745753/domains/ctjj.org/public_html/sge && php -d memory_limit=1G', timeout=360 if scope == 'student-identification-layout' else 180 if scope in ('technical-credential-verification', 'legacy-outcome-audit', 'history-pdf-verification', 'school-diary-completion', 'diary-restoration-proposal', 'diary-supplement') else 60)
+            stdin, stdout, stderr = client.exec_command('cd /home/u810745753/domains/ctjj.org/public_html/sge && php -d memory_limit=1G', timeout=360 if scope == 'student-identification-layout' else 180 if scope in ('technical-credential-verification', 'legacy-outcome-audit', 'history-pdf-verification', 'school-diary-completion', 'diary-restoration-proposal', 'diary-supplement', 'class-approval-audit') else 60)
             stdin.write(source)
             stdin.flush()
             stdin.channel.shutdown_write()
@@ -220,7 +226,6 @@ def main():
                                   'error': private_error.decode(errors='replace')}).encode()
         finally:
             client.close()
-    public = serialization.load_pem_public_key(pathlib.Path('scripts/history-report-public.pem').read_bytes())
     key, nonce = AESGCM.generate_key(bit_length=256), os.urandom(12)
     report = {'key': base64.b64encode(public.encrypt(key, padding.OAEP(mgf=padding.MGF1(hashes.SHA256()), algorithm=hashes.SHA256(), label=None))).decode(), 'nonce': base64.b64encode(nonce).decode(), 'ciphertext': base64.b64encode(AESGCM(key).encrypt(nonce, raw, None)).decode()}
     pathlib.Path('history-diagnosis.encrypted.json').write_text(json.dumps(report))

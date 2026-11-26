@@ -1,4 +1,16 @@
 @extends('layouts.app')
+@php
+    $elementary = $history->education_stage === 'fundamental';
+    $formationGroups = $history->components->groupBy(fn ($component) => $component->formation ?: '-');
+    $yearSubtotals = [];
+    if ($elementary) {
+        $orderedGroups = collect(\App\Support\HistoryFormationWorkloads::formations($history))->mapWithKeys(
+            fn ($formation) => [$formation => $formationGroups->get($formation, collect())]);
+        $formationGroups = $orderedGroups->union($formationGroups);
+        $yearSubtotals = $history->years->mapWithKeys(fn ($year) => [$year->id => $history->formationWorkloadTotals($year)]);
+    }
+    $formatHours = fn ($hours) => $hours === null ? '-' : number_format($hours, 2, ',', '.');
+@endphp
 @php($historyKnowledgeAreas = \App\Models\KnowledgeArea::withSubtitlesByName())
 
 @section('title', $history->title)
@@ -116,13 +128,13 @@
                                 <th>{{ __('Área') }}</th>
                                 <th>{{ __('Componente') }}</th>
                                 @foreach($history->years as $year)
-                                    <th class="text-center">{{ $year->label }}</th>
+                                    <th class="text-center">{{ $year->label }}@if($elementary && ($className = $year->enrollment?->schoolClass?->name))<small class="d-block">{{ $className }}</small>@endif</th>
                                 @endforeach
                             </tr>
                         </thead>
                         <tbody>
                             @php($historyRowIndex = 0)
-                            @forelse($history->components->groupBy(fn ($component) => $component->formation ?: '-') as $formation => $formationComponents)
+                            @forelse($formationGroups as $formation => $formationComponents)
                                 @php($formationRowIndex = 0)
                                 @foreach($formationComponents->sortBy(fn ($component) => collect([$component->module_label, $component->knowledge_area, $component->position])->filter(fn ($value) => $value !== null)->join('|'))->groupBy(fn ($component) => $component->knowledge_area ?: '-') as $area => $areaComponents)
                                     @php($areaRowIndex = 0)
@@ -133,10 +145,16 @@
                                         @if($areaRowIndex === 0)<td rowspan="{{ $areaComponents->count() }}" class="align-middle">@include('partials.knowledge-area-label', ['labelName' => $area, 'labelArea' => $historyKnowledgeAreas->get(mb_strtolower(trim($area)))])</td>@endif
                                         <td><strong>{{ $component->name }}</strong></td>
                                         @foreach($history->years as $year)
-                                            @if($year->transcript_mode !== 'detailed')
+                                            @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
+                                            @if($elementary && $formation !== 'Formação Geral Básica' && $year->transcript_mode !== 'detailed')
+                                                <td class="text-center" @if($year->transcript_mode === 'summary') data-summary-component-year="{{ $year->id }}" @endif>{{ $year->transcript_mode === 'summary' && $record ? 'AP' : '-' }}</td>
+                                            @elseif($elementary && $year->transcript_mode !== 'detailed')
+                                                @if($formationRowIndex === 0)
+                                                    <td class="text-center align-middle" rowspan="{{ $formationComponents->count() }}" data-global-year="{{ $year->id }}"><strong>{{ $year->final_result ?: ($transcriptModeLabels[$year->transcript_mode] ?? '-') }}</strong></td>
+                                                @endif
+                                            @elseif($year->transcript_mode !== 'detailed')
                                                 @if($historyRowIndex === 0)<td rowspan="{{ $history->components->count() }}" class="text-center align-middle" data-global-year="{{ $year->id }}"><strong>{{ $year->final_result ?: ($transcriptModeLabels[$year->transcript_mode] ?? '-') }}</strong>@if($year->transcript_mode === 'summary')<span class="d-block small text-muted"><abbr title="{{ __('Carga horária cursada, em horas') }}">CHC</abbr> {{ $year->displaysCompletedWorkload() && $year->completedWorkloadHours() !== null ? number_format((float) $year->completedWorkloadHours(), 2, ',', '.') : '-' }}</span>@endif</td>@endif
                                             @else
-                                            @php($record = $component->records->firstWhere('student_academic_history_year_id', $year->id))
                                             <td class="text-center">@if($record)<strong>{{ $record->score_label ?: '-' }}</strong><span class="d-block small text-muted"><abbr title="{{ __('Carga horária cursada, em horas') }}">CHC</abbr> {{ $year->displaysCompletedWorkload() && $record->completedWorkloadHours($year) !== null ? number_format((float) $record->completedWorkloadHours($year), 2, ',', '.') : '-' }}</span> @else - @endif</td>
                                             @endif
                                         @endforeach
@@ -146,23 +164,37 @@
                                     </tr>
                                     @endforeach
                                 @endforeach
+                                @if($elementary)
+                                    <tr data-formation-subtotal="{{ $formation }}">
+                                        <th colspan="4" scope="row">{{ __('Total de :formation (h)', ['formation' => __($formation)]) }}</th>
+                                        @foreach($history->years as $year)
+                                            <td class="text-center">{{ $formatHours($yearSubtotals[$year->id][$formation]['completed'] ?? null) }}</td>
+                                        @endforeach
+                                    </tr>
+                                @endif
                             @empty
                                 <tr>
                                     <td colspan="{{ 4 + $history->years->count() }}" class="text-center text-muted">{{ __('Histórico cadastrado sem transcrição de componentes curriculares.') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
+                        @if($elementary)
+                            <tfoot><tr>
+                                <th colspan="4" scope="row">{{ __('Carga horária cursada total (h)') }}</th>
+                                @foreach($history->years as $year)
+                                    <td class="text-center"><strong>{{ $formatHours(\App\Support\HistoryFormationWorkloads::completedYearTotal($year, $yearSubtotals[$year->id])) }}</strong></td>
+                                @endforeach
+                            </tr></tfoot>
+                        @endif
                     </table>
                     </x-livewire-table>
                 </div>
                 @endif
-                @if($history->education_stage !== 'tecnico')
+                @if($history->education_stage === 'medio')
                     <div class="table-responsive p-3 border-top">
-                        @if($history->education_stage === 'medio')
                         <x-livewire-table>
                             @include('reports.partials.history-annual-formation-workloads', ['annualWorkloadTableClass' => 'table table-sm table-bordered mb-3'])
                         </x-livewire-table>
-                        @endif
                         <x-livewire-table per-page="0">
                         <table class="table table-sm table-bordered mb-0">
                             <thead><tr><th>{{ __('Formação') }}</th><th>{{ __('Total de horas previstas') }}</th><th>{{ __('Total de horas cursadas') }}</th></tr></thead>

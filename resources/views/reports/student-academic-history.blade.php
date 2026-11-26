@@ -32,8 +32,6 @@
         .vertical-formation { height: 100px; position: relative; }
         .vertical-formation span { position: absolute; width: 125px; left: 50%; top: 50%; margin-left: -62.5px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; font-weight: 600; }
         .workload-totals { page-break-inside: avoid; margin-top: 6px; }
-        .workload-totals-compact { margin-top: 0; margin-bottom: 2px; }
-        .workload-totals-compact td { padding: 0 2px; }
         .vertical-heading { height: 48px; position: relative; }
         .vertical-heading span { position: absolute; width: 72px; left: 50%; top: 50%; margin-left: -36px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; }
         .vertical-heading-multiline { height: 76px; }
@@ -41,6 +39,7 @@
         .vertical-result { height: 128px; position: relative; }
         .vertical-result strong { position: absolute; width: 150px; left: 50%; top: 50%; margin-left: -75px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; }
         .basic-history-matrix .global-year { background: #faf8f6; }
+        .basic-history-matrix .formation-subtotal td { background: #f1ede9; }
         .center { text-align: center; }
         .muted { color: #666; }
         .section-title { color: #6f3a29; font-size: 11px; font-weight: 600; margin: 3px 0 1px; text-transform: uppercase; page-break-after: avoid; }
@@ -127,7 +126,9 @@
     @include('reports.partials.technical-history-matrix', ['history' => $history])
 @else
 @include('reports.partials.basic-history-matrix', ['history' => $history])
-@include('reports.partials.history-formation-workloads', ['showAnnualFormationWorkloads' => $history->education_stage === 'medio', 'compactFormationWorkloads' => $history->education_stage === 'fundamental'])
+@if($history->education_stage === 'medio')
+@include('reports.partials.history-formation-workloads')
+@endif
 @endif
 
 @if($history->notes)
@@ -174,7 +175,7 @@
         @else
         @foreach($history->years as $year)
             <tr data-pdf-content="history" @if($loop->last) class="last-study-row" @endif>
-                <td class="studies-nowrap">{{ collect([$year->year ?: null, $year->grade_phase ?: $year->label])->filter()->join(' — ') ?: '-' }}</td>
+                <td class="studies-nowrap">{{ collect([$year->year ?: null, $year->grade_phase ?: $year->label])->filter()->join(' — ') ?: '-' }}@if($history->education_stage === 'fundamental' && ($className = $year->enrollment?->schoolClass?->name))<br>{{ $className }}@endif</td>
                 <td class="studies-nowrap"><strong>{{ $year->school_name ?: '-' }}</strong>@if($location = collect([$year->city, $year->state ? mb_strtoupper($year->state, 'UTF-8') : null, $year->country])->filter()->join(' / ')) — {{ $location }}@endif</td>
                 <td>{{ $year->modality ?: '-' }}</td>
                 <td>{{ $year->final_result ?: '-' }}@if(filled($year->attendance_label))<br>{{ __('Frequência') }} {{ $year->attendance_label }}@endif</td>
@@ -189,7 +190,7 @@
 <table class="legend-table">
     <tr>
         <th>Legenda</th>
-        <td>N (nota ou conceito, com frequência quando registrada) · CHC (carga horária cursada, em horas) · RF (resultado final) · AP (aproveitamento/progressão global conforme documento de origem). Totais por formação: horas previstas / cursadas.</td>
+        <td>N (nota ou conceito, com frequência quando registrada) · CHC (carga horária cursada, em horas) · RF (resultado final) · AP (aproveitamento/progressão global conforme documento de origem). @if($history->education_stage === 'medio')Totais por formação: horas previstas / cursadas.@endif</td>
     </tr>
 </table>
 

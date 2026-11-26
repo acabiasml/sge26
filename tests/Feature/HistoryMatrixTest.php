@@ -21,7 +21,7 @@ class HistoryMatrixTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_history_screen_merges_formations_areas_and_global_results_across_all_rows(): void
+    public function test_history_screen_merges_base_formation_and_shows_global_optional_components_by_year(): void
     {
         $this->actingAs(User::factory()->create());
         view()->share('errors', new ViewErrorBag);
@@ -60,7 +60,7 @@ class HistoryMatrixTest extends TestCase
         @$document->loadHTML('<?xml encoding="UTF-8">'.$html);
         $xpath = new \DOMXPath($document);
         $rows = $xpath->query('//table[contains(@class,"sge-history-read-table")]/tbody/tr');
-        $this->assertSame(43, $rows->length);
+        $this->assertSame(45, $rows->length);
         $table = $xpath->query('//table[contains(@class,"sge-history-read-table")]')->item(0);
         $this->assertFalse($table->hasAttribute('data-sge-client-pagination'));
         $this->assertSame(1, $xpath->query('.//td[@rowspan="35"]/strong[text()="Formação Geral Básica"]', $table)->length);
@@ -68,9 +68,10 @@ class HistoryMatrixTest extends TestCase
         $this->assertSame(1, $xpath->query('.//td[@rowspan="25" and text()="Linguagens"]', $table)->length);
         $this->assertSame(1, $xpath->query('.//td[@rowspan="10" and text()="Matemática"]', $table)->length);
         $this->assertSame(1, $xpath->query('.//td[@rowspan="8" and text()="Matemática"]', $table)->length);
-        $this->assertSame(1, $xpath->query('.//td[@data-global-year="1" and @rowspan="43"]/strong[text()="Aprovado"]', $table)->length);
-        $this->assertSame(1, $xpath->query('.//td[@data-global-year="3" and @rowspan="43"]/strong[text()="Classificação"]', $table)->length);
+        $this->assertSame(1, $xpath->query('.//td[@data-global-year="1" and @rowspan="35"]/strong[text()="Aprovado"]', $table)->length);
+        $this->assertSame(1, $xpath->query('.//td[@data-global-year="3" and @rowspan="35"]/strong[text()="Classificação"]', $table)->length);
         $this->assertSame(2, $xpath->query('.//td[@data-global-year]', $table)->length);
+        $this->assertSame(8, $xpath->query('.//td[@data-summary-component-year="1" and text()="-"]', $table)->length);
         $this->assertSame(43, $xpath->query('.//td/strong[text()="8,5"]', $table)->length);
     }
 
@@ -292,6 +293,42 @@ class HistoryMatrixTest extends TestCase
         $history->education_stage = 'medio';
         $html = view('reports.partials.basic-history-matrix', compact('history'))->render();
         $this->assertStringNotContainsString('Educação Física', $html);
+    }
+
+    public function test_elementary_history_places_subtotals_and_marks_global_components_only_in_their_own_year(): void
+    {
+        $history = new StudentAcademicHistory(['education_stage' => 'fundamental']);
+        $summary = new StudentAcademicHistoryYear(['label' => '6º Ano', 'transcript_mode' => 'summary', 'formation_workload_hours' => [
+            'Formação Geral Básica' => 800, 'Parte Diversificada' => 120, 'Parte Complementar' => 80.5,
+        ]]);
+        $summary->id = 1;
+        $detail = new StudentAcademicHistoryYear(['label' => '7º Ano', 'transcript_mode' => 'detailed', 'workload_hours' => 900]);
+        $detail->id = 2;
+        $history->setRelation('years', collect([$summary, $detail]));
+        $history->setRelation('components', collect([
+            ['Formação Geral Básica', 'Matemática', 2, 800],
+            ['Parte Diversificada', 'Projeto de Leitura', 1, null],
+            ['Parte Diversificada', 'Projeto de Pesquisa', 2, 100],
+            ['Parte Complementar', 'Práticas Comunitárias', 1, null],
+        ])->map(function (array $item): StudentAcademicHistoryComponent {
+            [$formation, $name, $yearId, $hours] = $item;
+            $component = new StudentAcademicHistoryComponent(['formation' => $formation, 'name' => $name, 'knowledge_area' => 'Matemática']);
+            $component->setRelation('records', collect([new StudentAcademicHistoryRecord(['student_academic_history_year_id' => $yearId, 'workload_hours' => $hours])]));
+
+            return $component;
+        }));
+        $document = new \DOMDocument;
+        @$document->loadHTML('<?xml encoding="UTF-8">'.view('reports.partials.basic-history-matrix', compact('history'))->render());
+        $xpath = new \DOMXPath($document);
+        $this->assertSame(1, $xpath->query('//tr[td[text()="Projeto de Leitura"]]/td[@data-summary-component-year="1" and text()="AP"]')->length);
+        $this->assertSame(1, $xpath->query('//tr[td[text()="Projeto de Pesquisa"]]/td[@data-summary-component-year="1" and text()="-"]')->length);
+        $formations = array_map(fn (\DOMAttr $attribute) => $attribute->value, iterator_to_array($xpath->query('//tr/@data-formation-subtotal'), false));
+        $this->assertSame(['Formação Geral Básica', 'Parte Diversificada', 'Parte Complementar'], $formations);
+        $this->assertSame('1.000,5', $xpath->evaluate('normalize-space(//tr[td/strong[text()="Carga horária cursada total (h)"]]/td[2])'));
+        $this->assertSame('900', $xpath->evaluate('normalize-space(//tr[td/strong[text()="Carga horária cursada total (h)"]]/td[3])'));
+        $this->assertStringStartsWith('%PDF-', app(StudentAcademicHistoryPdf::class)->make(array_replace(
+            $this->paginatedHistoryData(1), ['history' => $history],
+        ))->output());
     }
 
     public function test_planned_and_completed_hours_are_separate_and_current_year_hours_are_hidden(): void

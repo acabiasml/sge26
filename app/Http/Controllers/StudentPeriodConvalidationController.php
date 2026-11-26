@@ -33,7 +33,7 @@ class StudentPeriodConvalidationController extends Controller
         $data = $request->validate([
             'source_school' => ['required', 'string', 'max:255'],
             'previous_source_school' => ['nullable', 'string', 'max:255'],
-            'convalidated_at' => ['required', 'date'],
+            'convalidated_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'rows' => ['required', 'array', 'max:500'],
             'rows.*' => ['array:score,attendance_lessons,attendance_absences,attendance_justified_absences'],
@@ -53,10 +53,8 @@ class StudentPeriodConvalidationController extends Controller
             $prefix = 'rows.'.$key;
             $row['score'] = is_string($row['score'] ?? null) ? str_replace(',', '.', $row['score']) : ($row['score'] ?? null);
             $validated = \Illuminate\Support\Facades\Validator::make(['rows' => [$key => $row]], [
-                $prefix.'.score' => ['required', 'numeric', 'between:0,10'],
-                $prefix.'.attendance_lessons' => ['nullable', 'required_with:'.$prefix.'.attendance_absences,'.$prefix.'.attendance_justified_absences', 'integer', 'between:1,999'],
-                $prefix.'.attendance_absences' => ['nullable', 'required_with:'.$prefix.'.attendance_justified_absences', 'integer', 'min:0', 'lte:'.$prefix.'.attendance_lessons'],
-                $prefix.'.attendance_justified_absences' => ['nullable', 'integer', 'min:0', 'lte:'.$prefix.'.attendance_absences'],
+                $prefix.'.score' => ['nullable', 'numeric', 'between:0,10'],
+                ...$this->attendanceRules($row, $prefix.'.'),
             ], [], [
                 $prefix.'.score' => __('Média'), $prefix.'.attendance_lessons' => __('Aulas cursadas na origem'),
                 $prefix.'.attendance_absences' => __('Faltas na origem'), $prefix.'.attendance_justified_absences' => __('Faltas justificadas na origem'),
@@ -74,7 +72,7 @@ class StudentPeriodConvalidationController extends Controller
                     throw \Illuminate\Validation\ValidationException::withMessages(['rows' => __('Já existe resultado de outra ficha neste período e componente. Abra a ficha correspondente para editá-lo.')]);
                 }
                 StudentPeriodConvalidation::query()->updateOrCreate($key, array_merge($item['values'], [
-                    'source_school' => $data['source_school'], 'convalidated_at' => $data['convalidated_at'],
+                    'source_school' => $data['source_school'], 'convalidated_at' => $data['convalidated_at'] ?? now('America/Cuiaba')->toDateString(),
                     'notes' => $data['notes'] ?? null, 'convalidated_by_person_id' => $request->user()->person_id,
                 ]));
             }
@@ -100,17 +98,15 @@ class StudentPeriodConvalidationController extends Controller
             'convalidation_id' => ['nullable', 'integer'],
             'academic_period_id' => ['required', 'integer', Rule::exists('academic_periods', 'id')->where('academic_year_id', $academicYear->id)],
             'curriculum_component_id' => ['required', 'integer'],
-            'score' => ['required', 'numeric', 'min:0', 'max:10'],
-            'attendance_lessons' => ['nullable', 'required_with:attendance_absences,attendance_justified_absences', 'integer', 'min:1', 'max:999'],
-            'attendance_absences' => ['nullable', 'required_with:attendance_justified_absences', 'integer', 'min:0', 'max:999', 'lte:attendance_lessons'],
-            'attendance_justified_absences' => ['nullable', 'integer', 'min:0', 'max:999', 'lte:attendance_absences'],
+            'score' => ['nullable', 'required_without_all:attendance_lessons,attendance_absences,attendance_justified_absences', 'numeric', 'min:0', 'max:10'],
+            ...$this->attendanceRules($request->all()),
             'source_school' => ['nullable', 'string', 'max:255'],
             'convalidated_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
         ], [
             'academic_period_id.required' => __('Selecione o período avaliativo.'),
             'curriculum_component_id.required' => __('Selecione o componente curricular.'),
-            'score.required' => __('Informe a média recebida da escola de origem.'),
+            'score.required_without_all' => __('Informe ao menos uma nota ou um dado de frequência da escola de origem.'),
             'score.numeric' => __('Informe uma média válida.'),
             'score.min' => __('A média não pode ser menor que zero.'),
             'score.max' => __('A média não pode ser maior que dez.'),
@@ -142,7 +138,7 @@ class StudentPeriodConvalidationController extends Controller
                 'curriculum_component_id' => $data['curriculum_component_id'],
             ],
             [
-                'score' => $data['score'],
+                'score' => $data['score'] ?? null,
                 'attendance_lessons' => $data['attendance_lessons'] ?? null,
                 'attendance_absences' => $data['attendance_absences'] ?? null,
                 'attendance_justified_absences' => $data['attendance_justified_absences'] ?? null,
@@ -155,6 +151,19 @@ class StudentPeriodConvalidationController extends Controller
 
         return redirect()->route('enrollments.report-card.show', $enrollment)
             ->with('status', __('Resultado parcial convalidado com sucesso.'));
+    }
+
+    private function attendanceRules(array $row, string $prefix = ''): array
+    {
+        $lessons = filled($row['attendance_lessons'] ?? null);
+        $absences = filled($row['attendance_absences'] ?? null);
+
+        return [
+            $prefix.'attendance_lessons' => ['nullable', 'integer', 'between:1,999'],
+            $prefix.'attendance_absences' => ['nullable', 'integer', 'between:0,999', ...($lessons ? ['lte:'.$prefix.'attendance_lessons'] : [])],
+            $prefix.'attendance_justified_absences' => ['nullable', 'integer', 'between:0,999',
+                ...($absences ? ['lte:'.$prefix.'attendance_absences'] : ($lessons ? ['lte:'.$prefix.'attendance_lessons'] : []))],
+        ];
     }
 
     public function destroy(Request $request, StudentEnrollment $enrollment, StudentPeriodConvalidation $convalidation): RedirectResponse

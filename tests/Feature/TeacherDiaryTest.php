@@ -2259,8 +2259,8 @@ class TeacherDiaryTest extends TestCase
         $this->actingAs($teacher)->post(route('enrollments.convalidations.store', $enrollment), [])->assertForbidden();
         $this->actingAs($manager)->post(route('enrollments.convalidations.store', $enrollment), [
             'academic_period_id' => $period->id, 'curriculum_component_id' => $component->id,
-            'score' => 7, 'attendance_absences' => 2,
-        ])->assertSessionHasErrors('attendance_lessons');
+            'score' => 7, 'attendance_lessons' => 1, 'attendance_absences' => 2,
+        ])->assertSessionHasErrors('attendance_absences');
 
         $report = app(StudentReportCardBuilder::class)->build($enrollment->fresh());
         $componentReport = $report['periodReports']->first()['components']->first();
@@ -3426,6 +3426,25 @@ class TeacherDiaryTest extends TestCase
         $this->actingAs($manager)->get(route('document-issuance.issue', [
             'type' => 'class-approval-overview', 'target_id' => $class->id,
         ]))->assertRedirectContains($url);
+    }
+
+    public function test_origin_sheet_accepts_absences_without_grade_or_total_lessons(): void
+    {
+        [, $year, , $component, $period, $enrollment] = $this->diaryScenario();
+        $manager = $this->userWithRole(PersonSchoolRole::ROLE_MANAGER, $year->school_id, 'ficha-faltas@ctjj.org');
+        $this->actingAs($manager)->post(route('enrollments.origin-sheet.store', $enrollment), [
+            'source_school' => 'Escola anterior', 'convalidated_at' => '2026-07-01', 'sheet_complete' => 1,
+            'rows' => [$period->id.'_'.$component->id => ['attendance_absences' => 2, 'attendance_justified_absences' => 1]],
+        ])->assertSessionHasNoErrors();
+
+        $record = $enrollment->periodConvalidations()->sole();
+        $this->assertNull($record->score);
+        $this->assertNull($record->attendance_lessons);
+        $report = app(StudentReportCardBuilder::class)->build($enrollment->fresh());
+        $this->assertNull($report['annualAttendance']['percentage']);
+        $this->assertSame(2, $report['annualAttendance']['absent']);
+        $this->assertSame(1, $report['annualAttendance']['justified']);
+        $this->assertDatabaseCount('diary_attendance_records', 0);
     }
 
     public function test_teacher_can_issue_only_own_person_record_in_teacher_view(): void

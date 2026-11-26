@@ -100,19 +100,22 @@ class StudentReportCardBuilder
                     $prior = $sourcePeriod['components']->first(
                         fn (array $item): bool => $this->continuity->componentKey($item['component']) === $this->continuity->componentKey($componentReport['component'])
                     );
-                    if (! $prior || $componentReport['convalidation']) {
+                    if (! $prior) {
                         continue;
                     }
 
+                    $origin = $componentReport['convalidation'];
                     if (! ($componentReport['average']['complete'] ?? false) && ($prior['average']['complete'] ?? false)) {
                         $componentReport['average'] = $prior['average'];
                         $componentReport['assessments'] = $prior['assessments'];
                         $componentReport['convalidation'] = $prior['convalidation'];
                     }
-                    $componentReport['attendance'] = $this->attendanceCalculator->aggregate(collect([
-                        $componentReport['attendance'],
-                        $prior['attendance'],
-                    ]));
+                    if ($origin?->attendance_lessons === null && $origin?->attendance_absences === null && $origin?->attendance_justified_absences === null) {
+                        $componentReport['attendance'] = $this->attendanceCalculator->aggregate(collect([
+                            $componentReport['attendance'],
+                            $prior['attendance'],
+                        ]));
+                    }
                     $periodReport['components'][$componentIndex] = $componentReport;
                 }
                 $report['periodReports'][$periodIndex] = $periodReport;
@@ -136,10 +139,14 @@ class StudentReportCardBuilder
             'finalResultCalculatedBy',
             'schoolClass.academicYear.school.concepts',
             'schoolClass.academicYear.school.academicCriteria',
+            'schoolClass.startsPeriod',
+            'schoolClass.endsPeriod',
             'periodConvalidations.period',
             'periodConvalidations.component',
             'courses.components.area',
             'courses.components.course',
+            'courses.startsPeriod',
+            'courses.endsPeriod',
         ]);
 
         $schoolClass = $enrollment->schoolClass;
@@ -203,13 +210,19 @@ class StudentReportCardBuilder
             ->whereIn('curriculum_component_id', $componentIds)
             ->keyBy(fn (StudentPeriodConvalidation $convalidation): string => $convalidation->academic_period_id.'-'.$convalidation->curriculum_component_id);
 
-        $periodReports = $periods->map(function (AcademicPeriod $period) use ($components, $assessments, $attendance, $justifications, $enrollment, $behaviorGrades, $assignments, $convalidations): array {
+        $periodReports = $periods->map(function (AcademicPeriod $period) use ($components, $assessments, $attendance, $justifications, $enrollment, $behaviorGrades, $assignments, $convalidations, $schoolClass, $courses): array {
             $enrolledAt = $enrollment->enrolled_at?->toDateString();
             $endsAt = $enrollment->attendanceEndsAt();
             $periodWithinEnrollment = (! $enrolledAt || $period->ends_at?->toDateString() >= $enrolledAt)
                 && (! $endsAt || $period->starts_at?->toDateString() <= $endsAt);
             $componentReports = $components
-                ->filter(fn (CurriculumComponent $component): bool => $component->isActiveInPeriod($period))
+                ->filter(function (CurriculumComponent $component) use ($period, $schoolClass, $courses): bool {
+                    $course = $courses->firstWhere('id', $component->academic_course_id);
+
+                    return $component->isActiveInPeriod($period)
+                        && $period->position >= max($schoolClass->startsPeriod?->position ?? 0, $course?->startsPeriod?->position ?? 0)
+                        && $period->position <= min($schoolClass->endsPeriod?->position ?? PHP_INT_MAX, $course?->endsPeriod?->position ?? PHP_INT_MAX);
+                })
                 ->map(function (CurriculumComponent $component) use ($period, $assessments, $attendance, $justifications, $enrollment, $assignments, $convalidations, $periodWithinEnrollment, $endsAt): array {
                     $componentAssessments = $assessments
                         ->where('academic_period_id', $period->id)
@@ -252,6 +265,14 @@ class StudentReportCardBuilder
                                 (int) ($convalidation->attendance_justified_absences ?? 0),
                             ) + ($convalidation->verified_diary_attended_minutes !== null
                                 ? ['diary_attended_minutes' => $convalidation->verified_diary_attended_minutes] : []),
+                        ]));
+                    } elseif ($convalidation && ($convalidation->attendance_absences !== null || $convalidation->attendance_justified_absences !== null)) {
+                        $attendanceSummary = $this->attendanceCalculator->aggregate(collect([
+                            $attendanceSummary,
+                            $this->attendanceCalculator->fromAbsencesWithoutLessons(
+                                $convalidation->attendance_absences,
+                                $convalidation->attendance_justified_absences,
+                            ),
                         ]));
                     }
 
@@ -458,6 +479,6 @@ class StudentReportCardBuilder
                 'total_periods' => $periodComponentReports->count(),
                 'attendance' => $attendance,
             ];
-        })->values();
+        })->filter(fn (array $summary): bool => $summary['total_periods'] > 0)->values();
     }
 }

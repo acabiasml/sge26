@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\AcademicPeriod;
+use App\Models\AcademicCourse;
 use App\Models\DiaryAssessment;
 use App\Models\StudentEnrollment;
 use Illuminate\Support\Collection;
@@ -112,6 +113,10 @@ class DiaryGradeCalculator
     {
         if ($recoveryAssessment?->recovery_mode !== AcademicPeriod::RECOVERY_REPLACE_PERIOD_AVERAGE) {
             return null;
+        }
+
+        if ($recoveryAssessment->component?->course?->stage === AcademicCourse::STAGE_TECHNICAL) {
+            return ComponentApprovalCriteria::TECHNICAL_PASSING_POINTS_PER_PERIOD;
         }
 
         $period = $recoveryAssessment->period()->with('academicYear')->first();

@@ -417,7 +417,7 @@ class HistorySaveProtectionTest extends TestCase
         $this->assertSame(['planned' => 120.0, 'completed' => 120.0], $totals['Parte Diversificada']);
     }
 
-    public function test_global_totals_require_each_enabled_formation_and_do_not_multiply_component_hours(): void
+    public function test_global_totals_accept_missing_hours_and_do_not_multiply_component_hours(): void
     {
         $history = $this->history();
         $year = $history->years()->sole();
@@ -428,9 +428,10 @@ class HistorySaveProtectionTest extends TestCase
         $this->assertSame(800.0, $history->fresh()->formationWorkloadTotals()['Formação Geral Básica']['planned']);
         $payload = $this->yearlyPayload($history, [array_merge($this->year(1), ['id' => $year->id, 'transcript_mode' => 'summary', 'enabled_formations' => ['Parte Complementar'], 'formation_workload_hours' => ['Formação Geral Básica' => 800, 'Parte Complementar' => '']])], []);
         $payload['formation_totals_present'] = 1;
-        $this->put($this->url($history), $payload)->assertSessionHasErrors('years.0.formation_workload_hours.Parte Complementar');
-        $this->assertNull($year->fresh()->formation_workload_hours);
+        $this->put($this->url($history), $payload)->assertSessionHasNoErrors();
+        $this->assertSame(['Formação Geral Básica' => 800, 'Parte Complementar' => null], $year->fresh()->formation_workload_hours);
         $this->assertSame('800.00', $year->fresh()->workload_hours);
+        $payload['history_version'] = app(StudentHistoryEditGuard::class)->version($history->fresh());
         $payload['years'][0]['formation_workload_hours']['Parte Complementar'] = 0;
         $this->put($this->url($history), $payload)->assertSessionHasNoErrors();
         $this->assertSame(2, $history->components()->count());

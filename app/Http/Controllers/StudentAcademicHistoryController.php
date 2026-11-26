@@ -376,6 +376,9 @@ class StudentAcademicHistoryController extends Controller
         }
 
         $history->load(['school', 'years.records', 'components.records.year']);
+        if ($history->education_stage === 'fundamental') {
+            $history->loadMissing('years.enrollment.schoolClass');
+        }
 
         return view('student-histories.show', [
             'person' => $person,
@@ -894,18 +897,20 @@ class StudentAcademicHistoryController extends Controller
                 $enabled = $year['enabled_formations'] ?? [];
                 $hours = $year['formation_workload_hours'] ?? [];
                 if (! is_array($enabled) || ! is_array($hours) || array_diff($enabled, $allowed) || array_diff(array_keys($hours), $allowed)) {
-                    throw ValidationException::withMessages(["years.{$index}.formation_workload_hours" => __('Selecione as formações válidas e informe o total de horas de cada uma.')]);
+                    throw ValidationException::withMessages(["years.{$index}.formation_workload_hours" => __('Selecione formações válidas para esta etapa.')]);
                 }
                 $totals = [];
                 foreach (array_unique([$base, ...$enabled]) as $formation) {
                     $value = $this->number($hours[$formation] ?? null);
-                    if (! is_numeric($value) || (float) $value < 0) {
-                        throw ValidationException::withMessages(["years.{$index}.formation_workload_hours.{$formation}" => __('Informe o total de horas desta formação.')]);
+                    if (filled($value) && (! is_numeric($value) || (float) $value < 0)) {
+                        throw ValidationException::withMessages(["years.{$index}.formation_workload_hours.{$formation}" => __('Informe uma carga horária válida para esta formação.')]);
                     }
-                    $totals[$formation] = round((float) $value, 2);
+                    $totals[$formation] = filled($value) ? round((float) $value, 2) : null;
                 }
                 $year['formation_workload_hours'] = $totals;
-                $year['workload_hours'] = round(array_sum($totals), 2);
+                if (! in_array(null, $totals, true)) {
+                    $year['workload_hours'] = round(array_sum($totals), 2);
+                }
             } else {
                 unset($year['formation_workload_hours']);
             }
@@ -1037,14 +1042,14 @@ class StudentAcademicHistoryController extends Controller
             'years.*.school_name' => ['required', 'string', 'max:255'],
             'years.*.school_authorization' => ['nullable', 'string'],
             'years.*.source_document' => ['nullable', 'string', 'max:255'],
-            'years.*.city' => ['required', 'string', 'max:255'],
-            'years.*.state' => ['required', 'string', 'size:2', Rule::in(BrazilianStates::codes())],
+            'years.*.city' => ['nullable', 'string', 'max:255'],
+            'years.*.state' => ['nullable', 'string', 'size:2', Rule::in(BrazilianStates::codes())],
             'years.*.country' => ['nullable', 'string', 'max:255'],
             'years.*.transcript_mode' => ['required', Rule::in(['detailed', 'summary', 'no_transcription'])],
-            'years.*.final_result' => ['required', 'string', 'max:255'],
-            'years.*.workload_hours' => ['required', 'numeric', 'min:0', 'max:999999.99'],
+            'years.*.final_result' => ['nullable', 'string', 'max:255'],
+            'years.*.workload_hours' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
             'years.*.formation_workload_hours' => ['nullable', 'array'],
-            'years.*.formation_workload_hours.*' => ['required', 'numeric', 'min:0'],
+            'years.*.formation_workload_hours.*' => ['nullable', 'numeric', 'min:0'],
             'years.*.school_days' => ['nullable', 'integer', 'min:0', 'max:400'],
             'years.*.attendance_label' => ['nullable', 'string', 'max:255'],
             'years.*.minimum_attendance_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],

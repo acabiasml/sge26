@@ -141,7 +141,7 @@
                 <summary class="text-primary">{{ __('Como preencher') }}</summary>
                 <div class="text-muted mt-2">
                     <p>{{ __('Abra o bloco de cada ano para preencher a escola, o resultado e os componentes daquele ano.') }}</p>
-                    <p>{{ __('Selecione o tipo de transcrição em cada ano. No modo global, indique os componentes e os totais de horas por formação, sem notas individuais.') }}</p>
+                    <p>{{ __('Selecione o tipo de transcrição em cada ano. No modo global, indique os componentes cursados e informe as cargas horárias que constarem no documento.') }}</p>
                 </div>
             </details>
             @if($schools->count() === 1)
@@ -252,11 +252,11 @@
                                 </div>
                                 <div class="form-group col-md-6">
                                     <label>{{ __('Cidade') }}</label>
-                                    <input name="years[{{ $yearIndex }}][city]" class="form-control" value="{{ $year['city'] ?? '' }}" required>
+                                    <input name="years[{{ $yearIndex }}][city]" class="form-control" value="{{ $year['city'] ?? '' }}">
                                 </div>
                                 <div class="form-group col-md-2">
                                     <label>{{ __('UF') }}</label>
-                                    <select name="years[{{ $yearIndex }}][state]" class="form-control" required>
+                                    <select name="years[{{ $yearIndex }}][state]" class="form-control">
                                         <option value=""></option>
                                         @foreach($states as $uf => $stateName)
                                             <option value="{{ $uf }}" @selected(($year['state'] ?? '') === $uf)>{{ $uf }}</option>
@@ -265,7 +265,7 @@
                                 </div>
                                 <div class="form-group col-md-4">
                                     <label>{{ __('País') }}</label>
-                                    <input name="years[{{ $yearIndex }}][country]" class="form-control" value="{{ $year['country'] ?? 'Brasil' }}" required>
+                                    <input name="years[{{ $yearIndex }}][country]" class="form-control" value="{{ $year['country'] ?? 'Brasil' }}">
                                 </div>
                             </div>
                             </fieldset>
@@ -274,11 +274,11 @@
                             <div class="form-row">
                                 <div class="form-group col-md-4">
                                     <label>{{ __('Carga horária total (h)') }}</label>
-                                    <input name="years[{{ $yearIndex }}][workload_hours]" data-history-total-hours @readonly(($year['transcript_mode'] ?? 'detailed') === 'summary') data-mask="decimal" inputmode="decimal" class="form-control" value="{{ $year['workload_hours'] ?? '' }}" required>
+                                    <input name="years[{{ $yearIndex }}][workload_hours]" data-history-total-hours data-mask="decimal" inputmode="decimal" class="form-control" value="{{ $year['workload_hours'] ?? '' }}">
                                 </div>
                                 <div class="form-group col-md-8">
                                     <label>{{ __('Resultado final nesta escola/ano') }}</label>
-                                    <input name="years[{{ $yearIndex }}][final_result]" class="form-control" value="{{ $year['final_result'] ?? '' }}" required>
+                                    <input name="years[{{ $yearIndex }}][final_result]" class="form-control" value="{{ $year['final_result'] ?? '' }}">
                                 </div>
                             </div>
                             </fieldset>
@@ -299,7 +299,7 @@
                                     <div class="form-group col-md-4" data-history-formation-total="{{ $formation }}">
                                         @if($formationIndex === 0)<label><strong>{{ __($formation) }}</strong></label>
                                         @else<label><input type="checkbox" name="years[{{ $yearIndex }}][enabled_formations][]" data-formation-toggle value="{{ $formation }}" @checked($formationEnabled)> {{ __($formation) }}</label>@endif
-                                        <input name="years[{{ $yearIndex }}][formation_workload_hours][{{ $formation }}]" data-formation-hours data-mask="decimal" inputmode="decimal" class="form-control" aria-label="{{ __('Total de horas') }} — {{ __($formation) }}" value="{{ $globalHours[$formation] ?? '' }}" @disabled(! $formationEnabled) @required($formationEnabled)>
+                                        <input name="years[{{ $yearIndex }}][formation_workload_hours][{{ $formation }}]" data-formation-hours data-mask="decimal" inputmode="decimal" class="form-control" aria-label="{{ __('Total de horas') }} — {{ __($formation) }}" value="{{ $globalHours[$formation] ?? '' }}" @disabled(! $formationEnabled)>
                                         <button class="btn btn-sm btn-outline-primary mt-2" type="button" data-add-history-component data-formation="{{ $formation }}" @disabled(! $formationEnabled) aria-label="{{ __('Adicionar componente') }} — {{ __($formation) }}"><i class="fas fa-plus mr-1" aria-hidden="true"></i>{{ __('Adicionar componente') }}</button>
                                         <small class="d-block text-muted mt-1" data-history-no-catalog hidden>{{ __('Não há componentes ativos desta formação no catálogo.') }}</small>
                                     </div>
