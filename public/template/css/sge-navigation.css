@@ -29,7 +29,10 @@ html { scroll-padding-block-end: var(--sge-bottom-bar-clearance, 5rem); }
     max-width: 100%;
     row-gap: .375rem;
 }
-.sge-bottom-bar .sge-topbar-controls .sge-sidebar-toggle { margin-right: 0 !important; }
+#sidebarToggleControl {
+    margin-right: 0 !important;
+    background: var(--sge-logo-surface) !important;
+}
 .sge-bottom-bar .dropdown .dropdown-menu {
     max-height: calc(100dvh - var(--sge-bottom-bar-clearance, 5rem) - .5rem);
     overflow-y: auto;
@@ -43,7 +46,13 @@ html { scroll-padding-block-end: var(--sge-bottom-bar-clearance, 5rem); }
     padding-inline: 0;
     overflow: hidden !important;
 }
-#accordionSidebar .sge-sidebar-header { flex-shrink: 0; margin-inline: .5rem; }
+#accordionSidebar .sge-sidebar-header {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    min-height: 4.5rem;
+    margin-inline: 1.125rem .75rem;
+}
 #accordionSidebar .sge-sidebar-items {
     display: flex;
     flex-direction: column;
@@ -97,27 +106,18 @@ html { scroll-padding-block-end: var(--sge-bottom-bar-clearance, 5rem); }
     margin: .25rem .5rem .6rem;
 }
 #accordionSidebar .collapse-inner .collapse-item { white-space: normal; }
-.sge-sidebar-header { position: relative; }
-.sge-sidebar-close {
-    position: absolute;
-    top: .75rem;
-    right: .5rem;
-    width: 2.75rem;
-    height: 2.75rem;
-    padding: 0;
-    background: var(--sge-paper);
-    color: var(--identity-primary, var(--sge-brown));
-    z-index: 1;
-}
-
 #accordionSidebar .sge-sidebar-header .sidebar-brand {
-    min-height: 4.5rem;
+    display: inline-flex;
+    align-items: center;
+    height: auto;
+    min-height: 0;
     gap: .75rem;
+    padding: 0;
     background: transparent;
     border: 0;
-    border-radius: 0;
+    border-radius: var(--identity-button-radius, .5rem);
     box-shadow: none;
-    margin-bottom: 0;
+    margin: 0;
 }
 .sge-sidebar-logo {
     display: inline-flex;
@@ -195,14 +195,12 @@ html { scroll-padding-block-end: var(--sge-bottom-bar-clearance, 5rem); }
         transition: width .26s cubic-bezier(.2, .8, .2, 1);
     }
     #accordionSidebar .sge-sidebar-links { margin-block: auto; }
-    #accordionSidebar .sidebar-brand { padding-inline: .3125rem 3.5rem; overflow: hidden; }
     #accordionSidebar .nav-item > .nav-link span {
         white-space: nowrap;
         transition: opacity .18s ease;
     }
     #accordionSidebar .nav-item > .nav-link { overflow: hidden; }
     #accordionSidebar .nav-item :is(.collapse, .collapsing) { width: 15rem; }
-    #accordionSidebar .sge-sidebar-close { top: 1.5rem; }
     #accordionSidebar .nav-item > .nav-link { padding-inline: 1.375rem 1rem; min-height: 3.125rem; }
     #accordionSidebar .sidebar-heading { white-space: nowrap; width: 16rem; }
     html[data-sidebar-collapsed] .sge-sidebar-shell {
@@ -211,10 +209,6 @@ html { scroll-padding-block-end: var(--sge-bottom-bar-clearance, 5rem); }
     }
     html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar,
     html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar.toggled { width: 5rem !important; }
-    html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar .sidebar-brand {
-        justify-content: center !important;
-        padding-inline: 0;
-    }
     html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar .nav-item > .nav-link span {
         position: absolute;
         width: 1px;
@@ -234,7 +228,6 @@ html { scroll-padding-block-end: var(--sge-bottom-bar-clearance, 5rem); }
     }
     html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar .sge-sidebar-name,
     html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar .nav-item > .nav-link::after,
-    html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar .sge-sidebar-close,
     html[data-sidebar-collapsed]:not([data-sidebar-expanded]) #accordionSidebar .nav-item :is(.collapse, .collapsing) {
         display: none !important;
     }
@@ -253,8 +246,6 @@ html { scroll-padding-block-end: var(--sge-bottom-bar-clearance, 5rem); }
     .sge-sidebar-shell { width: 0; flex: 0 0 0; }
     #accordionSidebar,
     #accordionSidebar.toggled { width: min(18rem, 88vw) !important; }
-    .sge-sidebar-header { position: sticky; top: 0; z-index: 1; }
-    #accordionSidebar .sidebar-brand { padding-right: 3.5rem; }
     .sge-bottom-bar .dropdown { position: static; }
     .sge-bottom-bar .dropdown .dropdown-menu {
         left: 0;

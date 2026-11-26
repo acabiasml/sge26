@@ -201,7 +201,7 @@ html[data-theme-family="ubuntu"] .sidebar-dark .nav-item .nav-link:is(:hover, :f
 html[data-theme-family="ubuntu"] .sidebar-dark .nav-item .nav-link::after {
     color: var(--desktop-nav-accent);
 }
-html[data-theme-family="ubuntu"] .sidebar :is(.nav-link, .sidebar-brand, .sge-sidebar-close):focus-visible,
+html[data-theme-family="ubuntu"] .sidebar :is(.nav-link, .sidebar-brand):focus-visible,
 html[data-theme-family="ubuntu"] .topbar :is(.sge-sidebar-toggle, .sge-topbar-icon-button, .sge-language-button, #userDropdown):focus-visible {
     outline-color: var(--desktop-nav-accent) !important;
 }

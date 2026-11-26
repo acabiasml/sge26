@@ -11,11 +11,12 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         const toggle = document.getElementById('sidebarToggleControl');
-        const close = document.getElementById('sidebarCloseControl');
+        const brand = document.getElementById('sidebarBrandControl');
         const sidebar = document.getElementById('accordionSidebar');
+        const menuItems = sidebar?.querySelector('.sge-sidebar-items');
         const content = document.getElementById('content-wrapper');
         const backdrop = document.querySelector('.sge-sidebar-backdrop');
-        if (!toggle || !sidebar) return;
+        if (!toggle || !brand || !menuItems) return;
 
         const desktop = window.matchMedia('(min-width: 992px)');
         let mobileOpen = false;
@@ -46,9 +47,9 @@
             const open = desktop.matches ? !desktopCollapsed || preview : mobileOpen;
             const hadMenuFocus = sidebar.contains(document.activeElement);
             content?.removeAttribute('inert');
-            if (restoreFocus || (!desktop.matches && !open && hadMenuFocus) || (desktop.matches && !open && document.activeElement === close)) {
-                const focusTarget = desktop.matches ? document.getElementById('main-content') : toggle;
-                focusTarget?.focus({ preventScroll: true });
+            if (restoreFocus || (!desktop.matches && !open && hadMenuFocus)) {
+                const focusTarget = desktop.matches ? brand : toggle;
+                focusTarget.focus({ preventScroll: true });
             }
             root.toggleAttribute('data-sidebar-collapsed', desktopCollapsed);
             root.toggleAttribute('data-sidebar-expanded', desktop.matches && open);
@@ -65,16 +66,15 @@
                 control.setAttribute('aria-expanded', String(!compact && expanded));
             });
             toggle.setAttribute('aria-expanded', String(!desktop.matches && open));
-            const label = !desktop.matches && open ? toggle.dataset.closeLabel : toggle.dataset.openLabel;
-            toggle.setAttribute('aria-label', label);
-            toggle.title = label;
-            if (close) {
-                close.setAttribute('aria-label', desktop.matches ? toggle.dataset.collapseLabel : toggle.dataset.closeLabel);
-                close.title = close.getAttribute('aria-label');
-            }
+            brand.setAttribute('aria-expanded', String(open));
+            const brandLabel = desktop.matches
+                ? (open ? brand.dataset.collapseLabel : brand.dataset.expandLabel)
+                : brand.dataset.closeLabel;
+            brand.setAttribute('aria-label', brandLabel);
+            brand.title = brandLabel;
             if (backdrop) backdrop.hidden = desktop.matches || !open;
             if (!desktop.matches && open) {
-                if (focusMenu) close?.focus();
+                if (focusMenu) brand.focus();
                 content?.setAttribute('inert', '');
             }
         };
@@ -93,12 +93,21 @@
         };
         toggle.addEventListener('click', () => {
             if (desktop.matches) return;
-            mobileOpen = !mobileOpen;
-            render({ focusMenu: mobileOpen });
+            mobileOpen = true;
+            render({ focusMenu: true });
         });
-        close?.addEventListener('click', closeMenu);
+        brand.addEventListener('click', () => {
+            if (!desktop.matches || root.hasAttribute('data-sidebar-expanded')) {
+                closeMenu();
+                return;
+            }
+            cancelHover();
+            desktopCollapsed = false;
+            savePreference();
+            render();
+        });
         backdrop?.addEventListener('click', closeMenu);
-        sidebar.addEventListener('pointerenter', (event) => {
+        menuItems.addEventListener('pointerenter', (event) => {
             if (!desktop.matches || event.pointerType === 'touch') return;
             pointerOverSidebar = true;
             cancelHover();
@@ -120,8 +129,8 @@
                 render();
             }, 120);
         });
-        sidebar.addEventListener('focusin', () => {
-            if (!desktop.matches) return;
+        sidebar.addEventListener('focusin', (event) => {
+            if (!desktop.matches || event.target === brand) return;
             cancelHover();
             pointerInside = pointerOverSidebar;
             focusInside = true;
@@ -144,7 +153,7 @@
             mobileOpen = false;
             pointerInside = false;
             pointerOverSidebar = false;
-            focusInside = desktop.matches && sidebar.contains(document.activeElement);
+            focusInside = desktop.matches && menuItems.contains(document.activeElement);
             previewDismissed = false;
             sidebar.classList.remove('toggled');
             document.body.classList.remove('sidebar-toggled');

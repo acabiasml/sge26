@@ -39,16 +39,14 @@
         <div class="sge-sidebar-shell">
         <nav class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar" aria-label="{{ __('navigation.main_menu') }}">
             <div class="sge-sidebar-header">
-                <a class="sidebar-brand d-flex align-items-center" href="{{ route('dashboard') }}"
-                    aria-label="Beabá · {{ __('navigation.home') }}" title="Beabá · {{ __('navigation.home') }}">
+                <button id="sidebarBrandControl" class="sidebar-brand" type="button" aria-controls="accordionSidebar"
+                    aria-label="Beabá · {{ __('navigation.toggle_sidebar') }}"
+                    data-expand-label="Beabá · {{ __('navigation.expand_sidebar') }}" data-collapse-label="Beabá · {{ __('navigation.collapse_sidebar') }}"
+                    data-close-label="Beabá · {{ __('navigation.close_sidebar') }}">
                     <span class="sge-sidebar-logo">
                         <img src="{{ asset('brand/logo.png') }}" width="642" height="840" alt="" decoding="async">
                     </span>
                     <span class="sge-sidebar-name">Beabá</span>
-                </a>
-                <button id="sidebarCloseControl" class="btn sge-sidebar-close" type="button" aria-label="{{ __('navigation.close_sidebar') }}" title="{{ __('navigation.close_sidebar') }}">
-                    <i class="fas fa-times d-lg-none" aria-hidden="true"></i>
-                    <i class="fas fa-angle-left d-none d-lg-inline" aria-hidden="true"></i>
                 </button>
             </div>
 
@@ -321,10 +319,9 @@
                 <nav class="navbar navbar-expand navbar-light bg-white topbar sge-bottom-bar" aria-label="{{ __('navigation.utility_bar') }}">
                     <ul class="navbar-nav mx-auto sge-topbar-controls">
                         <li class="nav-item d-lg-none">
-                            <button id="sidebarToggleControl" class="btn btn-link sge-sidebar-toggle" type="button" aria-label="{{ __('navigation.open_sidebar') }}" aria-controls="accordionSidebar"
-                                data-open-label="{{ __('navigation.open_sidebar') }}" data-close-label="{{ __('navigation.close_sidebar') }}"
-                                data-collapse-label="{{ __('navigation.collapse_sidebar') }}">
-                                <i class="fa fa-bars" aria-hidden="true"></i>
+                            <button id="sidebarToggleControl" class="btn btn-link sge-sidebar-toggle" type="button" aria-label="Beabá · {{ __('navigation.open_sidebar') }}"
+                                aria-controls="accordionSidebar" aria-expanded="false" title="Beabá · {{ __('navigation.open_sidebar') }}">
+                                <img src="{{ asset('brand/logo.png') }}" width="24" height="32" alt="" decoding="async">
                             </button>
                         </li>
                         @php
