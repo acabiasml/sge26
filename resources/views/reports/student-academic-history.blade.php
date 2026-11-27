@@ -209,7 +209,7 @@
 <table class="legend-table">
     <tr>
         <th>Legenda</th>
-        <td>N (nota ou conceito, com frequência quando registrada) · CHC (carga horária cursada, em horas) · RF (resultado final) · AP (aproveitamento/progressão global conforme documento de origem). @if($history->education_stage === 'medio')Totais por formação: horas previstas / cursadas.@endif</td>
+        <td>N (nota ou conceito) · CHC (carga horária cursada, em horas) · RF (resultado final) · AP (aproveitamento/progressão global conforme documento de origem). @if($history->education_stage === 'medio')Totais por formação: horas previstas / cursadas.@endif</td>
     </tr>
 </table>
 

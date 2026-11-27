@@ -134,7 +134,7 @@
                         @else<div class="vertical-result"><strong>{{ $year->final_result ?: 'Sem transcrição' }}</strong></div>@endif
                     </td>@endif
                 @else
-                    <td class="center score-cell" style="width:{{ $unitWidth }}%">{{ filled($record?->score_label) ? $record->score_label : '-' }}@if($history->education_stage === 'medio' && filled($record?->frequency_label))<br><small>{{ $record->frequency_label }}</small>@endif</td>
+                    <td class="center score-cell" style="width:{{ $unitWidth }}%">{{ filled($record?->score_label) ? $record->score_label : '-' }}</td>
                     <td class="center score-cell" style="width:{{ $unitWidth }}%">{{ $year->displaysCompletedWorkload() ? $formatHours($record?->completedWorkloadHours($year)) : '-' }}</td>
                 @endif
             @endforeach
