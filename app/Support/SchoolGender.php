@@ -16,7 +16,7 @@ enum SchoolGender: string
         }
 
         return match (Str::of($value)->ascii()->lower()->trim()->rtrim('.')->toString()) {
-            'm', 'masc', 'masculino', 'male' => self::Masculine,
+            'm', 'mas', 'masc', 'masculino', 'male' => self::Masculine,
             'f', 'fem', 'feminino', 'female' => self::Feminine,
             default => null,
         };

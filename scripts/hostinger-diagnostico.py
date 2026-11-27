@@ -296,6 +296,7 @@ with tempfile.TemporaryDirectory() as directory:
                          '\\App\\Support\\OfficialDocumentCompliance::authorizationMessage($school, []) ? "credenciamento a conferir" : "credenciamento conferido no cadastro", PHP_EOL; }\''))
         commands.append(('Preparar rascunhos do histórico escolar', 'php artisan migrate --path=database/migrations/2026_11_24_000001_create_student_history_drafts.php --force --no-ansi'))
         commands.append(('Padronizar o gênero no cadastro de pessoas', 'php artisan migrate --path=database/migrations/2026_11_27_000001_normalize_people_school_gender.php --force --no-ansi'))
+        commands.append(('Completar o gênero do código masculino do sistema legado', 'php artisan migrate --path=database/migrations/2026_11_27_000002_fill_legacy_masculine_school_gender.php --force --no-ansi'))
         commands.append(('Conferir gêneros cadastrados por contagem', 'php -r \'require "vendor/autoload.php"; '
                          '$app = require "bootstrap/app.php"; $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); '
                          '$people = \\Illuminate\\Support\\Facades\\DB::table("people"); '
