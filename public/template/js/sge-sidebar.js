@@ -1,13 +1,6 @@
 (() => {
     const root = document.documentElement;
-    const preferenceKey = 'sge.sidebar.collapsed';
-    let desktopCollapsed = true;
-    try {
-        desktopCollapsed = window.localStorage.getItem(preferenceKey) !== '0';
-    } catch (_) {
-        // A navegação continua funcionando quando o armazenamento está bloqueado.
-    }
-    root.toggleAttribute('data-sidebar-collapsed', desktopCollapsed);
+    root.setAttribute('data-sidebar-collapsed', '');
 
     document.addEventListener('DOMContentLoaded', () => {
         const toggle = document.getElementById('sidebarToggleControl');
@@ -21,9 +14,8 @@
         const desktop = window.matchMedia('(min-width: 992px)');
         let mobileOpen = false;
         let pointerInside = false;
-        let pointerOverSidebar = false;
-        let focusInside = false;
-        let previewDismissed = false;
+        let keyboardInside = false;
+        let touchOpen = false;
         let hoverTimer;
         const cancelHover = () => {
             window.clearTimeout(hoverTimer);
@@ -37,21 +29,14 @@
                 link.setAttribute('aria-label', link.textContent.replace(/\s+/g, ' ').trim());
             }
         });
-        const savePreference = () => {
-            try {
-                window.localStorage.setItem(preferenceKey, desktopCollapsed ? '1' : '0');
-            } catch (_) {}
-        };
         const render = ({ focusMenu = false, restoreFocus = false } = {}) => {
-            const preview = !previewDismissed && (pointerInside || focusInside);
-            const open = desktop.matches ? !desktopCollapsed || preview : mobileOpen;
+            const open = desktop.matches ? pointerInside || keyboardInside || touchOpen : mobileOpen;
             const hadMenuFocus = sidebar.contains(document.activeElement);
             content?.removeAttribute('inert');
             if (restoreFocus || (!desktop.matches && !open && hadMenuFocus)) {
                 const focusTarget = desktop.matches ? brand : toggle;
                 focusTarget.focus({ preventScroll: true });
             }
-            root.toggleAttribute('data-sidebar-collapsed', desktopCollapsed);
             root.toggleAttribute('data-sidebar-expanded', desktop.matches && open);
             document.body.classList.toggle('sge-mobile-menu-open', !desktop.matches && open);
             sidebar.toggleAttribute('inert', !desktop.matches && !open);
@@ -81,11 +66,9 @@
         const closeMenu = ({ restoreFocus = true } = {}) => {
             cancelHover();
             if (desktop.matches) {
-                desktopCollapsed = true;
-                previewDismissed = true;
                 pointerInside = false;
-                focusInside = false;
-                savePreference();
+                keyboardInside = false;
+                touchOpen = false;
             } else {
                 mobileOpen = false;
             }
@@ -96,51 +79,50 @@
             mobileOpen = true;
             render({ focusMenu: true });
         });
-        brand.addEventListener('click', () => {
+        brand.addEventListener('click', (event) => {
             if (!desktop.matches || root.hasAttribute('data-sidebar-expanded')) {
                 closeMenu();
                 return;
             }
             cancelHover();
-            desktopCollapsed = false;
-            savePreference();
+            keyboardInside = event.detail === 0;
+            touchOpen = event.pointerType === 'touch';
+            pointerInside = !keyboardInside && !touchOpen;
             render();
         });
         backdrop?.addEventListener('click', closeMenu);
+        document.addEventListener('pointerdown', (event) => {
+            if (touchOpen && !sidebar.contains(event.target)) closeMenu({ restoreFocus: false });
+        });
+        sidebar.addEventListener('pointerenter', (event) => {
+            if (desktop.matches && pointerInside && event.pointerType !== 'touch') cancelHover();
+        });
         menuItems.addEventListener('pointerenter', (event) => {
             if (!desktop.matches || event.pointerType === 'touch') return;
-            pointerOverSidebar = true;
             cancelHover();
             const reveal = () => {
                 pointerInside = true;
-                previewDismissed = false;
                 render();
             };
             if (root.hasAttribute('data-sidebar-expanded')) reveal();
             else hoverTimer = window.setTimeout(reveal, 180);
         });
-        sidebar.addEventListener('pointerleave', () => {
-            pointerOverSidebar = false;
+        sidebar.addEventListener('pointerleave', (event) => {
+            if (!desktop.matches || event.pointerType === 'touch') return;
             cancelHover();
-            if (!desktop.matches) return;
             hoverTimer = window.setTimeout(() => {
                 pointerInside = false;
-                if (!focusInside) previewDismissed = false;
                 render();
             }, 120);
         });
         sidebar.addEventListener('focusin', (event) => {
             if (!desktop.matches || event.target === brand) return;
-            cancelHover();
-            pointerInside = pointerOverSidebar;
-            focusInside = true;
-            previewDismissed = false;
+            keyboardInside = event.target.matches(':focus-visible');
             render();
         });
         sidebar.addEventListener('focusout', (event) => {
             if (sidebar.contains(event.relatedTarget)) return;
-            focusInside = false;
-            if (!pointerInside) previewDismissed = false;
+            keyboardInside = false;
             render();
         });
         sidebar.querySelectorAll('a[href]').forEach((link) => {
@@ -152,9 +134,8 @@
             cancelHover();
             mobileOpen = false;
             pointerInside = false;
-            pointerOverSidebar = false;
-            focusInside = desktop.matches && menuItems.contains(document.activeElement);
-            previewDismissed = false;
+            keyboardInside = desktop.matches && menuItems.contains(document.activeElement) && document.activeElement.matches(':focus-visible');
+            touchOpen = false;
             sidebar.classList.remove('toggled');
             document.body.classList.remove('sidebar-toggled');
             render();
@@ -165,7 +146,7 @@
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') cancelHover();
             if (event.key === 'Escape' && (desktop.matches
-                ? root.hasAttribute('data-sidebar-expanded') && (desktopCollapsed || sidebar.contains(document.activeElement))
+                ? root.hasAttribute('data-sidebar-expanded')
                 : mobileOpen)) {
                 event.preventDefault();
                 closeMenu({ restoreFocus: !desktop.matches || sidebar.contains(document.activeElement) });
