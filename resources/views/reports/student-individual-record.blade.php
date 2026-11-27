@@ -38,11 +38,12 @@
         .record-conclusion { page-break-inside: avoid; }
         .document-closing { padding-bottom: 0; page-break-inside: avoid; }
         .issue-place-date { margin: 2px 0 0; text-align: center; }
-        .signatures { border-collapse: collapse; margin-top: 2px; page-break-inside: avoid; width: 100%; }
+        .signatures { border-collapse: collapse; margin-top: 2px; page-break-inside: avoid; width: 100%; table-layout: fixed; }
         .signatures td { border: 0; font-size: 11px; padding-top: 40px; text-align: center; width: 50%; }
-        .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 285px; padding-top: 6px; }
+        .signature-line { border-top: .6px solid #111; display: block; margin: 0 14px; padding-top: 6px; }
         .signature-name { display: block; font-weight: 600; }
         .signature-role { display: block; margin-top: 2px; }
+        @include('reports.partials.student-document-chrome-styles')
     </style>
 </head>
 <body>
@@ -180,6 +181,7 @@
 @include('reports.partials.student-identification', [
     'mode' => 'individual',
     'student' => $student,
+    'showStudentEmails' => false,
     'academicYear' => $academicYear,
     'schoolClass' => $schoolClass,
     'courses' => $courses,

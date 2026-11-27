@@ -1416,9 +1416,12 @@ class TeacherDiaryTest extends TestCase
             'verificationUrl' => route('documents.verify', 'TESTE'), 'letterhead' => PdfLetterhead::make($year->school)];
         $html = View::make('reports.student-individual-record', $data)->render();
         $this->assertStringContainsString('Encerrada · Regular', $html);
-        foreach (['123.456.789-01', '177607249507', '12345', '12345678901', '25/07/2013', 'estudante@example.org', 'estudante.demonstracao@ctjj.org', '78696-512', 'Nome Completo da Mãe do Estudante', 'Nome Completo do Pai do Estudante'] as $value) {
+        foreach (['123.456.789-01', '177607249507', '12345', '12345678901', '25/07/2013', '78696-512', 'Nome Completo da Mãe do Estudante', 'Nome Completo do Pai do Estudante'] as $value) {
             $this->assertStringContainsString($value, $html);
         }
+        $this->assertStringNotContainsString('estudante@example.org', $html);
+        $this->assertStringNotContainsString('estudante.demonstracao@ctjj.org', $html);
+        $this->assertStringNotContainsString('Gênero:', $html);
         $this->assertMatchesRegularExpression('/>67<\/td>\s*<td[^>]*>6,67<\/td>/', $html);
         $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
         $signatureBottom = 0;

@@ -12,6 +12,7 @@ final class StudentAcademicHistoryPdf
     public function make(array $data): DocumentPdf
     {
         $data['historyKnowledgeAreas'] = KnowledgeArea::withSubtitlesByName();
+        $data['pageChrome'] = app(StudentDocumentPageLayout::class)->measure($data['history']->title ?: 'Histórico escolar', $data, 18);
         if ($data['history']->education_stage === 'tecnico') {
             return $this->document($data, null);
         }

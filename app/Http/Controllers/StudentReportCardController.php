@@ -6,6 +6,7 @@ use App\Models\IssuedDocument;
 use App\Models\StudentEnrollment;
 use App\Support\OfficialDocumentCompliance;
 use App\Support\PdfLetterhead;
+use App\Support\StudentDocumentPageLayout;
 use App\Support\StudentReportCardBuilder;
 use App\Support\StudentProgressSummary;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -66,14 +67,14 @@ class StudentReportCardController extends Controller
 
         $issuedDocument = $this->issuedDocument($request, $enrollment, $report, 'student-individual-record', 'Ficha individual');
 
-        $pdf = Pdf::loadView('reports.student-individual-record', [
+        $pdf = app(StudentDocumentPageLayout::class)->render('reports.student-individual-record', 'Ficha individual', [
             'report' => $report,
             'scoreView' => $this->scoreView($request, $enrollment),
             'canChooseScoreView' => $this->canChooseScoreView($request, $enrollment),
             'issuedDocument' => $issuedDocument,
             'verificationUrl' => route('documents.verify', $issuedDocument->verification_code),
             'letterhead' => PdfLetterhead::forCourses($report['academicYear']->school, $report['courses'], $report['academicYear']->reference_year),
-        ])->setPaper('a4', 'portrait');
+        ]);
 
         return \App\Support\PdfMetadata::stream($pdf, 'beaba-ficha-individual-'.$enrollment->id.'-'.now()->format('Ymd-His').'.pdf');
     }

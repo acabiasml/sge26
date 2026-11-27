@@ -295,6 +295,14 @@ with tempfile.TemporaryDirectory() as directory:
                          '{ echo $school->name, ": ", $school->registry_medium, " | ", '
                          '\\App\\Support\\OfficialDocumentCompliance::authorizationMessage($school, []) ? "credenciamento a conferir" : "credenciamento conferido no cadastro", PHP_EOL; }\''))
         commands.append(('Preparar rascunhos do histórico escolar', 'php artisan migrate --path=database/migrations/2026_11_24_000001_create_student_history_drafts.php --force --no-ansi'))
+        commands.append(('Padronizar o gênero no cadastro de pessoas', 'php artisan migrate --path=database/migrations/2026_11_27_000001_normalize_people_school_gender.php --force --no-ansi'))
+        commands.append(('Conferir gêneros cadastrados por contagem', 'php -r \'require "vendor/autoload.php"; '
+                         '$app = require "bootstrap/app.php"; $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); '
+                         '$people = \\Illuminate\\Support\\Facades\\DB::table("people"); '
+                         '$students = \\App\\Models\\Person::query()->where(fn ($q) => $q->whereHas("studentEnrollments")->orWhereHas("academicHistories")->orWhereHas("schoolRoles", fn ($roles) => $roles->where("role", \\App\\Models\\PersonSchoolRole::ROLE_STUDENT))); '
+                         'echo json_encode(["estudantes_masculino" => (clone $students)->where("school_gender", "Masculino")->count(), "estudantes_feminino" => (clone $students)->where("school_gender", "Feminino")->count(), '
+                         '"estudantes_sem_informacao" => (clone $students)->whereNull("school_gender")->count(), '
+                         '"fora_do_padrao" => (clone $people)->whereNotNull("school_gender")->whereNotIn("school_gender", ["Masculino","Feminino"])->count()], JSON_THROW_ON_ERROR), PHP_EOL;\''))
         commands.append(('Conferir integridade dos livros digitais', 'php artisan credentials:check --no-ansi'))
         commands.append(('Migrations', 'php artisan migrate:status --no-ansi'))
         expected_commit = os.environ['EXPECTED_COMMIT']

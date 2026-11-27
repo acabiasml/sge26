@@ -72,9 +72,9 @@
     @endforeach
     @if($showCredentialIdentity ?? false)
         <tr><td colspan="6"><strong>CIN / documento oficial:</strong> {{ $identityStudent->schoolPhotoIdentification() ?: '—' }}</td>
-        <td colspan="6"><strong>Gênero:</strong> {{ $identityStudent->school_gender ?: '—' }}@if($identityStudent->school_voter_registration) · <strong>Título de eleitor:</strong> {{ $identityStudent->school_voter_registration }}@elseif($identityStudent->school_voter_exemption) · <strong>{{ __('Título de eleitor — dispensa registrada') }}</strong>@endif</td></tr>
+        <td colspan="6">@if($identityStudent->school_voter_registration)<strong>Título de eleitor:</strong> {{ $identityStudent->school_voter_registration }}@elseif($identityStudent->school_voter_exemption)<strong>{{ __('Título de eleitor — dispensa registrada') }}</strong>@else — @endif</td></tr>
     @endif
-    @if(! $bulletinIdentity && ($identityStudent->personal_email || $identityStudent->institutional_email))
+    @if(! $bulletinIdentity && ($showStudentEmails ?? true) && ($identityStudent->personal_email || $identityStudent->institutional_email))
         <tr>
             <td colspan="6"><strong>E-mail:</strong> {{ $identityStudent->personal_email ?: '-' }}</td>
             <td colspan="6"><strong>E-mail institucional:</strong> {{ $identityStudent->institutional_email ?: '-' }}</td>

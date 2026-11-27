@@ -53,6 +53,26 @@ class AdminScreensTest extends TestCase
         $this->actingAs($admin)->get(route('audit-logs.index'))->assertOk();
     }
 
+    public function test_person_gender_uses_a_selector_and_accepts_only_canonical_choices(): void
+    {
+        $admin = $this->userWithRole(PersonSchoolRole::ROLE_ADMINISTRATOR);
+        $person = Person::query()->create(['full_name' => 'Pessoa de Teste']);
+        $response = $this->actingAs($admin)->get(route('people.edit', $person))->assertOk();
+        $document = new \DOMDocument;
+        @$document->loadHTML('<?xml encoding="UTF-8">'.$response->getContent());
+        $xpath = new \DOMXPath($document);
+        $this->assertSame(['Masculino', 'Feminino'], array_map(fn (\DOMAttr $option) => $option->value,
+            iterator_to_array($xpath->query('//select[@name="school_gender"]/option[@value!=""]/@value'))));
+        $this->assertSame(0, $xpath->query('//input[@name="school_gender"]')->length);
+
+        $form = ['full_name' => $person->full_name, 'school_gender' => 'Feminino'];
+        $this->put(route('people.update', $person), $form)->assertSessionHasNoErrors();
+        $this->assertSame('Feminino', $person->fresh()->school_gender);
+        $this->put(route('people.update', $person), array_replace($form, ['school_gender' => 'fem']))
+            ->assertSessionHasErrors('school_gender');
+        $this->assertSame('Feminino', $person->fresh()->school_gender);
+    }
+
     public function test_manager_sees_only_managed_schools_and_cannot_manage_global_registry(): void
     {
         $school = School::query()->create($this->officialSchoolData(['name' => 'Escola A']));

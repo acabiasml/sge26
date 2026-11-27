@@ -31,6 +31,8 @@
         .vertical-workload span { position: absolute; width: 140px; left: 50%; top: 50%; margin-left: -70px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; }
         .vertical-formation { height: 100px; position: relative; }
         .vertical-formation span { position: absolute; width: 125px; left: 50%; top: 50%; margin-left: -62.5px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; font-weight: 600; }
+        .vertical-formation-compact { height: 68px; }
+        .vertical-formation-compact span { width: 74px; margin-left: -37px; margin-top: -11px; white-space: normal; line-height: 1; }
         .workload-totals { page-break-inside: avoid; margin-top: 6px; }
         .vertical-heading { height: 48px; position: relative; }
         .vertical-heading span { position: absolute; width: 72px; left: 50%; top: 50%; margin-left: -36px; margin-top: -6px; transform: rotate(-90deg); white-space: nowrap; text-align: center; }
@@ -51,24 +53,22 @@
         .score-cell { white-space: normal; }
         .general-total-label { border-right: 0 !important; white-space: normal; }
         .general-total-label-space { border-left: 0 !important; }
-        .studies-table { page-break-inside: auto; }
+        .studies-table { page-break-inside: auto; table-layout: fixed; }
         .studies-table > tbody > tr > td { padding-top: 0; padding-bottom: 0; }
         .studies-table > tbody > tr { page-break-inside: avoid; }
-        .studies-nowrap { white-space: normal; }
-        .last-study-row { page-break-after: avoid; }
-        .history-closing-row { page-break-before: avoid; }
         .studies-table > tbody > tr > .history-closing-cell { border: 0; padding: 0; }
         .notes { margin: 3px 0 0; }
         .legend-table { border-collapse: collapse; font-size: 11px; line-height: 1.06; margin-top: 3px; width: 100%; }
         .legend-table th, .legend-table td { border: .45px solid #d8ccc4; padding: 1px 5px; text-align: left; vertical-align: top; }
         .legend-table th { background: #f3eee9; font-weight: 600; width: 10%; }
         .legend-table td { background: #faf8f6; }
-        .signatures { border-collapse: collapse; margin-top: 6px; page-break-inside: avoid; width: 100%; }
+        .signatures { border-collapse: collapse; margin-top: 6px; page-break-inside: avoid; width: 100%; table-layout: fixed; }
         .history-closing-cell > p.center { margin: 2px 0; }
         .signatures td { border: 0; padding-top: 36px; text-align: center; width: 50%; }
-        .signature-line { border-top: .6px solid #111; display: inline-block; min-width: 220px; padding-top: 6px; }
+        .signature-line { border-top: .6px solid #111; display: block; margin: 0 14px; padding-top: 6px; }
         .signature-name { display: block; font-weight: 600; }
         .signature-role { display: block; margin-top: 2px; }
+        @include('reports.partials.student-document-chrome-styles')
     </style>
 </head>
 <body>
@@ -78,16 +78,38 @@
     $basicFormationReference = $history->education_stage === 'medio'
         ? 'BNCC-EM — Resolução CNE/CP nº 4/2018'
         : 'BNCC — Resolução CNE/CP nº 2/2017';
+    $technicalPeriods = $history->education_stage === 'tecnico' ? ($technicalPeriodDurations ?? collect()) : collect();
+    $studyRows = $technicalPeriods->isNotEmpty()
+        ? $technicalPeriods->map(fn ($period) => [
+            'year' => $period->name,
+            'school' => $history->school?->name,
+            'location' => collect([$history->school?->city, mb_strtoupper($history->school?->state ?? '', 'UTF-8'), 'Brasil'])->filter()->join(' / '),
+            'modality' => 'EPT',
+            'result' => $period->ends_at?->copy()->endOfDay()->isPast() ? 'Concluído' : ($period->starts_at?->isFuture() ? 'A cursar' : 'Cursando'),
+        ])
+        : $history->years->map(fn ($year) => [
+            'year' => collect([$year->year, $year->grade_phase ?: $year->label])->filter()->join(' — '),
+            'class' => $history->education_stage === 'fundamental' ? $year->enrollment?->schoolClass?->name : null,
+            'school' => $year->school_name,
+            'location' => collect([$year->city, mb_strtoupper($year->state ?? '', 'UTF-8'), $year->country])->filter()->join(' / '),
+            'modality' => $year->modality,
+            'result' => $year->final_result,
+            'attendance' => $year->attendance_label,
+        ]);
+    if ($studyRows->isEmpty()) {
+        $studyRows = collect([[]]);
+    }
+    $studyWidths = [18, 54, 14, 14];
 @endphp
 
 @include('reports.partials.letterhead', [
-    'title' => $history->title,
+    'title' => $history->title ?: 'Histórico escolar',
     'letterhead' => $letterhead,
     'issuedDocument' => $issuedDocument,
     'verificationUrl' => $verificationUrl,
 ])
 
-@include('reports.partials.student-identification', ['student' => $person, 'showCredentialIdentity' => isset($isDraft)])
+@include('reports.partials.student-identification', ['student' => $person, 'showCredentialIdentity' => isset($isDraft), 'showStudentEmails' => false])
 
 @php($authorizationLabels = \App\Models\School::documentAuthorizationLabels())
 @foreach($issuedDocument->payload['authorizations'] ?? [] as $key => $act)
@@ -153,6 +175,7 @@
 <div class="studies-section">
 <div class="section-title">Estudos realizados</div>
 <table class="studies-table">
+    <colgroup>@foreach($studyWidths as $width)<col style="width: {{ $width }}%">@endforeach</colgroup>
     <thead>
         <tr>
             <th style="width: 18%;">{{ $history->education_stage === 'tecnico' ? 'Período avaliativo' : 'Ano / Série' }}</th>
@@ -162,30 +185,26 @@
         </tr>
     </thead>
     <tbody>
-        @if($history->education_stage === 'tecnico' && ($technicalPeriodDurations ?? collect())->isNotEmpty())
-        @foreach($technicalPeriodDurations as $period)
-            @php($moduleResult = $period->ends_at?->copy()->endOfDay()->isPast() ? 'Concluído' : ($period->starts_at?->isFuture() ? 'A cursar' : 'Cursando'))
-            <tr data-pdf-content="history" @if($loop->last) class="last-study-row" @endif>
-                <td class="studies-nowrap">{{ $period->name }}</td>
-                <td class="studies-nowrap"><strong>{{ $history->school?->name ?: '-' }}</strong>@if($location = collect([$history->school?->city, $history->school?->state ? mb_strtoupper($history->school->state, 'UTF-8') : null, 'Brasil'])->filter()->join(' / ')) — {{ $location }}@endif</td>
-                <td>EPT</td>
-                <td>{{ $moduleResult }}</td>
+        @foreach($studyRows as $study)
+            @php($closingStudy = $loop->last)
+            @if($closingStudy)
+                <tr class="history-closing-row"><td colspan="4" class="history-closing-cell">
+                <table class="studies-table">
+                    <colgroup>@foreach($studyWidths as $width)<col style="width: {{ $width }}%">@endforeach</colgroup>
+                    <tbody>
+            @endif
+            <tr data-pdf-content="history">
+                @if($study)
+                    <td style="width: {{ $studyWidths[0] }}%">{{ $study['year'] ?: '-' }}@if(filled($study['class'] ?? null))<br>{{ $study['class'] }}@endif</td>
+                    <td style="width: {{ $studyWidths[1] }}%"><strong>{{ $study['school'] ?: '-' }}</strong>@if($study['location']) — {{ $study['location'] }}@endif</td>
+                    <td style="width: {{ $studyWidths[2] }}%">{{ $study['modality'] ?: '-' }}</td>
+                    <td style="width: {{ $studyWidths[3] }}%">{{ $study['result'] ?: '-' }}@if(filled($study['attendance'] ?? null))<br>{{ __('Frequência') }} {{ $study['attendance'] }}@endif</td>
+                @else
+                    <td colspan="4">Nenhum estudo registrado.</td>
+                @endif
             </tr>
-        @endforeach
-        @else
-        @foreach($history->years as $year)
-            <tr data-pdf-content="history" @if($loop->last) class="last-study-row" @endif>
-                <td class="studies-nowrap">{{ collect([$year->year ?: null, $year->grade_phase ?: $year->label])->filter()->join(' — ') ?: '-' }}@if($history->education_stage === 'fundamental' && ($className = $year->enrollment?->schoolClass?->name))<br>{{ $className }}@endif</td>
-                <td class="studies-nowrap"><strong>{{ $year->school_name ?: '-' }}</strong>@if($location = collect([$year->city, $year->state ? mb_strtoupper($year->state, 'UTF-8') : null, $year->country])->filter()->join(' / ')) — {{ $location }}@endif</td>
-                <td>{{ $year->modality ?: '-' }}</td>
-                <td>{{ $year->final_result ?: '-' }}@if(filled($year->attendance_label))<br>{{ __('Frequência') }} {{ $year->attendance_label }}@endif</td>
-            </tr>
-        @endforeach
-        @endif
-        @if($history->years->isEmpty() && ($technicalPeriodDurations ?? collect())->isEmpty())
-            <tr class="last-study-row" data-pdf-content="history"><td colspan="4">Nenhum estudo registrado.</td></tr>
-        @endif
-    <tr class="history-closing-row"><td colspan="4" class="history-closing-cell">
+            @if($closingStudy)
+                </tbody></table>
 
 <table class="legend-table">
     <tr>
@@ -207,6 +226,8 @@
     </tr>
 </table>
 </td></tr>
+            @endif
+        @endforeach
 </tbody>
 </table>
 </div>

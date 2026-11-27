@@ -16,6 +16,7 @@ on:
           - school-diary-completion
           - diary-restoration-proposal
           - class-approval-audit
+          - student-document-layout
       approval_year:
         description: Ano letivo para conferência do panorama
         type: string
@@ -23,7 +24,7 @@ on:
         description: SHA-256 do primeiro nome do docente, em minúsculas
         type: string
       approval_report_key:
-        description: Chave pública PEM em base64 para o relatório do panorama
+        description: Chave pública PEM em base64 para o panorama ou a revisão de PDFs
         type: string
   push:
     branches: [main]

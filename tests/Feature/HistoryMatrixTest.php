@@ -182,14 +182,14 @@ class HistoryMatrixTest extends TestCase
             'address' => 'Rua da Escola', 'number' => '100', 'district' => 'Centro',
             'city' => 'Poxoréu', 'state' => 'MT',
         ]);
-        $pdf = Pdf::loadView('reports.student-academic-history', [
+        $pdf = app(StudentAcademicHistoryPdf::class)->make([
             'history' => $history, 'person' => $person, 'issuedDocument' => $issued,
             'verificationUrl' => 'https://ctjj.org/verificar/PREVIA',
             'letterhead' => [
                 'lines' => ['Centro Técnico Juvenil de Jarudore', 'Certificado CEBAS Educação', 'Escola de Jarudore', 'CNPJ e INEP', 'Autorização da escola'],
                 'footer_lines' => ['Tel.: (66) 3000-0000 | E-mail: escola@example.org | Site: ctjj.org', 'Endereço: Rua da Escola, 100, Poxoréu-MT'],
             ],
-        ])->setPaper('a4', 'portrait');
+        ]);
 
         $signatureBottom = null;
         $footerTop = null;

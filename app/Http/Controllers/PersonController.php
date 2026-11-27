@@ -7,6 +7,7 @@ use App\Models\PersonSchoolRole;
 use App\Models\School;
 use App\Support\BrazilianStates;
 use App\Support\PersonTrajectory;
+use App\Support\SchoolGender;
 use App\Support\SocioeconomicProfile;
 use App\Support\UnifiedStudentHistorySynchronizer;
 use Illuminate\Http\RedirectResponse;
@@ -254,7 +255,7 @@ class PersonController extends Controller
             'nationality' => [$requiresCompleteActiveData ? 'required' : 'nullable', 'string', 'max:255'],
             'school_cin_confirmed' => ['sometimes', 'boolean'],
             'school_identity_document' => ['nullable', 'string', 'max:100'],
-            'school_gender' => ['nullable', 'string', 'max:60'],
+            'school_gender' => ['nullable', Rule::enum(SchoolGender::class)],
             'school_voter_registration' => ['nullable', 'string', 'max:50'],
             'school_voter_exemption' => ['nullable', 'string', 'max:150'],
             'student_inep' => ['nullable', 'string', 'max:255'],

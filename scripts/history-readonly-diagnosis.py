@@ -18,7 +18,7 @@ def main():
     query = json.loads(config.read_text()) if config.exists() else {'person_id': 0}
     requested_scope = os.environ.get('HISTORY_QUERY_SCOPE', 'configured')
     if requested_scope != 'configured':
-        if requested_scope not in ('person-record-verification', 'person-record-web-verification', 'enrollment-record-web-verification', 'history-pdf-verification', 'high-school-cohorts', 'school-diary-completion', 'diary-restoration-proposal', 'class-approval-audit'):
+        if requested_scope not in ('person-record-verification', 'person-record-web-verification', 'enrollment-record-web-verification', 'history-pdf-verification', 'high-school-cohorts', 'school-diary-completion', 'diary-restoration-proposal', 'class-approval-audit', 'student-document-layout'):
             raise ValueError('Escopo manual inválido.')
         query['scope'] = requested_scope
     scope = query.get('scope', 'student')
@@ -30,10 +30,12 @@ def main():
         approval_teacher = os.environ.get('APPROVAL_TEACHER_HASH', '')
         if requested_scope != scope or not re.fullmatch(r'(?:19|20)[0-9]{2}', approval_year) or not re.fullmatch(r'[0-9a-f]{64}', approval_teacher):
             raise ValueError('Informe ano e seletor do docente para a conferência do panorama.')
+    if requested_scope in ('class-approval-audit', 'student-document-layout'):
         key_pem = base64.b64decode(os.environ['APPROVAL_REPORT_KEY'], validate=True)
     public = serialization.load_pem_public_key(key_pem)
     sources = {'technical-credential-verification': 'scripts/technical-credential-query.php.stub',
                'student-identification-layout': 'scripts/student-identification-layout-query.php.stub',
+               'student-document-layout': 'scripts/student-identification-layout-query.php.stub',
                'person-record-web-verification': 'scripts/person-record-web-verification.php.stub',
                'enrollment-record-web-verification': 'scripts/person-record-web-verification.php.stub',
                'technical-cad-reconstruction': 'scripts/technical-cad-reconstruction-query.php.stub',
@@ -94,6 +96,8 @@ def main():
         if not isinstance(ids, list) or not 1 <= len(ids) <= 10 or len(set(ids)) != len(ids) or any(type(i) is not int or i <= 0 for i in ids):
             raise ValueError('Selecione até dez pessoas para a conferência técnica.')
     source = pathlib.Path(sources[scope]).read_text()
+    if scope == 'student-document-layout':
+        source = source.replace('__SCHOOL_DOCUMENT_LAYOUT__', 'history-and-individual-record')
     if scope == 'class-approval-audit':
         source = source.replace('__APPROVAL_YEAR__', approval_year).replace('__APPROVAL_TEACHER_HASH__', approval_teacher)
     source = source.replace('__ENROLLMENT_ID__', str(query['enrollment_id'] if scope == 'enrollment-record-web-verification' else 0))
@@ -205,7 +209,7 @@ def main():
                     if time.monotonic() >= deadline:
                         raise RuntimeError('O deploy da consulta ainda não chegou ao servidor.')
                     time.sleep(10)
-            stdin, stdout, stderr = client.exec_command('cd /home/u810745753/domains/ctjj.org/public_html/sge && php -d memory_limit=1G', timeout=360 if scope == 'student-identification-layout' else 180 if scope in ('technical-credential-verification', 'legacy-outcome-audit', 'history-pdf-verification', 'school-diary-completion', 'diary-restoration-proposal', 'diary-supplement', 'class-approval-audit') else 60)
+            stdin, stdout, stderr = client.exec_command('cd /home/u810745753/domains/ctjj.org/public_html/sge && php -d memory_limit=1G', timeout=360 if scope in ('student-identification-layout', 'student-document-layout') else 180 if scope in ('technical-credential-verification', 'legacy-outcome-audit', 'history-pdf-verification', 'school-diary-completion', 'diary-restoration-proposal', 'diary-supplement', 'class-approval-audit') else 60)
             stdin.write(source)
             stdin.flush()
             stdin.channel.shutdown_write()

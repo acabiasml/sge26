@@ -12,10 +12,11 @@ if ($db->getDriverName() === 'mysql') {
 $db->beginTransaction();
 try {
     $query = json_decode(file_get_contents('scripts/history-query.json'), true, flags: JSON_THROW_ON_ERROR);
+    $documentsOnly = '__SCHOOL_DOCUMENT_LAYOUT__' === 'history-and-individual-record';
     $reviewClosing = ($query['review_scope'] ?? null) === 'report-cards-and-histories';
     $fields = ['full_name', 'social_name', 'cpf', 'student_inep', 'legacy_code', 'nis', 'birth_city', 'birth_state',
         'nationality', 'phone', 'personal_email', 'institutional_email', 'mother_name', 'father_name',
-        'address', 'number', 'address_complement', 'district', 'city', 'state', 'postal_code'];
+        'address', 'number', 'address_complement', 'district', 'city', 'state', 'postal_code', 'school_identity_document', 'school_voter_registration'];
     $maxima = [];
     $fontPdf = Barryvdh\DomPDF\Facade\Pdf::loadHTML('<style>'.view('reports.partials.letterhead-styles')->render().'</style>Prévia');
     $fontPdf->render();
@@ -71,13 +72,17 @@ try {
     $results = [];
     $document = new App\Models\IssuedDocument(['issued_at' => now(), 'verification_code' => 'PREVIA-LAYOUT-SEM-EMISSAO']);
     $document->setRelation('issuedBy', null);
-    $render = static function (string $view, array $data, array $metadata) use (&$results, $document, $reviewClosing, $snapshotMatrixIds): void {
+    $render = static function (string $view, array $data, array $metadata) use (&$results, $document, $reviewClosing, $snapshotMatrixIds, $documentsOnly): void {
+        if ($documentsOnly && ! in_array($view, ['reports.student-academic-history', 'reports.student-individual-record', 'reports.technical-course-history'], true)) return;
         if ($reviewClosing && ! in_array($view, ['reports.student-report-card', 'reports.class-report-cards', 'reports.student-academic-history', 'reports.student-individual-record'], true) && ! in_array($metadata['enrollment_id'] ?? null, [28, 143], true)) return;
         try {
         $data += ['issuedDocument' => $document, 'verificationUrl' => '', 'scoreView' => 'numeros', 'canChooseScoreView' => false];
-        $pdf = $view === 'reports.student-academic-history'
-            ? app(App\Support\StudentAcademicHistoryPdf::class)->make($data)
-            : Barryvdh\DomPDF\Facade\Pdf::loadView($view, $data)->setPaper('a4', 'portrait');
+        $pdf = match ($view) {
+            'reports.student-academic-history' => app(App\Support\StudentAcademicHistoryPdf::class)->make($data + ['isDraft' => false]),
+            'reports.student-individual-record' => app(App\Support\StudentDocumentPageLayout::class)->render($view, 'Ficha individual', $data),
+            'reports.technical-course-history' => app(App\Support\StudentDocumentPageLayout::class)->render($view, $data['title'], $data),
+            default => Barryvdh\DomPDF\Facade\Pdf::loadView($view, $data)->setPaper('a4', 'portrait'),
+        };
         $overflow = [];
         $academicCells = [];
         $contentPages = $signaturePages = $signatureBottoms = $footerTops = [];
@@ -85,7 +90,8 @@ try {
         $birthplaceLines = 0;
         $signatureBottom = 0;
         $footerTop = INF;
-        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => static function ($frame, $canvas) use (&$overflow, &$identificationHeight, &$signatureBottom, &$footerTop, &$birthplaceLines, &$contentPages, &$signaturePages, &$signatureBottoms, &$footerTops, &$academicCells): void {
+        $headerBounds = $footerBounds = $bodyBounds = [];
+        $pdf->getDomPDF()->setCallbacks([['event' => 'end_frame', 'f' => static function ($frame, $canvas) use (&$overflow, &$identificationHeight, &$signatureBottom, &$footerTop, &$birthplaceLines, &$contentPages, &$signaturePages, &$signatureBottoms, &$footerTops, &$academicCells, &$headerBounds, &$footerBounds, &$bodyBounds): void {
             $node = $frame->get_node();
             if (! $node instanceof DOMElement) return;
             $page = $canvas->get_page_number();
@@ -93,6 +99,15 @@ try {
             if ($node->hasAttribute('data-pdf-signatures')) $signaturePages[$node->getAttribute('data-pdf-signatures')][$page] = true;
             $nodeClass = $node->getAttribute('class');
             $border = $frame->get_border_box();
+            if ($node->tagName === 'header' && str_contains($nodeClass, 'letterhead')) $headerBounds[$page] = [$border[1], $border[1] + $border[3]];
+            if ($nodeClass === 'document-footer') $footerBounds[$page] = [$border[1], $border[1] + $border[3]];
+            if ($node->tagName === 'tr' || $node->tagName === 'p' || $nodeClass === 'section-title') {
+                $owner = $node->parentNode;
+                while ($owner instanceof DOMElement && ! in_array($owner->tagName, ['header', 'footer'], true)) $owner = $owner->parentNode;
+                if (! $owner instanceof DOMElement) {
+                    $bodyBounds[$page] = [min($bodyBounds[$page][0] ?? INF, $border[1]), max($bodyBounds[$page][1] ?? 0, $border[1] + $border[3])];
+                }
+            }
             if ($nodeClass === 'signature-role') $signatureBottoms[$page] = max($signatureBottoms[$page] ?? 0, $border[1] + $border[3]);
             if ($nodeClass === 'document-footer') $footerTops[$page] = $border[1];
             if ($nodeClass === 'signature-role') $signatureBottom = max($signatureBottom, $border[1] + $border[3]);
@@ -124,10 +139,19 @@ try {
         $footerGaps = [];
         foreach ($signatureBottoms as $page => $bottom) $footerGaps[$page] = ($footerTops[$page] ?? 0) - $bottom;
         $footerCollisions = array_filter($footerGaps, static fn ($gap) => $gap < 5);
-        $keepPdf = ! $reviewClosing || ($metadata['snapshot'] ?? false) || in_array($metadata['matrix_id'] ?? null, $snapshotMatrixIds, true) || $view === 'reports.class-report-cards' || $orphanPages || $overflow || $footerCollisions;
+        $pageHeight = $pdf->getDomPDF()->getCanvas()->get_height();
+        $chromeIssues = [];
+        foreach ($bodyBounds as $page => [$top, $bottom]) {
+            if (! isset($headerBounds[$page], $footerBounds[$page])
+                || $headerBounds[$page][0] < 0 || $footerBounds[$page][1] > $pageHeight
+                || $top < $headerBounds[$page][1] + 2 || $bottom > $footerBounds[$page][0] - 2) {
+                $chromeIssues[] = ['page' => $page, 'body' => [$top, $bottom], 'header' => $headerBounds[$page] ?? null, 'footer' => $footerBounds[$page] ?? null];
+            }
+        }
+        $keepPdf = ! $documentsOnly && (! $reviewClosing || ($metadata['snapshot'] ?? false) || in_array($metadata['matrix_id'] ?? null, $snapshotMatrixIds, true) || $view === 'reports.class-report-cards' || $orphanPages || $overflow || $footerCollisions);
         $results[] = $metadata + ['view' => $view, 'pages' => $pdf->getDomPDF()->getCanvas()->get_page_count(),
             'academic_cells' => $academicCells, 'signature_pages' => $signaturePages, 'content_pages' => $contentPages, 'orphan_signature_pages' => $orphanPages, 'signature_footer_gaps_pt' => $footerGaps, 'footer_collisions' => $footerCollisions,
-            'identity_height_pt' => $identificationHeight, 'birthplace_lines' => $birthplaceLines, 'signature_footer_gap_pt' => is_finite($footerTop) ? $footerTop - $signatureBottom : null, 'identity_overflow' => $overflow, 'pdf_base64' => $keepPdf ? base64_encode($bytes) : null];
+            'identity_height_pt' => $identificationHeight, 'birthplace_lines' => $birthplaceLines, 'signature_footer_gap_pt' => is_finite($footerTop) ? $footerTop - $signatureBottom : null, 'identity_overflow' => $overflow, 'chrome_issues' => $chromeIssues, 'pdf_base64' => $keepPdf ? base64_encode($bytes) : null];
         unset($pdf);
         gc_collect_cycles();
         } catch (Throwable $error) {
@@ -172,7 +196,7 @@ try {
             ->unique(fn ($e) => $e['enrollment']->id);
         $summary['enrollment_combinations'] = ['count' => $enrollments->count(), 'mean' => $mean,
             'min' => $enrollments->min('components'), 'max' => $enrollments->max('components')];
-        if ($reviewClosing) {
+        if ($reviewClosing || $documentsOnly) {
             foreach (['class_and_stage', 'class_and_courses'] as $field) {
                 $target = App\Models\StudentEnrollment::with('courses')->where('school_class_id', $academicMaxima[$field]['id'])->orderByDesc('id')->first();
                 if ($target) $samples->push(['enrollment' => $target, 'components' => $target->courses->sum(fn ($c) => $matrixCounts[$c->id] ?? 0)]);
@@ -200,6 +224,9 @@ try {
     }
     $histories = App\Models\StudentAcademicHistory::query()->withCount('components')->whereHas('school')->whereHas('components')->orderBy('components_count')->get();
     $historySelected = collect([$histories->first(), $histories[intdiv($histories->count(), 2)] ?? null, $histories->last()])->filter()->unique('id');
+    if ($documentsOnly) {
+        $historySelected = $historySelected->concat($histories->groupBy('education_stage')->map->last())->unique('id');
+    }
     $snapshotHistoryIds = $historySelected->pluck('id')->all();
     foreach ($reviewClosing ? $histories : $historySelected as $history) {
         $history->load('school', 'years.records', 'components.records.year');
@@ -209,6 +236,18 @@ try {
             'historyKnowledgeAreas' => App\Models\KnowledgeArea::withSubtitlesByName(),
             'letterhead' => App\Support\PdfLetterhead::make($history->school, $history->education_stage)],
             ['scenario' => 'historico_real_identificacao_extrema_sintetica', 'history_id' => $history->id, 'snapshot' => in_array($history->id, $snapshotHistoryIds, true), 'stage' => $history->education_stage, 'components' => $history->components_count, 'years' => $history->years->count()]);
+    }
+    if ($documentsOnly) {
+        $technical = App\Models\StudentEnrollment::whereHas('courses.technicalProgram')->with(['courses.technicalProgram', 'schoolClass.academicYear.school'])->first();
+        if ($technical && ($course = $technical->courses->first(fn ($course) => $course->technicalProgram))) {
+            $technical->setRelation('student', $worst);
+            $state = app(App\Support\TechnicalCredentialEligibility::class)->evaluate($technical, $course);
+            $render('reports.technical-course-history', [
+                'enrollment' => $technical, 'course' => $course, 'modules' => collect($state['modules']),
+                'title' => 'Histórico para certificação · '.$course->technicalProgram->name,
+                'letterhead' => App\Support\PdfLetterhead::make($technical->schoolClass->academicYear->school, 'tecnico'),
+            ], ['scenario' => 'historico_de_certificacao_identificacao_extrema_sintetica']);
+        }
     }
     echo json_encode(['as_of' => now()->toIso8601String(), 'read_only' => true, 'students_scanned' => $people->count(),
         'academic_counts' => ['components' => App\Models\CurriculumComponent::count(), 'classes' => App\Models\SchoolClass::count(), 'matrices' => $matrices->count(), 'histories' => $histories->count()],

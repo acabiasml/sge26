@@ -117,7 +117,8 @@
         <tr>
             @php($previous = $matrixComponents->get($loop->index - 1))
             @if(! $previous || $previous->formation !== $component->formation)
-                <td rowspan="{{ $matrixComponents->where('formation', $component->formation)->count() }}" class="center formation-cell" style="width:{{ $formationWidth }}%"><div class="vertical-formation"><span>{{ $component->formation ?: '-' }}</span></div></td>
+                @php($formationRows = $matrixComponents->where('formation', $component->formation)->count())
+                <td rowspan="{{ $formationRows }}" class="center formation-cell" style="width:{{ $formationWidth }}%"><div class="vertical-formation{{ $elementary && $formationRows <= 3 ? ' vertical-formation-compact' : '' }}"><span>{{ $component->formation ?: '-' }}</span></div></td>
             @endif
             @if(! $previous || $previous->formation !== $component->formation || $previous->knowledge_area !== $component->knowledge_area)
                 <td rowspan="{{ $matrixComponents->filter(fn ($item) => $item->formation === $component->formation && $item->knowledge_area === $component->knowledge_area)->count() }}" class="area-label" style="width:{{ $areaWidth }}%">@include('partials.knowledge-area-label', ['labelName' => $component->knowledge_area ?: '-', 'labelArea' => $historyKnowledgeAreas->get(mb_strtolower(trim($component->knowledge_area ?? '')))])</td>

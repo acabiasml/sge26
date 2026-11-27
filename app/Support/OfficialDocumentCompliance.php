@@ -155,8 +155,8 @@ class OfficialDocumentCompliance
     public static function historyIdentityMessage(Person $student): ?string
     {
         if (blank($student->schoolPhotoIdentification()) || blank($student->nationality) || blank($student->birth_city)
-            || blank($student->birth_state) || blank($student->school_gender) || ! $student->birth_date) {
-            return __('Confira a identificação com foto, o gênero, a nacionalidade e os dados de nascimento na ficha do estudante.');
+            || blank($student->birth_state) || ! $student->birth_date) {
+            return __('Confira a identificação com foto, a nacionalidade e os dados de nascimento no cadastro da pessoa.');
         }
         $age = $student->birth_date->age;
         if ($age >= 18 && $age < 70 && Str::contains(Str::lower(Str::ascii($student->nationality)), 'brasil')

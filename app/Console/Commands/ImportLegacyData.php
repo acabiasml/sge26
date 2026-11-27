@@ -339,6 +339,9 @@ class ImportLegacyData extends Command
             'birth_city' => $this->title($legacyUser['naturalidade'] ?? null),
             'birth_state' => $this->stateOrNull($legacyUser['naturaif'] ?? null),
             'nationality' => $this->title($legacyUser['nacionalidade'] ?? null),
+            'school_gender' => $person->school_gender ?? (($legacyUser['tipo'] ?? null) === 'estud'
+                ? \App\Support\SchoolGender::fromRecordedValue($legacyUser['sexo'] ?? null)?->value
+                : null),
             'mother_name' => $this->title($legacyUser['genitora'] ?? $person->mother_name),
             'father_name' => $this->title($legacyUser['genitor'] ?? $person->father_name),
             'institutional_email' => $institutionalEmail ?? $person->institutional_email,

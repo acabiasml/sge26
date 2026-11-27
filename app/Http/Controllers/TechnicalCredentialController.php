@@ -293,10 +293,10 @@ class TechnicalCredentialController extends Controller
         ];
         $render = function (IssuedDocument $document) use ($enrollment, $course, $modules, $title, $school) {
             $section = isset($document->payload['module_key']) ? $modules->only([$document->payload['module_key']]) : $modules;
-            $pdf = Pdf::loadView('reports.technical-course-history', [
+            $pdf = app(\App\Support\StudentDocumentPageLayout::class)->render('reports.technical-course-history', $title, [
                 'enrollment' => $enrollment, 'course' => $course, 'modules' => $section, 'title' => $title,
                 'issuedDocument' => $document, 'letterhead' => PdfLetterhead::make($school, AcademicCourse::STAGE_TECHNICAL),
-            ])->setPaper('a4', 'portrait');
+            ]);
 
             return PdfMetadata::stream($pdf, 'beaba-historico-tecnico-'.$course->id.'-'.$enrollment->id.'.pdf');
         };
