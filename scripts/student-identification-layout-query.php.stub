@@ -249,8 +249,16 @@ try {
             ], ['scenario' => 'historico_de_certificacao_identificacao_extrema_sintetica']);
         }
     }
+    $legacyGenders = $documentsOnly ? App\Models\Person::query()
+        ->whereNull('school_gender')
+        ->where(fn ($people) => $people->whereHas('studentEnrollments')->orWhereHas('academicHistories')
+            ->orWhereHas('schoolRoles', fn ($roles) => $roles->where('role', App\Models\PersonSchoolRole::ROLE_STUDENT)))
+        ->get(['id', 'legacy_source', 'legacy_metadata'])->groupBy(fn ($person) => $person->legacy_source ?: 'sem fonte')
+        ->map(fn ($students) => $students->countBy(fn ($student) => data_get($student->legacy_metadata, 'sexo') ?: 'sem valor'))
+        : null;
     echo json_encode(['as_of' => now()->toIso8601String(), 'read_only' => true, 'students_scanned' => $people->count(),
         'academic_counts' => ['components' => App\Models\CurriculumComponent::count(), 'classes' => App\Models\SchoolClass::count(), 'matrices' => $matrices->count(), 'histories' => $histories->count()],
+        'unmapped_legacy_genders' => $legacyGenders,
         'maxima' => $maxima, 'academic_maxima' => $academicMaxima, 'matrix_distribution' => $summary, 'empty_matrices' => $matrices->where('components_count', 0)->count(),
         'results' => $results], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 } finally {
